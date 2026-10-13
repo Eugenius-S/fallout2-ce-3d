@@ -1,0 +1,20 @@
+# Build and runtime outputs
+build/
+runtime/
+runs/
+out/
+
+# Vendored upstream sources and their generated game data
+vendor/
+
+# Runtime binaries and artifacts are never committed
+*.dll
+*.exe
+*.addon64
+*.dat
+*.log
+*.dmp
+
+# Local Python environment for the pinned exporter
+.venv/
+__pycache__/

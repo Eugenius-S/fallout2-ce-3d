@@ -1,0 +1,45 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-12T22:50:00Z",
+  "note": "Pinned upstream sources for the native DLSS5 prototype. Commits match docs/baseline/native-prototype-2026-10-12.json exactly.",
+  "sources": [
+    {
+      "name": "fallout2-first-person",
+      "url": "https://github.com/Apolotary/fallout2-first-person",
+      "commit": "0da1cd449f1dc7f2f6986ff7e8728a4b6ae20584",
+      "local_path": "vendor/fallout2-first-person",
+      "licenses": ["third-party-notices/LICENSE.fallout2-first-person", "third-party-notices/NOTICE.fallout2-first-person.md", "third-party-notices/LICENSE-fallout2-ce.md"]
+    },
+    {
+      "name": "nvidia-dlss-headers",
+      "url": "https://github.com/NVIDIA/DLSS",
+      "commit": "374959484e79a640feaba44c93ac8cfb0a03f5b5",
+      "local_path": "vendor/ngx",
+      "used": ["include/nvsdk_ngx.h", "include/nvsdk_ngx_defs.h", "include/nvsdk_ngx_helpers.h", "include/nvsdk_ngx_helpers_d3d.h", "lib/Windows_x86_64/x64/nvsdk_ngx_d.lib"],
+      "licenses": ["third-party-notices/LICENSE.nvidia-dlss.txt"]
+    },
+    {
+      "name": "dlss5-feeder-reference",
+      "url": "https://github.com/jlrouzies-fr/DLSS5-Feeder",
+      "commit": "3f624855276c4bde55145c712782477639b30e85",
+      "local_path": "vendor/feeder-reference",
+      "used": ["host/dlss5-feed-host64.cpp (reference only, no code copied verbatim without notice)"],
+      "licenses": ["third-party-notices/LICENSE.dlss5-feeder"]
+    },
+    {
+      "name": "nlohmann-json",
+      "url": "https://github.com/nlohmann/json",
+      "tag": "v3.11.3",
+      "commit": "9cca280a4d0ccf0c08f47a99aa71d1b0e52f8d03",
+      "local_path": "vendor/json",
+      "licenses": ["third-party-notices/LICENSE.nlohmann-json.txt"]
+    }
+  ],
+  "toolchain": {
+    "generator": "Visual Studio 18 2026",
+    "msvc": "14.40.33807 (v143 toolset, VS BuildTools 18.2.1)",
+    "cmake": "4.4.4 (installed 2026-10-12 via winget; was missing)",
+    "python": "3.14.3",
+    "git": "2.54.0.windows.1"
+  }
+}

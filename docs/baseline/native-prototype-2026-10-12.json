@@ -1,0 +1,85 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-12T12:27:21.0318580Z",
+  "status": "planning_snapshot_not_native_runtime_validation",
+  "steam_root": "D:\\SteamLibrary\\steamapps\\common\\Fallout 2",
+  "runtime_source": "E:\\Games\\Fallout 2\\host64",
+  "planned_project": "E:\\Projects\\fallout2-native-dlss5",
+  "old_project_head": "e8e5f714057d317fecb9e69d2fb26904761f3c11",
+  "old_project_dirty_paths": [
+    "ReShade.ini",
+    "ReShadePreset.ini",
+    "dlss5-feed.cfg",
+    "fallout2.cfg",
+    "host64/ReShade.ini"
+  ],
+  "gpu": "NVIDIA GeForce RTX 5070",
+  "driver": "617.14",
+  "steam_files": [
+    {
+      "name": "master.dat",
+      "bytes": 333177805,
+      "sha256": "9b096d3035edafd4077deeb8ee7877a803b9db98497aa4596624b5c058a84711"
+    },
+    {
+      "name": "critter.dat",
+      "bytes": 166951131,
+      "sha256": "da83d615967c0bac41fbc50e6b86b3088401ff69ed9d8b2e5be1d6ac0c125bcd"
+    },
+    {
+      "name": "patch000.dat",
+      "bytes": 2355526,
+      "sha256": "16122a47d9fa1fb2f490d1fb38bb1b7eb8ca8edcf2c06a2c9d78beed812ff564"
+    },
+    {
+      "name": "fallout2.cfg",
+      "bytes": 962,
+      "sha256": "cdb66f765ecd7df408edaf9a7842401ba246224527559706962038940c725d7a"
+    }
+  ],
+  "runtime_files": [
+    {
+      "name": "dxgi.dll",
+      "bytes": 5592064,
+      "file_version": "6.8.0.2155",
+      "sha256": "0cee63f9c9f13f3ac909c5b4903f4dbb4b719a7ab3b4f13b0deaf83c814b94f7"
+    },
+    {
+      "name": "nvngx_dlss.dll",
+      "bytes": 58956912,
+      "file_version": "310,9,1,0",
+      "sha256": "3975567b8943c53acce397f2b72380092f84f162d00b0d2c7d08a1025c563983"
+    },
+    {
+      "name": "nvngx_dlssnr.dll",
+      "bytes": 165840496,
+      "file_version": "310,8,0,0",
+      "sha256": "e16bcf15e16e13f527491cdf7845b2fe6521a738d8f7c9c721866a8496e1fc8e"
+    },
+    {
+      "name": "renodx-dlss5.addon64",
+      "bytes": 655360,
+      "file_version": "0.2026.0828.2110",
+      "sha256": "a1b78052b58fc285f018362ac8652df8a01d31be9f3ecbb9e31776866ead5887"
+    }
+  ],
+  "sources": [
+    {
+      "repository": "https://github.com/Apolotary/fallout2-first-person",
+      "commit": "0da1cd449f1dc7f2f6986ff7e8728a4b6ae20584"
+    },
+    {
+      "repository": "https://github.com/NVIDIA/DLSS",
+      "commit": "374959484e79a640feaba44c93ac8cfb0a03f5b5"
+    },
+    {
+      "repository": "https://github.com/jlrouzies-fr/DLSS5-Feeder",
+      "commit": "3f624855276c4bde55145c712782477639b30e85"
+    },
+    {
+      "repository": "https://github.com/nlohmann/json",
+      "tag": "v3.11.3",
+      "commit": "9cca280a4d0ccf0c08f47a99aa71d1b0e52f8d03"
+    }
+  ]
+}
