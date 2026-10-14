@@ -85,17 +85,19 @@ void appendQuad(std::vector<SVertex>& vb, const float p0[3], const float p1[3],
 
 } // namespace
 
-void Render::initialize(Gpu& gpu, RenderMode mode, uint32_t width, uint32_t height) {
+void Render::initialize(Gpu& gpu, RenderMode mode, CameraKind cameraKind, uint32_t width,
+                        uint32_t height) {
     gpu_ = &gpu;
     mode_ = mode;
+    cameraKind_ = cameraKind;
     width_ = width;
     height_ = height;
     std::fprintf(stderr, "[init] render.initialize entry removed reason: 0x%08lX\n",
                  static_cast<unsigned long>(gpu.device()->GetDeviceRemovedReason()));
 
-    camera_.configure(CameraKind::Free, static_cast<float>(width) / static_cast<float>(height));
+    camera_.configure(cameraKind_, static_cast<float>(width) / static_cast<float>(height));
 
-    camera_.configure(CameraKind::Free, static_cast<float>(width) / static_cast<float>(height));
+    camera_.configure(cameraKind_, static_cast<float>(width) / static_cast<float>(height));
 
     D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
     srvHeapDesc.NumDescriptors = 8;

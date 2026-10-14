@@ -67,6 +67,7 @@ using namespace f2native;
 struct Options {
     RenderMode mode = RenderMode::Native;
     Route route = Route::Static;
+    CameraKind camera = CameraKind::Free;
     uint64_t smokeFrames = 0;     // render N frames then exit (G0 smoke)
     double warmupSeconds = 0.0;
     double measureSeconds = 0.0;
@@ -95,6 +96,11 @@ Options parseArgs(int argc, char** argv) {
             if (v == "static") o.route = Route::Static;
             else if (v == "pan") o.route = Route::Pan;
             else throw std::invalid_argument("--route must be static|pan");
+        } else if (arg == "--camera") {
+            const std::string v = next();
+            if (v == "free") o.camera = CameraKind::Free;
+            else if (v == "iso") o.camera = CameraKind::Iso;
+            else throw std::invalid_argument("--camera must be free|iso");
         } else if (arg == "--smoke-frames") {
             o.smokeFrames = std::strtoull(next(), nullptr, 10);
         } else if (arg == "--warmup") {
@@ -158,7 +164,7 @@ int main(int argc, char** argv) {
         const HWND hwnd = app.createWindow(L"F2Native - native DLSS5 prototype", opts.width,
                                            opts.height, onWindowResize);
         gpu.initialize(hwnd, opts.width, opts.height);
-        render.initialize(gpu, opts.mode, opts.width, opts.height);
+        render.initialize(gpu, opts.mode, opts.camera, opts.width, opts.height);
 
         if (opts.selftest) {
             const SelftestResult st = render.runSelftest();

@@ -81,3 +81,15 @@ CLI (актуален на G0; расширяется в Task 2): `--smoke-frame
 - Selftest: 4/4 контракта PASS (static motion, pan motion vs CPU, depth near/far, alpha hole).
 
 Остаток G1 (не блокирует ядро): PNG carrier-vs-neural одинаковой позы, короткий захват движения, iso-камера. Затем G2 (экспорт kladwtwn) и G3 (бенчи native/carrier/neural 15+60 c).
+
+## G1 — PASS (2026-10-13)
+
+- Selftest 4/4 PASS (см. выше).
+- Carrier: 2002/2002 evaluates, 140.5 fps; neural: 2033/2033, 140.6 fps; feature 18 создан и исполняется (600+ inline evals) — `runs/g1/neural-reshade.log`.
+- PNG одной позы (static, PrintWindow): `runs/g1/carrier-static.png` vs `runs/g1/neural-static.png` — сцена (чекер-пол, 2 бокса, альфа-карта с дырой) рендерится и в DLAA, и через нейропроход; на статике отличия минимальны (ожидаемо для дефолтного NR стиля).
+- Захват движения: `runs/g1/neural-pan-1..3.png` (pan-маршрут, нейро включён) — смаза/артефактов, блокирующих приёмку, не видно на кадрах.
+- Iso-камера: `--camera iso` работает (smoke 30 кадров, 144 fps).
+- ReShade banner подтверждает прокси-хук в carrier/neural; native-режим запускается без нейробиблиотек (проверено G0-стиль smoke).
+- G1 = PASS. Визуальная приёмка изображения пользователем — ожидается (спец. требование: не объявлять приёмку без него).
+
+Далее: G2 (экспорт kladwtwn → формат-6 → WIC-текстуры → камеры) и G3 (бенчи).

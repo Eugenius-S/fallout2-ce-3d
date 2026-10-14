@@ -28,7 +28,8 @@ struct SelftestResult {
 
 class Render {
 public:
-    void initialize(Gpu& gpu, RenderMode mode, uint32_t width, uint32_t height);
+    void initialize(Gpu& gpu, RenderMode mode, CameraKind cameraKind, uint32_t width,
+                    uint32_t height);
     void resize(uint32_t width, uint32_t height);
     // Records and submits one frame at timeline position tSeconds.
     // Returns true when NGX history must reset at this frame.
