@@ -1,4 +1,5 @@
 #include "render.h"
+#include "projection.h"
 
 #include <d3dcompiler.h>
 #include <DirectXMath.h>
@@ -969,6 +970,46 @@ SelftestResult Render::runSelftest() {
         const float d = dist(hole, solid);
         check(d > 0.15f, "alpha card hole shows the scene behind",
               "color distance hole-vs-solid = " + std::to_string(d));
+    }
+
+    // 5. Projection port vs the upstream JS reference (node tools/projection-ref.js).
+    {
+        Proj proj;
+        const bool ok = Proj::fromJsonString(
+            "{\"squ\":[-48,12],\"sqv\":[32,24],\"origin\":[4784,-1190],\"hpx\":51.06858,"
+            "\"roofPx\":96.0,\"bbPx\":57.24334,\"rowTilt\":0.0005,\"stack\":0.0001}", proj);
+        check(ok, "proj parsed from scene constants", ok ? "" : "parse failed");
+        if (ok) {
+            auto close = [](double a, double b) { return std::fabs(a - b) <= 1e-9; };
+            double px[2];
+            proj.groundToPx(0, 0, 0, px);
+            check(close(px[0], 4784.0) && close(px[1], -1190.0), "groundToPx 0,0,0",
+                  std::to_string(px[0]) + "," + std::to_string(px[1]));
+            proj.groundToPx(10, 5, 0, px);
+            check(close(px[0], 4464.0) && close(px[1], -950.0), "groundToPx 10,5,0",
+                  std::to_string(px[0]) + "," + std::to_string(px[1]));
+            proj.groundToPx(37, 21, 0, px);
+            check(close(px[0], 3680.0) && close(px[1], -242.0), "groundToPx 37,21,0",
+                  std::to_string(px[0]) + "," + std::to_string(px[1]));
+            check(hexFromPx(600, 400) == 6997, "hexFromPx 600,400",
+                  std::to_string(hexFromPx(600, 400)));
+            check(hexFromPx(1234, 567) == 10784, "hexFromPx 1234,567",
+                  std::to_string(hexFromPx(1234, 567)));
+            double hp[2];
+            hexPx(25075, hp);
+            check(close(hp[0], 4992.0) && close(hp[1], 764.0), "hexPx 25075",
+                  std::to_string(hp[0]) + "," + std::to_string(hp[1]));
+            check(close(rowPlane(proj, 10, 5), 4.9475), "rowPlane 10,5",
+                  std::to_string(rowPlane(proj, 10, 5)));
+            const SpriteCard c = card(proj, 875, 3586, 37, 17, -8);
+            check(close(c.shift, 4.5) && close(c.lean, 0.169010216) && close(c.z1, 0.156652094) &&
+                      close(c.up1, 0.244768897),
+                  "card sprite0",
+                  std::to_string(c.shift) + "," + std::to_string(c.lean));
+            check(close(proj.roofZ, 1.879825129) && close(proj.groundPerPx, 0.037557826),
+                  "roofZ/groundPerPx",
+                  std::to_string(proj.roofZ) + " / " + std::to_string(proj.groundPerPx));
+        }
     }
 
     return result;

@@ -18,8 +18,11 @@ add_executable(f2native
     src/render.cpp
     src/neural.cpp
     src/camera.cpp
+    src/projection.cpp
 )
-target_include_directories(f2native PRIVATE ${CMAKE_SOURCE_DIR}/vendor/ngx/include)
+target_include_directories(f2native PRIVATE
+    ${CMAKE_SOURCE_DIR}/vendor/ngx/include
+    ${CMAKE_SOURCE_DIR}/vendor/json/include)
 target_link_libraries(f2native PRIVATE
     d3d12 dxgi dxguid d3dcompiler user32 gdi32 dbghelp
     ${CMAKE_SOURCE_DIR}/vendor/ngx/lib/Windows_x86_64/x64/nvsdk_ngx_d.lib)

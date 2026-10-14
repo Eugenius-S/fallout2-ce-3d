@@ -102,3 +102,7 @@ CLI (актуален на G0; расширяется в Task 2): `--smoke-frame
 - Содержимое: 303 тайла, 2431 спрайт, 1259 стен, 535 билбордов, 201 декаль, 39 криттеров, двери/ящики/барабаны.
 
 Далее (Task 3/4): C++ reader format-6 (nlohmann/json + WIC PNG), порт `Proj/card/hexPx` из geom.js, геометрия floor→walls→props→critters, coverage-отчёт, две камеры, численные проверки. Затем G3.
+
+## Проекция — порт и сверка — PASS (2026-10-13)
+
+`src/projection.{h,cpp}` — точный порт geom.js (Proj, card, hexPx, hexFromPx, rowPlane). Числовая сверка с upstream JS (node tools/projection-ref.js на реальной scene.json): 12/12 чисел совпали с допуском 1e-9, selftest вырос до 14 PASS / 0 FAIL. Референс-числа: groundToPx 0,0,0→4784,-1190; hexFromPx 600,400→6997; hexPx 25075→4992,764; rowPlane 10,5→4.9475; card sprite0 shift=4.5 lean=0.169010; roofZ=1.879825.
