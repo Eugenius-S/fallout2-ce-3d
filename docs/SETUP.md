@@ -93,3 +93,12 @@ CLI (актуален на G0; расширяется в Task 2): `--smoke-frame
 - G1 = PASS. Визуальная приёмка изображения пользователем — ожидается (спец. требование: не объявлять приёмку без него).
 
 Далее: G2 (экспорт kladwtwn → формат-6 → WIC-текстуры → камеры) и G3 (бенчи).
+
+## G2 этап 1 — экспорт карты — PASS (2026-10-13)
+
+`kladwtwn` elevation 0 «Klamath Downtown» экспортирован закреплённым экспортёром (commit 0da1cd4, venv Python 3.14.3 + requirements-tested.txt установились без подмен):
+- `vendor/fallout2-first-person/viewer/data/kladwtwn/`: scene.json (sha256 `4b4e20d2...`), tiles.png, sprites0.png, light.png; итого 2 718 319 байт.
+- Проверено: format=6; floor base64 → 20000 байт (100×100 uint16); proj-коэффициенты (squ/sqv/origin/hpx/roofPx/bbPx); spawn tile 25075; 1 sprite-страница.
+- Содержимое: 303 тайла, 2431 спрайт, 1259 стен, 535 билбордов, 201 декаль, 39 криттеров, двери/ящики/барабаны.
+
+Далее (Task 3/4): C++ reader format-6 (nlohmann/json + WIC PNG), порт `Proj/card/hexPx` из geom.js, геометрия floor→walls→props→critters, coverage-отчёт, две камеры, численные проверки. Затем G3.
