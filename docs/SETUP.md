@@ -73,3 +73,11 @@ CLI (актуален на G0; расширяется в Task 2): `--smoke-frame
 6. Allocator Reset E_FAIL при неисполненном закрытом списке (flushInit был DIAG-disabled) — списки нужно исполнять перед Reset.
 
 Следующий шаг: carrier-режим (NGX DLAA) → 300 evals + feature-18 через RenoDX → G1 evidence.
+
+## G1 ядро — PASS (2026-10-13, вечер)
+
+- carrier: 2002/2002 NGX DLAA evaluates, 140.5 fps, median 7.0 ms (`runs/g1/carrier-smoke/summary.txt`).
+- neural: 2033/2033 evaluates, 140.6 fps (`runs/g1/neural-smoke/summary.txt`); ReShade.log: `feature 18 created via the NGX core after DLSS/DLAA for NR input 1280x720 -> output 1280x720` + `inline feature 18 evaluation succeeded (count=600)` — экспериментальный DLSS5 нейропроход (RenoDX) исполняется на нативной сцене с нашими depth/motion. Лог: `runs/g1/neural-reshade.log`.
+- Selftest: 4/4 контракта PASS (static motion, pan motion vs CPU, depth near/far, alpha hole).
+
+Остаток G1 (не блокирует ядро): PNG carrier-vs-neural одинаковой позы, короткий захват движения, iso-камера. Затем G2 (экспорт kladwtwn) и G3 (бенчи native/carrier/neural 15+60 c).
