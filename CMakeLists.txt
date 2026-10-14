@@ -15,9 +15,18 @@ add_executable(f2native
     src/main.cpp
     src/app.cpp
     src/gpu.cpp
+    src/render.cpp
+    src/neural.cpp
+    src/camera.cpp
 )
-target_link_libraries(f2native PRIVATE d3d12 dxgi dxguid d3dcompiler user32 gdi32)
+target_include_directories(f2native PRIVATE ${CMAKE_SOURCE_DIR}/vendor/ngx/include)
+target_link_libraries(f2native PRIVATE
+    d3d12 dxgi dxguid d3dcompiler user32 gdi32 dbghelp
+    ${CMAKE_SOURCE_DIR}/vendor/ngx/lib/Windows_x86_64/x64/nvsdk_ngx_d.lib)
 target_compile_definitions(f2native PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN UNICODE _UNICODE)
+# Line-level crash forensics even in Release.
+target_compile_options(f2native PRIVATE /Zi)
+target_link_options(f2native PRIVATE /DEBUG:FULL)
 
 enable_testing()
 add_executable(f2native_tests tests/contracts.cpp)

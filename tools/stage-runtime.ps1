@@ -60,7 +60,7 @@ foreach ($mode in @('native', 'carrier', 'neural')) {
     $dir = Join-Path $ProjectRoot "runtime\$mode"
     if (Test-Path $dir) {
         $existing = @(Get-ChildItem -LiteralPath $dir -Recurse -File)
-        $expectedNames = @('f2native.exe')
+        $expectedNames = @('f2native.exe', 'scene.hlsl', 'present.hlsl')
         if ($mode -ne 'native') {
             $expectedNames += $Manifest.runtime_files | ForEach-Object { $_.name }
             if ($mode -eq 'carrier' -or $mode -eq 'neural') { $expectedNames += 'ReShade.ini' }
@@ -75,6 +75,9 @@ foreach ($mode in @('native', 'carrier', 'neural')) {
     }
 
     Copy-Item -LiteralPath $BuildExe -Destination (Join-Path $dir 'f2native.exe') -Force
+    $shaderDir = Join-Path $dir 'shaders'
+    if (Test-Path $shaderDir) { Remove-Item -LiteralPath $shaderDir -Recurse -Force }
+    Copy-Item -LiteralPath (Join-Path $ProjectRoot 'shaders') -Destination $shaderDir -Recurse -Force
     $staged += "runtime/$mode/f2native.exe"
 
     if ($mode -ne 'native') {

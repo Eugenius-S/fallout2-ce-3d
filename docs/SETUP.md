@@ -59,3 +59,17 @@ CLI (актуален на G0; расширяется в Task 2): `--smoke-frame
 - `stage-runtime.ps1` падает с IOException, если какой-то `f2native.exe` ещё запущен (файл залочен) — закрывать инстансы перед стейджем; «тихий» stale-exe в runtime = источник ложных результатов (дважды срабатывало: старый exe без новых диагностик).
 - PowerShell 5.1 читает UTF-8 ps1 без BOM как ANSI: не использовать эм-даши/не-ASCII в `.ps1` (ломает парсер через байт 0x94→`"`).
 - Растяжка 720p-окна на ультравайд: окно создаётся 1280×720 client; ресайз обрабатывается.
+
+## Task 2 (G1, синтетическая сцена) — статус 2026-10-13
+
+Рендер сцены собран и самопроверен: `--selftest` PASS (static motion ~0; pan motion соответствует CPU-проекции; depth near/far; alpha-hole). Дебаг-инфраструктура: D3D12 debug layer + InfoQueue дамп в stderr (Graphics Tools установлен 2026-10-13 с разрешения пользователя).
+
+Грабли, съевшие время (все устранены):
+1. SRV desc `MipLevels=0` инвалид для 1-mip ресурса → deferred device removal без сообщений (debug layer отсутствовал). Фикс: MipLevels=1. Урок: без Graphics Tools debug layer молчал — установка обязательна для G1+.
+2. Backbuffer без явных барьеров COMMON→RT / RT→PRESENT → removal на Present (WARP воспроизводит стабильно). Фикс: bbStates_ трекинг + барьеры (как было в G0).
+3. `SetDescriptorHeaps` не вызывался → таблицы дескрипторов невалидны. Фикс: перед таблицами.
+4. Readback CopyTextureRegion с footprint-форматом != формату ресурса → E_INVALIDARG на Close. Фикс: формат параметром (R32_FLOAT для depth).
+5. Draw-оффсеты 42/78 превышали VB (60 вершин) → семплирование за концом буфера. Фикс: 36/54.
+6. Allocator Reset E_FAIL при неисполненном закрытом списке (flushInit был DIAG-disabled) — списки нужно исполнять перед Reset.
+
+Следующий шаг: carrier-режим (NGX DLAA) → 300 evals + feature-18 через RenoDX → G1 evidence.
