@@ -26,7 +26,7 @@ public static class Win {
     [DllImport("user32.dll")] public static extern bool SetProcessDPIAware();
     [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr h, out RECT r);
     [DllImport("user32.dll")] public static extern bool GetClientRect(IntPtr h, out RECT r);
-    [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr h, uint msg, UIntPtr w, IntPtr l);
+    [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr h, uint msg, IntPtr w, IntPtr l);
     [DllImport("user32.dll")] public static extern uint MapVirtualKey(uint vk, uint type);
     [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr h, int cmd);
     [DllImport("user32.dll")] public static extern bool SetWindowPos(IntPtr h, IntPtr after, int x, int y, int cx, int cy, uint flags);
@@ -48,17 +48,17 @@ $ww = $wr.R - $wr.L; $wh = $wr.B - $wr.T
 
 function Send-Mouse([uint32]$msg, [int]$cx, [int]$cy) {
     $lp = [IntPtr](($cy -shl 16) -bor ($cx -band 0xFFFF))
-    $wp = [UIntPtr]0
-    if ($msg -eq 0x201) { $wp = [UIntPtr]1 }   # MK_LBUTTON
+    $wp = [IntPtr]0
+    if ($msg -eq 0x201) { $wp = [IntPtr]1 }   # MK_LBUTTON
     [Win]::PostMessage($h, $msg, $wp, $lp) | Out-Null
 }
 function Send-VK([uint32]$vk) {
     $sc = [Win]::MapVirtualKey($vk, 0)
     $dn = [IntPtr](1 -bor ($sc -shl 16))
     $up = [IntPtr](0xC0000000 -bor ($sc -shl 16) -bor 1)
-    [Win]::PostMessage($h, 0x0100, [UIntPtr]$vk, $dn) | Out-Null
+    [Win]::PostMessage($h, 0x0100, [IntPtr]$vk, $dn) | Out-Null
     Start-Sleep -Milliseconds 60
-    [Win]::PostMessage($h, 0x0101, [UIntPtr]$vk, $up) | Out-Null
+    [Win]::PostMessage($h, 0x0101, [IntPtr]$vk, $up) | Out-Null
 }
 
 switch ($Cmd) {
