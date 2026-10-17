@@ -74,6 +74,7 @@ struct Options {
     uint32_t width = 1280;
     uint32_t height = 720;
     bool selftest = false;
+    bool novsync = false;
     std::filesystem::path runDir;
 };
 
@@ -113,6 +114,8 @@ Options parseArgs(int argc, char** argv) {
             o.height = std::strtoul(next(), nullptr, 10);
         } else if (arg == "--run-dir") {
             o.runDir = next();
+        } else if (arg == "--novsync") {
+            o.novsync = true;
         } else if (arg == "--selftest") {
             o.selftest = true;
         } else if (arg == "--help" || arg == "-h") {
@@ -137,10 +140,14 @@ Options parseArgs(int argc, char** argv) {
 } // namespace
 
 namespace {
-Gpu* g_gpu = nullptr; // single-window resize plumbing
+Gpu* g_gpu = nullptr;   // single-window resize plumbing
+Render* g_render = nullptr;
 
 void onWindowResize(uint32_t width, uint32_t height) {
+    // THE FIX (verifier point 4): the render targets and the NGX feature are
+    // size-bound; resizing the swapchain alone left them stale.
     if (g_gpu) g_gpu->resize(width, height);
+    if (g_render) g_render->resize(width, height);
 }
 
 } // namespace
@@ -157,7 +164,9 @@ int main(int argc, char** argv) {
 
     Gpu gpu;
     g_gpu = &gpu;
+    gpu.setVsync(!opts.novsync);
     Render render;
+    g_render = &render;
 
     try {
         f2native::App app;

@@ -93,6 +93,13 @@ void NeuralPass::evaluate(ID3D12GraphicsCommandList* commands, const FrameInputs
     ++evaluations_;
 }
 
+void NeuralPass::releaseFeature() {
+    if (feature_ != nullptr) {
+        NVSDK_NGX_D3D12_ReleaseFeature(feature_);
+        feature_ = nullptr;
+    }
+}
+
 void NeuralPass::shutdown() {
     if (feature_ != nullptr) {
         NVSDK_NGX_D3D12_ReleaseFeature(feature_);

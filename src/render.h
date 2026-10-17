@@ -64,6 +64,7 @@ private:
     uint32_t width_ = 0;
     uint32_t height_ = 0;
     uint64_t framesRendered_ = 0;
+    bool forceReset_ = false;
     D3D12_RESOURCE_STATES stateColor_ = D3D12_RESOURCE_STATE_COMMON;
     D3D12_RESOURCE_STATES stateMotion_ = D3D12_RESOURCE_STATE_COMMON;
     D3D12_RESOURCE_STATES stateDepth_ = D3D12_RESOURCE_STATE_DEPTH_WRITE;

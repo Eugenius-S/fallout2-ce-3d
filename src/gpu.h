@@ -20,6 +20,7 @@ public:
     void waitGpu();
     void dumpDebugMessages();
     void shutdown();
+    void setVsync(bool on) { vsync_ = on; }
 
     ID3D12Device* device() const { return device_.Get(); }
     ID3D12GraphicsCommandList* list() const { return commandList_.Get(); }
@@ -55,6 +56,7 @@ private:
     UINT64 fenceValue_ = 0;
     UINT rtvDescriptorSize_ = 0;
     bool windowVisible_ = true;
+    bool vsync_ = true;
 };
 
 } // namespace f2native

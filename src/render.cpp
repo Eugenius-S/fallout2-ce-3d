@@ -612,6 +612,7 @@ void Render::createSceneGeometry() {
 }
 
 void Render::resize(uint32_t width, uint32_t height) {
+    if (!gpu_) return; // WM_SIZE can fire before initialize (window creation)
     if (width == width_ && height == height_) return;
     gpu_->waitGpu();
     color_.Reset();
@@ -620,8 +621,18 @@ void Render::resize(uint32_t width, uint32_t height) {
     output_.Reset();
     width_ = width;
     height_ = height;
+    bbStates_[0] = bbStates_[1] = D3D12_RESOURCE_STATE_COMMON;
     createSizedResources(width, height);
     camera_.configure(cameraKind_, static_cast<float>(width) / static_cast<float>(height));
+    // The NGX feature is size-bound: release and rebuild it for the new size.
+    // The first evaluate afterwards must reset history.
+    if (mode_ != RenderMode::Native && neural_.ready()) {
+        neural_.releaseFeature();
+        gpu_->beginFrame();
+        neural_.create(gpu_->list(), width_, height_);
+        gpu_->submitFrame();
+        forceReset_ = true;
+    }
 }
 
 bool Render::renderFrame(double tSeconds, Route route, bool& resetHistory) {
@@ -632,7 +643,8 @@ bool Render::renderFrame(double tSeconds, Route route, bool& resetHistory) {
 
     resetHistory = camera_.poseAt(tSeconds, route);
     std::fprintf(stderr, "[frame] pose ok\n");
-    resetHistory = resetHistory || framesRendered_ == 0;
+    resetHistory = resetHistory || framesRendered_ == 0 || forceReset_;
+    forceReset_ = false;
 
     // Write the four CB slots (one per draw).
     FrameCBData cb = {};
@@ -902,6 +914,7 @@ SelftestResult Render::runSelftest() {
     // 1. Static camera: motion must be ~0 everywhere on geometry.
     bool r = false;
     renderFrame(1.0, Route::Static, r);
+    const XMMATRIX staticViewProj = camera_.viewProj(); // pose 1.0 = offset 0
     renderFrame(1.1, Route::Static, r);
     {
         auto m = readbackPixel(motion_.Get(), stateMotion_,
@@ -914,31 +927,78 @@ SelftestResult Render::runSelftest() {
 
     // 2. Pan motion at the world origin: GPU motion must match the CPU
     //    projection of (0,0,0) through prev/curr matrices within 0.25 px.
-    renderFrame(9.9, Route::Pan, r);
-    renderFrame(10.1, Route::Pan, r);
+    renderFrame(5.0, Route::Pan, r);
+    renderFrame(5.2, Route::Pan, r);
     {
-        const XMVECTOR world = XMVectorSet(0, 0, 0, 1);
-        auto project = [&](XMMATRIX vp) {
-            XMVECTOR clip = XMVector4Transform(world, vp);
-            float x = XMVectorGetX(clip), y = XMVectorGetY(clip), w = XMVectorGetW(clip);
+        // True correspondence: unproject the pixel to the z=0 plane to find the
+        // floor point it shows NOW, then compare its projection delta prev->curr
+        // with the GPU motion buffer.
+        const LONG px = 900, py = 500; // guaranteed floor, away from card/boxes
+        const float ndcX = (px + 0.5f) / width_ * 2.0f - 1.0f;
+        const float ndcY = 1.0f - (py + 0.5f) / height_ * 2.0f;
+        const XMMATRIX invView = XMMatrixInverse(nullptr, camera_.view());
+        const XMMATRIX invProj = XMMatrixInverse(nullptr, camera_.proj());
+        const XMMATRIX toWorld = invProj * invView; // row-vector: undo proj first, then view
+        const XMVECTOR nearW = XMVector3TransformCoord(XMVectorSet(ndcX, ndcY, 0.0f, 1.0f), toWorld);
+        const XMVECTOR farW = XMVector3TransformCoord(XMVectorSet(ndcX, ndcY, 1.0f, 1.0f), toWorld);
+        const XMFLOAT3 eyePos = camera_.eye();
+        const XMVECTOR eyeV = XMLoadFloat3(&eyePos);
+        const XMVECTOR dir = XMVector3Normalize(XMVectorSubtract(farW, nearW));
+        const float dz = XMVectorGetZ(dir);
+        if (std::fabs(dz) < 1e-6f) throw std::runtime_error("pan ray parallel to floor");
+        const float tHit = -XMVectorGetZ(eyeV) / dz;
+        const float qx = XMVectorGetX(eyeV) + XMVectorGetX(dir) * tHit;
+        const float qy = XMVectorGetY(eyeV) + XMVectorGetY(dir) * tHit;
+        auto project = [&](float u, float v, float z, XMMATRIX vp) {
+            const XMVECTOR clip = XMVector4Transform(XMVectorSet(u, v, z, 1.0f), vp);
+            const float x = XMVectorGetX(clip), y = XMVectorGetY(clip), w = XMVectorGetW(clip);
             return XMFLOAT2{x / w * 0.5f + 0.5f, 0.5f - y / w * 0.5f};
         };
-        XMFLOAT2 curr = project(camera_.viewProj());
-        XMFLOAT2 prev = project(camera_.prevViewProj());
+        const XMFLOAT2 curr = project(qx, qy, 0.0f, camera_.viewProj());
+        const XMFLOAT2 prev = project(qx, qy, 0.0f, camera_.prevViewProj());
         const float expectX = (prev.x - curr.x) * width_;
         const float expectY = (prev.y - curr.y) * height_;
-        const LONG px = static_cast<LONG>(curr.x * width_);
-        const LONG py = static_cast<LONG>(curr.y * height_);
+        // DIAG: field comparison GPU vs CPU over a 5x5 grid.
+        for (int gy = 0; gy < 5; ++gy) {
+            for (int gx = 0; gx < 5; ++gx) {
+                const LONG sx = 160 + gx * 240, sy = 180 + gy * 100;
+                const float snx = (sx + 0.5f) / width_ * 2.0f - 1.0f;
+                const float sny = 1.0f - (sy + 0.5f) / height_ * 2.0f;
+                const XMVECTOR nW = XMVector3TransformCoord(XMVectorSet(snx, sny, 0.0f, 1.0f), toWorld);
+                const XMVECTOR fW = XMVector3TransformCoord(XMVectorSet(snx, sny, 1.0f, 1.0f), toWorld);
+                const XMVECTOR d2 = XMVector3Normalize(XMVectorSubtract(fW, nW));
+                const float dz2 = XMVectorGetZ(d2);
+                if (std::fabs(dz2) < 1e-6f) continue;
+                const float t2 = -XMVectorGetZ(eyeV) / dz2;
+                const float qu = XMVectorGetX(eyeV) + XMVectorGetX(d2) * t2;
+                const float qv = XMVectorGetY(eyeV) + XMVectorGetY(d2) * t2;
+                if (qu < -5.9f || qu > 5.9f || qv < -5.9f || qv > 5.9f) continue; // outside floor
+                const XMFLOAT2 c2 = project(qu, qv, 0.0f, camera_.viewProj());
+                const XMFLOAT2 p2 = project(qu, qv, 0.0f, camera_.prevViewProj());
+                auto mv = readbackPixel(motion_.Get(), stateMotion_,
+                                        D3D12_RESOURCE_STATE_COPY_SOURCE,
+                                        static_cast<UINT>(sx), static_cast<UINT>(sy),
+                                        DXGI_FORMAT_R16G16_FLOAT);
+                const XMFLOAT2 s2 = project(qu, qv, 0.0f, staticViewProj);
+                std::fprintf(stderr, "[field] (%u,%u) gpu=(%.3f,%.3f) cpu5=(%.3f,%.3f) cpuS=(%.3f,%.3f)\n",
+                             sx, sy, mv[0], mv[1],
+                             (p2.x - c2.x) * width_, (p2.y - c2.y) * height_,
+                             (s2.x - c2.x) * width_, (s2.y - c2.y) * height_);
+            }
+        }
+
         auto m = readbackPixel(motion_.Get(), stateMotion_,
                                D3D12_RESOURCE_STATE_COPY_SOURCE,
                                static_cast<UINT>(px), static_cast<UINT>(py),
                                DXGI_FORMAT_R16G16_FLOAT);
         const float dx = std::fabs(m[0] - expectX);
         const float dy = std::fabs(m[1] - expectY);
-        check(dx <= 0.25f && dy <= 0.25f, "pan motion matches CPU (-128,0 family)",
+        check((std::fabs(m[0]) + std::fabs(m[1])) > 1.0f && dx <= 0.25f && dy <= 0.25f,
+                  "pan motion matches CPU and is nonzero",
               "gpu=(" + std::to_string(m[0]) + ", " + std::to_string(m[1]) + ") cpu=(" +
                   std::to_string(expectX) + ", " + std::to_string(expectY) + ") at (" +
-                  std::to_string(px) + ", " + std::to_string(py) + ")");
+                  std::to_string(px) + ", " + std::to_string(py) + ") floor=(" +
+                  std::to_string(qx) + ", " + std::to_string(qy) + ")");
     }
 
     // 3. Depth: geometry depth < 1 (near), sky depth == 1 (far).

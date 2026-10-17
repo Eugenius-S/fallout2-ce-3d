@@ -132,7 +132,7 @@ void Gpu::submitFrame() {
     throwIfFailed(commandList_->Close(), "commandList Close");
     ID3D12CommandList* lists[] = {commandList_.Get()};
     queue_->ExecuteCommandLists(1, lists);
-    throwIfFailed(swapchain_->Present(1, 0), "Present");
+    throwIfFailed(swapchain_->Present(vsync_ ? 1 : 0, 0), "Present");
 
     fenceValue_++;
     throwIfFailed(queue_->Signal(fence_.Get(), fenceValue_), "fence Signal");

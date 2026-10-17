@@ -28,6 +28,7 @@ public:
     void initialize(ID3D12Device* device, const std::filesystem::path& runtimeDir);
     void create(ID3D12GraphicsCommandList* commands, uint32_t width, uint32_t height);
     void evaluate(ID3D12GraphicsCommandList* commands, const FrameInputs& frame);
+    void releaseFeature(); // size-bound feature rebuild (resize)
     void shutdown(); // after GPU fence, before device destruction
 
     bool ready() const { return feature_ != nullptr; }
