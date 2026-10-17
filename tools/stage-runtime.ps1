@@ -60,7 +60,8 @@ foreach ($mode in @('native', 'carrier', 'neural')) {
     $dir = Join-Path $ProjectRoot "runtime\$mode"
     if (Test-Path $dir) {
         $existing = @(Get-ChildItem -LiteralPath $dir -Recurse -File)
-        $expectedNames = @('f2native.exe', 'scene.hlsl', 'present.hlsl')
+        $expectedNames = @('f2native.exe', 'scene.hlsl', 'present.hlsl',
+                           'ReShade.log', 'dlss5-feed-host.log') # runtime logs from previous runs
         if ($mode -ne 'native') {
             $expectedNames += $Manifest.runtime_files | ForEach-Object { $_.name }
             if ($mode -eq 'carrier' -or $mode -eq 'neural') { $expectedNames += 'ReShade.ini' }

@@ -622,6 +622,12 @@ void Render::resize(uint32_t width, uint32_t height) {
     width_ = width;
     height_ = height;
     bbStates_[0] = bbStates_[1] = D3D12_RESOURCE_STATE_COMMON;
+    // THE FIX (verifier): the state-tracking variables belong to the OLD
+    // resources; fresh targets start in COMMON (depth in DEPTH_WRITE), and
+    // stale states would produce wrong barriers on the next frame.
+    stateColor_ = D3D12_RESOURCE_STATE_COMMON;
+    stateMotion_ = D3D12_RESOURCE_STATE_COMMON;
+    stateDepth_ = D3D12_RESOURCE_STATE_DEPTH_WRITE;
     createSizedResources(width, height);
     camera_.configure(cameraKind_, static_cast<float>(width) / static_cast<float>(height));
     // The NGX feature is size-bound: release and rebuild it for the new size.
@@ -944,18 +950,19 @@ SelftestResult Render::runSelftest() {
         const XMFLOAT3 eyePos = camera_.eye();
         const XMVECTOR eyeV = XMLoadFloat3(&eyePos);
         const XMVECTOR dir = XMVector3Normalize(XMVectorSubtract(farW, nearW));
-        const float dz = XMVectorGetZ(dir);
-        if (std::fabs(dz) < 1e-6f) throw std::runtime_error("pan ray parallel to floor");
-        const float tHit = -XMVectorGetZ(eyeV) / dz;
-        const float qx = XMVectorGetX(eyeV) + XMVectorGetX(dir) * tHit;
-        const float qy = XMVectorGetY(eyeV) + XMVectorGetY(dir) * tHit;
+        // THE FIX (verifier): the floor plane is Y=0 (world z-up), not z=0.
+        const float dy = XMVectorGetY(dir);
+        if (std::fabs(dy) < 1e-6f) throw std::runtime_error("pan ray parallel to floor");
+        const float tHit = -eyePos.y / dy;
+        const float qx = eyePos.x + XMVectorGetX(dir) * tHit;
+        const float qz = eyePos.z + XMVectorGetZ(dir) * tHit;
         auto project = [&](float u, float v, float z, XMMATRIX vp) {
             const XMVECTOR clip = XMVector4Transform(XMVectorSet(u, v, z, 1.0f), vp);
             const float x = XMVectorGetX(clip), y = XMVectorGetY(clip), w = XMVectorGetW(clip);
             return XMFLOAT2{x / w * 0.5f + 0.5f, 0.5f - y / w * 0.5f};
         };
-        const XMFLOAT2 curr = project(qx, qy, 0.0f, camera_.viewProj());
-        const XMFLOAT2 prev = project(qx, qy, 0.0f, camera_.prevViewProj());
+        const XMFLOAT2 curr = project(qx, 0.0f, qz, camera_.viewProj());
+        const XMFLOAT2 prev = project(qx, 0.0f, qz, camera_.prevViewProj());
         const float expectX = (prev.x - curr.x) * width_;
         const float expectY = (prev.y - curr.y) * height_;
         // DIAG: field comparison GPU vs CPU over a 5x5 grid.
@@ -992,14 +999,19 @@ SelftestResult Render::runSelftest() {
                                static_cast<UINT>(px), static_cast<UINT>(py),
                                DXGI_FORMAT_R16G16_FLOAT);
         const float dx = std::fabs(m[0] - expectX);
-        const float dy = std::fabs(m[1] - expectY);
-        check((std::fabs(m[0]) + std::fabs(m[1])) > 1.0f && dx <= 0.25f && dy <= 0.25f,
+        const float dY = std::fabs(m[1] - expectY);
+        check((std::fabs(m[0]) + std::fabs(m[1])) > 1.0f && dx <= 0.25f && dY <= 0.25f,
                   "pan motion matches CPU and is nonzero",
               "gpu=(" + std::to_string(m[0]) + ", " + std::to_string(m[1]) + ") cpu=(" +
                   std::to_string(expectX) + ", " + std::to_string(expectY) + ") at (" +
                   std::to_string(px) + ", " + std::to_string(py) + ") floor=(" +
-                  std::to_string(qx) + ", " + std::to_string(qy) + ")");
+                  std::to_string(qx) + ", " + std::to_string(qz) + ")");
     }
+
+    // Return to the control (static) pose: checks 3 and 4 use pixel coordinates
+    // that are only valid for it (verifier: after pan frames they were stale).
+    renderFrame(1.0, Route::Static, r);
+    renderFrame(1.1, Route::Static, r);
 
     // 3. Depth: geometry depth < 1 (near), sky depth == 1 (far).
     {
