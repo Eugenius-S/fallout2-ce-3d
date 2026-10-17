@@ -1,0 +1,9 @@
+# Game working copy (user-provided DATs, never committed)
+game/
+*.dat
+
+# Build output
+build/
+
+# Upstream clone is tracked by its own git; pinned hash recorded in docs/
+ce/
