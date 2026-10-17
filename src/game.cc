@@ -934,6 +934,12 @@ int gameHandleKey(int eventCode, bool isInCombatMode)
             }
         }
         break;
+    case KEY_ALT_P:
+        // Sprite-lighting mod: toggle the perspective camera (visual only,
+        // game rules are unaffected).
+        settings.lighting.camera = settings.lighting.camera != 0 ? 0 : 1;
+        tileWindowRefresh();
+        break;
     case KEY_CTRL_V:
         if (1) {
             soundPlayFile("ib1p1xx1");

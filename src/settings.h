@@ -300,6 +300,18 @@ struct MapperSettings {
     std::string dev_path;
 };
 
+// Sprite-lighting mod: visual layer settings (does not affect game rules).
+struct LightingSettings {
+    // 0 = vanilla renderer, 1 = perspective camera.
+    int camera = 0;
+    // Camera tilt from vertical in degrees; 90 = straight down.
+    int pitch = 62;
+    // Eye distance to the view center in vanilla pixels; smaller is stronger.
+    int distance = 700;
+    // Height of the roof plane in vanilla pixels.
+    int roof_height = 96;
+};
+
 struct Settings {
     SystemSettings system;
     ScreenSettings screen;
@@ -310,6 +322,7 @@ struct Settings {
     DebugSettings debug;
     CombatAiSettings combat_ai;
     QolSettings qol;
+    LightingSettings lighting;
     MapperSettings mapper;
 };
 

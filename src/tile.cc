@@ -13,6 +13,8 @@
 #include "draw.h"
 #include "game_mouse.h"
 #include "light.h"
+#include "lighting/lighting.h"
+#include "lighting/lighting_quad_blit.h"
 #include "map.h"
 #include "map_edge.h"
 #include "object.h"
@@ -315,6 +317,8 @@ int tileInit(TileData** squareGrid, int squareGridWidth, int squareGridHeight, i
     int v23;
     int v24;
     int v25;
+
+    lighting::init(windowWidth, windowHeight);
 
     gSquareGridWidth = squareGridWidth;
     gTileSquares = squareGrid;
@@ -696,11 +700,26 @@ static void tileRefreshMapper(Rect* rect, MapElevation elevation)
         return;
     }
 
+    // Sprite-lighting mod: the perspective pulls tiles from beyond the
+    // vanilla view top and sides into the visible window; render a larger
+    // strip, then restore the vanilla rect for the screen flush below.
+    Rect vanillaRenderRect = renderRect;
+    if (lighting::isPerspective()) {
+        int top;
+        int sides;
+        lighting::renderMargins(&top, &sides);
+        renderRect.top -= top;
+        renderRect.left -= sides;
+        renderRect.right += sides;
+    }
+
     tileRenderFloorsInRect(&renderRect, elevation);
     _grid_render(&renderRect, elevation);
     _obj_render_pre_roof(&renderRect, elevation);
     tileRenderRoofsInRect(&renderRect, elevation);
     _obj_render_post_roof(&renderRect, elevation);
+
+    renderRect = vanillaRenderRect;
 
     if (!hasVisArea) {
         tile_hires_stencil_draw(&renderRect, gTileWindowBuffer, gTileWindowWidth, gTileWindowHeight);
@@ -742,10 +761,25 @@ static void tileRefreshGame(Rect* rect, MapElevation elevation)
         return;
     }
 
+    // Sprite-lighting mod: the perspective pulls tiles from beyond the
+    // vanilla view top and sides into the visible window; render a larger
+    // strip, then restore the vanilla rect for the screen flush below.
+    Rect vanillaRenderRect = renderRect;
+    if (lighting::isPerspective()) {
+        int top;
+        int sides;
+        lighting::renderMargins(&top, &sides);
+        renderRect.top -= top;
+        renderRect.left -= sides;
+        renderRect.right += sides;
+    }
+
     tileRenderFloorsInRect(&renderRect, elevation);
     _obj_render_pre_roof(&renderRect, elevation);
     tileRenderRoofsInRect(&renderRect, elevation);
     _obj_render_post_roof(&renderRect, elevation);
+
+    renderRect = vanillaRenderRect;
 
     if (!hasVisArea) {
         tile_hires_stencil_draw(&renderRect, gTileWindowBuffer, gTileWindowWidth, gTileWindowHeight);
@@ -1405,6 +1439,21 @@ static void tileRenderRoof(const TileFrmId& frmId, int x, int y, Rect* rect, int
     int tileWidth = artGetWidth(tileFrm);
     int tileHeight = artGetHeight(tileFrm);
 
+    if (lighting::isPerspective()) {
+        // Sprite-lighting mod: the roof is drawn as a perspective quad on the
+        // roof plane. The dead-critter egg hole is a documented prototype
+        // deviation (it keeps working in the vanilla path only).
+        lighting::Quad quad;
+        const float h = static_cast<float>(settings.lighting.roof_height);
+        lighting::projectElevated(static_cast<float>(x), static_cast<float>(y), h, &quad.x[0], &quad.y[0], &quad.depth[0]);
+        lighting::projectElevated(static_cast<float>(x + tileWidth), static_cast<float>(y), h, &quad.x[1], &quad.y[1], &quad.depth[1]);
+        lighting::projectElevated(static_cast<float>(x + tileWidth), static_cast<float>(y + tileHeight), h, &quad.x[2], &quad.y[2], &quad.depth[2]);
+        lighting::projectElevated(static_cast<float>(x), static_cast<float>(y + tileHeight), h, &quad.x[3], &quad.y[3], &quad.depth[3]);
+        lighting::quadBlit(artGetFrameData(tileFrm), tileWidth, tileHeight, tileWidth, quad, rect, gTileWindowBuffer, gTileWindowPitch, light);
+        artUnlock(tileFrmHandle);
+        return;
+    }
+
     Rect tileRect;
     tileRect.left = x;
     tileRect.top = y;
@@ -1718,6 +1767,171 @@ static void _draw_grid(int tile, MapElevation elevation, Rect* rect)
 }
 
 // 0x4B30C4 floor_draw
+// Sprite-lighting mod: projects the axis-aligned vanilla screen rect of a
+// ground-plane image (floor tile) into the perspective quad.
+static void buildGroundQuad(int x, int y, int width, int height, lighting::Quad& quad)
+{
+    lighting::projectElevated(static_cast<float>(x), static_cast<float>(y), 0.0f, &quad.x[0], &quad.y[0], &quad.depth[0]);
+    lighting::projectElevated(static_cast<float>(x + width), static_cast<float>(y), 0.0f, &quad.x[1], &quad.y[1], &quad.depth[1]);
+    lighting::projectElevated(static_cast<float>(x + width), static_cast<float>(y + height), 0.0f, &quad.x[2], &quad.y[2], &quad.depth[2]);
+    lighting::projectElevated(static_cast<float>(x), static_cast<float>(y + height), 0.0f, &quad.x[3], &quad.y[3], &quad.depth[3]);
+}
+
+// Sprite-lighting mod: fills _intensity_map from _verticies using the vanilla
+// triangle interpolation (extracted unchanged from tileRenderFloor so the
+// perspective floor path can reuse it).
+static void tileFillIntensityMap()
+{
+    for (int i = 0; i < 5; i++) {
+        RightsideUpTriangle* triangle = &(_rightside_up_triangles[i]);
+        int v32 = _verticies[triangle->field_8].intensity;
+        int v33 = _verticies[triangle->field_8].field_0;
+        int v34 = _verticies[triangle->field_4].intensity - _verticies[triangle->field_0].intensity;
+        // TODO: Probably wrong.
+        int v35 = v34 / 32;
+        int v36 = (_verticies[triangle->field_0].intensity - v32) / 13;
+        int* v37 = &(_intensity_map[v33]);
+        if (v35 != 0) {
+            if (v36 != 0) {
+                for (int i = 0; i < 13; i++) {
+                    int v41 = v32;
+                    int v42 = _rightside_up_table[i].field_4;
+                    v37 += _rightside_up_table[i].field_0;
+                    for (int j = 0; j < v42; j++) {
+                        *v37++ = v41;
+                        v41 += v35;
+                    }
+                    v32 += v36;
+                }
+            } else {
+                for (int i = 0; i < 13; i++) {
+                    int v38 = v32;
+                    int v39 = _rightside_up_table[i].field_4;
+                    v37 += _rightside_up_table[i].field_0;
+                    for (int j = 0; j < v39; j++) {
+                        *v37++ = v38;
+                        v38 += v35;
+                    }
+                }
+            }
+        } else {
+            if (v36 != 0) {
+                for (int i = 0; i < 13; i++) {
+                    int v46 = _rightside_up_table[i].field_4;
+                    v37 += _rightside_up_table[i].field_0;
+                    for (int j = 0; j < v46; j++) {
+                        *v37++ = v32;
+                    }
+                    v32 += v36;
+                }
+            } else {
+                for (int i = 0; i < 13; i++) {
+                    int v44 = _rightside_up_table[i].field_4;
+                    v37 += _rightside_up_table[i].field_0;
+                    for (int j = 0; j < v44; j++) {
+                        *v37++ = v32;
+                    }
+                }
+            }
+        }
+    }
+
+    for (int i = 0; i < 5; i++) {
+        UpsideDownTriangle* triangle = &(_upside_down_triangles[i]);
+        int v50 = _verticies[triangle->field_0].intensity;
+        int v51 = _verticies[triangle->field_0].field_0;
+        int v52 = _verticies[triangle->field_8].intensity - v50;
+        // TODO: Probably wrong.
+        int v53 = v52 / 32;
+        int v54 = (_verticies[triangle->field_4].intensity - v50) / 13;
+        int* v55 = &(_intensity_map[v51]);
+        if (v53 != 0) {
+            if (v54 != 0) {
+                for (int i = 0; i < 13; i++) {
+                    int v59 = v50;
+                    int v60 = _upside_down_table[i].field_4;
+                    v55 += _upside_down_table[i].field_0;
+                    for (int j = 0; j < v60; j++) {
+                        *v55++ = v59;
+                        v59 += v53;
+                    }
+                    v50 += v54;
+                }
+            } else {
+                for (int i = 0; i < 13; i++) {
+                    int v56 = v50;
+                    int v57 = _upside_down_table[i].field_4;
+                    v55 += _upside_down_table[i].field_0;
+                    for (int j = 0; j < v57; j++) {
+                        *v55++ = v56;
+                        v56 += v53;
+                    }
+                }
+            }
+        } else {
+            if (v54 != 0) {
+                for (int i = 0; i < 13; i++) {
+                    int v64 = _upside_down_table[i].field_4;
+                    v55 += _upside_down_table[i].field_0;
+                    for (int j = 0; j < v64; j++) {
+                        *v55++ = v50;
+                    }
+                    v50 += v54;
+                }
+            } else {
+                for (int i = 0; i < 13; i++) {
+                    int v62 = _upside_down_table[i].field_4;
+                    v55 += _upside_down_table[i].field_0;
+                    for (int j = 0; j < v62; j++) {
+                        *v55++ = v50;
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Sprite-lighting mod: perspective variant of tileRenderFloor. It must run
+// before the vanilla window-bounds clip math - under perspective, tiles whose
+// vanilla rect lies outside the window still project into it. The quad is
+// clipped by `rect` inside quadBlit.
+static void tileRenderFloorPerspective(Art* art, int x, int y, Rect* rect)
+{
+    const int frameWidth = artGetWidth(art);
+    const int frameHeight = artGetHeight(art);
+
+    int tile = tileFromScreenXY(x, y + 13);
+    if (tile == -1) {
+        return;
+    }
+
+    const int parity = tile & 1;
+    const int ambientIntensity = lightGetAmbientIntensity();
+    for (int i = 0; i < 10; i++) {
+        // NOTE: Calls `lightGetTileIntensity` twice (as in vanilla).
+        _verticies[i].intensity = std::max(lightGetTileIntensity(gElevation, tile + _verticies[i].offsets[parity]), ambientIntensity);
+    }
+
+    int sameCount = 0;
+    for (int i = 0; i < 9; i++) {
+        if (_verticies[i + 1].intensity != _verticies[i].intensity) {
+            break;
+        }
+        sameCount++;
+    }
+
+    lighting::Quad quad;
+    buildGroundQuad(x, y, frameWidth, frameHeight, quad);
+
+    if (sameCount == 9) {
+        lighting::quadBlit(artGetFrameData(art), frameWidth, frameHeight, frameWidth, quad, rect, gTileWindowBuffer, gTileWindowPitch, _verticies[0].intensity);
+        return;
+    }
+
+    tileFillIntensityMap();
+    lighting::quadBlit(artGetFrameData(art), frameWidth, frameHeight, frameWidth, quad, rect, gTileWindowBuffer, gTileWindowPitch, 0x10000, _intensity_map + 160, 80);
+}
+
 static void tileRenderFloor(const TileFrmId& frmId, int x, int y, Rect* rect)
 {
     if (artIsObjectTypeHidden(frmId.objectType()) != 0) {
@@ -1727,6 +1941,12 @@ static void tileRenderFloor(const TileFrmId& frmId, int x, int y, Rect* rect)
     CacheEntry* cacheEntry;
     Art* art = artLock(frmId, &cacheEntry);
     if (art == nullptr) {
+        return;
+    }
+
+    if (lighting::isPerspective()) {
+        tileRenderFloorPerspective(art, x, y, rect);
+        artUnlock(cacheEntry);
         return;
     }
 
@@ -1819,113 +2039,7 @@ static void tileRenderFloor(const TileFrmId& frmId, int x, int y, Rect* rect)
             goto out;
         }
 
-        for (int i = 0; i < 5; i++) {
-            RightsideUpTriangle* triangle = &(_rightside_up_triangles[i]);
-            int v32 = _verticies[triangle->field_8].intensity;
-            int v33 = _verticies[triangle->field_8].field_0;
-            int v34 = _verticies[triangle->field_4].intensity - _verticies[triangle->field_0].intensity;
-            // TODO: Probably wrong.
-            int v35 = v34 / 32;
-            int v36 = (_verticies[triangle->field_0].intensity - v32) / 13;
-            int* v37 = &(_intensity_map[v33]);
-            if (v35 != 0) {
-                if (v36 != 0) {
-                    for (int i = 0; i < 13; i++) {
-                        int v41 = v32;
-                        int v42 = _rightside_up_table[i].field_4;
-                        v37 += _rightside_up_table[i].field_0;
-                        for (int j = 0; j < v42; j++) {
-                            *v37++ = v41;
-                            v41 += v35;
-                        }
-                        v32 += v36;
-                    }
-                } else {
-                    for (int i = 0; i < 13; i++) {
-                        int v38 = v32;
-                        int v39 = _rightside_up_table[i].field_4;
-                        v37 += _rightside_up_table[i].field_0;
-                        for (int j = 0; j < v39; j++) {
-                            *v37++ = v38;
-                            v38 += v35;
-                        }
-                    }
-                }
-            } else {
-                if (v36 != 0) {
-                    for (int i = 0; i < 13; i++) {
-                        int v46 = _rightside_up_table[i].field_4;
-                        v37 += _rightside_up_table[i].field_0;
-                        for (int j = 0; j < v46; j++) {
-                            *v37++ = v32;
-                        }
-                        v32 += v36;
-                    }
-                } else {
-                    for (int i = 0; i < 13; i++) {
-                        int v44 = _rightside_up_table[i].field_4;
-                        v37 += _rightside_up_table[i].field_0;
-                        for (int j = 0; j < v44; j++) {
-                            *v37++ = v32;
-                        }
-                    }
-                }
-            }
-        }
-
-        for (int i = 0; i < 5; i++) {
-            UpsideDownTriangle* triangle = &(_upside_down_triangles[i]);
-            int v50 = _verticies[triangle->field_0].intensity;
-            int v51 = _verticies[triangle->field_0].field_0;
-            int v52 = _verticies[triangle->field_8].intensity - v50;
-            // TODO: Probably wrong.
-            int v53 = v52 / 32;
-            int v54 = (_verticies[triangle->field_4].intensity - v50) / 13;
-            int* v55 = &(_intensity_map[v51]);
-            if (v53 != 0) {
-                if (v54 != 0) {
-                    for (int i = 0; i < 13; i++) {
-                        int v59 = v50;
-                        int v60 = _upside_down_table[i].field_4;
-                        v55 += _upside_down_table[i].field_0;
-                        for (int j = 0; j < v60; j++) {
-                            *v55++ = v59;
-                            v59 += v53;
-                        }
-                        v50 += v54;
-                    }
-                } else {
-                    for (int i = 0; i < 13; i++) {
-                        int v56 = v50;
-                        int v57 = _upside_down_table[i].field_4;
-                        v55 += _upside_down_table[i].field_0;
-                        for (int j = 0; j < v57; j++) {
-                            *v55++ = v56;
-                            v56 += v53;
-                        }
-                    }
-                }
-            } else {
-                if (v54 != 0) {
-                    for (int i = 0; i < 13; i++) {
-                        int v64 = _upside_down_table[i].field_4;
-                        v55 += _upside_down_table[i].field_0;
-                        for (int j = 0; j < v64; j++) {
-                            *v55++ = v50;
-                        }
-                        v50 += v54;
-                    }
-                } else {
-                    for (int i = 0; i < 13; i++) {
-                        int v62 = _upside_down_table[i].field_4;
-                        v55 += _upside_down_table[i].field_0;
-                        for (int j = 0; j < v62; j++) {
-                            *v55++ = v50;
-                        }
-                    }
-                }
-            }
-        }
+        tileFillIntensityMap();
 
         unsigned char* v66 = gTileWindowBuffer + gTileWindowPitch * y + x;
         unsigned char* v67 = artGetFrameData(art) + frameWidth * v78 + v79;

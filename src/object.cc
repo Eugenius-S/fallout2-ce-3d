@@ -20,6 +20,8 @@
 #include "game_mouse.h"
 #include "item.h"
 #include "light.h"
+#include "lighting/lighting.h"
+#include "lighting/lighting_quad_blit.h"
 #include "map.h"
 #include "map_defs.h"
 #include "memory.h"
@@ -5029,6 +5031,45 @@ static void _obj_render_object(Object* object, Rect* rect, int light)
     }
 
     if (rectIntersection(&objectRect, rect, &objectRect) != 0) {
+        artUnlock(cacheEntry);
+        return;
+    }
+
+    if (lighting::isPerspective() && object->tile != -1 && type != OBJ_TYPE_INTERFACE) {
+        // Sprite-lighting mod: the sprite is drawn as a perspective-correct
+        // vertical billboard standing on its ground line. The vanilla
+        // wall-glass reveal and dead-critter egg special cases are bypassed
+        // here (documented prototype deviation; they keep working with the
+        // vanilla camera).
+        const float quadX0 = static_cast<float>(object->sx);
+        const float quadX1 = static_cast<float>(object->sx + frameWidth);
+        const float groundY = static_cast<float>(object->sy + frameHeight);
+        lighting::Quad quad;
+        lighting::projectElevated(quadX0, groundY, static_cast<float>(frameHeight), &quad.x[0], &quad.y[0], &quad.depth[0]);
+        lighting::projectElevated(quadX1, groundY, static_cast<float>(frameHeight), &quad.x[1], &quad.y[1], &quad.depth[1]);
+        lighting::projectElevated(quadX1, groundY, 0.0f, &quad.x[2], &quad.y[2], &quad.depth[2]);
+        lighting::projectElevated(quadX0, groundY, 0.0f, &quad.x[3], &quad.y[3], &quad.depth[3]);
+        unsigned char* frameData = artGetFrameData(art, object->frame, object->rotation);
+        switch (object->flags & OBJECT_FLAG_0xFC000) {
+        case OBJECT_TRANS_RED:
+            lighting::quadBlit(frameData, frameWidth, frameHeight, frameWidth, quad, rect, gObjectsWindowBuffer, gObjectsWindowPitch, light, nullptr, 0, _redBlendTable, _commonGrayTable);
+            break;
+        case OBJECT_TRANS_WALL:
+            lighting::quadBlit(frameData, frameWidth, frameHeight, frameWidth, quad, rect, gObjectsWindowBuffer, gObjectsWindowPitch, 0x10000, nullptr, 0, _wallBlendTable, _commonGrayTable);
+            break;
+        case OBJECT_TRANS_GLASS:
+            lighting::quadBlit(frameData, frameWidth, frameHeight, frameWidth, quad, rect, gObjectsWindowBuffer, gObjectsWindowPitch, light, nullptr, 0, _glassBlendTable, _glassGrayTable);
+            break;
+        case OBJECT_TRANS_STEAM:
+            lighting::quadBlit(frameData, frameWidth, frameHeight, frameWidth, quad, rect, gObjectsWindowBuffer, gObjectsWindowPitch, light, nullptr, 0, _steamBlendTable, _commonGrayTable);
+            break;
+        case OBJECT_TRANS_ENERGY:
+            lighting::quadBlit(frameData, frameWidth, frameHeight, frameWidth, quad, rect, gObjectsWindowBuffer, gObjectsWindowPitch, light, nullptr, 0, _energyBlendTable, _commonGrayTable);
+            break;
+        default:
+            lighting::quadBlit(frameData, frameWidth, frameHeight, frameWidth, quad, rect, gObjectsWindowBuffer, gObjectsWindowPitch, light);
+            break;
+        }
         artUnlock(cacheEntry);
         return;
     }

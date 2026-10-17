@@ -26,6 +26,7 @@
 #include "interface.h"
 #include "item.h"
 #include "kb.h"
+#include "lighting/lighting.h"
 #include "map_edge.h"
 #include "mouse.h"
 #include "object.h"
@@ -49,6 +50,20 @@ enum ScrollableDirections : int {
     SCROLLABLE_N = 0x04,
     SCROLLABLE_S = 0x08,
 };
+
+// Sprite-lighting mod: maps a screen point through the inverse perspective
+// ground projection before tile picking so click-to-walk and hover targets
+// stay on the tile the player actually sees.
+static int gmousePickTileFromScreen(int screenX, int screenY)
+{
+    if (lighting::isPerspective()) {
+        float x = static_cast<float>(screenX);
+        float y = static_cast<float>(screenY);
+        lighting::inverseGround(x, y, &x, &y);
+        return tileFromScreenXY(static_cast<int>(x), static_cast<int>(y));
+    }
+    return tileFromScreenXY(screenX, screenY);
+}
 
 constexpr inline ScrollableDirections operator|(ScrollableDirections lhs, ScrollableDirections rhs)
 {
@@ -2460,7 +2475,7 @@ int _gmouse_3d_move_to(int x, int y, MapElevation elevation, Rect* rect)
 
             _obj_move(gGameMouseHexCursor, x + offsetX, y + offsetY, elevation, rect);
         } else {
-            int tile = tileFromScreenXY(x, y);
+            int tile = gmousePickTileFromScreen(x, y);
             if (tile != -1) {
                 int screenX;
                 int screenY;
@@ -2494,7 +2509,15 @@ int _gmouse_3d_move_to(int x, int y, MapElevation elevation, Rect* rect)
 
     int fid = gGameMouseBouncingCursor->fid;
     if (FrmId(fid).objectType() == OBJ_TYPE_TILE) {
-        int squareTile = squareTileFromScreenXY(x, y, elevation);
+        int squareTile;
+        if (lighting::isPerspective()) {
+            float px = static_cast<float>(x);
+            float py = static_cast<float>(y);
+            lighting::inverseGround(px, py, &px, &py);
+            squareTile = squareTileFromScreenXY(static_cast<int>(px), static_cast<int>(py), elevation);
+        } else {
+            squareTile = squareTileFromScreenXY(x, y, elevation);
+        }
         if (squareTile != -1) {
             tile = HEX_GRID_WIDTH * (2 * (squareTile / SQUARE_GRID_WIDTH) + 1) + 2 * (squareTile % SQUARE_GRID_WIDTH) + 1;
             x1 = -8;
@@ -2507,7 +2530,7 @@ int _gmouse_3d_move_to(int x, int y, MapElevation elevation, Rect* rect)
             tile = -1;
         }
     } else {
-        tile = tileFromScreenXY(x, y);
+        tile = gmousePickTileFromScreen(x, y);
     }
 
     if (tile != -1) {

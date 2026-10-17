@@ -26,6 +26,7 @@
 #include "interface.h"
 #include "item.h"
 #include "light.h"
+#include "lighting/lighting.h"
 #include "loadsave.h"
 #include "map_defs.h"
 #include "map_edge.h"
@@ -652,6 +653,14 @@ int mapScroll(int dx, int dy)
 
     if (tileSetCenter(newCenterTile, 0) == -1) {
         return -1;
+    }
+
+    if (lighting::isPerspective()) {
+        // Sprite-lighting mod: under the perspective camera a world shift is
+        // not a uniform screen shift (near rows move more than far ones), so
+        // the buffer copy below would smear the image. Redraw everything.
+        tileWindowRefresh();
+        return 0;
     }
 
     Rect r1;

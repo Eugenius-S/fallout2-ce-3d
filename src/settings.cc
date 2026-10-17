@@ -387,6 +387,14 @@ void initSettingsRegistry(bool isMapper)
     SETTING(fast_ammo_load);
 #undef SECT
 
+    // Sprite-lighting mod: visual-only settings.
+#define SECT lighting
+    SETTING(camera);
+    SETTING_P(pitch, clamp(30, 90));
+    SETTING_P(distance, clamp(200, 10000));
+    SETTING_P(roof_height, clamp(24, 300));
+#undef SECT
+
     if (isMapper) {
 #define SECT mapper
         SETTING(override_librarian);
