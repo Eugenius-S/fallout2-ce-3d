@@ -11,10 +11,6 @@
 
 #include "../art.h"
 #include "../color.h"
-#include "../db.h"
-#include "../dialog.h"
-#include "../platform/git_version.h"
-#include "../platform_compat.h"
 #include "../combat.h"
 #include "../db.h"
 #include "../dialog.h"
@@ -22,11 +18,15 @@
 #include "../input.h"
 #include "../kb.h"
 #include "../map.h"
+#include "../map_defs.h"
 #include "../movie.h"
+#include "../platform/git_version.h"
+#include "../platform_compat.h"
 #include "../scene_renderer/scene_gl.h"
 #include "../settings.h"
 #include "../svga.h"
 #include "../text_font.h"
+#include "../tile.h"
 #include "../worldmap.h"
 
 #include <SDL.h>
@@ -48,15 +48,24 @@ bool gListMaps = false;
 char gStartupMap[16] = {};
 int gStartupElevation = 0;
 bool gStartupApplied = false;
+char gToolsCommit[32] = "-";
 
 bool gPanelOpen = false;
 
 std::vector<std::string> gMaps; // file names, e.g. "kladwtwn.map"
 std::vector<int> gFiltered;     // indices into gMaps
 char gFilter[17] = {};
-int gSelected = 0; // index into gFiltered
-int gElevation = 0;
+int gSelected = 0;          // index into gFiltered
+int gSelectedElevation = 0; // panel choice (the engine's gElevation is the truth)
 char gStatus[128] = "dev tools ready";
+
+// Pending elevation correction: after a cross-map transition the engine
+// places the dude on the map's entrance elevation; if the requested
+// elevation differs (and exists on that map), a follow-up same-map
+// transition is issued once the load has settled.
+bool gPendingElevation = false;
+int gPendingMapId = -1;
+int gPendingElevationValue = 0;
 
 // Panel layout (logical framebuffer coordinates).
 constexpr int kPanelX = 396;
@@ -77,13 +86,19 @@ Rect2 gGoRect;
 Rect2 gSnapRect;
 bool gZonesValid = false;
 
+#define DT_TEXT_COLOR COLOR_LIGHT_GREY
+#define DT_HIGHLIGHT_COLOR COLOR_WHITE
+#define DT_TITLE_COLOR COLOR_YELLOW_2
+#define DT_ACTIVE_COLOR COLOR_GREEN
+#define DT_ERROR_COLOR COLOR_RED
+
 // --- sha256 (public-domain style compact implementation) --------------------
 
 struct Sha256 {
     unsigned int state[8];
-    unsigned long long bitlen;
     unsigned char data[64];
     unsigned int datalen;
+    unsigned long long totalBits;
 
     static unsigned int rotr(unsigned int x, int n)
     {
@@ -149,8 +164,8 @@ struct Sha256 {
         state[5] = 0x9b05688c;
         state[6] = 0x1f83d9ab;
         state[7] = 0x5be0cd19;
-        bitlen = 0;
         datalen = 0;
+        totalBits = 0;
     }
 
     void update(const unsigned char* p, size_t n)
@@ -192,8 +207,6 @@ struct Sha256 {
             hash[i + 28] = (state[7] >> (24 - i * 8)) & 0xFF;
         }
     }
-
-    unsigned long long totalBits = 0;
 };
 
 void sha256File(const char* path, char* outHex, size_t outSize)
@@ -252,12 +265,26 @@ void stripMapExtension(const char* name, char* out, size_t size)
     out[len] = '\0';
 }
 
+// True when the CURRENT map has tile data on this elevation (per the map
+// header flags - the same condition the loader uses to skip elevations).
+bool elevationPresent(int elevation)
+{
+    if (elevation < 0 || elevation >= ELEVATION_COUNT) {
+        return false;
+    }
+    static constexpr int kElevFlags[ELEVATION_COUNT] = {
+        MAP_HEADER_ELEVATION_0,
+        MAP_HEADER_ELEVATION_1,
+        MAP_HEADER_ELEVATION_2,
+    };
+    return (gMapHeader.flags & kElevFlags[elevation]) != 0;
+}
+
 void refreshFiltered()
 {
     gFiltered.clear();
     for (size_t i = 0; i < gMaps.size(); i++) {
         if (gFilter[0] != '\0') {
-            // Registry names are mixed case; compare case-insensitively.
             if (stristr(gMaps[i].c_str(), gFilter) == nullptr) {
                 continue;
             }
@@ -323,13 +350,31 @@ void setStatus(const char* text)
     snprintf(gStatus, sizeof(gStatus), "%s", text);
 }
 
-// --- panel ------------------------------------------------------------------
+// Applies a same-map elevation change: the engine skips dude placement when
+// the transition tile is -1, so the map's entering tile is passed explicitly.
+static bool applyElevationChange(int elevation)
+{
+    if (elevation < 0 || elevation >= ELEVATION_COUNT) {
+        snprintf(gStatus, sizeof(gStatus), "no such elevation: %d", elevation);
+        return false;
+    }
+    if (!elevationPresent(elevation)) {
+        snprintf(gStatus, sizeof(gStatus), "elevation %d absent on this map", elevation);
+        return false;
+    }
 
-#define DT_TEXT_COLOR COLOR_LIGHT_GREY
-#define DT_HIGHLIGHT_COLOR COLOR_WHITE
-#define DT_TITLE_COLOR COLOR_YELLOW_2
-#define DT_ACTIVE_COLOR COLOR_GREEN
-#define DT_ERROR_COLOR COLOR_RED
+    MapTransition transition;
+    transition.map = gMapHeader.index;
+    transition.elevation = static_cast<MapElevation>(elevation);
+    transition.tile = gMapHeader.enteringTile;
+    transition.rotation = static_cast<Rotation>(-1);
+
+    if (mapSetTransition(&transition) == -1) {
+        setStatus("transition rejected");
+        return false;
+    }
+    return true;
+}
 
 } // namespace
 
@@ -353,6 +398,10 @@ bool parseOption(const char* arg)
         if (gStartupElevation > ELEVATION_COUNT - 1) {
             gStartupElevation = ELEVATION_COUNT - 1;
         }
+        return true;
+    }
+    if (strncmp(arg, "--dev-tools-commit=", 19) == 0) {
+        snprintf(gToolsCommit, sizeof(gToolsCommit), "%s", arg + 19);
         return true;
     }
     if (strcmp(arg, "--dev-list-maps") == 0) {
@@ -379,12 +428,38 @@ void listMaps()
     for (const std::string& map : gMaps) {
         char base[64];
         stripMapExtension(map.c_str(), base, sizeof(base));
-        // Elevations are verified per map at load time; 0 always exists for
-        // playable maps.
         printf("  %s\n", base);
     }
     printf("Use --dev-map=<name> --dev-elevation=<0..2> to travel.\n");
     fflush(stdout);
+}
+
+// Called every frame from the presentation hook: applies the pending
+// elevation correction once the requested map has finished loading.
+void update()
+{
+    if (!gEnabled || !gPendingElevation) {
+        return;
+    }
+    if (inBlockingGameState()) {
+        return;
+    }
+    if (static_cast<int>(gMapHeader.index) != gPendingMapId) {
+        return; // the requested map has not finished loading yet
+    }
+
+    gPendingElevation = false;
+    if (gPendingElevationValue == static_cast<int>(gElevation)) {
+        return; // already there
+    }
+    if (!elevationPresent(gPendingElevationValue)) {
+        snprintf(gStatus, sizeof(gStatus), "elevation %d absent on this map",
+            gPendingElevationValue);
+        return;
+    }
+    if (applyElevationChange(gPendingElevationValue)) {
+        snprintf(gStatus, sizeof(gStatus), "moving to elevation %d", gPendingElevationValue);
+    }
 }
 
 void applyStartupTarget()
@@ -432,10 +507,34 @@ bool requestMapChange(const char* mapFileName, int elevation)
         return false;
     }
 
+    bool sameMap = static_cast<int>(gMapHeader.index) == mapId;
+    gPendingElevation = false;
+
+    if (sameMap) {
+        // Elevation change within one map: presence is known from the
+        // current header - refuse up front when absent.
+        if (elevation != static_cast<int>(gElevation) && !elevationPresent(elevation)) {
+            snprintf(gStatus, sizeof(gStatus), "elevation %d absent on %s", elevation, base);
+            return false;
+        }
+        if (!applyElevationChange(elevation)) {
+            return false;
+        }
+        if (elevation == static_cast<int>(gElevation)) {
+            setStatus("already on this elevation");
+        } else {
+            snprintf(gStatus, sizeof(gStatus), "moving to elevation %d", elevation);
+        }
+        return true;
+    }
+
+    // Different map: load it through its entrance (tile = -1). The requested
+    // elevation is applied as a follow-up once the map has loaded (the
+    // entrance elevation of the target map is unknown before the load).
     MapTransition transition;
     transition.map = static_cast<Map>(mapId);
     transition.elevation = static_cast<MapElevation>(elevation);
-    transition.tile = -1; // map's default entrance
+    transition.tile = -1;
     transition.rotation = static_cast<Rotation>(-1);
 
     if (mapSetTransition(&transition) == -1) {
@@ -443,6 +542,9 @@ bool requestMapChange(const char* mapFileName, int elevation)
         return false;
     }
 
+    gPendingElevation = true;
+    gPendingMapId = mapId;
+    gPendingElevationValue = elevation;
     snprintf(gStatus, sizeof(gStatus), "traveling to %s e%d", base, elevation);
     return true;
 }
@@ -475,7 +577,6 @@ bool handleKey(int key)
         return false;
     }
 
-    // Panel is open: consume navigation and typing.
     switch (key) {
     case KEY_ARROW_UP:
         if (gSelected > 0) {
@@ -488,26 +589,25 @@ bool handleKey(int key)
         }
         return true;
     case KEY_ARROW_LEFT:
-        if (gElevation > 0) {
-            gElevation--;
+        if (gSelectedElevation > 0) {
+            gSelectedElevation--;
         }
         return true;
     case KEY_ARROW_RIGHT:
-        if (gElevation < ELEVATION_COUNT - 1) {
-            gElevation++;
+        if (gSelectedElevation < ELEVATION_COUNT - 1) {
+            gSelectedElevation++;
         }
         return true;
     case KEY_RETURN:
         if (!gFiltered.empty()) {
-            requestMapChange(gMaps[gFiltered[gSelected]].c_str(), gElevation);
+            requestMapChange(gMaps[gFiltered[gSelected]].c_str(), gSelectedElevation);
+        } else {
+            setStatus("no map selected");
         }
         return true;
     case KEY_ESCAPE:
         gPanelOpen = false;
         setStatus("panel closed");
-        return true;
-    case KEY_F9:
-        takeSnapshot();
         return true;
     case KEY_BACKSPACE:
         if (gFilter[0] != '\0') {
@@ -517,17 +617,17 @@ bool handleKey(int key)
         return true;
     case KEY_TAB:
         return true; // keep TAB (inventory) from leaking while typing
+    case KEY_F9:
+        takeSnapshot();
+        return true;
     default:
         break;
     }
 
     int ch = key & 0xFF;
-    if (key >= KEY_SPACE && key < 0x0100 && ch >= 0x20 && ch < 0x7F
-        && (key & 0xFF) == ch) {
-        // Printable ASCII (letters arrive as KEY_UPPERCASE_* / KEY_LOWERCASE_*
-        // with the same low byte as ASCII).
-        if (key < 0x0100 && (ch >= 'A' && ch <= 'Z')) {
-            ch = ch - 'A' + 'a'; // filters are lowercase, map names too
+    if (key >= KEY_SPACE && key < 0x0100 && ch >= 0x20 && ch < 0x7F) {
+        if (ch >= 'A' && ch <= 'Z') {
+            ch = ch - 'A' + 'a';
         }
         size_t len = strlen(gFilter);
         if (len + 1 < sizeof(gFilter)) {
@@ -552,19 +652,25 @@ bool handleClick(int mouseX, int mouseY)
     }
 
     if (hitTest(gListRect, mouseX, mouseY)) {
+        // The draw starts kListRows/2 rows above the selection - mirror it.
         int lineHeight = fontGetLineHeight() + 2;
         int row = (mouseY - gListRect.y) / lineHeight;
-        if (row >= 0 && row < static_cast<int>(gFiltered.size())) {
-            gSelected = row;
+        int idx = gSelected - kListRows / 2 + row;
+        if (idx >= 0 && idx < static_cast<int>(gFiltered.size())) {
+            gSelected = idx;
         }
         return true;
     }
 
     if (hitTest(gElevRect, mouseX, mouseY)) {
-        gElevation = (mouseX - gElevRect.x) / 24;
-        if (gElevation > ELEVATION_COUNT - 1) {
-            gElevation = ELEVATION_COUNT - 1;
+        int e = (mouseX - gElevRect.x) / 24;
+        if (e < 0) {
+            e = 0;
         }
+        if (e > ELEVATION_COUNT - 1) {
+            e = ELEVATION_COUNT - 1;
+        }
+        gSelectedElevation = e;
         setStatus("elevation changed");
         return true;
     }
@@ -585,7 +691,9 @@ bool handleClick(int mouseX, int mouseY)
 
     if (hitTest(gGoRect, mouseX, mouseY)) {
         if (!gFiltered.empty()) {
-            requestMapChange(gMaps[gFiltered[gSelected]].c_str(), gElevation);
+            requestMapChange(gMaps[gFiltered[gSelected]].c_str(), gSelectedElevation);
+        } else {
+            setStatus("no map selected");
         }
         return true;
     }
@@ -613,7 +721,6 @@ void draw(unsigned char* surface, int width, int height, int pitch)
     int lineHeight = fontGetLineHeight();
     int rowHeight = lineHeight + 2;
 
-    // Panel background + frame.
     bufferFill(surface + pitch * kPanelY + kPanelX, kPanelW, kPanelH, pitch, COLOR_BLACK);
     for (int x = kPanelX; x < kPanelX + kPanelW; x++) {
         surface[pitch * kPanelY + x] = COLOR_GREY;
@@ -633,12 +740,12 @@ void draw(unsigned char* surface, int width, int height, int pitch)
 
     char mapName[32];
     currentMapName(mapName, sizeof(mapName));
-    snprintf(line, sizeof(line), "map: %s e%d", mapName, static_cast<int>(gElevation));
+    snprintf(line, sizeof(line), "map: %s e%d (want e%d)", mapName,
+        static_cast<int>(gElevation), gSelectedElevation);
     fontDrawText(surface + pitch * y + kPanelX + 6, line, kPanelW - 12, pitch, DT_TEXT_COLOR);
     y += lineHeight;
 
-    snprintf(line, sizeof(line), "render: %s  light: off",
-        activeRendererName());
+    snprintf(line, sizeof(line), "render: %s  light: off", activeRendererName());
     fontDrawText(surface + pitch * y + kPanelX + 6, line, kPanelW - 12, pitch, DT_ACTIVE_COLOR);
     y += lineHeight + 1;
 
@@ -646,14 +753,13 @@ void draw(unsigned char* surface, int width, int height, int pitch)
     fontDrawText(surface + pitch * y + kPanelX + 6, line, kPanelW - 12, pitch, DT_TEXT_COLOR);
     y += lineHeight + 1;
 
-    // Map list.
     gListRect = textButton(kPanelX + 4, y, kPanelW - 8, kListRows * rowHeight);
     for (int row = 0; row < kListRows; row++) {
         int idx = gSelected - kListRows / 2 + row;
         if (idx < 0 || idx >= static_cast<int>(gFiltered.size())) {
             continue;
         }
-        ColorWithFlags color = idx == gSelected ? ColorWithFlags{DT_HIGHLIGHT_COLOR} : ColorWithFlags{DT_TEXT_COLOR};
+        ColorWithFlags color = idx == gSelected ? ColorWithFlags{ DT_HIGHLIGHT_COLOR } : ColorWithFlags{ DT_TEXT_COLOR };
         char base[64];
         stripMapExtension(gMaps[gFiltered[idx]].c_str(), base, sizeof(base));
         snprintf(line, sizeof(line), "%s%s", idx == gSelected ? "> " : "  ", base);
@@ -664,19 +770,20 @@ void draw(unsigned char* surface, int width, int height, int pitch)
     }
     y += kListRows * rowHeight + 1;
 
-    // Elevation row.
-    gElevRect = textButton(kPanelX + 4, y, 3 * 24, lineHeight + 2);
+    // Elevation row: the click zone starts where the labels start.
+    int elevX = kPanelX + 6 + 40;
     snprintf(line, sizeof(line), "elev:");
     fontDrawText(surface + pitch * y + kPanelX + 6, line, 40, pitch, DT_TEXT_COLOR);
+    gElevRect = textButton(elevX, y, ELEVATION_COUNT * 24, lineHeight + 2);
     for (int e = 0; e < ELEVATION_COUNT; e++) {
-        bool present = _square[e] != nullptr;
+        bool present = elevationPresent(e);
         snprintf(line, sizeof(line), "[%d]%s", e, present ? "" : "-");
-        fontDrawText(surface + pitch * y + kPanelX + 6 + 40 + e * 24, line, 24, pitch,
-            e == gElevation ? DT_HIGHLIGHT_COLOR : (present ? DT_TEXT_COLOR : COLOR_GREY));
+        fontDrawText(surface + pitch * y + elevX + e * 24, line, 24, pitch,
+            e == gSelectedElevation ? ColorWithFlags{ DT_HIGHLIGHT_COLOR }
+                                    : (present ? ColorWithFlags{ DT_TEXT_COLOR } : ColorWithFlags{ COLOR_GREY }));
     }
     y += lineHeight + 2;
 
-    // Buttons.
     int bw = (kPanelW - 16) / 4;
     gPrevRect = textButton(kPanelX + 4, y, bw, lineHeight + 2);
     gNextRect = textButton(kPanelX + 4 + bw, y, bw, lineHeight + 2);
@@ -690,7 +797,6 @@ void draw(unsigned char* surface, int width, int height, int pitch)
 
     snprintf(line, sizeof(line), "%s", gStatus);
     fontDrawText(surface + pitch * y + kPanelX + 6, line, kPanelW - 12, pitch, COLOR_LIGHT_GREY);
-    y += lineHeight;
     gZonesValid = true;
 }
 
@@ -719,11 +825,11 @@ void takeSnapshot()
     }
 
     unsigned char* palette = directDrawGetPalette();
-    int rc = screenshotHandlerPngImpl(gSdlSurface->w, gSdlSurface->h,
+    screenshotHandlerPngImpl(gSdlSurface->w, gSdlSurface->h,
         static_cast<unsigned char*>(gSdlSurface->pixels), palette);
 
-    // The handler picks its own name (screenshotNNN.png in the current
-    // directory); pair the newest screenshot with the metadata sidecar.
+    // The handler names files scrNNNNN.png in the current directory; pair
+    // the newest one with the metadata sidecar.
     std::string imageFile;
     try {
         namespace fs = std::filesystem;
@@ -779,23 +885,27 @@ void takeSnapshot()
             "  \"image\": \"%s\",\n"
             "  \"map\": \"%s\",\n"
             "  \"elevation\": %d,\n"
+            "  \"camera\": \"center tile %d\",\n"
             "  \"renderer\": \"%s\",\n"
             "  \"light\": \"off\",\n"
             "  \"resolution\": \"%dx%d\",\n"
             "  \"drawable\": \"%dx%d\",\n"
             "  \"ce_commit\": \"%s\",\n"
+            "  \"tools_commit\": \"%s\",\n"
             "  \"exe_sha256\": \"%s\",\n"
             "  \"taken\": \"%s\"\n"
             "}\n",
             imageFile.c_str(),
             mapName,
             static_cast<int>(gElevation),
+            gCenterTile,
             activeRendererName(),
             gSdlSurface->w,
             gSdlSurface->h,
             drawableW,
             drawableH,
             _BUILD_HASH,
+            gToolsCommit,
             exeSha,
             stamp);
         fclose(f);
