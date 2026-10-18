@@ -16,9 +16,6 @@ bool glLoad()
     }
 #include "gl_procs.h"
 #undef GL_PROC
-    fprintf(stderr, "sr: CreateShader=%p direct=%p\n",
-        (void*)glCreateShader, SDL_GL_GetProcAddress("glCreateShader"));
-    fflush(stderr);
     return true;
 }
 

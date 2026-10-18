@@ -73,6 +73,7 @@
 #include "version.h"
 #include "win32.h"
 #include "window_manager.h"
+#include "devtools/devtools.h"
 #include "worldmap.h"
 
 #if __APPLE__
@@ -539,6 +540,12 @@ void gameExit()
 // 0x442D44
 int gameHandleKey(int eventCode, bool isInCombatMode)
 {
+    // Sprite-lighting mod: the dev panel consumes keys while it is open and
+    // answers its own hotkeys; the game never sees them.
+    if (devtools::handleKey(eventCode)) {
+        return 0;
+    }
+
     // NOTE: Uninline.
     if (gameGetState() == GameState::DialogRequested) {
         _gdialogSystemEnter();

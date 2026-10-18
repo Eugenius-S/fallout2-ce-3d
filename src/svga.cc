@@ -17,6 +17,7 @@
 #include "movie.h"
 #include "scan_unimplemented.h"
 #include "settings.h"
+#include "devtools/devtools.h"
 #include "scene_renderer/scene_gl.h"
 #include "text_font.h"
 #include "tile.h"
@@ -493,6 +494,10 @@ void renderFpsCounter()
 
 void renderPresent()
 {
+    // Sprite-lighting mod: the dev panel is drawn into the framebuffer after
+    // the game (so it shows in both presentation paths).
+    devtools::draw(static_cast<unsigned char*>(gSdlSurface->pixels), gSdlSurface->w, gSdlSurface->h, gSdlSurface->pitch);
+
     if (scene_renderer::isActive()) {
         // Palette -> RGBA conversion is the same SDL_BlitSurface the vanilla
         // path performs every frame, so palette fades and cycling behave

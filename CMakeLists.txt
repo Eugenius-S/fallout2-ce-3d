@@ -293,6 +293,8 @@ set(FALLOUT_PLATFORM_SOURCES
     "src/preferences.h"
     "src/settings.cc"
     "src/settings.h"
+    "src/devtools/devtools.cc"
+    "src/devtools/devtools.h"
     "src/scene_renderer/gl_api.cc"
     "src/scene_renderer/gl_api.h"
     "src/scene_renderer/gl_procs.h"

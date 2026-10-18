@@ -26,6 +26,7 @@
 #include "interface.h"
 #include "item.h"
 #include "kb.h"
+#include "devtools/devtools.h"
 #include "map_edge.h"
 #include "mouse.h"
 #include "object.h"
@@ -983,6 +984,12 @@ void _gmouse_handle_event(int mouseX, int mouseY, int mouseState)
     if (gameMouseClickOnInterfaceBar()) {
         return;
     }
+
+    // Sprite-lighting mod: clicks on the dev panel belong to the panel.
+    if (devtools::handleClick(mouseX, mouseY)) {
+        return;
+    }
+
     if (mapEdgeIsOverClippedArea(mouseX, mouseY)) {
         return;
     }

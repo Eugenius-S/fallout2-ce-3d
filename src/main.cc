@@ -42,6 +42,7 @@
 #include "window_manager.h"
 #include "window_manager_private.h"
 #include "word_wrap.h"
+#include "devtools/devtools.h"
 #include "worldmap.h"
 
 namespace fallout {
@@ -92,6 +93,15 @@ int falloutMain(int argc, char** argv)
     }
 
     mainParseCommandLineArguments(argc, argv);
+
+    // Sprite-lighting mod: `--dev-list-maps` prints the maps available in
+    // game resources and exits.
+    if (devtools::wantsListMaps()) {
+        devtools::listMaps();
+        main_exit_system();
+        autorunMutexClose();
+        return 0;
+    }
 
     // SFALL: Allow to skip intro movies
     int skipOpeningMovies = settings.ui.skip_opening_movies;
@@ -180,6 +190,9 @@ int falloutMain(int argc, char** argv)
 
                 if (loadGameRc > 0) {
                     mainMenuFinishSubscreen();
+                    // Sprite-lighting mod: travel to the --dev-map target
+                    // through the engine's own safe transition.
+                    devtools::applyStartupTarget();
                     mainRunGameLoopAndCleanup();
                     mainMenuWindowInit();
                 } else {
@@ -253,6 +266,9 @@ static void mainParseCommandLineArguments(int argc, char** argv)
     size_t devLoadGamePrefixLength = strlen(devLoadGamePrefix);
 
     for (int arg = 1; arg < argc; arg += 1) {
+        if (devtools::parseOption(argv[arg])) {
+            continue;
+        }
         if (strncmp(argv[arg], devLoadGamePrefix, devLoadGamePrefixLength) == 0) {
             int slot;
             if (mainTryParseDevLoadGameSlot(argv[arg] + devLoadGamePrefixLength, &slot)) {
