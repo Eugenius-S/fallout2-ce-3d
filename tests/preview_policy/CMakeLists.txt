@@ -1,0 +1,8 @@
+cmake_minimum_required(VERSION 3.18)
+project(preview_policy_tests LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+enable_testing()
+add_executable(preview_policy_tests ../../src/devtools/preview_policy.cc preview_policy_test.cc)
+target_include_directories(preview_policy_tests PRIVATE ../../src/devtools)
+add_test(NAME preview_policy_tests COMMAND preview_policy_tests)

@@ -294,12 +294,15 @@ set(FALLOUT_PLATFORM_SOURCES
     "src/settings.cc"
     "src/settings.h"
     "src/devtools/devtools.cc"
+    "src/devtools/preview_policy.cc"
     "src/devtools/devtools.h"
     "src/scene_renderer/gl_api.cc"
     "src/scene_renderer/gl_api.h"
     "src/scene_renderer/gl_procs.h"
     "src/scene_renderer/scene_gl.cc"
     "src/scene_renderer/scene_gl.h"
+    "src/scene_renderer/ground_pick.cc"
+    "src/scene_renderer/ground_pick.h"
     "src/sfall_config.cc"
     "src/sfall_config.h"
     "src/sfall_ext.cc"
@@ -336,6 +339,23 @@ set(FALLOUT_PLATFORM_SOURCES
     "src/scan_unimplemented.cc"
 	"third_party/lodepng/lodepng.cpp"
 )
+
+include(CTest)
+if(BUILD_TESTING)
+    add_executable(preview_policy_tests
+        "src/devtools/preview_policy.cc"
+        "tests/preview_policy/preview_policy_test.cc"
+    )
+    target_include_directories(preview_policy_tests PRIVATE "src/devtools")
+    add_test(NAME preview_policy_tests COMMAND preview_policy_tests)
+
+    add_executable(ground_pick_tests
+        "src/scene_renderer/ground_pick.cc"
+        "tests/ground_pick/ground_pick_test.cc"
+    )
+    target_include_directories(ground_pick_tests PRIVATE "src/scene_renderer")
+    add_test(NAME ground_pick_tests COMMAND ground_pick_tests)
+endif()
 
 target_sources(${EXECUTABLE_NAME} PUBLIC
     ${FALLOUT_ENGINE_SOURCES}

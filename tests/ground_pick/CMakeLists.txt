@@ -1,0 +1,8 @@
+cmake_minimum_required(VERSION 3.18)
+project(ground_pick_tests LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+enable_testing()
+add_executable(ground_pick_tests ../../src/scene_renderer/ground_pick.cc ground_pick_test.cc)
+target_include_directories(ground_pick_tests PRIVATE ../../src/scene_renderer)
+add_test(NAME ground_pick_tests COMMAND ground_pick_tests)
