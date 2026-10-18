@@ -58,6 +58,20 @@ void tileScrollBlockingEnable();
 void tileScrollBlockingDisable();
 bool tileScrollBlockingIsEnabled();
 void tileSetFreeScroll(bool enabled);
+
+// Dev 3D view: the scene shows the world in place of the tile window, which
+// then keeps only what the game draws over the world (floating text, the
+// mouse's hex and action cursors). `shift` says how many screen pixels from
+// the window's own place the scene shows a hex, `pick` which hex it shows at
+// a screen point (-1: none); nullptr turns this off.
+typedef bool(TileSceneShiftProc)(int tile, int* dx, int* dy);
+typedef int(TileScenePickProc)(int x, int y);
+void tileSetSceneOverlay(TileSceneShiftProc* shift, TileScenePickProc* pick);
+bool tileSceneOverlayActive();
+void tileSceneShift(int tile, int* dx, int* dy);
+// The hex the player points at with the mouse at a screen point: where the
+// 3D scene shows the world, the hex it shows there.
+int tileUnderMouse(int x, int y);
 void tileScrollLimitingEnable();
 void tileScrollLimitingDisable();
 bool tileScrollLimitingIsEnabled();

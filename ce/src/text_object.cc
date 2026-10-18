@@ -301,6 +301,13 @@ void textObjectsRenderInRect(Rect* rect)
         textObject->x += textObject->sx;
         textObject->y += textObject->sy;
 
+        // Dev 3D view: over the hex where the scene shows it.
+        int sceneX;
+        int sceneY;
+        tileSceneShift(textObject->tile, &sceneX, &sceneY);
+        textObject->x += sceneX;
+        textObject->y += sceneY;
+
         Rect textObjectRect;
         textObjectRect.left = textObject->x;
         textObjectRect.top = textObject->y;

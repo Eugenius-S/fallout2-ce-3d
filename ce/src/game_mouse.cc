@@ -537,18 +537,6 @@ void gameMouseRefresh()
         return;
     }
 
-    if (devtools::staticWalkPreviewCanCaptureInput()) {
-        int walkMouseX, walkMouseY;
-        mouseGetPosition(&walkMouseX, &walkMouseY);
-        // Screen edges still scroll the map; the 3D view follows the game's
-        // view center.
-        if (gmouse_scrolling_is_enabled() && gameMouseHandleScrolling(walkMouseX, walkMouseY, gGameMouseCursor) == 0) {
-            return;
-        }
-        devtools::refreshWalkCursor(walkMouseX, walkMouseY);
-        return;
-    }
-
     int mouseX;
     int mouseY;
 
@@ -976,13 +964,6 @@ bool gameMouseClickOnInterfaceBar()
 void _gmouse_handle_event(int mouseX, int mouseY, int mouseState)
 {
     if (!gGameMouseInitialized) {
-        return;
-    }
-
-    if (devtools::staticWalkPreviewCanCaptureInput()) {
-        if ((mouseState & MOUSE_EVENT_LEFT_BUTTON_UP) != 0) {
-            devtools::handleWalkClick(mouseX, mouseY);
-        }
         return;
     }
 
@@ -1748,6 +1729,12 @@ Object* gameMouseGetObjectUnderCursor(ObjectType objectType, bool includeDude, M
     int mouseY;
     mouseGetPosition(&mouseX, &mouseY);
 
+    // Dev 3D view: what the scene shows under the pointer.
+    Object* sceneObject;
+    if (elevation == gElevation && devtools::scenePickObject(mouseX, mouseY, objectType, includeDude, &sceneObject)) {
+        return sceneObject;
+    }
+
     bool intersectsRoof = false;
     if (objectType == -1) {
         if (_square_roof_intersect(mouseX, mouseY, elevation)) {
@@ -2486,7 +2473,7 @@ int _gmouse_3d_move_to(int x, int y, MapElevation elevation, Rect* rect)
 
             _obj_move(gGameMouseHexCursor, x + offsetX, y + offsetY, elevation, rect);
         } else {
-            int tile = tileFromScreenXY(x, y);
+            int tile = tileUnderMouse(x, y);
             if (tile != -1) {
                 int screenX;
                 int screenY;

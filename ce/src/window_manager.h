@@ -225,6 +225,10 @@ Window* windowGetWindow(int win);
 unsigned char* windowGetBuffer(int win);
 Buffer2D windowGetBuffer2D(int win);
 int windowGetAtPoint(int x, int y);
+// Sets mask (width x height screen pixels) to 1 where window `win` shows: inside
+// it and under no shown window above it that paints all of its pixels; 0
+// elsewhere. False when `win` does not exist.
+bool windowShownMask(int win, unsigned char* mask, int width, int height);
 int windowGetWidth(int win);
 int windowGetHeight(int win);
 int windowGetRect(int win, Rect* rect);

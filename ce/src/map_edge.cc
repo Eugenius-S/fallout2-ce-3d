@@ -560,6 +560,9 @@ bool mapEdgeIsOverClippedArea(int screenX, int screenY)
 {
     if (!mapEdgeIsEnabled()) return false;
 
+    // The dev 3D view shows the world past the map edges (tileSetFreeScroll).
+    if (tileSceneOverlayActive()) return false;
+
     if (screenX >= gMapVisibleArea.left && screenX <= gMapVisibleArea.right && screenY >= gMapVisibleArea.top && screenY < gMapVisibleArea.bottom) return false;
 
     return windowGetAtPoint(screenX, screenY) == gIsoWindow;

@@ -71,7 +71,6 @@ int _check_move(int* actionPointsPtr);
 int _dude_move(int actionPoints);
 int _dude_run(int actionPoints);
 // Devtools-only explicit destination route. Uses the standard path and animation queues.
-int animationDevMoveDudeToTile(int tile, bool run);
 void _dude_fidget();
 void _dude_stand(Object* obj, Rotation rotation, const FrmId& frmId);
 void _dude_standup(Object* a1);

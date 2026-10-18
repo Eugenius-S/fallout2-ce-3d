@@ -507,6 +507,11 @@ void renderFpsCounter()
 
 void renderPresent()
 {
+    // The 3D scene shows the world: the tile window keeps only what the game
+    // draws over it.
+    if (scene_renderer::isActive()) {
+        devtools::syncSceneOverlay();
+    }
     // Sprite-lighting mod: the dev panel is drawn into the framebuffer after
     // the game (so it shows in both presentation paths).
     devtools::draw(static_cast<unsigned char*>(gSdlSurface->pixels), gSdlSurface->w, gSdlSurface->h, gSdlSurface->pitch);
@@ -515,10 +520,15 @@ void renderPresent()
             // Read the current hero frame at each scene presentation; nested
             // modal presents yield below and never advance movement observers.
             devtools::refreshStaticHeroForPresent();
-            devtools::refreshWalkPreviewForPresent();
             if (devtools::staticHeroPreviewActive()) {
                 scene_renderer::drawStaticHeroPreview();
-                devtools::afterWalkPreviewDraw();
+                // The game's interface, mouse cursor and floating text over it.
+                SDL_BlitSurface(gSdlSurface, nullptr, gSdlTextureSurface, nullptr);
+                devtools::maskSceneOverlay(static_cast<const unsigned char*>(gSdlSurface->pixels), gSdlSurface->pitch,
+                    static_cast<unsigned char*>(gSdlTextureSurface->pixels), gSdlTextureSurface->pitch,
+                    gSdlSurface->w, gSdlSurface->h);
+                scene_renderer::drawSceneOverlay(static_cast<const unsigned char*>(gSdlTextureSurface->pixels),
+                    gSdlTextureSurface->w, gSdlTextureSurface->h, gSdlTextureSurface->pitch);
                 scene_renderer::swap();
                 return;
             }

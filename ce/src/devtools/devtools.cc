@@ -6,6 +6,7 @@
 #include <string.h>
 #include <time.h>
 #include <cctype>
+#include <cmath>
 
 #include <algorithm>
 #include <exception>
@@ -28,14 +29,17 @@
 #include "../game.h"
 #include "../game_mouse.h"
 #include "../object.h"
+#include "../mouse.h"
 #include "../movie.h"
 #include "../platform/git_version.h"
 #include "../platform_compat.h"
+#include "../scene_renderer/game_view.h"
 #include "../scene_renderer/scene_gl.h"
 #include "../settings.h"
 #include "../svga.h"
 #include "../text_font.h"
 #include "../tile.h"
+#include "../window_manager.h"
 #include "../worldmap.h"
 
 #include <SDL.h>
@@ -60,11 +64,15 @@ bool gStartupFloorPreviewRequested = false;
 bool gStartupWallPreviewRequested = false;
 bool gStartupHeroPreviewRequested = false;
 bool gStartupWalkPreviewRequested = false;
-bool gWalkSnapshotsRequested = false;
 bool gStartupFloorPreviewAttempted = false;
 int gStartupFloorPreviewReturnAfter = 0;
 int gStartupFloorPreviewFramesRemaining = 0;
 bool gSnapshotOncePending = false;
+// --dev-pick-probe: the mouse is put on the scene's critters one by one and
+// what the game finds there is logged (devprobe.log); snapshots show the hex
+// cursor, then the hover icon over a critter. 0: off, then frames counted.
+int gPickProbeStage = 0;
+int gPickProbeClick[2] = { -1, -1 }; // a left click the game loop is to take
 char gToolsCommit[32] = "-";
 
 bool gPanelOpen = false;
@@ -74,15 +82,14 @@ bool gStaticHeroPreview = false;
 bool gHeroUnavailableLogged = false;
 unsigned int gObjectCardsSkipped = 0; // live objects whose frame could not be drawn
 int gHeroStack = 0; // standing sprites the game paints on the hero's hex before the hero
-bool gWalkRequestPending = false;
-bool gWalkSnapshotAfterPending = false;
-int gWalkRequestTile = -1;
-int gWalkFromTile = -1;
-int gWalkLastDestination = -2;
-int gWalkElapsedFrames = 0;
-int gWalkIdleFrames = 0;
-bool gWalkSawMotion = false;
-const char* gWalkStatus = "idle";
+// The objects of the scene's last frame, by pick id (scene_renderer::pickStaticObjects),
+// with the hex they were on: a pick names one only while it is still there.
+struct PickEntry {
+    Object* object;
+    int tile;
+};
+std::vector<PickEntry> gPickObjects;
+int gHeroPickId = -1;
 PreviewBlockReason gLastPreviewBlockReason = PreviewBlockReason::None;
 bool gPreviewPolicyLogged = false;
 
@@ -493,28 +500,6 @@ bool isStaticFloorTarget()
     return compat_stricmp(base, "KLADWTWN") == 0 && static_cast<int>(gElevation) == 0;
 }
 
-bool walkInputAllowed()
-{
-    return staticWalkPreviewActive()
-        && currentPreviewBlockReason() == PreviewBlockReason::None
-        && gameMouseGetMode() == GAME_MOUSE_MODE_MOVE
-        && gDude != nullptr
-        && (gDude->flags & OBJECT_HIDDEN) == OBJECT_NONE
-        && gDude->elevation == gElevation
-        && hexGridTileIsValid(gDude->tile);
-}
-
-void finishWalkRequest(const char* status)
-{
-    gWalkStatus = status;
-    gWalkRequestPending = false;
-    gWalkSnapshotAfterPending = gWalkSnapshotsRequested;
-    printf("devtools: walk result status=%s requesttile=%d fromtile=%d actualtile=%d offset=(%d,%d)\n",
-        status, gWalkRequestTile, gWalkFromTile, gDude != nullptr ? gDude->tile : -1,
-        gDude != nullptr ? gDude->x : 0, gDude != nullptr ? gDude->y : 0);
-    fflush(stdout);
-}
-
 bool updateStaticHeroFromGame()
 {
     auto unavailable = [&](const char* reason) {
@@ -567,6 +552,7 @@ bool updateStaticHeroFromGame()
         image.getXOffset(), image.getYOffset(), width, height, rgba.data(), rgba.size(),
     };
     frame.stack = gHeroStack;
+    frame.pickId = gHeroPickId;
     std::string error;
     if (!scene_renderer::updateStaticHero(frame, &error)) return unavailable(error.c_str());
     gHeroUnavailableLogged = false;
@@ -596,13 +582,20 @@ int nextStackOnTile(ObjectCardPass& pass, Object* object)
 void addObjectCard(Object* object, void* context)
 {
     ObjectCardPass& pass = *static_cast<ObjectCardPass*>(context);
+    // The mouse's cursor objects are drawn over the scene with the interface.
     if ((object->flags & OBJECT_HIDDEN) != OBJECT_NONE || !hexGridTileIsValid(object->tile)
-        || scene_renderer::staticObjectBaked(object->tile, object->fid)) {
+        || object == gGameMouseHexCursor || object == gGameMouseBouncingCursor) {
         return;
     }
-    const int stack = nextStackOnTile(pass, object);
+    const int pickId = static_cast<int>(gPickObjects.size());
+    gPickObjects.push_back({ object, object->tile });
+    // walls.bin draws it: its card is only picked, and the game's count of
+    // sprites on its hex does not include it.
+    const bool pickOnly = scene_renderer::staticObjectBaked(object->tile, object->fid);
+    const int stack = pickOnly ? (object->tile == pass.lastTile ? pass.onTile : 0) : nextStackOnTile(pass, object);
     if (object == gDude) {
         gHeroStack = stack; // the hero card is drawn on its own
+        gHeroPickId = pickId;
         return;
     }
     if (object->rotation < ROTATION_FIRST || object->rotation >= ROTATION_COUNT) {
@@ -643,6 +636,8 @@ void addObjectCard(Object* object, void* context)
         cached ? nullptr : pass.rgba.data(), cached ? 0 : pass.rgba.size(),
     };
     frame.stack = stack;
+    frame.pickId = pickId;
+    frame.pickOnly = pickOnly;
     // The engine's translucent kinds and their tints (_obj_render_object).
     Color tint = COLOR_WHITE;
     bool translucent = true;
@@ -682,6 +677,8 @@ void addObjectCard(Object* object, void* context)
 void updateStaticObjectsFromGame()
 {
     scene_renderer::beginStaticObjects();
+    gPickObjects.clear();
+    gHeroPickId = -1;
     ObjectCardPass pass = { directDrawGetPalette(), {}, 0, -1, 0 };
     if (pass.palette != nullptr) objectForEachAtElevation(gElevation, addObjectCard, &pass);
     scene_renderer::endStaticObjects();
@@ -699,9 +696,6 @@ bool disableStaticFloorPreview(const char* status)
     scene_renderer::clearStaticHero();
     scene_renderer::clearStaticObjects();
     scene_renderer::setStaticCameraCenterTile(-1);
-    scene_renderer::setStaticGroundCursor(-1);
-    gWalkRequestPending = false;
-    gWalkSnapshotAfterPending = false;
     gStartupFloorPreviewFramesRemaining = 0;
     setStatus(status);
     return true;
@@ -907,10 +901,6 @@ bool parseOption(const char* arg)
         gStartupHeroPreviewRequested = true;
         return true;
     }
-    if (strcmp(arg, "--dev-walk-snapshots") == 0) {
-        gWalkSnapshotsRequested = true;
-        return true;
-    }
     const char* returnAfterPrefix = "--dev-floor-preview-return-after=";
     if (strncmp(arg, returnAfterPrefix, strlen(returnAfterPrefix)) == 0) {
         char* end = nullptr;
@@ -926,6 +916,10 @@ bool parseOption(const char* arg)
     }
     if (strcmp(arg, "--dev-snapshot-once") == 0) {
         gSnapshotOncePending = true;
+        return true;
+    }
+    if (strcmp(arg, "--dev-pick-probe") == 0) {
+        gPickProbeStage = 1;
         return true;
     }
     if (strncmp(arg, "--dev-map=", 10) == 0) {
@@ -982,6 +976,14 @@ void update()
 {
     if (!gEnabled) {
         return;
+    }
+    if (gPickProbeClick[0] >= 0) {
+        _gmouse_handle_event(gPickProbeClick[0], gPickProbeClick[1], MOUSE_EVENT_LEFT_BUTTON_UP);
+        gPickProbeClick[0] = gPickProbeClick[1] = -1;
+        if (FILE* log = fopen("devprobe.log", "a")) {
+            fprintf(log, "probe click: hero busy=%d tile=%d\n", animationIsBusy(gDude) == -1 ? 1 : 0, gDude->tile);
+            fclose(log);
+        }
     }
     if ((gStaticFloorPreview || gStaticWallPreview || gStaticHeroPreview) && !isStaticFloorTarget()) {
         disableStaticFloorPreview("static floor preview off: map/elevation changed");
@@ -1166,14 +1168,6 @@ bool staticScenePreviewShouldPresent()
     return currentPreviewBlockReason() == PreviewBlockReason::None;
 }
 
-bool staticWalkPreviewCanCaptureInput()
-{
-    // While the scene is visible, consume mouse input even when walking is
-    // temporarily unavailable (for example, before a hero frame is ready).
-    // The click handler and cursor refresh apply the stricter walk policy.
-    return walkPreviewMayCaptureInput(staticWalkPreviewActive(), staticScenePreviewShouldPresent());
-}
-
 const char* staticScenePreviewAvailability()
 {
     if (!(staticHeroPreviewActive() || staticWallPreviewActive() || staticFloorPreviewActive())) {
@@ -1182,122 +1176,127 @@ const char* staticScenePreviewAvailability()
     return previewBlockReasonName(previewBlockReason(previewRuntimeState()));
 }
 
-bool handleWalkClick(int mouseX, int mouseY)
+void finishPickProbe()
 {
-    if (!staticWalkPreviewActive()) return false;
-    if (!walkInputAllowed()) {
-        scene_renderer::setStaticGroundCursor(-1);
-        setStatus("walk preview: input unavailable in current game state");
-        printf("devtools: walk click ignored: game state/mode is not normal movement\n");
-        fflush(stdout);
-        return true;
+    if (FILE* log = fopen("devprobe.log", "a")) {
+        fprintf(log, "probe done: hero tile=%d busy=%d scene=%s\n", gDude->tile, animationIsBusy(gDude) == -1 ? 1 : 0,
+            staticScenePreviewAvailability());
+        fclose(log);
     }
-    scene_renderer::GroundPickResult picked = {};
-    if (!scene_renderer::pickStaticGroundTile(mouseX, mouseY, &picked) || !tileIsValid(picked.tile)) {
-        scene_renderer::setStaticGroundCursor(-1);
-        setStatus("walk preview: click outside exported ground");
-        return true;
-    }
-    scene_renderer::setStaticGroundCursor(picked.tile);
-    if (gWalkRequestPending) {
-        printf("devtools: previous walk request interrupted=%s requesttile=%d actualtile=%d offset=(%d,%d)\n",
-            settings.system.interrupt_walk ? "true" : "false", gWalkRequestTile, gDude->tile, gDude->x, gDude->y);
-    }
-    gWalkRequestTile = picked.tile;
-    gWalkFromTile = gDude->tile;
-    gWalkElapsedFrames = 0;
-    gWalkIdleFrames = 0;
-    gWalkSawMotion = false;
-    gWalkStatus = "requested";
-    gWalkRequestPending = false;
-    gWalkSnapshotAfterPending = false;
-    printf("devtools: walk request tile=%d from=%d pixel=(%.3f,%.3f) world=(%.6f,%.6f) offset=(%d,%d)\n",
-        gWalkRequestTile, gWalkFromTile, picked.artX, picked.artY, picked.worldX, picked.worldZ, gDude->x, gDude->y);
-    if (gWalkSnapshotsRequested) {
-        updateStaticHeroFromGame();
-        const bool captured = takeSnapshot();
-        printf("devtools: walk before snapshot %s: %s\n", captured ? "saved" : "failed", gStatus);
-        fflush(stdout);
-    }
-    if (gWalkRequestTile == gWalkFromTile) {
-        animationDevMoveDudeToTile(gWalkRequestTile, false);
-        setStatus("walk request is same tile");
-        finishWalkRequest("same-tile");
-        return true;
-    }
-    const bool shift = gPressedPhysicalKeys[SDL_SCANCODE_LSHIFT] || gPressedPhysicalKeys[SDL_SCANCODE_RSHIFT];
-    bool run = settings.preferences.running != shift;
-    if (gWalkLastDestination == gWalkRequestTile) run = true;
-    gWalkLastDestination = gWalkRequestTile;
-    const int routeResult = animationDevMoveDudeToTile(gWalkRequestTile, run);
-    if (routeResult != 0) {
-        setStatus(routeResult == -2 ? "walk request is unreachable" : "walk animation could not be registered");
-        finishWalkRequest("unreachable");
-        return true;
-    }
-    gWalkRequestPending = true;
-    gWalkStatus = "moving";
-    setStatus("walk request scheduled");
-    printf("devtools: walk status=moving requesttile=%d fromtile=%d actualtile=%d offset=(%d,%d)\n",
-        gWalkRequestTile, gWalkFromTile, gDude->tile, gDude->x, gDude->y);
-    fflush(stdout);
-    return true;
+    gPickProbeStage = 0;
 }
 
-void refreshWalkCursor(int mouseX, int mouseY)
+// --dev-pick-probe, one step per presented frame of the scene.
+void runPickProbe()
 {
-    if (!staticWalkPreviewActive() || !walkInputAllowed()) {
-        scene_renderer::setStaticGroundCursor(-1);
-        return;
-    }
-    scene_renderer::GroundPickResult picked = {};
-    if (scene_renderer::pickStaticGroundTile(mouseX, mouseY, &picked) && tileIsValid(picked.tile)) {
-        scene_renderer::setStaticGroundCursor(picked.tile);
-    } else {
-        scene_renderer::setStaticGroundCursor(-1);
-    }
-}
-
-void refreshWalkPreviewForPresent()
-{
-    if (!staticWalkPreviewActive() || !gWalkRequestPending || gDude == nullptr) return;
-    if (!walkObserverMayAdvance(previewRuntimeState(), gWalkRequestPending)) {
-        currentPreviewBlockReason();
-        return;
-    }
-    ++gWalkElapsedFrames;
-    const bool hasOffset = gDude->x != 0 || gDude->y != 0;
-    const bool busy = animationIsBusy(gDude) == -1;
-    if (busy || hasOffset) {
-        gWalkSawMotion = true;
-        gWalkIdleFrames = 0;
-        gWalkStatus = "moving";
-    } else {
-        ++gWalkIdleFrames;
-    }
-    if (!busy && !hasOffset && gWalkIdleFrames >= 2) {
-        if (gDude->tile == gWalkRequestTile) {
-            setStatus("walk arrived");
-            finishWalkRequest("arrived");
-        } else if (gWalkSawMotion || gWalkElapsedFrames >= 20) {
-            setStatus("walk stopped before target");
-            finishWalkRequest("unreachable");
+    static int probeX = -1;
+    static int probeY = -1;
+    static int probeDistance = 1 << 30;
+    const int stage = gPickProbeStage++;
+    FILE* log = nullptr;
+    auto note = [&](const char* format, auto... values) {
+        if (log == nullptr) log = fopen("devprobe.log", "a");
+        if (log != nullptr) fprintf(log, format, values...);
+    };
+    if (stage == 30) {
+        // The pointer a little above each critter's hex, as the scene shows it.
+        int hits = 0, hidden = 0, misses = 0;
+        const std::vector<PickEntry> entries = gPickObjects;
+        for (const PickEntry& entry : entries) {
+            Object* object = entry.object;
+            if (object == gDude || FrmId(object).objectType() != OBJ_TYPE_CRITTER) continue;
+            double pixel[2], x, y;
+            scene_renderer::gameViewTilePixel(entry.tile, pixel);
+            if (!scene_renderer::staticScreenFromGamePixel(pixel[0] + object->x, pixel[1] + object->y - 25.0, &x, &y)) continue;
+            const int mx = static_cast<int>(x), my = static_cast<int>(y);
+            if (mx < 0 || my < 0 || mx >= screenGetWidth() || my >= screenGetHeight() - 99) continue;
+            Object* found = nullptr;
+            scenePickObject(mx, my, OBJ_TYPE_INVALID, true, &found);
+            const char* verdict = found == object ? "hit" : found != nullptr ? "hidden" : "miss";
+            (found == object ? hits : found != nullptr ? hidden : misses)++;
+            note("probe %s at (%d,%d) tile=%d: %s -> %s\n", objectGetName(object), mx, my, entry.tile, verdict,
+                found != nullptr ? objectGetName(found) : "-");
+            // The critter nearest the hero is the one clicked.
+            const int distance = tileDistanceBetween(gDude->tile, entry.tile);
+            if (found == object && distance < probeDistance) {
+                probeX = mx;
+                probeY = my;
+                probeDistance = distance;
+            }
         }
+        note("probe critters: hit=%d hidden=%d miss=%d\n", hits, hidden, misses);
+        // The hex cursor first: the pointer on the floor beside the hero.
+        double pixel[2], x, y;
+        scene_renderer::gameViewTilePixel(gDude->tile, pixel);
+        if (scene_renderer::staticScreenFromGamePixel(pixel[0] + 96.0, pixel[1] + 24.0, &x, &y)) {
+            _mouse_set_position(static_cast<int>(x), static_cast<int>(y));
+            const int tile = tileUnderMouse(static_cast<int>(x), static_cast<int>(y));
+            note("probe floor at (%d,%d): tile=%d\n", static_cast<int>(x), static_cast<int>(y), tile);
+        }
+    } else if (stage == 60) {
+        takeSnapshot();
+        if (probeX >= 0) {
+            gameMouseSetMode(GAME_MOUSE_MODE_ARROW);
+            _mouse_set_position(probeX, probeY);
+        }
+    } else if (stage == 110) {
+        Object* found = nullptr;
+        if (probeX >= 0) scenePickObject(probeX, probeY, OBJ_TYPE_INVALID, true, &found);
+        note("probe hover at (%d,%d): %s\n", probeX, probeY, found != nullptr ? objectGetName(found) : "-");
+        takeSnapshot();
+        // Then a walk: the pointer on a floor hex a few steps from the hero.
+        gameMouseSetMode(GAME_MOUSE_MODE_MOVE);
+        double pixel[2], x, y;
+        const int target = tileGetTileInDirection(gDude->tile, ROTATION_SE, 4);
+        scene_renderer::gameViewTilePixel(target, pixel);
+        if (scene_renderer::staticScreenFromGamePixel(pixel[0], pixel[1], &x, &y)) {
+            probeX = static_cast<int>(x);
+            probeY = static_cast<int>(y);
+            _mouse_set_position(probeX, probeY);
+        }
+        note("probe walk target tile=%d at (%d,%d)\n", target, probeX, probeY);
+    } else if (stage == 115) {
+        // A left click there, once the game has moved its hex cursor; the
+        // game loop takes it (update()), as it takes the player's clicks.
+        note("probe click: hex cursor tile=%d\n", gGameMouseHexCursor != nullptr ? gGameMouseHexCursor->tile : -1);
+        gPickProbeClick[0] = probeX;
+        gPickProbeClick[1] = probeY;
+    } else if (stage == 200) {
+        note("probe after click (frame %d): hero busy=%d tile=%d\n", stage, animationIsBusy(gDude) == -1 ? 1 : 0, gDude->tile);
+    } else if (stage == 400) {
+        note("probe after click (frame %d): hero busy=%d tile=%d\n", stage, animationIsBusy(gDude) == -1 ? 1 : 0, gDude->tile);
+        // Then talk: the pointer on the nearest critter the hero can talk to.
+        Object* talker = nullptr;
+        int talkerX = -1, talkerY = -1, nearest = 1 << 30;
+        for (const PickEntry& entry : gPickObjects) {
+            Object* object = entry.object;
+            if (object == gDude || FrmId(object).objectType() != OBJ_TYPE_CRITTER || !_obj_action_can_talk_to(object)) continue;
+            const KillType kind = critterGetKillType(object);
+            if (kind != KILL_TYPE_MAN && kind != KILL_TYPE_WOMAN) continue; // brahmin only moo
+            double pixel[2], x, y;
+            scene_renderer::gameViewTilePixel(entry.tile, pixel);
+            if (!scene_renderer::staticScreenFromGamePixel(pixel[0] + object->x, pixel[1] + object->y - 25.0, &x, &y)) continue;
+            Object* found = nullptr;
+            scenePickObject(static_cast<int>(x), static_cast<int>(y), OBJ_TYPE_INVALID, true, &found);
+            const int distance = tileDistanceBetween(gDude->tile, entry.tile);
+            if (found == object && distance < nearest) {
+                talker = object;
+                talkerX = static_cast<int>(x);
+                talkerY = static_cast<int>(y);
+                nearest = distance;
+            }
+        }
+        note("probe talk target: %s at (%d,%d)\n", talker != nullptr ? objectGetName(talker) : "-", talkerX, talkerY);
+        if (talker != nullptr) {
+            gameMouseSetMode(GAME_MOUSE_MODE_ARROW);
+            _mouse_set_position(talkerX, talkerY);
+            gPickProbeClick[0] = talkerX;
+            gPickProbeClick[1] = talkerY;
+        }
+    } else if (stage >= 1200) {
+        finishPickProbe(); // the click led nowhere the scene leaves for
     }
-    if (gWalkRequestPending && gWalkElapsedFrames >= 900) {
-        setStatus("walk timed out");
-        finishWalkRequest("timeout");
-    }
-}
-
-void afterWalkPreviewDraw()
-{
-    if (!staticWalkPreviewActive() || !gWalkSnapshotAfterPending) return;
-    gWalkSnapshotAfterPending = false;
-    const bool captured = takeSnapshot();
-    printf("devtools: walk after snapshot status=%s %s: %s\n", gWalkStatus,
-        captured ? "saved" : "failed", gStatus);
-    fflush(stdout);
+    if (log != nullptr) fclose(log);
 }
 
 void refreshStaticHeroForPresent()
@@ -1332,6 +1331,10 @@ void refreshStaticHeroForPresent()
         windowFrames = 0;
         windowUpdateSeconds = 0.0;
     }
+    if (heroUpdated && gPickProbeStage > 0) {
+        runPickProbe();
+        return;
+    }
     if (heroUpdated && gSnapshotOncePending) {
         gSnapshotOncePending = false;
         const bool captured = takeSnapshot();
@@ -1339,6 +1342,99 @@ void refreshStaticHeroForPresent()
             captured ? "saved" : "failed", gStatus);
         fflush(stdout);
     }
+}
+
+namespace {
+
+// Where the scene shows a hex, relative to where the tile window would draw it.
+bool sceneTileShift(int tile, int* dx, int* dy)
+{
+    double pixel[2];
+    double sceneX, sceneY;
+    scene_renderer::gameViewTilePixel(tile, pixel);
+    if (!scene_renderer::staticScreenFromGamePixel(pixel[0], pixel[1], &sceneX, &sceneY)) return false;
+    int screenX, screenY;
+    if (tileToScreenXY(tile, &screenX, &screenY) != 0) return false;
+    *dx = static_cast<int>(std::lround(sceneX - (screenX + 16)));
+    *dy = static_cast<int>(std::lround(sceneY - (screenY + 8)));
+    return true;
+}
+
+// The hex the scene shows at a screen point.
+int sceneTileAt(int x, int y)
+{
+    scene_renderer::GroundPickResult picked = {};
+    return scene_renderer::pickStaticGroundTile(x, y, &picked) && hexGridTileIsValid(picked.tile) ? picked.tile : -1;
+}
+
+struct PickFilter {
+    int objectType;
+};
+
+bool pickWanted(int pickId, void* context)
+{
+    const PickFilter& filter = *static_cast<const PickFilter*>(context);
+    if (pickId < 0 || pickId >= static_cast<int>(gPickObjects.size())) return false;
+    const PickEntry& entry = gPickObjects[pickId];
+    if (!objectIsOnTile(entry.object, entry.tile)) return false;
+    return filter.objectType == OBJ_TYPE_INVALID || FrmId(entry.object).objectType() == filter.objectType;
+}
+
+} // namespace
+
+void syncSceneOverlay()
+{
+    const bool on = scene_renderer::isActive() && staticHeroPreviewActive() && staticScenePreviewShouldPresent();
+    const bool was = tileSceneOverlayActive();
+    if (on != was) tileSetSceneOverlay(on ? sceneTileShift : nullptr, sceneTileAt);
+    // --dev-pick-probe: the click took the game out of the scene (a dialog).
+    if (!on && gPickProbeStage > 115) finishPickProbe();
+    // While on, every frame: floating text and the hex cursor follow the
+    // scene's camera as it glides.
+    if (on || was) tileWindowRefresh();
+}
+
+void maskSceneOverlay(const unsigned char* indices, int indexPitch, unsigned char* rgba, int rgbaPitch,
+    int width, int height)
+{
+    static std::vector<unsigned char> shown;
+    shown.resize(static_cast<size_t>(width) * height);
+    if (!windowShownMask(gIsoWindow, shown.data(), width, height)) return;
+    for (int y = 0; y < height; y++) {
+        const unsigned char* index = indices + static_cast<size_t>(y) * indexPitch;
+        const unsigned char* world = shown.data() + static_cast<size_t>(y) * width;
+        unsigned char* pixel = rgba + static_cast<size_t>(y) * rgbaPitch;
+        for (int x = 0; x < width; x++, pixel += 4) {
+            if (world[x] != 0 && index[x] == COLOR_FIRST) {
+                pixel[0] = pixel[1] = pixel[2] = pixel[3] = 0;
+            } else {
+                pixel[3] = 255;
+            }
+        }
+    }
+}
+
+bool scenePickObject(int mouseX, int mouseY, int objectType, bool includeDude, Object** found)
+{
+    if (!tileSceneOverlayActive()) return false;
+    // gameMouseGetObjectUnderCursor on the scene's picture: from the nearest
+    // down, the first opaque one that is not a dead or unconscious critter,
+    // else the last one under the pointer.
+    PickFilter filter = { objectType };
+    int picked[8];
+    const int count = scene_renderer::pickStaticObjects(mouseX, mouseY, pickWanted, &filter, picked, 8);
+    *found = nullptr;
+    for (int index = 0; index < count; index++) {
+        Object* object = gPickObjects[picked[index]].object;
+        if (!includeDude && object == gDude) continue;
+        *found = object;
+        const bool translucent = (object->flags & OBJECT_FLAG_0xFC000) != OBJECT_NONE
+            && (object->flags & OBJECT_TRANS_NONE) == OBJECT_NONE;
+        const bool down = FrmId(object).objectType() == OBJ_TYPE_CRITTER
+            && (object->data.critter.combat.results & (DAM_KNOCKED_OUT | DAM_DEAD)) != 0;
+        if (!translucent && !down) break;
+    }
+    return true;
 }
 
 // Ctrl+F11: the window between 16:9 and 21:9. The engine sizes its screen once
@@ -1791,15 +1887,6 @@ bool takeSnapshot()
     } else {
         snprintf(heroMetadata, sizeof(heroMetadata), "null");
     }
-    char walkMetadata[320];
-    if (staticWalkPreviewActive() && gWalkRequestTile >= 0) {
-        snprintf(walkMetadata, sizeof(walkMetadata),
-            "{\"request_tile\":%d,\"from_tile\":%d,\"actual_tile\":%d,\"status\":\"%s\",\"pixel_offset\":[%d,%d]}",
-            gWalkRequestTile, gWalkFromTile, gDude != nullptr ? gDude->tile : -1, gWalkStatus,
-            gDude != nullptr ? gDude->x : 0, gDude != nullptr ? gDude->y : 0);
-    } else {
-        snprintf(walkMetadata, sizeof(walkMetadata), "null");
-    }
     if (!preview && gSdlWindow != nullptr) {
         SDL_GL_GetDrawableSize(gSdlWindow, &drawableW, &drawableH);
     }
@@ -1825,7 +1912,6 @@ bool takeSnapshot()
         "  \"wall_pages\": %u,\n"
         "  \"hero\": %s,\n"
         "  \"objects\": {\"drawn\":%u,\"skipped\":%u},\n"
-        "  \"walk\": %s,\n"
         "  \"preview_availability\": \"%s\",\n"
         "  \"renderer\": \"%s\",\n"
         "  \"light\": \"off\",\n"
@@ -1848,7 +1934,6 @@ bool takeSnapshot()
         heroMetadata,
         heroPreview ? scene_renderer::staticObjectCount() : 0u,
         heroPreview ? gObjectCardsSkipped : 0u,
-        walkMetadata,
         previewRequested ? (scene_renderer::isActive() ? staticScenePreviewAvailability() : "renderer-inactive") : "not-requested",
         activeRendererName(),
         capturedWidth,

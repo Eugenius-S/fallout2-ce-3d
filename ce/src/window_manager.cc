@@ -1186,6 +1186,37 @@ int windowGetAtPoint(int x, int y)
     return -1;
 }
 
+bool windowShownMask(int win, unsigned char* mask, int width, int height)
+{
+    Window* window = windowGetWindow(win);
+    if (window == nullptr || mask == nullptr || width <= 0 || height <= 0) {
+        return false;
+    }
+
+    memset(mask, 0, static_cast<size_t>(width) * height);
+    auto fill = [&](const Rect& rect, unsigned char value) {
+        const int left = std::max(rect.left, 0);
+        const int top = std::max(rect.top, 0);
+        const int right = std::min(rect.right, width - 1);
+        const int bottom = std::min(rect.bottom, height - 1);
+        for (int y = top; y <= bottom; y++) {
+            if (left <= right) memset(mask + static_cast<size_t>(y) * width + left, value, right - left + 1);
+        }
+    };
+    if ((window->flags & WINDOW_HIDDEN) != 0) {
+        return true;
+    }
+    fill(window->rect, 1);
+    // Windows above it, in drawing order; a transparent one lets colour 0 through.
+    for (int index = gWindowIndexes[win] + 1; index < gWindowsLength; index++) {
+        Window* above = gWindows[index];
+        if ((above->flags & (WINDOW_HIDDEN | WINDOW_TRANSPARENT)) == 0) {
+            fill(above->rect, 0);
+        }
+    }
+    return true;
+}
+
 // 0x4D7918
 int windowGetWidth(int win)
 {

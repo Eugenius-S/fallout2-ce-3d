@@ -35,6 +35,7 @@ struct StaticHeroFrame {
     const unsigned char* rgba;
     size_t rgbaSize;
     int stack = 0; // sprites the game paints on the same hex before this one
+    int pickId = -1; // the caller's id for pickStaticObjects
 };
 
 // One live map object (critter, item, scenery, door) in its current frame.
@@ -58,6 +59,10 @@ struct StaticObjectFrame {
     // tint's RGB, and whether the glass gray table is used; tint < 0: opaque.
     float tint[3] = { -1.0f, -1.0f, -1.0f };
     bool glassGray = false;
+    int pickId = -1; // the caller's id for pickStaticObjects, -1: never picked
+    // Drawn by walls.bin (a wall, furniture made solid): its card is only
+    // picked. Seen from the game's camera a solid covers its sprite's pixels.
+    bool pickOnly = false;
 };
 
 struct StaticHeroInfo {
@@ -80,6 +85,11 @@ bool isActive();
 // Presents one RGBA8 frame (the palette-expanded game buffer) as a
 // full-viewport quad, then swaps. Pixels are top-down, `pitch` in bytes.
 void presentFrame(const unsigned char* rgba, int width, int height, int pitch);
+
+// The game's own picture over the 3D scene (interface, mouse cursor, floating
+// text): premultiplied RGBA, transparent where the world shows. Snapshots of
+// the scene include it.
+void drawSceneOverlay(const unsigned char* rgba, int width, int height, int pitch);
 
 // Optional overlay drawn over the last presented frame (movie frames): an
 // RGBA image mapped into `dstX/dstY/dstW/dstH` in LOGICAL coordinates.
@@ -110,7 +120,14 @@ void endStaticObjects();
 void clearStaticObjects();
 unsigned int staticObjectCount();
 bool pickStaticGroundTile(int logicalX, int logicalY, GroundPickResult* result);
-void setStaticGroundCursor(int tile);
+// The objects whose cards show an opaque texel at a screen pixel (game logical
+// pixels), nearest first, as the scene draws them: up to `capacity` pick ids
+// that `wanted` accepts (null: all). Returns how many.
+int pickStaticObjects(int logicalX, int logicalY, bool (*wanted)(int pickId, void* context), void* context,
+    int* pickIds, int capacity);
+// Screen pixel (game logical pixels) where the scene shows the floor point the
+// game draws at a game pixel.
+bool staticScreenFromGamePixel(double pixelX, double pixelY, double* logicalX, double* logicalY);
 // The wall/hero view is the game's own projection centered on this hex (the
 // engine's gCenterTile), with a mild perspective (game_view.h). -1 = the
 // fixed preview camera.

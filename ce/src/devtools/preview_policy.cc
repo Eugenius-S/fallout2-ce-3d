@@ -20,15 +20,5 @@ bool previewMayPresent(const PreviewRuntimeState& state)
     return previewBlockReason(state) == PreviewBlockReason::None;
 }
 
-bool walkPreviewMayCaptureInput(bool walkPreviewActive, bool sceneCurrentlyPresented)
-{
-    return walkPreviewActive && sceneCurrentlyPresented;
-}
-
-bool walkObserverMayAdvance(const PreviewRuntimeState& state, bool requestPending)
-{
-    return requestPending && previewMayPresent(state);
-}
-
 } // namespace devtools
 } // namespace fallout

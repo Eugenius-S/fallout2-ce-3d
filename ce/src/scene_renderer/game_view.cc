@@ -169,6 +169,14 @@ bool gameViewProject(const GameView& view, double x, double y, double z, double*
     return std::isfinite(*logicalX) && std::isfinite(*logicalY);
 }
 
+bool gameViewProjectGroundPixel(const GameView& view, double pixelX, double pixelY, double* logicalX, double* logicalY)
+{
+    Frame frame;
+    double x, z;
+    if (!makeFrame(view, &frame) || !spritePixelToGround(frame.projection, pixelX, pixelY, &x, &z)) return false;
+    return gameViewProject(view, x, 0.0, z, logicalX, logicalY);
+}
+
 bool gameViewPickGround(const GameView& view, double logicalX, double logicalY, double* worldX, double* worldZ)
 {
     Frame frame;

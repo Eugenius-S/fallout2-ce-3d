@@ -73,6 +73,7 @@ uniform float uCutoff;
 uniform int uTranslucent; // the engine's translucent blend: steam, glass, energy, ...
 uniform vec3 uTint;
 uniform int uGlassGray;
+uniform int uPick; // the pick pass: every texel shown is the object's id colour
 out vec4 outColor;
 void main() {
     if (uTextured == 0) {
@@ -80,7 +81,9 @@ void main() {
     } else {
         vec4 texel = texture(uTexture, vTexcoord);
         if (texel.a < uCutoff) discard;
-        if (uTranslucent != 0) {
+        if (uPick != 0) {
+            outColor = uColor;
+        } else if (uTranslucent != 0) {
             // _dark_translucent_trans_buf_to_buf: a texel's gray level (0..7,
             // from its RGB555 colour) mixes the tint over what lies behind, in
             // sevenths; level 0 leaves it unchanged.
@@ -108,7 +111,6 @@ constexpr unsigned int kTextureWrapS = 0x2802;
 constexpr unsigned int kTextureWrapT = 0x2803;
 constexpr unsigned int kUnpackRowLength = 0x0CF2;
 constexpr unsigned int kTriangles = 0x0004;
-constexpr unsigned int kLineLoop = 0x0002;
 constexpr unsigned int kArrayBuffer = 0x8892;
 constexpr unsigned int kStaticDraw = 0x88E4;
 constexpr unsigned int kColorBufferBit = 0x4000;
@@ -214,6 +216,7 @@ int gFloorDepthAtLocation = -1;
 int gFloorTranslucentLocation = -1;
 int gFloorTintLocation = -1;
 int gFloorGlassGrayLocation = -1;
+int gFloorPickLocation = -1;
 int gFloorVertexCount = 0;
 bool gFloorLoaded = false;
 std::vector<WallBatch> gWallBatches;
@@ -224,9 +227,9 @@ unsigned int gHeroVbo = 0;
 unsigned int gHeroTexture = 0;
 bool gHeroProjectionLoaded = false;
 bool gHeroLoaded = false;
+int gHeroPickId = -1;
 HeroProjection gHeroProjection;
 StaticHeroInfo gHeroInfo = {};
-int gGroundCursorTile = -1;
 // The hex at the center of the game's screen (gCenterTile); with the hero
 // projection loaded the wall/hero view is the game's own projection there.
 int gCameraCenterTile = -1;
@@ -234,8 +237,8 @@ int gCameraCenterTile = -1;
 // at a time: the game pixel at the screen center now, and when it last moved.
 double gCameraPixel[2] = {};
 Uint64 gCameraMoved = 0;
-unsigned int gCursorVao = 0;
-unsigned int gCursorVbo = 0;
+// The game's own picture over the scene (drawSceneOverlay) is in gTexture.
+bool gSceneOverlayReady = false;
 
 struct ObjectDraw {
     unsigned int texture;
@@ -243,6 +246,8 @@ struct ObjectDraw {
     bool flat;
     float tint[3]; // translucent look, tint[0] < 0: opaque
     bool glassGray;
+    int pickId; // the caller's id for picking, -1: not picked
+    bool pickOnly; // drawn by walls.bin; its card is only picked
 };
 
 struct BakedObject {
@@ -510,6 +515,7 @@ bool fitRect(int imageWidth, int imageHeight, int windowWidth, int windowHeight,
     return true;
 }
 
+// `pixels` null: draw the texture the last call uploaded.
 void drawQuad(int srcWidth, int srcHeight, int srcPitch, const void* pixels, int dstX, int dstY, int dstW, int dstH)
 {
     int windowX;
@@ -520,7 +526,7 @@ void drawQuad(int srcWidth, int srcHeight, int srcPitch, const void* pixels, int
         return;
     }
 
-    bool recreate = srcWidth != gTextureWidth || srcHeight != gTextureHeight;
+    bool recreate = pixels != nullptr && (srcWidth != gTextureWidth || srcHeight != gTextureHeight);
     if (recreate) {
         glBindTexture(kTexture2D, gTexture);
         glPixelStorei(kUnpackRowLength, srcPitch / 4);
@@ -534,8 +540,11 @@ void drawQuad(int srcWidth, int srcHeight, int srcPitch, const void* pixels, int
     }
 
     glBindTexture(kTexture2D, gTexture);
-    glPixelStorei(kUnpackRowLength, srcPitch / 4);
-    glTexSubImage2D(kTexture2D, 0, 0, 0, srcWidth, srcHeight, kRGBA, kUnsignedByte, pixels);
+    if (pixels != nullptr) {
+        glPixelStorei(kUnpackRowLength, srcPitch / 4);
+        glTexSubImage2D(kTexture2D, 0, 0, 0, srcWidth, srcHeight, kRGBA, kUnsignedByte, pixels);
+        glPixelStorei(kUnpackRowLength, 0);
+    }
 
     float nx = static_cast<float>(windowX + dstX * windowW / gLogicalWidth);
     float ny = static_cast<float>(windowY + dstY * windowH / gLogicalHeight);
@@ -651,8 +660,6 @@ void shutdown()
         destroyStaticHero();
         destroyStaticWalls();
         destroyStaticFloor();
-        if (gCursorVbo != 0) { glDeleteBuffers(1, &gCursorVbo); gCursorVbo = 0; }
-        if (gCursorVao != 0) { glDeleteVertexArrays(1, &gCursorVao); gCursorVao = 0; }
         if (gTexture != 0) {
             glDeleteTextures(1, &gTexture);
             gTexture = 0;
@@ -675,7 +682,6 @@ void shutdown()
     gWindow = nullptr;
     gHeroProjectionLoaded = false;
     gHeroProjection = {};
-    gGroundCursorTile = -1;
     gCameraCenterTile = -1;
     gCameraMoved = 0;
 }
@@ -773,6 +779,108 @@ bool pickStaticGroundTile(int logicalX, int logicalY, GroundPickResult* result)
     return true;
 }
 
+bool staticScreenFromGamePixel(double pixelX, double pixelY, double* logicalX, double* logicalY)
+{
+    GameView view;
+    return currentGameView(&view) && gameViewProjectGroundPixel(view, pixelX, pixelY, logicalX, logicalY);
+}
+
+int pickStaticObjects(int logicalX, int logicalY, bool (*wanted)(int pickId, void* context), void* context,
+    int* pickIds, int capacity)
+{
+    if (!gInitialized || !gFloorLoaded || !gWallsLoaded || pickIds == nullptr || capacity <= 0) return 0;
+    if (logicalX < 0 || logicalY < 0 || logicalX >= gLogicalWidth || logicalY >= gLogicalHeight) return 0;
+    GameView view;
+    float mvp[16];
+    if (!currentGameView(&view) || !gameViewMatrix(view, mvp)) return 0;
+    SDL_GL_GetDrawableSize(gWindow, &gWindowWidth, &gWindowHeight);
+    int x, y, width, height;
+    if (!fitRect(gLogicalWidth, gLogicalHeight, gWindowWidth, gWindowHeight, &x, &y, &width, &height)) return 0;
+    const int pixelX = x + static_cast<int>((logicalX + 0.5) * width / gLogicalWidth);
+    const int pixelY = gWindowHeight - 1 - (y + static_cast<int>((logicalY + 0.5) * height / gLogicalHeight));
+
+    // One pixel of the back buffer between frames (the next frame clears it
+    // whole): the cards as drawn, each in its id's colour. Peeling off the
+    // nearest and drawing again lists what lies under it, like the engine's
+    // intersect list.
+    constexpr unsigned int kScissorTest = 0x0C11;
+    constexpr unsigned int kDither = 0x0BD0;
+    glViewport(x, y, width, height);
+    glEnable(kScissorTest);
+    glScissor(pixelX, pixelY, 1, 1);
+    glDisable(kDither);
+    glDisable(kBlend);
+    glDisable(kCullFace);
+    glEnable(kDepthTest);
+    glDepthFunc(kLess);
+    glUseProgram(gFloorProgram);
+    glUniformMatrix4fv(gFloorMvpLocation, 1, 0, mvp);
+    glUniform1i(gFloorTexturedLocation, 1);
+    glUniform1i(gFloorTranslucentLocation, 0);
+    glUniform1i(gFloorPickLocation, 1);
+    glUniform1f(gFloorCutoffLocation, 0.5f);
+    glActiveTexture(kTexture0);
+    glUniform1i(gFloorTextureLocation, 0);
+
+    int count = 0;
+    auto shown = [&](int id) {
+        return id >= 0 && std::find(pickIds, pickIds + count, id) == pickIds + count
+            && (wanted == nullptr || wanted(id, context));
+    };
+    auto paint = [&](int id) {
+        const unsigned int code = static_cast<unsigned int>(id) + 1;
+        glUniform4f(gFloorColorLocation, (code & 0xFF) / 255.0f, ((code >> 8) & 0xFF) / 255.0f,
+            ((code >> 16) & 0xFF) / 255.0f, 1.0f);
+    };
+    while (count < capacity) {
+        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+        glDepthMask(1);
+        glClear(kColorBufferBit | kDepthBufferBit);
+        if (!gObjectDraws.empty() && gObjectVao != 0) {
+            glBindVertexArray(gObjectVao);
+            // Flat things lie under the rest; the rest hide by their rows' depth.
+            glUniform1i(gFloorDepthAtLocation, 0);
+            glDepthMask(0);
+            for (const ObjectDraw& draw : gObjectDraws) {
+                if (!draw.flat || !shown(draw.pickId)) continue;
+                paint(draw.pickId);
+                glBindTexture(kTexture2D, draw.texture);
+                glDrawArrays(kTriangles, draw.firstVertex, 6);
+            }
+            glDepthMask(1);
+            glUniform1i(gFloorDepthAtLocation, 1);
+            for (const ObjectDraw& draw : gObjectDraws) {
+                if (draw.flat || !shown(draw.pickId)) continue;
+                paint(draw.pickId);
+                glBindTexture(kTexture2D, draw.texture);
+                glDrawArrays(kTriangles, draw.firstVertex, 6);
+            }
+        }
+        if (gHeroLoaded && shown(gHeroPickId)) {
+            glUniform1i(gFloorDepthAtLocation, 1);
+            glBindVertexArray(gHeroVao);
+            paint(gHeroPickId);
+            glBindTexture(kTexture2D, gHeroTexture);
+            glDrawArrays(kTriangles, 0, 6);
+        }
+        unsigned char pixel[4] = {};
+        glPixelStorei(kPackAlignment, 1);
+        glReadPixels(pixelX, pixelY, 1, 1, kRGBA, kUnsignedByte, pixel);
+        glPixelStorei(kPackAlignment, kDefaultPackAlignment);
+        const int code = pixel[0] | (pixel[1] << 8) | (pixel[2] << 16);
+        if (code == 0) break;
+        pickIds[count++] = code - 1;
+    }
+    glUniform1i(gFloorPickLocation, 0);
+    glUniform1i(gFloorDepthAtLocation, 0);
+    glDisable(kScissorTest);
+    glDisable(kDepthTest);
+    glDepthMask(1);
+    glBindVertexArray(0);
+    glUseProgram(0);
+    return count;
+}
+
 void setStaticCameraCenterTile(int tile)
 {
     if (tile < 0 || tile >= HEX_GRID_SIZE) {
@@ -787,11 +895,6 @@ void setStaticCameraCenterTile(int tile)
     gameViewGlide(gCameraPixel, target, seconds, first);
     gCameraMoved = now;
     gCameraCenterTile = tile;
-}
-
-void setStaticGroundCursor(int tile)
-{
-    gGroundCursorTile = tile >= 0 && tile < HEX_GRID_SIZE ? tile : -1;
 }
 
 bool loadStaticProjection(const std::filesystem::path& cacheDirectory, std::string* error)
@@ -907,6 +1010,7 @@ bool updateStaticHero(const StaticHeroFrame& frame, std::string* error)
     if (glGetError() != 0) return fail("OpenGL failed to upload the hero card");
 
     gHeroInfo = { frame.tile, frame.fid, frame.frame, frame.rotation, worldU, worldV };
+    gHeroPickId = frame.pickId;
     gHeroLoaded = true;
     if (error != nullptr) error->clear();
     return true;
@@ -999,7 +1103,7 @@ bool addStaticObject(const StaticObjectFrame& frame, std::string* error)
     }
 
     gObjectDraws.push_back({ texture, static_cast<int>(gObjectVertices.size()), frame.flat,
-        { frame.tint[0], frame.tint[1], frame.tint[2] }, frame.glassGray });
+        { frame.tint[0], frame.tint[1], frame.tint[2] }, frame.glassGray, frame.pickId, frame.pickOnly });
     // A thing standing on a solid moves onto it, and so does its row plane.
     float lift[3] = { 0.0f, 0.0f, 0.0f };
     const bool lifted = staticObjectLift(frame.tile, frame.fid, lift);
@@ -1057,6 +1161,15 @@ void presentFrame(const unsigned char* rgba, int width, int height, int pitch)
     glClear(kColorBufferBit);
     glDisable(kBlend);
     drawQuad(width, height, pitch, rgba, 0, 0, gLogicalWidth, gLogicalHeight);
+    gSceneOverlayReady = false;
+}
+
+void drawSceneOverlay(const unsigned char* rgba, int width, int height, int pitch)
+{
+    if (!gInitialized || rgba == nullptr || width <= 0 || height <= 0) return;
+    glViewport(0, 0, gWindowWidth, gWindowHeight);
+    drawOverlay(rgba, width, height, pitch, 0, 0, gLogicalWidth, gLogicalHeight);
+    gSceneOverlayReady = true;
 }
 
 void drawOverlay(const unsigned char* rgba, int width, int height, int pitch, int dstX, int dstY, int dstW, int dstH)
@@ -1066,7 +1179,7 @@ void drawOverlay(const unsigned char* rgba, int width, int height, int pitch, in
     }
 
     glEnable(kBlend);
-    glBlendFunc(1 /* GL_ONE */, 3 /* GL_ONE_MINUS_SRC_ALPHA */);
+    glBlendFunc(1 /* GL_ONE */, kOneMinusSrcAlpha);
     drawQuad(width, height, pitch, rgba, dstX, dstY, dstW, dstH);
     glDisable(kBlend);
 }
@@ -1224,10 +1337,11 @@ bool loadStaticFloor(const std::filesystem::path& cacheDirectory, std::string* e
     gFloorTranslucentLocation = glGetUniformLocation(gFloorProgram, "uTranslucent");
     gFloorTintLocation = glGetUniformLocation(gFloorProgram, "uTint");
     gFloorGlassGrayLocation = glGetUniformLocation(gFloorProgram, "uGlassGray");
+    gFloorPickLocation = glGetUniformLocation(gFloorProgram, "uPick");
     if (gFloorMvpLocation < 0 || gFloorTextureLocation < 0
         || gFloorTexturedLocation < 0 || gFloorColorLocation < 0 || gFloorCutoffLocation < 0
         || gFloorDepthAtLocation < 0 || gFloorTranslucentLocation < 0 || gFloorTintLocation < 0
-        || gFloorGlassGrayLocation < 0) {
+        || gFloorGlassGrayLocation < 0 || gFloorPickLocation < 0) {
         return fail("static floor shader uniforms are missing");
     }
     gFloorVertexCount = static_cast<int>(vertices.size());
@@ -1497,6 +1611,7 @@ void drawStaticPreview(bool withWalls, bool withHero)
     glUniformMatrix4fv(gFloorMvpLocation, 1, 0, mvp);
     glUniform1i(gFloorDepthAtLocation, 0);
     glUniform1i(gFloorTranslucentLocation, 0);
+    glUniform1i(gFloorPickLocation, 0);
     glActiveTexture(kTexture0);
     glUniform1i(gFloorTextureLocation, 0);
     glBindVertexArray(gFloorVao);
@@ -1523,7 +1638,7 @@ void drawStaticPreview(bool withWalls, bool withHero)
         glUniform1f(gFloorCutoffLocation, 0.5f);
         glBindVertexArray(gObjectVao);
         for (const ObjectDraw& draw : gObjectDraws) {
-            if (!draw.flat || draw.tint[0] >= 0.0f) continue;
+            if (draw.pickOnly || !draw.flat || draw.tint[0] >= 0.0f) continue;
             glBindTexture(kTexture2D, draw.texture);
             glDrawArrays(kTriangles, draw.firstVertex, 6);
         }
@@ -1546,7 +1661,7 @@ void drawStaticPreview(bool withWalls, bool withHero)
         glUniform1f(gFloorCutoffLocation, 0.5f);
         glBindVertexArray(gObjectVao);
         for (const ObjectDraw& draw : gObjectDraws) {
-            if (draw.flat || draw.tint[0] >= 0.0f) continue;
+            if (draw.pickOnly || draw.flat || draw.tint[0] >= 0.0f) continue;
             glBindTexture(kTexture2D, draw.texture);
             glDrawArrays(kTriangles, draw.firstVertex, 6);
         }
@@ -1565,7 +1680,7 @@ void drawStaticPreview(bool withWalls, bool withHero)
         glUniform1f(gFloorCutoffLocation, 0.5f);
         glBindVertexArray(gObjectVao);
         for (const ObjectDraw& draw : gObjectDraws) {
-            if (draw.tint[0] < 0.0f) continue;
+            if (draw.pickOnly || draw.tint[0] < 0.0f) continue;
             glUniform3f(gFloorTintLocation, draw.tint[0], draw.tint[1], draw.tint[2]);
             glUniform1i(gFloorGlassGrayLocation, draw.glassGray ? 1 : 0);
             glBindTexture(kTexture2D, draw.texture);
@@ -1576,46 +1691,6 @@ void drawStaticPreview(bool withWalls, bool withHero)
         glDisable(kBlend);
     }
     glUniform1i(gFloorDepthAtLocation, 0);
-
-    if (gGroundCursorTile >= 0) {
-        auto pixelCenter = [](int tile, double* x, double* y) {
-            const int hx = tile % 200, hy = tile / 200, a = 199 - hx;
-            *x = 48.0 * (a >> 1) + 32.0 * (a & 1) + 16.0 * hy + 16.0;
-            *y = -12.0 * (a >> 1) + 12.0 * hy + 8.0;
-        };
-        auto toWorld = [&](double px, double py, float* wx, float* wz) {
-            const double det = gHeroProjection.squ[0] * gHeroProjection.sqv[1] - gHeroProjection.sqv[0] * gHeroProjection.squ[1];
-            const double dx = px - gHeroProjection.origin[0], dy = py - gHeroProjection.origin[1];
-            const double u = (gHeroProjection.sqv[1] * dx - gHeroProjection.sqv[0] * dy) / det;
-            const double v = (gHeroProjection.squ[0] * dy - gHeroProjection.squ[1] * dx) / det;
-            *wx = static_cast<float>(u - 50.0); *wz = static_cast<float>(v - 50.0);
-        };
-        double centerX, centerY;
-        pixelCenter(gGroundCursorTile, &centerX, &centerY);
-        FloorVertex outline[6] = {};
-        bool validOutline = true;
-        for (int i = 0; i < 6; i++) {
-            const int a = tileGetTileInDirection(gGroundCursorTile, static_cast<Rotation>(i), 1);
-            const int b = tileGetTileInDirection(gGroundCursorTile, static_cast<Rotation>((i + 1) % 6), 1);
-            if (!hexGridTileIsValid(a) || !hexGridTileIsValid(b)) { validOutline = false; break; }
-            double ax, ay, bx, by;
-            pixelCenter(a, &ax, &ay); pixelCenter(b, &bx, &by);
-            toWorld((centerX + ax + bx) / 3.0, (centerY + ay + by) / 3.0, &outline[i].x, &outline[i].z);
-            outline[i].y = 0.035f;
-        }
-        if (validOutline) {
-            if (gCursorVao == 0) glGenVertexArrays(1, &gCursorVao);
-            if (gCursorVbo == 0) glGenBuffers(1, &gCursorVbo);
-            glBindVertexArray(gCursorVao);
-            glBindBuffer(kArrayBuffer, gCursorVbo);
-            glBufferData(kArrayBuffer, sizeof(outline), outline, kStaticDraw);
-            glEnableVertexAttribArray(0);
-            glVertexAttribPointer(0, 3, 0x1406, 0, sizeof(FloorVertex), reinterpret_cast<const void*>(0));
-            glUniform1i(gFloorTexturedLocation, 0);
-            glUniform4f(gFloorColorLocation, 1.0f, 0.85f, 0.1f, 1.0f);
-            glDrawArrays(kLineLoop, 0, 6);
-        }
-    }
 
     glDisable(kBlend);
     glDisable(kDepthTest);
@@ -1652,6 +1727,14 @@ bool captureStaticPreviewPng(const std::filesystem::path& path, bool withWalls, 
     while (glGetError() != 0) {
     }
     drawStaticPreview(withWalls, withHero);
+    if (withHero && gSceneOverlayReady) {
+        // With what the game draws over it, as presented.
+        glViewport(0, 0, drawableWidth, drawableHeight);
+        glEnable(kBlend);
+        glBlendFunc(1 /* GL_ONE */, kOneMinusSrcAlpha);
+        drawQuad(gTextureWidth, gTextureHeight, gTextureWidth * 4, nullptr, 0, 0, gLogicalWidth, gLogicalHeight);
+        glDisable(kBlend);
+    }
     if (glGetError() != 0) return fail(withWalls
         ? "static wall draw failed before snapshot" : "static floor draw failed before snapshot");
 

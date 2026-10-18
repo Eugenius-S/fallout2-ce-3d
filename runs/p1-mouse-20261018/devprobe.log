@@ -1,0 +1,23 @@
+probe Мэйда at (515,185) tile=22678: hit -> Мэйда
+probe Виски Боб at (298,230) tile=22687: hidden -> Окно
+probe Ардин at (360,230) tile=22885: hit -> Ардин
+probe Клиент бара at (389,252) tile=23285: hit -> Клиент бара
+probe Сулик at (577,230) tile=23478: hidden -> Стена
+probe Клиент бара at (499,241) tile=23481: hidden -> Стена
+probe Ребенок at (286,347) tile=24092: hit -> Ребенок
+probe Торр at (319,347) tile=24291: hit -> Торр
+probe Альдо at (477,447) tile=25890: hit -> Альдо
+probe Брамин at (694,460) tile=26684: hit -> Брамин
+probe Брамин at (874,422) tile=26877: hit -> Брамин
+probe Брамин at (848,500) tile=27681: hit -> Брамин
+probe critters: hit=9 hidden=3 miss=0
+probe floor at (867,348): tile=25673
+probe hover at (874,422): Брамин
+probe walk target tile=25875 at (837,372)
+probe click: hex cursor tile=25875
+probe click: hero busy=1 tile=25075
+probe after click (frame 200): hero busy=1 tile=25675
+probe after click (frame 400): hero busy=0 tile=25875
+probe talk target: Альдо at (477,447)
+probe click: hero busy=1 tile=25875
+probe done: hero tile=25889 busy=0 scene=game-mode

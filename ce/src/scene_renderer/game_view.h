@@ -46,6 +46,10 @@ bool gameViewCenter(const GameView& view, double* worldX, double* worldZ);
 // Screen pixel (game logical pixels) of a GL world point.
 bool gameViewProject(const GameView& view, double x, double y, double z, double* logicalX, double* logicalY);
 
+// Screen pixel (game logical pixels) of the floor point the game draws at a
+// game pixel.
+bool gameViewProjectGroundPixel(const GameView& view, double pixelX, double pixelY, double* logicalX, double* logicalY);
+
 // Ground point (GL x, z) seen at a screen pixel.
 bool gameViewPickGround(const GameView& view, double logicalX, double logicalY, double* worldX, double* worldZ);
 

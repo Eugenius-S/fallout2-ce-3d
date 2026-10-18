@@ -81,6 +81,10 @@ static bool gTileScrollLimitingEnabled = true;
 // Dev 3D view: screen-edge scrolling ignores map-edge and scroll-blocker bounds.
 static bool gTileFreeScroll = false;
 
+// Dev 3D view: the window draws only what lies over the world (tileSetSceneOverlay).
+static TileSceneShiftProc* gTileSceneShift = nullptr;
+static TileScenePickProc* gTileScenePick = nullptr;
+
 // 0x51D95C show_roof
 static bool gTileRoofIsVisible = true;
 
@@ -734,6 +738,18 @@ static void tileRefreshGame(Rect* rect, MapElevation elevation)
         return;
     }
 
+    if (gTileSceneShift != nullptr) {
+        // The 3D scene draws the world; COLOR_FIRST is where it shows through.
+        bufferFill(gTileWindowBuffer + rectToUpdate.top * gTileWindowPitch + rectToUpdate.left,
+            rectGetWidth(&rectToUpdate),
+            rectGetHeight(&rectToUpdate),
+            gTileWindowPitch,
+            COLOR_FIRST);
+        _obj_render_scene_overlay(&rectToUpdate);
+        gTileWindowRefreshProc(&rectToUpdate);
+        return;
+    }
+
     Rect visArea;
     bool hasVisArea = mapEdgeComputeVisibleArea(elevation, &visArea);
 
@@ -1165,6 +1181,32 @@ void tileScrollLimitingDisable()
 void tileSetFreeScroll(bool enabled)
 {
     gTileFreeScroll = enabled;
+}
+
+void tileSetSceneOverlay(TileSceneShiftProc* shift, TileScenePickProc* pick)
+{
+    gTileSceneShift = shift;
+    gTileScenePick = shift != nullptr ? pick : nullptr;
+}
+
+int tileUnderMouse(int x, int y)
+{
+    return gTileScenePick != nullptr ? gTileScenePick(x, y) : tileFromScreenXY(x, y);
+}
+
+bool tileSceneOverlayActive()
+{
+    return gTileSceneShift != nullptr;
+}
+
+void tileSceneShift(int tile, int* dx, int* dy)
+{
+    *dx = 0;
+    *dy = 0;
+    if (gTileSceneShift != nullptr && hexGridTileIsValid(tile) && !gTileSceneShift(tile, dx, dy)) {
+        *dx = 0;
+        *dy = 0;
+    }
 }
 
 // 0x4B1DB8 tile_get_scroll_limiting

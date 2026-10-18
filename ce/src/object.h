@@ -32,6 +32,8 @@ int objectLoadAll(File* stream);
 int objectSaveAll(File* stream);
 void _obj_render_pre_roof(Rect* rect, MapElevation elevation);
 void _obj_render_post_roof(Rect* rect, MapElevation elevation);
+// Dev 3D view: what the game draws over the world (see tileSetSceneOverlay).
+void _obj_render_scene_overlay(Rect* rect);
 int objectCreateWithFrmIdProtoId(Object** objectPtr, const FrmId& frmId, const ProtoId& protoId);
 int objectCreateWithProtoId(Object** objectPtr, const ProtoId& protoId);
 int _obj_copy(Object** a1, Object* a2);
@@ -71,6 +73,8 @@ Object* objectFindNext();
 Object* objectFindFirstAtElevation(MapElevation elevation);
 Object* objectFindNextAtElevation();
 void objectForEachAtElevation(MapElevation elevation, void (*visit)(Object* object, void* context), void* context);
+// Whether `object` is still in the map's list of `tile` (compares pointers only).
+bool objectIsOnTile(const Object* object, int tile);
 Object* objectFindFirstAtLocation(MapElevation elevation, int tile);
 Object* objectFindNextAtLocation();
 void objectGetRect(Object* obj, Rect* rect);

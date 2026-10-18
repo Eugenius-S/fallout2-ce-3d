@@ -4,6 +4,9 @@
 #include <SDL.h>
 
 namespace fallout {
+
+struct Object;
+
 namespace devtools {
 
 // Developer map-explorer mode (sprite-lighting mod, spec edition 2, P1).
@@ -54,14 +57,22 @@ bool staticWalkPreviewActive();
 // True only while a requested scene preview is allowed to replace the engine
 // framebuffer. Requests remain active across modal states and resume afterward.
 bool staticScenePreviewShouldPresent();
-bool staticWalkPreviewCanCaptureInput();
 const char* staticScenePreviewAvailability();
-bool handleWalkClick(int mouseX, int mouseY);
-void refreshWalkCursor(int mouseX, int mouseY);
-void refreshWalkPreviewForPresent();
-void afterWalkPreviewDraw();
 // Refreshes only the copied hero card immediately before the GL presentation.
 void refreshStaticHeroForPresent();
+
+// The 3D scene in play: the game's own picture (interface, mouse cursor,
+// floating text) is shown over it, and the mouse asks the scene what lies
+// under it. Called first thing each presented frame: turns the tile window's
+// scene overlay on or off (tileSetSceneOverlay) and redraws it.
+void syncSceneOverlay();
+// Clears (transparent, premultiplied) the pixels of the palette-expanded
+// frame where the scene shows through: the tile window's own colour-0 pixels.
+void maskSceneOverlay(const unsigned char* indices, int indexPitch, unsigned char* rgba, int rgbaPitch,
+    int width, int height);
+// The object the scene shows under a screen pixel, with the engine's rules
+// (gameMouseGetObjectUnderCursor). False while the scene is not shown.
+bool scenePickObject(int mouseX, int mouseY, int objectType, bool includeDude, Object** found);
 bool handleClick(int mouseX, int mouseY);
 
 // Draws the panel into the 8-bit framebuffer (before palette expansion).

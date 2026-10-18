@@ -928,6 +928,40 @@ void _obj_render_post_roof(Rect* rect, MapElevation elevation)
     }
 }
 
+void _obj_render_scene_overlay(Rect* rect)
+{
+    if (!gObjectsInitialized) {
+        return;
+    }
+
+    Rect updatedRect;
+    if (rectIntersection(rect, &gObjectsWindowRect, &updatedRect) != 0) {
+        return;
+    }
+
+    textObjectsRenderInRect(&updatedRect);
+
+    // The mouse's cursor objects. In move mode they stand on a hex, drawn
+    // where the scene shows it; otherwise they follow the mouse on screen.
+    const bool onHex = gameMouseGetMode() == GAME_MOUSE_MODE_MOVE;
+    Object* const cursors[] = { gGameMouseHexCursor, gGameMouseBouncingCursor };
+    for (Object* object : cursors) {
+        if (object == nullptr || (object->flags & OBJECT_HIDDEN) != OBJECT_NONE) {
+            continue;
+        }
+        int dx = 0;
+        int dy = 0;
+        if (onHex) {
+            tileSceneShift(object->tile, &dx, &dy);
+        }
+        object->x += dx;
+        object->y += dy;
+        _obj_render_object(object, &updatedRect, 0x10000);
+        object->x -= dx;
+        object->y -= dy;
+    }
+}
+
 // 0x489A84 obj_new
 int objectCreateWithFrmIdProtoId(Object** objectPtr, const FrmId& frmId, const ProtoId& protoId)
 {
@@ -2333,6 +2367,15 @@ void objectForEachAtElevation(MapElevation elevation, void (*visit)(Object* obje
             }
         }
     }
+}
+
+bool objectIsOnTile(const Object* object, int tile)
+{
+    if (object == nullptr || !hexGridTileIsValid(tile)) return false;
+    for (ObjectListNode* node = gObjectListHeadByTile[tile]; node != nullptr; node = node->next) {
+        if (node->obj == object) return true;
+    }
+    return false;
 }
 
 // 0x48B5A8 obj_find_first_at_tile

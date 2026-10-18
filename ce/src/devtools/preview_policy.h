@@ -27,8 +27,6 @@ struct PreviewRuntimeState {
 
 PreviewBlockReason previewBlockReason(const PreviewRuntimeState& state);
 bool previewMayPresent(const PreviewRuntimeState& state);
-bool walkPreviewMayCaptureInput(bool walkPreviewActive, bool sceneCurrentlyPresented);
-bool walkObserverMayAdvance(const PreviewRuntimeState& state, bool requestPending);
 
 } // namespace devtools
 } // namespace fallout
