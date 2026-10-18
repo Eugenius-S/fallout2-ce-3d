@@ -120,7 +120,6 @@ constexpr unsigned int kCullFace = 0x0B44;
 constexpr unsigned int kLess = 0x0201;
 constexpr unsigned int kSrcAlpha = 0x0302;
 constexpr unsigned int kOneMinusSrcAlpha = 0x0303;
-constexpr unsigned int kLinear = 0x2601;
 constexpr unsigned int kPackAlignment = 0x0D05;
 constexpr unsigned int kUnpackAlignment = 0x0CF5;
 constexpr int kDefaultPackAlignment = 4;
@@ -1158,15 +1157,18 @@ bool loadStaticFloor(const std::filesystem::path& cacheDirectory, std::string* e
                 || cellY + cellSize + 2 * cellMargin > imageHeight) {
                 return fail("floor.bin contains a tile cell outside the atlas");
             }
-            const unsigned short contentX = cellX + cellMargin;
-            const unsigned short contentY = cellY + cellMargin;
-            const float u0 = static_cast<float>(contentX) / imageWidth;
-            const float v0 = static_cast<float>(contentY) / imageHeight;
-            const float u1 = static_cast<float>(contentX + cellSize) / imageWidth;
-            const float v1 = static_cast<float>(contentY + cellSize) / imageHeight;
+            // The whole cell, margin included: tile art overhangs its square,
+            // and later squares paint over their neighbours' rim, as the engine
+            // and the donor viewer draw them (cut to the square, the rim's
+            // transparent texels showed a grid of seams).
+            const float grow = static_cast<float>(cellMargin) / cellSize;
+            const float u0 = static_cast<float>(cellX) / imageWidth;
+            const float v0 = static_cast<float>(cellY) / imageHeight;
+            const float u1 = static_cast<float>(cellX + cellSize + 2 * cellMargin) / imageWidth;
+            const float v1 = static_cast<float>(cellY + cellSize + 2 * cellMargin) / imageHeight;
             const float x0 = static_cast<float>(col) - kHalfMap;
             const float z0 = static_cast<float>(row) - kHalfMap;
-            quad(x0, 0.0f, z0, x0 + 1.0f, z0 + 1.0f, u0, v0, u1, v1);
+            quad(x0 - grow, 0.0f, z0 - grow, x0 + 1.0f + grow, z0 + 1.0f + grow, u0, v0, u1, v1);
         }
     }
 
@@ -1207,8 +1209,8 @@ bool loadStaticFloor(const std::filesystem::path& cacheDirectory, std::string* e
     glBindTexture(kTexture2D, gFloorTexture);
     glPixelStorei(kUnpackRowLength, 0);
     glTexImage2D(kTexture2D, 0, kRgba8, pngWidth, pngHeight, 0, kRGBA, kUnsignedByte, rgba.data());
-    glTexParameteri(kTexture2D, kTextureMinFilter, kLinear);
-    glTexParameteri(kTexture2D, kTextureMagFilter, kLinear);
+    glTexParameteri(kTexture2D, kTextureMinFilter, kNearest);
+    glTexParameteri(kTexture2D, kTextureMagFilter, kNearest);
     glTexParameteri(kTexture2D, kTextureWrapS, kClampToEdge);
     glTexParameteri(kTexture2D, kTextureWrapT, kClampToEdge);
     glBindVertexArray(0);
@@ -1500,6 +1502,10 @@ void drawStaticPreview(bool withWalls, bool withHero)
     glBindVertexArray(gFloorVao);
     glBindTexture(kTexture2D, gFloorTexture);
 
+    // Nothing lies below the floor, so it is painted first and hides nothing
+    // (the donor's game view): cards and solids take the depth of their hex
+    // row's plane, which can lie under the floor along the view ray.
+    glDepthMask(0);
     glUniform1i(gFloorTexturedLocation, 0);
     glUniform1f(gFloorCutoffLocation, 0.01f);
     glUniform4f(gFloorColorLocation, 0.16f, 0.17f, 0.18f, 1.0f);
@@ -1507,6 +1513,7 @@ void drawStaticPreview(bool withWalls, bool withHero)
     glUniform1i(gFloorTexturedLocation, 1);
     glUniform1f(gFloorCutoffLocation, 0.01f);
     glDrawArrays(kTriangles, 6, gFloorVertexCount - 6);
+    glDepthMask(1);
 
     const bool withObjects = withHero && !gObjectDraws.empty() && gObjectVao != 0;
     if (withObjects) {
