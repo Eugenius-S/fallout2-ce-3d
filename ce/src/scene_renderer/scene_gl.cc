@@ -214,6 +214,10 @@ int gGroundCursorTile = -1;
 // The hex at the center of the game's screen (gCenterTile); with the hero
 // projection loaded the wall/hero view is the game's own projection there.
 int gCameraCenterTile = -1;
+// The camera glides towards the game's view center instead of jumping a hex
+// at a time: the game pixel at the screen center now, and when it last moved.
+double gCameraPixel[2] = {};
+Uint64 gCameraMoved = 0;
 unsigned int gCursorVao = 0;
 unsigned int gCursorVbo = 0;
 
@@ -650,6 +654,7 @@ void shutdown()
     gHeroProjection = {};
     gGroundCursorTile = -1;
     gCameraCenterTile = -1;
+    gCameraMoved = 0;
 }
 
 bool isActive()
@@ -668,11 +673,20 @@ double gameViewDistance()
 bool currentGameView(GameView* view)
 {
     if (!gHeroProjectionLoaded || gCameraCenterTile < 0) return false;
+    // Whole screen pixels keep the texel grid steady while the camera glides.
+    int x, y, width, height;
+    double screenPerGame = 1.0;
+    if (fitRect(gLogicalWidth, gLogicalHeight, gWindowWidth, gWindowHeight, &x, &y, &width, &height)) {
+        screenPerGame = static_cast<double>(width) / gLogicalWidth;
+    }
     *view = {
         { gHeroProjection.squ[0], gHeroProjection.squ[1] },
         { gHeroProjection.sqv[0], gHeroProjection.sqv[1] },
         { gHeroProjection.origin[0], gHeroProjection.origin[1] },
-        gHeroProjection.hpx, gCameraCenterTile, gLogicalWidth, gLogicalHeight, gameViewDistance(),
+        gHeroProjection.hpx,
+        { std::round(gCameraPixel[0] * screenPerGame) / screenPerGame,
+            std::round(gCameraPixel[1] * screenPerGame) / screenPerGame },
+        gLogicalWidth, gLogicalHeight, gameViewDistance(),
     };
     return true;
 }
@@ -738,7 +752,18 @@ bool pickStaticGroundTile(int logicalX, int logicalY, GroundPickResult* result)
 
 void setStaticCameraCenterTile(int tile)
 {
-    gCameraCenterTile = tile >= 0 && tile < HEX_GRID_SIZE ? tile : -1;
+    if (tile < 0 || tile >= HEX_GRID_SIZE) {
+        gCameraCenterTile = -1;
+        return;
+    }
+    double target[2];
+    gameViewTilePixel(tile, target);
+    const Uint64 now = SDL_GetPerformanceCounter();
+    const bool first = gCameraCenterTile < 0 || gCameraMoved == 0;
+    const double seconds = first ? 0.0 : static_cast<double>(now - gCameraMoved) / SDL_GetPerformanceFrequency();
+    gameViewGlide(gCameraPixel, target, seconds, first);
+    gCameraMoved = now;
+    gCameraCenterTile = tile;
 }
 
 void setStaticGroundCursor(int tile)

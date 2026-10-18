@@ -10,7 +10,8 @@ int main()
 {
 #define CHECK(expr) do { if (!(expr)) { std::fprintf(stderr, "CHECK failed at %s:%d: %s\n", __FILE__, __LINE__, #expr); return 1; } } while (0)
     const double hpx = std::sqrt(48.0 * 48.0 + 32.0 * 32.0 - 12.0 * 12.0 - 24.0 * 24.0);
-    const GameView view = { { -48, 12 }, { 32, 24 }, { 4784, -1190 }, hpx, 25075, 1710, 665, 36.9 };
+    GameView view = { { -48, 12 }, { 32, 24 }, { 4784, -1190 }, hpx, { 0, 0 }, 1710, 665, 36.9 };
+    gameViewTilePixel(25075, view.centerPixel);
     auto gamePixel = [&](double x, double y, double z, double* px, double* py) {
         const double u = x + 50.0, v = z + 50.0;
         *px = view.origin[0] + u * view.squ[0] + v * view.sqv[0];
@@ -84,8 +85,36 @@ int main()
     CHECK(std::abs((c[0] / c[3] + 1.0) * 0.5 * 1710 - lx) < 1e-3 && std::abs((1.0 - c[1] / c[3]) * 0.5 * 665 - ly) < 1e-3);
     CHECK(std::abs(c[2] / c[3]) < 1.0); // inside the depth range
 
+    // A center between hexes (the camera gliding) is still shown at the
+    // engine's screen center.
+    GameView between = view;
+    between.centerPixel[0] += 10.25;
+    between.centerPixel[1] -= 3.5;
+    double groundBetweenX, groundBetweenZ;
+    CHECK(gameViewCenter(between, &groundBetweenX, &groundBetweenZ));
+    double sx2, sy2;
+    CHECK(gameViewProject(between, groundBetweenX, 0.0, groundBetweenZ, &sx2, &sy2));
+    CHECK(std::abs(sx2 - 855.0) < 1e-6 && std::abs(sy2 - 332.0) < 1e-6);
+
+    // The camera glides: halfway-ish after one time constant, never past the
+    // target, the same way in one step or two; far targets are jumped to.
+    double pixel[2] = { 0.0, 0.0 };
+    const double glideTarget[2] = { 100.0, -50.0 };
+    gameViewGlide(pixel, glideTarget, 0.0, true);
+    CHECK(pixel[0] == 100.0 && pixel[1] == -50.0);
+    pixel[0] = 0.0; pixel[1] = 0.0;
+    gameViewGlide(pixel, glideTarget, 0.08, false);
+    CHECK(std::abs(pixel[0] - 100.0 * (1.0 - std::exp(-1.0))) < 1e-9 && pixel[1] < 0.0 && pixel[1] > -50.0);
+    double twoSteps[2] = { 0.0, 0.0 };
+    gameViewGlide(twoSteps, glideTarget, 0.03, false);
+    gameViewGlide(twoSteps, glideTarget, 0.05, false);
+    CHECK(std::abs(twoSteps[0] - pixel[0]) < 1e-9 && std::abs(twoSteps[1] - pixel[1]) < 1e-9);
+    const double far[2] = { 5000.0, 0.0 };
+    gameViewGlide(pixel, far, 0.016, false);
+    CHECK(pixel[0] == 5000.0 && pixel[1] == 0.0);
+
     GameView bad = view;
-    bad.centerTile = -1;
+    bad.centerPixel[0] = std::nan("");
     CHECK(!gameViewMatrix(bad, matrix) && !gameViewPickGround(bad, 10, 10, &lx, &ly));
     std::puts("game_view_tests: ok");
     return 0;

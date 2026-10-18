@@ -1,5 +1,6 @@
 #include "game_view.h"
 
+#include <algorithm>
 #include <cmath>
 
 #include "sprite_card.h"
@@ -26,14 +27,15 @@ struct Frame {
 bool makeFrame(const GameView& view, Frame* frame)
 {
     if (view.logicalWidth <= 0 || view.logicalHeight <= 0 || !(view.distance > kNear)
-        || view.centerTile < 0 || view.centerTile >= 200 * 200 || !(view.hpx > 0.0)) {
+        || !std::isfinite(view.centerPixel[0]) || !std::isfinite(view.centerPixel[1]) || !(view.hpx > 0.0)) {
         return false;
     }
     const SpriteCardProjection projection = {
         { view.squ[0], view.squ[1] }, { view.sqv[0], view.sqv[1] }, { view.origin[0], view.origin[1] },
         view.hpx, 1.0, 0.0, 0.0,
     };
-    spriteHexPixel(view.centerTile, &frame->centerPixel[0], &frame->centerPixel[1]);
+    frame->centerPixel[0] = view.centerPixel[0];
+    frame->centerPixel[1] = view.centerPixel[1];
     if (!spritePixelToGround(projection, frame->centerPixel[0], frame->centerPixel[1],
             &frame->center[0], &frame->center[2])
         || !spriteTowardCamera(projection, frame->toward)) {
@@ -67,6 +69,27 @@ void clip(const GameView& view, const Frame& frame, double x, double y, double z
 }
 
 } // namespace
+
+void gameViewTilePixel(int tile, double pixel[2])
+{
+    spriteHexPixel(tile, &pixel[0], &pixel[1]);
+}
+
+void gameViewGlide(double pixel[2], const double target[2], double seconds, bool first)
+{
+    constexpr double kGlideSeconds = 0.08;
+    constexpr double kJumpPixels = 400.0;
+    const double dx = target[0] - pixel[0];
+    const double dy = target[1] - pixel[1];
+    if (first || !std::isfinite(seconds) || std::sqrt(dx * dx + dy * dy) > kJumpPixels) {
+        pixel[0] = target[0];
+        pixel[1] = target[1];
+        return;
+    }
+    const double share = 1.0 - std::exp(-std::min(std::max(seconds, 0.0), 0.1) / kGlideSeconds);
+    pixel[0] += dx * share;
+    pixel[1] += dy * share;
+}
 
 bool gameViewMatrix(const GameView& view, float matrix[16])
 {

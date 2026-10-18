@@ -18,11 +18,21 @@ struct GameView {
     double sqv[2];
     double origin[2];
     double hpx;
-    int centerTile; // the engine's gCenterTile: the hex shown at the screen center
+    double centerPixel[2]; // game pixel shown at the screen center: the engine's
+                           // gCenterTile hex center, or a point gliding towards it
     int logicalWidth; // the game's screen, in game pixels
     int logicalHeight;
     double distance; // units from the view center to the eye
 };
+
+// Game pixel of a hex center (what the engine centers the screen on).
+void gameViewTilePixel(int tile, double pixel[2]);
+
+// One step of the camera gliding to the center the engine chose (`target`,
+// a game pixel) `seconds` after the last: the way left shrinks by e every
+// 80 ms whatever the frame rate. The first step, and a target further than a
+// map's reach (a new map, a load), are taken at once.
+void gameViewGlide(double pixel[2], const double target[2], double seconds, bool first);
 
 // Column-major OpenGL clip matrix for GL world points.
 bool gameViewMatrix(const GameView& view, float matrix[16]);
