@@ -5,13 +5,13 @@ This adapter exports only `kladwtwn`, elevation `0`, to `game/mod-cache/scene/kl
 From the repository root:
 
 ```powershell
-python tools/scene_export/export.py --project-root E:\Projects\fallout2-sprite-lighting
+python tools/scene_export/export.py --project-root E:\Projects\fallout2-ce-3d
 ```
 
 Or provide the concrete game directory:
 
 ```powershell
-python tools/scene_export/export.py --game-root E:\Projects\fallout2-sprite-lighting\game
+python tools/scene_export/export.py --game-root E:\Projects\fallout2-ce-3d\game
 ```
 
 Requires Python 3, NumPy 2 or newer, and Pillow 10.1 or newer. Run the source-priority regression with `python -m unittest discover -s tools/scene_export -p test_export.py`.

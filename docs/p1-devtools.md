@@ -6,7 +6,7 @@
 ## Точная команда запуска
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File 'E:\Projects\fallout2-sprite-lighting\tools\dev-launch.ps1' -Map kladwtwn -Elevation 0 -Slot 1
+powershell -NoProfile -ExecutionPolicy Bypass -File 'E:\Projects\fallout2-ce-3d\tools\dev-launch.ps1' -Map kladwtwn -Elevation 0 -Slot 1
 ```
 
 Launcher сам выставляет в `game\fallout2.cfg` `[screen] windowed=1` и

@@ -13,7 +13,7 @@
 Приоритет: полноценная игра → правильная геометрия и управление → свет → производительность → остальные карты → установка. DLSS5 остаётся необязательной поздней целью.
 
 - Windows x64, чистая оригинальная Fallout 2. Исходная установка D:\SteamLibrary\steamapps\common\Fallout 2 — только чтение.
-- Рабочий проект E:\Projects\fallout2-sprite-lighting; запуск на копии в game/.
+- Рабочий проект E:\Projects\fallout2-ce-3d; запуск на копии в game/.
 - Поддержка отдельно выбранного русификатора ресурсов. sfall/RP и сборка E:\Games\Fallout 2 исключены из текущей цели.
 - Персонажи остаются спрайтами. Простая геометрия стен, мебели, крыш и ориентиров входит в задачу.
 - Полные новые модели персонажей, шутер, свободное вращение камеры, изменение правил и нейросетевая перерисовка не входят.
@@ -26,11 +26,11 @@
 | CE upstream | fb8ba51e016b09597bc0b4277fbac26899e43342 | Источник игровых правил и состояния |
 | Текущий CE C1 | e14218e0a3486ca94f548d2fcc7d846b6352f77a | Сохранить как эксперимент, не развивать как принятую архитектуру |
 | Донор Apolotary | 0da1cd449f1dc7f2f6986ff7e8728a4b6ae20584 | Конвертер и образец пространственной отрисовки |
-| Путь донора | E:\Projects\fallout2-native-dlss5\vendor\fallout2-first-person | Читать и переносить выбранные части с сохранением notices |
+| Путь донора | tools\scene_export\vendor (копия донора) | Читать и переносить выбранные части с сохранением notices |
 
 У донора проверен экспорт 12 featured-карт, а не всей игры. Конвертер принимает другие карты; качество и покрытие требуют проверки. Стены и часть объектов реконструируются приближённо, неизвестные объекты остаются спрайтами.
 
-До изменений записать HEAD и dirty state. ce/ — отдельный Git, не включённый во внешний репозиторий: отдельно сохранять исходники движка и документы/инструменты, указывать оба commit. Не перезаписывать чужие изменения. Старый native/DLSS-прототип сохранить.
+До изменений записать HEAD и dirty state. С 2026-10-18 движок ce/ и документы/инструменты живут в одном репозитории E:\Projects\fallout2-ce-3d (GitHub Eugenius-S/fallout2-ce-3d), один commit описывает всё. Не перезаписывать чужие изменения. Старые эксперименты (DLSS5, native-прототип, C1) лежат в ветках archive/*.
 
 Отчёты docs/stage-a-report.md и docs/c1-camera-prototype.md содержат ограниченные проверки. Не объявлять всю механику принятой по факту запуска и загрузки сейва. Сохранить список отличий CE от оригинального EXE.
 
@@ -199,13 +199,11 @@ UI, меню, текст, диалоги и видео не подвергать
 Существующие команды PowerShell:
 
 ```powershell
-git -C 'E:\Projects\fallout2-sprite-lighting' status --short
-git -C 'E:\Projects\fallout2-sprite-lighting\ce' status --short
-git -C 'E:\Projects\fallout2-sprite-lighting\ce' rev-parse HEAD
-git -C 'E:\Projects\fallout2-native-dlss5\vendor\fallout2-first-person' rev-parse HEAD
-powershell -NoProfile -ExecutionPolicy Bypass -File 'E:\Projects\fallout2-sprite-lighting\tools\configure-build.ps1' Release
-Get-FileHash -Algorithm SHA256 'E:\Projects\fallout2-sprite-lighting\game\fallout2-ce.exe'
-Start-Process -FilePath 'E:\Projects\fallout2-sprite-lighting\game\fallout2-ce.exe' -WorkingDirectory 'E:\Projects\fallout2-sprite-lighting\game'
+git -C 'E:\Projects\fallout2-ce-3d' status --short
+git -C 'E:\Projects\fallout2-ce-3d' rev-parse HEAD
+powershell -NoProfile -ExecutionPolicy Bypass -File 'E:\Projects\fallout2-ce-3d\tools\configure-build.ps1' Release
+Get-FileHash -Algorithm SHA256 'E:\Projects\fallout2-ce-3d\game\fallout2-ce.exe'
+Start-Process -FilePath 'E:\Projects\fallout2-ce-3d\game\fallout2-ce.exe' -WorkingDirectory 'E:\Projects\fallout2-ce-3d\game'
 ```
 
 Скрипт сборки может пересоздавать build при смене генератора: сначала прочитать, сохранить нужные артефакты. Сборка не доказывает обновление game/EXE: проверить путь результата/копирования и хеши, записать команду установки сборки. Новые команды тестов/экспорта добавить после создания инструментов, не выдумывать готовые команды.
