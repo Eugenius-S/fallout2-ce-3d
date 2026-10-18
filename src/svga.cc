@@ -17,6 +17,7 @@
 #include "movie.h"
 #include "scan_unimplemented.h"
 #include "settings.h"
+#include "scene_renderer/scene_gl.h"
 #include "text_font.h"
 #include "tile.h"
 #include "win32.h"
@@ -176,7 +177,20 @@ int _GNW95_init_window(int width, int height, WindowMode mode, int scale)
             return -1;
         }
 
-        if (!createRenderer(width, height)) {
+        // Sprite-lighting mod (P0): take over presentation with our own
+        // OpenGL context; the vanilla SDL_Renderer stays as the fallback
+        // path if that is unavailable.
+        if (scene_renderer::init(gSdlWindow, width, height)) {
+            gSdlTextureSurface = SDL_CreateRGBSurfaceWithFormat(0, width, height, 32, SDL_PIXELFORMAT_RGBA32);
+            if (gSdlTextureSurface == nullptr) {
+                scene_renderer::shutdown();
+
+                SDL_DestroyWindow(gSdlWindow);
+                gSdlWindow = nullptr;
+
+                return -1;
+            }
+        } else if (!createRenderer(width, height)) {
             destroyRenderer();
 
             SDL_DestroyWindow(gSdlWindow);
@@ -388,6 +402,8 @@ static bool createRenderer(int width, int height)
 
 static void destroyRenderer()
 {
+    scene_renderer::shutdown();
+
     if (gSdlTextureSurface != nullptr) {
         SDL_FreeSurface(gSdlTextureSurface);
         gSdlTextureSurface = nullptr;
@@ -406,6 +422,13 @@ static void destroyRenderer()
 
 void handleWindowSizeChanged()
 {
+    if (scene_renderer::isActive()) {
+        // The GL presentation letterboxes into the current window size on
+        // every frame; there is nothing to recreate.
+        mouseDeviceRefreshWindowMapping();
+        return;
+    }
+
     movieHandleRendererReset();
     destroyRenderer();
     createRenderer(screenGetWidth(), screenGetHeight());
@@ -470,6 +493,22 @@ void renderFpsCounter()
 
 void renderPresent()
 {
+    if (scene_renderer::isActive()) {
+        // Palette -> RGBA conversion is the same SDL_BlitSurface the vanilla
+        // path performs every frame, so palette fades and cycling behave
+        // identically under the OpenGL presentation.
+        SDL_BlitSurface(gSdlSurface, nullptr, gSdlTextureSurface, nullptr);
+        scene_renderer::presentFrame(
+            static_cast<const unsigned char*>(gSdlTextureSurface->pixels),
+            gSdlTextureSurface->w,
+            gSdlTextureSurface->h,
+            gSdlTextureSurface->pitch);
+        // render movie frame if present
+        movieRenderDirectOverlay();
+        scene_renderer::swap();
+        return;
+    }
+
     SDL_UpdateTexture(gSdlTexture, nullptr, gSdlTextureSurface->pixels, gSdlTextureSurface->pitch);
     SDL_RenderClear(gSdlRenderer);
     SDL_RenderCopy(gSdlRenderer, gSdlTexture, nullptr, nullptr);
