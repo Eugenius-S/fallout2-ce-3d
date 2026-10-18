@@ -1,5 +1,6 @@
 #include "window_manager.h"
 
+#include <stdlib.h>
 #include <string.h>
 
 #include <algorithm>
@@ -1352,7 +1353,8 @@ void programWindowSetTitle(const char* title)
 #ifdef _WIN32
     if (_GNW95_title_mutex == INVALID_HANDLE_VALUE) {
         _GNW95_title_mutex = CreateMutexA(nullptr, TRUE, title);
-        if (GetLastError() != ERROR_SUCCESS) {
+        // A dev test run (tools/dev-snapshot.ps1) runs beside the user's open game.
+        if (GetLastError() != ERROR_SUCCESS && getenv("F2CE_DEV_BACKGROUND") == nullptr) {
             _GNW95_already_running = true;
             return;
         }

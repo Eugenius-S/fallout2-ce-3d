@@ -85,6 +85,22 @@ int main()
     CHECK(std::abs((c[0] / c[3] + 1.0) * 0.5 * 1710 - lx) < 1e-3 && std::abs((1.0 - c[1] / c[3]) * 0.5 * 665 - ly) < 1e-3);
     CHECK(std::abs(c[2] / c[3]) < 1.0); // inside the depth range
 
+    // Two sprites on one hex are 1e-4 units apart in depth (donor STACK): a
+    // 24-bit depth buffer must still tell them apart, or they flicker.
+    auto depthBits = [&](double x, double y, double z) {
+        double clipZ = 0, clipW = 0;
+        for (int column = 0; column < 4; column++) {
+            const double value = column == 0 ? x : column == 1 ? y : column == 2 ? z : 1.0;
+            clipZ += matrix[column * 4 + 2] * value;
+            clipW += matrix[column * 4 + 3] * value;
+        }
+        return (clipZ / clipW * 0.5 + 0.5) * 16777215.0;
+    };
+    const double deep = depthBits(centerX - 15.0 * toward[0], 1.0 - 15.0 * toward[1], centerZ - 15.0 * toward[2]);
+    const double farNearer = depthBits(centerX - (15.0 - 1e-4) * toward[0], 1.0 - (15.0 - 1e-4) * toward[1],
+        centerZ - (15.0 - 1e-4) * toward[2]);
+    CHECK(deep - farNearer >= 2.0);
+
     // A center between hexes (the camera gliding) is still shown at the
     // engine's screen center.
     GameView between = view;

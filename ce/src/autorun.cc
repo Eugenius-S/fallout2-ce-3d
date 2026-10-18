@@ -1,5 +1,7 @@
 #include "autorun.h"
 
+#include <stdlib.h>
+
 #ifdef _WIN32
 #include <windows.h>
 #endif
@@ -15,6 +17,10 @@ namespace fallout {
 bool autorunMutexCreate()
 {
 #ifdef _WIN32
+    // A dev test run (tools/dev-snapshot.ps1) runs beside the user's open game.
+    if (getenv("F2CE_DEV_BACKGROUND") != nullptr) {
+        return true;
+    }
     gInterplayGenericAutorunMutex = CreateMutexA(nullptr, FALSE, "InterplayGenericAutorunMutex");
     if (GetLastError() == ERROR_ALREADY_EXISTS) {
         CloseHandle(gInterplayGenericAutorunMutex);

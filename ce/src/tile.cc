@@ -78,6 +78,9 @@ static bool gTileScrollBlockingEnabled = true;
 // 0x51D958 scroll_limiting_on
 static bool gTileScrollLimitingEnabled = true;
 
+// Dev 3D view: screen-edge scrolling ignores map-edge and scroll-blocker bounds.
+static bool gTileFreeScroll = false;
+
 // 0x51D95C show_roof
 static bool gTileRoofIsVisible = true;
 
@@ -581,9 +584,18 @@ int tileSetCenter(int tile, int flags)
             int dx = abs(dudeScreenX - tileScreenX);
             int dy = abs(dudeScreenY - tileScreenY);
 
+            // 480 x 400 is three quarters and five sixths of the 640 x 480
+            // screen; the dev 3D view keeps those shares of its wider window.
+            int limitX = 480;
+            int limitY = 400;
+            if (gTileFreeScroll) {
+                limitX = std::max(limitX, 480 * gTileWindowWidth / 640);
+                limitY = std::max(limitY, 400 * gTileWindowHeight / 480);
+            }
+
             if (dx > abs(dudeScreenX - _tile_offx)
                 || dy > abs(dudeScreenY - _tile_offy)) {
-                if (dx >= 480 || dy >= 400) {
+                if (dx >= limitX || dy >= limitY) {
                     return -1;
                 }
             }
@@ -591,7 +603,9 @@ int tileSetCenter(int tile, int flags)
 
         // Must run after scroll limiting: mapEdgeSetBoundaryMods mutates the persistent
         // alignment mods, so a scroll the limiter rejects must not touch them.
-        if (edgeActive && isScroll && mapEdgeZoneIsSelected()) {
+        if (gTileFreeScroll && isScroll) {
+            // Dev 3D view: no map-edge or scroll-blocker bounds (see tileSetFreeScroll).
+        } else if (edgeActive && isScroll && mapEdgeZoneIsSelected()) {
             // Block instead of clamp: clamping would shift the center and make
             // mapScroll's buffer copy produce artifacts.
             if (!mapEdgeTileInBounds(tile)) {
@@ -1140,6 +1154,17 @@ void tileScrollLimitingEnable()
 void tileScrollLimitingDisable()
 {
     gTileScrollLimitingEnabled = false;
+}
+
+// The map-edge bounds (EDG) and scroll blockers keep a 2D screen from showing
+// past the map, and they shrink by half the window's width: on a wide window a
+// narrow map has no room left to scroll sideways at all. The dev 3D view shows
+// what lies past the map anyway, so its screen-edge scrolling is free of them.
+// Keeping the screen near the dude (scroll limiting) still applies, scaled to
+// the window as the original 480 x 400 was to 640 x 480.
+void tileSetFreeScroll(bool enabled)
+{
+    gTileFreeScroll = enabled;
 }
 
 // 0x4B1DB8 tile_get_scroll_limiting

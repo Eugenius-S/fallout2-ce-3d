@@ -11,8 +11,12 @@ namespace scene_renderer {
 namespace {
 
 constexpr double kMapOffset = 50.0;
-constexpr double kNear = 0.1; // units in front of the eye
-constexpr double kFar = 400.0;
+// Depth range in front of the eye (units). Cards on one hex row are told apart
+// by depth steps of 1e-4 units (donor proj.STACK), so the near plane sits as
+// far out as the view allows: at 0.1 the 24-bit depth buffer resolves only
+// about 8e-4 units at the eye's distance, and such sprites flickered.
+constexpr double kNear = 5.0;
+constexpr double kFar = 200.0;
 
 struct Frame {
     double centerPixel[2]; // game pixel of the center hex

@@ -664,6 +664,7 @@ bool disableStaticFloorPreview(const char* status)
     gStaticFloorPreview = false;
     gStaticWallPreview = false;
     gStaticHeroPreview = false;
+    tileSetFreeScroll(false);
     gHeroUnavailableLogged = false;
     scene_renderer::clearStaticHero();
     scene_renderer::clearStaticObjects();
@@ -726,6 +727,7 @@ bool enableStaticPreview(bool withWalls, bool withHero = false)
     gStaticFloorPreview = !withWalls;
     gStaticWallPreview = withWalls && !withHero;
     gStaticHeroPreview = withHero;
+    tileSetFreeScroll(withHero); // the 3D view scrolls past map edges
     gHeroUnavailableLogged = false;
     if (withHero) {
         setStatus("wall and hero preview on (Ctrl+F10 to return)");

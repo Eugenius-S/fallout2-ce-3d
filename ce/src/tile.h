@@ -57,6 +57,7 @@ bool tileIsEdge(int tile);
 void tileScrollBlockingEnable();
 void tileScrollBlockingDisable();
 bool tileScrollBlockingIsEnabled();
+void tileSetFreeScroll(bool enabled);
 void tileScrollLimitingEnable();
 void tileScrollLimitingDisable();
 bool tileScrollLimitingIsEnabled();
