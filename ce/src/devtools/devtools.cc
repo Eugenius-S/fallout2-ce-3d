@@ -1271,11 +1271,35 @@ void afterWalkPreviewDraw()
 void refreshStaticHeroForPresent()
 {
     if (!staticHeroPreviewActive()) return;
+    const Uint64 updateStart = SDL_GetPerformanceCounter();
     // The game scrolls (screen edges, arrow keys, following the hero); the 3D
     // view goes with it.
     scene_renderer::setStaticCameraCenterTile(gCenterTile);
     updateStaticObjectsFromGame();
     const bool heroUpdated = updateStaticHeroFromGame();
+
+    // Frame rate of the 3D view, logged every two seconds: presented frames
+    // per second and the share of each frame spent rebuilding live objects.
+    static Uint64 windowStart = 0;
+    static unsigned int windowFrames = 0;
+    static double windowUpdateSeconds = 0.0;
+    const Uint64 now = SDL_GetPerformanceCounter();
+    const double frequency = static_cast<double>(SDL_GetPerformanceFrequency());
+    if (windowStart == 0) windowStart = now;
+    windowFrames++;
+    windowUpdateSeconds += static_cast<double>(now - updateStart) / frequency;
+    const double elapsed = static_cast<double>(now - windowStart) / frequency;
+    if (elapsed >= 2.0) {
+        // A file: the Windows build has no console to print to.
+        if (FILE* log = fopen("devperf.log", "a")) {
+            fprintf(log, "3d fps=%.1f objects=%u update_ms=%.2f\n", windowFrames / elapsed,
+                scene_renderer::staticObjectCount(), windowUpdateSeconds * 1000.0 / windowFrames);
+            fclose(log);
+        }
+        windowStart = now;
+        windowFrames = 0;
+        windowUpdateSeconds = 0.0;
+    }
     if (heroUpdated && gSnapshotOncePending) {
         gSnapshotOncePending = false;
         const bool captured = takeSnapshot();

@@ -60,9 +60,13 @@ int main(int argc, char* argv[])
     int rc;
 
 #if _WIN32
-    GNW95_mutex = CreateMutexA(0, TRUE, "GNW95MUTEX");
-    if (GetLastError() != ERROR_SUCCESS) {
-        return 0;
+    // A dev test run (tools/dev-snapshot.ps1) runs beside the user's open
+    // game, so it skips the one-instance rule.
+    if (getenv("F2CE_DEV_BACKGROUND") == nullptr) {
+        GNW95_mutex = CreateMutexA(0, TRUE, "GNW95MUTEX");
+        if (GetLastError() != ERROR_SUCCESS) {
+            return 0;
+        }
     }
 #ifdef SDL_HINT_WINDOWS_DPI_AWARENESS
     SDL_SetHint(SDL_HINT_WINDOWS_DPI_AWARENESS, "permonitorv2");
