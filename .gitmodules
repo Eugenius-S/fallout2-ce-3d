@@ -1,0 +1,4 @@
+[submodule "ce"]
+	path = ce
+	url = https://github.com/Eugenius-S/fallout2-ce-scene-renderer.git
+	branch = scene-renderer
