@@ -80,6 +80,7 @@ static bool _main_death_voiceover_done;
 static int commandLineDevLoadGameSlot = -1;
 static bool commandLineDevEndgame = false;
 static bool commandLineDevEndgameMovie = false;
+static bool commandLineDevNewGame = false;
 
 // 0x48099C
 int falloutMain(int argc, char** argv)
@@ -126,8 +127,12 @@ int falloutMain(int argc, char** argv)
 
             mouseShowCursor();
             int devLoadGameSlot = commandLineDevLoadGameSlot;
+            bool devNewGame = commandLineDevNewGame;
+            commandLineDevNewGame = false;
             int mainMenuRc;
-            if (devLoadGameSlot != -1) {
+            if (devNewGame) {
+                mainMenuRc = MAIN_MENU_NEW_GAME;
+            } else if (devLoadGameSlot != -1) {
                 commandLineDevLoadGameSlot = -1;
                 mainMenuRc = MAIN_MENU_LOAD_GAME;
             } else {
@@ -143,10 +148,12 @@ int falloutMain(int argc, char** argv)
                 break;
             case MAIN_MENU_NEW_GAME: {
                 mainMenuBeginSubscreen();
-                if (characterSelectorOpen() == 2) {
+                if (characterSelectorOpen(devNewGame) == 2) {
                     mainMenuFinishSubscreen();
 
-                    gameMoviePlay(MOVIE_ELDER, GAME_MOVIE_STOP_MUSIC);
+                    if (!devNewGame) {
+                        gameMoviePlay(MOVIE_ELDER, GAME_MOVIE_STOP_MUSIC);
+                    }
                     randomSeedPrerandom(-1);
 
                     // SFALL: Call "before start" event
@@ -166,6 +173,12 @@ int falloutMain(int argc, char** argv)
                     sfallOnAfterNewGame();
                     sfallOnAfterGameStarted();
                     gGameLoaded = true;
+
+                    // Sprite-lighting mod: a dev new game travels to the
+                    // --dev-map target like a loaded save does.
+                    if (devNewGame) {
+                        devtools::applyStartupTarget();
+                    }
 
                     mainRunGameLoopAndCleanup();
                     mainMenuWindowInit();
@@ -276,6 +289,8 @@ static void mainParseCommandLineArguments(int argc, char** argv)
             } else {
                 debugPrint("MAIN: invalid --dev-load-game value '%s'\n", argv[arg] + devLoadGamePrefixLength);
             }
+        } else if (strcmp(argv[arg], "--dev-new-game") == 0) {
+            commandLineDevNewGame = true;
         } else if (strcmp(argv[arg], "--dev-endgame") == 0) {
             commandLineDevEndgame = true;
         } else if (strcmp(argv[arg], "--dev-endgame-movie") == 0) {

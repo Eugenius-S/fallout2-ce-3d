@@ -3,7 +3,9 @@
 
 namespace fallout {
 
-int characterSelectorOpen();
+// When `autoTake` is true the first premade character is taken without
+// waiting for input (dev mode `--dev-new-game`).
+int characterSelectorOpen(bool autoTake = false);
 
 void premadeCharactersInit();
 void premadeCharactersExit();

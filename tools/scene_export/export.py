@@ -199,8 +199,6 @@ def configured_sources(game_root: Path):
     for path in (master_dat, critter_dat):
         if path is None or not path.exists():
             raise FileNotFoundError(f"required CE DAT source missing: {path}")
-    if not patch_chain:
-        raise FileNotFoundError(f"CE patch chain has no first source: {patch_template!r}")
 
     # CE opens low-priority sources first; dbOpen prepends each source.
     # Return the final chain head-to-tail (highest priority first).
@@ -210,21 +208,22 @@ def configured_sources(game_root: Path):
         if path is not None and path.exists():
             paths.append((key, path))
 
+    # sfall_ext.cc opens the listed mods in file order and skips missing
+    # entries, so the last listed mod has the highest priority.
     mods_dir = game_root / "mods"
     mods_order = mods_dir / "mods_order.txt"
-    mod_entries = []
+    mod_paths: list[Path] = []
     if mods_order.is_file():
         for raw in mods_order.read_text(encoding="cp1252").splitlines():
             if ";" in raw or "#" in raw:
                 continue
             entry = raw.strip()
-            if entry:
-                mod_entries.append(entry)
+            if entry and (mods_dir / entry).exists():
+                mod_paths.append(mods_dir / entry)
     elif mods_dir.is_dir() and any(mods_dir.glob("*.dat")):
         raise ValueError("mods/*.dat exists but mods/mods_order.txt is missing; refusing to guess CE mod order")
-    if mod_entries:
-        raise ValueError("active mods in mods/mods_order.txt are unsupported by this one-map exporter")
 
+    paths.extend((f"mods/{path.name}", path) for path in reversed(mod_paths))
     paths.extend((path.name, path) for path in reversed(patch_chain))
     for key, default in (("ce.dat", "ce.dat"), ("f2_res_dat", "f2_res.dat")):
         path = game_root / default if key == "ce.dat" else configured_path(key, default)

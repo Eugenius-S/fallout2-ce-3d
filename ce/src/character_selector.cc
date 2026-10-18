@@ -163,7 +163,7 @@ static FrmImage _previousButtonPressedFrmImage;
 static std::vector<PremadeCharacterDescription> gCustomPremadeCharacterDescriptions;
 
 // 0x4A71D0 select_character
-int characterSelectorOpen()
+int characterSelectorOpen(bool autoTake)
 {
 #if __APPLE__ && TARGET_OS_IOS
     touch_set_touchscreen_mode(true);
@@ -181,6 +181,10 @@ int characterSelectorOpen()
 
     int rc = 0;
     bool done = false;
+    if (autoTake) {
+        rc = 2;
+        done = true;
+    }
     while (!done) {
         sharedFpsLimiter.mark();
 

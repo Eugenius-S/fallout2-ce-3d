@@ -1,5 +1,6 @@
 # Game working copy (user-provided DATs, never committed)
 game/
+game-vanilla/
 *.dat
 
 # Build output

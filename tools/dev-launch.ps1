@@ -2,13 +2,14 @@
 #
 # Prepares the working copy config (windowed, no intro) and starts
 # fallout2-ce.exe with the dev tools. The default target is Klamath
-# Downtown (kladwtwn), elevation 0. The save slot 1 in game/data/SAVEGAME
-# is the fixed dev profile (a fully created character); the dev panel
+# Downtown (kladwtwn), elevation 0. By default the game starts a new game
+# with the first premade character (Restoration Project needs a new game);
+# -Slot N loads that save from game/data/SAVEGAME instead. The dev panel
 # (Alt+D) travels between maps, F9 takes a metadata snapshot.
 param(
     [string]$Map = "kladwtwn",
     [int]$Elevation = 0,
-    [int]$Slot = 1
+    [int]$Slot = 0
 )
 $ErrorActionPreference = 'Stop'
 $Root = Split-Path -Parent $PSScriptRoot
@@ -41,6 +42,7 @@ $toolsCommit = (git -C $Root rev-parse --short HEAD) 2>$null
 if (-not $toolsCommit) { $toolsCommit = 'unknown' }
 
 $exe = Join-Path $GameDir 'fallout2-ce.exe'
-$args = @('--dev-tools', "--dev-load-game=$Slot", "--dev-map=$Map", "--dev-elevation=$Elevation", "--dev-tools-commit=$toolsCommit")
+$start = if ($Slot -gt 0) { "--dev-load-game=$Slot" } else { '--dev-new-game' }
+$args = @('--dev-tools', $start, "--dev-map=$Map", "--dev-elevation=$Elevation", "--dev-tools-commit=$toolsCommit")
 Write-Output ("START: " + $exe + " " + ($args -join ' '))
 Start-Process -FilePath $exe -ArgumentList $args -WorkingDirectory $GameDir

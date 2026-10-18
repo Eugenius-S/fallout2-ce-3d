@@ -37,6 +37,33 @@ class SourcePriorityTests(unittest.TestCase):
         winner = choose_source("maps/kladwtwn.map", sources)
         self.assertEqual((winner[0], winner[1]), ("archive", "patch001"))
 
+    def test_later_listed_mod_wins_and_patch_chain_may_be_empty(self):
+        with TemporaryDirectory() as temp:
+            game = Path(temp)
+            (game / "fallout2.cfg").write_text(
+                "[system]\nmaster_dat=master.dat\ncritter_dat=critter.dat\n",
+                encoding="cp1252",
+            )
+            (game / "mods").mkdir()
+            (game / "mods" / "mods_order.txt").write_text(
+                "rpu.dat\n; comment.dat\nmissing.dat\nrpu_russian.dat\n", encoding="cp1252"
+            )
+            write_dat2({"maps/kladwtwn.map": b"rpu", "maps/arcaves.map": b"rpu only"}, game / "mods" / "rpu.dat")
+            write_dat2({"maps/kladwtwn.map": b"russian"}, game / "mods" / "rpu_russian.dat")
+            write_dat2({"maps/kladwtwn.map": b"critter"}, game / "critter.dat")
+            write_dat2({"maps/kladwtwn.map": b"master"}, game / "master.dat")
+
+            files = ReadOnlyGameFiles(game)
+            try:
+                self.assertEqual(files.read("maps/kladwtwn.map"), b"russian")
+                self.assertEqual(files.read("maps/arcaves.map"), b"rpu only")
+                self.assertEqual(
+                    [name for _, name, _ in files.sources],
+                    ["mods/rpu_russian.dat", "mods/rpu.dat", "critter_dat", "master_dat", "cwd_fallback"],
+                )
+            finally:
+                files.close()
+
     def test_configured_master_patches_directory_beats_conflicting_dat(self):
         with TemporaryDirectory() as temp:
             game = Path(temp)

@@ -6,19 +6,21 @@
 ## Точная команда запуска
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File 'E:\Projects\fallout2-ce-3d\tools\dev-launch.ps1' -Map kladwtwn -Elevation 0 -Slot 1
+powershell -NoProfile -ExecutionPolicy Bypass -File 'E:\Projects\fallout2-ce-3d\tools\dev-launch.ps1' -Map kladwtwn -Elevation 0
 ```
 
 Launcher сам выставляет в `game\fallout2.cfg` `[screen] windowed=1` и
 `[ui] skip_opening_movies=1`, затем запускает:
 
 ```
-game\fallout2-ce.exe --dev-tools --dev-load-game=1 --dev-map=kladwtwn --dev-elevation=0
+game\fallout2-ce.exe --dev-tools --dev-new-game --dev-map=kladwtwn --dev-elevation=0
 ```
 
-- Профиль: сейв слота 1 из `game\data\SAVEGAME` (тестовый, полностью
-  созданный персонаж). Слоты в `game\` — dev-песочница, пользовательские
-  не затрагиваются.
+- Профиль: с 2026-10-18 по умолчанию новая игра с первым готовым
+  персонажем (`--dev-new-game`, без ролика старейшины): Restoration Project
+  требует новую игру. `-Slot N` загружает сейв N из `game\data\SAVEGAME`
+  вместо этого. Слоты в `game\` — dev-песочница, пользовательские не
+  затрагиваются.
 - `--dev-map`/`--dev-elevation` опциональны; без них — остаёмся на карте
   сейва. Неверное имя/этаж отклоняется, остаёмся на карте сейва без
   полузагруженной сцены (проверено `--dev-map=zzzz`).
@@ -26,7 +28,9 @@ game\fallout2-ce.exe --dev-tools --dev-load-game=1 --dev-map=kladwtwn --dev-elev
 ## CLI
 
 - `--dev-tools` — включает режим (панель, хоткеи).
-- `--dev-map=<имя>` / `--dev-elevation=<0..2>` — цель после загрузки сейва.
+- `--dev-new-game` — сразу начать новую игру с первым готовым персонажем.
+- `--dev-map=<имя>` / `--dev-elevation=<0..2>` — цель после загрузки сейва
+  или старта новой игры.
 - `--dev-list-maps` — печатает все карты из игровых ресурсов (155 шт. на
   текущих DATs) и выходит. Лог: `runs/p1-listmaps.log`.
 
