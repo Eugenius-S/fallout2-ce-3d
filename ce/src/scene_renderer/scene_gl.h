@@ -36,6 +36,24 @@ struct StaticHeroFrame {
     size_t rgbaSize;
 };
 
+// One live map object (critter, item, scenery, door) in its current frame.
+// `rgba` may be null when staticObjectArtCached() says the frame is uploaded.
+struct StaticObjectFrame {
+    int tile;
+    int fid;
+    int frame;
+    int rotation;
+    int objectX;
+    int objectY;
+    int artXOffset;
+    int artYOffset;
+    int width;
+    int height;
+    bool flat;
+    const unsigned char* rgba;
+    size_t rgbaSize;
+};
+
 struct StaticHeroInfo {
     int tile;
     int fid;
@@ -73,6 +91,15 @@ void staticWallStats(unsigned int* triangles, unsigned int* pages);
 bool updateStaticHero(const StaticHeroFrame& frame, std::string* error);
 void clearStaticHero();
 bool staticHeroInfo(StaticHeroInfo* info);
+// Live objects are rebuilt every presented frame between begin and end.
+// Objects walls.bin already draws (baked.bin) are skipped by the caller.
+bool staticObjectBaked(int tile, int fid);
+bool staticObjectArtCached(int fid, int frame, int rotation);
+void beginStaticObjects();
+bool addStaticObject(const StaticObjectFrame& frame, std::string* error);
+void endStaticObjects();
+void clearStaticObjects();
+unsigned int staticObjectCount();
 bool pickStaticGroundTile(int logicalX, int logicalY, GroundPickResult* result);
 void setStaticGroundCursor(int tile);
 void drawStaticFloor();

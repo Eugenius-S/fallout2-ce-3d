@@ -152,7 +152,7 @@ def _wall_rest(batches, sprites, pages, row, hpx):
 
 
 def encode_wall_sidecar(scene):
-    """Build donor-equivalent wall/sheet/trim/door triangles for one scene."""
+    """Build donor-equivalent wall/sheet/trim triangles for one scene."""
     if scene.get("format") != 6 or scene.get("map") != "kladwtwn" or scene.get("elevation") != 0:
         raise ValueError("wall sidecar expects kladwtwn elevation 0 in scene format 6")
     pages_data = scene.get("pages")
@@ -213,15 +213,8 @@ def encode_wall_sidecar(scene):
         _upright(batches, sprites, pages, sprite, ua, va, ub, vb, z0, z1,
                  x + tx, y + ty, tw, th)
 
-    doors = scene.get("doors")
-    if not isinstance(doors, list):
-        raise ValueError("scene.doors is missing")
-    for index, row in enumerate(doors):
-        _record(row, 7, f"door {index}")
-        sprite = _int(row[0], "door sprite index")
-        if not 0 <= sprite < len(sprites):
-            raise ValueError(f"door {index} sprite index is outside scene.sprites")
-        _upright(batches, sprites, pages, sprite, *row[1:7], *sprites[sprite][1:5])
+    # Doors are not baked: they open and close, so the engine draws them live
+    # as sprite cards with their current frame.
 
     total_triangles = sum(len(values) // 15 for values in batches.values())
     if total_triangles > 0xFFFFFFFF or len(batches) > 0xFFFFFFFF:

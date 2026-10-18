@@ -19,18 +19,20 @@ sys.path.insert(0, str(HERE / "vendor"))
 from f2lib import Dat2, GameFiles  # noqa: E402
 from f2lib.gamefiles import norm  # noqa: E402
 from fp.scene import SceneBuilder  # noqa: E402
+from baked_sidecar import VERSION as BAKED_SIDECAR_VERSION  # noqa: E402
+from baked_sidecar import baked_objects, decode_baked_sidecar, encode_baked_sidecar  # noqa: E402
 from floor_sidecar import encode_floor_sidecar  # noqa: E402
 from projection_sidecar import VERSION as PROJECTION_SIDECAR_VERSION  # noqa: E402
 from projection_sidecar import decode_projection_sidecar, encode_projection_sidecar  # noqa: E402
 from wall_sidecar import VERSION as WALL_SIDECAR_VERSION  # noqa: E402
 from wall_sidecar import decode_wall_sidecar, encode_wall_sidecar  # noqa: E402
 
-EXPORTER_VERSION = "1.4.0"
+EXPORTER_VERSION = "1.5.0"
 FLOOR_SIDECAR_VERSION = 1
 DONOR_REVISION = "0da1cd449f1dc7f2f6986ff7e8728a4b6ae20584"
 MAP_NAME = "kladwtwn"
 ELEVATION = 0
-EXPECTED_OUTPUT_FILES = {"scene.json", "provenance.json", "floor.bin", "walls.bin", "projection.bin",
+EXPECTED_OUTPUT_FILES = {"scene.json", "provenance.json", "floor.bin", "walls.bin", "projection.bin", "baked.bin",
                          "tiles.png", "light.png", "rock.png"}
 
 
@@ -335,6 +337,9 @@ def main(argv=None):
         wall_payload = encode_wall_sidecar(scene)
         (out_dir / "walls.bin").write_bytes(wall_payload)
         wall_data = decode_wall_sidecar(wall_payload)
+        baked_payload = encode_baked_sidecar(baked_objects(scene, builder.map.objects[ELEVATION]))
+        (out_dir / "baked.bin").write_bytes(baked_payload)
+        baked_count = len(decode_baked_sidecar(baked_payload))
         projection_payload = encode_projection_sidecar(scene)
         (out_dir / "projection.bin").write_bytes(projection_payload)
         decode_projection_sidecar(projection_payload)
@@ -342,7 +347,7 @@ def main(argv=None):
         vendor_files = sorted((HERE / "vendor").rglob("*.py"))
         vendor_hashes = {p.relative_to(HERE / "vendor").as_posix(): sha256_file(p) for p in vendor_files}
         adapter_hashes = {name: sha256_file(HERE / name) for name in
-                          ("export.py", "floor_sidecar.py", "wall_sidecar.py", "projection_sidecar.py")}
+                          ("export.py", "floor_sidecar.py", "wall_sidecar.py", "projection_sidecar.py", "baked_sidecar.py")}
         archives = [{"name": name, "path": source.path.relative_to(game_root).as_posix()
                      if source.path.is_relative_to(game_root) else str(source.path),
                      "size": source.path.stat().st_size, "sha256": sha256_file(source.path)}
@@ -391,6 +396,8 @@ def main(argv=None):
                              "page_batches": [{"page": batch["page"], "size": batch["size"],
                                                "triangles": batch["triangles"]}
                                               for batch in wall_data["batches"]]},
+            "baked_sidecar": {"file": "baked.bin", "format_version": BAKED_SIDECAR_VERSION,
+                              "sha256": artifact_hashes["baked.bin"], "objects": baked_count},
             "projection_sidecar": {"file": "projection.bin", "format_version": PROJECTION_SIDECAR_VERSION,
                                    "sha256": artifact_hashes["projection.bin"], "float64_values": 10},
             "archives": archives,

@@ -72,6 +72,7 @@ bool gStaticFloorPreview = false;
 bool gStaticWallPreview = false;
 bool gStaticHeroPreview = false;
 bool gHeroUnavailableLogged = false;
+unsigned int gObjectCardsSkipped = 0; // live objects whose frame could not be drawn
 bool gWalkRequestPending = false;
 bool gWalkSnapshotAfterPending = false;
 int gWalkRequestTile = -1;
@@ -570,6 +571,71 @@ bool updateStaticHeroFromGame()
     return true;
 }
 
+struct ObjectCardPass {
+    unsigned char* palette;
+    std::vector<unsigned char> rgba;
+    unsigned int skipped;
+};
+
+void addObjectCard(Object* object, void* context)
+{
+    ObjectCardPass& pass = *static_cast<ObjectCardPass*>(context);
+    if (object == gDude || (object->flags & OBJECT_HIDDEN) != OBJECT_NONE || !hexGridTileIsValid(object->tile)
+        || scene_renderer::staticObjectBaked(object->tile, object->fid)) {
+        return;
+    }
+    if (object->rotation < ROTATION_FIRST || object->rotation >= ROTATION_COUNT) {
+        pass.skipped++;
+        return;
+    }
+    FrmImage image;
+    if (!image.lock(FrmId(object), object->frame, object->rotation)) {
+        pass.skipped++;
+        return;
+    }
+    const int width = image.getWidth();
+    const int height = image.getHeight();
+    if (width <= 0 || height <= 0 || width > 2048 || height > 2048) {
+        pass.skipped++;
+        return;
+    }
+    const bool cached = scene_renderer::staticObjectArtCached(object->fid, object->frame, object->rotation);
+    if (!cached) {
+        const unsigned char* indices = image.getData();
+        if (indices == nullptr) {
+            pass.skipped++;
+            return;
+        }
+        const size_t pixelCount = static_cast<size_t>(width) * static_cast<size_t>(height);
+        pass.rgba.resize(pixelCount * 4);
+        for (size_t index = 0; index < pixelCount; index++) {
+            const unsigned char colorIndex = indices[index];
+            pass.rgba[index * 4] = static_cast<unsigned char>(pass.palette[colorIndex * 3] << 2);
+            pass.rgba[index * 4 + 1] = static_cast<unsigned char>(pass.palette[colorIndex * 3 + 1] << 2);
+            pass.rgba[index * 4 + 2] = static_cast<unsigned char>(pass.palette[colorIndex * 3 + 2] << 2);
+            pass.rgba[index * 4 + 3] = colorIndex == 0 ? 0 : 255;
+        }
+    }
+    const scene_renderer::StaticObjectFrame frame = {
+        object->tile, object->fid, object->frame, static_cast<int>(object->rotation), object->x, object->y,
+        image.getXOffset(), image.getYOffset(), width, height, (object->flags & OBJECT_FLAT) != OBJECT_NONE,
+        cached ? nullptr : pass.rgba.data(), cached ? 0 : pass.rgba.size(),
+    };
+    std::string error;
+    if (!scene_renderer::addStaticObject(frame, &error)) pass.skipped++;
+}
+
+// Every live object on the hero's elevation, in its current frame: critters
+// with their animation, doors open or shut, items where they lie.
+void updateStaticObjectsFromGame()
+{
+    scene_renderer::beginStaticObjects();
+    ObjectCardPass pass = { directDrawGetPalette(), {}, 0 };
+    if (pass.palette != nullptr) objectForEachAtElevation(gElevation, addObjectCard, &pass);
+    scene_renderer::endStaticObjects();
+    gObjectCardsSkipped = pass.skipped;
+}
+
 bool disableStaticFloorPreview(const char* status)
 {
     if (!gStaticFloorPreview && !gStaticWallPreview && !gStaticHeroPreview) return false;
@@ -578,6 +644,7 @@ bool disableStaticFloorPreview(const char* status)
     gStaticHeroPreview = false;
     gHeroUnavailableLogged = false;
     scene_renderer::clearStaticHero();
+    scene_renderer::clearStaticObjects();
     scene_renderer::setStaticGroundCursor(-1);
     gWalkRequestPending = false;
     gWalkSnapshotAfterPending = false;
@@ -1181,6 +1248,7 @@ void afterWalkPreviewDraw()
 void refreshStaticHeroForPresent()
 {
     if (!staticHeroPreviewActive()) return;
+    updateStaticObjectsFromGame();
     const bool heroUpdated = updateStaticHeroFromGame();
     if (heroUpdated && gSnapshotOncePending) {
         gSnapshotOncePending = false;
@@ -1635,6 +1703,7 @@ bool takeSnapshot()
         "  \"wall_triangles\": %u,\n"
         "  \"wall_pages\": %u,\n"
         "  \"hero\": %s,\n"
+        "  \"objects\": {\"drawn\":%u,\"skipped\":%u},\n"
         "  \"walk\": %s,\n"
         "  \"preview_availability\": \"%s\",\n"
         "  \"renderer\": \"%s\",\n"
@@ -1656,6 +1725,8 @@ bool takeSnapshot()
         wallTriangles,
         wallPages,
         heroMetadata,
+        heroPreview ? scene_renderer::staticObjectCount() : 0u,
+        heroPreview ? gObjectCardsSkipped : 0u,
         walkMetadata,
         previewRequested ? (scene_renderer::isActive() ? staticScenePreviewAvailability() : "renderer-inactive") : "not-requested",
         activeRendererName(),

@@ -7,6 +7,8 @@ import struct
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
+from baked_sidecar import (ENTRY as BAKED_ENTRY, HEADER as BAKED_HEADER, MAGIC as BAKED_MAGIC,
+                           baked_objects, decode_baked_sidecar, encode_baked_sidecar)
 from export import ReadOnlyGameFiles, choose_source, main, patch_paths, validate_output_contents
 from floor_sidecar import HEADER, MAGIC, VERSION, cell_content_rect, decode_floor_sidecar, encode_floor_sidecar
 from projection_sidecar import (HEADER as PROJECTION_HEADER, MAGIC as PROJECTION_MAGIC,
@@ -125,7 +127,7 @@ class OutputSafetyTests(unittest.TestCase):
         with TemporaryDirectory() as temp:
             out = Path(temp)
             for name in ("scene.json", "provenance.json", "floor.bin", "walls.bin", "projection.bin",
-                         "tiles.png", "light.png", "rock.png", "sprites10.png"):
+                         "baked.bin", "tiles.png", "light.png", "rock.png", "sprites10.png"):
                 (out / name).touch()
             validate_output_contents(out)
 
@@ -251,10 +253,10 @@ class WallSidecarTests(unittest.TestCase):
             "doors": [[0, 5.0, 6.0, 7.0, 6.0, 0.0, 1.0, 46, 400]],
         }
 
-    def test_encodes_donor_front_cap_back_and_door_geometry(self):
+    def test_encodes_donor_front_cap_back_and_leaves_doors_live(self):
         decoded = decode_wall_sidecar(encode_wall_sidecar(self.sample_scene()))
         self.assertEqual(decoded["version"], WALL_VERSION)
-        self.assertEqual(decoded["triangles"], 8)
+        self.assertEqual(decoded["triangles"], 6)
         batch = decoded["batches"][0]
         self.assertEqual(batch["page"], 0)
         self.assertEqual(batch["size"], (100, 100))
@@ -288,14 +290,12 @@ class WallSidecarTests(unittest.TestCase):
         back = vertices[12]
         for actual, expected in zip(back, (-47.0, 0.0, -47.75, 0.4, 0.6)):
             self.assertAlmostEqual(actual, expected)
-        # Door is the final quad, emitted as a static upright sheet.
-        door = vertices[18]
-        for actual, expected in zip(door, (-45.0, 0.0, -44.0, 0.1, 0.4)):
-            self.assertAlmostEqual(actual, expected)
+        # The door row is not baked: the engine draws doors live so they open.
+        self.assertEqual(len(vertices), 18)
 
     def test_rejects_invalid_sprite_index_and_bad_page(self):
         scene = self.sample_scene()
-        scene["doors"][0][0] = 2
+        scene["trims"] = [[2, 1.0, 2.0, 3.0, 2.0, 0.0, 1.0, 0, 0, 1, 1]]
         with self.assertRaisesRegex(ValueError, "outside scene.sprites"):
             encode_wall_sidecar(scene)
         scene = self.sample_scene()
@@ -307,7 +307,7 @@ class WallSidecarTests(unittest.TestCase):
         scene = self.sample_scene()
         scene["walls"][0].extend([1, 1])
         decoded = decode_wall_sidecar(encode_wall_sidecar(scene))
-        self.assertEqual(decoded["triangles"], 12)
+        self.assertEqual(decoded["triangles"], 10)
         vertices = decoded["batches"][0]["vertices"]
         above = vertices[18]
         self.assertAlmostEqual(above[0], -49.0)
@@ -350,6 +350,37 @@ class WallSidecarTests(unittest.TestCase):
         scene["sprites"][0][1] = 95
         with self.assertRaisesRegex(ValueError, "outside its atlas"):
             encode_wall_sidecar(scene)
+
+
+class BakedSidecarTests(unittest.TestCase):
+    class MapObject:
+        def __init__(self, tile, fid):
+            self.tile, self.fid = tile, fid
+
+    def test_lists_each_wall_row_object_once_by_map_serial(self):
+        objects = [self.MapObject(100, 0x03000010), self.MapObject(205, 0x02000007),
+                   self.MapObject(300, 0x02000099)]
+        scene = {"walls": [[0, 0, 0, 0, 0, 0, 0, 5, 1], [0, 0, 0, 0, 0, 0, 0, 5, 1],
+                           [0, 0, 0, 0, 0, 0, 0, 5, 0]]}
+        entries = baked_objects(scene, objects)
+        self.assertEqual(entries, [(100, 0x03000010), (205, 0x02000007)])
+        payload = encode_baked_sidecar(entries)
+        self.assertEqual(payload[:4], BAKED_MAGIC)
+        self.assertEqual(len(payload), BAKED_HEADER.size + 2 * BAKED_ENTRY.size)
+        self.assertEqual(decode_baked_sidecar(payload), entries)
+
+    def test_rejects_unknown_serial_and_corruption(self):
+        with self.assertRaisesRegex(ValueError, "outside the map"):
+            baked_objects({"walls": [[0, 0, 0, 0, 0, 0, 0, 5, 3]]}, [self.MapObject(1, 2)])
+        payload = encode_baked_sidecar([(1, 2)])
+        with self.assertRaisesRegex(ValueError, "bad length"):
+            decode_baked_sidecar(payload[:-1])
+        bad_version = bytearray(payload)
+        struct.pack_into("<H", bad_version, 4, 2)
+        with self.assertRaisesRegex(ValueError, "magic/version"):
+            decode_baked_sidecar(bad_version)
+        with self.assertRaisesRegex(ValueError, "hex grid"):
+            encode_baked_sidecar([(40000, 1)])
 
 
 class ProjectionSidecarTests(unittest.TestCase):

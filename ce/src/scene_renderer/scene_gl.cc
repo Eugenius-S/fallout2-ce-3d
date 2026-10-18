@@ -9,12 +9,15 @@
 #include <limits>
 #include <stdio.h>
 #include <string>
+#include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
 #include <lodepng.h>
 
 #include "gl_api.h"
+#include "sprite_card.h"
 #include "../tile.h"
 
 namespace fallout {
@@ -168,6 +171,35 @@ int gGroundCursorTile = -1;
 unsigned int gCursorVao = 0;
 unsigned int gCursorVbo = 0;
 
+struct ObjectDraw {
+    unsigned int texture;
+    int firstVertex;
+    bool flat;
+};
+
+// Live map objects: one textured quad each, rebuilt every presented frame.
+// Frame textures are cached by (fid, frame, rotation) across frames.
+constexpr size_t kMaxObjectTextures = 4096;
+constexpr float kFlatObjectHeight = 0.01f;
+std::unordered_set<unsigned long long> gBakedObjects;
+std::unordered_map<unsigned long long, unsigned int> gObjectTextures;
+std::vector<FloorVertex> gObjectVertices;
+std::vector<ObjectDraw> gObjectDraws;
+unsigned int gObjectVao = 0;
+unsigned int gObjectVbo = 0;
+
+unsigned long long bakedObjectKey(int tile, int fid)
+{
+    return (static_cast<unsigned long long>(static_cast<unsigned int>(tile)) << 32) | static_cast<unsigned int>(fid);
+}
+
+unsigned long long objectArtKey(int fid, int frame, int rotation)
+{
+    return (static_cast<unsigned long long>(static_cast<unsigned int>(fid)) << 32)
+        | ((static_cast<unsigned long long>(static_cast<unsigned int>(frame)) & 0xFFFFFF) << 8)
+        | (static_cast<unsigned int>(rotation) & 0xFF);
+}
+
 bool readBinary(const std::filesystem::path& path, std::vector<unsigned char>& bytes)
 {
     std::ifstream stream(path, std::ios::binary | std::ios::ate);
@@ -252,6 +284,7 @@ void destroyStaticWalls()
     gWallBatches.clear();
     gWallTriangleCount = 0;
     gWallsLoaded = false;
+    gBakedObjects.clear();
 }
 
 void destroyStaticHero()
@@ -266,6 +299,39 @@ void destroyStaticHero()
     gHeroVao = 0;
     gHeroLoaded = false;
     gHeroInfo = {};
+}
+
+void destroyStaticObjectTextures()
+{
+    if (gContext != nullptr) {
+        for (const auto& entry : gObjectTextures) {
+            glDeleteTextures(1, &entry.second);
+        }
+    }
+    gObjectTextures.clear();
+}
+
+void destroyStaticObjects()
+{
+    destroyStaticObjectTextures();
+    if (gContext != nullptr) {
+        if (gObjectVbo != 0) glDeleteBuffers(1, &gObjectVbo);
+        if (gObjectVao != 0) glDeleteVertexArrays(1, &gObjectVao);
+    }
+    gObjectVbo = 0;
+    gObjectVao = 0;
+    gObjectVertices.clear();
+    gObjectDraws.clear();
+}
+
+SpriteCardProjection cardProjection()
+{
+    return {
+        { gHeroProjection.squ[0], gHeroProjection.squ[1] },
+        { gHeroProjection.sqv[0], gHeroProjection.sqv[1] },
+        { gHeroProjection.origin[0], gHeroProjection.origin[1] },
+        gHeroProjection.hpx, gHeroProjection.bbPx,
+    };
 }
 
 void normalize3(float* v)
@@ -508,6 +574,7 @@ void shutdown()
 {
     gInitialized = false;
     if (gContext != nullptr) {
+        destroyStaticObjects();
         destroyStaticHero();
         destroyStaticWalls();
         destroyStaticFloor();
@@ -661,57 +728,31 @@ bool updateStaticHero(const StaticHeroFrame& frame, std::string* error)
         * static_cast<unsigned long long>(frame.height) * 4;
     if (expectedRgba != frame.rgbaSize) return fail("hero frame RGBA byte count is inconsistent");
 
-    const int hx = frame.tile % 200;
-    const int hy = frame.tile / 200;
-    const int a = 199 - hx;
-    const double hexX = 48.0 * (a >> 1) + 32.0 * (a & 1) + 16.0 * hy + 16.0;
-    const double hexY = -12.0 * (a >> 1) + 12.0 * hy + 8.0;
-    const double dx = hexX + frame.objectX - gHeroProjection.origin[0];
-    const double dy = hexY + frame.objectY - gHeroProjection.origin[1];
-    const double determinant = gHeroProjection.squ[0] * gHeroProjection.sqv[1]
-        - gHeroProjection.sqv[0] * gHeroProjection.squ[1];
-    const double worldU = (gHeroProjection.sqv[1] * dx - gHeroProjection.sqv[0] * dy) / determinant - 50.0;
-    const double worldV = (gHeroProjection.squ[0] * dy - gHeroProjection.squ[1] * dx) / determinant - 50.0;
-    if (!std::isfinite(worldU) || !std::isfinite(worldV)) return fail("hero world anchor is not finite");
-
-    const double top = static_cast<double>(frame.artYOffset) - (frame.height - 1);
-    const double bottom = top + frame.height;
-    double up0;
-    double up1;
-    if (bottom <= 0.0) {
-        up0 = -bottom / gHeroProjection.hpx;
-        up1 = -top / gHeroProjection.hpx;
-    } else {
-        const double farRow = std::min(bottom, std::max(0.0, top));
-        up0 = 0.0;
-        up1 = (farRow - top + 0.5 * (bottom - farRow)) / gHeroProjection.hpx;
-    }
     const StaticPreviewCamera camera = staticPreviewCamera(true);
     const GroundPickCamera basisCamera = {
         { camera.eye[0], camera.eye[1], camera.eye[2] },
         { camera.target[0], camera.target[1], camera.target[2] }, camera.fovY, camera.donorScreenRight,
     };
     double forward[3], screenRight[3], screenUp[3];
-    if (!previewCameraBasis(basisCamera, forward, screenRight, screenUp)
-        || !std::isfinite(up0) || !std::isfinite(up1)) {
-        return fail("hero card camera basis or height is invalid");
+    if (!previewCameraBasis(basisCamera, forward, screenRight, screenUp)) {
+        return fail("hero card camera basis is invalid");
     }
-    const double rightX = screenRight[0];
-    const double rightZ = screenRight[2];
-    const double leftPixels = static_cast<double>(frame.artXOffset) - frame.width / 2;
-    const double rightPixels = leftPixels + frame.width;
-    const double leftDistance = leftPixels / gHeroProjection.bbPx;
-    const double rightDistance = rightPixels / gHeroProjection.bbPx;
-    auto vertex = [&](double horizontal, double height, double u, double v) {
-        const double positionX = worldU + rightX * horizontal;
-        const double positionZ = worldV + rightZ * horizontal;
-        return FloorVertex { static_cast<float>(positionX), static_cast<float>(height),
-            static_cast<float>(positionZ), static_cast<float>(u), static_cast<float>(v) };
+    const SpriteCardArt art = { frame.tile, frame.objectX, frame.objectY, frame.artXOffset, frame.artYOffset,
+        frame.width, frame.height };
+    SpriteCardVertex corners[4];
+    double worldU = 0.0;
+    double worldV = 0.0;
+    if (!standingSpriteCard(cardProjection(), art, screenRight[0], screenRight[2], corners, &worldU, &worldV)) {
+        return fail("hero card anchor or height is not finite");
+    }
+    auto vertex = [](const SpriteCardVertex& corner) {
+        return FloorVertex { static_cast<float>(corner.x), static_cast<float>(corner.y),
+            static_cast<float>(corner.z), static_cast<float>(corner.u), static_cast<float>(corner.v) };
     };
-    const FloorVertex topLeft = vertex(leftDistance, up1, 0.0, 0.0);
-    const FloorVertex bottomLeft = vertex(leftDistance, up0, 0.0, 1.0);
-    const FloorVertex bottomRight = vertex(rightDistance, up0, 1.0, 1.0);
-    const FloorVertex topRight = vertex(rightDistance, up1, 1.0, 0.0);
+    const FloorVertex topLeft = vertex(corners[0]);
+    const FloorVertex bottomLeft = vertex(corners[1]);
+    const FloorVertex bottomRight = vertex(corners[2]);
+    const FloorVertex topRight = vertex(corners[3]);
     const FloorVertex vertices[] = { topLeft, bottomLeft, bottomRight, topLeft, bottomRight, topRight };
 
     while (glGetError() != 0) {
@@ -753,6 +794,115 @@ bool staticHeroInfo(StaticHeroInfo* info)
     if (info == nullptr || !gHeroLoaded) return false;
     *info = gHeroInfo;
     return true;
+}
+
+bool staticObjectBaked(int tile, int fid)
+{
+    return gBakedObjects.count(bakedObjectKey(tile, fid)) != 0;
+}
+
+bool staticObjectArtCached(int fid, int frame, int rotation)
+{
+    return gObjectTextures.count(objectArtKey(fid, frame, rotation)) != 0;
+}
+
+void beginStaticObjects()
+{
+    gObjectVertices.clear();
+    gObjectDraws.clear();
+    // Bound the cache; a frame's texture is uploaded again on demand.
+    if (gObjectTextures.size() > kMaxObjectTextures) destroyStaticObjectTextures();
+}
+
+bool addStaticObject(const StaticObjectFrame& frame, std::string* error)
+{
+    auto fail = [&](const char* message) {
+        if (error != nullptr) *error = message;
+        return false;
+    };
+    if (!gInitialized || !gWallsLoaded || !gHeroProjectionLoaded) return fail("static scene is unavailable");
+    if (frame.rotation < 0 || frame.rotation >= 6) return fail("object rotation is invalid");
+    const SpriteCardArt art = { frame.tile, frame.objectX, frame.objectY, frame.artXOffset, frame.artYOffset,
+        frame.width, frame.height };
+    SpriteCardVertex corners[4];
+    if (frame.flat) {
+        if (!flatSpriteCard(cardProjection(), art, kFlatObjectHeight, corners)) return fail("flat object card is invalid");
+    } else {
+        const StaticPreviewCamera camera = staticPreviewCamera(true);
+        const GroundPickCamera basisCamera = {
+            { camera.eye[0], camera.eye[1], camera.eye[2] },
+            { camera.target[0], camera.target[1], camera.target[2] }, camera.fovY, camera.donorScreenRight,
+        };
+        double forward[3], screenRight[3], screenUp[3];
+        if (!previewCameraBasis(basisCamera, forward, screenRight, screenUp)
+            || !standingSpriteCard(cardProjection(), art, screenRight[0], screenRight[2], corners, nullptr, nullptr)) {
+            return fail("object card is invalid");
+        }
+    }
+
+    const unsigned long long key = objectArtKey(frame.fid, frame.frame, frame.rotation);
+    auto cached = gObjectTextures.find(key);
+    unsigned int texture = 0;
+    if (cached != gObjectTextures.end()) {
+        texture = cached->second;
+    } else {
+        const unsigned long long expectedRgba = static_cast<unsigned long long>(frame.width)
+            * static_cast<unsigned long long>(frame.height) * 4;
+        if (frame.rgba == nullptr || expectedRgba != frame.rgbaSize) return fail("object frame pixels are missing");
+        while (glGetError() != 0) {
+        }
+        glGenTextures(1, &texture);
+        glBindTexture(kTexture2D, texture);
+        glPixelStorei(kUnpackAlignment, 1);
+        glPixelStorei(kUnpackRowLength, 0);
+        glTexImage2D(kTexture2D, 0, kRgba8, frame.width, frame.height, 0, kRGBA, kUnsignedByte, frame.rgba);
+        glPixelStorei(kUnpackAlignment, 4);
+        glTexParameteri(kTexture2D, kTextureMinFilter, kNearest);
+        glTexParameteri(kTexture2D, kTextureMagFilter, kNearest);
+        glTexParameteri(kTexture2D, kTextureWrapS, kClampToEdge);
+        glTexParameteri(kTexture2D, kTextureWrapT, kClampToEdge);
+        if (glGetError() != 0) {
+            glDeleteTextures(1, &texture);
+            return fail("OpenGL failed to upload an object frame");
+        }
+        gObjectTextures.emplace(key, texture);
+    }
+
+    gObjectDraws.push_back({ texture, static_cast<int>(gObjectVertices.size()), frame.flat });
+    const int order[6] = { 0, 1, 2, 0, 2, 3 };
+    for (int index : order) {
+        const SpriteCardVertex& corner = corners[index];
+        gObjectVertices.push_back({ static_cast<float>(corner.x), static_cast<float>(corner.y),
+            static_cast<float>(corner.z), static_cast<float>(corner.u), static_cast<float>(corner.v) });
+    }
+    if (error != nullptr) error->clear();
+    return true;
+}
+
+void endStaticObjects()
+{
+    if (!gInitialized || gObjectVertices.empty()) return;
+    if (gObjectVao == 0) glGenVertexArrays(1, &gObjectVao);
+    if (gObjectVbo == 0) glGenBuffers(1, &gObjectVbo);
+    glBindVertexArray(gObjectVao);
+    glBindBuffer(kArrayBuffer, gObjectVbo);
+    glBufferData(kArrayBuffer, static_cast<long long>(gObjectVertices.size() * sizeof(FloorVertex)),
+        gObjectVertices.data(), 0x88E8 /* GL_DYNAMIC_DRAW */);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, 0x1406 /* GL_FLOAT */, 0, sizeof(FloorVertex), reinterpret_cast<const void*>(0));
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, 0x1406, 0, sizeof(FloorVertex), reinterpret_cast<const void*>(3 * sizeof(float)));
+    glBindVertexArray(0);
+}
+
+void clearStaticObjects()
+{
+    destroyStaticObjects();
+}
+
+unsigned int staticObjectCount()
+{
+    return static_cast<unsigned int>(gObjectDraws.size());
 }
 
 void presentFrame(const unsigned char* rgba, int width, int height, int pitch)
@@ -1077,6 +1227,30 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
         return fail("walls.bin has trailing data or a mismatched triangle count");
     }
 
+    // Objects walls.bin draws; live sprite cards skip them.
+    constexpr size_t kBakedHeaderSize = 12;
+    constexpr size_t kBakedEntrySize = 8;
+    constexpr unsigned int kMaxBakedEntries = 1000000;
+    std::vector<unsigned char> baked;
+    if (!readBinary(cacheDirectory / "baked.bin", baked)) {
+        return fail("baked.bin is missing or unreadable; re-run the scene exporter");
+    }
+    if (baked.size() < kBakedHeaderSize || baked[0] != 'F' || baked[1] != '2' || baked[2] != 'B' || baked[3] != 'K'
+        || readU16(baked.data() + 4) != 1 || readU16(baked.data() + 6) != kBakedHeaderSize) {
+        return fail("baked.bin has an invalid header");
+    }
+    const unsigned int bakedCount = readU32(baked.data() + 8);
+    if (bakedCount > kMaxBakedEntries || baked.size() != kBakedHeaderSize + bakedCount * kBakedEntrySize) {
+        return fail("baked.bin has a bad length");
+    }
+    std::unordered_set<unsigned long long> bakedObjects;
+    for (unsigned int index = 0; index < bakedCount; index++) {
+        const unsigned char* entry = baked.data() + kBakedHeaderSize + index * kBakedEntrySize;
+        const int tile = static_cast<int>(readU32(entry));
+        if (tile < 0 || tile >= HEX_GRID_SIZE) return fail("baked.bin names a tile outside the hex grid");
+        bakedObjects.insert(bakedObjectKey(tile, static_cast<int>(readU32(entry + 4))));
+    }
+
     while (glGetError() != 0) {
     }
     glPixelStorei(kUnpackAlignment, 1);
@@ -1110,6 +1284,7 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
     glPixelStorei(kUnpackAlignment, 4);
     glBindVertexArray(0);
     gWallTriangleCount = totalTriangles;
+    gBakedObjects = std::move(bakedObjects);
     gWallsLoaded = true;
     if (error != nullptr) error->clear();
     return true;
@@ -1171,12 +1346,36 @@ void drawStaticPreview(bool withWalls, bool withHero)
     glUniform1f(gFloorCutoffLocation, 0.01f);
     glDrawArrays(kTriangles, 6, gFloorVertexCount - 6);
 
+    const bool withObjects = withHero && !gObjectDraws.empty() && gObjectVao != 0;
+    if (withObjects) {
+        // Flat objects lie on the floor in the engine's draw order: later ones
+        // paint over earlier ones, and they hide nothing drawn after them.
+        glDepthMask(0);
+        glUniform1f(gFloorCutoffLocation, 0.5f);
+        glBindVertexArray(gObjectVao);
+        for (const ObjectDraw& draw : gObjectDraws) {
+            if (!draw.flat) continue;
+            glBindTexture(kTexture2D, draw.texture);
+            glDrawArrays(kTriangles, draw.firstVertex, 6);
+        }
+        glDepthMask(1);
+    }
+
     if (withWalls) {
         glUniform1f(gFloorCutoffLocation, 0.5f);
         for (const WallBatch& batch : gWallBatches) {
             glBindVertexArray(batch.vao);
             glBindTexture(kTexture2D, batch.texture);
             glDrawArrays(kTriangles, 0, static_cast<int>(batch.triangleCount * 3));
+        }
+    }
+    if (withObjects) {
+        glUniform1f(gFloorCutoffLocation, 0.5f);
+        glBindVertexArray(gObjectVao);
+        for (const ObjectDraw& draw : gObjectDraws) {
+            if (draw.flat) continue;
+            glBindTexture(kTexture2D, draw.texture);
+            glDrawArrays(kTriangles, draw.firstVertex, 6);
         }
     }
     if (withHero && gHeroLoaded) {

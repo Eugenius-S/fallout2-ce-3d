@@ -70,6 +70,7 @@ Object* objectFindFirst();
 Object* objectFindNext();
 Object* objectFindFirstAtElevation(MapElevation elevation);
 Object* objectFindNextAtElevation();
+void objectForEachAtElevation(MapElevation elevation, void (*visit)(Object* object, void* context), void* context);
 Object* objectFindFirstAtLocation(MapElevation elevation, int tile);
 Object* objectFindNextAtLocation();
 void objectGetRect(Object* obj, Rect* rect);

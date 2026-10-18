@@ -2320,6 +2320,21 @@ Object* objectFindNextAtElevation()
     return nullptr;
 }
 
+// Same walk as objectFindFirstAtElevation/objectFindNextAtElevation, but it
+// leaves their shared iterator alone: the scene renderer calls it while
+// presenting a frame, possibly in the middle of the game's own iteration.
+void objectForEachAtElevation(MapElevation elevation, void (*visit)(Object* object, void* context), void* context)
+{
+    for (int tile = 0; tile < HEX_GRID_SIZE; tile++) {
+        for (ObjectListNode* node = gObjectListHeadByTile[tile]; node != nullptr; node = node->next) {
+            Object* object = node->obj;
+            if (object->elevation == elevation && !artIsObjectTypeHidden(FrmId(object).objectType())) {
+                visit(object, context);
+            }
+        }
+    }
+}
+
 // 0x48B5A8 obj_find_first_at_tile
 Object* objectFindFirstAtLocation(MapElevation elevation, int tile)
 {
