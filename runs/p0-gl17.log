@@ -1,0 +1,23 @@
+sr: creating context
+sr: context=0000000000010001
+sr: loading gl
+sr: CreateShader=00007FFC338F87B0 direct=00007FFC338F87B0
+sr: compiling shaders
+sr: cs create
+sr: cs created=1 src=00007FF614042650
+sr: cs sourced
+sr: cs compiled call done
+sr: cs create
+sr: cs created=2 src=00007FF6140427C0
+sr: cs sourced
+sr: cs compiled call done
+sr: linked, va
+sr: textures done
+sr: init complete
+sr: init err=0
+sr: first present
+sr: after create params err=500
+sr: e0=501
+sr: e1=0
+sr: e2=0
+sr: draw err=0 use=0 tex=0 uni=0 vao=0

@@ -1,0 +1,15 @@
+{
+  "image": "scr00000.png",
+  "view": "vanilla-framebuffer",
+  "map": "KLADWTWN.MAP",
+  "elevation": 0,
+  "camera": "center tile 25075",
+  "renderer": "scene-gl",
+  "light": "off",
+  "resolution": "640x480",
+  "drawable": "640x480",
+  "ce_commit": "f6c1969",
+  "tools_commit": "b647b1e-dirty",
+  "exe_sha256": "ff6c701409380cc46a78af41a0c53cffc980884fd88aab0d9b1be9cd046179f9",
+  "taken": "20261018-143825"
+}

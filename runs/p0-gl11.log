@@ -1,0 +1,21 @@
+sr: creating context
+sr: context=0000000000010001
+sr: loading gl
+sr: CreateShader=00007FFC338F87B0 direct=00007FFC338F87B0
+sr: compiling shaders
+sr: cs create
+sr: cs created=1 src=00007FF7C61B1650
+sr: cs sourced
+sr: cs compiled call done
+INFO: scene_renderer: shader compile failed: 0(3) : error C7548: 'layout(location)' requires "#extension GL_ARB_explicit_attrib_location : enable" before use
+0(3) : error C0000: ... or #extension GL_ARB_separate_shader_objects : enable
+0(3) : error C0000: ... or #version 330
+0(4) : error C7548: 'layout(location)' requires "#extension GL_ARB_explicit_attrib_location : enable" before use
+0(4) : error C0000: ... or #extension GL_ARB_separate_shader_objects : enable
+0(4) : error C0000: ... or #version 330
+sr: cs create
+sr: cs created=2 src=00007FF7C61B17C0
+sr: cs sourced
+sr: cs compiled call done
+sr: first present
+sr: draw error=0x500 texLoc=-1 rectLoc=-1

@@ -1,0 +1,410 @@
+#!/usr/bin/env python3
+"""Export one Fallout 2 CE scene from read-only DAT archives."""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import os
+import re
+import sys
+from pathlib import Path
+
+sys.dont_write_bytecode = True
+
+HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE / "vendor"))
+
+from f2lib import Dat2, GameFiles  # noqa: E402
+from f2lib.gamefiles import norm  # noqa: E402
+from fp.scene import SceneBuilder  # noqa: E402
+from floor_sidecar import encode_floor_sidecar  # noqa: E402
+from projection_sidecar import VERSION as PROJECTION_SIDECAR_VERSION  # noqa: E402
+from projection_sidecar import decode_projection_sidecar, encode_projection_sidecar  # noqa: E402
+from wall_sidecar import VERSION as WALL_SIDECAR_VERSION  # noqa: E402
+from wall_sidecar import decode_wall_sidecar, encode_wall_sidecar  # noqa: E402
+
+EXPORTER_VERSION = "1.4.0"
+FLOOR_SIDECAR_VERSION = 1
+DONOR_REVISION = "0da1cd449f1dc7f2f6986ff7e8728a4b6ae20584"
+MAP_NAME = "kladwtwn"
+ELEVATION = 0
+EXPECTED_OUTPUT_FILES = {"scene.json", "provenance.json", "floor.bin", "walls.bin", "projection.bin",
+                         "tiles.png", "light.png", "rock.png"}
+
+
+def choose_source(key, sources):
+    """Return the first matching configured CE source, already high-to-low."""
+    for kind, name, source in sources:
+        if source.has(key):
+            return (kind, name, source)
+    return None
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for block in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def canonical_resource(path: str) -> str:
+    key = norm(path)
+    if not key or any(part in (".", "..") for part in key.split("/")):
+        raise ValueError(f"unsafe game resource path: {path!r}")
+    return key
+
+
+def validate_output_contents(out_dir: Path) -> None:
+    """Reject files SceneBuilder might otherwise delete or follow unexpectedly."""
+    if not out_dir.exists():
+        return
+    for entry in out_dir.iterdir():
+        if entry.is_symlink():
+            raise ValueError(f"symlink is not allowed in export directory: {entry.name}")
+        expected = entry.name in EXPECTED_OUTPUT_FILES or re.fullmatch(r"sprites\d+\.png", entry.name) is not None
+        if not expected or not entry.is_file():
+            raise ValueError(f"unexpected export directory entry: {entry.name}")
+
+
+def patch_paths(game_root: Path, template: str) -> list[Path]:
+    """Match game.cc's PatchFile loop, stopping at the first absent source."""
+    placeholders = list(re.finditer(r"%0?\d*d", template))
+    if len(placeholders) > 1 or "%" in re.sub(r"%0?\d*d", "", template):
+        raise ValueError(f"unsupported ddraw.ini [Misc] PatchFile template: {template!r}")
+    paths = []
+    for index in range(1000):
+        filename = template % index if placeholders else template
+        path = Path(filename)
+        if not path.is_absolute():
+            path = game_root / path
+        if not path.is_file():
+            break
+        paths.append(path)
+        if not placeholders:
+            break
+    return paths
+
+
+def parse_ini(path: Path) -> dict[str, dict[str, str]]:
+    sections: dict[str, dict[str, str]] = {}
+    section = ""
+    for raw in path.read_text(encoding="cp1252").splitlines():
+        line = raw.strip()
+        if not line or line.startswith((";", "#")):
+            continue
+        if line.startswith("[") and "]" in line:
+            section = line[1:line.index("]")].strip().lower()
+            sections.setdefault(section, {})
+            continue
+        if "=" in line and section:
+            key, value = line.split("=", 1)
+            sections[section][key.strip().lower()] = value.strip().strip('"')
+    return sections
+
+
+class ResourceSource:
+    """Read-only directory or DAT source with engine-style member lookup."""
+
+    def __init__(self, name: str, path: Path):
+        self.name = name
+        self.path = path
+        self.archive = Dat2(path) if path.is_file() else None
+        self.is_directory = path.is_dir()
+        if self.archive is None and not self.is_directory:
+            raise FileNotFoundError(f"configured resource source is not a file or directory: {path}")
+        self._cache: dict[str, Path | None] = {}
+
+    def _resolve(self, key: str) -> Path | None:
+        if key in self._cache:
+            return self._cache[key]
+        current = self.path
+        for part in key.split("/"):
+            try:
+                entries = {entry.name.lower(): entry for entry in current.iterdir()}
+            except (FileNotFoundError, NotADirectoryError):
+                current = None
+                break
+            current = entries.get(part)
+            if current is None:
+                break
+        result = current if current is not None and current.is_file() else None
+        self._cache[key] = result
+        return result
+
+    def has(self, key: str) -> bool:
+        return self.archive.has(key) if self.archive is not None else self._resolve(key) is not None
+
+    def read(self, key: str) -> bytes:
+        return self.archive.read(key) if self.archive is not None else self._resolve(key).read_bytes()
+
+    def find(self, key: str) -> str:
+        return f"dat://{self.name}/{key}" if self.archive is not None else os.fspath(self._resolve(key))
+
+    def listdir(self, key: str) -> list[str]:
+        if self.archive is not None:
+            prefix = key.rstrip("/") + "/" if key else ""
+            names = set()
+            for name in self.archive.entries:
+                if name.startswith(prefix):
+                    tail = name[len(prefix):]
+                    if tail:
+                        names.add(tail.split("/", 1)[0])
+            return list(names)
+        directory = self.path if not key else self._resolve_directory(key)
+        if directory is None:
+            return []
+        try:
+            return [entry.name.lower() for entry in directory.iterdir()]
+        except (FileNotFoundError, NotADirectoryError):
+            return []
+
+    def _resolve_directory(self, key: str) -> Path | None:
+        current = self.path
+        for part in key.split("/"):
+            try:
+                entries = {entry.name.lower(): entry for entry in current.iterdir()}
+            except (FileNotFoundError, NotADirectoryError):
+                return None
+            current = entries.get(part)
+            if current is None or not current.is_dir():
+                return None
+        return current
+
+
+def configured_sources(game_root: Path):
+    config_path = game_root / "fallout2.cfg"
+    if not config_path.is_file():
+        raise FileNotFoundError(f"CE resource order requires {config_path}")
+    cfg = parse_ini(config_path)
+    system = cfg.get("system", {})
+
+    def configured_path(key: str, default: str) -> Path | None:
+        value = system.get(key, default).strip()
+        if not value:
+            return None
+        path = Path(value)
+        return path if path.is_absolute() else game_root / path
+
+    patch_template = "patch%03d.dat"
+    ddraw_path = game_root / "ddraw.ini"
+    if ddraw_path.is_file():
+        patch_template = parse_ini(ddraw_path).get("misc", {}).get("patchfile", patch_template) or patch_template
+
+    patch_chain = patch_paths(game_root, patch_template)
+    master_dat = configured_path("master_dat", "master.dat")
+    critter_dat = configured_path("critter_dat", "critter.dat")
+    for path in (master_dat, critter_dat):
+        if path is None or not path.exists():
+            raise FileNotFoundError(f"required CE DAT source missing: {path}")
+    if not patch_chain:
+        raise FileNotFoundError(f"CE patch chain has no first source: {patch_template!r}")
+
+    # CE opens low-priority sources first; dbOpen prepends each source.
+    # Return the final chain head-to-tail (highest priority first).
+    paths: list[tuple[str, Path]] = []
+    for key in ("master_patches", "critter_patches"):
+        path = configured_path(key, "")
+        if path is not None and path.exists():
+            paths.append((key, path))
+
+    mods_dir = game_root / "mods"
+    mods_order = mods_dir / "mods_order.txt"
+    mod_entries = []
+    if mods_order.is_file():
+        for raw in mods_order.read_text(encoding="cp1252").splitlines():
+            if ";" in raw or "#" in raw:
+                continue
+            entry = raw.strip()
+            if entry:
+                mod_entries.append(entry)
+    elif mods_dir.is_dir() and any(mods_dir.glob("*.dat")):
+        raise ValueError("mods/*.dat exists but mods/mods_order.txt is missing; refusing to guess CE mod order")
+    if mod_entries:
+        raise ValueError("active mods in mods/mods_order.txt are unsupported by this one-map exporter")
+
+    paths.extend((path.name, path) for path in reversed(patch_chain))
+    for key, default in (("ce.dat", "ce.dat"), ("f2_res_dat", "f2_res.dat")):
+        path = game_root / default if key == "ce.dat" else configured_path(key, default)
+        if path is not None and path.exists():
+            paths.append((path.name, path))
+    paths.extend((("critter_dat", critter_dat), ("master_dat", master_dat)))
+    # xfileOpen falls back to the process working directory after exhausting
+    # the registered xbase chain. CE runs with the game root as cwd.
+    paths.append(("cwd_fallback", game_root))
+
+    sources = []
+    for name, path in paths:
+        source = ResourceSource(name, path)
+        kind = "directory" if source.is_directory else "archive"
+        sources.append((kind, name, source))
+    config_hashes = {config_path.name: sha256_file(config_path)}
+    if ddraw_path.is_file():
+        config_hashes[ddraw_path.name] = sha256_file(ddraw_path)
+    if mods_order.is_file():
+        config_hashes["mods/mods_order.txt"] = sha256_file(mods_order)
+    return sources, config_hashes
+
+
+class ReadOnlyGameFiles(GameFiles):
+    """GameFiles-compatible reader following the active CE source configuration."""
+
+    def __init__(self, game_root: Path):
+        self.game_root = game_root
+        self.sources, self.config_hashes = configured_sources(game_root)
+        self.archives = [(name, source.archive) for kind, name, source in self.sources if source.archive is not None]
+        self._reads: dict[str, dict[str, str]] = {}
+        # A concrete base is passed so GameFiles never calls resolve_game().
+        super().__init__(base=os.fspath(game_root))
+
+    def close(self):
+        for _, archive in self.archives:
+            archive.close()
+
+    def _winner(self, path: str):
+        key = canonical_resource(path)
+        return key, choose_source(key, self.sources)
+
+    def find(self, path):
+        key, winner = self._winner(path)
+        if winner is None:
+            return None
+        _, _, source = winner
+        return source.find(key)
+
+    def exists(self, path):
+        return self._winner(path)[1] is not None
+
+    def read(self, path):
+        key, winner = self._winner(path)
+        if winner is None:
+            raise FileNotFoundError(f"not in selected game data: {path}")
+        kind, name, source = winner
+        data = source.read(key)
+        record = {"source": f"{kind}:{name}", "sha256": hashlib.sha256(data).hexdigest()}
+        prior = self._reads.setdefault(key, record)
+        if prior != record:
+            raise RuntimeError(f"resource source changed during export: {key}")
+        return data
+
+    def listdir(self, path=""):
+        key = canonical_resource(path) if path else ""
+        names = set()
+        for _, _, source in self.sources:
+            names.update(source.listdir(key))
+        return sorted(names)
+
+
+def parse_args(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    roots = parser.add_mutually_exclusive_group()
+    roots.add_argument("--project-root", type=Path, default=Path(__file__).resolve().parents[2],
+                       help="project root containing game/ (default: this repository)")
+    roots.add_argument("--game-root", type=Path, help="game directory containing DAT files and data/")
+    return parser.parse_args(argv)
+
+
+def main(argv=None):
+    args = parse_args(argv)
+    game_root = (args.game_root or args.project_root / "game").resolve()
+    if not game_root.is_dir():
+        raise SystemExit(f"game root not found: {game_root}")
+    out_dir = game_root / "mod-cache" / "scene" / MAP_NAME / str(ELEVATION)
+    expected = (game_root / "mod-cache" / "scene" / MAP_NAME / "0").resolve()
+    if out_dir.resolve() != expected:
+        raise SystemExit("output path resolution escaped the fixed target")
+    for parent in (game_root / "mod-cache", game_root / "mod-cache" / "scene",
+                   game_root / "mod-cache" / "scene" / MAP_NAME, out_dir):
+        if parent.exists() and parent.is_symlink():
+            raise SystemExit(f"refusing symlink in output path: {parent}")
+    try:
+        validate_output_contents(out_dir)
+    except ValueError as error:
+        raise SystemExit(str(error)) from error
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+    gf = ReadOnlyGameFiles(game_root)
+    try:
+        builder = SceneBuilder(gf, MAP_NAME, ELEVATION)
+        builder.export(out_dir)
+        scene_path = out_dir / "scene.json"
+        scene = json.loads(scene_path.read_text(encoding="utf-8"))
+        if scene.get("map") != MAP_NAME or scene.get("elevation") != ELEVATION:
+            raise RuntimeError("SceneBuilder returned an unexpected map/elevation")
+        wall_payload = encode_wall_sidecar(scene)
+        (out_dir / "walls.bin").write_bytes(wall_payload)
+        wall_data = decode_wall_sidecar(wall_payload)
+        projection_payload = encode_projection_sidecar(scene)
+        (out_dir / "projection.bin").write_bytes(projection_payload)
+        decode_projection_sidecar(projection_payload)
+
+        vendor_files = sorted((HERE / "vendor").rglob("*.py"))
+        vendor_hashes = {p.relative_to(HERE / "vendor").as_posix(): sha256_file(p) for p in vendor_files}
+        adapter_hashes = {name: sha256_file(HERE / name) for name in
+                          ("export.py", "floor_sidecar.py", "wall_sidecar.py", "projection_sidecar.py")}
+        archives = [{"name": name, "path": source.path.relative_to(game_root).as_posix()
+                     if source.path.is_relative_to(game_root) else str(source.path),
+                     "size": source.path.stat().st_size, "sha256": sha256_file(source.path)}
+                    for _, name, source in gf.sources if source.archive is not None]
+        source_priority = [
+            {"kind": kind, "name": name,
+             "path": source.path.relative_to(game_root).as_posix()
+             if source.path.is_relative_to(game_root) else str(source.path)}
+            for kind, name, source in gf.sources
+        ]
+        fingerprint_data = {
+            "exporter_version": EXPORTER_VERSION,
+            "donor_revision": DONOR_REVISION,
+            "vendor_sha256": vendor_hashes,
+            "adapter_sha256": adapter_hashes,
+            "archives": archives,
+            "config_sha256": gf.config_hashes,
+            "source_priority": source_priority,
+            "resources": gf._reads,
+            "map": MAP_NAME,
+            "elevation": ELEVATION,
+        }
+        fingerprint = hashlib.sha256(json.dumps(fingerprint_data, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+        scene["_modCache"] = {
+            "exporterVersion": EXPORTER_VERSION,
+            "inputFingerprintSha256": fingerprint,
+        }
+        scene_path.write_text(json.dumps(scene, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        (out_dir / "floor.bin").write_bytes(encode_floor_sidecar(scene))
+        artifact_hashes = {p.name: sha256_file(p) for p in sorted(out_dir.iterdir()) if p.name != "provenance.json"}
+        provenance = {
+            "exporter": "fallout2-sprite-lighting scene_export",
+            "exporter_version": EXPORTER_VERSION,
+            "donor_revision": DONOR_REVISION,
+            "adapter_sha256": adapter_hashes,
+            "map": MAP_NAME,
+            "elevation": ELEVATION,
+            "resource_priority": source_priority,
+            "configuration_sha256": gf.config_hashes,
+            "fingerprint_sha256": fingerprint,
+            "floor_sidecar": {"file": "floor.bin", "format_version": FLOOR_SIDECAR_VERSION,
+                              "sha256": artifact_hashes["floor.bin"]},
+            "wall_sidecar": {"file": "walls.bin", "format_version": WALL_SIDECAR_VERSION,
+                             "sha256": artifact_hashes["walls.bin"],
+                             "triangles": wall_data["triangles"],
+                             "page_batches": [{"page": batch["page"], "size": batch["size"],
+                                               "triangles": batch["triangles"]}
+                                              for batch in wall_data["batches"]]},
+            "projection_sidecar": {"file": "projection.bin", "format_version": PROJECTION_SIDECAR_VERSION,
+                                   "sha256": artifact_hashes["projection.bin"], "float64_values": 10},
+            "archives": archives,
+            "resources_read": gf._reads,
+            "artifacts_sha256": artifact_hashes,
+        }
+        (out_dir / "provenance.json").write_text(json.dumps(provenance, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        print(json.dumps({"output": str(out_dir), "files": len(artifact_hashes) + 1,
+                          "fingerprint_sha256": fingerprint, "resources_read": len(gf._reads)}, sort_keys=True))
+    finally:
+        gf.close()
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
