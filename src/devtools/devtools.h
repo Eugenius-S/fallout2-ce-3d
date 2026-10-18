@@ -20,7 +20,8 @@ namespace devtools {
 //   metadata (map, elevation, renderer, light, resolutions, CE commit,
 //   SHA-256 of the running EXE).
 
-// Consumes --dev-tools / --dev-map / --dev-elevation / --dev-list-maps.
+// Consumes --dev-tools / --dev-map / --dev-elevation / --dev-list-maps /
+// --dev-floor-preview / --dev-wall-preview / --dev-hero-preview / --dev-walk-preview.
 // Returns true when the argument belonged to devtools.
 bool parseOption(const char* arg);
 
@@ -46,6 +47,21 @@ bool requestMapChange(const char* mapFileName, int elevation);
 
 bool panelOpen();
 bool handleKey(int key);
+bool staticFloorPreviewActive();
+bool staticWallPreviewActive();
+bool staticHeroPreviewActive();
+bool staticWalkPreviewActive();
+// True only while a requested scene preview is allowed to replace the engine
+// framebuffer. Requests remain active across modal states and resume afterward.
+bool staticScenePreviewShouldPresent();
+bool staticWalkPreviewCanCaptureInput();
+const char* staticScenePreviewAvailability();
+bool handleWalkClick(int mouseX, int mouseY);
+void refreshWalkCursor(int mouseX, int mouseY);
+void refreshWalkPreviewForPresent();
+void afterWalkPreviewDraw();
+// Refreshes only the copied hero card immediately before the GL presentation.
+void refreshStaticHeroForPresent();
 bool handleClick(int mouseX, int mouseY);
 
 // Draws the panel into the 8-bit framebuffer (before palette expansion).
@@ -53,7 +69,7 @@ void draw(unsigned char* surface, int width, int height, int pitch);
 
 // Saves a PNG of the current frame plus a JSON sidecar with the metadata
 // of the actual state.
-void takeSnapshot();
+bool takeSnapshot();
 
 // Metadata helpers.
 void currentMapName(char* buffer, size_t size);

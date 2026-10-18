@@ -1,17 +1,23 @@
 #include "devtools.h"
+#include "preview_policy.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include <cctype>
 
 #include <algorithm>
+#include <exception>
+#include <filesystem>
 #include <string>
 #include <vector>
 
 #include "../art.h"
+#include "../animation.h"
 #include "../color.h"
 #include "../combat.h"
+#include "../critter.h"
 #include "../db.h"
 #include "../dialog.h"
 #include "../draw.h"
@@ -19,6 +25,9 @@
 #include "../kb.h"
 #include "../map.h"
 #include "../map_defs.h"
+#include "../game.h"
+#include "../game_mouse.h"
+#include "../object.h"
 #include "../movie.h"
 #include "../platform/git_version.h"
 #include "../platform_compat.h"
@@ -33,7 +42,6 @@
 
 #if defined(_WIN32)
 #include <windows.h>
-#include <filesystem>
 #endif
 
 namespace fallout {
@@ -48,9 +56,33 @@ bool gListMaps = false;
 char gStartupMap[16] = {};
 int gStartupElevation = 0;
 bool gStartupApplied = false;
+bool gStartupFloorPreviewRequested = false;
+bool gStartupWallPreviewRequested = false;
+bool gStartupHeroPreviewRequested = false;
+bool gStartupWalkPreviewRequested = false;
+bool gWalkSnapshotsRequested = false;
+bool gStartupFloorPreviewAttempted = false;
+int gStartupFloorPreviewReturnAfter = 0;
+int gStartupFloorPreviewFramesRemaining = 0;
+bool gSnapshotOncePending = false;
 char gToolsCommit[32] = "-";
 
 bool gPanelOpen = false;
+bool gStaticFloorPreview = false;
+bool gStaticWallPreview = false;
+bool gStaticHeroPreview = false;
+bool gHeroUnavailableLogged = false;
+bool gWalkRequestPending = false;
+bool gWalkSnapshotAfterPending = false;
+int gWalkRequestTile = -1;
+int gWalkFromTile = -1;
+int gWalkLastDestination = -2;
+int gWalkElapsedFrames = 0;
+int gWalkIdleFrames = 0;
+bool gWalkSawMotion = false;
+const char* gWalkStatus = "idle";
+PreviewBlockReason gLastPreviewBlockReason = PreviewBlockReason::None;
+bool gPreviewPolicyLogged = false;
 
 std::vector<std::string> gMaps; // file names, e.g. "kladwtwn.map"
 std::vector<int> gFiltered;     // indices into gMaps
@@ -387,6 +419,51 @@ bool inBlockingGameState()
     return false;
 }
 
+PreviewRuntimeState previewRuntimeState()
+{
+    return {
+        gameGetState() == GameState::Normal,
+        GameMode::getCurrentGameMode() == GameMode::kNone,
+        !gameUiIsDisabled(),
+        !isoIsDisabled(),
+        !isInCombat(),
+        _inDialog == 0,
+        _moviePlaying() == 0,
+    };
+}
+
+const char* previewBlockReasonName(PreviewBlockReason reason)
+{
+    switch (reason) {
+    case PreviewBlockReason::None: return "available";
+    case PreviewBlockReason::GameState: return "game-state";
+    case PreviewBlockReason::GameMode: return "game-mode";
+    case PreviewBlockReason::UiDisabled: return "ui-disabled";
+    case PreviewBlockReason::IsoDisabled: return "iso-disabled";
+    case PreviewBlockReason::Combat: return "combat";
+    case PreviewBlockReason::Dialog: return "dialog";
+    case PreviewBlockReason::Movie: return "movie";
+    }
+    return "unknown";
+}
+
+PreviewBlockReason currentPreviewBlockReason()
+{
+    const PreviewRuntimeState state = previewRuntimeState();
+    const PreviewBlockReason reason = previewBlockReason(state);
+    if (!gPreviewPolicyLogged || reason != gLastPreviewBlockReason) {
+        printf("devtools: scene preview policy=%s gameState=%d gameMode=0x%x uiDisabled=%d isoDisabled=%d combat=%d dialog=%d movie=%d\n",
+            previewBlockReasonName(reason), static_cast<int>(gameGetState()),
+            static_cast<unsigned int>(GameMode::getCurrentGameMode()), gameUiIsDisabled() ? 1 : 0,
+            isoIsDisabled() ? 1 : 0, isInCombat() ? 1 : 0, _inDialog != 0 ? 1 : 0,
+            _moviePlaying() != 0 ? 1 : 0);
+        fflush(stdout);
+        gLastPreviewBlockReason = reason;
+        gPreviewPolicyLogged = true;
+    }
+    return reason;
+}
+
 Rect2 textButton(int x, int y, int w, int h)
 {
     Rect2 r;
@@ -405,6 +482,184 @@ bool hitTest(const Rect2& r, int x, int y)
 void setStatus(const char* text)
 {
     snprintf(gStatus, sizeof(gStatus), "%s", text);
+}
+
+bool isStaticFloorTarget()
+{
+    char base[64];
+    stripMapExtension(gMapHeader.name, base, sizeof(base));
+    return compat_stricmp(base, "KLADWTWN") == 0 && static_cast<int>(gElevation) == 0;
+}
+
+bool walkInputAllowed()
+{
+    return staticWalkPreviewActive()
+        && currentPreviewBlockReason() == PreviewBlockReason::None
+        && gameMouseGetMode() == GAME_MOUSE_MODE_MOVE
+        && gDude != nullptr
+        && (gDude->flags & OBJECT_HIDDEN) == OBJECT_NONE
+        && gDude->elevation == gElevation
+        && hexGridTileIsValid(gDude->tile);
+}
+
+void finishWalkRequest(const char* status)
+{
+    gWalkStatus = status;
+    gWalkRequestPending = false;
+    gWalkSnapshotAfterPending = gWalkSnapshotsRequested;
+    printf("devtools: walk result status=%s requesttile=%d fromtile=%d actualtile=%d offset=(%d,%d)\n",
+        status, gWalkRequestTile, gWalkFromTile, gDude != nullptr ? gDude->tile : -1,
+        gDude != nullptr ? gDude->x : 0, gDude != nullptr ? gDude->y : 0);
+    fflush(stdout);
+}
+
+bool updateStaticHeroFromGame()
+{
+    auto unavailable = [&](const char* reason) {
+        scene_renderer::clearStaticHero();
+        if (!gHeroUnavailableLogged) {
+            setStatus("hero frame unavailable; wall scene remains active");
+            printf("devtools: hero card skipped: %s\n", reason);
+            fflush(stdout);
+            gHeroUnavailableLogged = true;
+        }
+        return false;
+    };
+    if (gDude == nullptr) return unavailable("player object is missing");
+    if (gDude->elevation != gElevation || !hexGridTileIsValid(gDude->tile)
+        || (gDude->flags & OBJECT_HIDDEN) != OBJECT_NONE) {
+        return unavailable("player is hidden, off-map, or on another elevation");
+    }
+    if (gDude->rotation < ROTATION_FIRST || gDude->rotation >= ROTATION_COUNT) {
+        return unavailable("player rotation is invalid");
+    }
+
+    FrmImage image;
+    const FrmId frmId(gDude);
+    if (!image.lock(frmId, gDude->frame, gDude->rotation)) {
+        return unavailable("current player FRM frame could not be locked");
+    }
+    const int width = image.getWidth();
+    const int height = image.getHeight();
+    if (width <= 0 || height <= 0 || width > 2048 || height > 2048
+        || gDude->x < -32768 || gDude->x > 32768 || gDude->y < -32768 || gDude->y > 32768) {
+        return unavailable("current player FRM dimensions or movement are out of bounds");
+    }
+    const unsigned char* indices = image.getData();
+    unsigned char* palette = directDrawGetPalette();
+    if (indices == nullptr || palette == nullptr) return unavailable("player palette or pixels are unavailable");
+
+    const size_t pixelCount = static_cast<size_t>(width) * static_cast<size_t>(height);
+    std::vector<unsigned char> rgba(pixelCount * 4);
+    for (size_t index = 0; index < pixelCount; index++) {
+        const unsigned char colorIndex = indices[index];
+        rgba[index * 4] = static_cast<unsigned char>(palette[colorIndex * 3] << 2);
+        rgba[index * 4 + 1] = static_cast<unsigned char>(palette[colorIndex * 3 + 1] << 2);
+        rgba[index * 4 + 2] = static_cast<unsigned char>(palette[colorIndex * 3 + 2] << 2);
+        rgba[index * 4 + 3] = colorIndex == 0 ? 0 : 255;
+    }
+
+    const scene_renderer::StaticHeroFrame frame = {
+        gDude->tile, static_cast<int>(gDude->elevation), gDude->fid, gDude->frame,
+        static_cast<int>(gDude->rotation), gDude->x, gDude->y,
+        image.getXOffset(), image.getYOffset(), width, height, rgba.data(), rgba.size(),
+    };
+    std::string error;
+    if (!scene_renderer::updateStaticHero(frame, &error)) return unavailable(error.c_str());
+    gHeroUnavailableLogged = false;
+    return true;
+}
+
+bool disableStaticFloorPreview(const char* status)
+{
+    if (!gStaticFloorPreview && !gStaticWallPreview && !gStaticHeroPreview) return false;
+    gStaticFloorPreview = false;
+    gStaticWallPreview = false;
+    gStaticHeroPreview = false;
+    gHeroUnavailableLogged = false;
+    scene_renderer::clearStaticHero();
+    scene_renderer::setStaticGroundCursor(-1);
+    gWalkRequestPending = false;
+    gWalkSnapshotAfterPending = false;
+    gStartupFloorPreviewFramesRemaining = 0;
+    setStatus(status);
+    return true;
+}
+
+std::filesystem::path gameRootPath()
+{
+    if (settings.system.master_dat_path.empty()) {
+        return std::filesystem::current_path();
+    }
+    std::filesystem::path datPath(settings.system.master_dat_path);
+    if (!datPath.is_absolute()) {
+        datPath = std::filesystem::current_path() / datPath;
+    }
+    std::filesystem::path root = datPath.parent_path();
+    if (compat_stricmp(root.filename().string().c_str(), "data") == 0) {
+        root = root.parent_path();
+    }
+    return root;
+}
+
+bool enableStaticPreview(bool withWalls, bool withHero = false)
+{
+    if (!isStaticFloorTarget()) {
+        setStatus("static floor preview requires KLADWTWN e0");
+        printf("devtools: static floor preview failed: requires KLADWTWN elevation 0\n");
+        fflush(stdout);
+        return false;
+    }
+    const std::filesystem::path cacheDirectory = gameRootPath() / "mod-cache" / "scene" / "kladwtwn" / "0";
+    std::string error;
+    if (!scene_renderer::loadStaticFloor(cacheDirectory, &error)) {
+        std::string message = "floor preview unavailable: " + error;
+        setStatus(message.c_str());
+        printf("devtools: static floor preview failed: %s\n", error.c_str());
+        fflush(stdout);
+        return false;
+    }
+    if (withWalls && !scene_renderer::loadStaticWalls(cacheDirectory, &error)) {
+        std::string message = "wall preview unavailable: " + error;
+        setStatus(message.c_str());
+        printf("devtools: static wall preview failed: %s\n", error.c_str());
+        fflush(stdout);
+        return false;
+    }
+    if (withHero && !scene_renderer::loadStaticProjection(cacheDirectory, &error)) {
+        std::string message = "hero projection unavailable: " + error;
+        setStatus(message.c_str());
+        printf("devtools: static hero preview failed: %s\n", error.c_str());
+        fflush(stdout);
+        return false;
+    }
+    gStaticFloorPreview = !withWalls;
+    gStaticWallPreview = withWalls && !withHero;
+    gStaticHeroPreview = withHero;
+    gHeroUnavailableLogged = false;
+    if (withHero) {
+        setStatus("wall and hero preview on (Ctrl+F10 to return)");
+        printf("devtools: static wall+hero preview started for KLADWTWN elevation 0\n");
+    } else if (withWalls) {
+        unsigned int triangles = 0;
+        unsigned int pages = 0;
+        scene_renderer::staticWallStats(&triangles, &pages);
+        setStatus("static wall preview on (Ctrl+F10 to return)");
+        printf("devtools: static wall preview started for KLADWTWN elevation 0 (%u triangles, %u pages)\n",
+            triangles, pages);
+    } else {
+        setStatus("static floor preview on (Ctrl+F10 to return)");
+        printf("devtools: static floor preview started for KLADWTWN elevation 0\n");
+    }
+    fflush(stdout);
+    if (gSnapshotOncePending && !withHero) {
+        gSnapshotOncePending = false;
+        const bool captured = takeSnapshot();
+        printf("devtools: one-shot preview snapshot %s: %s\n",
+            captured ? "saved" : "failed", gStatus);
+        fflush(stdout);
+    }
+    return true;
 }
 
 // One candidate check shared by the search and fallback. A Grid floor is the
@@ -513,6 +768,44 @@ bool parseOption(const char* arg)
         gEnabled = true;
         return true;
     }
+    if (strcmp(arg, "--dev-floor-preview") == 0) {
+        gStartupFloorPreviewRequested = true;
+        return true;
+    }
+    if (strcmp(arg, "--dev-wall-preview") == 0) {
+        gStartupWallPreviewRequested = true;
+        return true;
+    }
+    if (strcmp(arg, "--dev-hero-preview") == 0) {
+        gStartupHeroPreviewRequested = true;
+        return true;
+    }
+    if (strcmp(arg, "--dev-walk-preview") == 0) {
+        gStartupWalkPreviewRequested = true;
+        gStartupHeroPreviewRequested = true;
+        return true;
+    }
+    if (strcmp(arg, "--dev-walk-snapshots") == 0) {
+        gWalkSnapshotsRequested = true;
+        return true;
+    }
+    const char* returnAfterPrefix = "--dev-floor-preview-return-after=";
+    if (strncmp(arg, returnAfterPrefix, strlen(returnAfterPrefix)) == 0) {
+        char* end = nullptr;
+        const long frames = strtol(arg + strlen(returnAfterPrefix), &end, 10);
+        if (end != arg + strlen(returnAfterPrefix) && *end == '\0' && frames >= 1 && frames <= 10000) {
+            gStartupFloorPreviewReturnAfter = static_cast<int>(frames);
+        } else {
+            gStartupFloorPreviewReturnAfter = 0;
+            fprintf(stderr, "devtools: invalid --dev-floor-preview-return-after value (expected 1..10000)\n");
+            fflush(stderr);
+        }
+        return true;
+    }
+    if (strcmp(arg, "--dev-snapshot-once") == 0) {
+        gSnapshotOncePending = true;
+        return true;
+    }
     if (strncmp(arg, "--dev-map=", 10) == 0) {
         stripMapExtension(arg + 10, gStartupMap, sizeof(gStartupMap));
         return true;
@@ -565,27 +858,57 @@ void listMaps()
 // elevation correction once the requested map has finished loading.
 void update()
 {
-    if (!gEnabled || !gPendingElevation) {
+    if (!gEnabled) {
         return;
     }
-    if (inBlockingGameState()) {
-        return;
+    if ((gStaticFloorPreview || gStaticWallPreview || gStaticHeroPreview) && !isStaticFloorTarget()) {
+        disableStaticFloorPreview("static floor preview off: map/elevation changed");
     }
-    if (static_cast<int>(gMapHeader.index) != gPendingMapId) {
-        return; // the requested map has not finished loading yet
+    if ((gStaticFloorPreview || gStaticWallPreview || gStaticHeroPreview) && gStartupFloorPreviewFramesRemaining > 0) {
+        gStartupFloorPreviewFramesRemaining--;
+        if (gStartupFloorPreviewFramesRemaining == 0) {
+            disableStaticFloorPreview("static preview returned to vanilla");
+            printf("devtools: startup preview returned to vanilla after %d frames\n", gStartupFloorPreviewReturnAfter);
+            const bool captured = takeSnapshot();
+            printf("devtools: vanilla return snapshot %s: %s\n", captured ? "saved" : "failed", gStatus);
+            fflush(stdout);
+        }
+    }
+    if (gPendingElevation) {
+        if (inBlockingGameState()) {
+            return;
+        }
+        if (static_cast<int>(gMapHeader.index) != gPendingMapId) {
+            return; // the requested map has not finished loading yet
+        }
+
+        gPendingElevation = false;
+        if (gPendingElevationValue != static_cast<int>(gElevation)) {
+            if (!elevationPresent(gPendingElevationValue)) {
+                snprintf(gStatus, sizeof(gStatus), "elevation %d absent on this map",
+                    gPendingElevationValue);
+            } else if (applyElevationChange(gPendingElevationValue)) {
+                snprintf(gStatus, sizeof(gStatus), "moving to elevation %d", gPendingElevationValue);
+                return; // let the scheduled transition settle before preview activation
+            }
+        }
     }
 
-    gPendingElevation = false;
-    if (gPendingElevationValue == static_cast<int>(gElevation)) {
-        return; // already there
-    }
-    if (!elevationPresent(gPendingElevationValue)) {
-        snprintf(gStatus, sizeof(gStatus), "elevation %d absent on this map",
-            gPendingElevationValue);
-        return;
-    }
-    if (applyElevationChange(gPendingElevationValue)) {
-        snprintf(gStatus, sizeof(gStatus), "moving to elevation %d", gPendingElevationValue);
+    if ((gStartupFloorPreviewRequested || gStartupWallPreviewRequested || gStartupHeroPreviewRequested || gStartupWalkPreviewRequested)
+        && !gStartupFloorPreviewAttempted
+        && !gPendingElevation && gMapHeader.name[0] != '\0' && !inBlockingGameState()) {
+        gStartupFloorPreviewAttempted = true;
+        const bool withWalls = gStartupWallPreviewRequested || gStartupHeroPreviewRequested || gStartupWalkPreviewRequested;
+        const bool withHero = gStartupHeroPreviewRequested || gStartupWalkPreviewRequested;
+        const bool started = enableStaticPreview(withWalls, withHero);
+        if (started) {
+            gStartupFloorPreviewFramesRemaining = gStartupFloorPreviewReturnAfter;
+        }
+        if (!started && gSnapshotOncePending) {
+            gSnapshotOncePending = false;
+            printf("devtools: one-shot preview snapshot skipped: preview did not start\n");
+            fflush(stdout);
+        }
     }
 }
 
@@ -693,10 +1016,194 @@ bool panelOpen()
     return gEnabled && gPanelOpen;
 }
 
+bool staticFloorPreviewActive()
+{
+    return gEnabled && gStaticFloorPreview && !gStaticWallPreview && isStaticFloorTarget();
+}
+
+bool staticWallPreviewActive()
+{
+    return gEnabled && gStaticWallPreview && isStaticFloorTarget();
+}
+
+bool staticHeroPreviewActive()
+{
+    return gEnabled && gStaticHeroPreview && isStaticFloorTarget();
+}
+
+bool staticWalkPreviewActive()
+{
+    return gEnabled && gStartupWalkPreviewRequested && staticHeroPreviewActive();
+}
+
+bool staticScenePreviewShouldPresent()
+{
+    if (!(staticHeroPreviewActive() || staticWallPreviewActive() || staticFloorPreviewActive())) {
+        return false;
+    }
+    return currentPreviewBlockReason() == PreviewBlockReason::None;
+}
+
+bool staticWalkPreviewCanCaptureInput()
+{
+    // While the scene is visible, consume mouse input even when walking is
+    // temporarily unavailable (for example, before a hero frame is ready).
+    // The click handler and cursor refresh apply the stricter walk policy.
+    return walkPreviewMayCaptureInput(staticWalkPreviewActive(), staticScenePreviewShouldPresent());
+}
+
+const char* staticScenePreviewAvailability()
+{
+    if (!(staticHeroPreviewActive() || staticWallPreviewActive() || staticFloorPreviewActive())) {
+        return "not-requested";
+    }
+    return previewBlockReasonName(previewBlockReason(previewRuntimeState()));
+}
+
+bool handleWalkClick(int mouseX, int mouseY)
+{
+    if (!staticWalkPreviewActive()) return false;
+    if (!walkInputAllowed()) {
+        scene_renderer::setStaticGroundCursor(-1);
+        setStatus("walk preview: input unavailable in current game state");
+        printf("devtools: walk click ignored: game state/mode is not normal movement\n");
+        fflush(stdout);
+        return true;
+    }
+    scene_renderer::GroundPickResult picked = {};
+    if (!scene_renderer::pickStaticGroundTile(mouseX, mouseY, &picked) || !tileIsValid(picked.tile)) {
+        scene_renderer::setStaticGroundCursor(-1);
+        setStatus("walk preview: click outside exported ground");
+        return true;
+    }
+    scene_renderer::setStaticGroundCursor(picked.tile);
+    if (gWalkRequestPending) {
+        printf("devtools: previous walk request interrupted=%s requesttile=%d actualtile=%d offset=(%d,%d)\n",
+            settings.system.interrupt_walk ? "true" : "false", gWalkRequestTile, gDude->tile, gDude->x, gDude->y);
+    }
+    gWalkRequestTile = picked.tile;
+    gWalkFromTile = gDude->tile;
+    gWalkElapsedFrames = 0;
+    gWalkIdleFrames = 0;
+    gWalkSawMotion = false;
+    gWalkStatus = "requested";
+    gWalkRequestPending = false;
+    gWalkSnapshotAfterPending = false;
+    printf("devtools: walk request tile=%d from=%d pixel=(%.3f,%.3f) world=(%.6f,%.6f) offset=(%d,%d)\n",
+        gWalkRequestTile, gWalkFromTile, picked.artX, picked.artY, picked.worldX, picked.worldZ, gDude->x, gDude->y);
+    if (gWalkSnapshotsRequested) {
+        updateStaticHeroFromGame();
+        const bool captured = takeSnapshot();
+        printf("devtools: walk before snapshot %s: %s\n", captured ? "saved" : "failed", gStatus);
+        fflush(stdout);
+    }
+    if (gWalkRequestTile == gWalkFromTile) {
+        animationDevMoveDudeToTile(gWalkRequestTile, false);
+        setStatus("walk request is same tile");
+        finishWalkRequest("same-tile");
+        return true;
+    }
+    const bool shift = gPressedPhysicalKeys[SDL_SCANCODE_LSHIFT] || gPressedPhysicalKeys[SDL_SCANCODE_RSHIFT];
+    bool run = settings.preferences.running != shift;
+    if (gWalkLastDestination == gWalkRequestTile) run = true;
+    gWalkLastDestination = gWalkRequestTile;
+    const int routeResult = animationDevMoveDudeToTile(gWalkRequestTile, run);
+    if (routeResult != 0) {
+        setStatus(routeResult == -2 ? "walk request is unreachable" : "walk animation could not be registered");
+        finishWalkRequest("unreachable");
+        return true;
+    }
+    gWalkRequestPending = true;
+    gWalkStatus = "moving";
+    setStatus("walk request scheduled");
+    printf("devtools: walk status=moving requesttile=%d fromtile=%d actualtile=%d offset=(%d,%d)\n",
+        gWalkRequestTile, gWalkFromTile, gDude->tile, gDude->x, gDude->y);
+    fflush(stdout);
+    return true;
+}
+
+void refreshWalkCursor(int mouseX, int mouseY)
+{
+    if (!staticWalkPreviewActive() || !walkInputAllowed()) {
+        scene_renderer::setStaticGroundCursor(-1);
+        return;
+    }
+    scene_renderer::GroundPickResult picked = {};
+    if (scene_renderer::pickStaticGroundTile(mouseX, mouseY, &picked) && tileIsValid(picked.tile)) {
+        scene_renderer::setStaticGroundCursor(picked.tile);
+    } else {
+        scene_renderer::setStaticGroundCursor(-1);
+    }
+}
+
+void refreshWalkPreviewForPresent()
+{
+    if (!staticWalkPreviewActive() || !gWalkRequestPending || gDude == nullptr) return;
+    if (!walkObserverMayAdvance(previewRuntimeState(), gWalkRequestPending)) {
+        currentPreviewBlockReason();
+        return;
+    }
+    ++gWalkElapsedFrames;
+    const bool hasOffset = gDude->x != 0 || gDude->y != 0;
+    const bool busy = animationIsBusy(gDude) == -1;
+    if (busy || hasOffset) {
+        gWalkSawMotion = true;
+        gWalkIdleFrames = 0;
+        gWalkStatus = "moving";
+    } else {
+        ++gWalkIdleFrames;
+    }
+    if (!busy && !hasOffset && gWalkIdleFrames >= 2) {
+        if (gDude->tile == gWalkRequestTile) {
+            setStatus("walk arrived");
+            finishWalkRequest("arrived");
+        } else if (gWalkSawMotion || gWalkElapsedFrames >= 20) {
+            setStatus("walk stopped before target");
+            finishWalkRequest("unreachable");
+        }
+    }
+    if (gWalkRequestPending && gWalkElapsedFrames >= 900) {
+        setStatus("walk timed out");
+        finishWalkRequest("timeout");
+    }
+}
+
+void afterWalkPreviewDraw()
+{
+    if (!staticWalkPreviewActive() || !gWalkSnapshotAfterPending) return;
+    gWalkSnapshotAfterPending = false;
+    const bool captured = takeSnapshot();
+    printf("devtools: walk after snapshot status=%s %s: %s\n", gWalkStatus,
+        captured ? "saved" : "failed", gStatus);
+    fflush(stdout);
+}
+
+void refreshStaticHeroForPresent()
+{
+    if (!staticHeroPreviewActive()) return;
+    const bool heroUpdated = updateStaticHeroFromGame();
+    if (heroUpdated && gSnapshotOncePending) {
+        gSnapshotOncePending = false;
+        const bool captured = takeSnapshot();
+        printf("devtools: one-shot hero preview snapshot %s: %s\n",
+            captured ? "saved" : "failed", gStatus);
+        fflush(stdout);
+    }
+}
+
 bool handleKey(int key)
 {
     if (!gEnabled) {
         return false;
+    }
+
+    if (key == KEY_CTRL_F10) {
+        if (gStaticFloorPreview || gStaticWallPreview || gStaticHeroPreview) {
+            disableStaticFloorPreview("static floor preview off");
+            return true;
+        }
+        enableStaticPreview(false);
+        return true;
     }
 
     if (key == KEY_ALT_D) {
@@ -969,39 +1476,96 @@ const char* activeRendererName()
     return "sdl-renderer";
 }
 
-void takeSnapshot()
+bool takeSnapshot()
 {
-    if (gSdlSurface == nullptr || gSdlSurface->pixels == nullptr) {
+    namespace fs = std::filesystem;
+    const bool previewRequested = staticHeroPreviewActive() || staticWallPreviewActive() || staticFloorPreviewActive();
+    const bool preview = scene_renderer::isActive() && staticScenePreviewShouldPresent();
+    const bool heroPreview = preview && staticHeroPreviewActive();
+    const bool wallPreview = preview && staticWallPreviewActive();
+    const bool withWalls = wallPreview || heroPreview;
+    if (!preview && (gSdlSurface == nullptr || gSdlSurface->pixels == nullptr)) {
         setStatus("snapshot: no framebuffer");
-        return;
+        return false;
     }
 
-    unsigned char* palette = directDrawGetPalette();
-    screenshotHandlerPngImpl(gSdlSurface->w, gSdlSurface->h,
-        static_cast<unsigned char*>(gSdlSurface->pixels), palette);
+    char stamp[32] = {};
+    {
+        std::time_t t = time(nullptr);
+        struct tm* tmv = localtime(&t);
+        if (tmv == nullptr || strftime(stamp, sizeof(stamp), "%Y%m%d-%H%M%S", tmv) == 0) {
+            setStatus("snapshot: clock unavailable");
+            return false;
+        }
+    }
 
-    // The handler names files scrNNNNN.png in the current directory; pair
-    // the newest one with the metadata sidecar.
+    fs::path imagePath;
+    fs::path sidecarPath;
     std::string imageFile;
+    int capturedWidth = 0;
+    int capturedHeight = 0;
     try {
-        namespace fs = std::filesystem;
-        auto newest = fs::file_time_type::min();
-        for (const auto& entry : fs::directory_iterator(fs::current_path())) {
-            if (!entry.is_regular_file()) {
-                continue;
-            }
-            std::string name = entry.path().filename().string();
-            if (name.rfind("scr", 0) == 0 && name.rfind("screenshot", 0) != 0
-                && name.size() > 4 && name.substr(name.size() - 4) == ".png") {
-                auto t = fs::last_write_time(entry);
-                if (imageFile.empty() || t > newest) {
-                    newest = t;
-                    imageFile = name;
+        const fs::path outputDirectory = fs::current_path();
+        if (preview) {
+            for (int suffix = 0; suffix < 1000; suffix++) {
+                char stem[64];
+                snprintf(stem, sizeof(stem), "%s-%s-%03d",
+                    staticWalkPreviewActive() ? "devwalk" : heroPreview ? "devhero" : wallPreview ? "devwall" : "devfloor", stamp, suffix);
+                fs::path candidateImage = outputDirectory / (std::string(stem) + ".png");
+                fs::path candidateSidecar = outputDirectory / (std::string("devshot-") + stamp + "-" +
+                    (suffix < 10 ? "00" : suffix < 100 ? "0" : "") + std::to_string(suffix) + ".json");
+                if (!fs::exists(candidateImage) && !fs::exists(candidateSidecar)) {
+                    imagePath = candidateImage;
+                    sidecarPath = candidateSidecar;
+                    imageFile = candidateImage.filename().string();
+                    break;
                 }
             }
+            if (imagePath.empty()) {
+                setStatus("snapshot: no unique filename available");
+                return false;
+            }
+            std::string error;
+            if (!scene_renderer::captureStaticPreviewPng(imagePath, withWalls, heroPreview,
+                    &capturedWidth, &capturedHeight, &error)) {
+                std::string message = "snapshot failed: " + error;
+                setStatus(message.c_str());
+                return false;
+            }
+        } else {
+            // The vanilla snapshot handler uses the first free scrNNNNN.png.
+            int index = 0;
+            char name[16];
+            for (; index < 100000; index++) {
+                snprintf(name, sizeof(name), "scr%.5d.png", index);
+                if (!fs::exists(outputDirectory / name)) break;
+            }
+            if (index == 100000) {
+                setStatus("snapshot: no screenshot filename available");
+                return false;
+            }
+            imagePath = outputDirectory / name;
+            imageFile = name;
+            unsigned char* palette = directDrawGetPalette();
+            if (screenshotHandlerPngImpl(gSdlSurface->w, gSdlSurface->h,
+                    static_cast<unsigned char*>(gSdlSurface->pixels), palette) != 0) {
+                setStatus("snapshot: vanilla PNG write failed");
+                return false;
+            }
+            capturedWidth = gSdlSurface->w;
+            capturedHeight = gSdlSurface->h;
+            char sidecar[64];
+            snprintf(sidecar, sizeof(sidecar), "devshot-%s.json", stamp);
+            sidecarPath = outputDirectory / sidecar;
+            for (int suffix = 1; fs::exists(sidecarPath) && suffix < 1000; suffix++) {
+                snprintf(sidecar, sizeof(sidecar), "devshot-%s-%03d.json", stamp, suffix);
+                sidecarPath = outputDirectory / sidecar;
+            }
         }
-    } catch (...) {
-        // directory scan failed - write metadata without the image name
+    } catch (const std::exception& exception) {
+        std::string message = std::string("snapshot failed: ") + exception.what();
+        setStatus(message.c_str());
+        return false;
     }
 
     char exePath[MAX_PATH + 1] = {};
@@ -1013,57 +1577,107 @@ void takeSnapshot()
 
     char mapName[32];
     currentMapName(mapName, sizeof(mapName));
-
-    char stamp[32];
-    {
-        std::time_t t = time(nullptr);
-        struct tm* tmv = localtime(&t);
-        strftime(stamp, sizeof(stamp), "%Y%m%d-%H%M%S", tmv);
+    char camera[256];
+    if (preview) {
+        const scene_renderer::StaticPreviewCamera info = scene_renderer::staticPreviewCamera(withWalls);
+        snprintf(camera, sizeof(camera), "fixed eye=(%.5f,%.5f,%.5f), target=(%.5f,%.5f,%.5f), fov_y=%.1f, near=%.1f, far=%.1f, screen_right=%s",
+            info.eye[0], info.eye[1], info.eye[2], info.target[0], info.target[1], info.target[2],
+            info.fovY, info.nearPlane, info.farPlane,
+            info.donorScreenRight ? "-cross(forward,world_up)" : "cross(forward,world_up)");
+    } else {
+        snprintf(camera, sizeof(camera), "center tile %d", gCenterTile);
     }
-
-    char sidecar[128];
-    snprintf(sidecar, sizeof(sidecar), "devshot-%s.json", stamp);
-
-    int drawableW = 0;
-    int drawableH = 0;
-    if (gSdlWindow != nullptr) {
+    int drawableW = capturedWidth;
+    int drawableH = capturedHeight;
+    unsigned int wallTriangles = 0;
+    unsigned int wallPages = 0;
+    if (withWalls) scene_renderer::staticWallStats(&wallTriangles, &wallPages);
+    scene_renderer::StaticHeroInfo heroInfo = {};
+    const bool haveHeroInfo = heroPreview && scene_renderer::staticHeroInfo(&heroInfo);
+    char heroMetadata[256];
+    if (haveHeroInfo) {
+        snprintf(heroMetadata, sizeof(heroMetadata),
+            "{\"tile\":%d,\"fid\":%d,\"frame\":%d,\"rotation\":%d,\"world_anchor\":[%.9f,%.9f]}",
+            heroInfo.tile, heroInfo.fid, heroInfo.frame, heroInfo.rotation, heroInfo.worldU, heroInfo.worldV);
+    } else {
+        snprintf(heroMetadata, sizeof(heroMetadata), "null");
+    }
+    char walkMetadata[320];
+    if (staticWalkPreviewActive() && gWalkRequestTile >= 0) {
+        snprintf(walkMetadata, sizeof(walkMetadata),
+            "{\"request_tile\":%d,\"from_tile\":%d,\"actual_tile\":%d,\"status\":\"%s\",\"pixel_offset\":[%d,%d]}",
+            gWalkRequestTile, gWalkFromTile, gDude != nullptr ? gDude->tile : -1, gWalkStatus,
+            gDude != nullptr ? gDude->x : 0, gDude != nullptr ? gDude->y : 0);
+    } else {
+        snprintf(walkMetadata, sizeof(walkMetadata), "null");
+    }
+    if (!preview && gSdlWindow != nullptr) {
         SDL_GL_GetDrawableSize(gSdlWindow, &drawableW, &drawableH);
     }
 
-    FILE* f = fopen(sidecar, "w");
-    if (f != nullptr) {
-        fprintf(f,
-            "{\n"
-            "  \"image\": \"%s\",\n"
-            "  \"map\": \"%s\",\n"
-            "  \"elevation\": %d,\n"
-            "  \"camera\": \"center tile %d\",\n"
-            "  \"renderer\": \"%s\",\n"
-            "  \"light\": \"off\",\n"
-            "  \"resolution\": \"%dx%d\",\n"
-            "  \"drawable\": \"%dx%d\",\n"
-            "  \"ce_commit\": \"%s\",\n"
-            "  \"tools_commit\": \"%s\",\n"
-            "  \"exe_sha256\": \"%s\",\n"
-            "  \"taken\": \"%s\"\n"
-            "}\n",
-            imageFile.c_str(),
-            mapName,
-            static_cast<int>(gElevation),
-            gCenterTile,
-            activeRendererName(),
-            gSdlSurface->w,
-            gSdlSurface->h,
-            drawableW,
-            drawableH,
-            _BUILD_HASH,
-            gToolsCommit,
-            exeSha,
-            stamp);
-        fclose(f);
+    FILE* f = fopen(sidecarPath.string().c_str(), "w");
+    if (f == nullptr) {
+        if (preview) {
+            std::error_code ec;
+            fs::remove(imagePath, ec);
+        }
+        setStatus("snapshot: metadata write failed");
+        return false;
+    }
+    fprintf(f,
+        "{\n"
+        "  \"image\": \"%s\",\n"
+        "  \"view\": \"%s\",\n"
+        "  \"map\": \"%s\",\n"
+        "  \"elevation\": %d,\n"
+        "  \"preview_requested\": %s,\n"
+        "  \"camera\": \"%s\",\n"
+        "  \"wall_triangles\": %u,\n"
+        "  \"wall_pages\": %u,\n"
+        "  \"hero\": %s,\n"
+        "  \"walk\": %s,\n"
+        "  \"preview_availability\": \"%s\",\n"
+        "  \"renderer\": \"%s\",\n"
+        "  \"light\": \"off\",\n"
+        "  \"resolution\": \"%dx%d\",\n"
+        "  \"drawable\": \"%dx%d\",\n"
+        "  \"ce_commit\": \"%s\",\n"
+        "  \"tools_commit\": \"%s\",\n"
+        "  \"exe_sha256\": \"%s\",\n"
+        "  \"taken\": \"%s\"\n"
+        "}\n",
+        imageFile.c_str(),
+        heroPreview ? "static-wall-plus-hero-preview" : wallPreview ? "static-wall-preview"
+            : preview ? "static-floor-preview" : "vanilla-framebuffer",
+        mapName,
+        static_cast<int>(gElevation),
+        previewRequested ? "true" : "false",
+        camera,
+        wallTriangles,
+        wallPages,
+        heroMetadata,
+        walkMetadata,
+        previewRequested ? (scene_renderer::isActive() ? staticScenePreviewAvailability() : "renderer-inactive") : "not-requested",
+        activeRendererName(),
+        capturedWidth,
+        capturedHeight,
+        drawableW,
+        drawableH,
+        _BUILD_HASH,
+        gToolsCommit,
+        exeSha,
+        stamp);
+    const bool metadataOk = fclose(f) == 0;
+    if (!metadataOk) {
+        std::error_code ec;
+        fs::remove(sidecarPath, ec);
+        if (preview) fs::remove(imagePath, ec);
+        setStatus("snapshot: metadata write failed");
+        return false;
     }
 
-    snprintf(gStatus, sizeof(gStatus), "snapshot: %s", sidecar);
+    snprintf(gStatus, sizeof(gStatus), "snapshot: %s", sidecarPath.filename().string().c_str());
+    return true;
 }
 
 } // namespace devtools

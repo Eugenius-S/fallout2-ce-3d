@@ -105,6 +105,18 @@ In time this stuff will receive an in-game interface, right now you have to do i
 
 Note: There are a few settings that are still configured in `ddraw.ini`.  They will be migrated to cfg over time.
 
+### Developer static-floor preview
+
+For local renderer development, a developer build can start the static floor, wall, and current-hero preview for `KLADWTWN` elevation 0 after the map finishes loading:
+
+```console
+fallout2-ce.exe --dev-tools --dev-map=KLADWTWN --dev-elevation=0 --dev-hero-preview --dev-snapshot-once --dev-floor-preview-return-after=120
+```
+
+The preview reads only `game/mod-cache/scene/kladwtwn/0/` from the game directory. `--dev-floor-preview`, `--dev-wall-preview`, `--dev-hero-preview`, `--dev-walk-preview`, `--dev-walk-snapshots`, `--dev-snapshot-once`, and `--dev-floor-preview-return-after=1..10000` require `--dev-tools`; the last option is used with any preview mode. Floor preview stays floor-only. Wall preview draws the exported static floor, all wall surfaces (including `hiddenWalls`), trims, thin sheets, and closed doors. Hero preview draws the same scene and the current player frame as a cutout card, refreshed immediately before each GL presentation. It additionally requires a valid `projection.bin`; a missing or invalid hero frame leaves the wall scene visible and is reported once until the frame becomes available again. Wall, hero, and walk previews use the fixed entrance camera at FOV 25°; its eye-target offset is scaled by `tan(25°)/tan(12.5°)` to preserve the approved target-plane scale. Their screen-right basis follows CE/donor orientation after converting donor coordinates to GL. Floor-only keeps its prior overview camera and basis. Draw uses depth testing, nearest sampling, binary-alpha cutout, and no game lighting.
+
+`--dev-snapshot-once` writes a PNG captured from the active GL backbuffer and a JSON sidecar. Wall preview files use `devwall-...png`; hero preview files use `devhero-...png` and include the current hero tile, FID, frame, rotation, and scene-world anchor. A hero snapshot is skipped unless a valid current hero frame was uploaded. Snapshot camera metadata records the actual FOV and screen-right sign. `--dev-walk-preview` enables ground-ray cell selection over this same static scene and routes left-clicks to the CE pathfinder and normal walk/run animation queue; it never teleports the player and does not pick objects. The marker is a ground-cell indicator, not object picking. Walking is refused outside normal non-combat movement on `KLADWTWN` elevation 0. `--dev-walk-snapshots` writes distinct `devwalk-...png` before/after frames with request/from/actual tile, pixel offsets, and outcome (`moving`, `arrived`, `unreachable`, `same-tile`, or `timeout`) in JSON and stdout. The after frame is taken only after the player reaches the requested tile with zero pixel offsets, or a bounded failure settles. During options, pause, dialog, movie, combat, or disabled-UI states, requested previews yield to the vanilla framebuffer/menu; walk input is not intercepted and the movement observer does not count those presentations. The preview resumes when the state clears. Snapshot JSON records whether the preview was requested and why it was unavailable. `Ctrl+F10` returns to vanilla. Walk preview does not provide object picking, full row-plane ordering, roofs, UI overlays, or gameplay lighting.
+
 ## Platform-specific installation
 
 ### Windows

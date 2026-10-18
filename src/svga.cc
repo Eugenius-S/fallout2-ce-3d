@@ -497,8 +497,29 @@ void renderPresent()
     // Sprite-lighting mod: the dev panel is drawn into the framebuffer after
     // the game (so it shows in both presentation paths).
     devtools::draw(static_cast<unsigned char*>(gSdlSurface->pixels), gSdlSurface->w, gSdlSurface->h, gSdlSurface->pitch);
-
     if (scene_renderer::isActive()) {
+        if (devtools::staticScenePreviewShouldPresent()) {
+            // Read the current hero frame at each scene presentation; nested
+            // modal presents yield below and never advance movement observers.
+            devtools::refreshStaticHeroForPresent();
+            devtools::refreshWalkPreviewForPresent();
+            if (devtools::staticHeroPreviewActive()) {
+                scene_renderer::drawStaticHeroPreview();
+                devtools::afterWalkPreviewDraw();
+                scene_renderer::swap();
+                return;
+            }
+            if (devtools::staticWallPreviewActive()) {
+                scene_renderer::drawStaticWallPreview();
+                scene_renderer::swap();
+                return;
+            }
+            if (devtools::staticFloorPreviewActive()) {
+                scene_renderer::drawStaticFloor();
+                scene_renderer::swap();
+                return;
+            }
+        }
         // Palette -> RGBA conversion is the same SDL_BlitSurface the vanilla
         // path performs every frame, so palette fades and cycling behave
         // identically under the OpenGL presentation.

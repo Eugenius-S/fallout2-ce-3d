@@ -537,6 +537,13 @@ void gameMouseRefresh()
         return;
     }
 
+    if (devtools::staticWalkPreviewCanCaptureInput()) {
+        int walkMouseX, walkMouseY;
+        mouseGetPosition(&walkMouseX, &walkMouseY);
+        devtools::refreshWalkCursor(walkMouseX, walkMouseY);
+        return;
+    }
+
     int mouseX;
     int mouseY;
 
@@ -964,6 +971,13 @@ bool gameMouseClickOnInterfaceBar()
 void _gmouse_handle_event(int mouseX, int mouseY, int mouseState)
 {
     if (!gGameMouseInitialized) {
+        return;
+    }
+
+    if (devtools::staticWalkPreviewCanCaptureInput()) {
+        if ((mouseState & MOUSE_EVENT_LEFT_BUTTON_UP) != 0) {
+            devtools::handleWalkClick(mouseX, mouseY);
+        }
         return;
     }
 

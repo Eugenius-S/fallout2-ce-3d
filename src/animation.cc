@@ -3145,6 +3145,25 @@ int _dude_run(int actionPoints)
     return reg_anim_end();
 }
 
+int animationDevMoveDudeToTile(int tile, bool run)
+{
+    if (gDude == nullptr || !tileIsValid(tile) || isInCombat()) return -1;
+    if (settings.system.interrupt_walk) {
+        reg_anim_clear(gDude);
+    }
+    if (tile == gDude->tile) return 0;
+    if (_make_path(gDude, gDude->tile, tile, nullptr, 1) <= 0) return -2;
+    if (run && !settings.qol.walk_when_sneaking && !perkGetRank(gDude, PERK_SILENT_RUNNING)) {
+        dudeDisableState(DUDE_STATE_SNEAKING);
+    }
+    if (reg_anim_begin(ANIMATION_REQUEST_RESERVED) == -1) return -1;
+    const int registered = run
+        ? animationRegisterRunToTile(gDude, tile, gDude->elevation, -1, 0)
+        : animationRegisterMoveToTile(gDude, tile, gDude->elevation, -1, 0);
+    const int result = reg_anim_end();
+    return registered == -1 ? -1 : result;
+}
+
 // 0x418168
 void _dude_fidget()
 {
