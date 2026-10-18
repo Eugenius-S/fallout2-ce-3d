@@ -37,7 +37,10 @@ if (-not (Select-String -Path $Cfg -Pattern 'skip_opening_movies=1' -Quiet)) {
     Add-Content -Path $Cfg -Value "[ui]`nskip_opening_movies=1"
 }
 
+$toolsCommit = (git -C $Root rev-parse --short HEAD) 2>$null
+if (-not $toolsCommit) { $toolsCommit = 'unknown' }
+
 $exe = Join-Path $GameDir 'fallout2-ce.exe'
-$args = @('--dev-tools', "--dev-load-game=$Slot", "--dev-map=$Map", "--dev-elevation=$Elevation")
+$args = @('--dev-tools', "--dev-load-game=$Slot", "--dev-map=$Map", "--dev-elevation=$Elevation", "--dev-tools-commit=$toolsCommit")
 Write-Output ("START: " + $exe + " " + ($args -join ' '))
 Start-Process -FilePath $exe -ArgumentList $args -WorkingDirectory $GameDir
