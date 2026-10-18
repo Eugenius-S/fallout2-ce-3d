@@ -9,9 +9,12 @@
 powershell -NoProfile -ExecutionPolicy Bypass -File 'E:\Projects\fallout2-ce-3d\tools\dev-launch.ps1' -Map kladwtwn -Elevation 0
 ```
 
-Launcher сам выставляет в `game\fallout2.cfg` окно с рамкой во весь
-монитор над панелью задач и масштаб ×2 (`scale=2`); с `-FullScreen` —
-весь экран без рамки (`windowed=2`). Также `[ui] skip_opening_movies=1`.
+Launcher сам выставляет в `game\fallout2.cfg` окно 16:9 высотой во весь
+монитор над панелью задач и масштаб ×2 (`scale=2`); `-Aspect 21:9` — во
+всю ширину монитора, `-FullScreen` — весь экран без рамки (`windowed=2`).
+Ctrl+F11 в игре перезапускает её в другом формате окна (16:9 ↔ 21:9):
+размер экрана движок задаёт один раз при старте. Также
+`[ui] skip_opening_movies=1`.
 Затем запускает сразу 3D-сцену:
 
 ```
