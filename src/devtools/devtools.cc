@@ -425,12 +425,37 @@ static bool applyElevationChange(int elevation)
         return false;
     }
 
+    // The dude's current tile may be a wall or a void on the target
+    // elevation - pick a non-blocked hex there, spiraling out from the
+    // dude's position. Falls back to the map's entering tile (whose stored
+    // value can be 0/-1, which the engine treats as "skip placement").
+    int targetTile = -1;
+    if (gDude->tile != -1 && _obj_blocking_at(nullptr, gDude->tile, static_cast<MapElevation>(elevation)) == nullptr) {
+        targetTile = gDude->tile;
+    } else {
+        for (int distance = 1; distance <= 4 && targetTile == -1; distance++) {
+            for (int rotation = 0; rotation < ROTATION_COUNT; rotation++) {
+                int candidate = tileGetTileInDirection(gDude->tile, static_cast<Rotation>(rotation), distance);
+                if (candidate != -1
+                    && _obj_blocking_at(nullptr, candidate, static_cast<MapElevation>(elevation)) == nullptr) {
+                    targetTile = candidate;
+                    break;
+                }
+            }
+        }
+    }
+    if (targetTile == -1) {
+        targetTile = gMapHeader.enteringTile;
+    }
+    if (targetTile <= 0) {
+        snprintf(gStatus, sizeof(gStatus), "no free tile on elevation %d", elevation);
+        return false;
+    }
+
     MapTransition transition;
     transition.map = gMapHeader.index;
     transition.elevation = static_cast<MapElevation>(elevation);
-    // The dude's current tile is always a valid hex on this map; the stored
-    // enteringTile can be 0/-1, and the engine skips placement for those.
-    transition.tile = gDude->tile != -1 ? gDude->tile : gMapHeader.enteringTile;
+    transition.tile = targetTile;
     transition.rotation = static_cast<Rotation>(-1);
 
     if (mapSetTransition(&transition) == -1) {
