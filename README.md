@@ -1,10 +1,16 @@
 # fallout2-sprite-lighting
 
-Динамическое освещение оригинальных спрайтов Fallout 2 + перспективная камера
-на базе fallout2-ce. Спецификация:
-`E:\Games\Fallout 2\docs\superpowers\specs\2026-10-17-fallout2-sprite-lighting-design.md`.
+Динамическое освещение оригинальных спрайтов Fallout 2 + объёмное окружение
+на базе fallout2-ce. Актуальная спецификация — **редакция 2**:
+`E:\Games\Fallout 2\docs\superpowers\specs\2026-10-17-fallout2-sprite-lighting-design.md`,
+техплан: `..\..\Games\Fallout 2\docs\superpowers\plans\2026-10-17-fallout2-ce-3d-env-p0-p1.md`.
 
-Направление заменяет `fallout2-native-dlss5` (прототип сохранён как история).
+CE — единственный владелец игры; окружение (стены/крыши/мебель) реконструируется
+геометрией конвертером на основе донора Apolotary/fallout2-first-person и
+рисуется GPU (OpenGL 3.3) внутри процесса CE. Персонажи остаются спрайтами.
+
+Эксперимент C1 (перспективные «картонки» в 8-битном рендере, ветка
+`sprite-lighting-c1` в `ce/`) сохранён и не развивается.
 
 ## Структура
 
