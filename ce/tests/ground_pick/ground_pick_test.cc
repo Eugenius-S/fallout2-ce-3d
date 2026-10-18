@@ -92,17 +92,4 @@ int main()
     invalidProjection.squ[0] = std::numeric_limits<double>::infinity();
     CHECK(!pickGroundTile(invalidProjection, camera, viewport, 320, 240, &picked));
 
-    // Following the game's view center moves eye and target together: the
-    // angle and distance stay, and the screen center now picks that point.
-    const GroundPickCamera base = staticPreviewCameraParameters(true);
-    GroundPickCamera followed = {};
-    CHECK(followGroundPoint(base, -20.25, 4.5, &followed));
-    for (int axis = 0; axis < 3; axis++) {
-        CHECK(std::abs((followed.eye[axis] - followed.target[axis]) - (base.eye[axis] - base.target[axis])) < 1e-12);
-    }
-    CHECK(followed.target[1] == base.target[1] && followed.fovY == base.fovY);
-    CHECK(pickGroundTile(projection, followed, viewport, 320, 240, &picked));
-    CHECK(std::abs(picked.worldX + 20.25) < 1e-6 && std::abs(picked.worldZ - 4.5) < 1e-6);
-    const GroundPickCamera level = { { 0, 1, 0 }, { 1, 1, 0 }, 25 };
-    CHECK(!followGroundPoint(level, 0, 0, &followed));
 }

@@ -1,0 +1,8 @@
+cmake_minimum_required(VERSION 3.18)
+project(game_view_tests LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+enable_testing()
+add_executable(game_view_tests ../../src/scene_renderer/game_view.cc ../../src/scene_renderer/sprite_card.cc game_view_test.cc)
+target_include_directories(game_view_tests PRIVATE ../../src/scene_renderer)
+add_test(NAME game_view_tests COMMAND game_view_tests)

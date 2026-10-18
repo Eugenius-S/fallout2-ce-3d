@@ -73,6 +73,7 @@ bool gStaticWallPreview = false;
 bool gStaticHeroPreview = false;
 bool gHeroUnavailableLogged = false;
 unsigned int gObjectCardsSkipped = 0; // live objects whose frame could not be drawn
+int gHeroStack = 0; // standing sprites the game paints on the hero's hex before the hero
 bool gWalkRequestPending = false;
 bool gWalkSnapshotAfterPending = false;
 int gWalkRequestTile = -1;
@@ -560,11 +561,12 @@ bool updateStaticHeroFromGame()
         rgba[index * 4 + 3] = colorIndex == 0 ? 0 : 255;
     }
 
-    const scene_renderer::StaticHeroFrame frame = {
+    scene_renderer::StaticHeroFrame frame = {
         gDude->tile, static_cast<int>(gDude->elevation), gDude->fid, gDude->frame,
         static_cast<int>(gDude->rotation), gDude->x, gDude->y,
         image.getXOffset(), image.getYOffset(), width, height, rgba.data(), rgba.size(),
     };
+    frame.stack = gHeroStack;
     std::string error;
     if (!scene_renderer::updateStaticHero(frame, &error)) return unavailable(error.c_str());
     gHeroUnavailableLogged = false;
@@ -575,13 +577,32 @@ struct ObjectCardPass {
     unsigned char* palette;
     std::vector<unsigned char> rgba;
     unsigned int skipped;
+    int lastTile; // tile of the previous standing sprite, for the per-hex count
+    int onTile; // standing sprites painted on lastTile so far
 };
+
+// How many standing sprites the game paints on this object's hex before it
+// (the walk is in the game's own painting order).
+int nextStackOnTile(ObjectCardPass& pass, Object* object)
+{
+    if ((object->flags & OBJECT_FLAT) != OBJECT_NONE) return 0;
+    if (object->tile != pass.lastTile) {
+        pass.lastTile = object->tile;
+        pass.onTile = 0;
+    }
+    return pass.onTile++;
+}
 
 void addObjectCard(Object* object, void* context)
 {
     ObjectCardPass& pass = *static_cast<ObjectCardPass*>(context);
-    if (object == gDude || (object->flags & OBJECT_HIDDEN) != OBJECT_NONE || !hexGridTileIsValid(object->tile)
+    if ((object->flags & OBJECT_HIDDEN) != OBJECT_NONE || !hexGridTileIsValid(object->tile)
         || scene_renderer::staticObjectBaked(object->tile, object->fid)) {
+        return;
+    }
+    const int stack = nextStackOnTile(pass, object);
+    if (object == gDude) {
+        gHeroStack = stack; // the hero card is drawn on its own
         return;
     }
     if (object->rotation < ROTATION_FIRST || object->rotation >= ROTATION_COUNT) {
@@ -616,11 +637,12 @@ void addObjectCard(Object* object, void* context)
             pass.rgba[index * 4 + 3] = colorIndex == 0 ? 0 : 255;
         }
     }
-    const scene_renderer::StaticObjectFrame frame = {
+    scene_renderer::StaticObjectFrame frame = {
         object->tile, object->fid, object->frame, static_cast<int>(object->rotation), object->x, object->y,
         image.getXOffset(), image.getYOffset(), width, height, (object->flags & OBJECT_FLAT) != OBJECT_NONE,
         cached ? nullptr : pass.rgba.data(), cached ? 0 : pass.rgba.size(),
     };
+    frame.stack = stack;
     std::string error;
     if (!scene_renderer::addStaticObject(frame, &error)) pass.skipped++;
 }
@@ -630,7 +652,7 @@ void addObjectCard(Object* object, void* context)
 void updateStaticObjectsFromGame()
 {
     scene_renderer::beginStaticObjects();
-    ObjectCardPass pass = { directDrawGetPalette(), {}, 0 };
+    ObjectCardPass pass = { directDrawGetPalette(), {}, 0, -1, 0 };
     if (pass.palette != nullptr) objectForEachAtElevation(gElevation, addObjectCard, &pass);
     scene_renderer::endStaticObjects();
     gObjectCardsSkipped = pass.skipped;

@@ -305,6 +305,8 @@ set(FALLOUT_PLATFORM_SOURCES
     "src/scene_renderer/ground_pick.h"
     "src/scene_renderer/sprite_card.cc"
     "src/scene_renderer/sprite_card.h"
+    "src/scene_renderer/game_view.cc"
+    "src/scene_renderer/game_view.h"
     "src/sfall_config.cc"
     "src/sfall_config.h"
     "src/sfall_ext.cc"
@@ -364,6 +366,14 @@ if(BUILD_TESTING)
     )
     target_include_directories(sprite_card_tests PRIVATE "src/scene_renderer")
     add_test(NAME sprite_card_tests COMMAND sprite_card_tests)
+
+    add_executable(game_view_tests
+        "src/scene_renderer/game_view.cc"
+        "src/scene_renderer/sprite_card.cc"
+        "tests/game_view/game_view_test.cc"
+    )
+    target_include_directories(game_view_tests PRIVATE "src/scene_renderer")
+    add_test(NAME game_view_tests COMMAND game_view_tests)
 endif()
 
 target_sources(${EXECUTABLE_NAME} PUBLIC

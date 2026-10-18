@@ -4,13 +4,16 @@
 namespace fallout {
 namespace scene_renderer {
 
-// The donor projection between game screen pixels and the scene ground.
+// The donor projection between game screen pixels and the scene ground:
+//     px(u, v, z) = origin + u * squ + v * sqv - (0, hpx * z)        (y down)
 struct SpriteCardProjection {
     double squ[2];
     double sqv[2];
     double origin[2];
     double hpx; // screen pixels per unit of height
-    double bbPx; // screen pixels per unit along the card
+    double bbPx; // screen pixels per unit along the screen's horizontal
+    double rowTilt; // depth nudge per hex column (row_plane)
+    double stack; // depth nudge per sprite painted earlier on the same hex
 };
 
 // One FRM frame placed the way _obj_render_object places it: the hex center
@@ -41,16 +44,30 @@ void spriteHexPixel(int tile, double* x, double* y);
 bool spritePixelToGround(const SpriteCardProjection& projection, double pixelX, double pixelY,
     double* worldX, double* worldZ);
 
-// An upright card facing the camera, standing on the object's anchor. Corners
-// are top-left, bottom-left, bottom-right, top-right; `screenRightX/Z` is the
-// camera's horizontal screen direction on the ground.
+// Unit direction (GL x, y, z) from the scene towards the game's camera: the
+// line of points that share one screen pixel.
+bool spriteTowardCamera(const SpriteCardProjection& projection, double toward[3]);
+
+// A sprite card as the donor viewer's game views stand it (card() in geom.js):
+// from the floor under its lowest row up to its top row, leaning back over its
+// footprint, so that from the game's camera every texel is where the game
+// draws it: a person stands almost upright, a bed lies back over the floor, a
+// cabinet drawn above its hex hangs upright. Corners are top-left,
+// bottom-left, bottom-right, top-right.
 bool standingSpriteCard(const SpriteCardProjection& projection, const SpriteCardArt& art,
-    double screenRightX, double screenRightZ, SpriteCardVertex corners[4], double* anchorX, double* anchorZ);
+    SpriteCardVertex corners[4], double* anchorX, double* anchorZ);
 
 // A card lying on the floor at `height`: every pixel lands on the ground point
 // the game's camera sees under it (rugs, blood, corpses). Same corner order.
 bool flatSpriteCard(const SpriteCardProjection& projection, const SpriteCardArt& art, double height,
     SpriteCardVertex corners[4]);
+
+// Depth plane of a card on `tile` (row_plane in the donor): the GL z of an
+// upright plane through its hex row. The game paints hex rows back to front
+// and each row from right to left; `stack` = sprites the game paints on the
+// same hex before this one. Cards take the depth of this plane, so they hide
+// each other and walls as the game's painting does.
+double spriteRowPlane(const SpriteCardProjection& projection, int tile, int stack);
 
 } // namespace scene_renderer
 } // namespace fallout

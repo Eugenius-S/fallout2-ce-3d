@@ -34,6 +34,7 @@ struct StaticHeroFrame {
     int height;
     const unsigned char* rgba;
     size_t rgbaSize;
+    int stack = 0; // sprites the game paints on the same hex before this one
 };
 
 // One live map object (critter, item, scenery, door) in its current frame.
@@ -52,6 +53,7 @@ struct StaticObjectFrame {
     bool flat;
     const unsigned char* rgba;
     size_t rgbaSize;
+    int stack = 0; // sprites the game paints on the same hex before this one
 };
 
 struct StaticHeroInfo {
@@ -102,8 +104,9 @@ void clearStaticObjects();
 unsigned int staticObjectCount();
 bool pickStaticGroundTile(int logicalX, int logicalY, GroundPickResult* result);
 void setStaticGroundCursor(int tile);
-// The wall/hero camera follows the game's view center (gCenterTile): it
-// moves over the ground with angle and distance kept. -1 = the fixed view.
+// The wall/hero view is the game's own projection centered on this hex (the
+// engine's gCenterTile), with a mild perspective (game_view.h). -1 = the
+// fixed preview camera.
 void setStaticCameraCenterTile(int tile);
 void drawStaticFloor();
 void drawStaticWallPreview();

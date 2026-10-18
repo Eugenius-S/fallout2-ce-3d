@@ -17,6 +17,7 @@
 #include <lodepng.h>
 
 #include "gl_api.h"
+#include "game_view.h"
 #include "sprite_card.h"
 #include "../tile.h"
 
@@ -49,11 +50,23 @@ void main() {
 constexpr const char* kFloorVertexShader = R"(#version 330 core
 layout(location = 0) in vec3 aPosition;
 layout(location = 1) in vec2 aTexcoord;
+layout(location = 2) in float aRow; // sprite cards: z of their hex row's depth plane
 uniform mat4 uMvp;
+uniform int uCardDepth;
+uniform vec3 uEye;
 out vec2 vTexcoord;
 void main() {
     gl_Position = uMvp * vec4(aPosition, 1.0);
     vTexcoord = aTexcoord;
+    if (uCardDepth != 0) {
+        // A card takes the depth of the point where the view ray meets the
+        // upright plane through its hex row, so cards hide each other and
+        // walls the way the game paints them hex row by hex row.
+        vec3 ray = aPosition - uEye;
+        float t = abs(ray.z) > 0.00001 ? (aRow - aPosition.z) / ray.z : 0.0;
+        vec4 q = uMvp * vec4(aPosition + ray * t, 1.0);
+        gl_Position.z = q.z / q.w * gl_Position.w;
+    }
 }
 )";
 
@@ -128,6 +141,16 @@ struct FloorVertex {
     float v;
 };
 
+// A sprite card vertex: FloorVertex plus the z of the card's row plane.
+struct CardVertex {
+    float x;
+    float y;
+    float z;
+    float u;
+    float v;
+    float row;
+};
+
 struct WallBatch {
     unsigned int page = 0;
     unsigned int triangleCount = 0;
@@ -155,6 +178,8 @@ int gFloorTextureLocation = -1;
 int gFloorTexturedLocation = -1;
 int gFloorColorLocation = -1;
 int gFloorCutoffLocation = -1;
+int gFloorCardDepthLocation = -1;
+int gFloorEyeLocation = -1;
 int gFloorVertexCount = 0;
 bool gFloorLoaded = false;
 std::vector<WallBatch> gWallBatches;
@@ -168,9 +193,9 @@ bool gHeroLoaded = false;
 HeroProjection gHeroProjection;
 StaticHeroInfo gHeroInfo = {};
 int gGroundCursorTile = -1;
-// Ground point the wall/hero camera centers on: the game's view center.
-bool gCameraFollows = false;
-double gCameraGround[2] = {};
+// The hex at the center of the game's screen (gCenterTile); with the hero
+// projection loaded the wall/hero view is the game's own projection there.
+int gCameraCenterTile = -1;
 unsigned int gCursorVao = 0;
 unsigned int gCursorVbo = 0;
 
@@ -186,7 +211,7 @@ constexpr size_t kMaxObjectTextures = 4096;
 constexpr float kFlatObjectHeight = 0.01f;
 std::unordered_set<unsigned long long> gBakedObjects;
 std::unordered_map<unsigned long long, unsigned int> gObjectTextures;
-std::vector<FloorVertex> gObjectVertices;
+std::vector<CardVertex> gObjectVertices;
 std::vector<ObjectDraw> gObjectDraws;
 unsigned int gObjectVao = 0;
 unsigned int gObjectVbo = 0;
@@ -333,7 +358,7 @@ SpriteCardProjection cardProjection()
         { gHeroProjection.squ[0], gHeroProjection.squ[1] },
         { gHeroProjection.sqv[0], gHeroProjection.sqv[1] },
         { gHeroProjection.origin[0], gHeroProjection.origin[1] },
-        gHeroProjection.hpx, gHeroProjection.bbPx,
+        gHeroProjection.hpx, gHeroProjection.bbPx, gHeroProjection.rowTilt, gHeroProjection.stack,
     };
 }
 
@@ -606,7 +631,7 @@ void shutdown()
     gHeroProjectionLoaded = false;
     gHeroProjection = {};
     gGroundCursorTile = -1;
-    gCameraFollows = false;
+    gCameraCenterTile = -1;
 }
 
 bool isActive()
@@ -614,12 +639,33 @@ bool isActive()
     return gInitialized;
 }
 
+// Eye distance of the game view: that of the accepted 25-degree camera, which
+// sets how strong the perspective is.
+double gameViewDistance()
+{
+    constexpr double kPi = 3.14159265358979323846;
+    return std::sqrt(8.0 * 8.0 + 10.0 * 10.0 + 12.0 * 12.0) * std::tan(25.0 * kPi / 180.0) / std::tan(12.5 * kPi / 180.0);
+}
+
+bool currentGameView(GameView* view)
+{
+    if (!gHeroProjectionLoaded || gCameraCenterTile < 0) return false;
+    *view = {
+        { gHeroProjection.squ[0], gHeroProjection.squ[1] },
+        { gHeroProjection.sqv[0], gHeroProjection.sqv[1] },
+        { gHeroProjection.origin[0], gHeroProjection.origin[1] },
+        gHeroProjection.hpx, gCameraCenterTile, gLogicalWidth, gLogicalHeight, gameViewDistance(),
+    };
+    return true;
+}
+
 StaticPreviewCamera staticPreviewCamera(bool withWalls)
 {
     GroundPickCamera camera = staticPreviewCameraParameters(withWalls);
-    if (withWalls && gCameraFollows) {
-        GroundPickCamera moved;
-        if (followGroundPoint(camera, gCameraGround[0], gCameraGround[1], &moved)) camera = moved;
+    GameView view;
+    double eye[3], centerX, centerZ;
+    if (withWalls && currentGameView(&view) && gameViewEye(view, eye) && gameViewCenter(view, &centerX, &centerZ)) {
+        camera = { { eye[0], eye[1], eye[2] }, { centerX, 0.0, centerZ }, camera.fovY, camera.donorScreenRight };
     }
     return {
         { static_cast<float>(camera.eye[0]), static_cast<float>(camera.eye[1]), static_cast<float>(camera.eye[2]) },
@@ -652,16 +698,29 @@ bool pickStaticGroundTile(int logicalX, int logicalY, GroundPickResult* result)
         staticCamera.donorScreenRight,
     };
     const GroundPickViewport viewport = { gLogicalWidth, gLogicalHeight, gWindowWidth, gWindowHeight, windowWidth, windowHeight };
-    return pickGroundTile(projection, camera, viewport, logicalX, logicalY, result);
+    GameView view;
+    if (!currentGameView(&view)) return pickGroundTile(projection, camera, viewport, logicalX, logicalY, result);
+
+    double worldX, worldZ;
+    if (logicalX < 0 || logicalY < 0 || logicalX >= gLogicalWidth || logicalY >= gLogicalHeight
+        || !gameViewPickGround(view, logicalX + 0.5, logicalY + 0.5, &worldX, &worldZ)) {
+        return false;
+    }
+    const double u = worldX + 50.0;
+    const double v = worldZ + 50.0;
+    // This preview is the exported 100x100 Kladwtwn square map only.
+    if (u < 0.0 || u >= 100.0 || v < 0.0 || v >= 100.0) return false;
+    const double artX = projection.origin[0] + u * projection.squ[0] + v * projection.sqv[0];
+    const double artY = projection.origin[1] + u * projection.squ[1] + v * projection.sqv[1];
+    const int tile = donorHexFromPixel(artX, artY);
+    if (tile < 0) return false;
+    *result = { tile, worldX, worldZ, u, v, artX, artY };
+    return true;
 }
 
 void setStaticCameraCenterTile(int tile)
 {
-    double pixelX = 0.0, pixelY = 0.0;
-    gCameraFollows = false;
-    if (!gHeroProjectionLoaded || tile < 0 || tile >= HEX_GRID_SIZE) return;
-    spriteHexPixel(tile, &pixelX, &pixelY);
-    gCameraFollows = spritePixelToGround(cardProjection(), pixelX, pixelY, &gCameraGround[0], &gCameraGround[1]);
+    gCameraCenterTile = tile >= 0 && tile < HEX_GRID_SIZE ? tile : -1;
 }
 
 void setStaticGroundCursor(int tile)
@@ -745,32 +804,24 @@ bool updateStaticHero(const StaticHeroFrame& frame, std::string* error)
         * static_cast<unsigned long long>(frame.height) * 4;
     if (expectedRgba != frame.rgbaSize) return fail("hero frame RGBA byte count is inconsistent");
 
-    const StaticPreviewCamera camera = staticPreviewCamera(true);
-    const GroundPickCamera basisCamera = {
-        { camera.eye[0], camera.eye[1], camera.eye[2] },
-        { camera.target[0], camera.target[1], camera.target[2] }, camera.fovY, camera.donorScreenRight,
-    };
-    double forward[3], screenRight[3], screenUp[3];
-    if (!previewCameraBasis(basisCamera, forward, screenRight, screenUp)) {
-        return fail("hero card camera basis is invalid");
-    }
     const SpriteCardArt art = { frame.tile, frame.objectX, frame.objectY, frame.artXOffset, frame.artYOffset,
         frame.width, frame.height };
     SpriteCardVertex corners[4];
     double worldU = 0.0;
     double worldV = 0.0;
-    if (!standingSpriteCard(cardProjection(), art, screenRight[0], screenRight[2], corners, &worldU, &worldV)) {
+    if (!standingSpriteCard(cardProjection(), art, corners, &worldU, &worldV)) {
         return fail("hero card anchor or height is not finite");
     }
-    auto vertex = [](const SpriteCardVertex& corner) {
-        return FloorVertex { static_cast<float>(corner.x), static_cast<float>(corner.y),
-            static_cast<float>(corner.z), static_cast<float>(corner.u), static_cast<float>(corner.v) };
+    const float row = static_cast<float>(spriteRowPlane(cardProjection(), frame.tile, frame.stack));
+    auto vertex = [row](const SpriteCardVertex& corner) {
+        return CardVertex { static_cast<float>(corner.x), static_cast<float>(corner.y),
+            static_cast<float>(corner.z), static_cast<float>(corner.u), static_cast<float>(corner.v), row };
     };
-    const FloorVertex topLeft = vertex(corners[0]);
-    const FloorVertex bottomLeft = vertex(corners[1]);
-    const FloorVertex bottomRight = vertex(corners[2]);
-    const FloorVertex topRight = vertex(corners[3]);
-    const FloorVertex vertices[] = { topLeft, bottomLeft, bottomRight, topLeft, bottomRight, topRight };
+    const CardVertex topLeft = vertex(corners[0]);
+    const CardVertex bottomLeft = vertex(corners[1]);
+    const CardVertex bottomRight = vertex(corners[2]);
+    const CardVertex topRight = vertex(corners[3]);
+    const CardVertex vertices[] = { topLeft, bottomLeft, bottomRight, topLeft, bottomRight, topRight };
 
     while (glGetError() != 0) {
     }
@@ -782,9 +833,11 @@ bool updateStaticHero(const StaticHeroFrame& frame, std::string* error)
     glBindBuffer(kArrayBuffer, gHeroVbo);
     glBufferData(kArrayBuffer, sizeof(vertices), vertices, kStaticDraw);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, 0x1406 /* GL_FLOAT */, 0, sizeof(FloorVertex), reinterpret_cast<const void*>(0));
+    glVertexAttribPointer(0, 3, 0x1406 /* GL_FLOAT */, 0, sizeof(CardVertex), reinterpret_cast<const void*>(0));
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 2, 0x1406, 0, sizeof(FloorVertex), reinterpret_cast<const void*>(3 * sizeof(float)));
+    glVertexAttribPointer(1, 2, 0x1406, 0, sizeof(CardVertex), reinterpret_cast<const void*>(3 * sizeof(float)));
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 1, 0x1406, 0, sizeof(CardVertex), reinterpret_cast<const void*>(5 * sizeof(float)));
     glBindTexture(kTexture2D, gHeroTexture);
     glTexImage2D(kTexture2D, 0, kRgba8, frame.width, frame.height, 0, kRGBA, kUnsignedByte, frame.rgba);
     glTexParameteri(kTexture2D, kTextureMinFilter, kNearest);
@@ -844,18 +897,10 @@ bool addStaticObject(const StaticObjectFrame& frame, std::string* error)
     SpriteCardVertex corners[4];
     if (frame.flat) {
         if (!flatSpriteCard(cardProjection(), art, kFlatObjectHeight, corners)) return fail("flat object card is invalid");
-    } else {
-        const StaticPreviewCamera camera = staticPreviewCamera(true);
-        const GroundPickCamera basisCamera = {
-            { camera.eye[0], camera.eye[1], camera.eye[2] },
-            { camera.target[0], camera.target[1], camera.target[2] }, camera.fovY, camera.donorScreenRight,
-        };
-        double forward[3], screenRight[3], screenUp[3];
-        if (!previewCameraBasis(basisCamera, forward, screenRight, screenUp)
-            || !standingSpriteCard(cardProjection(), art, screenRight[0], screenRight[2], corners, nullptr, nullptr)) {
-            return fail("object card is invalid");
-        }
+    } else if (!standingSpriteCard(cardProjection(), art, corners, nullptr, nullptr)) {
+        return fail("object card is invalid");
     }
+    const float row = frame.flat ? 0.0f : static_cast<float>(spriteRowPlane(cardProjection(), frame.tile, frame.stack));
 
     const unsigned long long key = objectArtKey(frame.fid, frame.frame, frame.rotation);
     auto cached = gObjectTextures.find(key);
@@ -890,7 +935,7 @@ bool addStaticObject(const StaticObjectFrame& frame, std::string* error)
     for (int index : order) {
         const SpriteCardVertex& corner = corners[index];
         gObjectVertices.push_back({ static_cast<float>(corner.x), static_cast<float>(corner.y),
-            static_cast<float>(corner.z), static_cast<float>(corner.u), static_cast<float>(corner.v) });
+            static_cast<float>(corner.z), static_cast<float>(corner.u), static_cast<float>(corner.v), row });
     }
     if (error != nullptr) error->clear();
     return true;
@@ -903,12 +948,14 @@ void endStaticObjects()
     if (gObjectVbo == 0) glGenBuffers(1, &gObjectVbo);
     glBindVertexArray(gObjectVao);
     glBindBuffer(kArrayBuffer, gObjectVbo);
-    glBufferData(kArrayBuffer, static_cast<long long>(gObjectVertices.size() * sizeof(FloorVertex)),
+    glBufferData(kArrayBuffer, static_cast<long long>(gObjectVertices.size() * sizeof(CardVertex)),
         gObjectVertices.data(), 0x88E8 /* GL_DYNAMIC_DRAW */);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, 0x1406 /* GL_FLOAT */, 0, sizeof(FloorVertex), reinterpret_cast<const void*>(0));
+    glVertexAttribPointer(0, 3, 0x1406 /* GL_FLOAT */, 0, sizeof(CardVertex), reinterpret_cast<const void*>(0));
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 2, 0x1406, 0, sizeof(FloorVertex), reinterpret_cast<const void*>(3 * sizeof(float)));
+    glVertexAttribPointer(1, 2, 0x1406, 0, sizeof(CardVertex), reinterpret_cast<const void*>(3 * sizeof(float)));
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 1, 0x1406, 0, sizeof(CardVertex), reinterpret_cast<const void*>(5 * sizeof(float)));
     glBindVertexArray(0);
 }
 
@@ -1094,8 +1141,11 @@ bool loadStaticFloor(const std::filesystem::path& cacheDirectory, std::string* e
     gFloorTexturedLocation = glGetUniformLocation(gFloorProgram, "uTextured");
     gFloorColorLocation = glGetUniformLocation(gFloorProgram, "uColor");
     gFloorCutoffLocation = glGetUniformLocation(gFloorProgram, "uCutoff");
+    gFloorCardDepthLocation = glGetUniformLocation(gFloorProgram, "uCardDepth");
+    gFloorEyeLocation = glGetUniformLocation(gFloorProgram, "uEye");
     if (gFloorMvpLocation < 0 || gFloorTextureLocation < 0
-        || gFloorTexturedLocation < 0 || gFloorColorLocation < 0 || gFloorCutoffLocation < 0) {
+        || gFloorTexturedLocation < 0 || gFloorColorLocation < 0 || gFloorCutoffLocation < 0
+        || gFloorCardDepthLocation < 0 || gFloorEyeLocation < 0) {
         return fail("static floor shader uniforms are missing");
     }
     gFloorVertexCount = static_cast<int>(vertices.size());
@@ -1337,7 +1387,10 @@ void drawStaticPreview(bool withWalls, bool withHero)
 
     float mvp[16];
     const StaticPreviewCamera camera = staticPreviewCamera(withWalls);
-    makeFloorMvp(static_cast<float>(width) / height, camera, mvp);
+    GameView view;
+    if (!withWalls || !currentGameView(&view) || !gameViewMatrix(view, mvp)) {
+        makeFloorMvp(static_cast<float>(width) / height, camera, mvp);
+    }
     glEnable(kDepthTest);
     glDepthFunc(kLess);
     glDepthMask(1);
@@ -1350,6 +1403,8 @@ void drawStaticPreview(bool withWalls, bool withHero)
     }
     glUseProgram(gFloorProgram);
     glUniformMatrix4fv(gFloorMvpLocation, 1, 0, mvp);
+    glUniform1i(gFloorCardDepthLocation, 0);
+    glUniform3f(gFloorEyeLocation, camera.eye[0], camera.eye[1], camera.eye[2]);
     glActiveTexture(kTexture0);
     glUniform1i(gFloorTextureLocation, 0);
     glBindVertexArray(gFloorVao);
@@ -1386,6 +1441,7 @@ void drawStaticPreview(bool withWalls, bool withHero)
             glDrawArrays(kTriangles, 0, static_cast<int>(batch.triangleCount * 3));
         }
     }
+    glUniform1i(gFloorCardDepthLocation, 1);
     if (withObjects) {
         glUniform1f(gFloorCutoffLocation, 0.5f);
         glBindVertexArray(gObjectVao);
@@ -1401,6 +1457,7 @@ void drawStaticPreview(bool withWalls, bool withHero)
         glBindTexture(kTexture2D, gHeroTexture);
         glDrawArrays(kTriangles, 0, 6);
     }
+    glUniform1i(gFloorCardDepthLocation, 0);
 
     if (gGroundCursorTile >= 0) {
         auto pixelCenter = [](int tile, double* x, double* y) {

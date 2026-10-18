@@ -22,9 +22,6 @@ struct GroundPickCamera {
 bool previewCameraBasis(const GroundPickCamera& camera, double forward[3],
     double screenRight[3], double screenUp[3]);
 GroundPickCamera staticPreviewCameraParameters(bool withWalls);
-// The same camera moved over the ground, angle and distance kept, so the
-// ground point at the center of the view becomes (groundX, groundZ).
-bool followGroundPoint(const GroundPickCamera& camera, double groundX, double groundZ, GroundPickCamera* moved);
 
 struct GroundPickViewport {
     int logicalWidth;
