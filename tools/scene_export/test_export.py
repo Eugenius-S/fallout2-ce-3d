@@ -7,8 +7,8 @@ import struct
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from baked_sidecar import (ENTRY as BAKED_ENTRY, HEADER as BAKED_HEADER, MAGIC as BAKED_MAGIC,
-                           baked_objects, decode_baked_sidecar, encode_baked_sidecar)
+from baked_sidecar import (ENTRY as BAKED_ENTRY, HEADER as BAKED_HEADER, LIFT as BAKED_LIFT, MAGIC as BAKED_MAGIC,
+                           SKIP as BAKED_SKIP, baked_objects, decode_baked_sidecar, encode_baked_sidecar)
 from export import ReadOnlyGameFiles, choose_source, main, patch_paths, validate_output_contents
 from floor_sidecar import HEADER, MAGIC, VERSION, cell_content_rect, decode_floor_sidecar, encode_floor_sidecar
 from projection_sidecar import (HEADER as PROJECTION_HEADER, MAGIC as PROJECTION_MAGIC,
@@ -307,6 +307,40 @@ class WallSidecarTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "outside scene.pages"):
             encode_wall_sidecar(scene)
 
+    def test_furniture_solid_shows_its_sprite_from_the_game_camera(self):
+        scene = self.sample_scene()
+        scene["walls"] = []
+        scene["sprites"].append([0, 40, 40, 50, 50, -25, -40])
+        # box: [sprite, u, v, board, round, cu, cv, a, b, z0, z1, wallU, wallV]
+        scene["props"] = [[2, 10.0, 10.0, 0, 0, 10.0, 10.1, 0.5, 0.4, 0.0, 0.3, 0.0, 0.6]]
+        decoded = decode_wall_sidecar(encode_wall_sidecar(scene))
+        vertices = decoded["batches"][0]["vertices"]
+        self.assertGreater(len(vertices), 12)
+        p = scene["proj"]
+        def px(u, v, z):
+            return (p["origin"][0] + u * p["squ"][0] + v * p["sqv"][0],
+                    p["origin"][1] + u * p["squ"][1] + v * p["sqv"][1] - p["hpx"] * z)
+        # Every vertex shows the sprite pixel it lands on from the game's camera
+        # (anchor (u, v), sprite top-left 25 px left and 40 px up of it).
+        ax, ay = px(10.0, 10.0, 0.0)
+        for vertex in vertices:
+            x, y, z, s_, t = vertex[:5]
+            sx, sy = px(x + 50.0, z + 50.0, y)
+            self.assertAlmostEqual(s_ * 100.0, 40 + sx - ax + 25, places=3)
+            self.assertAlmostEqual(t * 100.0, 40 + sy - ay + 40, places=3)
+            self.assertEqual(vertex[5:], vertex[:3])  # real depth
+        # Triangles face the game's camera: counter-clockwise on its screen, y up.
+        for index in range(0, len(vertices), 3):
+            a, b, c = (px(v[0] + 50.0, v[2] + 50.0, v[1]) for v in vertices[index:index + 3])
+            area = (b[0] - a[0]) * (-(c[1] - a[1])) - (c[0] - a[0]) * (-(b[1] - a[1]))
+            self.assertGreater(area, 0.0)
+
+        # A drum: sixteen sides and a top (the sides away from the camera
+        # repeat the facing quarter mirrored, so they are not checked here).
+        scene["props"] = [[2, 20.0, 20.0, 1, 1, 20.0, 20.0, 9.0, 6.0, 0.0, 0.4, 0.0, 0.0]]
+        drum = decode_wall_sidecar(encode_wall_sidecar(scene))
+        self.assertGreater(drum["triangles"], 16)
+
     def test_first_person_surfaces_are_left_out(self):
         scene = self.sample_scene()
         scene["walls"][0].extend([1, 1])
@@ -353,30 +387,52 @@ class BakedSidecarTests(unittest.TestCase):
         def __init__(self, tile, fid):
             self.tile, self.fid = tile, fid
 
-    def test_lists_each_wall_row_object_once_by_map_serial(self):
+    def sample(self):
         objects = [self.MapObject(100, 0x03000010), self.MapObject(205, 0x02000007),
-                   self.MapObject(300, 0x02000099)]
-        scene = {"walls": [[0, 0, 0, 0, 0, 0, 0, 5, 1], [0, 0, 0, 0, 0, 0, 0, 5, 1],
-                           [0, 0, 0, 0, 0, 0, 0, 5, 0]]}
+                   self.MapObject(300, 0x02000099), self.MapObject(400, 0x00000036),
+                   self.MapObject(500, 0x00000011)]
+        scene = {
+            "walls": [[0, 0, 0, 0, 0, 0, 0, 5, 1], [0, 0, 0, 0, 0, 0, 0, 5, 1], [0, 0, 0, 0, 0, 0, 0, 5, 0]],
+            # boards: [sprite, u, v, stack, name, object]
+            "boards": [[0, 1, 1, 0, 0, 2], [0, 1, 1, 0, 0, 3], [0, 1, 1, 0, 0, 4]],
+            "hidden": [0, 1],
+            "props": [[0, 1, 1, 0], [0, 1, 1, 1]],
+            "lifts": [[2, 0.25, -0.5, 0.75]],
+            "forms": [],
+        }
+        return scene, objects
+
+    def test_walls_and_solids_are_skipped_and_things_on_them_lifted(self):
+        scene, objects = self.sample()
         entries = baked_objects(scene, objects)
-        self.assertEqual(entries, [(100, 0x03000010), (205, 0x02000007)])
+        self.assertEqual(entries, [(100, 0x03000010, BAKED_SKIP, 0.0, 0.0, 0.0),
+                                   (205, 0x02000007, BAKED_SKIP, 0.0, 0.0, 0.0),
+                                   (300, 0x02000099, BAKED_SKIP, 0.0, 0.0, 0.0),
+                                   (400, 0x00000036, BAKED_SKIP, 0.0, 0.0, 0.0),
+                                   (500, 0x00000011, BAKED_LIFT, 0.25, -0.5, 0.75)])
         payload = encode_baked_sidecar(entries)
         self.assertEqual(payload[:4], BAKED_MAGIC)
-        self.assertEqual(len(payload), BAKED_HEADER.size + 2 * BAKED_ENTRY.size)
+        self.assertEqual(len(payload), BAKED_HEADER.size + 5 * BAKED_ENTRY.size)
         self.assertEqual(decode_baked_sidecar(payload), entries)
+
+    def test_an_animated_solid_stays_live(self):
+        scene, objects = self.sample()
+        entries = baked_objects(scene, objects, live_boards={1})
+        self.assertNotIn(400, [entry[0] for entry in entries])
+        self.assertIn(300, [entry[0] for entry in entries])
 
     def test_rejects_unknown_serial_and_corruption(self):
         with self.assertRaisesRegex(ValueError, "outside the map"):
             baked_objects({"walls": [[0, 0, 0, 0, 0, 0, 0, 5, 3]]}, [self.MapObject(1, 2)])
-        payload = encode_baked_sidecar([(1, 2)])
+        payload = encode_baked_sidecar([(1, 2, BAKED_SKIP, 0.0, 0.0, 0.0)])
         with self.assertRaisesRegex(ValueError, "bad length"):
             decode_baked_sidecar(payload[:-1])
         bad_version = bytearray(payload)
-        struct.pack_into("<H", bad_version, 4, 2)
+        struct.pack_into("<H", bad_version, 4, 1)
         with self.assertRaisesRegex(ValueError, "magic/version"):
             decode_baked_sidecar(bad_version)
         with self.assertRaisesRegex(ValueError, "hex grid"):
-            encode_baked_sidecar([(40000, 1)])
+            encode_baked_sidecar([(40000, 1, BAKED_SKIP, 0.0, 0.0, 0.0)])
 
 
 class ProjectionSidecarTests(unittest.TestCase):

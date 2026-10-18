@@ -5,6 +5,8 @@ from __future__ import annotations
 import math
 import struct
 
+from solids import Projection, rest_card, screen_area, solid_faces
+
 
 MAGIC = b"F2WL"
 VERSION = 2
@@ -109,7 +111,32 @@ def _wall_front(batches, sprites, pages, row, hpx, toward_camera):
     ])
 
 
-def encode_wall_sidecar(scene):
+def _polygon(batches, proj, page, page_size, corners):
+    """A convex polygon as a triangle fan, wound counter-clockwise on the
+    screen like the wall fronts (they are drawn with back faces culled)."""
+    area = screen_area(proj, corners)
+    if abs(area) < 1e-6:
+        return
+    if area < 0:
+        corners = corners[::-1]
+    for index in range(1, len(corners) - 1):
+        _quad_triangle(batches, page, page_size, (corners[0], corners[index], corners[index + 1]))
+
+
+def _quad_triangle(batches, page, page_size, corners):
+    width, height = page_size
+    target = batches.setdefault(page, [])
+    for corner in corners:
+        u, v, z, tx, ty = (_finite(n, "solid position") for n in corner[:5])
+        hu, hv, hz = (_finite(n, "solid depth") for n in corner[5:8]) if len(corner) > 5 else (0.0, 0.0, 0.0)
+        if not (-1e-6 <= tx <= width + 1e-6 and -1e-6 <= ty <= height + 1e-6):
+            raise ValueError("solid texture coordinates are outside the sprite atlas")
+        target.extend((u - GL_MAP_OFFSET, z, v - GL_MAP_OFFSET,
+                       min(max(tx / width, 0.0), 1.0), min(max(ty / height, 0.0), 1.0),
+                       u + hu - GL_MAP_OFFSET, z + hz, v + hv - GL_MAP_OFFSET))
+
+
+def encode_wall_sidecar(scene, skip_props=frozenset(), skip_rests=frozenset()):
     """Build the donor game view's wall triangles for one scene: what the game's
     camera sees of walls (fronts and tops) and the sheets that have no
     thickness. Backs, cut-open upper parts and slab ends (wallRest, trims) are
@@ -163,6 +190,20 @@ def encode_wall_sidecar(scene):
 
     # Doors are not baked: they open and close, so the engine draws them live
     # as sprite cards with their current frame.
+
+    # Furniture as solids (solids.py), and what of a drum or stem stays a card.
+    # skip_*: rows whose object the engine keeps drawing live (it animates).
+    proj = Projection(projection)
+    for index, row in enumerate(scene.get("props") or []):
+        if index in skip_props:
+            continue
+        for page, corners in solid_faces(proj, sprites, row):
+            _polygon(batches, proj, page, pages[page], corners)
+    for index, row in enumerate(scene.get("rests") or []):
+        if index in skip_rests:
+            continue
+        page, corners = rest_card(proj, sprites, row)
+        _polygon(batches, proj, page, pages[page], corners)
 
     total_triangles = sum(len(values) // (3 * FLOATS) for values in batches.values())
     if total_triangles > 0xFFFFFFFF or len(batches) > 0xFFFFFFFF:

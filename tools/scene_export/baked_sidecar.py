@@ -1,9 +1,10 @@
-"""Versioned list of map objects that walls.bin already draws.
+"""Versioned list of map objects the engine's live sprite cards treat apart.
 
-Walls and the scenery panels that stand in a wall plane are baked into
-walls.bin. The engine draws every other live object as a sprite card and
-skips the objects named here, so nothing is drawn twice. Doors are not baked:
-they open, so the engine draws them live.
+Walls, the scenery panels in wall planes and furniture solids are baked into
+walls.bin; the engine skips those objects (SKIP). Things standing on a solid
+(an item on a table) are lifted onto it (LIFT): moved by (du, dv) on the floor
+and dz up, along the game's view ray, so the game's camera still sees them on
+the same pixels. Doors are not here: they open, so the engine draws them live.
 """
 
 from __future__ import annotations
@@ -12,28 +13,51 @@ import struct
 
 
 MAGIC = b"F2BK"
-VERSION = 1
+VERSION = 2
 HEADER = struct.Struct("<4sHHI")  # magic, version, header bytes, entries
-ENTRY = struct.Struct("<iI")  # object tile, object fid
+ENTRY = struct.Struct("<iIIfff")  # object tile, object fid, mode, du, dv, dz
+SKIP = 0
+LIFT = 1
 MAX_ENTRIES = 1000000
 
 
-def baked_objects(scene, map_objects):
-    """(tile, fid) of every object behind a walls.bin row; map_objects is the
-    elevation's object list in map file order (the rows' serial numbers)."""
+def _object(map_objects, serial, label):
+    if isinstance(serial, bool) or not isinstance(serial, int) or not 0 <= serial < len(map_objects):
+        raise ValueError(f"{label} names an object outside the map")
+    return map_objects[serial]
+
+
+def baked_objects(scene, map_objects, live_boards=frozenset()):
+    """Entries (tile, fid, mode, du, dv, dz). map_objects is the elevation's
+    object list in map file order (the rows' serial numbers); live_boards are
+    scene.boards rows the engine keeps drawing as cards (they animate)."""
     walls = scene.get("walls")
     if not isinstance(walls, list):
         raise ValueError("scene.walls is missing")
-    entries = set()
+    entries = {}
     for index, row in enumerate(walls):
         if not isinstance(row, list) or len(row) < 9:
             raise ValueError(f"invalid wall {index} record")
-        serial = row[8]
-        if isinstance(serial, bool) or not isinstance(serial, int) or not 0 <= serial < len(map_objects):
-            raise ValueError(f"wall {index} names an object outside the map")
-        obj = map_objects[serial]
-        entries.add((obj.tile, obj.fid))
-    return sorted(entries)
+        obj = _object(map_objects, row[8], f"wall {index}")
+        entries[(obj.tile, obj.fid)] = (SKIP, 0.0, 0.0, 0.0)
+
+    boards = scene.get("boards") or []
+    # Cards a solid stands for. Forms (tents, set pieces) are not drawn, so
+    # with any of them only the boards a solid names are left out.
+    replaced = set(scene.get("hidden") or []) if not scene.get("forms") else {
+        row[3] for row in scene.get("props") or [] if row[3] >= 0}
+    for board in sorted(replaced - set(live_boards)):
+        if not 0 <= board < len(boards):
+            raise ValueError(f"hidden board {board} is outside scene.boards")
+        obj = _object(map_objects, boards[board][5], f"board {board}")
+        entries[(obj.tile, obj.fid)] = (SKIP, 0.0, 0.0, 0.0)
+    for row in scene.get("lifts") or []:
+        board, du, dv, dz = row[:4]
+        if board in replaced and board not in live_boards:
+            continue
+        obj = _object(map_objects, boards[board][5], f"lifted board {board}")
+        entries.setdefault((obj.tile, obj.fid), (LIFT, float(du), float(dv), float(dz)))
+    return sorted((tile, fid, *rest) for (tile, fid), rest in entries.items())
 
 
 def encode_baked_sidecar(entries):
@@ -41,12 +65,14 @@ def encode_baked_sidecar(entries):
     if len(entries) > MAX_ENTRIES:
         raise ValueError("baked object list exceeds format limits")
     payload = bytearray(HEADER.pack(MAGIC, VERSION, HEADER.size, len(entries)))
-    for tile, fid in entries:
+    for tile, fid, mode, du, dv, dz in entries:
         if not 0 <= tile < 200 * 200:
             raise ValueError(f"baked object tile {tile} is outside the hex grid")
         if not 0 <= fid <= 0xFFFFFFFF:
             raise ValueError(f"baked object fid {fid} is out of range")
-        payload.extend(ENTRY.pack(tile, fid))
+        if mode not in (SKIP, LIFT):
+            raise ValueError(f"baked object mode {mode} is unknown")
+        payload.extend(ENTRY.pack(tile, fid, mode, du, dv, dz))
     return bytes(payload)
 
 
@@ -59,6 +85,8 @@ def decode_baked_sidecar(payload):
     if len(payload) != HEADER.size + count * ENTRY.size:
         raise ValueError("baked sidecar has a bad length")
     entries = [ENTRY.unpack_from(payload, HEADER.size + index * ENTRY.size) for index in range(count)]
-    if any(not 0 <= tile < 200 * 200 for tile, _ in entries):
+    if any(not 0 <= entry[0] < 200 * 200 for entry in entries):
         raise ValueError("baked sidecar names a tile outside the hex grid")
+    if any(entry[2] not in (SKIP, LIFT) for entry in entries):
+        raise ValueError("baked sidecar has an unknown mode")
     return entries

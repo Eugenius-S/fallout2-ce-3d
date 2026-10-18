@@ -54,6 +54,10 @@ struct StaticObjectFrame {
     const unsigned char* rgba;
     size_t rgbaSize;
     int stack = 0; // sprites the game paints on the same hex before this one
+    // The engine's translucent look (_dark_translucent_trans_buf_to_buf): the
+    // tint's RGB, and whether the glass gray table is used; tint < 0: opaque.
+    float tint[3] = { -1.0f, -1.0f, -1.0f };
+    bool glassGray = false;
 };
 
 struct StaticHeroInfo {
@@ -96,6 +100,9 @@ bool staticHeroInfo(StaticHeroInfo* info);
 // Live objects are rebuilt every presented frame between begin and end.
 // Objects walls.bin already draws (baked.bin) are skipped by the caller.
 bool staticObjectBaked(int tile, int fid);
+// Things standing on a solid (an item on a table) are moved onto it, along the
+// game's view ray: GL offset (x, y up, z). False when the object stays put.
+bool staticObjectLift(int tile, int fid, float lift[3]);
 bool staticObjectArtCached(int fid, int frame, int rotation);
 void beginStaticObjects();
 bool addStaticObject(const StaticObjectFrame& frame, std::string* error);

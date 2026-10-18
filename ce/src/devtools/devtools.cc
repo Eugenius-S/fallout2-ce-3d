@@ -643,6 +643,36 @@ void addObjectCard(Object* object, void* context)
         cached ? nullptr : pass.rgba.data(), cached ? 0 : pass.rgba.size(),
     };
     frame.stack = stack;
+    // The engine's translucent kinds and their tints (_obj_render_object).
+    Color tint = COLOR_WHITE;
+    bool translucent = true;
+    switch (object->flags & OBJECT_FLAG_0xFC000) {
+    case OBJECT_TRANS_RED:
+        tint = COLOR_RED;
+        break;
+    case OBJECT_TRANS_WALL:
+        tint = COLOR_PALE_BLUE;
+        break;
+    case OBJECT_TRANS_GLASS:
+        tint = COLOR_CYAN;
+        frame.glassGray = true;
+        break;
+    case OBJECT_TRANS_STEAM:
+        tint = COLOR_WHITE;
+        break;
+    case OBJECT_TRANS_ENERGY:
+        tint = COLOR_YELLOW_GREEN;
+        break;
+    default:
+        translucent = false;
+        break;
+    }
+    if (translucent) {
+        const int rgb = Color2RGB(tint);
+        frame.tint[0] = ((rgb >> 10) & 0x1F) / 31.0f;
+        frame.tint[1] = ((rgb >> 5) & 0x1F) / 31.0f;
+        frame.tint[2] = (rgb & 0x1F) / 31.0f;
+    }
     std::string error;
     if (!scene_renderer::addStaticObject(frame, &error)) pass.skipped++;
 }

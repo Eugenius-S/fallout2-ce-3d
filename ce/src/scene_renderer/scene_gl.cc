@@ -70,6 +70,9 @@ uniform sampler2D uTexture;
 uniform int uTextured;
 uniform vec4 uColor;
 uniform float uCutoff;
+uniform int uTranslucent; // the engine's translucent blend: steam, glass, energy, ...
+uniform vec3 uTint;
+uniform int uGlassGray;
 out vec4 outColor;
 void main() {
     if (uTextured == 0) {
@@ -77,7 +80,18 @@ void main() {
     } else {
         vec4 texel = texture(uTexture, vTexcoord);
         if (texel.a < uCutoff) discard;
-        outColor = texel;
+        if (uTranslucent != 0) {
+            // _dark_translucent_trans_buf_to_buf: a texel's gray level (0..7,
+            // from its RGB555 colour) mixes the tint over what lies behind, in
+            // sevenths; level 0 leaves it unchanged.
+            vec3 c = floor(texel.rgb * 255.0 / 8.0);
+            float gray = uGlassGray != 0 ? floor(floor((c.r + 5.0 * c.g + 4.0 * c.b) / 10.0) / 4.0)
+                                         : floor(floor((c.b + 3.0 * c.r + 6.0 * c.g) / 10.0) / 4.0);
+            if (gray < 1.0) discard;
+            outColor = vec4(uTint, min(gray, 7.0) / 7.0);
+        } else {
+            outColor = texel;
+        }
     }
 }
 )";
@@ -198,6 +212,9 @@ int gFloorTexturedLocation = -1;
 int gFloorColorLocation = -1;
 int gFloorCutoffLocation = -1;
 int gFloorDepthAtLocation = -1;
+int gFloorTranslucentLocation = -1;
+int gFloorTintLocation = -1;
+int gFloorGlassGrayLocation = -1;
 int gFloorVertexCount = 0;
 bool gFloorLoaded = false;
 std::vector<WallBatch> gWallBatches;
@@ -225,13 +242,20 @@ struct ObjectDraw {
     unsigned int texture;
     int firstVertex;
     bool flat;
+    float tint[3]; // translucent look, tint[0] < 0: opaque
+    bool glassGray;
+};
+
+struct BakedObject {
+    bool lift; // false: walls.bin draws it, skip
+    float offset[3]; // GL x, y, z when lifted
 };
 
 // Live map objects: one textured quad each, rebuilt every presented frame.
 // Frame textures are cached by (fid, frame, rotation) across frames.
 constexpr size_t kMaxObjectTextures = 4096;
 constexpr float kFlatObjectHeight = 0.01f;
-std::unordered_set<unsigned long long> gBakedObjects;
+std::unordered_map<unsigned long long, BakedObject> gBakedObjects;
 std::unordered_map<unsigned long long, unsigned int> gObjectTextures;
 std::vector<DepthVertex> gObjectVertices;
 std::vector<ObjectDraw> gObjectDraws;
@@ -902,7 +926,16 @@ bool staticHeroInfo(StaticHeroInfo* info)
 
 bool staticObjectBaked(int tile, int fid)
 {
-    return gBakedObjects.count(bakedObjectKey(tile, fid)) != 0;
+    const auto found = gBakedObjects.find(bakedObjectKey(tile, fid));
+    return found != gBakedObjects.end() && !found->second.lift;
+}
+
+bool staticObjectLift(int tile, int fid, float lift[3])
+{
+    const auto found = gBakedObjects.find(bakedObjectKey(tile, fid));
+    if (found == gBakedObjects.end() || !found->second.lift) return false;
+    for (int axis = 0; axis < 3; axis++) lift[axis] = found->second.offset[axis];
+    return true;
 }
 
 bool staticObjectArtCached(int fid, int frame, int rotation)
@@ -965,15 +998,25 @@ bool addStaticObject(const StaticObjectFrame& frame, std::string* error)
         gObjectTextures.emplace(key, texture);
     }
 
-    gObjectDraws.push_back({ texture, static_cast<int>(gObjectVertices.size()), frame.flat });
+    gObjectDraws.push_back({ texture, static_cast<int>(gObjectVertices.size()), frame.flat,
+        { frame.tint[0], frame.tint[1], frame.tint[2] }, frame.glassGray });
+    // A thing standing on a solid moves onto it, and so does its row plane.
+    float lift[3] = { 0.0f, 0.0f, 0.0f };
+    const bool lifted = staticObjectLift(frame.tile, frame.fid, lift);
+    const double liftedRow = row + lift[2];
     const int order[6] = { 0, 1, 2, 0, 2, 3 };
     for (int index : order) {
-        const SpriteCardVertex& corner = corners[index];
+        SpriteCardVertex corner = corners[index];
+        if (lifted) {
+            corner.x += lift[0];
+            corner.y += lift[1];
+            corner.z += lift[2];
+        }
         gObjectVertices.push_back(frame.flat
                 ? DepthVertex { static_cast<float>(corner.x), static_cast<float>(corner.y), static_cast<float>(corner.z),
                       static_cast<float>(corner.u), static_cast<float>(corner.v), static_cast<float>(corner.x),
                       static_cast<float>(corner.y), static_cast<float>(corner.z) }
-                : cardVertex(corner, row, camera.eye));
+                : cardVertex(corner, liftedRow, camera.eye));
     }
     if (error != nullptr) error->clear();
     return true;
@@ -1175,9 +1218,13 @@ bool loadStaticFloor(const std::filesystem::path& cacheDirectory, std::string* e
     gFloorColorLocation = glGetUniformLocation(gFloorProgram, "uColor");
     gFloorCutoffLocation = glGetUniformLocation(gFloorProgram, "uCutoff");
     gFloorDepthAtLocation = glGetUniformLocation(gFloorProgram, "uDepthAt");
+    gFloorTranslucentLocation = glGetUniformLocation(gFloorProgram, "uTranslucent");
+    gFloorTintLocation = glGetUniformLocation(gFloorProgram, "uTint");
+    gFloorGlassGrayLocation = glGetUniformLocation(gFloorProgram, "uGlassGray");
     if (gFloorMvpLocation < 0 || gFloorTextureLocation < 0
         || gFloorTexturedLocation < 0 || gFloorColorLocation < 0 || gFloorCutoffLocation < 0
-        || gFloorDepthAtLocation < 0) {
+        || gFloorDepthAtLocation < 0 || gFloorTranslucentLocation < 0 || gFloorTintLocation < 0
+        || gFloorGlassGrayLocation < 0) {
         return fail("static floor shader uniforms are missing");
     }
     gFloorVertexCount = static_cast<int>(vertices.size());
@@ -1332,26 +1379,35 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
 
     // Objects walls.bin draws; live sprite cards skip them.
     constexpr size_t kBakedHeaderSize = 12;
-    constexpr size_t kBakedEntrySize = 8;
+    constexpr size_t kBakedEntrySize = 24;
     constexpr unsigned int kMaxBakedEntries = 1000000;
     std::vector<unsigned char> baked;
     if (!readBinary(cacheDirectory / "baked.bin", baked)) {
         return fail("baked.bin is missing or unreadable; re-run the scene exporter");
     }
     if (baked.size() < kBakedHeaderSize || baked[0] != 'F' || baked[1] != '2' || baked[2] != 'B' || baked[3] != 'K'
-        || readU16(baked.data() + 4) != 1 || readU16(baked.data() + 6) != kBakedHeaderSize) {
+        || readU16(baked.data() + 4) != 2 || readU16(baked.data() + 6) != kBakedHeaderSize) {
         return fail("baked.bin has an invalid header");
     }
     const unsigned int bakedCount = readU32(baked.data() + 8);
     if (bakedCount > kMaxBakedEntries || baked.size() != kBakedHeaderSize + bakedCount * kBakedEntrySize) {
         return fail("baked.bin has a bad length");
     }
-    std::unordered_set<unsigned long long> bakedObjects;
+    std::unordered_map<unsigned long long, BakedObject> bakedObjects;
     for (unsigned int index = 0; index < bakedCount; index++) {
         const unsigned char* entry = baked.data() + kBakedHeaderSize + index * kBakedEntrySize;
         const int tile = static_cast<int>(readU32(entry));
+        const unsigned int mode = readU32(entry + 8);
+        const float du = readF32(entry + 12);
+        const float dv = readF32(entry + 16);
+        const float dz = readF32(entry + 20);
         if (tile < 0 || tile >= HEX_GRID_SIZE) return fail("baked.bin names a tile outside the hex grid");
-        bakedObjects.insert(bakedObjectKey(tile, static_cast<int>(readU32(entry + 4))));
+        if (mode > 1 || !std::isfinite(du) || !std::isfinite(dv) || !std::isfinite(dz)
+            || std::abs(du) > 10.0f || std::abs(dv) > 10.0f || std::abs(dz) > 10.0f) {
+            return fail("baked.bin has an unknown mode or a bad lift");
+        }
+        // Lifts are donor (u, v, z); GL is (u, z, v).
+        bakedObjects[bakedObjectKey(tile, static_cast<int>(readU32(entry + 4)))] = { mode == 1, { du, dz, dv } };
     }
 
     while (glGetError() != 0) {
@@ -1437,6 +1493,7 @@ void drawStaticPreview(bool withWalls, bool withHero)
     glUseProgram(gFloorProgram);
     glUniformMatrix4fv(gFloorMvpLocation, 1, 0, mvp);
     glUniform1i(gFloorDepthAtLocation, 0);
+    glUniform1i(gFloorTranslucentLocation, 0);
     glActiveTexture(kTexture0);
     glUniform1i(gFloorTextureLocation, 0);
     glBindVertexArray(gFloorVao);
@@ -1458,7 +1515,7 @@ void drawStaticPreview(bool withWalls, bool withHero)
         glUniform1f(gFloorCutoffLocation, 0.5f);
         glBindVertexArray(gObjectVao);
         for (const ObjectDraw& draw : gObjectDraws) {
-            if (!draw.flat) continue;
+            if (!draw.flat || draw.tint[0] >= 0.0f) continue;
             glBindTexture(kTexture2D, draw.texture);
             glDrawArrays(kTriangles, draw.firstVertex, 6);
         }
@@ -1481,7 +1538,7 @@ void drawStaticPreview(bool withWalls, bool withHero)
         glUniform1f(gFloorCutoffLocation, 0.5f);
         glBindVertexArray(gObjectVao);
         for (const ObjectDraw& draw : gObjectDraws) {
-            if (draw.flat) continue;
+            if (draw.flat || draw.tint[0] >= 0.0f) continue;
             glBindTexture(kTexture2D, draw.texture);
             glDrawArrays(kTriangles, draw.firstVertex, 6);
         }
@@ -1491,6 +1548,24 @@ void drawStaticPreview(bool withWalls, bool withHero)
         glBindVertexArray(gHeroVao);
         glBindTexture(kTexture2D, gHeroTexture);
         glDrawArrays(kTriangles, 0, 6);
+    }
+    if (withObjects) {
+        glEnable(kBlend);
+        glBlendFunc(kSrcAlpha, kOneMinusSrcAlpha);
+        glDepthMask(0);
+        glUniform1i(gFloorTranslucentLocation, 1);
+        glUniform1f(gFloorCutoffLocation, 0.5f);
+        glBindVertexArray(gObjectVao);
+        for (const ObjectDraw& draw : gObjectDraws) {
+            if (draw.tint[0] < 0.0f) continue;
+            glUniform3f(gFloorTintLocation, draw.tint[0], draw.tint[1], draw.tint[2]);
+            glUniform1i(gFloorGlassGrayLocation, draw.glassGray ? 1 : 0);
+            glBindTexture(kTexture2D, draw.texture);
+            glDrawArrays(kTriangles, draw.firstVertex, 6);
+        }
+        glUniform1i(gFloorTranslucentLocation, 0);
+        glDepthMask(1);
+        glDisable(kBlend);
     }
     glUniform1i(gFloorDepthAtLocation, 0);
 

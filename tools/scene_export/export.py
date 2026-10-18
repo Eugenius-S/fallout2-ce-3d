@@ -27,7 +27,7 @@ from projection_sidecar import decode_projection_sidecar, encode_projection_side
 from wall_sidecar import VERSION as WALL_SIDECAR_VERSION  # noqa: E402
 from wall_sidecar import decode_wall_sidecar, encode_wall_sidecar  # noqa: E402
 
-EXPORTER_VERSION = "1.5.0"
+EXPORTER_VERSION = "1.6.0"
 FLOOR_SIDECAR_VERSION = 1
 DONOR_REVISION = "0da1cd449f1dc7f2f6986ff7e8728a4b6ae20584"
 MAP_NAME = "kladwtwn"
@@ -298,6 +298,24 @@ class ReadOnlyGameFiles(GameFiles):
         return sorted(names)
 
 
+def live_solids(builder, scene):
+    """Solids whose object animates (a locker, a fridge opening) stay live
+    cards in the engine: (their boards, their props rows, rests near them)."""
+    objects = builder.map.objects[builder.elevation]
+    boards = scene.get("boards") or []
+    live = set()
+    for board in scene.get("hidden") or []:
+        frm = builder.load_art(objects[boards[board][5]])
+        if frm is not None and frm.frame_count > 1:
+            live.add(board)
+    props = scene.get("props") or []
+    skip_props = {index for index, row in enumerate(props) if row[3] in live}
+    centres = [(props[index][5], props[index][6]) for index in skip_props]
+    skip_rests = {index for index, row in enumerate(scene.get("rests") or [])
+                  if any(abs(row[1] - cu) < 0.75 and abs(row[2] - cv) < 0.75 for cu, cv in centres)}
+    return live, skip_props, skip_rests
+
+
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     roots = parser.add_mutually_exclusive_group()
@@ -334,10 +352,11 @@ def main(argv=None):
         scene = json.loads(scene_path.read_text(encoding="utf-8"))
         if scene.get("map") != MAP_NAME or scene.get("elevation") != ELEVATION:
             raise RuntimeError("SceneBuilder returned an unexpected map/elevation")
-        wall_payload = encode_wall_sidecar(scene)
+        live_boards, skip_props, skip_rests = live_solids(builder, scene)
+        wall_payload = encode_wall_sidecar(scene, skip_props, skip_rests)
         (out_dir / "walls.bin").write_bytes(wall_payload)
         wall_data = decode_wall_sidecar(wall_payload)
-        baked_payload = encode_baked_sidecar(baked_objects(scene, builder.map.objects[ELEVATION]))
+        baked_payload = encode_baked_sidecar(baked_objects(scene, builder.map.objects[ELEVATION], live_boards))
         (out_dir / "baked.bin").write_bytes(baked_payload)
         baked_count = len(decode_baked_sidecar(baked_payload))
         projection_payload = encode_projection_sidecar(scene)
@@ -347,7 +366,8 @@ def main(argv=None):
         vendor_files = sorted((HERE / "vendor").rglob("*.py"))
         vendor_hashes = {p.relative_to(HERE / "vendor").as_posix(): sha256_file(p) for p in vendor_files}
         adapter_hashes = {name: sha256_file(HERE / name) for name in
-                          ("export.py", "floor_sidecar.py", "wall_sidecar.py", "projection_sidecar.py", "baked_sidecar.py")}
+                          ("export.py", "floor_sidecar.py", "wall_sidecar.py", "projection_sidecar.py", "baked_sidecar.py",
+                           "solids.py")}
         archives = [{"name": name, "path": source.path.relative_to(game_root).as_posix()
                      if source.path.is_relative_to(game_root) else str(source.path),
                      "size": source.path.stat().st_size, "sha256": sha256_file(source.path)}

@@ -1,10 +1,11 @@
 {
   "adapter_sha256": {
-    "baked_sidecar.py": "7a9ced0f7e1472ba7da568f59d124fd3d2e863fdab1f7f1b48b5520f71c35325",
-    "export.py": "b20fa48113a378d1f2d19e96ffce3790cced591057994834d7bc3992e8fd6769",
+    "baked_sidecar.py": "de6b95ba082dcb2392f7aad4576164082ffc370e9f4679f539f84232b6770a22",
+    "export.py": "96c0adefa0ee82c418db01bc0896edf35f9f586de1122ab8cca6a61525243ea2",
     "floor_sidecar.py": "632a33d48c710394144535f66dcaeea988d76041cdac3ef3fa1c07c3ad1d9bd7",
     "projection_sidecar.py": "b48cae0ce7cf3c8b50291d5739240bba63dd262b084f76756209a5dda49a21ed",
-    "wall_sidecar.py": "bc2b6043a6bb426e30607f87cc0cbbc90821ac8b300b3df2558a4307ff27c466"
+    "solids.py": "9ec46d2a9d46ebcd531ff04154ca5349cadb57d7c5804d602adadd65fe11d51e",
+    "wall_sidecar.py": "89be8ec66e131535e6f5a624247ec196af9ddfa6fc2db8cfdccd8f86a778a30c"
   },
   "archives": [
     {
@@ -99,20 +100,20 @@
     }
   ],
   "artifacts_sha256": {
-    "baked.bin": "d2a937a1225f2497288f3f029c70574ed6c9cb7d8e7f3c558da134a06c5aa102",
+    "baked.bin": "dc94721e17b437a7abfe8f7dba2b4eaf11a65d92d6246f1b3ae3e9c2700dd22f",
     "floor.bin": "c6b8c42e2c3dfbabc680b620f46fd1bbd96d54d883f5e26d96135e97c27fa3b0",
     "light.png": "1bdef30de77c344b4bda66385565c69b7c400943c4dc181b937543aa25c431f8",
     "projection.bin": "16f764c8c14820b57e37ccfe40d70712dae31376b7ac2b9b8a26853e7199c059",
-    "scene.json": "e39caeb95a74bbb29ab002d5697dc3c3ec9d6ce52b2ac7444554dab5a2654cbe",
+    "scene.json": "f0e52fbc8b09c025ddcbb1fc638782fc6cbf76214037bd8e786ff6e847d7fa14",
     "sprites0.png": "ddabffb48c247fc39de812604bbaf1e488d352deb8881578ef3782b20bbc246d",
     "tiles.png": "3811c5922e162b9aff54682cdd6611786155eadd0ab1960569e2c4c5eb15c828",
-    "walls.bin": "fc998396402d83b7c570a5940ab1f7468f86e7a8eaef6e8f4933cde9ba9a5972"
+    "walls.bin": "f3bbb17b39d3e8c148c3bdd5b7527dda61b0003836ac9108118f221917a1b7a3"
   },
   "baked_sidecar": {
     "file": "baked.bin",
-    "format_version": 1,
-    "objects": 1094,
-    "sha256": "d2a937a1225f2497288f3f029c70574ed6c9cb7d8e7f3c558da134a06c5aa102"
+    "format_version": 2,
+    "objects": 1280,
+    "sha256": "dc94721e17b437a7abfe8f7dba2b4eaf11a65d92d6246f1b3ae3e9c2700dd22f"
   },
   "configuration_sha256": {
     "ddraw.ini": "4dfd014718513ada6396f33684b7718ad85dfcd64b94aa99f66e29298d69a1b3",
@@ -122,8 +123,8 @@
   "donor_revision": "0da1cd449f1dc7f2f6986ff7e8728a4b6ae20584",
   "elevation": 0,
   "exporter": "fallout2-sprite-lighting scene_export",
-  "exporter_version": "1.5.0",
-  "fingerprint_sha256": "eab1b579756071492ff097c96071175ba123ae90d6ea41176b540b21a75315c0",
+  "exporter_version": "1.6.0",
+  "fingerprint_sha256": "91c24cc3c8ffd7455b55a4ea4deeb4653d831ecc58ee3de1cf9b9c66712e95e6",
   "floor_sidecar": {
     "file": "floor.bin",
     "format_version": 1,
@@ -6108,10 +6109,10 @@
           2048,
           3826
         ],
-        "triangles": 4750
+        "triangles": 8829
       }
     ],
-    "sha256": "fc998396402d83b7c570a5940ab1f7468f86e7a8eaef6e8f4933cde9ba9a5972",
-    "triangles": 4750
+    "sha256": "f3bbb17b39d3e8c148c3bdd5b7527dda61b0003836ac9108118f221917a1b7a3",
+    "triangles": 8829
   }
 }
