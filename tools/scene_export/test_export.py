@@ -286,6 +286,13 @@ class WallSidecarTests(unittest.TestCase):
         far_distance = (2.0 - (2.0 - 10.0 / hpx)) / toward[2]
         self.assertAlmostEqual(far[0], 3.0 - toward[0] * far_distance - 50.0, places=5)
         self.assertAlmostEqual(far[2], 2.0 - toward[1] * far_distance - 50.0, places=5)
+        # A front vertex takes its own depth; the far edge of the top takes that of
+        # the top edge of the front plane it was painted on (donor wallFront home).
+        self.assertEqual(vertices[0][5:], vertices[0][:3])
+        for actual, expected in zip(vertices[8][5:], (-47.0, 2.0, -48.0)):
+            self.assertAlmostEqual(actual, expected, places=5)
+        for actual, expected in zip(vertices[11][5:], (-49.0, 2.0, -48.0)):
+            self.assertAlmostEqual(actual, expected, places=5)
         # No back face (sprite 1), slab end or door: the game's camera does not see
         # backs and ends, and the engine draws doors live so they open.
         self.assertEqual(len(vertices), 12)

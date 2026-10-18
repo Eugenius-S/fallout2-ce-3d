@@ -173,7 +173,20 @@ int _GNW95_init_window(int width, int height, WindowMode mode, int scale)
             windowFlags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
         }
 
-        gSdlWindow = SDL_CreateWindow(gProgramWindowTitle, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width * scale, height * scale, windowFlags);
+        // Dev test runs (tools/dev-snapshot.ps1) open the window off screen,
+        // off the taskbar and never activated, so they run beside the user's
+        // own session. Never activated also means never losing focus, which
+        // would pause the game (_GNW95_lost_focus).
+        int windowX = SDL_WINDOWPOS_UNDEFINED;
+        int windowY = SDL_WINDOWPOS_UNDEFINED;
+        if (SDL_getenv("F2CE_DEV_BACKGROUND") != nullptr && mode == WindowMode::Windowed) {
+            SDL_SetHint(SDL_HINT_WINDOW_NO_ACTIVATION_WHEN_SHOWN, "1");
+            windowFlags |= SDL_WINDOW_SKIP_TASKBAR;
+            windowX = -20000;
+            windowY = -20000;
+        }
+
+        gSdlWindow = SDL_CreateWindow(gProgramWindowTitle, windowX, windowY, width * scale, height * scale, windowFlags);
         if (gSdlWindow == nullptr) {
             return -1;
         }

@@ -7,10 +7,13 @@ import struct
 
 
 MAGIC = b"F2WL"
-VERSION = 1
+VERSION = 2
 HEADER = struct.Struct("<4sHHIII")  # magic, version, header bytes, atlas pages, batches, triangles
 BATCH = struct.Struct("<IIII")  # atlas page, width, height, triangles
-VERTEX = struct.Struct("<5f")  # GL position xyz, top-down normalized atlas uv
+# GL position xyz, top-down normalized atlas uv, GL point whose depth the vertex
+# takes (itself, except on wall tops: the front-plane point its texel was painted on)
+VERTEX = struct.Struct("<8f")
+FLOATS = 8
 GL_MAP_OFFSET = 50.0
 
 
@@ -33,15 +36,19 @@ def _record(row, length, label):
 
 
 def _quad(batches, page, page_size, corners):
-    """Append the same a,b,c / a,c,d triangulation as donor Mesh.quad."""
+    """Append the same a,b,c / a,c,d triangulation as donor Mesh.quad. A corner
+    may carry the donor's `home`: the way back to the point whose depth it takes."""
     width, height = page_size
     points = []
-    for u, v, z, tx, ty in corners:
-        u, v, z = (_finite(n, "wall position") for n in (u, v, z))
+    for corner in corners:
+        u, v, z, tx, ty = corner[:5]
+        hu, hv, hz = corner[5:8] if len(corner) > 5 else (0.0, 0.0, 0.0)
+        u, v, z, hu, hv, hz = (_finite(n, "wall position") for n in (u, v, z, hu, hv, hz))
         tx, ty = (_finite(n, "wall atlas coordinate") for n in (tx, ty))
         if not (0 <= tx <= width and 0 <= ty <= height):
             raise ValueError("wall texture coordinates are outside the sprite atlas")
-        points.append((u - GL_MAP_OFFSET, z, v - GL_MAP_OFFSET, tx / width, ty / height))
+        points.append((u - GL_MAP_OFFSET, z, v - GL_MAP_OFFSET, tx / width, ty / height,
+                       u + hu - GL_MAP_OFFSET, z + hz, v + hv - GL_MAP_OFFSET))
     target = batches.setdefault(page, [])
     for index in (0, 1, 2, 0, 2, 3):
         target.extend(points[index])
@@ -93,9 +100,12 @@ def _wall_front(batches, sprites, pages, row, hpx, toward_camera):
         raise ValueError("donor projection has a horizontal camera ray")
     far = (z1 - zc) / k[2]
     du, dv = -k[0] * far, -k[1] * far
+    # The top keeps the depth of the front plane it was painted on: what the
+    # game drew the wall over (a lamp post right behind it) stays hidden.
+    home = [-du, -dv, z1 - zc]
     _quad(batches, page, pages[page], [
         [ua, va, zc, x, y + top], [ub, vb, zc, x + w, y + top],
-        [ub + du, vb + dv, zc, x + w, y], [ua + du, va + dv, zc, x, y],
+        [ub + du, vb + dv, zc, x + w, y, *home], [ua + du, va + dv, zc, x, y, *home],
     ])
 
 
@@ -154,7 +164,7 @@ def encode_wall_sidecar(scene):
     # Doors are not baked: they open and close, so the engine draws them live
     # as sprite cards with their current frame.
 
-    total_triangles = sum(len(values) // 15 for values in batches.values())
+    total_triangles = sum(len(values) // (3 * FLOATS) for values in batches.values())
     if total_triangles > 0xFFFFFFFF or len(batches) > 0xFFFFFFFF:
         raise ValueError("wall sidecar exceeds binary format limits")
     if len(pages) > 0xFFFFFFFF:
@@ -162,10 +172,10 @@ def encode_wall_sidecar(scene):
     payload = bytearray(HEADER.pack(MAGIC, VERSION, HEADER.size, len(pages), len(batches), total_triangles))
     for page in sorted(batches):
         values = batches[page]
-        if len(values) % 15:
+        if len(values) % (3 * FLOATS):
             raise AssertionError("internal wall sidecar vertex alignment error")
         width, height = pages[page]
-        triangle_count = len(values) // 15
+        triangle_count = len(values) // (3 * FLOATS)
         payload.extend(BATCH.pack(page, width, height, triangle_count))
         payload.extend(struct.pack(f"<{len(values)}f", *values))
     return bytes(payload)
@@ -198,8 +208,8 @@ def decode_wall_sidecar(data):
             raise ValueError("truncated wall sidecar vertices")
         vertices = [VERTEX.unpack_from(data, offset + i * VERTEX.size) for i in range(vertex_count)]
         offset += byte_count
-        for x, y, z, u, v in vertices:
-            if not all(math.isfinite(value) for value in (x, y, z, u, v)):
+        for x, y, z, u, v, *depth_at in vertices:
+            if not all(math.isfinite(value) for value in (x, y, z, u, v, *depth_at)):
                 raise ValueError("wall sidecar has non-finite vertex data")
             if not (0 <= u <= 1 and 0 <= v <= 1):
                 raise ValueError("wall sidecar UV is outside normalized atlas bounds")

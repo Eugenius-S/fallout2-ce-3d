@@ -69,6 +69,22 @@ $toolsCommit = (git -C $Root rev-parse --short HEAD) 2>$null
 if (-not $toolsCommit) { $toolsCommit = 'unknown' }
 
 $exe = Join-Path $GameDir 'fallout2-ce.exe'
+
+# Install a newer build. A game that is still open keeps running from its file:
+# Windows lets a running exe be renamed, so it is moved aside, not closed.
+Get-ChildItem $GameDir -Filter 'fallout2-ce.old-*.exe' | ForEach-Object {
+    try { Remove-Item $_.FullName -ErrorAction Stop } catch { }
+}
+$built = Join-Path $Root 'build\fallout2-ce.exe'
+if ((Test-Path $built) -and (-not (Test-Path $exe) -or (Get-Item $built).LastWriteTime -gt (Get-Item $exe).LastWriteTime)) {
+    try {
+        Copy-Item $built $exe -Force -ErrorAction Stop
+    } catch {
+        Rename-Item $exe ("fallout2-ce.old-" + (Get-Date -Format 'yyyyMMdd-HHmmss') + ".exe")
+        Copy-Item $built $exe
+    }
+    Write-Output "INSTALLED: $built"
+}
 $start = if ($Slot -gt 0) { "--dev-load-game=$Slot" } else { '--dev-new-game' }
 $args = @('--dev-tools', $start, "--dev-map=$Map", "--dev-elevation=$Elevation", "--dev-tools-commit=$toolsCommit")
 if (-not $Classic) { $args += '--dev-walk-preview' }

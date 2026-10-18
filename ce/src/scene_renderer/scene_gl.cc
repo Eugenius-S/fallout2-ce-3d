@@ -50,21 +50,15 @@ void main() {
 constexpr const char* kFloorVertexShader = R"(#version 330 core
 layout(location = 0) in vec3 aPosition;
 layout(location = 1) in vec2 aTexcoord;
-layout(location = 2) in float aRow; // sprite cards: z of their hex row's depth plane
+layout(location = 2) in vec3 aDepthAt; // the point whose depth this vertex takes
 uniform mat4 uMvp;
-uniform int uCardDepth;
-uniform vec3 uEye;
+uniform int uDepthAt;
 out vec2 vTexcoord;
 void main() {
     gl_Position = uMvp * vec4(aPosition, 1.0);
     vTexcoord = aTexcoord;
-    if (uCardDepth != 0) {
-        // A card takes the depth of the point where the view ray meets the
-        // upright plane through its hex row, so cards hide each other and
-        // walls the way the game paints them hex row by hex row.
-        vec3 ray = aPosition - uEye;
-        float t = abs(ray.z) > 0.00001 ? (aRow - aPosition.z) / ray.z : 0.0;
-        vec4 q = uMvp * vec4(aPosition + ray * t, 1.0);
+    if (uDepthAt != 0) {
+        vec4 q = uMvp * vec4(aDepthAt, 1.0);
         gl_Position.z = q.z / q.w * gl_Position.w;
     }
 }
@@ -141,15 +135,40 @@ struct FloorVertex {
     float v;
 };
 
-// A sprite card vertex: FloorVertex plus the z of the card's row plane.
-struct CardVertex {
+// A FloorVertex that takes the depth of another point, as the donor's game
+// view does: a sprite card that of its hex row's upright plane on the same
+// view ray (so cards hide each other and walls as the game paints them, row
+// by row), a wall top that of the front-plane point its texel was painted on.
+struct DepthVertex {
     float x;
     float y;
     float z;
     float u;
     float v;
-    float row;
+    float depthX;
+    float depthY;
+    float depthZ;
 };
+
+DepthVertex cardVertex(const SpriteCardVertex& corner, double row, const float eye[3])
+{
+    const double ray[3] = { corner.x - eye[0], corner.y - eye[1], corner.z - eye[2] };
+    const double t = std::abs(ray[2]) > 1e-9 ? (row - corner.z) / ray[2] : 0.0;
+    return { static_cast<float>(corner.x), static_cast<float>(corner.y), static_cast<float>(corner.z),
+        static_cast<float>(corner.u), static_cast<float>(corner.v),
+        static_cast<float>(corner.x + ray[0] * t), static_cast<float>(corner.y + ray[1] * t),
+        static_cast<float>(row) };
+}
+
+void depthVertexLayout()
+{
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, 0x1406 /* GL_FLOAT */, 0, sizeof(DepthVertex), reinterpret_cast<const void*>(0));
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, 0x1406, 0, sizeof(DepthVertex), reinterpret_cast<const void*>(3 * sizeof(float)));
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 3, 0x1406, 0, sizeof(DepthVertex), reinterpret_cast<const void*>(5 * sizeof(float)));
+}
 
 struct WallBatch {
     unsigned int page = 0;
@@ -178,8 +197,7 @@ int gFloorTextureLocation = -1;
 int gFloorTexturedLocation = -1;
 int gFloorColorLocation = -1;
 int gFloorCutoffLocation = -1;
-int gFloorCardDepthLocation = -1;
-int gFloorEyeLocation = -1;
+int gFloorDepthAtLocation = -1;
 int gFloorVertexCount = 0;
 bool gFloorLoaded = false;
 std::vector<WallBatch> gWallBatches;
@@ -211,7 +229,7 @@ constexpr size_t kMaxObjectTextures = 4096;
 constexpr float kFlatObjectHeight = 0.01f;
 std::unordered_set<unsigned long long> gBakedObjects;
 std::unordered_map<unsigned long long, unsigned int> gObjectTextures;
-std::vector<CardVertex> gObjectVertices;
+std::vector<DepthVertex> gObjectVertices;
 std::vector<ObjectDraw> gObjectDraws;
 unsigned int gObjectVao = 0;
 unsigned int gObjectVbo = 0;
@@ -812,16 +830,13 @@ bool updateStaticHero(const StaticHeroFrame& frame, std::string* error)
     if (!standingSpriteCard(cardProjection(), art, corners, &worldU, &worldV)) {
         return fail("hero card anchor or height is not finite");
     }
-    const float row = static_cast<float>(spriteRowPlane(cardProjection(), frame.tile, frame.stack));
-    auto vertex = [row](const SpriteCardVertex& corner) {
-        return CardVertex { static_cast<float>(corner.x), static_cast<float>(corner.y),
-            static_cast<float>(corner.z), static_cast<float>(corner.u), static_cast<float>(corner.v), row };
-    };
-    const CardVertex topLeft = vertex(corners[0]);
-    const CardVertex bottomLeft = vertex(corners[1]);
-    const CardVertex bottomRight = vertex(corners[2]);
-    const CardVertex topRight = vertex(corners[3]);
-    const CardVertex vertices[] = { topLeft, bottomLeft, bottomRight, topLeft, bottomRight, topRight };
+    const double row = spriteRowPlane(cardProjection(), frame.tile, frame.stack);
+    const StaticPreviewCamera camera = staticPreviewCamera(true);
+    const DepthVertex topLeft = cardVertex(corners[0], row, camera.eye);
+    const DepthVertex bottomLeft = cardVertex(corners[1], row, camera.eye);
+    const DepthVertex bottomRight = cardVertex(corners[2], row, camera.eye);
+    const DepthVertex topRight = cardVertex(corners[3], row, camera.eye);
+    const DepthVertex vertices[] = { topLeft, bottomLeft, bottomRight, topLeft, bottomRight, topRight };
 
     while (glGetError() != 0) {
     }
@@ -832,12 +847,7 @@ bool updateStaticHero(const StaticHeroFrame& frame, std::string* error)
     glBindVertexArray(gHeroVao);
     glBindBuffer(kArrayBuffer, gHeroVbo);
     glBufferData(kArrayBuffer, sizeof(vertices), vertices, kStaticDraw);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, 0x1406 /* GL_FLOAT */, 0, sizeof(CardVertex), reinterpret_cast<const void*>(0));
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 2, 0x1406, 0, sizeof(CardVertex), reinterpret_cast<const void*>(3 * sizeof(float)));
-    glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 1, 0x1406, 0, sizeof(CardVertex), reinterpret_cast<const void*>(5 * sizeof(float)));
+    depthVertexLayout();
     glBindTexture(kTexture2D, gHeroTexture);
     glTexImage2D(kTexture2D, 0, kRgba8, frame.width, frame.height, 0, kRGBA, kUnsignedByte, frame.rgba);
     glTexParameteri(kTexture2D, kTextureMinFilter, kNearest);
@@ -900,7 +910,8 @@ bool addStaticObject(const StaticObjectFrame& frame, std::string* error)
     } else if (!standingSpriteCard(cardProjection(), art, corners, nullptr, nullptr)) {
         return fail("object card is invalid");
     }
-    const float row = frame.flat ? 0.0f : static_cast<float>(spriteRowPlane(cardProjection(), frame.tile, frame.stack));
+    const double row = frame.flat ? 0.0 : spriteRowPlane(cardProjection(), frame.tile, frame.stack);
+    const StaticPreviewCamera camera = staticPreviewCamera(true);
 
     const unsigned long long key = objectArtKey(frame.fid, frame.frame, frame.rotation);
     auto cached = gObjectTextures.find(key);
@@ -934,8 +945,11 @@ bool addStaticObject(const StaticObjectFrame& frame, std::string* error)
     const int order[6] = { 0, 1, 2, 0, 2, 3 };
     for (int index : order) {
         const SpriteCardVertex& corner = corners[index];
-        gObjectVertices.push_back({ static_cast<float>(corner.x), static_cast<float>(corner.y),
-            static_cast<float>(corner.z), static_cast<float>(corner.u), static_cast<float>(corner.v), row });
+        gObjectVertices.push_back(frame.flat
+                ? DepthVertex { static_cast<float>(corner.x), static_cast<float>(corner.y), static_cast<float>(corner.z),
+                      static_cast<float>(corner.u), static_cast<float>(corner.v), static_cast<float>(corner.x),
+                      static_cast<float>(corner.y), static_cast<float>(corner.z) }
+                : cardVertex(corner, row, camera.eye));
     }
     if (error != nullptr) error->clear();
     return true;
@@ -948,14 +962,9 @@ void endStaticObjects()
     if (gObjectVbo == 0) glGenBuffers(1, &gObjectVbo);
     glBindVertexArray(gObjectVao);
     glBindBuffer(kArrayBuffer, gObjectVbo);
-    glBufferData(kArrayBuffer, static_cast<long long>(gObjectVertices.size() * sizeof(CardVertex)),
+    glBufferData(kArrayBuffer, static_cast<long long>(gObjectVertices.size() * sizeof(DepthVertex)),
         gObjectVertices.data(), 0x88E8 /* GL_DYNAMIC_DRAW */);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, 0x1406 /* GL_FLOAT */, 0, sizeof(CardVertex), reinterpret_cast<const void*>(0));
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 2, 0x1406, 0, sizeof(CardVertex), reinterpret_cast<const void*>(3 * sizeof(float)));
-    glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 1, 0x1406, 0, sizeof(CardVertex), reinterpret_cast<const void*>(5 * sizeof(float)));
+    depthVertexLayout();
     glBindVertexArray(0);
 }
 
@@ -1141,11 +1150,10 @@ bool loadStaticFloor(const std::filesystem::path& cacheDirectory, std::string* e
     gFloorTexturedLocation = glGetUniformLocation(gFloorProgram, "uTextured");
     gFloorColorLocation = glGetUniformLocation(gFloorProgram, "uColor");
     gFloorCutoffLocation = glGetUniformLocation(gFloorProgram, "uCutoff");
-    gFloorCardDepthLocation = glGetUniformLocation(gFloorProgram, "uCardDepth");
-    gFloorEyeLocation = glGetUniformLocation(gFloorProgram, "uEye");
+    gFloorDepthAtLocation = glGetUniformLocation(gFloorProgram, "uDepthAt");
     if (gFloorMvpLocation < 0 || gFloorTextureLocation < 0
         || gFloorTexturedLocation < 0 || gFloorColorLocation < 0 || gFloorCutoffLocation < 0
-        || gFloorCardDepthLocation < 0 || gFloorEyeLocation < 0) {
+        || gFloorDepthAtLocation < 0) {
         return fail("static floor shader uniforms are missing");
     }
     gFloorVertexCount = static_cast<int>(vertices.size());
@@ -1167,7 +1175,7 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
 
     constexpr size_t kHeaderSize = 20;
     constexpr size_t kBatchSize = 16;
-    constexpr size_t kVertexSize = 20;
+    constexpr size_t kVertexSize = 32;
     constexpr size_t kMaxSidecarBytes = 64 * 1024 * 1024;
     constexpr unsigned int kMaxPages = 16;
     constexpr unsigned int kMaxTriangles = 1000000;
@@ -1185,7 +1193,7 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
     const unsigned int pageCount = readU32(sidecar.data() + 8);
     const unsigned int batchCount = readU32(sidecar.data() + 12);
     const unsigned int totalTriangles = readU32(sidecar.data() + 16);
-    if (version != 1 || headerSize != kHeaderSize || pageCount == 0 || pageCount > kMaxPages
+    if (version != 2 || headerSize != kHeaderSize || pageCount == 0 || pageCount > kMaxPages
         || batchCount == 0 || batchCount > pageCount || totalTriangles == 0 || totalTriangles > kMaxTriangles) {
         return fail("walls.bin header counts or version are unsupported");
     }
@@ -1195,7 +1203,7 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
         unsigned int triangleCount;
         unsigned int width;
         unsigned int height;
-        std::vector<FloorVertex> vertices;
+        std::vector<DepthVertex> vertices;
         std::vector<unsigned char> rgba;
     };
     std::vector<WallBatchData> batches;
@@ -1236,14 +1244,18 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
         batch.vertices.resize(static_cast<size_t>(vertexCount));
         for (size_t vertexIndex = 0; vertexIndex < batch.vertices.size(); vertexIndex++) {
             const unsigned char* vertexData = sidecar.data() + offset + vertexIndex * kVertexSize;
-            FloorVertex& vertex = batch.vertices[vertexIndex];
+            DepthVertex& vertex = batch.vertices[vertexIndex];
             vertex.x = readF32(vertexData);
             vertex.y = readF32(vertexData + 4);
             vertex.z = readF32(vertexData + 8);
             vertex.u = readF32(vertexData + 12);
             vertex.v = readF32(vertexData + 16);
+            vertex.depthX = readF32(vertexData + 20);
+            vertex.depthY = readF32(vertexData + 24);
+            vertex.depthZ = readF32(vertexData + 28);
             if (!std::isfinite(vertex.x) || !std::isfinite(vertex.y) || !std::isfinite(vertex.z)
-                || !std::isfinite(vertex.u) || !std::isfinite(vertex.v)
+                || !std::isfinite(vertex.u) || !std::isfinite(vertex.v) || !std::isfinite(vertex.depthX)
+                || !std::isfinite(vertex.depthY) || !std::isfinite(vertex.depthZ)
                 || vertex.u < 0.0f || vertex.u > 1.0f || vertex.v < 0.0f || vertex.v > 1.0f) {
                 return fail("walls.bin contains non-finite positions or out-of-range UVs");
             }
@@ -1331,11 +1343,8 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
         glGenBuffers(1, &batch.vbo);
         glBindBuffer(kArrayBuffer, batch.vbo);
         glBufferData(kArrayBuffer,
-            static_cast<long long>(source.vertices.size() * sizeof(FloorVertex)), source.vertices.data(), kStaticDraw);
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 3, 0x1406 /* GL_FLOAT */, 0, sizeof(FloorVertex), reinterpret_cast<const void*>(0));
-        glEnableVertexAttribArray(1);
-        glVertexAttribPointer(1, 2, 0x1406, 0, sizeof(FloorVertex), reinterpret_cast<const void*>(3 * sizeof(float)));
+            static_cast<long long>(source.vertices.size() * sizeof(DepthVertex)), source.vertices.data(), kStaticDraw);
+        depthVertexLayout();
         glGenTextures(1, &batch.texture);
         glBindTexture(kTexture2D, batch.texture);
         glTexImage2D(kTexture2D, 0, kRgba8, source.width, source.height, 0, kRGBA, kUnsignedByte, source.rgba.data());
@@ -1403,8 +1412,7 @@ void drawStaticPreview(bool withWalls, bool withHero)
     }
     glUseProgram(gFloorProgram);
     glUniformMatrix4fv(gFloorMvpLocation, 1, 0, mvp);
-    glUniform1i(gFloorCardDepthLocation, 0);
-    glUniform3f(gFloorEyeLocation, camera.eye[0], camera.eye[1], camera.eye[2]);
+    glUniform1i(gFloorDepthAtLocation, 0);
     glActiveTexture(kTexture0);
     glUniform1i(gFloorTextureLocation, 0);
     glBindVertexArray(gFloorVao);
@@ -1433,15 +1441,18 @@ void drawStaticPreview(bool withWalls, bool withHero)
         glDepthMask(1);
     }
 
+    glUniform1i(gFloorDepthAtLocation, 1);
     if (withWalls) {
+        // Wall faces are seen from outside only, as in the donor's game view.
+        glEnable(kCullFace);
         glUniform1f(gFloorCutoffLocation, 0.5f);
         for (const WallBatch& batch : gWallBatches) {
             glBindVertexArray(batch.vao);
             glBindTexture(kTexture2D, batch.texture);
             glDrawArrays(kTriangles, 0, static_cast<int>(batch.triangleCount * 3));
         }
+        glDisable(kCullFace);
     }
-    glUniform1i(gFloorCardDepthLocation, 1);
     if (withObjects) {
         glUniform1f(gFloorCutoffLocation, 0.5f);
         glBindVertexArray(gObjectVao);
@@ -1457,7 +1468,7 @@ void drawStaticPreview(bool withWalls, bool withHero)
         glBindTexture(kTexture2D, gHeroTexture);
         glDrawArrays(kTriangles, 0, 6);
     }
-    glUniform1i(gFloorCardDepthLocation, 0);
+    glUniform1i(gFloorDepthAtLocation, 0);
 
     if (gGroundCursorTile >= 0) {
         auto pixelCenter = [](int tile, double* x, double* y) {

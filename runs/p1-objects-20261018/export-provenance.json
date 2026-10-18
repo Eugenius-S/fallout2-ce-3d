@@ -4,7 +4,7 @@
     "export.py": "b20fa48113a378d1f2d19e96ffce3790cced591057994834d7bc3992e8fd6769",
     "floor_sidecar.py": "632a33d48c710394144535f66dcaeea988d76041cdac3ef3fa1c07c3ad1d9bd7",
     "projection_sidecar.py": "b48cae0ce7cf3c8b50291d5739240bba63dd262b084f76756209a5dda49a21ed",
-    "wall_sidecar.py": "f6034e8391c755ffa6fe8fb918d3aa042b3ad707b04ca1e34c9876bf1aeb23f3"
+    "wall_sidecar.py": "bc2b6043a6bb426e30607f87cc0cbbc90821ac8b300b3df2558a4307ff27c466"
   },
   "archives": [
     {
@@ -103,10 +103,10 @@
     "floor.bin": "c6b8c42e2c3dfbabc680b620f46fd1bbd96d54d883f5e26d96135e97c27fa3b0",
     "light.png": "1bdef30de77c344b4bda66385565c69b7c400943c4dc181b937543aa25c431f8",
     "projection.bin": "16f764c8c14820b57e37ccfe40d70712dae31376b7ac2b9b8a26853e7199c059",
-    "scene.json": "370241231fd56f7e2b5f9bcc473bfdabd043929981f41574e38d3962f710498f",
+    "scene.json": "e39caeb95a74bbb29ab002d5697dc3c3ec9d6ce52b2ac7444554dab5a2654cbe",
     "sprites0.png": "ddabffb48c247fc39de812604bbaf1e488d352deb8881578ef3782b20bbc246d",
     "tiles.png": "3811c5922e162b9aff54682cdd6611786155eadd0ab1960569e2c4c5eb15c828",
-    "walls.bin": "89f38c6c35d32bba0c497e7c8b56733c41e6c14850f303e131d098d522e72b18"
+    "walls.bin": "fc998396402d83b7c570a5940ab1f7468f86e7a8eaef6e8f4933cde9ba9a5972"
   },
   "baked_sidecar": {
     "file": "baked.bin",
@@ -123,7 +123,7 @@
   "elevation": 0,
   "exporter": "fallout2-sprite-lighting scene_export",
   "exporter_version": "1.5.0",
-  "fingerprint_sha256": "64df13982d7516a7be9a395c8a90cc852f6d45fd442810a8ea089429cb18ff33",
+  "fingerprint_sha256": "eab1b579756071492ff097c96071175ba123ae90d6ea41176b540b21a75315c0",
   "floor_sidecar": {
     "file": "floor.bin",
     "format_version": 1,
@@ -6100,7 +6100,7 @@
   },
   "wall_sidecar": {
     "file": "walls.bin",
-    "format_version": 1,
+    "format_version": 2,
     "page_batches": [
       {
         "page": 0,
@@ -6111,7 +6111,7 @@
         "triangles": 4750
       }
     ],
-    "sha256": "89f38c6c35d32bba0c497e7c8b56733c41e6c14850f303e131d098d522e72b18",
+    "sha256": "fc998396402d83b7c570a5940ab1f7468f86e7a8eaef6e8f4933cde9ba9a5972",
     "triangles": 4750
   }
 }
