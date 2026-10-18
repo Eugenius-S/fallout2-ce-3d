@@ -117,3 +117,26 @@ filter arcaves → ENTER → RIGHT → ENTER, в панели e1).
 панели после minimize/restore нестабильны). Ручная минута: Alt+D → want e1
 кликом по [1] → GO → статус «elevation 1 absent on KLADWTWN» без перехода;
 на arcaves ([1] присутствует) → GO → фактический e1 в панели/снимке.
+
+## Третье ревью и закрытие dev-режима (2026-10-18)
+
+1. Нечитаемый заголовок целевой карты (-1) теперь ОТКАЗЫВАЕТ переход
+   («cannot read map header») вместо тихого разрешения.
+2. Отложенная коррекция этажа перенесена из отрисовки в основной игровой
+   цикл (main.cc, после mapHandleTransition()).
+3. Follow-up переход использует текущую клетку героя вместо enteringTile
+   (у ряда карт enteringTile = 0/-1, и движок пропускает размещение).
+4. В панели этаж выбирается клавишами 1/2/3 (стрелки съедаются слоем
+   скролла карты).
+
+Приёмка этажей (успешный прогон, 2026-10-18 12:14):
+- отказ ДО перехода: KLADWTWN + want e1 → GO → «elevation 1 absent on
+  ARDEAD»/«…on KLADWTWN», карта не менялась (runs/p1f-refusal.png);
+- успешный переход: KLADWTWN → arcaves → «2» → GO → follow-up в игровом
+  цикле → фактический e1 (runs/p1f-arcaves.png, runs/p1f-e1-done.png);
+- снимок с полными метаданными: game/devshot-20261018-121404.json +
+  game/scr00001.png (ARCAVES.MAP, elevation 1, camera, renderer, свет,
+  разрешения, ce_commit 01d73df, tools_commit cbeffec, exe SHA-256).
+
+Статус dev-режима: закрыт по условиям ревьюера (успешный переход между
+этажами + отказ на отсутствующий + JSON с метаданными).
