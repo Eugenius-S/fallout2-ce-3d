@@ -428,7 +428,9 @@ static bool applyElevationChange(int elevation)
     MapTransition transition;
     transition.map = gMapHeader.index;
     transition.elevation = static_cast<MapElevation>(elevation);
-    transition.tile = gMapHeader.enteringTile;
+    // The dude's current tile is always a valid hex on this map; the stored
+    // enteringTile can be 0/-1, and the engine skips placement for those.
+    transition.tile = gDude->tile != -1 ? gDude->tile : gMapHeader.enteringTile;
     transition.rotation = static_cast<Rotation>(-1);
 
     if (mapSetTransition(&transition) == -1) {
@@ -598,6 +600,11 @@ bool requestMapChange(const char* mapFileName, int elevation)
         snprintf(gStatus, sizeof(gStatus), "elevation %d absent on %s", elevation, base);
         return false;
     }
+    if (probe == -1) {
+        // Unknown - stay on the current map instead of guessing.
+        snprintf(gStatus, sizeof(gStatus), "cannot read map header: %s", base);
+        return false;
+    }
 
     // Load through the entrance (tile = -1).
     MapTransition transition;
@@ -688,6 +695,14 @@ bool handleKey(int key)
         return true; // keep TAB (inventory) from leaking while typing
     case KEY_F9:
         takeSnapshot();
+        return true;
+    case 0x31:
+    case 0x32:
+    case 0x33:
+        // Digits pick the wanted elevation (arrows do not survive the
+        // scroll layer in every input path).
+        gSelectedElevation = key - 0x31;
+        setStatus("elevation changed");
         return true;
     default:
         break;

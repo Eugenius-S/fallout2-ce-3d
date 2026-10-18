@@ -447,6 +447,11 @@ static void mainLoop()
 
         mapHandleTransition();
 
+        // Sprite-lighting mod: dev-panel pending elevation corrections are
+        // applied here - after a completed mapHandleTransition, in the main
+        // loop (never from the draw path, which also runs during loads).
+        devtools::update();
+
         if (_main_game_paused != 0) {
             _main_game_paused = 0;
         }
