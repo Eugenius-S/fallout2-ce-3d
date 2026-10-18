@@ -256,7 +256,9 @@ const char* stristr(const char* haystack, const char* needle)
 void stripMapExtension(const char* name, char* out, size_t size)
 {
     size_t len = strlen(name);
-    if (len > 4 && compat_stricmp(name + len - 4, ".map") == 0) {
+    if (len > 4
+        && (compat_stricmp(name + len - 4, ".map") == 0
+            || compat_stricmp(name + len - 4, ".sav") == 0)) {
         len -= 4;
     }
     if (len >= size) {
@@ -266,78 +268,71 @@ void stripMapExtension(const char* name, char* out, size_t size)
     out[len] = '\0';
 }
 
-// True when the CURRENT map has tile data on this elevation. CE's map
-// header marks an elevation with a SET bit when it has NO data: the loader
-// reads an elevation's tiles only while (flags & bit) == 0.
+// The map header bit means this elevation has no square data. _square_reset
+// fills omitted elevations with Grid fids, so inspecting the tile array alone
+// cannot establish whether the elevation exists.
 bool elevationPresent(int elevation)
 {
     if (elevation < 0 || elevation >= ELEVATION_COUNT) {
         return false;
     }
-    static constexpr int kElevFlags[ELEVATION_COUNT] = {
+    static constexpr int kElevationFlags[ELEVATION_COUNT] = {
         MAP_HEADER_ELEVATION_0,
         MAP_HEADER_ELEVATION_1,
         MAP_HEADER_ELEVATION_2,
     };
-    return (gMapHeader.flags & kElevFlags[elevation]) == 0;
+    return (static_cast<int>(gMapHeader.flags) & kElevationFlags[elevation]) == 0;
 }
 
-// Presence of an elevation on a NOT-loaded map, read from the map header in
-// the game resources (SAV preferred, like mapLoadByName). 0 = present,
-// 1 = absent, -1 = unknown (file missing or too short).
+// Reads only the authoritative map-header flags from an unloaded map. Square
+// blocks follow global/local variables and are serialized only for elevations
+// whose absence bit is clear; probing them here would need to reproduce the
+// full map loader's variable and conditional-block handling.
 int probeTargetElevation(const char* base, int elevation)
 {
     if (elevation < 0 || elevation >= ELEVATION_COUNT) {
         return -1;
     }
-    static constexpr int kElevFlags[ELEVATION_COUNT] = {
+
+    static constexpr int kElevationFlags[ELEVATION_COUNT] = {
         MAP_HEADER_ELEVATION_0,
         MAP_HEADER_ELEVATION_1,
         MAP_HEADER_ELEVATION_2,
     };
 
     for (int attempt = 0; attempt < 2; attempt++) {
-        // mapLoadByName prefers the saved version of a visited map.
         char fileName[16];
         snprintf(fileName, sizeof(fileName), "%s.%s", base, attempt == 0 ? "SAV" : "MAP");
-        const char* path = mapBuildPath(fileName);
-        File* stream = fileOpen(path, "rb");
+        File* stream = fileOpen(mapBuildPath(fileName), "rb");
         if (stream == nullptr) {
             continue;
         }
 
-        // MapHeader prefix: version, name[16], enteringTile,
-        // enteringElevation, enteringRotation, localVariablesCount,
-        // scriptIndex, flags.
         int version = 0;
-        int nameInts[4] = {};
-        int enteringTile = 0;
-        int enteringElevation = 0;
-        int enteringRotation = 0;
-        int localVariablesCount = 0;
-        int scriptIndex = 0;
+        int dummy = 0;
         int flags = 0;
-        bool ok = fileReadInt32(stream, &version) == 0
-            && fileReadInt32(stream, &nameInts[0]) == 0
-            && fileReadInt32(stream, &nameInts[1]) == 0
-            && fileReadInt32(stream, &nameInts[2]) == 0
-            && fileReadInt32(stream, &nameInts[3]) == 0
-            && fileReadInt32(stream, &enteringTile) == 0
-            && fileReadInt32(stream, &enteringElevation) == 0
-            && fileReadInt32(stream, &enteringRotation) == 0
-            && fileReadInt32(stream, &localVariablesCount) == 0
-            && fileReadInt32(stream, &scriptIndex) == 0
-            && fileReadInt32(stream, &flags) == 0;
+        bool ok = fileReadInt32(stream, &version) == 0;
+        char mapName[17] = {};
+        ok = ok && fileReadFixedLengthString(stream, mapName, sizeof(mapName) - 1) == 0;
+        for (int i = 0; i < 5 && ok; i++) {
+            ok = fileReadInt32(stream, &dummy) == 0; // enteringTile/elevation/rotation, localVariablesCount, scriptIndex
+        }
+        ok = ok && fileReadInt32(stream, &flags) == 0;
+
         fileClose(stream);
-        if (!ok) {
+        if (!ok || (version != 19 && version != 20)) {
             return -1;
         }
-        (void)enteringTile;
-        (void)enteringElevation;
-        (void)enteringRotation;
-        (void)localVariablesCount;
-        (void)scriptIndex;
-        return (flags & kElevFlags[elevation]) == 0 ? 0 : 1;
+
+        char headerBase[17];
+        char expectedBase[17];
+        stripMapExtension(mapName, headerBase, sizeof(headerBase));
+        stripMapExtension(base, expectedBase, sizeof(expectedBase));
+        if (compat_stricmp(headerBase, expectedBase) != 0) {
+            return -1;
+        }
+
+        return (flags & kElevationFlags[elevation]) == 0 ? 0 : 1;
     }
     return -1;
 }
@@ -412,6 +407,65 @@ void setStatus(const char* text)
     snprintf(gStatus, sizeof(gStatus), "%s", text);
 }
 
+// One candidate check shared by the search and fallback. A Grid floor is the
+// engine's blank floor frame; this only rejects blank cells and known blockers,
+// and does not claim to prove path connectivity from the current tile.
+bool elevationTileFree(int tile, int elevation)
+{
+    if (tile <= 0 || !hexGridTileIsValid(tile) || !elevationIsValid(elevation)) {
+        return false;
+    }
+
+    const int squareIndex = squareTileFromTile(tile);
+    if (!squareGridTileIsValid(squareIndex)) {
+        return false;
+    }
+    const FloorTileFrmId floorTileFrmId(_square[elevation]->tileFid[squareIndex]);
+    if (floorTileFrmId.frameId<TileFrameId>() == TileFrameId::Grid) {
+        return false;
+    }
+    if (_obj_blocking_at(nullptr, tile, static_cast<MapElevation>(elevation)) != nullptr) {
+        return false;
+    }
+    if (_obj_scroll_blocking_at(tile, static_cast<MapElevation>(elevation)) == 0) {
+        return false;
+    }
+    return true;
+}
+
+// Checks complete hex-distance rings, bounded to a small square around center.
+// Filtering with the engine distance helper gives each interior ring 6*d
+// unique cells; at map edges, invalid coordinates are clipped.
+int findFreeTileOnElevation(int center, int elevation, int maxDistance)
+{
+    if (!hexGridTileIsValid(center) || !elevationIsValid(elevation) || maxDistance < 0) {
+        return -1;
+    }
+
+    const int centerCol = center % HEX_GRID_WIDTH;
+    const int centerRow = center / HEX_GRID_WIDTH;
+    for (int distance = 0; distance <= maxDistance; distance++) {
+        for (int rowOffset = -distance; rowOffset <= distance; rowOffset++) {
+            const int row = centerRow + rowOffset;
+            if (row < 0 || row >= HEX_GRID_HEIGHT) {
+                continue;
+            }
+            for (int colOffset = -distance; colOffset <= distance; colOffset++) {
+                const int col = centerCol + colOffset;
+                if (col < 0 || col >= HEX_GRID_WIDTH) {
+                    continue;
+                }
+                const int candidate = row * HEX_GRID_WIDTH + col;
+                if (tileDistanceBetween(center, candidate) == distance
+                    && elevationTileFree(candidate, elevation)) {
+                    return candidate;
+                }
+            }
+        }
+    }
+    return -1;
+}
+
 // Applies a same-map elevation change: the engine skips dude placement when
 // the transition tile is -1, so the map's entering tile is passed explicitly.
 static bool applyElevationChange(int elevation)
@@ -425,29 +479,13 @@ static bool applyElevationChange(int elevation)
         return false;
     }
 
-    // The dude's current tile may be a wall or a void on the target
-    // elevation - pick a non-blocked hex there, spiraling out from the
-    // dude's position. Falls back to the map's entering tile (whose stored
-    // value can be 0/-1, which the engine treats as "skip placement").
-    int targetTile = -1;
-    if (gDude->tile != -1 && _obj_blocking_at(nullptr, gDude->tile, static_cast<MapElevation>(elevation)) == nullptr) {
-        targetTile = gDude->tile;
-    } else {
-        for (int distance = 1; distance <= 4 && targetTile == -1; distance++) {
-            for (int rotation = 0; rotation < ROTATION_COUNT; rotation++) {
-                int candidate = tileGetTileInDirection(gDude->tile, static_cast<Rotation>(rotation), distance);
-                if (candidate != -1
-                    && _obj_blocking_at(nullptr, candidate, static_cast<MapElevation>(elevation)) == nullptr) {
-                    targetTile = candidate;
-                    break;
-                }
-            }
-        }
-    }
-    if (targetTile == -1) {
+    // Bounded: one search pass over rings up to distance 4. A map entrance is
+    // a last resort only when it passes the exact same candidate checks.
+    int targetTile = findFreeTileOnElevation(gDude->tile, elevation, 4);
+    if (targetTile == -1 && elevationTileFree(gMapHeader.enteringTile, elevation)) {
         targetTile = gMapHeader.enteringTile;
     }
-    if (targetTile <= 0) {
+    if (targetTile == -1) {
         snprintf(gStatus, sizeof(gStatus), "no free tile on elevation %d", elevation);
         return false;
     }
