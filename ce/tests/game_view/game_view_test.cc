@@ -10,7 +10,7 @@ int main()
 {
 #define CHECK(expr) do { if (!(expr)) { std::fprintf(stderr, "CHECK failed at %s:%d: %s\n", __FILE__, __LINE__, #expr); return 1; } } while (0)
     const double hpx = std::sqrt(48.0 * 48.0 + 32.0 * 32.0 - 12.0 * 12.0 - 24.0 * 24.0);
-    GameView view = { { -48, 12 }, { 32, 24 }, { 4784, -1190 }, hpx, { 0, 0 }, 1710, 665, 52.0 };
+    GameView view = { { -48, 12 }, { 32, 24 }, { 4784, -1190 }, hpx, { 0, 0 }, 1710, 665, 100.0 };
     gameViewTilePixel(25075, view.centerPixel);
     auto gamePixel = [&](double x, double y, double z, double* px, double* py) {
         const double u = x + 50.0, v = z + 50.0;

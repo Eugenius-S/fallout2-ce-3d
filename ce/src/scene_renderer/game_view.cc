@@ -11,14 +11,14 @@ namespace scene_renderer {
 namespace {
 
 constexpr double kMapOffset = 50.0;
-// Depth range in front of the eye (units). Cards on one hex row are told apart
-// by depth steps of 1e-4 units (donor proj.STACK) and a solid is 2e-5 nearer
-// than its card (OVER_CARD), so the near plane sits as far out as the view
-// allows: the eye is about 52 units off and nothing comes nearer than about
-// 38. At 0.1 the 24-bit depth buffer resolved only about 8e-4 units, and such
-// sprites flickered.
-constexpr double kNear = 25.0;
-constexpr double kFar = 150.0;
+// Depth range in front of the eye, as shares of its distance. Cards on one hex
+// row are told apart by depth steps of 1e-4 units (donor proj.STACK) and a
+// solid is 2e-5 nearer than its card (OVER_CARD), so the near plane sits as far
+// out as the view allows: nothing comes nearer than about 12 units short of
+// the view center. With a near plane at 0.1 the 24-bit depth buffer resolved
+// only about 8e-4 units, and such sprites flickered.
+constexpr double kNearShare = 0.6;
+constexpr double kFarShare = 2.5;
 
 struct Frame {
     double centerPixel[2]; // game pixel of the center hex
@@ -32,11 +32,13 @@ struct Frame {
     double width;
     double height;
     double distance;
+    double nearPlane;
+    double farPlane;
 };
 
 bool makeFrame(const GameView& view, Frame* frame)
 {
-    if (view.logicalWidth <= 0 || view.logicalHeight <= 0 || !(view.distance > kNear)
+    if (view.logicalWidth <= 0 || view.logicalHeight <= 0 || !(view.distance > 20.0) || !(view.distance < 10000.0)
         || !std::isfinite(view.centerPixel[0]) || !std::isfinite(view.centerPixel[1]) || !(view.hpx > 0.0)) {
         return false;
     }
@@ -73,6 +75,8 @@ bool makeFrame(const GameView& view, Frame* frame)
     frame->width = view.logicalWidth;
     frame->height = view.logicalHeight;
     frame->distance = view.distance;
+    frame->nearPlane = view.distance * kNearShare;
+    frame->farPlane = view.distance * kFarShare;
     return true;
 }
 
@@ -88,7 +92,9 @@ void clip(const GameView& view, const Frame& frame, double x, double y, double z
     const double w = (frame.distance - near) / frame.distance;
     out[0] = (pixelX - frame.centerPixel[0]) * 2.0 / frame.width + (2.0 * frame.screenCenter[0] / frame.width - 1.0) * w;
     out[1] = -(pixelY - frame.centerPixel[1]) * 2.0 / frame.height + (1.0 - 2.0 * frame.screenCenter[1] / frame.height) * w;
-    out[2] = (kFar + kNear) / (kFar - kNear) * w - 2.0 * kFar * kNear / ((kFar - kNear) * frame.distance);
+    const double n = frame.nearPlane;
+    const double f = frame.farPlane;
+    out[2] = (f + n) / (f - n) * w - 2.0 * f * n / ((f - n) * frame.distance);
     out[3] = w;
 }
 

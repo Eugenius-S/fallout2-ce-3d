@@ -687,10 +687,11 @@ bool isActive()
 }
 
 // Eye distance of the game view (units): it sets how strong the perspective
-// is. The 25-degree camera's 36.9 was asked to be a little milder.
+// is. The 25-degree camera's 36.9 was asked milder twice, closer to the game's
+// own parallel projection: 52, then 100.
 double gameViewDistance()
 {
-    return 52.0;
+    return 100.0;
 }
 
 bool currentGameView(GameView* view)
