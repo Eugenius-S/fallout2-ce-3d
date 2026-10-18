@@ -253,10 +253,10 @@ class WallSidecarTests(unittest.TestCase):
             "doors": [[0, 5.0, 6.0, 7.0, 6.0, 0.0, 1.0, 46, 400]],
         }
 
-    def test_encodes_donor_front_cap_back_and_leaves_doors_live(self):
+    def test_encodes_game_view_front_and_cap_only(self):
         decoded = decode_wall_sidecar(encode_wall_sidecar(self.sample_scene()))
         self.assertEqual(decoded["version"], WALL_VERSION)
-        self.assertEqual(decoded["triangles"], 6)
+        self.assertEqual(decoded["triangles"], 4)
         batch = decoded["batches"][0]
         self.assertEqual(batch["page"], 0)
         self.assertEqual(batch["size"], (100, 100))
@@ -286,16 +286,13 @@ class WallSidecarTests(unittest.TestCase):
         far_distance = (2.0 - (2.0 - 10.0 / hpx)) / toward[2]
         self.assertAlmostEqual(far[0], 3.0 - toward[0] * far_distance - 50.0, places=5)
         self.assertAlmostEqual(far[2], 2.0 - toward[1] * far_distance - 50.0, places=5)
-        # Back surface uses back sprite 1 and the donor's reversed endpoint order.
-        back = vertices[12]
-        for actual, expected in zip(back, (-47.0, 0.0, -47.75, 0.4, 0.6)):
-            self.assertAlmostEqual(actual, expected)
-        # The door row is not baked: the engine draws doors live so they open.
-        self.assertEqual(len(vertices), 18)
+        # No back face (sprite 1), slab end or door: the game's camera does not see
+        # backs and ends, and the engine draws doors live so they open.
+        self.assertEqual(len(vertices), 12)
 
     def test_rejects_invalid_sprite_index_and_bad_page(self):
         scene = self.sample_scene()
-        scene["trims"] = [[2, 1.0, 2.0, 3.0, 2.0, 0.0, 1.0, 0, 0, 1, 1]]
+        scene["walls"][0][0] = 2
         with self.assertRaisesRegex(ValueError, "outside scene.sprites"):
             encode_wall_sidecar(scene)
         scene = self.sample_scene()
@@ -303,20 +300,12 @@ class WallSidecarTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "outside scene.pages"):
             encode_wall_sidecar(scene)
 
-    def test_optional_above_and_above_back_surfaces_are_emitted(self):
+    def test_first_person_surfaces_are_left_out(self):
         scene = self.sample_scene()
         scene["walls"][0].extend([1, 1])
+        scene["trims"] = [[0, 1.0, 2.0, 3.0, 2.0, 0.0, 1.0, 0, 0, 1, 1]]
         decoded = decode_wall_sidecar(encode_wall_sidecar(scene))
-        self.assertEqual(decoded["triangles"], 10)
-        vertices = decoded["batches"][0]["vertices"]
-        above = vertices[18]
-        self.assertAlmostEqual(above[0], -49.0)
-        self.assertAlmostEqual(above[1], scene["walls"][0][9])
-        self.assertAlmostEqual(above[3], 0.3)
-        above_back = vertices[24]
-        self.assertAlmostEqual(above_back[0], -47.0)
-        self.assertAlmostEqual(above_back[2], -47.75)
-        self.assertAlmostEqual(above_back[3], 0.4)
+        self.assertEqual(decoded["triangles"], 4)
 
     def test_binary_corruption_is_rejected(self):
         payload = encode_wall_sidecar(self.sample_scene())

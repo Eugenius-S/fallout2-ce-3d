@@ -99,60 +99,12 @@ def _wall_front(batches, sprites, pages, row, hpx, toward_camera):
     ])
 
 
-def _wall_rest(batches, sprites, pages, row, hpx):
-    sprite, ua, va, ub, vb, z0, z1, _, _, zc, thick, back = row[:12]
-    sprite = _int(sprite, "wall sprite")
-    if not 0 <= sprite < len(sprites):
-        raise ValueError(f"wall sprite index {sprite} is outside scene.sprites")
-    front_page, fx, fy, w, fh, *_ = sprites[sprite]
-    front_page = _int(front_page, "wall sprite page")
-    z0, z1, zc, thick = (_finite(value, "wall geometry") for value in (z0, z1, zc, thick))
-    top = (z1 - zc) * hpx
-    length = math.hypot(_finite(ub, "wall endpoint") - _finite(ua, "wall endpoint"),
-                        _finite(vb, "wall endpoint") - _finite(va, "wall endpoint")) or 1.0
-    nu = (vb - va) / length * thick
-    nv = (ua - ub) / length * thick
-    back = _int(back, "back sprite index")
-    if back < -1:
-        raise ValueError("back sprite index must be -1 or a valid scene.sprites index")
-    if back >= 0:
-        if back >= len(sprites):
-            raise ValueError(f"back sprite index {back} is outside scene.sprites")
-        page, x, y, *_ = sprites[back]
-        back_h = sprites[back][4]
-        back_w = w
-    else:
-        page, x, y, back_w, back_h = front_page, fx, fy + top, w, fh - top
-    page = _int(page, "back sprite page")
-    if not 0 <= page < len(pages):
-        raise ValueError(f"back sprite page {page} is outside scene.pages")
-    _upright(batches, sprites, pages, sprite if back < 0 else back,
-             ub - nu, vb - nv, ua - nu, va - nv, z0, zc,
-             x + back_w, y, -back_w, back_h)
-
-    above = _int(row[12], "above sprite index") if len(row) > 12 else -1
-    above_back = _int(row[13], "aboveBack sprite index") if len(row) > 13 else -1
-    if above < -1 or above_back < -1:
-        raise ValueError("above sprite indices must be -1 or valid scene.sprites indices")
-    if above >= 0:
-        if above >= len(sprites):
-            raise ValueError(f"above sprite index {above} is outside scene.sprites")
-        page, ax, ay, *_ = sprites[above]
-        above_h = sprites[above][4]
-        _upright(batches, sprites, pages, above, ua, va, ub, vb, zc, zc + above_h / hpx,
-                 ax, ay, w, above_h)
-    if above_back >= 0:
-        if above_back >= len(sprites):
-            raise ValueError(f"aboveBack sprite index {above_back} is outside scene.sprites")
-        page, ax, ay, *_ = sprites[above_back]
-        above_h = sprites[above_back][4]
-        _upright(batches, sprites, pages, above_back,
-                 ub - nu, vb - nv, ua - nu, va - nv, zc, zc + above_h / hpx,
-                 ax + w, ay, -w, above_h)
-
-
 def encode_wall_sidecar(scene):
-    """Build donor-equivalent wall/sheet/trim triangles for one scene."""
+    """Build the donor game view's wall triangles for one scene: what the game's
+    camera sees of walls (fronts and tops) and the sheets that have no
+    thickness. Backs, cut-open upper parts and slab ends (wallRest, trims) are
+    first-person only in the donor viewer; in the game's view they stick out
+    at corners."""
     if scene.get("format") != 6 or scene.get("map") != "kladwtwn" or scene.get("elevation") != 0:
         raise ValueError("wall sidecar expects kladwtwn elevation 0 in scene format 6")
     pages_data = scene.get("pages")
@@ -192,26 +144,12 @@ def encode_wall_sidecar(scene):
         thickness = _finite(row[10], f"wall {index} thickness")
         if thickness > 0:
             _wall_front(batches, sprites, pages, row, hpx, toward_camera)
-            _wall_rest(batches, sprites, pages, row, hpx)
         else:
             _record(row, 7, f"thin wall {index}")
             sprite = _int(row[0], "thin wall sprite index")
             if not 0 <= sprite < len(sprites):
                 raise ValueError(f"thin wall {index} sprite index is outside scene.sprites")
             _upright(batches, sprites, pages, sprite, *row[1:7], *sprites[sprite][1:5])
-
-    trims = scene.get("trims")
-    if not isinstance(trims, list):
-        raise ValueError("scene.trims is missing")
-    for index, row in enumerate(trims):
-        _record(row, 11, f"trim {index}")
-        sprite, ua, va, ub, vb, z0, z1, tx, ty, tw, th = row[:11]
-        sprite = _int(sprite, "trim sprite index")
-        if not 0 <= sprite < len(sprites):
-            raise ValueError(f"trim {index} sprite index is outside scene.sprites")
-        _, x, y, *_ = sprites[sprite]
-        _upright(batches, sprites, pages, sprite, ua, va, ub, vb, z0, z1,
-                 x + tx, y + ty, tw, th)
 
     # Doors are not baked: they open and close, so the engine draws them live
     # as sprite cards with their current frame.

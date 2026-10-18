@@ -4,7 +4,7 @@
     "export.py": "b20fa48113a378d1f2d19e96ffce3790cced591057994834d7bc3992e8fd6769",
     "floor_sidecar.py": "632a33d48c710394144535f66dcaeea988d76041cdac3ef3fa1c07c3ad1d9bd7",
     "projection_sidecar.py": "b48cae0ce7cf3c8b50291d5739240bba63dd262b084f76756209a5dda49a21ed",
-    "wall_sidecar.py": "82cd97d3409fd31094fa73bc1ca293bc1f1656e8adcfec798037f7fb1495d4ef"
+    "wall_sidecar.py": "f6034e8391c755ffa6fe8fb918d3aa042b3ad707b04ca1e34c9876bf1aeb23f3"
   },
   "archives": [
     {
@@ -103,10 +103,10 @@
     "floor.bin": "c6b8c42e2c3dfbabc680b620f46fd1bbd96d54d883f5e26d96135e97c27fa3b0",
     "light.png": "1bdef30de77c344b4bda66385565c69b7c400943c4dc181b937543aa25c431f8",
     "projection.bin": "16f764c8c14820b57e37ccfe40d70712dae31376b7ac2b9b8a26853e7199c059",
-    "scene.json": "d5d0938519855611fdc429f38aff07ab6be4c72fcb0b54f0c3afbc9fcc7093e6",
+    "scene.json": "370241231fd56f7e2b5f9bcc473bfdabd043929981f41574e38d3962f710498f",
     "sprites0.png": "ddabffb48c247fc39de812604bbaf1e488d352deb8881578ef3782b20bbc246d",
     "tiles.png": "3811c5922e162b9aff54682cdd6611786155eadd0ab1960569e2c4c5eb15c828",
-    "walls.bin": "7fe657d92f63c9b07d470e041053caa41f4319d97b305d14756642f4e9673ec0"
+    "walls.bin": "89f38c6c35d32bba0c497e7c8b56733c41e6c14850f303e131d098d522e72b18"
   },
   "baked_sidecar": {
     "file": "baked.bin",
@@ -116,14 +116,14 @@
   },
   "configuration_sha256": {
     "ddraw.ini": "4dfd014718513ada6396f33684b7718ad85dfcd64b94aa99f66e29298d69a1b3",
-    "fallout2.cfg": "657d33928d3ded7dc2b75494c0b3f47725251e19113b16d09ee569917338a694",
+    "fallout2.cfg": "8eb0932f6ce971f107e8e3b67376c11ceb56ed8e2ccdb2246867302a0e97afb9",
     "mods/mods_order.txt": "4b0bacfcaa0763bc73bab22a3a38e61e82a03f2f36741e82fb9524f662b8f86f"
   },
   "donor_revision": "0da1cd449f1dc7f2f6986ff7e8728a4b6ae20584",
   "elevation": 0,
   "exporter": "fallout2-sprite-lighting scene_export",
   "exporter_version": "1.5.0",
-  "fingerprint_sha256": "6e67f5aeaf6a27137c493a3525a2576afd0d8842936eaf963fc9ec33b8a4d57c",
+  "fingerprint_sha256": "64df13982d7516a7be9a395c8a90cc852f6d45fd442810a8ea089429cb18ff33",
   "floor_sidecar": {
     "file": "floor.bin",
     "format_version": 1,
@@ -6108,10 +6108,10 @@
           2048,
           3826
         ],
-        "triangles": 7696
+        "triangles": 4750
       }
     ],
-    "sha256": "7fe657d92f63c9b07d470e041053caa41f4319d97b305d14756642f4e9673ec0",
-    "triangles": 7696
+    "sha256": "89f38c6c35d32bba0c497e7c8b56733c41e6c14850f303e131d098d522e72b18",
+    "triangles": 4750
   }
 }
