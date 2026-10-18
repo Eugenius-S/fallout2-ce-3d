@@ -1,0 +1,18 @@
+devtools: static wall+hero preview started for KLADWTWN elevation 0
+devtools: scene preview policy=available gameState=0 gameMode=0x0 uiDisabled=0 isoDisabled=0 combat=0 dialog=0 movie=0
+devtools: one-shot hero preview snapshot saved: snapshot: devshot-20261018-163420-000.json
+devtools: walk request tile=25074 from=25075 pixel=(5021.229,762.211) world=(-13.035644,12.859936) offset=(0,0)
+devtools: walk before snapshot saved: snapshot: devshot-20261018-163443-000.json
+devtools: walk status=moving requesttile=25074 fromtile=25075 actualtile=25075 offset=(0,0)
+devtools: walk result status=arrived requesttile=25074 fromtile=25075 actualtile=25074 offset=(0,0)
+devtools: walk after snapshot status=arrived saved: snapshot: devshot-20261018-163444-000.json
+devtools: walk request tile=24876 from=25074 pixel=(4956.673,762.671) world=(-12.017379,12.369971) offset=(0,0)
+devtools: walk before snapshot saved: snapshot: devshot-20261018-163500-000.json
+devtools: walk status=moving requesttile=24876 fromtile=25074 actualtile=25074 offset=(0,0)
+devtools: walk result status=arrived requesttile=24876 fromtile=25074 actualtile=24876 offset=(0,0)
+devtools: walk after snapshot status=arrived saved: snapshot: devshot-20261018-163501-000.json
+devtools: walk request tile=25075 from=24876 pixel=(4988.977,761.748) world=(-12.541344,12.593515) offset=(0,0)
+devtools: walk before snapshot saved: snapshot: devshot-20261018-163525-000.json
+devtools: walk status=moving requesttile=25075 fromtile=24876 actualtile=24876 offset=(0,0)
+devtools: walk result status=arrived requesttile=25075 fromtile=24876 actualtile=25075 offset=(0,0)
+devtools: walk after snapshot status=arrived saved: snapshot: devshot-20261018-163526-000.json

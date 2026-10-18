@@ -1,0 +1,36 @@
+devtools: static wall+hero preview started for KLADWTWN elevation 0
+devtools: one-shot hero preview snapshot saved: snapshot: devshot-20261018-160458-000.json
+devtools: walk request tile=25079 from=25075 pixel=(4897.774,793.894) world=(-10.446592,12.885541) offset=(0,0)
+devtools: walk before snapshot saved: snapshot: devshot-20261018-160502-000.json
+devtools: walk status=moving requesttile=25079 fromtile=25075 actualtile=25075 offset=(0,0)
+devtools: previous walk request interrupted=true requesttile=25079 actualtile=25079 offset=(0,0)
+devtools: walk request tile=25481 from=25079 pixel=(4877.528,823.779) world=(-9.507646,13.661292) offset=(0,0)
+devtools: walk before snapshot saved: snapshot: devshot-20261018-160504-000.json
+devtools: walk status=moving requesttile=25481 fromtile=25079 actualtile=25079 offset=(0,0)
+devtools: walk result status=arrived requesttile=25481 fromtile=25079 actualtile=25481 offset=(0,0)
+devtools: walk after snapshot status=arrived saved: snapshot: devshot-20261018-160505-000.json
+devtools: walk request tile=25076 from=25481 pixel=(4978.526,775.735) world=(-12.086657,12.948957) offset=(0,0)
+devtools: walk before snapshot saved: snapshot: devshot-20261018-160506-000.json
+devtools: walk status=moving requesttile=25076 fromtile=25481 actualtile=25481 offset=(0,0)
+devtools: previous walk request interrupted=true requesttile=25076 actualtile=25279 offset=(5,-5)
+devtools: walk request tile=24493 from=25279 pixel=(4520.976,831.297) world=(-3.779902,11.110653) offset=(5,-5)
+devtools: walk before snapshot saved: snapshot: devshot-20261018-160507-000.json
+devtools: walk status=moving requesttile=24493 fromtile=25279 actualtile=25279 offset=(0,0)
+devtools: previous walk request interrupted=true requesttile=24493 actualtile=24687 offset=(-3,2)
+devtools: walk request tile=25070 from=24687 pixel=(5122.126,740.769) world=(-15.058868,12.978142) offset=(-3,2)
+devtools: walk before snapshot saved: snapshot: devshot-20261018-160510-000.json
+devtools: walk status=moving requesttile=25070 fromtile=24687 actualtile=24687 offset=(0,0)
+devtools: previous walk request interrupted=true requesttile=25070 actualtile=24885 offset=(28,0)
+devtools: walk request tile=23458 from=24885 pixel=(5274.767,569.452) world=(-21.012981,8.816989) offset=(28,0)
+devtools: walk before snapshot saved: snapshot: devshot-20261018-160511-000.json
+devtools: walk status=moving requesttile=23458 fromtile=24885 actualtile=24885 offset=(0,0)
+devtools: previous walk request interrupted=true requesttile=23458 actualtile=25479 offset=(2,0)
+devtools: walk request tile=21694 from=25479 pixel=(4260.045,681.477) world=(-2.824104,4.390264) offset=(2,0)
+devtools: walk before snapshot saved: snapshot: devshot-20261018-160514-000.json
+devtools: walk status=moving requesttile=21694 fromtile=25479 actualtile=25479 offset=(0,0)
+devtools: previous walk request interrupted=true requesttile=21694 actualtile=24884 offset=(-7,0)
+devtools: walk request tile=23093 from=24884 pixel=(4401.766,752.499) world=(-3.558856,7.716890) offset=(-7,0)
+devtools: walk before snapshot saved: snapshot: devshot-20261018-160516-000.json
+devtools: walk status=moving requesttile=23093 fromtile=24884 actualtile=24884 offset=(0,0)
+devtools: walk result status=timeout requesttile=23093 fromtile=24884 actualtile=24093 offset=(-7,-9)
+devtools: walk after snapshot status=timeout saved: snapshot: devshot-20261018-160630-000.json

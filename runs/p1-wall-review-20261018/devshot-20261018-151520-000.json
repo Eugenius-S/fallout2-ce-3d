@@ -1,0 +1,17 @@
+{
+  "image": "devwall-20261018-151520-000.png",
+  "view": "static-wall-preview",
+  "map": "KLADWTWN.MAP",
+  "elevation": 0,
+  "camera": "fixed eye=(-3.95610,11.00000,21.11265), target=(-11.95610,1.00000,9.11265), fov_y=50.0, near=0.1, far=400.0",
+  "wall_triangles": 7758,
+  "wall_pages": 1,
+  "renderer": "scene-gl",
+  "light": "off",
+  "resolution": "640x480",
+  "drawable": "640x480",
+  "ce_commit": "f6c1969",
+  "tools_commit": "b647b1e-dirty",
+  "exe_sha256": "251f7e919be107737a49ff63de0b6cfe4efc66ff0dd98af28470736558578b6d",
+  "taken": "20261018-151520"
+}
