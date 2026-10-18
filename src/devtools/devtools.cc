@@ -84,6 +84,7 @@ Rect2 gPrevRect;
 Rect2 gNextRect;
 Rect2 gGoRect;
 Rect2 gSnapRect;
+int gListRowHeight = 0; // drawn row height (font 101), reused by clicks
 bool gZonesValid = false;
 
 #define DT_TEXT_COLOR COLOR_LIGHT_GREY
@@ -265,8 +266,9 @@ void stripMapExtension(const char* name, char* out, size_t size)
     out[len] = '\0';
 }
 
-// True when the CURRENT map has tile data on this elevation (per the map
-// header flags - the same condition the loader uses to skip elevations).
+// True when the CURRENT map has tile data on this elevation. CE's map
+// header marks an elevation with a SET bit when it has NO data: the loader
+// reads an elevation's tiles only while (flags & bit) == 0.
 bool elevationPresent(int elevation)
 {
     if (elevation < 0 || elevation >= ELEVATION_COUNT) {
@@ -277,7 +279,67 @@ bool elevationPresent(int elevation)
         MAP_HEADER_ELEVATION_1,
         MAP_HEADER_ELEVATION_2,
     };
-    return (gMapHeader.flags & kElevFlags[elevation]) != 0;
+    return (gMapHeader.flags & kElevFlags[elevation]) == 0;
+}
+
+// Presence of an elevation on a NOT-loaded map, read from the map header in
+// the game resources (SAV preferred, like mapLoadByName). 0 = present,
+// 1 = absent, -1 = unknown (file missing or too short).
+int probeTargetElevation(const char* base, int elevation)
+{
+    if (elevation < 0 || elevation >= ELEVATION_COUNT) {
+        return -1;
+    }
+    static constexpr int kElevFlags[ELEVATION_COUNT] = {
+        MAP_HEADER_ELEVATION_0,
+        MAP_HEADER_ELEVATION_1,
+        MAP_HEADER_ELEVATION_2,
+    };
+
+    for (int attempt = 0; attempt < 2; attempt++) {
+        // mapLoadByName prefers the saved version of a visited map.
+        char fileName[16];
+        snprintf(fileName, sizeof(fileName), "%s.%s", base, attempt == 0 ? "SAV" : "MAP");
+        const char* path = mapBuildPath(fileName);
+        File* stream = fileOpen(path, "rb");
+        if (stream == nullptr) {
+            continue;
+        }
+
+        // MapHeader prefix: version, name[16], enteringTile,
+        // enteringElevation, enteringRotation, localVariablesCount,
+        // scriptIndex, flags.
+        int version = 0;
+        int nameInts[4] = {};
+        int enteringTile = 0;
+        int enteringElevation = 0;
+        int enteringRotation = 0;
+        int localVariablesCount = 0;
+        int scriptIndex = 0;
+        int flags = 0;
+        bool ok = fileReadInt32(stream, &version) == 0
+            && fileReadInt32(stream, &nameInts[0]) == 0
+            && fileReadInt32(stream, &nameInts[1]) == 0
+            && fileReadInt32(stream, &nameInts[2]) == 0
+            && fileReadInt32(stream, &nameInts[3]) == 0
+            && fileReadInt32(stream, &enteringTile) == 0
+            && fileReadInt32(stream, &enteringElevation) == 0
+            && fileReadInt32(stream, &enteringRotation) == 0
+            && fileReadInt32(stream, &localVariablesCount) == 0
+            && fileReadInt32(stream, &scriptIndex) == 0
+            && fileReadInt32(stream, &flags) == 0;
+        fileClose(stream);
+        if (!ok) {
+            return -1;
+        }
+        (void)enteringTile;
+        (void)enteringElevation;
+        (void)enteringRotation;
+        (void)localVariablesCount;
+        (void)scriptIndex;
+        return (flags & kElevFlags[elevation]) == 0 ? 0 : 1;
+    }
+    return -1;
 }
 
 void refreshFiltered()
@@ -528,9 +590,16 @@ bool requestMapChange(const char* mapFileName, int elevation)
         return true;
     }
 
-    // Different map: load it through its entrance (tile = -1). The requested
-    // elevation is applied as a follow-up once the map has loaded (the
-    // entrance elevation of the target map is unknown before the load).
+    // Different map: verify the requested elevation exists on the TARGET
+    // map before leaving the current one (reading the map header from the
+    // game resources). The follow-up correction below stays as a backstop.
+    int probe = probeTargetElevation(base, elevation);
+    if (probe == 1) {
+        snprintf(gStatus, sizeof(gStatus), "elevation %d absent on %s", elevation, base);
+        return false;
+    }
+
+    // Load through the entrance (tile = -1).
     MapTransition transition;
     transition.map = static_cast<Map>(mapId);
     transition.elevation = static_cast<MapElevation>(elevation);
@@ -652,9 +721,13 @@ bool handleClick(int mouseX, int mouseY)
     }
 
     if (hitTest(gListRect, mouseX, mouseY)) {
-        // The draw starts kListRows/2 rows above the selection - mirror it.
-        int lineHeight = fontGetLineHeight() + 2;
-        int row = (mouseY - gListRect.y) / lineHeight;
+        // The draw starts kListRows/2 rows above the selection - mirror it,
+        // using the row height that was captured while drawing (font 101),
+        // not whatever font is active at click time.
+        if (gListRowHeight <= 0) {
+            return true;
+        }
+        int row = (mouseY - gListRect.y) / gListRowHeight;
         int idx = gSelected - kListRows / 2 + row;
         if (idx >= 0 && idx < static_cast<int>(gFiltered.size())) {
             gSelected = idx;
@@ -720,6 +793,7 @@ void draw(unsigned char* surface, int width, int height, int pitch)
     ScopedFont scopedFont(101);
     int lineHeight = fontGetLineHeight();
     int rowHeight = lineHeight + 2;
+    gListRowHeight = rowHeight;
 
     bufferFill(surface + pitch * kPanelY + kPanelX, kPanelW, kPanelH, pitch, COLOR_BLACK);
     for (int x = kPanelX; x < kPanelX + kPanelW; x++) {
