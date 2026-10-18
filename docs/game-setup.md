@@ -21,9 +21,9 @@
    старый `data/` и `f2_res.dat` в `backup/rpu/`.
 4. Из архива переводов скопировать в `game/mods/` файлы `rpu_russian.dat`
    и `upu_russian_sound.dat`. Оба уже перечислены в `mods/mods_order.txt`.
-5. В `game/fallout2.cfg` выставить `language=russian`,
-   `f2_res_dat=mods\f2_res.dat` и в разделе `[screen]` разрешение
-   `resolution_x=1280`, `resolution_y=720`: на 640×480 3D-сцену не разглядеть.
+5. В `game/fallout2.cfg` выставить `language=russian` и
+   `f2_res_dat=mods\f2_res.dat`. Экран dev-запуск настраивает сам: весь
+   монитор без рамки, каждый пиксель игры вдвое крупнее.
 6. Пересобрать сцену: `py -3 tools/scene_export/export.py --game-root ./game`.
 
 RP требует новую игру: сохранения с оригинала не подходят. Dev-запуск
