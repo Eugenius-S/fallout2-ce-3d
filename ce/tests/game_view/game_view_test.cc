@@ -10,7 +10,7 @@ int main()
 {
 #define CHECK(expr) do { if (!(expr)) { std::fprintf(stderr, "CHECK failed at %s:%d: %s\n", __FILE__, __LINE__, #expr); return 1; } } while (0)
     const double hpx = std::sqrt(48.0 * 48.0 + 32.0 * 32.0 - 12.0 * 12.0 - 24.0 * 24.0);
-    GameView view = { { -48, 12 }, { 32, 24 }, { 4784, -1190 }, hpx, { 0, 0 }, 1710, 665, 36.9 };
+    GameView view = { { -48, 12 }, { 32, 24 }, { 4784, -1190 }, hpx, { 0, 0 }, 1710, 665, 52.0 };
     gameViewTilePixel(25075, view.centerPixel);
     auto gamePixel = [&](double x, double y, double z, double* px, double* py) {
         const double u = x + 50.0, v = z + 50.0;
@@ -107,6 +107,11 @@ int main()
     const double farNearer = depthBits(centerX - (15.0 - 1e-4) * toward[0], 1.0 - (15.0 - 1e-4) * toward[1],
         centerZ - (15.0 - 1e-4) * toward[2]);
     CHECK(deep - farNearer >= 2.0);
+    // ... and a solid 2e-5 nearer than its card, at the far edge of the view.
+    const double edge = depthBits(centerX - 10.0 * toward[0], 1.0 - 10.0 * toward[1], centerZ - 10.0 * toward[2]);
+    const double edgeNearer = depthBits(centerX - (10.0 - 2e-5) * toward[0], 1.0 - (10.0 - 2e-5) * toward[1],
+        centerZ - (10.0 - 2e-5) * toward[2]);
+    CHECK(edge - edgeNearer >= 1.0);
 
     // A center between hexes (the camera gliding) is still shown at the
     // engine's screen center.

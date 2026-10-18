@@ -12,11 +12,13 @@ namespace {
 
 constexpr double kMapOffset = 50.0;
 // Depth range in front of the eye (units). Cards on one hex row are told apart
-// by depth steps of 1e-4 units (donor proj.STACK), so the near plane sits as
-// far out as the view allows: at 0.1 the 24-bit depth buffer resolves only
-// about 8e-4 units at the eye's distance, and such sprites flickered.
-constexpr double kNear = 5.0;
-constexpr double kFar = 200.0;
+// by depth steps of 1e-4 units (donor proj.STACK) and a solid is 2e-5 nearer
+// than its card (OVER_CARD), so the near plane sits as far out as the view
+// allows: the eye is about 52 units off and nothing comes nearer than about
+// 38. At 0.1 the 24-bit depth buffer resolved only about 8e-4 units, and such
+// sprites flickered.
+constexpr double kNear = 25.0;
+constexpr double kFar = 150.0;
 
 struct Frame {
     double centerPixel[2]; // game pixel of the center hex

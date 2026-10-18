@@ -197,7 +197,7 @@ def encode_wall_sidecar(scene, skip_props=frozenset(), skip_rests=frozenset()):
     for index, row in enumerate(scene.get("props") or []):
         if index in skip_props:
             continue
-        for page, corners in solid_faces(proj, sprites, row):
+        for page, corners in solid_faces(proj, sprites, scene.get("boards") or [], row):
             _polygon(batches, proj, page, pages[page], corners)
     for index, row in enumerate(scene.get("rests") or []):
         if index in skip_rests:

@@ -1,27 +1,36 @@
 # Dev-mode launcher for the sprite-lighting mod (spec edition 2, P1).
 #
-# Prepares the working copy config (a monitor-sized window at x2, no intro)
+# Prepares the working copy config (a 16:9 window at x2, no intro)
 # and starts fallout2-ce.exe with the dev tools in the 3D scene. The default
 # target is Klamath Downtown (kladwtwn), elevation 0. By default the game
 # starts a new game with the first premade character (Restoration Project
 # needs a new game); -Slot N loads that save from game/data/SAVEGAME instead.
 # -Classic keeps the original 2D picture. The dev panel (Alt+D) travels
-# between maps, F9 takes a metadata snapshot, Ctrl+F10 leaves the 3D scene.
+# between maps, F9 takes a metadata snapshot, Ctrl+F10 leaves the 3D scene,
+# Ctrl+F11 restarts the game in the other window shape (16:9 / 21:9).
+# -WaitPid N first waits for that game process to quit (the Ctrl+F11 switch).
 param(
     [string]$Map = "kladwtwn",
     [int]$Elevation = 0,
     [int]$Slot = 0,
     [switch]$Classic,
-    [switch]$FullScreen
+    [switch]$FullScreen,
+    [ValidateSet('16:9', '21:9')]
+    [string]$Aspect = '16:9',
+    [int]$WaitPid = 0
 )
 $ErrorActionPreference = 'Stop'
 $Root = Split-Path -Parent $PSScriptRoot
 $GameDir = Join-Path $Root 'game'
 $Cfg = Join-Path $GameDir 'fallout2.cfg'
+if ($WaitPid -gt 0) {
+    Wait-Process -Id $WaitPid -Timeout 30 -ErrorAction SilentlyContinue
+}
 
-# Dev profile: every game pixel doubled, no intro. By default a framed window
-# that fills the primary monitor above the taskbar; -FullScreen covers the
-# whole monitor without a frame (no display mode change, Alt+Tab works).
+# Dev profile: every game pixel doubled, no intro. By default a framed 16:9
+# window as tall as the primary monitor allows above the taskbar; -Aspect 21:9
+# makes it as wide as the monitor; -FullScreen covers the whole monitor
+# without a frame (no display mode change, Alt+Tab works).
 # The game is DPI aware, so sizes are physical pixels.
 Add-Type -AssemblyName System.Windows.Forms
 $monitor = [System.Windows.Forms.Screen]::PrimaryScreen
@@ -39,6 +48,10 @@ if ($FullScreen) {
     $windowed = '1'
     $width = [int]([math]::Floor(($monitor.WorkingArea.Width * $dpi - 20) / 2) * 2)
     $height = [int]([math]::Floor(($monitor.WorkingArea.Height * $dpi - 80) / 2) * 2)
+    if ($Aspect -eq '16:9') {
+        $width = [math]::Min($width, [int]([math]::Floor($height * 16 / 9 / 2) * 2))
+        $height = [math]::Min($height, [int]([math]::Floor($width * 9 / 16 / 2) * 2))
+    }
 }
 # CE drops the scale when the game picture would be under 640x480.
 $scale = if ($width / 2 -ge 640 -and $height / 2 -ge 480) { 2 } else { 1 }
@@ -88,7 +101,7 @@ if ((Test-Path $built) -and (-not (Test-Path $exe) -or (Get-Item $built).LastWri
 $start = if ($Slot -gt 0) { "--dev-load-game=$Slot" } else { '--dev-new-game' }
 $args = @('--dev-tools', $start, "--dev-map=$Map", "--dev-elevation=$Elevation", "--dev-tools-commit=$toolsCommit")
 if (-not $Classic) { $args += '--dev-walk-preview' }
-$mode = if ($FullScreen) { 'full screen' } else { 'window' }
+$mode = if ($FullScreen) { 'full screen' } else { "window $Aspect" }
 Write-Output ("SCREEN: ${width}x${height} x$scale $mode")
 Write-Output ("START: " + $exe + " " + ($args -join ' '))
 Start-Process -FilePath $exe -ArgumentList $args -WorkingDirectory $GameDir

@@ -1341,6 +1341,40 @@ void refreshStaticHeroForPresent()
     }
 }
 
+// Ctrl+F11: the window between 16:9 and 21:9. The engine sizes its screen once
+// at start, so tools/dev-launch.ps1 starts the game again in the other shape as
+// soon as this one has quit.
+void restartInOtherAspect()
+{
+#if defined(_WIN32)
+    const bool wide = settings.screen.resolution_x * 9 > settings.screen.resolution_y * 17;
+    const char* aspect = wide ? "16:9" : "21:9";
+    const std::filesystem::path launcher = std::filesystem::current_path().parent_path() / "tools" / "dev-launch.ps1";
+    std::error_code error;
+    if (!std::filesystem::exists(launcher, error)) {
+        setStatus("window shape switch needs tools/dev-launch.ps1");
+        return;
+    }
+    std::string command = "powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File \""
+        + launcher.string() + "\" -Aspect " + aspect + " -WaitPid " + std::to_string(GetCurrentProcessId());
+    STARTUPINFOA startup = {};
+    startup.cb = sizeof(startup);
+    PROCESS_INFORMATION process = {};
+    if (!CreateProcessA(nullptr, command.data(), nullptr, nullptr, FALSE, CREATE_NO_WINDOW, nullptr, nullptr,
+            &startup, &process)) {
+        setStatus("window shape switch could not start the launcher");
+        return;
+    }
+    CloseHandle(process.hThread);
+    CloseHandle(process.hProcess);
+    printf("devtools: restarting in %s\n", aspect);
+    fflush(stdout);
+    _game_user_wants_to_quit = GAME_QUIT_REQUEST_EXIT;
+#else
+    setStatus("window shape switch is Windows only");
+#endif
+}
+
 bool handleKey(int key)
 {
     if (!gEnabled) {
@@ -1353,6 +1387,11 @@ bool handleKey(int key)
             return true;
         }
         enableStaticPreview(false);
+        return true;
+    }
+
+    if (key == KEY_CTRL_F11) {
+        restartInOtherAspect();
         return true;
     }
 

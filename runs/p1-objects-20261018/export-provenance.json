@@ -4,8 +4,8 @@
     "export.py": "96c0adefa0ee82c418db01bc0896edf35f9f586de1122ab8cca6a61525243ea2",
     "floor_sidecar.py": "632a33d48c710394144535f66dcaeea988d76041cdac3ef3fa1c07c3ad1d9bd7",
     "projection_sidecar.py": "b48cae0ce7cf3c8b50291d5739240bba63dd262b084f76756209a5dda49a21ed",
-    "solids.py": "9ec46d2a9d46ebcd531ff04154ca5349cadb57d7c5804d602adadd65fe11d51e",
-    "wall_sidecar.py": "89be8ec66e131535e6f5a624247ec196af9ddfa6fc2db8cfdccd8f86a778a30c"
+    "solids.py": "a87b1622017d5df17d3f50d98dba536b72611f07796d098a671753ccaf3d2c9f",
+    "wall_sidecar.py": "12d8dc32c494da8bb3f7e9a19e70a72bb1a9cbbcbaa2a5d02fbc240cedb4d4f2"
   },
   "archives": [
     {
@@ -104,10 +104,10 @@
     "floor.bin": "c6b8c42e2c3dfbabc680b620f46fd1bbd96d54d883f5e26d96135e97c27fa3b0",
     "light.png": "1bdef30de77c344b4bda66385565c69b7c400943c4dc181b937543aa25c431f8",
     "projection.bin": "16f764c8c14820b57e37ccfe40d70712dae31376b7ac2b9b8a26853e7199c059",
-    "scene.json": "f0e52fbc8b09c025ddcbb1fc638782fc6cbf76214037bd8e786ff6e847d7fa14",
+    "scene.json": "39483a0fb7998d3835059481901248387447c0e1d211b8c06b164a1d02b1b54e",
     "sprites0.png": "ddabffb48c247fc39de812604bbaf1e488d352deb8881578ef3782b20bbc246d",
     "tiles.png": "3811c5922e162b9aff54682cdd6611786155eadd0ab1960569e2c4c5eb15c828",
-    "walls.bin": "f3bbb17b39d3e8c148c3bdd5b7527dda61b0003836ac9108118f221917a1b7a3"
+    "walls.bin": "080b10cedb6f1666d177ed99fd16a1c0c8c3e1f83159ee4b278beae3442b6daf"
   },
   "baked_sidecar": {
     "file": "baked.bin",
@@ -124,7 +124,7 @@
   "elevation": 0,
   "exporter": "fallout2-sprite-lighting scene_export",
   "exporter_version": "1.6.0",
-  "fingerprint_sha256": "91c24cc3c8ffd7455b55a4ea4deeb4653d831ecc58ee3de1cf9b9c66712e95e6",
+  "fingerprint_sha256": "827b6b5342bc90207ead6c934d06c71e864a4f3339b5ec46eb3a1e53e3b14453",
   "floor_sidecar": {
     "file": "floor.bin",
     "format_version": 1,
@@ -6112,7 +6112,7 @@
         "triangles": 8829
       }
     ],
-    "sha256": "f3bbb17b39d3e8c148c3bdd5b7527dda61b0003836ac9108118f221917a1b7a3",
+    "sha256": "080b10cedb6f1666d177ed99fd16a1c0c8c3e1f83159ee4b278beae3442b6daf",
     "triangles": 8829
   }
 }

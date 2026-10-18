@@ -7,6 +7,11 @@ the 3D view sees a thing with depth: a bed lies on the floor, a shelf stands
 square to the walls. These are the faces the game's camera sees; the far sides
 (mirror images) are first person only in the donor and hidden here anyway.
 
+As in the donor's game view, a solid's faces take the depth of its card: the
+upright plane of its hex row (a hair nearer), reached along the game's view
+ray. The solid gives the shape; what hides what stays the game's own painting
+order, so a woman beside a bed and a headboard against a wall stay whole.
+
 What a solid does not cover of a drum or a stem (`rests`) stays a sprite card,
 static here: its depth is that of its hex row's plane, reached along the
 game's view ray (row_plane), like a live card.
@@ -17,6 +22,7 @@ from __future__ import annotations
 import math
 
 DRUM_SIDES = 16
+OVER_CARD = 2e-5    # units a solid is nearer than its card's depth plane (render.js): it wins the tie
 
 
 class Projection:
@@ -106,10 +112,22 @@ def clip(corners, x, y, w, h):
     return corners
 
 
-def solid_faces(proj, sprites, row):
+def depth_home(proj, corner, plane):
+    """The way along the game's view ray from a corner to the depth plane v = plane."""
+    t = (plane - corner[1]) / proj.toward[1]
+    return [proj.toward[0] * t, proj.toward[1] * t, proj.toward[2] * t]
+
+
+def solid_faces(proj, sprites, boards, row):
     """(page, polygon) of each face the game's camera sees of one scene.props row;
-    polygon corners are [u, v, z, atlas x, atlas y], clipped to the sprite."""
-    s, u, v, _board, round_, cu, cv, a, b, z0, z1, wall_u, wall_v = row[:13]
+    polygon corners are [u, v, z, atlas x, atlas y, home u, home v, home z],
+    clipped to the sprite. A solid that stands for several cards (board -1)
+    keeps its own depth."""
+    s, u, v, board, round_, cu, cv, a, b, z0, z1, wall_u, wall_v = row[:13]
+    plane = None
+    if board >= 0:
+        _, bu, bv, stack = boards[board][:4]
+        plane = row_plane(proj, bu, bv, stack) + OVER_CARD
     page, x, y, w, h, ox, oy = sprites[s]
     ax, ay = proj.ground_to_px(u, v)
 
@@ -123,7 +141,8 @@ def solid_faces(proj, sprites, row):
         shows = from_points or points
         corners = clip([[*point, *texel_at(shows[i])] for i, point in enumerate(points)], x, y, w, h)
         if len(corners) >= 3:
-            faces.append((page, corners))
+            faces.append((page, [corner + (depth_home(proj, corner, plane) if plane is not None else [0.0, 0.0, 0.0])
+                                 for corner in corners]))
 
     if round_:
         # The cylinder over the floor ellipse a x b px on the game's screen: only the
@@ -195,9 +214,7 @@ def rest_card(proj, sprites, row):
         cu = base_u + right_u * along + down_u * towards
         cv = base_v + right_v * along + down_v * towards
         cz = z_bottom if j else z_top
-        t = (plane - cv) / proj.toward[1]
-        corners.append([cu, cv, cz, x + i * w, y + j * h,
-                        proj.toward[0] * t, proj.toward[1] * t, proj.toward[2] * t])
+        corners.append([cu, cv, cz, x + i * w, y + j * h, *depth_home(proj, [cu, cv, cz], plane)])
     return page, corners
 
 

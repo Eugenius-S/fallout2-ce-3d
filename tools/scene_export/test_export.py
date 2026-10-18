@@ -14,6 +14,7 @@ from floor_sidecar import HEADER, MAGIC, VERSION, cell_content_rect, decode_floo
 from projection_sidecar import (HEADER as PROJECTION_HEADER, MAGIC as PROJECTION_MAGIC,
                                 VERSION as PROJECTION_VERSION, decode_projection_sidecar,
                                 encode_projection_sidecar, hero_anchor, standing_card)
+from solids import Projection, row_plane
 from wall_sidecar import (BATCH, HEADER as WALL_HEADER, MAGIC as WALL_MAGIC, VERTEX,
                           VERSION as WALL_VERSION, decode_wall_sidecar, encode_wall_sidecar)
 from vendor.fp import proj as donor_proj
@@ -313,6 +314,7 @@ class WallSidecarTests(unittest.TestCase):
         scene["sprites"].append([0, 40, 40, 50, 50, -25, -40])
         # box: [sprite, u, v, board, round, cu, cv, a, b, z0, z1, wallU, wallV]
         scene["props"] = [[2, 10.0, 10.0, 0, 0, 10.0, 10.1, 0.5, 0.4, 0.0, 0.3, 0.0, 0.6]]
+        scene["boards"] = [[2, 10.0, 10.0, 1, 0, 0]]  # [sprite, u, v, stack, name, object]
         decoded = decode_wall_sidecar(encode_wall_sidecar(scene))
         vertices = decoded["batches"][0]["vertices"]
         self.assertGreater(len(vertices), 12)
@@ -323,12 +325,19 @@ class WallSidecarTests(unittest.TestCase):
         # Every vertex shows the sprite pixel it lands on from the game's camera
         # (anchor (u, v), sprite top-left 25 px left and 40 px up of it).
         ax, ay = px(10.0, 10.0, 0.0)
+        proj = Projection(p)
+        toward = proj.toward
+        plane = row_plane(proj, 10.0, 10.0, 1) + 2e-5
         for vertex in vertices:
             x, y, z, s_, t = vertex[:5]
             sx, sy = px(x + 50.0, z + 50.0, y)
             self.assertAlmostEqual(s_ * 100.0, 40 + sx - ax + 25, places=3)
             self.assertAlmostEqual(t * 100.0, 40 + sy - ay + 40, places=3)
-            self.assertEqual(vertex[5:], vertex[:3])  # real depth
+            # Depth: the card's hex row plane, a hair nearer, along the game's ray.
+            dx, dy, dz = (vertex[5 + k] - vertex[k] for k in range(3))
+            self.assertAlmostEqual(vertex[7] + 50.0, plane, places=4)
+            self.assertAlmostEqual(dx * toward[1] - dz * toward[0], 0.0, places=4)
+            self.assertAlmostEqual(dy * toward[1] - dz * toward[2], 0.0, places=4)
         # Triangles face the game's camera: counter-clockwise on its screen, y up.
         for index in range(0, len(vertices), 3):
             a, b, c = (px(v[0] + 50.0, v[2] + 50.0, v[1]) for v in vertices[index:index + 3])
@@ -337,9 +346,12 @@ class WallSidecarTests(unittest.TestCase):
 
         # A drum: sixteen sides and a top (the sides away from the camera
         # repeat the facing quarter mirrored, so they are not checked here).
-        scene["props"] = [[2, 20.0, 20.0, 1, 1, 20.0, 20.0, 9.0, 6.0, 0.0, 0.4, 0.0, 0.0]]
+        # It stands for several cards (board -1), so it keeps its own depth.
+        scene["props"] = [[2, 20.0, 20.0, -1, 1, 20.0, 20.0, 9.0, 6.0, 0.0, 0.4, 0.0, 0.0]]
         drum = decode_wall_sidecar(encode_wall_sidecar(scene))
         self.assertGreater(drum["triangles"], 16)
+        for vertex in drum["batches"][0]["vertices"]:
+            self.assertEqual(vertex[5:], vertex[:3])
 
     def test_first_person_surfaces_are_left_out(self):
         scene = self.sample_scene()
