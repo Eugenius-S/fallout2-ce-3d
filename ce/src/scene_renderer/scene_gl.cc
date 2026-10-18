@@ -168,6 +168,9 @@ bool gHeroLoaded = false;
 HeroProjection gHeroProjection;
 StaticHeroInfo gHeroInfo = {};
 int gGroundCursorTile = -1;
+// Ground point the wall/hero camera centers on: the game's view center.
+bool gCameraFollows = false;
+double gCameraGround[2] = {};
 unsigned int gCursorVao = 0;
 unsigned int gCursorVbo = 0;
 
@@ -603,6 +606,7 @@ void shutdown()
     gHeroProjectionLoaded = false;
     gHeroProjection = {};
     gGroundCursorTile = -1;
+    gCameraFollows = false;
 }
 
 bool isActive()
@@ -612,7 +616,11 @@ bool isActive()
 
 StaticPreviewCamera staticPreviewCamera(bool withWalls)
 {
-    const GroundPickCamera camera = staticPreviewCameraParameters(withWalls);
+    GroundPickCamera camera = staticPreviewCameraParameters(withWalls);
+    if (withWalls && gCameraFollows) {
+        GroundPickCamera moved;
+        if (followGroundPoint(camera, gCameraGround[0], gCameraGround[1], &moved)) camera = moved;
+    }
     return {
         { static_cast<float>(camera.eye[0]), static_cast<float>(camera.eye[1]), static_cast<float>(camera.eye[2]) },
         { static_cast<float>(camera.target[0]), static_cast<float>(camera.target[1]), static_cast<float>(camera.target[2]) },
@@ -645,6 +653,15 @@ bool pickStaticGroundTile(int logicalX, int logicalY, GroundPickResult* result)
     };
     const GroundPickViewport viewport = { gLogicalWidth, gLogicalHeight, gWindowWidth, gWindowHeight, windowWidth, windowHeight };
     return pickGroundTile(projection, camera, viewport, logicalX, logicalY, result);
+}
+
+void setStaticCameraCenterTile(int tile)
+{
+    double pixelX = 0.0, pixelY = 0.0;
+    gCameraFollows = false;
+    if (!gHeroProjectionLoaded || tile < 0 || tile >= HEX_GRID_SIZE) return;
+    spriteHexPixel(tile, &pixelX, &pixelY);
+    gCameraFollows = spritePixelToGround(cardProjection(), pixelX, pixelY, &gCameraGround[0], &gCameraGround[1]);
 }
 
 void setStaticGroundCursor(int tile)

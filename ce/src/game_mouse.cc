@@ -540,6 +540,11 @@ void gameMouseRefresh()
     if (devtools::staticWalkPreviewCanCaptureInput()) {
         int walkMouseX, walkMouseY;
         mouseGetPosition(&walkMouseX, &walkMouseY);
+        // Screen edges still scroll the map; the 3D view follows the game's
+        // view center.
+        if (gmouse_scrolling_is_enabled() && gameMouseHandleScrolling(walkMouseX, walkMouseY, gGameMouseCursor) == 0) {
+            return;
+        }
         devtools::refreshWalkCursor(walkMouseX, walkMouseY);
         return;
     }

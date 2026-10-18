@@ -98,6 +98,26 @@ GroundPickCamera staticPreviewCameraParameters(bool withWalls)
     return { { 0.0, 88.0, 118.0 }, { 0.0, 0.0, 0.0 }, 50.0, false };
 }
 
+bool followGroundPoint(const GroundPickCamera& camera, double groundX, double groundZ, GroundPickCamera* moved)
+{
+    const double forward[3] = {
+        camera.target[0] - camera.eye[0],
+        camera.target[1] - camera.eye[1],
+        camera.target[2] - camera.eye[2],
+    };
+    if (moved == nullptr || !(forward[1] < 0.0) || !std::isfinite(groundX) || !std::isfinite(groundZ)) return false;
+    // Ground point the view ray through the target reaches.
+    const double t = -camera.target[1] / forward[1];
+    const double shiftX = groundX - (camera.target[0] + forward[0] * t);
+    const double shiftZ = groundZ - (camera.target[2] + forward[2] * t);
+    *moved = camera;
+    moved->eye[0] += shiftX;
+    moved->eye[2] += shiftZ;
+    moved->target[0] += shiftX;
+    moved->target[2] += shiftZ;
+    return std::isfinite(shiftX) && std::isfinite(shiftZ);
+}
+
 int donorHexFromPixel(double x, double y)
 {
     if (!finite(x) || !finite(y) || std::abs(x) > 1e7 || std::abs(y) > 1e7) return -1;

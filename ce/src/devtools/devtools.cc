@@ -645,6 +645,7 @@ bool disableStaticFloorPreview(const char* status)
     gHeroUnavailableLogged = false;
     scene_renderer::clearStaticHero();
     scene_renderer::clearStaticObjects();
+    scene_renderer::setStaticCameraCenterTile(-1);
     scene_renderer::setStaticGroundCursor(-1);
     gWalkRequestPending = false;
     gWalkSnapshotAfterPending = false;
@@ -1248,6 +1249,9 @@ void afterWalkPreviewDraw()
 void refreshStaticHeroForPresent()
 {
     if (!staticHeroPreviewActive()) return;
+    // The game scrolls (screen edges, arrow keys, following the hero); the 3D
+    // view goes with it.
+    scene_renderer::setStaticCameraCenterTile(gCenterTile);
     updateStaticObjectsFromGame();
     const bool heroUpdated = updateStaticHeroFromGame();
     if (heroUpdated && gSnapshotOncePending) {

@@ -9,15 +9,18 @@
 powershell -NoProfile -ExecutionPolicy Bypass -File 'E:\Projects\fallout2-ce-3d\tools\dev-launch.ps1' -Map kladwtwn -Elevation 0
 ```
 
-Launcher сам выставляет в `game\fallout2.cfg` весь экран без рамки
-(`windowed=2`), разрешение монитора и масштаб ×2 (`scale=2`), а также
-`[ui] skip_opening_movies=1`, затем запускает сразу 3D-сцену:
+Launcher сам выставляет в `game\fallout2.cfg` окно с рамкой во весь
+монитор над панелью задач и масштаб ×2 (`scale=2`); с `-FullScreen` —
+весь экран без рамки (`windowed=2`). Также `[ui] skip_opening_movies=1`.
+Затем запускает сразу 3D-сцену:
 
 ```
 game\fallout2-ce.exe --dev-tools --dev-new-game --dev-map=kladwtwn --dev-elevation=0 --dev-walk-preview
 ```
 
 `-Classic` оставляет обычную 2D-картинку; Ctrl+F10 выходит из 3D в игре.
+3D-камера идёт за центром экрана игры: прокрутка у краёв окна, стрелки и
+следование за героем двигают её, наклон и расстояние не меняются.
 
 - Профиль: с 2026-10-18 по умолчанию новая игра с первым готовым
   персонажем (`--dev-new-game`, без ролика старейшины): Restoration Project

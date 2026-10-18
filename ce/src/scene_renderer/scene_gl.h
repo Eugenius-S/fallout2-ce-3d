@@ -102,6 +102,9 @@ void clearStaticObjects();
 unsigned int staticObjectCount();
 bool pickStaticGroundTile(int logicalX, int logicalY, GroundPickResult* result);
 void setStaticGroundCursor(int tile);
+// The wall/hero camera follows the game's view center (gCenterTile): it
+// moves over the ground with angle and distance kept. -1 = the fixed view.
+void setStaticCameraCenterTile(int tile);
 void drawStaticFloor();
 void drawStaticWallPreview();
 void drawStaticHeroPreview();
