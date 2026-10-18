@@ -662,12 +662,11 @@ bool isActive()
     return gInitialized;
 }
 
-// Eye distance of the game view: that of the accepted 25-degree camera, which
-// sets how strong the perspective is.
+// Eye distance of the game view (units): it sets how strong the perspective
+// is. The 25-degree camera's 36.9 was asked to be a little milder.
 double gameViewDistance()
 {
-    constexpr double kPi = 3.14159265358979323846;
-    return std::sqrt(8.0 * 8.0 + 10.0 * 10.0 + 12.0 * 12.0) * std::tan(25.0 * kPi / 180.0) / std::tan(12.5 * kPi / 180.0);
+    return 52.0;
 }
 
 bool currentGameView(GameView* view)

@@ -22,7 +22,11 @@ struct Frame {
     double centerPixel[2]; // game pixel of the center hex
     double screenCenter[2]; // logical pixel it is shown at
     double center[3]; // its ground point, GL
-    double toward[3]; // unit direction to the game's camera, GL
+    // How much nearer the eye a point is (units): per game pixel its ground
+    // point lies further down the screen, and per unit of height.
+    double nearPerPixel;
+    double nearPerHeight;
+    SpriteCardProjection projection;
     double width;
     double height;
     double distance;
@@ -40,12 +44,27 @@ bool makeFrame(const GameView& view, Frame* frame)
     };
     frame->centerPixel[0] = view.centerPixel[0];
     frame->centerPixel[1] = view.centerPixel[1];
+    double toward[3];
     if (!spritePixelToGround(projection, frame->centerPixel[0], frame->centerPixel[1],
             &frame->center[0], &frame->center[2])
-        || !spriteTowardCamera(projection, frame->toward)) {
+        || !spriteTowardCamera(projection, toward)) {
         return false;
     }
     frame->center[1] = 0.0;
+    frame->projection = projection;
+    // Nearness follows the game's view ray, but only through how far down the
+    // screen and how high a point is. The game's screen axes are not square on
+    // the floor (the projection is oblique), so the ray's own depth also
+    // changes along a screen row: the right of the picture came out further
+    // away than the left, and the perspective looked skewed.
+    double downX, downZ;
+    double originX, originZ;
+    if (!spritePixelToGround(projection, frame->centerPixel[0], frame->centerPixel[1] + 1.0, &downX, &downZ)) return false;
+    originX = frame->center[0];
+    originZ = frame->center[2];
+    frame->nearPerPixel = toward[0] * (downX - originX) + toward[2] * (downZ - originZ);
+    frame->nearPerHeight = toward[1];
+    if (!(frame->nearPerPixel * view.hpx + frame->nearPerHeight > 0.0)) return false;
     // Where the engine shows the center hex of a width x height screen.
     frame->screenCenter[0] = std::floor((view.logicalWidth - 32) / 2.0) + 16.0;
     frame->screenCenter[1] = std::floor((view.logicalHeight - 16) / 2.0) + 8.0;
@@ -62,9 +81,8 @@ void clip(const GameView& view, const Frame& frame, double x, double y, double z
     const double v = z + kMapOffset;
     const double pixelX = view.origin[0] + u * view.squ[0] + v * view.sqv[0];
     const double pixelY = view.origin[1] + u * view.squ[1] + v * view.sqv[1] - view.hpx * y;
-    // How far the point is towards the eye from the plane through the center.
-    const double near = frame.toward[0] * (x - frame.center[0]) + frame.toward[1] * (y - frame.center[1])
-        + frame.toward[2] * (z - frame.center[2]);
+    const double groundPixelY = pixelY + view.hpx * y;
+    const double near = frame.nearPerPixel * (groundPixelY - frame.centerPixel[1]) + frame.nearPerHeight * y;
     const double w = (frame.distance - near) / frame.distance;
     out[0] = (pixelX - frame.centerPixel[0]) * 2.0 / frame.width + (2.0 * frame.screenCenter[0] / frame.width - 1.0) * w;
     out[1] = -(pixelY - frame.centerPixel[1]) * 2.0 / frame.height + (1.0 - 2.0 * frame.screenCenter[1] / frame.height) * w;
@@ -114,8 +132,12 @@ bool gameViewEye(const GameView& view, double eye[3])
 {
     Frame frame;
     if (!makeFrame(view, &frame)) return false;
-    for (int axis = 0; axis < 3; axis++) eye[axis] = frame.center[axis] + frame.toward[axis] * frame.distance;
-    return true;
+    // The point every line of sight goes through: on the center's game pixel,
+    // `distance` nearer.
+    const double height = frame.distance / (frame.nearPerPixel * view.hpx + frame.nearPerHeight);
+    eye[1] = height;
+    return spritePixelToGround(frame.projection, frame.centerPixel[0], frame.centerPixel[1] + view.hpx * height,
+        &eye[0], &eye[2]);
 }
 
 bool gameViewCenter(const GameView& view, double* worldX, double* worldZ)

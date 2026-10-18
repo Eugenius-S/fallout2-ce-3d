@@ -25,23 +25,30 @@ int main()
     CHECK(gameViewProject(view, centerX, 0.0, centerZ, &lx, &ly));
     CHECK(std::abs(lx - 855.0) < 1e-6 && std::abs(ly - 332.0) < 1e-6);
 
-    // On the plane through the center facing the game's camera every point is
-    // on the 2D game's pixel: a wall top, a lamp, a floor point alike.
+    // The screen row through the center keeps the 2D game's pixels exactly.
     const SpriteCardProjection cards = { { -48, 12 }, { 32, 24 }, { 4784, -1190 }, hpx, 57.24334, 0, 0 };
     double toward[3];
     CHECK(spriteTowardCamera(cards, toward));
     double centerPixelX, centerPixelY;
     gamePixel(centerX, 0.0, centerZ, &centerPixelX, &centerPixelY);
-    const double offsets[3][3] = { { 3.0, 0.0, -1.0 }, { -2.0, 1.5, 4.0 }, { 0.5, 2.0, 0.0 } };
-    for (const auto& offset : offsets) {
-        const double along = offset[0] * toward[0] + offset[1] * toward[1] + offset[2] * toward[2];
-        const double x = centerX + offset[0] - along * toward[0];
-        const double y = offset[1] - along * toward[1];
-        const double z = centerZ + offset[2] - along * toward[2];
-        double px, py;
-        gamePixel(x, y, z, &px, &py);
-        CHECK(gameViewProject(view, x, y, z, &lx, &ly));
-        CHECK(std::abs(lx - (px - centerPixelX + 855.0)) < 1e-6 && std::abs(ly - (py - centerPixelY + 332.0)) < 1e-6);
+    const double rowOffsets[3] = { -700.0, 37.5, 640.0 };
+    for (double offset : rowOffsets) {
+        double x, z;
+        CHECK(spritePixelToGround(cards, centerPixelX + offset, centerPixelY, &x, &z));
+        CHECK(gameViewProject(view, x, 0.0, z, &lx, &ly));
+        CHECK(std::abs(lx - (855.0 + offset)) < 1e-6 && std::abs(ly - 332.0) < 1e-6);
+    }
+
+    // No skew: floor points on one game screen row stay on one screen row, at
+    // any height of the screen, and are spread evenly about the center.
+    const double rows[2] = { -250.0, 280.0 };
+    for (double row : rows) {
+        double leftX, leftZ, rightX, rightZ, lx2, ly2;
+        CHECK(spritePixelToGround(cards, centerPixelX - 600.0, centerPixelY + row, &leftX, &leftZ));
+        CHECK(spritePixelToGround(cards, centerPixelX + 600.0, centerPixelY + row, &rightX, &rightZ));
+        CHECK(gameViewProject(view, leftX, 0.0, leftZ, &lx, &ly));
+        CHECK(gameViewProject(view, rightX, 0.0, rightZ, &lx2, &ly2));
+        CHECK(std::abs(ly - ly2) < 1e-6 && std::abs((855.0 - lx) - (lx2 - 855.0)) < 1e-6);
     }
 
     // A pinhole: everything on a line through the eye lands on one pixel.
