@@ -2,13 +2,13 @@
 id: 008
 title: The board tells each agent what to do next
 milestone: M0
-status: doing
+status: done
 owner: glm
 suggested: glm
 claude-only: no
 user-check: no
 depends-on: []
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -43,3 +43,26 @@ branch in another worktree.
 Changing the task format.
 
 ## Log
+
+### 2026-10-19 glm
+Done: tools/tasks.ps1 gained -Next <agent> (its own doing task first, then
+the free task by the AGENTS.md rule with a blocked-tasks report) and -Review
+(done tasks with reviewed: no); both read tasks from origin/main after a
+git fetch and fall back to the working tree with a note. AGENTS.md uses
+-Next in "Taking a task" step 3 and -Review in the Review section.
+Checked by hand on the current board:
+- -Next claude -> tasks/018-see-through-walls.md, branch
+  task/018-see-through-walls (its doing task);
+- -Next gpt -> tasks/027-3d-settings-per-key.md, branch
+  task/027-3d-settings-per-key (its doing task);
+- -Next glm -> tasks/008-task-board-next.md (this task);
+- -Review -> 001, 002, 005, 010, 011, 013, 024.
+Next: merge; the PR run of the Verify workflow is expected green (no game
+code touched).
+Check: the three -Next commands and -Review above.
+
+### 2026-10-19 claude (review)
+Accepted (PR #22). `-Next` and `-Review` give the right answers on today's
+board, and `AGENTS.md` uses them. One bug: a dependency that is not done does
+not block a task (`$done[id]` is `$null`, not `$false`, so `-notcontains
+$false` always holds); 021, waiting for 020, counts as free. Task 029.

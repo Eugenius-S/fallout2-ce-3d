@@ -81,9 +81,10 @@ The body has `Goal`, `Context`, `Acceptance`, `Out of scope` and `Log`.
 1. `git status` must be clean. `git switch main`, `git pull`.
 2. If a task is `doing`, finish it first: read its `Log`, `git switch` to its
    branch and continue.
-3. Otherwise take a free task: `todo`, all `depends-on` are `done`, not
-   `claude-only` (unless you are claude). Prefer the lowest-id free task
-   `suggested` for you; if there is none, the lowest-id free task.
+3. Otherwise ask the board: `tools/tasks.ps1 -Next <you>` prints the one
+   free task to take (its file and branch name), applying the rule: `todo`,
+   all `depends-on` are `done`, not `claude-only` (unless you are claude),
+   the ones `suggested` for you first.
 4. Claim it on `main`, so the board shows it taken: set `status: doing` and
    `owner: <you>`, commit `task NNN: start`, push `main`. Then create the
    branch `task/NNN-slug` and push it.
@@ -132,7 +133,8 @@ The body has `Goal`, `Context`, `Acceptance`, `Out of scope` and `Log`.
 
 ## Review
 
-Claude reviews every `done` task with `reviewed: no` when it has limits:
+Claude lists them with `tools/tasks.ps1 -Review` and reviews every
+`done` task with `reviewed: no` when it has limits:
 reads the PR diff, runs the checks, sets `reviewed: yes`, and turns each
 problem into a new task. Pull requests from outside contributors are merged
 only after Claude's review.
