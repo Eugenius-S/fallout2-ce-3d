@@ -1,0 +1,44 @@
+{
+  "image": "klatoxcv-e1.png",
+  "view": "static-wall-plus-hero-preview",
+  "map": "KLATOXCV.MAP",
+  "elevation": 1,
+  "still_snapshot": true,
+  "snapshot_run": "505c6dca05664238aa7fd66cd5f83b5b",
+  "view_tile": 19091,
+  "preview_requested": true,
+  "camera": "fixed eye=(44.64466,46.23085,71.46700), target=(-4.54167,0.00000,-2.31250), fov_y=25.0, near=0.1, far=400.0, screen_right=-cross(forward,world_up)",
+  "wall_triangles": 5883,
+  "wall_pages": 1,
+  "hero": {
+    "tile": 18531,
+    "fid": 16777278,
+    "frame": 0,
+    "rotation": 1,
+    "world_anchor": [
+      15.458333333,
+      -3.8125
+    ]
+  },
+  "objects": {
+    "drawn": 2018,
+    "skipped": 0
+  },
+  "preview_availability": "available",
+  "renderer": "scene-gl",
+  "light": "off",
+  "resolution": "2310x1298",
+  "drawable": "2310x1298",
+  "ce_commit": "b842ad0",
+  "tools_commit": "-",
+  "exe_sha256": "00bb8534224ab6ffe3d874b8ef54c4227b0ac121acc9f4e7bed7a26569f89b56",
+  "taken": "20261019-151004",
+  "capture_image": "devhero-20261019-151004-000.png",
+  "spot": {
+    "name": "klatoxcv-e1",
+    "map": "klatoxcv",
+    "elevation": 1,
+    "tile": 19091,
+    "coverage": "The most detailed gallery view of this map elevation (task 011)"
+  }
+}

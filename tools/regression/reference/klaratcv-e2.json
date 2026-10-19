@@ -1,0 +1,44 @@
+{
+  "image": "klaratcv-e2.png",
+  "view": "static-wall-plus-hero-preview",
+  "map": "KLARATCV.MAP",
+  "elevation": 2,
+  "still_snapshot": true,
+  "snapshot_run": "f15f3d41dcc144ba870b62798c401762",
+  "view_tile": 17107,
+  "preview_requested": true,
+  "camera": "fixed eye=(52.64466,46.23085,66.46700), target=(3.45833,0.00000,-7.31250), fov_y=25.0, near=0.1, far=400.0, screen_right=-cross(forward,world_up)",
+  "wall_triangles": 2632,
+  "wall_pages": 1,
+  "hero": {
+    "tile": 20100,
+    "fid": 16777278,
+    "frame": 0,
+    "rotation": 0,
+    "world_anchor": [
+      -0.041666667,
+      0.4375
+    ]
+  },
+  "objects": {
+    "drawn": 1528,
+    "skipped": 0
+  },
+  "preview_availability": "available",
+  "renderer": "scene-gl",
+  "light": "off",
+  "resolution": "2310x1298",
+  "drawable": "2310x1298",
+  "ce_commit": "b842ad0",
+  "tools_commit": "-",
+  "exe_sha256": "00bb8534224ab6ffe3d874b8ef54c4227b0ac121acc9f4e7bed7a26569f89b56",
+  "taken": "20261019-150940",
+  "capture_image": "devhero-20261019-150940-000.png",
+  "spot": {
+    "name": "klaratcv-e2",
+    "map": "klaratcv",
+    "elevation": 2,
+    "tile": 17107,
+    "coverage": "The most detailed gallery view of this map elevation (task 011)"
+  }
+}
