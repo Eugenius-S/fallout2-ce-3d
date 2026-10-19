@@ -1,5 +1,13 @@
 name: Verify
-on: [push, pull_request]
+# A task branch is checked once, by its pull request; main by its pushes.
+on:
+  push:
+    branches: [main]
+  pull_request:
+# A newer push to the same branch cancels the older run.
+concurrency:
+  group: verify-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:
