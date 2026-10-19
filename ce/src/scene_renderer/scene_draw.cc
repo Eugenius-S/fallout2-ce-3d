@@ -20,7 +20,8 @@ void drawStaticPreview(bool withWalls, bool withHero)
     if (!gInitialized || !gFloorLoaded || (withWalls && !gWallsLoaded)) return;
     SDL_GL_GetDrawableSize(gWindow, &gWindowWidth, &gWindowHeight);
     glViewport(0, 0, gWindowWidth, gWindowHeight);
-    glClearColor(0.02f, 0.02f, 0.025f, 1.0f);
+    // The engine shows black where there is no floor and beyond the map.
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(kColorBufferBit | kDepthBufferBit);
     int x, y, width, height;
     if (!fitRect(gLogicalWidth, gLogicalHeight, gWindowWidth, gWindowHeight, &x, &y, &width, &height)) return;
@@ -58,7 +59,7 @@ void drawStaticPreview(bool withWalls, bool withHero)
     glDepthMask(0);
     glUniform1i(gSceneTexturedLocation, 0);
     glUniform1f(gSceneCutoffLocation, 0.01f);
-    glUniform4f(gSceneColorLocation, 0.16f, 0.17f, 0.18f, 1.0f);
+    glUniform4f(gSceneColorLocation, 0.0f, 0.0f, 0.0f, 1.0f);
     glDrawArrays(kTriangles, 0, 6);
     glUniform1i(gSceneTexturedLocation, 1);
     glUniform1f(gSceneCutoffLocation, 0.01f);
