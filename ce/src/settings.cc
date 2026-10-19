@@ -27,6 +27,7 @@ struct SettingRegistryEntry {
     std::function<void(const SettingValue&)> setValue;
     std::function<bool(const SettingValue&)> validateValue;
     std::optional<SettingValue> restartValue;
+    std::uint64_t revision = 0;
 };
 
 static std::vector<SettingRegistryEntry> settingsRegistry;
@@ -427,7 +428,6 @@ void initSettingsRegistry(bool isMapper)
         }
         if (settings.scene3d.enabled != enabled) {
             settings.scene3d.enabled = enabled;
-            ++gThreeDSettingsRevision;
         }
     };
     settingsRegistry.back().write = [scene3dDefault](bool onlyAdd) {
@@ -483,8 +483,13 @@ bool settingsInit(bool isMapper, int argc, char** argv)
         return false;
     }
 
-    for (const auto& entry : settingsRegistry) {
+    for (auto& entry : settingsRegistry) {
+        const SettingValue previousValue = entry.getValue();
         entry.read();
+        if (previousValue != entry.getValue()) {
+            ++entry.revision;
+            if (entry.descriptor.section == "3d") ++gThreeDSettingsRevision;
+        }
     }
 
     return true;
@@ -579,6 +584,13 @@ SettingValue settingsGetConfiguredValue(const SettingDescriptor& descriptor)
         : settingsGetValue(descriptor);
 }
 
+std::uint64_t settingsGetRevision(const SettingDescriptor& descriptor)
+{
+    const SettingRegistryEntry* entry = settingsFindEntry(descriptor);
+    assert(entry != nullptr);
+    return entry != nullptr ? entry->revision : 0;
+}
+
 std::uint64_t settingsGetThreeDRevision()
 {
     return gThreeDSettingsRevision;
@@ -660,8 +672,9 @@ bool settingsSetValue(const SettingDescriptor& descriptor, const SettingValue& v
         {
             const SettingValue previousValue = entry->getValue();
             entry->setValue(value);
-            if (entry->descriptor.section == "3d" && previousValue != entry->getValue()) {
-                ++gThreeDSettingsRevision;
+            if (previousValue != entry->getValue()) {
+                ++entry->revision;
+                if (entry->descriptor.section == "3d") ++gThreeDSettingsRevision;
             }
         }
         break;

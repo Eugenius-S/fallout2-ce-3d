@@ -12,10 +12,14 @@ where scene data exists; if a scene is unavailable, gameplay safely falls back
 to 2D.
 
 Scene code can read `scene::enabled()` and `scene::settingsRevision()` from
-`ce/src/scene/scene_settings.h`. The revision increases when the effective
-setting changes. It is monotonic and non-consuming, so each feature can retain
-its own last-seen revision. `scene::SettingsLifecycle` is a small helper for
-the scene view's initial enable and later setting transitions.
+`ce/src/scene/scene_settings.h`; this revision tracks `[3d].enabled` only. Other
+features can query `settingsGetRevision(descriptor)` for their own registered
+key. Per-setting revisions increase when a config read or applied edit changes
+the effective value. The aggregate `settingsGetThreeDRevision()` remains
+available for callers that need any `[3d]` change. Revisions are monotonic and
+non-consuming, so each feature can retain its own last-seen revision.
+`scene::SettingsLifecycle` is a small helper for the scene view's initial
+enable and later setting transitions.
 
 In dev mode, Ctrl+F10 remains a view shortcut. If 3D is off, it first turns
 `[3d].enabled` on through the registered setting, then selects the Full view.
