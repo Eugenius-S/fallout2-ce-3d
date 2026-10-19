@@ -88,6 +88,7 @@ int gTourFrames = 0;
 bool gStillSnapshot = false;
 int gViewTile = -1;
 bool gViewTileApplied = false;
+int gHeroTile = -1; // --dev-hero-tile: the hero is put there before the scene starts
 char gSnapshotRun[33] = {};
 // --dev-pick-probe: the mouse is put on the scene's critters one by one and
 // what the game finds there is logged (devprobe.log); snapshots show the hex
@@ -641,6 +642,12 @@ bool parseOption(const char* arg)
         gStillSnapshot = true;
         return true;
     }
+    const char* heroPrefix = "--dev-hero-tile=";
+    if (strncmp(arg, heroPrefix, strlen(heroPrefix)) == 0) {
+        const long tile = strtol(arg + strlen(heroPrefix), nullptr, 10);
+        if (tile >= 0 && tile < HEX_GRID_SIZE) gHeroTile = static_cast<int>(tile);
+        return true;
+    }
     const char* viewPrefix = "--dev-view-tile=";
     if (strncmp(arg, viewPrefix, strlen(viewPrefix)) == 0) {
         const char* value = arg + strlen(viewPrefix);
@@ -794,6 +801,11 @@ void update()
     if ((gStartupFloorPreviewRequested || gStartupWallPreviewRequested || gStartupHeroPreviewRequested || gStartupWalkPreviewRequested)
         && !gStartupFloorPreviewAttempted
         && !gPendingElevation && gMapHeader.name[0] != '\0' && !inBlockingGameState()) {
+        if (gHeroTile >= 0) {
+            // The engine's own move: roofs over the hero hide as when walking in.
+            objectSetLocation(gDude, gHeroTile, gElevation, nullptr);
+            gHeroTile = -1;
+        }
         if (gViewTile >= 0 && !gViewTileApplied) {
             tileSetCenter(gViewTile, TILE_SET_CENTER_FLAG_IGNORE_SCROLL_RESTRICTIONS
                 | TILE_SET_CENTER_FLAG_IGNORE_BOUNDS | TILE_SET_CENTER_REFRESH_WINDOW);

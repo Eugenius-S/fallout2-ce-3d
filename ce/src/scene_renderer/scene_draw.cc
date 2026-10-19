@@ -124,6 +124,7 @@ void drawStaticPreview(bool withWalls, bool withHero)
         glDepthMask(1);
         glDisable(kBlend);
     }
+    if (withHero) drawRoofs(x, y, width, height);
     glUniform1i(gSceneDepthAtLocation, 0);
 
     glDisable(kBlend);

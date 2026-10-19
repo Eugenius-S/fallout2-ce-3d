@@ -21,14 +21,14 @@ from f2lib.gamefiles import norm  # noqa: E402
 from fp.scene import SceneBuilder  # noqa: E402
 from baked_sidecar import VERSION as BAKED_SIDECAR_VERSION  # noqa: E402
 from baked_sidecar import baked_objects, decode_baked_sidecar, encode_baked_sidecar  # noqa: E402
+from floor_sidecar import VERSION as FLOOR_SIDECAR_VERSION  # noqa: E402
 from floor_sidecar import encode_floor_sidecar  # noqa: E402
 from projection_sidecar import VERSION as PROJECTION_SIDECAR_VERSION  # noqa: E402
 from projection_sidecar import decode_projection_sidecar, encode_projection_sidecar  # noqa: E402
 from wall_sidecar import VERSION as WALL_SIDECAR_VERSION  # noqa: E402
 from wall_sidecar import decode_wall_sidecar, encode_wall_sidecar  # noqa: E402
 
-EXPORTER_VERSION = "1.7.0"
-FLOOR_SIDECAR_VERSION = 1
+EXPORTER_VERSION = "1.8.0"
 DONOR_REVISION = "0da1cd449f1dc7f2f6986ff7e8728a4b6ae20584"
 DEFAULT_MAP = "kladwtwn"
 # Map groups for --maps: every elevation each map has.

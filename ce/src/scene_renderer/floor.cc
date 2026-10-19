@@ -29,6 +29,7 @@ void destroyStaticFloor()
         if (gFloorVao != 0) glDeleteVertexArrays(1, &gFloorVao);
     }
     destroySceneShader();
+    destroyRoofs();
     gFloorVao = 0;
     gFloorVbo = 0;
     gFloorTexture = 0;
@@ -81,8 +82,10 @@ bool loadStaticFloor(const std::filesystem::path& cacheDirectory, std::string* e
     const unsigned short imageHeight = readU16(sidecar.data() + 14);
     const unsigned short cellSize = readU16(sidecar.data() + 16);
     const unsigned short cellMargin = readU16(sidecar.data() + 18);
-    const size_t expectedSize = kHeaderSize + kFloorBytes + static_cast<size_t>(tileCount) * 4;
-    if (version != 1 || gridWidth != 100 || gridHeight != 100 || tileCount == 0
+    // Version 2 has a roof layer after the floor layer; version 1 has none.
+    const size_t layerBytes = version == 2 ? 2 * kFloorBytes : kFloorBytes;
+    const size_t expectedSize = kHeaderSize + layerBytes + static_cast<size_t>(tileCount) * 4;
+    if ((version != 1 && version != 2) || gridWidth != 100 || gridHeight != 100 || tileCount == 0
         || cellSize != 88 || cellMargin != 6 || imageWidth == 0 || imageHeight == 0
         || imageWidth > 8192 || imageHeight > 8192
         || sidecar.size() != expectedSize) {
@@ -114,7 +117,8 @@ bool loadStaticFloor(const std::filesystem::path& cacheDirectory, std::string* e
     constexpr float kHalfMap = 50.0f;
     quad(-kHalfMap, -0.08f, -kHalfMap, kHalfMap, kHalfMap, 0.0f, 0.0f, 1.0f, 1.0f);
     const unsigned char* floorData = sidecar.data() + kHeaderSize;
-    const unsigned char* cellData = floorData + kFloorBytes;
+    const unsigned char* roofData = version == 2 ? floorData + kFloorBytes : nullptr;
+    const unsigned char* cellData = floorData + layerBytes;
     for (int row = 0; row < 100; row++) {
         for (int col = 0; col < 100; col++) {
             const unsigned short cellIndex = readU16(floorData + (row * 100 + col) * 2);
@@ -142,6 +146,28 @@ bool loadStaticFloor(const std::filesystem::path& cacheDirectory, std::string* e
         }
     }
 
+    std::vector<RoofSquare> roofs;
+    for (int index = 0; roofData != nullptr && index < 100 * 100; index++) {
+        const unsigned short cellIndex = readU16(roofData + index * 2);
+        if (cellIndex == 0) continue;
+        if (cellIndex > tileCount) return fail("floor.bin contains an out-of-range roof cell index");
+        const unsigned char* cell = cellData + (cellIndex - 1) * 4;
+        const unsigned short cellX = readU16(cell);
+        const unsigned short cellY = readU16(cell + 2);
+        if (cellX + cellSize + 2 * cellMargin > imageWidth
+            || cellY + cellSize + 2 * cellMargin > imageHeight) {
+            return fail("floor.bin contains a roof cell outside the atlas");
+        }
+        // As the floor: the whole cell, its rim over the neighbours.
+        const float grow = static_cast<float>(cellMargin) / cellSize;
+        const float x0 = static_cast<float>(index % 100) - kHalfMap;
+        const float z0 = static_cast<float>(index / 100) - kHalfMap;
+        roofs.push_back({ index, x0 - grow, z0 - grow, x0 + 1.0f + grow, z0 + 1.0f + grow,
+            static_cast<float>(cellX) / imageWidth, static_cast<float>(cellY) / imageHeight,
+            static_cast<float>(cellX + cellSize + 2 * cellMargin) / imageWidth,
+            static_cast<float>(cellY + cellSize + 2 * cellMargin) / imageHeight });
+    }
+
     std::string shaderError;
     if (!createSceneShader(&shaderError)) return fail(shaderError);
 
@@ -166,6 +192,7 @@ bool loadStaticFloor(const std::filesystem::path& cacheDirectory, std::string* e
     glBindVertexArray(0);
 
     gFloorVertexCount = static_cast<int>(vertices.size());
+    setRoofSquares(std::move(roofs));
     gFloorLoaded = true;
     if (error != nullptr) error->clear();
     return true;

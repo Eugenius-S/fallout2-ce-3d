@@ -1,4 +1,4 @@
-"""Versioned binary floor subset consumed by the CE preview renderer."""
+"""Versioned binary floor and roof squares consumed by the CE scene renderer."""
 
 import base64
 import struct
@@ -6,7 +6,7 @@ import struct
 from scene_check import one_map_elevation
 
 MAGIC = b"F2FL"
-VERSION = 1
+VERSION = 2  # 2: a roof layer follows the floor layer
 GRID_WIDTH = 100
 GRID_HEIGHT = 100
 CELL_SIZE = 88
@@ -27,7 +27,7 @@ def cell_content_rect(cell, image_size):
 
 
 def encode_floor_sidecar(scene):
-    """Encode floor atlas indices and tile cells from one format-6 scene."""
+    """Encode floor and roof atlas indices and tile cells from one format-6 scene."""
     if scene.get("format") != 6 or not one_map_elevation(scene):
         raise ValueError("floor sidecar expects one map elevation in scene format 6")
     tiles = scene.get("tiles")
@@ -43,13 +43,18 @@ def encode_floor_sidecar(scene):
     if not isinstance(cells, list) or not cells or len(cells) > 65535:
         raise ValueError("invalid tiles.cells list")
 
-    try:
-        floor_bytes = base64.b64decode(scene["floor"], validate=True)
-    except (KeyError, ValueError, TypeError) as error:
-        raise ValueError("invalid scene floor payload") from error
-    if len(floor_bytes) != FLOOR_BYTES:
-        raise ValueError(f"floor payload must be exactly {FLOOR_BYTES} bytes")
+    layers = []
+    for layer in ("floor", "roof"):
+        try:
+            payload = base64.b64decode(scene[layer], validate=True)
+        except (KeyError, ValueError, TypeError) as error:
+            raise ValueError(f"invalid scene {layer} payload") from error
+        if len(payload) != FLOOR_BYTES:
+            raise ValueError(f"{layer} payload must be exactly {FLOOR_BYTES} bytes")
+        layers.append(payload)
+    floor_bytes, roof_bytes = layers
     floor = struct.unpack("<10000H", floor_bytes)
+    roof = struct.unpack("<10000H", roof_bytes)
 
     encoded_cells = bytearray()
     for index, cell in enumerate(cells):
@@ -61,33 +66,35 @@ def encode_floor_sidecar(scene):
         except ValueError as error:
             raise ValueError(f"tile cell {index} is outside tiles image") from error
         encoded_cells += struct.pack("<HH", x, y)
-    if max(floor) > len(cells):
+    if max(floor) > len(cells) or max(roof) > len(cells):
         raise ValueError("floor references a missing tiles.cells entry")
 
     header = HEADER.pack(MAGIC, VERSION, GRID_WIDTH, GRID_HEIGHT, len(cells),
                          image_width, image_height, CELL_SIZE, CELL_MARGIN)
-    return header + floor_bytes + bytes(encoded_cells)
+    return header + floor_bytes + roof_bytes + bytes(encoded_cells)
 
 
 def decode_floor_sidecar(data):
     """Decode and validate the sidecar; used by format regression tests."""
-    if len(data) < HEADER.size + FLOOR_BYTES:
+    if len(data) < HEADER.size + 2 * FLOOR_BYTES:
         raise ValueError("truncated floor sidecar")
     magic, version, grid_w, grid_h, tile_count, image_w, image_h, cell_size, margin = HEADER.unpack_from(data)
     if magic != MAGIC or version != VERSION:
         raise ValueError("unsupported floor sidecar magic/version")
     if (grid_w, grid_h, cell_size, margin) != (GRID_WIDTH, GRID_HEIGHT, CELL_SIZE, CELL_MARGIN):
         raise ValueError("unsupported floor sidecar geometry")
-    expected = HEADER.size + FLOOR_BYTES + tile_count * 4
+    expected = HEADER.size + 2 * FLOOR_BYTES + tile_count * 4
     if len(data) < expected:
         raise ValueError("truncated floor sidecar")
     if len(data) != expected or tile_count == 0 or image_w == 0 or image_h == 0:
         raise ValueError("invalid floor sidecar length or dimensions")
     floor_start = HEADER.size
-    floor_end = floor_start + FLOOR_BYTES
+    roof_start = floor_start + FLOOR_BYTES
+    cells_start = roof_start + FLOOR_BYTES
     floor = struct.unpack_from("<10000H", data, floor_start)
-    cells = [struct.unpack_from("<HH", data, floor_end + i * 4) for i in range(tile_count)]
-    if max(floor) > tile_count:
+    roof = struct.unpack_from("<10000H", data, roof_start)
+    cells = [struct.unpack_from("<HH", data, cells_start + i * 4) for i in range(tile_count)]
+    if max(floor) > tile_count or max(roof) > tile_count:
         raise ValueError("floor references a missing tiles.cells entry")
     for x, y in cells:
         if x + cell_size + 2 * margin > image_w or y + cell_size + 2 * margin > image_h:
@@ -99,5 +106,6 @@ def decode_floor_sidecar(data):
         "cell_size": cell_size,
         "cell_margin": margin,
         "floor": floor,
+        "roof": roof,
         "cells": cells,
     }

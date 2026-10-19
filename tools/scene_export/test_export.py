@@ -211,11 +211,14 @@ class FloorSidecarTests(unittest.TestCase):
         floor = bytearray(100 * 100 * 2)
         struct.pack_into("<H", floor, 0, 1)
         struct.pack_into("<H", floor, 2, 2)
+        roof = bytearray(100 * 100 * 2)
+        struct.pack_into("<H", roof, 4, 2)
         return {
             "format": 6,
             "map": "kladwtwn",
             "elevation": 0,
             "floor": base64.b64encode(floor).decode("ascii"),
+            "roof": base64.b64encode(roof).decode("ascii"),
             "tiles": {"size": [512, 512], "cells": [[0, 0], [89, 0]]},
         }
 
@@ -228,7 +231,8 @@ class FloorSidecarTests(unittest.TestCase):
         self.assertEqual(decoded["image_size"], (512, 512))
         self.assertEqual(decoded["cells"], [(0, 0), (89, 0)])
         self.assertEqual(decoded["floor"][:2], (1, 2))
-        self.assertEqual(len(payload), HEADER.size + 10000 * 2 + 2 * 4)
+        self.assertEqual(decoded["roof"][:3], (0, 0, 2))
+        self.assertEqual(len(payload), HEADER.size + 2 * 10000 * 2 + 2 * 4)
 
     def test_cell_coordinates_select_inner_square_and_validate_outer_cell(self):
         self.assertEqual(cell_content_rect((0, 0), (100, 100)), (6, 6, 94, 94))

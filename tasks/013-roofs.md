@@ -2,7 +2,7 @@
 id: 013
 title: Roofs and the see-through circle around the hero
 milestone: M1
-status: doing
+status: done
 owner: claude
 suggested: claude
 claude-only: yes
@@ -66,3 +66,16 @@ Shadows.
 Done: research; findings and plan in `## Plan`.
 Next: start when the dependencies are done.
 Check: read `## Plan`.
+
+### 2026-10-19 claude
+Done: `floor.bin` version 2 carries the roof layer (exporter 1.8.0); roof
+squares are drawn 96 game pixels above their squares, after everything else
+and over it, as the engine paints them (`scene_renderer/roofs.cc`). Which
+squares show comes from the engine's flags every frame (`tile_fill_roof`,
+the roof toggle); the scene's square order matches the engine's (checked
+against the map file: 875 of 875). The egg makes roofs see-through around the
+hero with its soft mask. Picking ignores roofs, as in 2D. New dev flag
+`--dev-hero-tile` (`dev-snapshot.ps1 -HeroTile`). The walls part of the
+see-through circle moved to task 018.
+Check: exporter tests and `ctest` pass; regression references updated (before
+and after in `runs/013-roofs/`); snapshots there.

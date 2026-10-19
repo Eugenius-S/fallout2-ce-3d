@@ -21,6 +21,8 @@ param(
     [string]$Tour,
     [ValidateRange(0, 39999)]
     [int]$ViewTile,
+    [ValidateRange(0, 39999)]
+    [int]$HeroTile,
     [switch]$Still,
     [string]$OutputDirectory
 )
@@ -47,6 +49,7 @@ $shots = 1
 $runId = [guid]::NewGuid().ToString('N')
 $arguments = @('--dev-tools', '--dev-new-game', "--dev-map=$Map", "--dev-elevation=$Elevation", '--dev-hero-preview', "--dev-snapshot-run=$runId")
 if ($PSBoundParameters.ContainsKey('ViewTile')) { $arguments += "--dev-view-tile=$ViewTile" }
+if ($PSBoundParameters.ContainsKey('HeroTile')) { $arguments += "--dev-hero-tile=$HeroTile" }
 if ($Still) {
     if ($Probe) { throw '-Still cannot be combined with the interactive -Probe.' }
     $arguments += '--dev-still-snapshot'
