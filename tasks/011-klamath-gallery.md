@@ -2,8 +2,8 @@
 id: 011
 title: Klamath gallery and problem list
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: claude
 suggested: gpt
 claude-only: no
 user-check: no
