@@ -183,6 +183,11 @@ void syncToMap()
             gFailure = message;
             printf("scene: %s elevation %d stays 2D: %s\n", map.c_str(), elevation, message.c_str());
             fflush(stdout);
+            // A file too: the Windows build has no console.
+            if (FILE* log = fopen("scene.log", "a")) {
+                fprintf(log, "scene: %s elevation %d stays 2D: %s\n", map.c_str(), elevation, message.c_str());
+                fclose(log);
+            }
         }
     }
     const bool active = activeView() == View::Full;

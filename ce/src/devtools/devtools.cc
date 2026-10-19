@@ -827,8 +827,18 @@ void update()
             const TourStop& stop = gTour[gTourStep - 1];
             arrived = compat_stricmp(base, stop.map.c_str()) == 0 && static_cast<int>(gElevation) == stop.elevation;
         }
-        if (arrived && ++gTourFrames >= 30) {
+        // A stop the game cannot reach (no free hex on an unused elevation) is
+        // snapshotted where the game is, and the tour goes on.
+        gTourFrames++;
+        const bool ready = arrived && gTourFrames >= 30;
+        const bool stuck = !arrived && gTourFrames >= 600;
+        if (ready || stuck) {
             gTourFrames = 0;
+            if (stuck) {
+                const TourStop& stop = gTour[gTourStep - 1];
+                printf("devtools: map tour did not reach %s e%d: %s\n", stop.map.c_str(), stop.elevation, gStatus);
+                fflush(stdout);
+            }
             takeSnapshot();
             if (gTourStep < static_cast<int>(gTour.size())) {
                 const TourStop& next = gTour[gTourStep++];
