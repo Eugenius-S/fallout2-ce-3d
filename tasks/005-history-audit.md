@@ -45,3 +45,33 @@ commits, including a merge of upstream CE and earlier experiments on
 Flipping the visibility: the owner does it.
 
 ## Log
+
+### 2026-10-19 claude
+Done: audit of all branches on GitHub (full mirror clone; the upstream CE
+history it contains is already public and was left out: 88 own commits).
+- Secrets: none (gitleaks over the 88 commits, plus a grep for token
+  patterns).
+- Game files: `main` is clean. Branch `archive/dlss5`, commit `4c0bda8d`
+  ("Init: Fallout 2 DLSS5 upgrade kit project"), holds parts of a game
+  install: `FALLOUT2_EV.exe`, `ddraw.dll`, `SF-Configurator.exe`,
+  `uninstall/unins000.exe`, and `!docs/Fallout2_Manual.pdf`,
+  `!docs/Fallout_Bible.pdf`, `!docs/RP_Walkthrough_(RU).pdf`.
+  Fix: save the `archive/*` branches as a bundle outside the repository and
+  delete `archive/dlss5` from GitHub before going public.
+- Personal data: the owner's name and personal e-mail are the author of the
+  two squash merges made on GitHub (#1, #2), because GitHub uses the
+  account's e-mail. Fix: GitHub settings, "Keep my email addresses private"
+  (new merges then use the noreply address); the two commits on `main` stay
+  (rewriting `main` would break every agent's checkout). Windows user paths
+  (`C:\Users\...`) appear only on `archive/dlss5` and `archive/native-dlss5`.
+- Large files on `main`: screenshots in `runs/` up to 7 MB each; regression
+  references about 2 MB each. Acceptable.
+- Licenses: `ce/` is under the Sustainable Use License 1.0
+  (`ce/LICENSE.md`); each library in `ce/third_party/` has its license; the
+  exporter and its vendored code carry `LICENSE`, `NOTICE.md`,
+  `VENDORED.md`. There is no license file at the repository root, so GitHub
+  will show "no license". Fix: a root `LICENSE.md` with the same Sustainable
+  Use License 1.0 as CE (the owner decides).
+Next: the owner decides on the three fixes; then make the repository public
+and set `visibility: public` in `.foundation/project.yml`.
+Check: this report.
