@@ -45,9 +45,11 @@ void multiply4x4(const float* a, const float* b, float* out)
 // Eye distance of the game view (units): it sets how strong the perspective
 // is. The 25-degree camera's 36.9 was asked milder twice, closer to the game's
 // own parallel projection: 52, then 100.
+double gViewDistance = 100.0;
+
 double gameViewDistance()
 {
-    return 100.0;
+    return gViewDistance;
 }
 
 } // namespace
@@ -124,6 +126,13 @@ bool currentGameView(GameView* view)
             std::round(gCameraPixel[1] * screenPerGame) / screenPerGame },
         gLogicalWidth, gLogicalHeight, gameViewDistance(),
     };
+    // The 2D's own place for the center hex, so the 3D frames the map as 2D does.
+    int screenX, screenY;
+    if (tileToScreenXY(gCameraCenterTile, &screenX, &screenY) == 0) {
+        view->screenCenterSet = true;
+        view->screenCenter[0] = screenX + 16.0;
+        view->screenCenter[1] = screenY + 8.0;
+    }
     return true;
 }
 
@@ -136,6 +145,11 @@ void resetCamera()
 }
 
 } // namespace internal
+
+void setStaticViewDistance(double units)
+{
+    gViewDistance = units;
+}
 
 StaticPreviewCamera staticPreviewCamera(bool withWalls)
 {

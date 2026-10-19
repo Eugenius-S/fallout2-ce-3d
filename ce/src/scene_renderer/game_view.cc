@@ -70,8 +70,8 @@ bool makeFrame(const GameView& view, Frame* frame)
     frame->nearPerHeight = toward[1];
     if (!(frame->nearPerPixel * view.hpx + frame->nearPerHeight > 0.0)) return false;
     // Where the engine shows the center hex of a width x height screen.
-    frame->screenCenter[0] = std::floor((view.logicalWidth - 32) / 2.0) + 16.0;
-    frame->screenCenter[1] = std::floor((view.logicalHeight - 16) / 2.0) + 8.0;
+    frame->screenCenter[0] = view.screenCenterSet ? view.screenCenter[0] : std::floor((view.logicalWidth - 32) / 2.0) + 16.0;
+    frame->screenCenter[1] = view.screenCenterSet ? view.screenCenter[1] : std::floor((view.logicalHeight - 16) / 2.0) + 8.0;
     frame->width = view.logicalWidth;
     frame->height = view.logicalHeight;
     frame->distance = view.distance;

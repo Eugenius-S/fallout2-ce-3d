@@ -21,6 +21,7 @@ param(
     [switch]$Probe,
     [string]$Tour,
     [switch]$Classic,
+    [switch]$Parallel,
     [ValidateRange(0, 39999)]
     [int]$ViewTile,
     [ValidateRange(0, 39999)]
@@ -53,6 +54,8 @@ $view = if ($Classic) { '--dev-classic' } else { '--dev-hero-preview' }
 $arguments = @('--dev-tools', '--dev-new-game', "--dev-map=$Map", "--dev-elevation=$Elevation", $view, "--dev-snapshot-run=$runId")
 if ($PSBoundParameters.ContainsKey('ViewTile')) { $arguments += "--dev-view-tile=$ViewTile" }
 if ($PSBoundParameters.ContainsKey('HeroTile')) { $arguments += "--dev-hero-tile=$HeroTile" }
+# -Parallel: no perspective, so the scene lies on the game's 2D pixel for pixel.
+if ($Parallel) { $arguments += '--dev-parallel' }
 if ($Still) {
     if ($Probe) { throw '-Still cannot be combined with the interactive -Probe.' }
     $arguments += '--dev-still-snapshot'

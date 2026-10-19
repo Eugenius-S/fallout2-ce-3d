@@ -672,6 +672,10 @@ bool parseOption(const char* arg)
         }
         return true;
     }
+    if (strcmp(arg, "--dev-parallel") == 0) {
+        scene_renderer::setStaticViewDistance(9000.0);
+        return true;
+    }
     if (strcmp(arg, "--dev-classic") == 0) {
         gClassic = true;
         return true;
