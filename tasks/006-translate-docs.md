@@ -2,8 +2,8 @@
 id: 006
 title: Translate the repository to English
 milestone: M0
-status: todo
-owner: none
+status: doing
+owner: glm
 suggested: glm
 claude-only: no
 user-check: no
