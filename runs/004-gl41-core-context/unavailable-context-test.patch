@@ -1,0 +1,34 @@
+﻿diff --git a/ce/src/scene_renderer/scene_gl.cc b/ce/src/scene_renderer/scene_gl.cc
+index b28fc17..aa243de 100644
+--- a/ce/src/scene_renderer/scene_gl.cc
++++ b/ce/src/scene_renderer/scene_gl.cc
+@@ -598,7 +598,7 @@ bool init(SDL_Window* window, int logicalWidth, int logicalHeight)
+     gLogicalHeight = logicalHeight;
+ 
+     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
++    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 99);
+     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
+     const bool debugContext = SDL_getenv("F2CE_GL_DEBUG") != nullptr;
+     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG
+@@ -617,7 +617,19 @@ bool init(SDL_Window* window, int logicalWidth, int logicalHeight)
+     if (gContext == nullptr) {
+         fprintf(stderr, "scene_renderer: SDL_GL_CreateContext failed: %s\n", SDL_GetError());
+         fflush(stderr);
+-        return fallback("OpenGL 4.1 core unavailable; using the 2D renderer");
++                // Test artifact only: request the built-in dev snapshot in this process.
++        SDL_AddTimer(20000, [](Uint32, void*) -> Uint32 {
++            SDL_Event event = {};
++            event.type = SDL_KEYDOWN;
++            event.key.state = SDL_PRESSED;
++            event.key.keysym.scancode = SDL_SCANCODE_F9;
++            event.key.keysym.sym = SDLK_F9;
++            SDL_PushEvent(&event);
++            event.type = SDL_KEYUP;
++            event.key.state = SDL_RELEASED;
++            SDL_PushEvent(&event);
++            return 0;
++        }, nullptr);        return fallback("OpenGL 4.1 core unavailable; using the 2D renderer");
+     }
+ 
+     if (!glLoad()) {

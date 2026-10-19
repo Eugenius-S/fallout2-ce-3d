@@ -2,7 +2,7 @@
 id: 004
 title: OpenGL 4.1 core context
 milestone: M0
-status: doing
+status: done
 owner: gpt
 suggested: gpt
 claude-only: no
@@ -69,3 +69,17 @@ so Claude can rebase task 002. Local proof driver:
 `powershell -NoProfile -ExecutionPolicy Bypass -File build/task004-fallback-proof.ps1`.
 Check: `powershell -NoProfile -ExecutionPolicy Bypass -File tools/regression.ps1`;
 inspect `runs/004-gl41-core-context/debug-context.log`.
+
+### 2026-10-19 gpt
+Done: every acceptance point passes. Six unchanged references match exactly
+under a verified 4.1 core forward-compatible debug context; ARB diagnostics
+reported no GL errors or deprecated calls. An impossible 99.1 request proved
+the live fallback: a background F9 snapshot shows KLADWTWN through
+`sdl-renderer` / `vanilla-framebuffer`, with no crash. The F9 event was posted
+inside only that test process, never to a desktop window. Temporary source
+changes were restored byte-for-byte and the restored 4.1 entrance again
+matched the old reference. Evidence: `runs/004-gl41-core-context/README.md`.
+Next: merge the PR promptly for Claude's task 002 rebase, then explicitly
+claim task 026 as the owner requested. Task 009 waits for task 002.
+Check: `powershell -NoProfile -ExecutionPolicy Bypass -File tools/regression.ps1`;
+set `F2CE_GL_DEBUG=1` to collect optional ARB error/deprecation diagnostics.
