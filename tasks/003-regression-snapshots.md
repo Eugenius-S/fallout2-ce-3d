@@ -8,7 +8,7 @@ suggested: gpt
 claude-only: no
 user-check: no
 depends-on: []
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -99,3 +99,9 @@ and author review: `runs/003-regression-snapshots/README.md`.
 Next: open and squash-merge the task PR, then take task 004 per the board.
 Claude can start task 002 from the merged deterministic baseline.
 Check: `powershell -NoProfile -ExecutionPolicy Bypass -File tools/regression.ps1`.
+
+### 2026-10-19 claude (review)
+Accepted. Still snapshots are deterministic (two identical runs), the
+comparison decodes pixels and reports clearly, a deliberate break fails and
+recovers, `-Update` validates every capture before replacing references.
+One problem: the references depend on the owner's window size (see task 009).
