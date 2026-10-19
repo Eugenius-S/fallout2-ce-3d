@@ -1,58 +1,63 @@
-# P0: GPU-вывод внутри CE (OpenGL 3.3 презентация)
+# P0: GPU output inside CE (OpenGL 3.3 presentation)
 
-Дата: 2026-10-18. Ветка `scene-renderer` от upstream `fb8ba51e`, коммит `49be0b4`
-(C1 остался на ветке `sprite-lighting-c1`, `e14218e`, не развивается).
-Техплан: `E:\Games\Fallout 2\docs\superpowers\plans\2026-10-17-fallout2-ce-3d-env-p0-p1.md`.
+Date: 2026-10-18. Branch `scene-renderer` off upstream `fb8ba51e`, commit `49be0b4`
+(C1 stayed on the `sprite-lighting-c1` branch, `e14218e`, not developed).
+Tech plan: `E:\Games\Fallout 2\docs\superpowers\plans\2026-10-17-fallout2-ce-3d-env-p0-p1.md`.
 
-## Что сделано
+## What was done
 
-`src/scene_renderer/` (новый модуль, включён в game и mapper цели):
-- `gl_api.*` + `gl_procs.h` — минимальный загрузчик OpenGL 3.3 core через
-  `SDL_GL_GetProcAddress` (без сторонних зависимостей);
-- `scene_gl.*` — SDL_GL-контекст на окне CE, ванильный RGBA-буфер рисуется
-  квадом на весь фреймбуфер с letterbox-масштабом (эквивалент
-  `SDL_RenderSetLogicalSize`), swap на месте `SDL_RenderPresent`.
+`src/scene_renderer/` (a new module, included in the game and mapper targets):
+- `gl_api.*` + `gl_procs.h` — a minimal OpenGL 3.3 core loader through
+  `SDL_GL_GetProcAddress` (no third-party dependencies);
+- `scene_gl.*` — an SDL_GL context on the CE window; the vanilla RGBA buffer
+  is drawn as a quad over the whole framebuffer with letterbox scaling (the
+  equivalent of `SDL_RenderSetLogicalSize`); the swap sits where
+  `SDL_RenderPresent` was.
 
-Интеграция в `svga.cc`:
-- `_GNW95_init_window` сначала пробует GL-путь; при неудаче — прежний
-  SDL_Renderer (fallback сохранён);
-- `renderPresent()` ветвится по активному пути; конвертация палитры в RGB —
-  тот же покадровый `SDL_BlitSurface`, поэтому фейды и palette cycling
-  ведут себя идентично ванили;
-- `handleWindowSizeChanged` под GL — no-op (drawable size запрашивается
-  каждый кадр через `SDL_GL_GetDrawableSize`; `SDL_GetWindowSize` даёт
-  DPI-виртуализованные точки и без этого леттербоксил в угол);
-- фильмы под GL пока не выводятся (overlay — SDL_Texture; в рабочей копии
-  ролики пропускаются конфигом) — вернуть до этапа E.
+Integration in `svga.cc`:
+- `_GNW95_init_window` first tries the GL path; on failure the old
+  SDL_Renderer (the fallback is kept);
+- `renderPresent()` branches by the active path; the palette-to-RGB
+  conversion is the same per-frame `SDL_BlitSurface`, so fades and palette
+  cycling behave identically to vanilla;
+- `handleWindowSizeChanged` under GL is a no-op (the drawable size is
+  queried every frame through `SDL_GL_GetDrawableSize`; `SDL_GetWindowSize`
+  returns DPI-virtualized points and without this it letterboxed into a
+  corner);
+- movies are not presented under GL yet (the overlay is an SDL_Texture; in
+  the working copy the movies are skipped by config) — to restore before
+  stage E.
 
-## Проверено
+## Verified
 
-| Проверка | Результат |
+| Check | Result |
 |---|---|
-| Сборка обеих целей (game+mapper) | PASS |
-| Запуск на рабочей копии, автозагрузка слота 1 | PASS |
-| Рендер мира/спрайтов/HUD/курсора без отличий от SDL_Renderer | PASS (`runs/p0-gl-final.png`, `p0-gl-screen3.png`) |
-| GL-ошибки по кадрам (пробы glGetError) | 0 на всех вызовах |
-| Падение GL-инициализации → ванильный путь | ветка сохранена (обработка ошибок контекста/шейдеров) |
-| Resize/fullscreen-переключение | per-frame drawable query (оконный режим проверен; эксклюзивный фуллскрин — по конфигу при старте) |
+| Building both targets (game+mapper) | PASS |
+| Running on the working copy, auto-load of slot 1 | PASS |
+| Rendering world/sprites/HUD/cursor with no difference from SDL_Renderer | PASS (`runs/p0-gl-final.png`, `p0-gl-screen3.png`) |
+| GL errors per frame (glGetError probes) | 0 on every call |
+| GL init failure → vanilla path | branch kept (context/shader error handling) |
+| Resize/fullscreen switch | per-frame drawable query (windowed checked; exclusive fullscreen from the config at start) |
 
-## Выловленные при подъёме баги (история для отладки)
+## Bugs caught during bring-up (history for debugging)
 
-1. Загрузчик GL: разыменование указателя функции вместо прямого каста
-   (`*reinterpret_cast<...>` от адреса функции) — первый же вызов прыгал в
-   мусор, segfault на старте.
-2. `layout(location=N)` требует GLSL 330 (не 150) — шейдеры подняты до
-   `#version 330 core`.
-3. `GL_UNPACK_ROW_LENGTH` перепутан с `GL_UNPACK_ALIGNMENT` (0x0CF2 vs
-   0x0CF5) — выравнивание 800 давало INVALID_VALUE на каждой загрузке.
-4. `glDrawArrays` с `GL_TRIANGLE_FAN` (0x0006) вместо `GL_TRIANGLES`
+1. GL loader: dereferencing the function pointer instead of a direct cast
+   (`*reinterpret_cast<...>` of a function address) — the first call jumped
+   into garbage, segfault at start.
+2. `layout(location=N)` needs GLSL 330 (not 150) — the shaders were raised
+   to `#version 330 core`.
+3. `GL_UNPACK_ROW_LENGTH` mixed up with `GL_UNPACK_ALIGNMENT` (0x0CF2 vs
+   0x0CF5) — an alignment of 800 gave INVALID_VALUE on every upload.
+4. `glDrawArrays` with `GL_TRIANGLE_FAN` (0x0006) instead of `GL_TRIANGLES`
    (0x0004).
-5. DPI: `SDL_GetWindowSize` (точки) vs `SDL_GL_GetDrawableSize` (пиксели
-   фреймбуфера) — рендер «в углу» окна при масштабе 125%.
+5. DPI: `SDL_GetWindowSize` (points) vs `SDL_GL_GetDrawableSize`
+   (framebuffer pixels) — the render sat "in a corner" of the window at
+   125% scale.
 
-## Что дальше (P1, после приёмки вида пользователем)
+## What is next (P1, after the user accepts the look)
 
-Живой участок kladwtwn: экспорт окружения адаптированным конвертером донора
-(`tools/scene_export/`), сцена в `game/mod-cache/scene/`, адаптер снапшота
-объектов перед `renderPresent()`, сцена + UI-полоса в GL, picking лучом,
-переключатель ваниль/сцена на живой сцене. Контракты — в техплане (§3–§5).
+A live kladwtwn area: exporting the surroundings with the adapted donor
+converter (`tools/scene_export/`), the scene in `game/mod-cache/scene/`, an
+object snapshot adapter before `renderPresent()`, the scene + the UI strip
+in GL, picking by ray, a vanilla/scene switch on a live scene. The
+contracts are in the tech plan (§3–§5).

@@ -37,3 +37,13 @@ Rewriting or updating content. Wrong or outdated statements go into the `Log`
 as notes for Claude instead.
 
 ## Log
+
+### 2026-10-19 glm
+Done: README.md, docs/game-setup.md, docs/p0-gl-presentation.md,
+docs/c1-camera-prototype.md, docs/stage-a-report.md translated; the
+Cyrillic glyph names in tasks/026 replaced with words.
+Next: docs/p1-devtools.md, docs/2026-10-17-fallout2-ce-3d-env-p0-p1.md,
+docs/2026-10-17-fallout2-sprite-lighting-design.md; then the acceptance
+grep and the PR.
+Check: git grep -I -n -P '[\x{0400}-\x{04FF}]' -- ':!runs' (must be
+empty; currently only the three docs above remain).
