@@ -1,0 +1,39 @@
+---
+id: 007
+title: CI builds the game on Windows
+milestone: M0
+status: todo
+owner: none
+suggested: glm
+claude-only: no
+user-check: no
+depends-on: []
+reviewed: no
+---
+
+## Goal
+
+Every push and PR shows whether the whole game still builds and its tests pass.
+
+## Context
+
+- `.github/workflows/verify.yml` runs the exporter tests and four scene unit
+  test suites on Ubuntu, but never builds the game.
+- `tools/configure-build.ps1` has paths to MSVC and the Windows SDK of the
+  owner's machine hard-coded (that machine's VS install is partly broken, so
+  the paths are needed there).
+
+## Acceptance
+
+- A Windows job in `verify.yml` builds `fallout2-ce.exe` in Release with the
+  same CMake options as `tools/configure-build.ps1`, and runs `ctest`.
+- `configure-build.ps1` falls back to the standard Visual Studio environment
+  (vswhere / VsDevCmd) when the hard-coded paths are missing, and still works
+  on the owner's machine unchanged.
+- The workflow is green on a PR.
+
+## Out of scope
+
+macOS and Linux builds of the game (M4); anything that needs game files.
+
+## Log
