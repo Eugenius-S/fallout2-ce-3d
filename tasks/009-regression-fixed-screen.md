@@ -2,12 +2,12 @@
 id: 009
 title: Regression snapshots at a fixed screen size
 milestone: M0
-status: todo
-owner: none
+status: doing
+owner: gpt
 suggested: gpt
 claude-only: no
 user-check: no
-depends-on: [003]
+depends-on: [002, 003]
 reviewed: no
 ---
 
@@ -42,3 +42,13 @@ machine the references cannot match at all.
 Changing how the owner's own game window is sized.
 
 ## Log
+
+### 2026-10-19 gpt
+Done: claimed after task 026 merged as PR #5 (`0fe4034`). Task 002 is also
+merged; its dependency is now explicit. The existing GPT worktree is reused
+for its build cache, without switching the shared primary checkout.
+Next: parse dev-only screen/scale overrides before video initialization,
+force background snapshots to windowed mode without config writes, fix the
+vanilla surface pitch, then retake and compare all six references at 1920x1080
+and scale 2. Verify alternate owner configs through isolated test config data.
+Check: `tools/tasks.ps1`; task branch `task/009-regression-fixed-screen`.
