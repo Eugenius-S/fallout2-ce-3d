@@ -2,8 +2,8 @@
 id: 026
 title: Embed the interface font
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: gpt
 suggested: glm
 claude-only: no
 user-check: no
@@ -46,3 +46,15 @@ the sharp text layer (task 025) only has to draw.
 Drawing text (task 025).
 
 ## Log
+
+### 2026-10-19 gpt
+Done: claimed task 026 on the owner's explicit priority after task 004 merged
+as PR #3 (`691ba6e`). The existing GPT worktree is reused to retain its build
+cache. No font or renderer changes have been made yet.
+Next: pin and vendor IBM Plex Mono SemiBold/Bold with OFL and stb_truetype
+with its license, add build-time byte embedding and glyph tests. Until task
+002 merges, preserve existing scene_renderer/devtools files; the owner has
+been asked whether the new embedded_fonts files are an allowed exception.
+Task 009 is explicitly deferred until task 002 merges.
+Check: inspect this task's header on origin/main and the branch
+`task/026-embed-interface-font`.
