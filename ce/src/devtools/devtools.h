@@ -31,6 +31,10 @@ bool parseOption(const char* arg);
 bool isEnabled();
 bool wantsListMaps();
 
+// Opt-in deterministic test runs only; never used by normal gameplay.
+bool stillSnapshotRequested();
+void prepareStillSnapshot();
+
 // Prints the maps available in game resources (stdout). Requires the game
 // (db) to be initialized.
 void listMaps();

@@ -62,3 +62,15 @@ Done: claimed task 003; read AGENTS.md, the roadmap and the snapshot launcher.
 Next: add a fixed view tile and still-snapshot mode, then capture six Klamath
 references and implement the regression runner.
 Check: `powershell -NoProfile -ExecutionPolicy Bypass -File tools/tasks.ps1`.
+
+### 2026-10-19 gpt
+Done: added `--dev-still-snapshot`, exact `--dev-view-tile`, fixed RNG seed,
+stopped background tickers/color cycling and bypassed camera glide for stills.
+`tools/dev-snapshot.ps1` accepts `-Still -ViewTile N -OutputDirectory DIR`,
+matches snapshots by a unique run token, rejects non-windowed configuration
+and cleans up only its own test PID in `finally`. Two tile-25075 launches have
+identical pixels (`runs/003-regression-snapshots/still-a`, `still-b`). Release
+build, 4 engine tests and 30 exporter tests pass.
+Next: add six named spots, image comparison, references and failure/recovery
+evidence; document the single regression command.
+Check: `powershell -NoProfile -ExecutionPolicy Bypass -File tools/dev-snapshot.ps1 -ViewTile 25075 -Still`.

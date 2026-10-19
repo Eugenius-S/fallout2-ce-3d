@@ -565,7 +565,8 @@ int tileSetCenter(int tile, int flags)
         return -1;
     }
 
-    const bool edgeActive = mapEdgeIsEnabled();
+    const bool ignoreBounds = (flags & TILE_SET_CENTER_FLAG_IGNORE_BOUNDS) != 0;
+    const bool edgeActive = mapEdgeIsEnabled() && !ignoreBounds;
     const bool isScroll = flags == 0;
 
     if (edgeActive && !isScroll) {
@@ -633,7 +634,7 @@ int tileSetCenter(int tile, int flags)
 
     // Legacy global borders are for maps without EDG data. EDG maps use their
     // own boundary/clamp logic above, which can validly land on this border.
-    if ((!edgeActive || !mapEdgeZoneIsSelected()) && gTileBorderInitialized && gTileScrollBlockingEnabled) {
+    if (!ignoreBounds && (!edgeActive || !mapEdgeZoneIsSelected()) && gTileBorderInitialized && gTileScrollBlockingEnabled) {
         if (tile_x <= gTileBorderMinX || tile_x >= gTileBorderMaxX || tile_y <= gTileBorderMinY || tile_y >= gTileBorderMaxY) {
             return -1;
         }

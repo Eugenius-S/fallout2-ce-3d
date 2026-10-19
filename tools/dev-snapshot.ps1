@@ -14,7 +14,11 @@ param(
     [string]$Map = "kladwtwn",
     [int]$Elevation = 0,
     [int]$TimeoutSeconds = 90,
-    [switch]$Probe
+    [switch]$Probe,
+    [ValidateRange(0, 39999)]
+    [int]$ViewTile,
+    [switch]$Still,
+    [string]$OutputDirectory
 )
 $ErrorActionPreference = 'Stop'
 $Root = Split-Path -Parent $PSScriptRoot
@@ -22,10 +26,19 @@ $GameDir = Join-Path $Root 'game'
 $built = Join-Path $Root 'build\fallout2-ce.exe'
 if (-not (Test-Path $built)) { throw "No build at $built; run tools/configure-build.ps1 first." }
 $exe = Join-Path $GameDir 'fallout2-ce-test.exe'
+if (-not (Select-String -LiteralPath (Join-Path $GameDir 'fallout2.cfg') -Pattern '^windowed\s*=\s*1\s*$' -Quiet)) {
+    throw 'Background snapshots require windowed=1 in game/fallout2.cfg.'
+}
 Copy-Item $built $exe -Force
 
 $shots = 1
-$arguments = @('--dev-tools', '--dev-new-game', "--dev-map=$Map", "--dev-elevation=$Elevation", '--dev-hero-preview')
+$runId = [guid]::NewGuid().ToString('N')
+$arguments = @('--dev-tools', '--dev-new-game', "--dev-map=$Map", "--dev-elevation=$Elevation", '--dev-hero-preview', "--dev-snapshot-run=$runId")
+if ($PSBoundParameters.ContainsKey('ViewTile')) { $arguments += "--dev-view-tile=$ViewTile" }
+if ($Still) {
+    if ($Probe) { throw '-Still cannot be combined with the interactive -Probe.' }
+    $arguments += '--dev-still-snapshot'
+}
 if ($Probe) {
     $shots = 2
     $arguments += '--dev-pick-probe'
@@ -35,26 +48,37 @@ if ($Probe) {
 }
 
 $started = Get-Date
+$previousBackground = $env:F2CE_DEV_BACKGROUND
 $env:F2CE_DEV_BACKGROUND = '1'
+$process = $null
+$snapshots = @()
 try {
     $process = Start-Process -FilePath $exe -WorkingDirectory $GameDir -PassThru -ArgumentList $arguments
-} finally {
-    Remove-Item Env:F2CE_DEV_BACKGROUND
-}
-
-$snapshots = @()
-$deadline = $started.AddSeconds($TimeoutSeconds)
-while ((Get-Date) -lt $deadline -and -not $process.HasExited) {
-    $snapshots = @(Get-ChildItem $GameDir -Filter 'devshot-*.json' | Where-Object LastWriteTime -gt $started)
-    $log = Join-Path $GameDir 'devprobe.log'
-    $probed = -not $Probe -or ((Test-Path $log) -and (Select-String -Path $log -Pattern 'probe done' -Quiet))
-    if ($snapshots.Count -ge $shots -and $probed) { break }
+    $deadline = $started.AddSeconds($TimeoutSeconds)
+    while ((Get-Date) -lt $deadline -and -not $process.HasExited) {
+        $snapshots = @(Get-ChildItem $GameDir -Filter 'devshot-*.json' | Where-Object {
+            if ($_.LastWriteTime -le $started) { return $false }
+            try { (Get-Content -Raw -LiteralPath $_.FullName | ConvertFrom-Json).snapshot_run -eq $runId }
+            catch { $false } # The writer may still be completing this file.
+        })
+        $log = Join-Path $GameDir 'devprobe.log'
+        $probed = -not $Probe -or ((Test-Path $log) -and (Select-String -Path $log -Pattern 'probe done' -Quiet))
+        if ($snapshots.Count -ge $shots -and $probed) { break }
+        Start-Sleep -Milliseconds 500
+    }
     Start-Sleep -Milliseconds 500
+} finally {
+    $env:F2CE_DEV_BACKGROUND = $previousBackground
+    if ($null -ne $process -and -not $process.HasExited) { Stop-Process -Id $process.Id -Force }
 }
-Start-Sleep -Milliseconds 500
-if (-not $process.HasExited) { Stop-Process -Id $process.Id -Force }
 if ($snapshots.Count -lt $shots) { throw "No snapshot within $TimeoutSeconds s." }
 foreach ($snapshot in $snapshots) {
+    if ($OutputDirectory) {
+        New-Item -ItemType Directory -Path $OutputDirectory -Force | Out-Null
+        $metadata = Get-Content -Raw -LiteralPath $snapshot.FullName | ConvertFrom-Json
+        Copy-Item -LiteralPath $snapshot.FullName -Destination $OutputDirectory
+        Copy-Item -LiteralPath (Join-Path $GameDir $metadata.image) -Destination $OutputDirectory
+    }
     Write-Output ("SNAPSHOT: " + $snapshot.FullName)
     Get-Content $snapshot.FullName
 }

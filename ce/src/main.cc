@@ -94,6 +94,7 @@ int falloutMain(int argc, char** argv)
     }
 
     mainParseCommandLineArguments(argc, argv);
+    devtools::prepareStillSnapshot();
 
     // Sprite-lighting mod: `--dev-list-maps` prints the maps available in
     // game resources and exits.
@@ -155,6 +156,7 @@ int falloutMain(int argc, char** argv)
                         gameMoviePlay(MOVIE_ELDER, GAME_MOVIE_STOP_MUSIC);
                     }
                     randomSeedPrerandom(-1);
+                    devtools::prepareStillSnapshot();
 
                     // SFALL: Call "before start" event
                     sfallOnBeforeGameStart();
