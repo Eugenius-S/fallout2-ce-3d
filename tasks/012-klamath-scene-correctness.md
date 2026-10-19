@@ -2,13 +2,13 @@
 id: 012
 title: Correct scenes on all Klamath maps
 milestone: M1
-status: doing
+status: done
 owner: claude
 suggested: claude
 claude-only: yes
 user-check: yes
 depends-on: [011]
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -90,3 +90,7 @@ caves, lower row the kept one). All regression references retaken.
 Next: the owner walks Klamath in the game.
 Check: `py -3 -m unittest discover -s tools/scene_export -p 'test*.py'`;
 `tools/regression.ps1`.
+
+### 2026-10-19 claude
+Done: the owner walked Klamath and accepted the scenes: the corners are as
+they should be, the rest right. Anything found later gets its own task.
