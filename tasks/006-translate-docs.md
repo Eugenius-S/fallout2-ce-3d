@@ -2,7 +2,7 @@
 id: 006
 title: Translate the repository to English
 milestone: M0
-status: doing
+status: done
 owner: glm
 suggested: glm
 claude-only: no
@@ -58,3 +58,16 @@ docs/2026-10-17-fallout2-sprite-lighting-design.md (223 lines), then run the
 acceptance grep and open the PR.
 Check: git grep -I -n -P '[\x{0400}-\x{04FF}]' -- ':!runs' (only those two
 docs remain).
+
+### 2026-10-19 glm
+Done: docs/2026-10-17-fallout2-ce-3d-env-p0-p1.md and
+docs/2026-10-17-fallout2-sprite-lighting-design.md translated. All tracked
+files read in English; dates, names, structure and cross-links kept
+unchanged.
+Notes for Claude (outdated statements kept as written, per Out of scope):
+both dated docs still reference the old project root
+E:\Projects\fallout2-sprite-lighting in pins/commands; the design doc's
+§2 keeps the pre-GitHub handoff text that §8 later supersedes; README's
+"light perspective" wording predates the game-like view of docs/2026-10-17
+section 12.
+Check: git grep -I -n -P '[\x{0400}-\x{04FF}]' -- ':!runs' finds nothing.
