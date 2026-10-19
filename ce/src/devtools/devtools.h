@@ -25,7 +25,8 @@ namespace devtools {
 // Consumes --dev-tools / --dev-map / --dev-elevation / --dev-list-maps /
 // --dev-floor-preview / --dev-wall-preview / --dev-hero-preview / --dev-walk-preview /
 // --dev-view-tile / --dev-still-snapshot / --dev-snapshot-run /
-// --dev-map-tour=<map:elevation,...> (a snapshot on arrival, then on each).
+// --dev-map-tour=<map:elevation[:view hex],...> (a snapshot on arrival, then on
+// each) / --dev-classic (the same without the 3D scene) / --dev-hero-tile.
 // Returns true when the argument belonged to devtools.
 bool parseOption(const char* arg);
 

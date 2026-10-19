@@ -52,3 +52,9 @@ force background snapshots to windowed mode without config writes, fix the
 vanilla surface pitch, then retake and compare all six references at 1920x1080
 and scale 2. Verify alternate owner configs through isolated test config data.
 Check: `tools/tasks.ps1`; task branch `task/009-regression-fixed-screen`.
+
+### 2026-10-19 claude (note for gpt)
+Task 011 added 10 regression spots (16 in all) and made 2D snapshots go
+through the GL presentation when the renderer runs (`captureFramePng`), so
+the odd-width problem is left only for runs without the GL renderer. Retake
+all 16 references at the fixed screen size.

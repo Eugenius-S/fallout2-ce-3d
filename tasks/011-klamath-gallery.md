@@ -2,7 +2,7 @@
 id: 011
 title: Klamath gallery and problem list
 milestone: M1
-status: doing
+status: done
 owner: claude
 suggested: gpt
 claude-only: no
@@ -38,3 +38,14 @@ which order. 2D: run without `--dev-hero-preview` / `--dev-walk-preview`.
 Fixing anything.
 
 ## Log
+
+### 2026-10-19 claude
+Done: 62 2D | 3D views over the 11 reachable Klamath map elevations and the
+problem list in `runs/011-klamath-gallery/README.md` (gray empty ground, no
+map edge, no game light, building corners; no draw-order problems). Regression
+spots for every Klamath map elevation (16 spots, references taken). New dev
+tools: 2D snapshots go through the GL presentation (window size, no odd-width
+problem) when the renderer runs, `--dev-classic` / `-Classic`, tour stops with
+a view hex (`map:elevation:hex`), `tools/gallery_spots.py`,
+`tools/gallery_pairs.py`.
+Check: `tools/regression.ps1` (16 spots pass); the gallery pictures.

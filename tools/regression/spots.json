@@ -1,12 +1,118 @@
 {
   "channel_tolerance": 2,
-  "max_changed_fraction": 0.00001,
+  "max_changed_fraction": 1e-05,
   "spots": [
-    {"name": "entrance", "map": "kladwtwn", "elevation": 0, "tile": 25075, "coverage": "Player, entrance street, building walls"},
-    {"name": "corrals", "map": "kladwtwn", "elevation": 0, "tile": 23481, "coverage": "Brahmin, fences, layered sprites"},
-    {"name": "residents", "map": "kladwtwn", "elevation": 0, "tile": 22885, "coverage": "People and furniture in the western rooms"},
-    {"name": "central-doors", "map": "kladwtwn", "elevation": 0, "tile": 17699, "coverage": "Doors and central building interiors"},
-    {"name": "north-rooms", "map": "kladwtwn", "elevation": 0, "tile": 14892, "coverage": "Northern walls, furniture and people"},
-    {"name": "map-edge", "map": "kladwtwn", "elevation": 0, "tile": 5910, "coverage": "Northern map edge, scenery against empty ground"}
+    {
+      "name": "entrance",
+      "map": "kladwtwn",
+      "elevation": 0,
+      "tile": 25075,
+      "coverage": "Player, entrance street, building walls"
+    },
+    {
+      "name": "corrals",
+      "map": "kladwtwn",
+      "elevation": 0,
+      "tile": 23481,
+      "coverage": "Brahmin, fences, layered sprites"
+    },
+    {
+      "name": "residents",
+      "map": "kladwtwn",
+      "elevation": 0,
+      "tile": 22885,
+      "coverage": "People and furniture in the western rooms"
+    },
+    {
+      "name": "central-doors",
+      "map": "kladwtwn",
+      "elevation": 0,
+      "tile": 17699,
+      "coverage": "Doors and central building interiors"
+    },
+    {
+      "name": "north-rooms",
+      "map": "kladwtwn",
+      "elevation": 0,
+      "tile": 14892,
+      "coverage": "Northern walls, furniture and people"
+    },
+    {
+      "name": "map-edge",
+      "map": "kladwtwn",
+      "elevation": 0,
+      "tile": 5910,
+      "coverage": "Northern map edge, scenery against empty ground"
+    },
+    {
+      "name": "klacanyn-e0",
+      "map": "klacanyn",
+      "elevation": 0,
+      "tile": 15909,
+      "coverage": "The most detailed gallery view of this map elevation (task 011)"
+    },
+    {
+      "name": "klagraz-e0",
+      "map": "klagraz",
+      "elevation": 0,
+      "tile": 24727,
+      "coverage": "The most detailed gallery view of this map elevation (task 011)"
+    },
+    {
+      "name": "klamall-e0",
+      "map": "klamall",
+      "elevation": 0,
+      "tile": 23145,
+      "coverage": "The most detailed gallery view of this map elevation (task 011)"
+    },
+    {
+      "name": "klaratcv-e0",
+      "map": "klaratcv",
+      "elevation": 0,
+      "tile": 21511,
+      "coverage": "The most detailed gallery view of this map elevation (task 011)"
+    },
+    {
+      "name": "klaratcv-e1",
+      "map": "klaratcv",
+      "elevation": 1,
+      "tile": 14701,
+      "coverage": "The most detailed gallery view of this map elevation (task 011)"
+    },
+    {
+      "name": "klaratcv-e2",
+      "map": "klaratcv",
+      "elevation": 2,
+      "tile": 17107,
+      "coverage": "The most detailed gallery view of this map elevation (task 011)"
+    },
+    {
+      "name": "klatoxcv-e0",
+      "map": "klatoxcv",
+      "elevation": 0,
+      "tile": 15919,
+      "coverage": "The most detailed gallery view of this map elevation (task 011)"
+    },
+    {
+      "name": "klatoxcv-e1",
+      "map": "klatoxcv",
+      "elevation": 1,
+      "tile": 19091,
+      "coverage": "The most detailed gallery view of this map elevation (task 011)"
+    },
+    {
+      "name": "klatoxcv-e2",
+      "map": "klatoxcv",
+      "elevation": 2,
+      "tile": 15065,
+      "coverage": "The most detailed gallery view of this map elevation (task 011)"
+    },
+    {
+      "name": "klatrap-e0",
+      "map": "klatrap",
+      "elevation": 0,
+      "tile": 21913,
+      "coverage": "The most detailed gallery view of this map elevation (task 011)"
+    }
   ]
 }

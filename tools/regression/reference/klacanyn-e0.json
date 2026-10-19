@@ -1,0 +1,44 @@
+{
+  "image": "klacanyn-e0.png",
+  "view": "static-wall-plus-hero-preview",
+  "map": "KLACANYN.MAP",
+  "elevation": 0,
+  "still_snapshot": true,
+  "snapshot_run": "4236efff041e47568a559a97d6d49700",
+  "view_tile": 15909,
+  "preview_requested": true,
+  "camera": "fixed eye=(53.64466,46.23085,63.46700), target=(4.45833,0.00000,-10.31250), fov_y=25.0, near=0.1, far=400.0, screen_right=-cross(forward,world_up)",
+  "wall_triangles": 92,
+  "wall_pages": 1,
+  "hero": {
+    "tile": 21871,
+    "fid": 16777278,
+    "frame": 0,
+    "rotation": 0,
+    "world_anchor": [
+      -14.541666667,
+      4.6875
+    ]
+  },
+  "objects": {
+    "drawn": 2107,
+    "skipped": 0
+  },
+  "preview_availability": "available",
+  "renderer": "scene-gl",
+  "light": "off",
+  "resolution": "2310x1298",
+  "drawable": "2310x1298",
+  "ce_commit": "b842ad0",
+  "tools_commit": "-",
+  "exe_sha256": "00bb8534224ab6ffe3d874b8ef54c4227b0ac121acc9f4e7bed7a26569f89b56",
+  "taken": "20261019-150841",
+  "capture_image": "devhero-20261019-150841-000.png",
+  "spot": {
+    "name": "klacanyn-e0",
+    "map": "klacanyn",
+    "elevation": 0,
+    "tile": 15909,
+    "coverage": "The most detailed gallery view of this map elevation (task 011)"
+  }
+}

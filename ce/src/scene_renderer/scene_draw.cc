@@ -4,6 +4,7 @@
 
 #include <lodepng.h>
 
+#include "context.h"
 #include "gl_api.h"
 #include "scene_internal.h"
 
@@ -151,6 +152,65 @@ void drawStaticHeroPreview()
     drawStaticPreview(true, true);
 }
 
+namespace {
+
+// The back buffer as drawn so far into a new PNG (top-down rows).
+bool writeBackBufferPng(const std::filesystem::path& path, int drawableWidth, int drawableHeight, std::string* error)
+{
+    const size_t rowBytes = static_cast<size_t>(drawableWidth) * 4;
+    std::vector<unsigned char> bottomUp(rowBytes * static_cast<size_t>(drawableHeight));
+    std::vector<unsigned char> topDown(bottomUp.size());
+    glPixelStorei(kPackAlignment, 1);
+    glReadPixels(0, 0, drawableWidth, drawableHeight, kRGBA, kUnsignedByte, bottomUp.data());
+    glPixelStorei(kPackAlignment, kDefaultPackAlignment);
+    if (glGetError() != 0) {
+        *error = "OpenGL backbuffer read failed";
+        return false;
+    }
+    for (int row = 0; row < drawableHeight; row++) {
+        const unsigned char* source = bottomUp.data() + rowBytes * static_cast<size_t>(drawableHeight - 1 - row);
+        unsigned char* destination = topDown.data() + rowBytes * static_cast<size_t>(row);
+        std::copy(source, source + rowBytes, destination);
+    }
+    const unsigned encodeError = lodepng::encode(path.string(), topDown,
+        static_cast<unsigned>(drawableWidth), static_cast<unsigned>(drawableHeight), LCT_RGBA, 8);
+    if (encodeError != 0) {
+        std::error_code ec;
+        std::filesystem::remove(path, ec); // Remove only output this call may have partially written.
+        *error = std::string("PNG encode failed: ") + lodepng_error_text(encodeError);
+        return false;
+    }
+    return true;
+}
+
+} // namespace
+
+bool captureFramePng(const std::filesystem::path& path, const unsigned char* rgba, int frameWidth, int frameHeight,
+    int pitch, int* width, int* height, std::string* error)
+{
+    auto fail = [&](const std::string& message) {
+        if (error != nullptr) *error = message;
+        return false;
+    };
+    if (!gInitialized || rgba == nullptr) return fail("OpenGL renderer is unavailable");
+    std::error_code existsError;
+    if (std::filesystem::exists(path, existsError)) return fail("snapshot path already exists");
+    int drawableWidth = 0;
+    int drawableHeight = 0;
+    SDL_GL_GetDrawableSize(gWindow, &drawableWidth, &drawableHeight);
+    if (drawableWidth <= 0 || drawableHeight <= 0) return fail("OpenGL drawable has no pixels");
+    while (glGetError() != 0) {
+    }
+    // The next present clears and redraws the back buffer; nothing is swapped.
+    presentFrame(rgba, frameWidth, frameHeight, pitch);
+    std::string message;
+    if (!writeBackBufferPng(path, drawableWidth, drawableHeight, &message)) return fail(message);
+    if (width != nullptr) *width = drawableWidth;
+    if (height != nullptr) *height = drawableHeight;
+    if (error != nullptr) error->clear();
+    return true;
+}
+
 bool captureStaticFloorPng(const std::filesystem::path& path, int* width, int* height, std::string* error)
 {
     return captureStaticPreviewPng(path, false, false, width, height, error);
@@ -189,27 +249,8 @@ bool captureStaticPreviewPng(const std::filesystem::path& path, bool withWalls, 
     }
     if (glGetError() != 0) return fail(withWalls
         ? "static wall draw failed before snapshot" : "static floor draw failed before snapshot");
-
-    const size_t rowBytes = static_cast<size_t>(drawableWidth) * 4;
-    std::vector<unsigned char> bottomUp(rowBytes * static_cast<size_t>(drawableHeight));
-    std::vector<unsigned char> topDown(bottomUp.size());
-    glPixelStorei(kPackAlignment, 1);
-    glReadPixels(0, 0, drawableWidth, drawableHeight, kRGBA, kUnsignedByte, bottomUp.data());
-    glPixelStorei(kPackAlignment, kDefaultPackAlignment);
-    if (glGetError() != 0) return fail("OpenGL backbuffer read failed");
-    for (int row = 0; row < drawableHeight; row++) {
-        const unsigned char* source = bottomUp.data() + rowBytes * static_cast<size_t>(drawableHeight - 1 - row);
-        unsigned char* destination = topDown.data() + rowBytes * static_cast<size_t>(row);
-        std::copy(source, source + rowBytes, destination);
-    }
-
-    const unsigned encodeError = lodepng::encode(path.string(), topDown,
-        static_cast<unsigned>(drawableWidth), static_cast<unsigned>(drawableHeight), LCT_RGBA, 8);
-    if (encodeError != 0) {
-        std::error_code ec;
-        std::filesystem::remove(path, ec); // Remove only output this call may have partially written.
-        return fail(std::string("PNG encode failed: ") + lodepng_error_text(encodeError));
-    }
+    std::string message;
+    if (!writeBackBufferPng(path, drawableWidth, drawableHeight, &message)) return fail(message);
     if (width != nullptr) *width = drawableWidth;
     if (height != nullptr) *height = drawableHeight;
     if (error != nullptr) error->clear();
