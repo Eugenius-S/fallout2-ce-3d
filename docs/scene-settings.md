@@ -2,10 +2,14 @@
 
 The engine settings schema in `ce/src/settings.cc` registers `[3d].enabled` as
 a boolean with the default `true`. The setting is stored in
-`game/fallout2.cfg`. Missing values use the default; values other than `0`,
-`1`, `false`, or `true` (case-insensitive, surrounding whitespace ignored)
-also fall back to `true`. This key-specific rule does not change legacy boolean
-parsing.
+`game/fallout2.cfg`. Missing values use the default. The parser accepts `1`,
+`true`, `yes`, and `on` for enabled, plus `0`, `false`, `no`, and `off` for
+disabled; matching ignores case and surrounding whitespace. Other values fall
+back to `true`. This key-specific rule does not change legacy boolean parsing.
+
+When disabled, gameplay uses plain 2D. When enabled, the Full 3D scene is used
+where scene data exists; if a scene is unavailable, gameplay safely falls back
+to 2D.
 
 Scene code can read `scene::enabled()` and `scene::settingsRevision()` from
 `ce/src/scene/scene_settings.h`. The revision increases when the effective
