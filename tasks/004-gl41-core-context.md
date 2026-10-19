@@ -53,3 +53,19 @@ worktree; runtime checks must use `tools/dev-snapshot.ps1` in the shared game
 checkout, one background instance at a time. No implementation changes yet.
 Check: `git show origin/main:tasks/004-gl41-core-context.md`; inspect
 `ce/src/scene_renderer/scene_gl.cc` (`init`) and `gl_api.cc` (`glLoad`).
+
+### 2026-10-19 gpt
+Done: rebased onto current origin/main. The context now requests and verifies
+4.1 core plus forward compatibility, logs its identity in `scene-context.log`
+and resets SDL GL attributes on failure before the vanilla renderer starts.
+`F2CE_GL_DEBUG=1` requests a debug context and enables optional 4.1-compatible
+ARB_debug_output diagnostics. Release build and all 43 unit checks pass.
+All six old references pass with zero changed pixels under OpenGL 4.1.0,
+profile 0x1, flags 0x3; six callbacks enabled and no errors/deprecations logged.
+Evidence: `runs/004-gl41-core-context/`.
+Next: prove the unavailable-context path with a temporary impossible context
+request and an in-process F9 event, restore/rebuild, then PR and merge promptly
+so Claude can rebase task 002. Local proof driver:
+`powershell -NoProfile -ExecutionPolicy Bypass -File build/task004-fallback-proof.ps1`.
+Check: `powershell -NoProfile -ExecutionPolicy Bypass -File tools/regression.ps1`;
+inspect `runs/004-gl41-core-context/debug-context.log`.

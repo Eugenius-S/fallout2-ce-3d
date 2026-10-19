@@ -1,4 +1,4 @@
-// OpenGL 3.3 core entry points used by the scene renderer. Consumed by
+// OpenGL entry points used within the 4.1 core ceiling. Consumed by
 // gl_api.h (extern declarations) and gl_api.cc (definitions + loading).
 // Each entry: GL_PROC(Name, (argument types), return type).
 
@@ -30,6 +30,8 @@ GL_PROC(GenBuffers, (int, unsigned int*), void)
 GL_PROC(GenVertexArrays, (int, unsigned int*), void)
 GL_PROC(GenTextures, (int, unsigned int*), void)
 GL_PROC(GetError, (), unsigned int)
+GL_PROC(GetIntegerv, (unsigned int, int*), void)
+GL_PROC(GetString, (unsigned int), const unsigned char*)
 GL_PROC(GetProgramInfoLog, (unsigned int, int, int*, char*), void)
 GL_PROC(GetProgramiv, (unsigned int, unsigned int, int*), void)
 GL_PROC(GetShaderInfoLog, (unsigned int, int, int*, char*), void)

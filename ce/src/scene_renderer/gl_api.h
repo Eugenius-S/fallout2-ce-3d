@@ -1,7 +1,7 @@
 #ifndef FALLOUT_SCENE_RENDERER_GL_API_H
 #define FALLOUT_SCENE_RENDERER_GL_API_H
 
-// Minimal OpenGL 3.3 core loader. Only the entry points this module uses are
+// Minimal OpenGL 4.1 core loader. Only the entry points this module uses are
 // resolved (via SDL_GL_GetProcAddress); no third-party loader dependency and
 // no GL headers: signatures are declared in gl_procs.h.
 

@@ -567,6 +567,30 @@ void drawQuad(int srcWidth, int srcHeight, int srcPitch, const void* pixels, int
 
 } // namespace
 
+namespace {
+
+void contextLog(const char* message)
+{
+    fprintf(stderr, "scene_renderer: %s\n", message);
+    fflush(stderr);
+    if (FILE* log = fopen("scene-context.log", "a")) {
+        fprintf(log, "scene_renderer: %s\n", message);
+        fclose(log);
+    }
+}
+
+// ARB_debug_output is optional on 4.1; no 4.3-only entry points are required.
+void contextDebugMessage(unsigned int, unsigned int type, unsigned int id, unsigned int,
+    int, const char* message, const void*)
+{
+    if (type != 0x824C /* ERROR_ARB */ && type != 0x824D /* DEPRECATED_BEHAVIOR_ARB */) return;
+    char line[1024];
+    snprintf(line, sizeof(line), "GL debug error/deprecation id=%u: %s", id, message);
+    contextLog(line);
+}
+
+} // namespace
+
 bool init(SDL_Window* window, int logicalWidth, int logicalHeight)
 {
     gWindow = window;
@@ -574,22 +598,55 @@ bool init(SDL_Window* window, int logicalWidth, int logicalHeight)
     gLogicalHeight = logicalHeight;
 
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
+    const bool debugContext = SDL_getenv("F2CE_GL_DEBUG") != nullptr;
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG
+        | (debugContext ? SDL_GL_CONTEXT_DEBUG_FLAG : 0));
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+
+    const auto fallback = [](const char* reason) {
+        contextLog(reason);
+        shutdown();
+        // Do not make the vanilla SDL renderer inherit our failed core request.
+        SDL_GL_ResetAttributes();
+        return false;
+    };
 
     gContext = SDL_GL_CreateContext(window);
     if (gContext == nullptr) {
         fprintf(stderr, "scene_renderer: SDL_GL_CreateContext failed: %s\n", SDL_GetError());
         fflush(stderr);
-        return false;
+        return fallback("OpenGL 4.1 core unavailable; using the 2D renderer");
     }
 
     if (!glLoad()) {
-        fprintf(stderr, "scene_renderer: OpenGL 3.3 entry points are missing\n");
-        fflush(stderr);
-        shutdown();
-        return false;
+        return fallback("OpenGL 4.1 core entry points missing; using the 2D renderer");
+    }
+
+    int major = 0, minor = 0, profile = 0, flags = 0;
+    glGetIntegerv(0x821B /* MAJOR_VERSION */, &major);
+    glGetIntegerv(0x821C /* MINOR_VERSION */, &minor);
+    glGetIntegerv(0x9126 /* CONTEXT_PROFILE_MASK */, &profile);
+    glGetIntegerv(0x821E /* CONTEXT_FLAGS */, &flags);
+    if (glGetError() != 0 || major < 4 || (major == 4 && minor < 1)
+        || (profile & 1 /* CORE_PROFILE_BIT */) == 0 || (flags & 1 /* FORWARD_COMPATIBLE_BIT */) == 0) {
+        return fallback("Driver did not provide forward-compatible 4.1 core; using the 2D renderer");
+    }
+    char identity[512];
+    snprintf(identity, sizeof(identity), "OpenGL %s; renderer=%s; profile=0x%x flags=0x%x",
+        reinterpret_cast<const char*>(glGetString(0x1F02 /* VERSION */)),
+        reinterpret_cast<const char*>(glGetString(0x1F01 /* RENDERER */)), profile, flags);
+    contextLog(identity);
+    if (debugContext && SDL_GL_ExtensionSupported("GL_ARB_debug_output")) {
+        using DebugCallback = decltype(&contextDebugMessage);
+        using SetDebugCallback = void (*)(DebugCallback, const void*);
+        const auto install = reinterpret_cast<SetDebugCallback>(SDL_GL_GetProcAddress("glDebugMessageCallbackARB"));
+        if (install != nullptr) {
+            glEnable(0x8242 /* DEBUG_OUTPUT_SYNCHRONOUS_ARB */);
+            install(contextDebugMessage, nullptr);
+            contextLog("ARB_debug_output error/deprecation callback enabled");
+        }
     }
 
     // The vanilla SDL_Renderer was created without vsync; keep the same.
@@ -598,8 +655,7 @@ bool init(SDL_Window* window, int logicalWidth, int logicalHeight)
     unsigned int vertex = compileShader(0x8B31 /* GL_VERTEX_SHADER */, kVertexShader);
     unsigned int fragment = compileShader(0x8B30 /* GL_FRAGMENT_SHADER */, kFragmentShader);
     if (vertex == 0 || fragment == 0) {
-        shutdown();
-        return false;
+        return fallback("OpenGL shader initialization failed; using the 2D renderer");
     }
 
     gProgram = glCreateProgram();
@@ -613,8 +669,7 @@ bool init(SDL_Window* window, int logicalWidth, int logicalHeight)
         glGetProgramInfoLog(gProgram, sizeof(log), nullptr, log);
         fprintf(stderr, "scene_renderer: program link failed: %s\n", log);
         fflush(stderr);
-        shutdown();
-        return false;
+        return fallback("OpenGL program initialization failed; using the 2D renderer");
     }
 
     gTextureUniformLocation = glGetUniformLocation(gProgram, "uTexture");
