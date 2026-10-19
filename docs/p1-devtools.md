@@ -1,200 +1,212 @@
-# P1 dev-инструменты: запуск и инструкция
+# P1 dev tools: launch and instructions
 
-Дата: 2026-10-18. Ветка `scene-renderer`: P0 `49be0b4` + dev-tools (этот коммит).
-Спецификация: редакция 2, раздел «Обязательный dev-режим для исполнителя».
+Date: 2026-10-18. Branch `scene-renderer`: P0 `49be0b4` + dev tools (this
+commit). Specification: edition 2, the section "Mandatory dev mode for the
+executor".
 
-## Точная команда запуска
+## The exact launch command
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File 'E:\Projects\fallout2-ce-3d\tools\dev-launch.ps1' -Map kladwtwn -Elevation 0
 ```
 
-Launcher сам выставляет в `game\fallout2.cfg` окно 16:9 высотой во весь
-монитор над панелью задач и масштаб ×2 (`scale=2`); `-Aspect 21:9` — во
-всю ширину монитора, `-FullScreen` — весь экран без рамки (`windowed=2`).
-Ctrl+F11 в игре перезапускает её в другом формате окна (16:9 ↔ 21:9):
-размер экрана движок задаёт один раз при старте. Также
+The launcher itself sets in `game\fallout2.cfg` a 16:9 window as tall as the
+monitor above the task bar and the ×2 scale (`scale=2`); `-Aspect 21:9` —
+the full monitor width, `-FullScreen` — the whole screen without a frame
+(`windowed=2`). Ctrl+F11 in the game restarts it in the other window format
+(16:9 ↔ 21:9): the engine sets the screen size once at start. Also
 `[ui] skip_opening_movies=1`.
-Затем запускает сразу 3D-сцену:
+Then it starts straight into the 3D scene:
 
 ```
 game\fallout2-ce.exe --dev-tools --dev-new-game --dev-map=kladwtwn --dev-elevation=0 --dev-walk-preview
 ```
 
-`-Classic` оставляет обычную 2D-картинку; Ctrl+F10 выходит из 3D в игре.
-Перед запуском launcher кладёт свежую сборку из `build\` в `game\`; если
-игра открыта, её exe переименовывается и она продолжает работать.
+`-Classic` keeps the usual 2D picture; Ctrl+F10 leaves 3D in the game.
+Before the launch the launcher puts a fresh build from `build\` into
+`game\`; if the game is open, its exe is renamed and it keeps running.
 
-Фоновая проверка без окна на экране: `tools\dev-snapshot.ps1` запускает
-сборку как `game\fallout2-ce-test.exe` за краем экрана, не забирая фокус,
-делает один снимок и закрывает только свой процесс. С `-Probe`
-(`--dev-pick-probe`) игровой курсор ставится на жителей сцены, в
-`game\devprobe.log` пишется, что игра находит под ним; затем клик по полу
-(герой идёт) и клик по ближайшему человеку (разговор). Два снимка: гекс-курсор
-и иконка действия.
+A background check without a window on screen: `tools\dev-snapshot.ps1`
+runs the build as `game\fallout2-ce-test.exe` off screen, without taking
+focus, takes one snapshot and closes only its own process. With `-Probe`
+(`--dev-pick-probe`) the game cursor is put on the scene residents, and
+`game\devprobe.log` records what the game finds under it; then a click on
+the floor (the hero walks) and a click on the nearest person (a dialog).
+Two snapshots: the hex cursor and the action icon.
 
-В 3D мышь — игровая: наведение, иконки действий, правая кнопка меняет режим,
-клик — ходьба или действие; поверх сцены видны нижняя панель и сообщения.
+In 3D the mouse is the game's: hover, action icons, the right button changes
+the mode, a click walks or acts; the bottom bar and messages are visible over
+the scene.
 
-3D-камера идёт за центром экрана игры: прокрутка у краёв окна, стрелки и
-следование за героем двигают её, наклон и расстояние не меняются. Она не
-прыгает по гексам, а плавно скользит к центру, выбранному игрой (постоянная
-времени 80 мс, при смене карты сразу); анимации персонажей — как в игре.
-В 3D-режиме прокрутка не упирается в границы карт Restoration Project и
-стопоры прокрутки: они рассчитаны на ширину 2D-окна, и на широком окне у
-узкой карты не оставалось хода в стороны. Правило «не дальше от героя»
-действует, растянутое под окно так же, как 480 × 400 относились к 640 × 480.
+The 3D camera follows the game's screen center: scrolling at the window
+edges, the arrows and following the hero move it; tilt and distance do not
+change. It does not jump across hexes but glides smoothly to the center the
+game picked (a time constant of 80 ms, immediately on a map change);
+character animations are as in the game. In 3D mode scrolling is not limited
+by the Restoration Project map borders and the scroll stoppers: they are
+computed for the width of the 2D window, and on a wide window a narrow map
+left no sideways move. The rule "no farther from the hero" holds, stretched
+to the window the same way 480 × 400 related to 640 × 480.
 
-- Профиль: с 2026-10-18 по умолчанию новая игра с первым готовым
-  персонажем (`--dev-new-game`, без ролика старейшины): Restoration Project
-  требует новую игру. `-Slot N` загружает сейв N из `game\data\SAVEGAME`
-  вместо этого. Слоты в `game\` — dev-песочница, пользовательские не
-  затрагиваются.
-- `--dev-map`/`--dev-elevation` опциональны; без них — остаёмся на карте
-  сейва. Неверное имя/этаж отклоняется, остаёмся на карте сейва без
-  полузагруженной сцены (проверено `--dev-map=zzzz`).
+- Profile: since 2026-10-18 a new game with the first ready-made character
+  by default (`--dev-new-game`, without the elder movie): the Restoration
+  Project requires a new game. `-Slot N` loads save N from
+  `game\data\SAVEGAME` instead. The slots in `game\` are the dev sandbox;
+  user saves are not touched.
+- `--dev-map`/`--dev-elevation` are optional; without them you stay on the
+  save's map. A wrong name/floor is refused; you stay on the save's map with
+  no half-loaded scene (verified with `--dev-map=zzzz`).
 
 ## CLI
 
-- `--dev-tools` — включает режим (панель, хоткеи).
-- `--dev-new-game` — сразу начать новую игру с первым готовым персонажем.
-- `--dev-map=<имя>` / `--dev-elevation=<0..2>` — цель после загрузки сейва
-  или старта новой игры.
-- `--dev-list-maps` — печатает все карты из игровых ресурсов (155 шт. на
-  текущих DATs) и выходит. Лог: `runs/p1-listmaps.log`.
+- `--dev-tools` — enables the mode (the panel, the hotkeys).
+- `--dev-new-game` — start a new game right away with the first ready-made
+  character.
+- `--dev-map=<name>` / `--dev-elevation=<0..2>` — the target after the save
+  loads or the new game starts.
+- `--dev-list-maps` — prints all maps from the game resources (155 on the
+  current DATs) and exits. Log: `runs/p1-listmaps.log`.
 
-## Панель (Alt+D открыть/закрыть)
+## The panel (Alt+D opens/closes)
 
-- filter — живой регистронезависимый фильтр по имени карты (стрелки — выбор,
-  Backspace, печатаемые символы);
-- elev: [0][1][2] — выбор этажа; отмечается текущий, `-` — этаж отсутствует
-  на текущей карте;
-- `<prev` / `next>` — соседняя карта списка; `GO` — переход; `SNAP` — снимок;
-- показываются текущие карта/этаж и активный рендер (`scene-gl` — пока это
-  GL-презентация ванили; свет: off до P2).
+- filter — a live case-insensitive filter over map names (arrows —
+  selection, Backspace, printable characters);
+- elev: [0][1][2] — floor choice; the current one is marked, `-` — the floor
+  is absent on the current map;
+- `<prev` / `next>` — the neighboring map of the list; `GO` — travel;
+  `SNAP` — a snapshot;
+- the current map/floor and the active renderer are shown (`scene-gl` — for
+  now the GL presentation of vanilla; light: off until P2).
 
-Хоткеи: Alt+D — панель, F9 — снимок (работает и при открытой панели).
+Hotkeys: Alt+D — the panel, F9 — a snapshot (works with the panel open too).
 
-## Переходы
+## Transitions
 
-Только штатный механизм: `mapSetTransition` → загрузка в безопасной фазе
-игрового цикла (`mapLoadById`), герой на входной клетке карты, камера
-центрирована, скрипты карты работают. В бою/диалоге/роликах переход
-отклоняется со статусом в панели.
+Only the stock mechanism: `mapSetTransition` → the load in the safe phase of
+the game loop (`mapLoadById`), the hero on the map's entrance tile, the
+camera centered, the map scripts run. In combat/dialog/movies the
+transition is refused with a status in the panel.
 
-## Снимок
+## A snapshot
 
-F9/SNAP пишет `devshot-ГГГГММДД-ЧЧММСС.json` + `scrNNNNN.png` в `game/`:
-карта, этаж, рендер, свет, внутреннее разрешение, drawable, commit CE,
-SHA-256 запущенного EXE, время.
+F9/SNAP writes `devshot-YYYYMMDD-HHMMSS.json` + `scrNNNNN.png` into `game/`:
+the map, floor, renderer, light, internal resolution, drawable, CE commit,
+SHA-256 of the running EXE, time.
 
-## Приёмка (spec, «Приёмка dev-инструментов») — выполнено
+## Acceptance (the spec, "Acceptance of the dev tools") — done
 
-| Шаг | Результат | Свидетельство |
+| Step | Result | Evidence |
 |---|---|---|
-| Открыть Кламат одним запуском | PASS | `runs/p1-dev-klamat.png` («entered Klamath», герой на входе) |
-| Перейти на другую карту | PASS | `runs/p1-dev-den.png` (denres1), `runs/p1-den2.png` (argarden) |
-| Этаж | исправлено, ручная проверка наперевес | выбор/отказ/факт разделены (см. ниже) |
-| Вернуться в Кламат | PASS | `runs/p1-back-wtwn.png` (KLADWTWN через штатный .SAV-механизм) |
-| Герой/камера/picking | PASS | герой на входе, камера центрирована; клик → гекс-курсор: `runs/p1-pick-click.png` |
-| Отказ на несуществующее имя | PASS | `--dev-map=zzzz` → осталось на карте сейва: `runs/p1-badmap-refused.png`; пустой фильтр + GO = no-op: `runs/p1-dev-back-klamat.png` |
-| Снимок с метаданными | PASS | `game/devshot-20261018-111259.json` (map/elev/renderer/light/res/commit/sha256) |
+| Open Klamat in one launch | PASS | `runs/p1-dev-klamat.png` ("entered Klamath", the hero at the entrance) |
+| Travel to another map | PASS | `runs/p1-dev-den.png` (denres1), `runs/p1-den2.png` (argarden) |
+| Floor | fixed, a manual check is still due | choice/refusal/fact are separated (see below) |
+| Return to Klamat | PASS | `runs/p1-back-wtwn.png` (KLADWTWN through the stock .SAV mechanism) |
+| Hero/camera/picking | PASS | the hero at the entrance, the camera centered; a click → the hex cursor: `runs/p1-pick-click.png` |
+| Refusal of a nonexistent name | PASS | `--dev-map=zzzz` → stays on the save's map: `runs/p1-badmap-refused.png`; an empty filter + GO = no-op: `runs/p1-dev-back-klamat.png` |
+| A snapshot with metadata | PASS | `game/devshot-20261018-111259.json` (map/elev/renderer/light/res/commit/sha256) |
 
-## Ограничения
+## Limits
 
-- Этажи целевой карты до загрузки не проверяются (данные карты становятся
-  видны после загрузки; строка elev показывает фактические этажи текущей
-  карты). Хоп между этажами многоэтажных карт — в P1.
-- Фильмы под GL-презентацией не выводятся (skip_opening_movies=1 в
-  dev-профиле).
-- Dev-переходы между картами не являются доказательством квестовых
-  переходов/проходимости кампании (spec §6).
+- The floors of the target map are not checked before the load (the map data
+  becomes visible after the load; the elev row shows the actual floors of
+  the current map). A hop between floors of multi-floor maps is in P1.
+- Movies are not presented under the GL presentation (skip_opening_movies=1
+  in the dev profile).
+- Dev transitions between maps are not proof of quest transitions or of
+  campaign playability (spec §6).
 
-## Ревью от 2026-10-18 (внешняя проверка a650e85) и исправления (ce 6dda27c)
+## Review of 2026-10-18 (an external check of a650e85) and fixes (ce 6dda27c)
 
-1. Этаж не применялся: tile=-1 → движок пропускает установку этажа. Теперь
-   same-map переключение передаёт enteringTile; cross-map — follow-up
-   коррекция после загрузки (update()).
-2. Панель/снимок показывали выбор панели, а не фактический этаж. Теперь
-   фактический gElevation движка; выбор панели — отдельное значение
-   «(want eN)».
-3. Наличие этажа определялось по _square != null (всегда не null). Теперь
-   биты MAP_HEADER_ELEVATION_* из gMapHeader.flags — как в загрузчике;
-   same-map переход на отсутствующий этаж отказывается сразу.
-4. Зона клика этажей выровнена с надписями.
-5. Клик по списку учитывает прокрутку (зеркалит отрисовку).
-Метаданные снимка дополнены: camera (центральная клетка) и tools_commit
-(лаунчер передаёт --dev-tools-commit).
+1. The floor was not applied: tile=-1 → the engine skips setting the floor.
+   Now a same-map switch passes enteringTile; cross-map — a follow-up
+   correction after the load (update()).
+2. The panel/snapshot showed the panel's choice, not the actual floor. Now
+   the engine's actual gElevation; the panel choice is a separate value
+   "(want eN)".
+3. Floor presence was determined by _square != null (never null). Now the
+   MAP_HEADER_ELEVATION_* bits from gMapHeader.flags — as in the loader; a
+   same-map transition to an absent floor is refused at once.
+4. The floor click zone is aligned with the labels.
+5. A list click accounts for the scroll (mirroring the draw).
+The snapshot metadata gained: camera (the center tile) and tools_commit
+(the launcher passes --dev-tools-commit).
 
-Статус проверки этажей: исправления собраны; метки отсутствия этажей
-подтверждены на KLADWTWN ([0]-[1]-[2]-, runs/p1e-vault-filter.png); сам
-переход между этажами в игре автоматизацией не доведён из-за деградации
-ввода после сворачиваний окна (постараюсь проверить руками: Alt+D →
-filter arcaves → ENTER → RIGHT → ENTER, в панели e1).
+Floor check status: the fixes are built; the absence marks are confirmed on
+KLADWTWN ([0]-[1]-[2]-, runs/p1e-vault-filter.png); the floor-to-floor
+transition itself was not automated in the game because of input degradation
+after window minimizations (I will try to check by hand: Alt+D →
+filter arcaves → ENTER → RIGHT → ENTER, e1 in the panel).
 
-## Второе ревью (6dda27c) и исправления (текущий билд 11:55)
+## Second review (6dda27c) and fixes (the current build, 11:55)
 
-1. Инверсия наличия этажа: CE хранит SET-бит как ОТСУТСТВИЕ данных этажа
-   (загрузчик читает тайлы при (flags & bit) == 0). Проверка перевёрнута,
-   как и должно быть. Подтверждено в игре: KLADWTWN теперь [0] [1]- [2]-
+1. Inverted floor presence: CE stores a SET bit as the ABSENCE of floor data
+   (the loader reads tiles when (flags & bit) == 0). The check is inverted,
+   as it must be. Confirmed in the game: KLADWTWN is now [0] [1]- [2]-
    (runs/p1e2-refused.png).
-2. Этаж целевой карты проверяется ДО перехода: devtools читает заголовок
-   карты (.SAV предпочтительно, как mapLoadByName) из ресурсов и отказывает
-   без выхода с текущей карты. Follow-up коррекция оставлена как backstop.
-3. Высота строки списка фиксируется при отрисовке (шрифт 101) и
-   используется обработчиком клика.
+2. The floor of the target map is checked BEFORE the transition: devtools
+   reads the map header (.SAV preferred, as mapLoadByName) from the
+   resources and refuses without leaving the current map. The follow-up
+   correction is kept as a backstop.
+3. The list row height is captured at draw time (font 101) and used by the
+   click handler.
 
-Статус: refusal-ветка и новый расчёт этажа собраны; автоматический прогон
-перехода на существующий этаж упирается в нестабильность инжектируемого
-ввода (ENTER доходит, стрелки/BACKSPACE съедаются слоем скролла, клики по
-панели после minimize/restore нестабильны). Ручная минута: Alt+D → want e1
-кликом по [1] → GO → статус «elevation 1 absent on KLADWTWN» без перехода;
-на arcaves ([1] присутствует) → GO → фактический e1 в панели/снимке.
+Status: the refusal branch and the new floor computation are built; the
+automated run of the transition to an existing floor hits the instability of
+the injected input (ENTER arrives, arrows/BACKSPACE are eaten by the scroll
+layer, panel clicks after minimize/restore are unstable). A manual minute:
+Alt+D → want e1 by clicking [1] → GO → the status "elevation 1 absent on
+KLADWTWN" with no transition; on arcaves ([1] present) → GO → actual e1 in
+the panel/snapshot.
 
-## Третье ревью и закрытие dev-режима (2026-10-18)
+## Third review and closing the dev mode (2026-10-18)
 
-1. Нечитаемый заголовок целевой карты (-1) теперь ОТКАЗЫВАЕТ переход
-   («cannot read map header») вместо тихого разрешения.
-2. Отложенная коррекция этажа перенесена из отрисовки в основной игровой
-   цикл (main.cc, после mapHandleTransition()).
-3. Follow-up переход использует текущую клетку героя вместо enteringTile
-   (у ряда карт enteringTile = 0/-1, и движок пропускает размещение).
-4. В панели этаж выбирается клавишами 1/2/3 (стрелки съедаются слоем
-   скролла карты).
+1. An unreadable target map header (-1) now REFUSES the transition
+   ("cannot read map header") instead of silently allowing it.
+2. The pending floor correction moved from the draw path into the main game
+   loop (main.cc, after mapHandleTransition()).
+3. The follow-up transition uses the hero's current tile instead of
+   enteringTile (a number of maps have enteringTile = 0/-1 and the engine
+   skips placement).
+4. In the panel the floor is picked with keys 1/2/3 (the arrows are eaten by
+   the map scroll layer).
 
-Приёмка этажей (успешный прогон, 2026-10-18 12:14):
-- отказ ДО перехода: KLADWTWN + want e1 → GO → «elevation 1 absent on
-  ARDEAD»/«…on KLADWTWN», карта не менялась (runs/p1f-refusal.png);
-- успешный переход: KLADWTWN → arcaves → «2» → GO → follow-up в игровом
-  цикле → фактический e1 (runs/p1f-arcaves.png, runs/p1f-e1-done.png);
-- снимок с полными метаданными: game/devshot-20261018-121404.json +
-  game/scr00001.png (ARCAVES.MAP, elevation 1, camera, renderer, свет,
-  разрешения, ce_commit 01d73df, tools_commit cbeffec, exe SHA-256).
+Floor acceptance (a successful run, 2026-10-18 12:14):
+- a refusal BEFORE the transition: KLADWTWN + want e1 → GO → "elevation 1
+  absent on ARDEAD"/"…on KLADWTWN", the map did not change
+  (runs/p1f-refusal.png);
+- a successful transition: KLADWTWN → arcaves → "2" → GO → the follow-up in
+  the game loop → actual e1 (runs/p1f-arcaves.png, runs/p1f-e1-done.png);
+- a snapshot with the full metadata: game/devshot-20261018-121404.json +
+  game/scr00001.png (ARCAVES.MAP, elevation 1, camera, renderer, light,
+  resolutions, ce_commit 01d73df, tools_commit cbeffec, exe SHA-256).
 
-Статус dev-режима: закрыт по условиям ревьюера (успешный переход между
-этажами + отказ на отсутствующий + JSON с метаданными).
+Dev mode status: closed per the reviewer's conditions (a successful
+floor-to-floor transition + a refusal on an absent one + a JSON with
+metadata).
 
-## Выбор клетки при смене этажа — исправлен, приёмка текущего билда ожидает проверки
+## Tile choice on a floor change — fixed, acceptance of the current build awaits a check
 
-Для героя выбирается клетка целевого этажа с расстоянием от его текущей
-координаты не больше 4. Кандидат принимается, только если номер клетки больше
-нуля и находится в bounds, `squareTileFromTile` возвращает валидный квадрат,
-пол кадра `FloorTileFrmId` не равен `TileFrameId::Grid`, а
-`_obj_blocking_at` и `_obj_scroll_blocking_at` не находят блокирующих объектов.
-Расстояние проверяется движковым `tileDistanceBetween`; поиск перебирает
-полные кольца по возрастанию расстояния. Если они не дали кандидата, входная
-клетка карты проходит те же проверки. При отсутствии безопасного кандидата
-переход отклоняется без повторных коррекций.
+A tile of the target floor is picked for the hero at a distance of at most 4
+from his current position. A candidate is accepted only if the tile number is
+greater than zero and in bounds, `squareTileFromTile` returns a valid square,
+the floor frame `FloorTileFrmId` is not `TileFrameId::Grid`, and
+`_obj_blocking_at` and `_obj_scroll_blocking_at` find no blocking objects.
+The distance is checked by the engine's `tileDistanceBetween`; the search
+walks full rings by growing distance. If they give no candidate, the map's
+entrance tile goes through the same checks. With no safe candidate the
+transition is refused without repeated corrections.
 
-Критерий консервативно отбрасывает пустой пол и известные блокеры. Наличие
-нарисованного пола само по себе не доказывает проходимость или достижимость
-клетки; алгоритм не заявляет проверку связности пути.
+The criterion conservatively discards empty floors and known blockers. A
+drawn floor by itself does not prove walkability or reachability of the
+tile; the algorithm does not claim a path connectivity check.
 
-Скриншоты ходьбы после хопа на ARCAVES e1 (`runs/p1g-e1-before.png`,
-`p1g-e1-walk2.png`, `p1g-walk-a.png`, `p1g-walk-b.png`) относятся к предыдущей
-версии проверки клетки. Они не подтверждают поведение текущего билда после
-проверок пола, scroll-блокеров и bounds. Приёмка безопасного выбора клетки в
-игре для текущего билда ожидает отдельной проверки.
+Walking screenshots after the hop on ARCAVES e1 (`runs/p1g-e1-before.png`,
+`p1g-e1-walk2.png`, `p1g-walk-a.png`, `p1g-walk-b.png`) belong to the
+previous version of the tile check. They do not confirm the behavior of the
+current build after the floor, scroll-blocker and bounds checks. Acceptance
+of the safe tile choice in the game for the current build awaits a separate
+check.
 
-`runs/p1-devtools-map-header-regression.ps1` — forensic-проверка смещений и
-полей реального `KLADWTWN.SAV`; это не unit-тест probe и не игровая приёмка.
+`runs/p1-devtools-map-header-regression.ps1` — a forensic check of the
+offsets and fields of a real `KLADWTWN.SAV`; it is not a unit test of the
+probe and not a game acceptance.

@@ -1,72 +1,77 @@
-# Прототип C1: перспективная камера
+# C1 prototype: perspective camera
 
-Дата: 2026-10-17. Основа: fallout2-ce `fb8ba51e` + ветка `sprite-lighting-c1`
-(коммит `e14218e` в `ce/`). Спецификация и план — в
+Date: 2026-10-17. Base: fallout2-ce `fb8ba51e` + the `sprite-lighting-c1`
+branch (commit `e14218e` in `ce/`). The specification and plan are in
 `E:\Games\Fallout 2\docs\superpowers\`.
 
-## Что сделано
+## What was done
 
-Мир рисуется ванильным движком в 8-битный буфер как раньше; при включённой
-перспективе каждая отрисовка (пол, крыша, спрайт) проецируется заново:
-ванильные экранные координаты трактуются как координаты «виртуальной земли»,
-высота (крыши, верх спрайтов) — в ванильных пикселях. Камера наклонена на
-`pitch` градусов и стоит в `distance` ванильных пикселях от центра вида.
-Азимут ванильный, поэтому спрайты показывают ровно те стороны, которые
-нарисованы (п.46 спецификации).
+The world is drawn by the vanilla engine into an 8-bit buffer as before; with
+the perspective on, every draw (floor, roof, sprite) is projected anew: the
+vanilla screen coordinates are treated as the coordinates of a "virtual
+ground", and height (roofs, sprite tops) is in vanilla pixels. The camera is
+tilted by `pitch` degrees and sits `distance` vanilla pixels from the view
+center. The azimuth is vanilla, so sprites show exactly the sides they were
+drawn with (clause 46 of the specification).
 
-- `src/lighting/lighting.*` — проекция, обратная проекция (мышь), поля
-  рендера; `src/lighting/lighting_quad_blit.*` — перспективно-корректный
-  квад-блиттер 8-бит палитры (прозрачность индексом 0, затемнение светом
-  как в `_dark_trans_buf_to_buf`, полупрозрачность через blend-таблицы).
-- Пол сохраняет ванильную попиксельную карту света (`_intensity_map`
-  заполняется тем же кодом, он извлечён в `tileFillIntensityMap`).
-- Мышь: клики/подсветка клетки идут через обратную проекцию
-  (`game_mouse.cc`), т.е. ходьба кликом выбирает клетку, которая визуально
-  под курсором.
-- Хоткей **Alt+P** переключает original/perspective на живой сцене;
-  `[lighting] camera=0|1` в `fallout2.cfg` задаёт стартовый режим.
-- Скролл при перспективе перерисовывает кадр целиком (линейная копия буфера
-  при наклонной камере давала бы смаз).
+- `src/lighting/lighting.*` — projection, inverse projection (the mouse),
+  render margins; `src/lighting/lighting_quad_blit.*` — a
+  perspective-correct quad blitter of the 8-bit palette (index-0
+  transparency, light darkening as in `_dark_trans_buf_to_buf`,
+  translucency through blend tables).
+- The floor keeps the vanilla per-pixel light map (`_intensity_map` is
+  filled by the same code, extracted into `tileFillIntensityMap`).
+- The mouse: clicks and tile highlight go through the inverse projection
+  (`game_mouse.cc`), i.e. click-walking picks the tile that is visually
+  under the cursor.
+- The **Alt+P** hotkey switches original/perspective on a live scene;
+  `[lighting] camera=0|1` in `fallout2.cfg` sets the start mode.
+- Scrolling under perspective redraws the whole frame (a linear buffer copy
+  with a tilted camera would smear).
 
-## Ключи `[lighting]` в `fallout2.cfg`
+## `[lighting]` keys in `fallout2.cfg`
 
-| Ключ | Дефолт | Смысл |
+| Key | Default | Meaning |
 |---|---|---|
-| `camera` | 0 | 0 = ваниль, 1 = перспектива |
-| `pitch` | 62 | наклон от вертикали, градусы (90 = вид сверху) |
-| `distance` | 700 | дистанция камеры в ванильных пикселях, меньше = сильнее |
-| `roof_height` | 96 | высота плоскости крыш |
+| `camera` | 0 | 0 = vanilla, 1 = perspective |
+| `pitch` | 62 | tilt from vertical, degrees (90 = top view) |
+| `distance` | 700 | camera distance in vanilla pixels, lower = stronger |
+| `roof_height` | 96 | height of the roof plane |
 
-## Свидетельства (runs/)
+## Evidence (runs/)
 
-- `c1-original.png` — тот же сейв, камера 0 (контроль, без изменений).
-- `c1-persp-weak.png` / перезапуск с дефолтами (62°, 700) — вариант 1.
-- `c1-persp-strong.png` (55°, 450) — вариант 2, сильнее.
-- `c1-v3-margins.png`, `c1-v3-walk*.png` — итерации фикса полей рендера.
+- `c1-original.png` — the same save, camera 0 (control, unchanged).
+- `c1-persp-weak.png` / a restart with the defaults (62°, 700) — variant 1.
+- `c1-persp-strong.png` (55°, 450) — variant 2, stronger.
+- `c1-v3-margins.png`, `c1-v3-walk*.png` — iterations of the render margins
+  fix.
 
-Сравнение: центр сцены (персонаж, вход храма) охвачен одинаково; близкие
-объекты крупнее дальних; интерфейс остался плоским; освещение/палитра не
-изменились. Переключение ON/OFF не меняет правил игры (визуальный слой).
+Comparison: the scene center (the character, the temple entrance) is covered
+the same; near objects are larger than far ones; the interface stayed flat;
+lighting/palette did not change. Switching ON/OFF does not change the game
+rules (a visual layer).
 
-## Известные ограничения прототипа (не дефекты приёмки C)
+## Known limits of the prototype (not defects of acceptance C)
 
-1. **Пустота за краем карты.** Наклонный вид показывает область за пределами
-   гекс-сетки карты: на старте ARTEMPLE сверху-справа чернота, её размер
-   растёт с силой перспективы. Тайлов там нет — рисовать нечего. Варианты
-   решения (этап C, по согласованию): мягче параметры, «шторка»/виньетка на
-   краях, дорисовка краёв карт (map edge data).
-2. **Курсорные арты в ванильных координатах.** Красный овал курсора и
-   подсветка/оверлайн объектов рисуются в ванильных экранных координатах,
-   а выбранная клетка считается обратной проекцией — на краях экрана овал
-   немного не совпадает с подсвеченной клеткой. Лечение (этап C): рисовать
-   курсорные объекты через тот же перспективный путь.
-3. **Стеклянные стены/трупы-«яйца»** под перспективой рисуются упрощённо
-   (без спец-веток ванили).
-4. Скролл-перерисовка тяжелее ванильной (кадр целиком); замеры FPS — этап D,
-   сейчас не заявляется.
+1. **Void beyond the map edge.** The tilted view shows an area outside the
+   map's hex grid: at the ARTEMPLE start there is blackness top-right, and
+   its size grows with the perspective strength. There are no tiles there —
+   nothing to draw. Solution options (stage C, by agreement): softer
+   parameters, a "curtain"/vignette at the edges, drawing the map edges
+   (map edge data).
+2. **Cursor art in vanilla coordinates.** The red cursor oval and the
+   object highlight/outline are drawn in vanilla screen coordinates while
+   the picked tile is computed by the inverse projection — at the screen
+   edges the oval is slightly off the highlighted tile. Treatment (stage C):
+   draw the cursor objects through the same perspective path.
+3. **Glass walls/corpse "eggs"** are drawn simplified under perspective
+   (without the vanilla special cases).
+4. Scroll redraw is heavier than vanilla (the whole frame); FPS measurements
+   are stage D, not claimed now.
 
-## Как проверить руками
+## How to check by hand
 
-Запуск: `game\fallout2-ce.exe` (сейв слот 1 — `--dev-load-game=1`).
-Alt+P — переключение камеры на месте; в `fallout2.cfg` секция `[lighting]`
-настраивает силу. Клик по земле — шаг; двери/бой/инвентарь — как в оригинале.
+Run: `game\fallout2-ce.exe` (save slot 1 — `--dev-load-game=1`).
+Alt+P switches the camera in place; the `[lighting]` section of
+`fallout2.cfg` tunes the strength. A click on the ground is a step;
+doors/combat/inventory are as in the original.
