@@ -40,3 +40,13 @@ game-to-scene bridge: object cards, the mouse and interface overlay
 Any change of behaviour or look.
 
 ## Log
+
+### 2026-10-19 claude
+Done: `scene_gl.{h,cc}` is split into `context`, `scene_shader`, `floor`,
+`walls`, `camera`, `live_objects`, `picking`, `scene_draw` with public headers
+`context.h`, `camera.h`, `static_scene.h`, `live_objects.h`, `picking.h`,
+`scene_draw.h`; shared state in `scene_internal.h` (each variable owned by one
+module). Function bodies moved unchanged. Builds.
+Next: regression on this build; then move the bridge from `devtools/` to
+`ce/src/scene/`.
+Check: `tools/regression.ps1` from this worktree.
