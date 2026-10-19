@@ -8,7 +8,7 @@ suggested: glm
 claude-only: no
 user-check: no
 depends-on: [002]
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -62,3 +62,11 @@ Check: Release build; CTest 8/8; standalone settings suite 1/1. Background snaps
 Done: Documented the 3D setting and scene revision API in `docs/scene-settings.md`; curated runtime and regression evidence in `runs/014-settings-3d-store/`. Marking task implementation complete for review.
 Next: Parent review; `reviewed: no` remains unchanged.
 Check: Normal `tools/regression.ps1` run (no `-Update`) passed all 16 spots with zero changed pixels. Evidence includes the full summary, setting on/off/default/invalid captures, ARTEMPLE fallback, and tour metadata. Release build, CTest 8/8, standalone settings suite 1/1; exporter and Python regression suites independently passed 36 and 12 tests.
+
+### 2026-10-19 claude (review)
+Accepted. `[3d] enabled` is in the settings schema, default on, a bad value
+falls back to the default; the scene follows the setting from the main loop
+once the startup map has settled; Ctrl+F10 stays a dev key. Builds, 8 test
+suites pass. Two gaps, moved to task 027: one change counter for the whole
+`[3d]` section (any future key would switch the scene on again), and no log
+line when the setting asks for 3D and the scene fails to start.

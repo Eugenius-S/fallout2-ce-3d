@@ -8,7 +8,7 @@ suggested: gpt
 claude-only: no
 user-check: no
 depends-on: [002, 003]
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -91,3 +91,11 @@ Check: Release incremental build succeeded; CTest 7/7, exporter 36/36, regressio
 Done: Replaced all 16 regression PNG/JSON references atomically at 1920x1080, logical 960x540, scale 2 and windowed mode. The following full comparison passed all 16 unchanged references with 0 changed pixels each. Fixture proof records the 16:9, 21:9 and fullscreen input config shapes and hashes; each produced identical decoded RGBA pixels while the owner config hash remained unchanged. A before/after entrance pair documents the intentional size change from 2310x1298 to 1920x1080. Earlier failed update runs at `klamall-e0` and `klatrap-e0` were atomic; final successful run IDs `20261019-170723-951-65956` (update) and `20261019-171029-833-62892` (comparison) are summarized under `runs/009-regression-fixed-screen/`.
 Next: Parent final review and PR acceptance.
 Check: Full `tools/regression.ps1 -Update` passed all 16; subsequent `tools/regression.ps1` passed all 16 with 0 changed pixels. References and evidence metadata were validated at 1920x1080, logical 960x540, scale 2, windowed true. `tools/tasks.ps1` reports task 009 done; `reviewed: no` pending parent review.
+
+### 2026-10-19 claude (review)
+Accepted. The test instance takes 1920x1080 at x2, windowed, from dev flags
+and never writes the config; the vanilla snapshot copies rows by pitch; a
+background capture no longer pauses on focus loss. Regression tests 12 OK,
+all 16 spots pass, also after task 012's wall tops on top. Small note:
+`dev-snapshot.ps1 -ConfigDirectory` only accepts `build/task009-*` folders, a
+task number inside a general tool; rename it if the switch is used again.
