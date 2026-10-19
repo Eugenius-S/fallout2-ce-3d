@@ -40,6 +40,8 @@ bool staticObjectLift(int tile, int fid, float lift[3]);
 // cuts them as the game does: begin, mark each, end (uploads on a change).
 void beginStaticWallSeeThrough();
 void markStaticWallSeeThrough(int tile, int fid);
+// A baked object the engine paints at full light (OBJECT_TRANS_WALL), this frame.
+void markStaticWallFullLight(int tile, int fid);
 void endStaticWallSeeThrough();
 
 } // namespace scene_renderer

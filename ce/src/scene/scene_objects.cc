@@ -120,6 +120,9 @@ void addObjectCard(Object* object, void* context)
     // The game shows the hero through walls and scenery he stands behind.
     const bool seeThrough = objectSeeThroughAroundDude(object);
     if (pickOnly && seeThrough) scene_renderer::markStaticWallSeeThrough(object->tile, object->fid);
+    if (pickOnly && (object->flags & OBJECT_FLAG_0xFC000) == OBJECT_TRANS_WALL) {
+        scene_renderer::markStaticWallFullLight(object->tile, object->fid);
+    }
     const int stack = pickOnly ? (object->tile == pass.lastTile ? pass.onTile : 0) : nextStackOnTile(pass, object);
     if (object == gDude) {
         gHeroStack = stack; // the hero card is drawn on its own

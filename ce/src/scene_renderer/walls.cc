@@ -39,6 +39,8 @@ std::unordered_map<unsigned long long, BakedObject> gBakedObjects;
 constexpr int kSeeThroughRowWidth = 1024;
 std::unordered_map<unsigned long long, unsigned int> gWallObjectRows;
 std::vector<unsigned char> gWallSeeThrough;
+// Rows the engine paints at full light, whatever their hex (OBJECT_TRANS_WALL).
+std::vector<unsigned char> gWallFullLight;
 std::vector<int> gWallObjectTiles;
 std::vector<unsigned char> gWallObjectTable; // as uploaded: R, G per row
 
@@ -74,6 +76,7 @@ void destroyStaticWalls()
     gWallSeeThroughAny = false;
     gWallObjectRows.clear();
     gWallSeeThrough.clear();
+    gWallFullLight.clear();
     gWallObjectTiles.clear();
     gWallObjectTable.clear();
 }
@@ -337,6 +340,7 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
     if (objectCount > 0) {
         const unsigned int rows = (objectCount + kSeeThroughRowWidth - 1) / kSeeThroughRowWidth;
         gWallSeeThrough.assign(static_cast<size_t>(rows) * kSeeThroughRowWidth, 0);
+        gWallFullLight.assign(gWallSeeThrough.size(), 0);
         gWallObjectTable.assign(gWallSeeThrough.size() * 2, 255);
         glGenTextures(1, &gWallSeeThroughTexture);
         glBindTexture(kTexture2D, gWallSeeThroughTexture);
@@ -358,6 +362,13 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
 void beginStaticWallSeeThrough()
 {
     std::fill(gWallSeeThrough.begin(), gWallSeeThrough.end(), 0);
+    std::fill(gWallFullLight.begin(), gWallFullLight.end(), 0);
+}
+
+void markStaticWallFullLight(int tile, int fid)
+{
+    const auto found = gWallObjectRows.find(bakedObjectKey(tile, fid));
+    if (found != gWallObjectRows.end()) gWallFullLight[found->second] = 1;
 }
 
 void markStaticWallSeeThrough(int tile, int fid)
@@ -379,7 +390,9 @@ void flushWallObjectTable()
     std::vector<unsigned char> table(gWallSeeThrough.size() * 2);
     for (size_t row = 0; row < gWallSeeThrough.size(); row++) {
         table[row * 2] = gWallSeeThrough[row];
-        const float light = row < gWallObjectTiles.size() ? lightAtTile(gWallObjectTiles[row]) : 1.0f;
+        const float light = row < gWallObjectTiles.size() && gWallFullLight[row] == 0
+            ? lightAtTile(gWallObjectTiles[row])
+            : 1.0f;
         table[row * 2 + 1] = static_cast<unsigned char>(light * 255.0f + 0.5f);
     }
     if (table == gWallObjectTable) return;
