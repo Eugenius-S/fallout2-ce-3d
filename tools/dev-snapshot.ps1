@@ -9,8 +9,9 @@
 # the hover icon over a critter, then a left click there is logged until the
 # game leaves the scene (a dialog).
 #
-# -Tour "klatrap:0,kladwtwn:0": after the snapshot on -Map, the same process
-# travels to each listed map elevation and takes one snapshot there.
+# -Tour "klatrap:0,kladwtwn:0:20100": after the snapshot on -Map, the same
+# process travels to each listed map elevation (and view hex) and takes one
+# snapshot there. -Classic: the same in the game's own 2D picture.
 #
 # Prints the snapshot JSON; the image lies next to it in game/.
 param(
@@ -19,6 +20,7 @@ param(
     [int]$TimeoutSeconds = 90,
     [switch]$Probe,
     [string]$Tour,
+    [switch]$Classic,
     [ValidateRange(0, 39999)]
     [int]$ViewTile,
     [ValidateRange(0, 39999)]
@@ -47,7 +49,8 @@ if (-not (Test-Path -LiteralPath $exe) -or
 
 $shots = 1
 $runId = [guid]::NewGuid().ToString('N')
-$arguments = @('--dev-tools', '--dev-new-game', "--dev-map=$Map", "--dev-elevation=$Elevation", '--dev-hero-preview', "--dev-snapshot-run=$runId")
+$view = if ($Classic) { '--dev-classic' } else { '--dev-hero-preview' }
+$arguments = @('--dev-tools', '--dev-new-game', "--dev-map=$Map", "--dev-elevation=$Elevation", $view, "--dev-snapshot-run=$runId")
 if ($PSBoundParameters.ContainsKey('ViewTile')) { $arguments += "--dev-view-tile=$ViewTile" }
 if ($PSBoundParameters.ContainsKey('HeroTile')) { $arguments += "--dev-hero-tile=$HeroTile" }
 if ($Still) {
@@ -59,8 +62,9 @@ if ($Probe) {
     $shots = 2
     $arguments += '--dev-pick-probe'
     Remove-Item (Join-Path $GameDir 'devprobe.log') -ErrorAction SilentlyContinue
-} elseif ($Tour) {
-    $shots = 1 + @($Tour.Split(',') | Where-Object { $_.Trim() }).Count
+} elseif ($Tour -or $Classic) {
+    # Without the scene the one snapshot comes from a tour with no stops.
+    $shots = 1 + @("$Tour".Split(',') | Where-Object { $_.Trim() }).Count
     $arguments += "--dev-map-tour=$Tour"
 } else {
     $arguments += '--dev-snapshot-once'

@@ -81,7 +81,10 @@ bool gSnapshotOncePending = false;
 struct TourStop {
     std::string map;
     int elevation;
+    int viewTile; // -1: where the game puts the view
 };
+// --dev-classic: the same startup and snapshots without the 3D scene.
+bool gClassic = false;
 std::vector<TourStop> gTour;
 int gTourStep = -1;
 int gTourFrames = 0;
@@ -669,13 +672,17 @@ bool parseOption(const char* arg)
         }
         return true;
     }
+    if (strcmp(arg, "--dev-classic") == 0) {
+        gClassic = true;
+        return true;
+    }
     if (strcmp(arg, "--dev-pick-probe") == 0) {
         gPickProbeStage = 1;
         return true;
     }
     const char* tourPrefix = "--dev-map-tour=";
     if (strncmp(arg, tourPrefix, strlen(tourPrefix)) == 0) {
-        // map:elevation,map:elevation,...
+        // map:elevation[:view hex],map:elevation[:view hex],...
         std::string list = arg + strlen(tourPrefix);
         size_t start = 0;
         while (start <= list.size()) {
@@ -683,7 +690,12 @@ bool parseOption(const char* arg)
             const std::string entry = list.substr(start, comma - start);
             const size_t colon = entry.find(':');
             const int elevation = colon == std::string::npos ? 0 : atoi(entry.c_str() + colon + 1);
-            if (!entry.empty()) gTour.push_back({ entry.substr(0, colon), std::clamp(elevation, 0, static_cast<int>(ELEVATION_COUNT) - 1) });
+            const size_t second = colon == std::string::npos ? std::string::npos : entry.find(':', colon + 1);
+            const int viewTile = second == std::string::npos ? -1 : atoi(entry.c_str() + second + 1);
+            if (!entry.empty()) {
+                gTour.push_back({ entry.substr(0, colon), std::clamp(elevation, 0, static_cast<int>(ELEVATION_COUNT) - 1),
+                    viewTile >= 0 && viewTile < HEX_GRID_SIZE ? viewTile : -1 });
+            }
             start = comma + 1;
         }
         gTourStep = 0;
@@ -798,7 +810,8 @@ void update()
         }
     }
 
-    if ((gStartupFloorPreviewRequested || gStartupWallPreviewRequested || gStartupHeroPreviewRequested || gStartupWalkPreviewRequested)
+    if ((gStartupFloorPreviewRequested || gStartupWallPreviewRequested || gStartupHeroPreviewRequested || gStartupWalkPreviewRequested
+            || gClassic)
         && !gStartupFloorPreviewAttempted
         && !gPendingElevation && gMapHeader.name[0] != '\0' && !inBlockingGameState()) {
         if (gHeroTile >= 0) {
@@ -818,7 +831,7 @@ void update()
         gStartupFloorPreviewAttempted = true;
         const bool withWalls = gStartupWallPreviewRequested || gStartupHeroPreviewRequested || gStartupWalkPreviewRequested;
         const bool withHero = gStartupHeroPreviewRequested || gStartupWalkPreviewRequested;
-        const bool started = enableStaticPreview(withWalls, withHero);
+        const bool started = gClassic || enableStaticPreview(withWalls, withHero);
         if (started) {
             gStartupFloorPreviewFramesRemaining = gStartupFloorPreviewReturnAfter;
         }
@@ -842,6 +855,11 @@ void update()
         // A stop the game cannot reach (no free hex on an unused elevation) is
         // snapshotted where the game is, and the tour goes on.
         gTourFrames++;
+        if (arrived && gTourFrames == 1 && gTourStep > 0 && gTour[gTourStep - 1].viewTile >= 0) {
+            tileSetCenter(gTour[gTourStep - 1].viewTile, TILE_SET_CENTER_FLAG_IGNORE_SCROLL_RESTRICTIONS
+                | TILE_SET_CENTER_FLAG_IGNORE_BOUNDS | TILE_SET_CENTER_REFRESH_WINDOW);
+            scene_renderer::setStaticCameraCenterTile(-1);
+        }
         const bool ready = arrived && gTourFrames >= 30;
         const bool stuck = !arrived && gTourFrames >= 600;
         if (ready || stuck) {
@@ -854,7 +872,11 @@ void update()
             takeSnapshot();
             if (gTourStep < static_cast<int>(gTour.size())) {
                 const TourStop& next = gTour[gTourStep++];
-                if (!requestMapChange(next.map.c_str(), next.elevation)) {
+                char here[64];
+                stripMapExtension(gMapHeader.name, here, sizeof(here));
+                // Another view of this map elevation needs no transition.
+                const bool sameMap = compat_stricmp(here, next.map.c_str()) == 0 && static_cast<int>(gElevation) == next.elevation;
+                if (!sameMap && !requestMapChange(next.map.c_str(), next.elevation)) {
                     printf("devtools: map tour stopped at %s e%d: %s\n", next.map.c_str(), next.elevation, gStatus);
                     fflush(stdout);
                     gTourStep = -1;
@@ -1536,14 +1558,27 @@ bool takeSnapshot()
             }
             imagePath = outputDirectory / name;
             imageFile = name;
-            unsigned char* palette = directDrawGetPalette();
-            if (screenshotHandlerPngImpl(gSdlSurface->w, gSdlSurface->h,
-                    static_cast<unsigned char*>(gSdlSurface->pixels), palette) != 0) {
-                setStatus("snapshot: vanilla PNG write failed");
-                return false;
+            if (scene_renderer::isActive()) {
+                // As the window shows it, the same size as scene snapshots.
+                SDL_BlitSurface(gSdlSurface, nullptr, gSdlTextureSurface, nullptr);
+                std::string error;
+                if (!scene_renderer::captureFramePng(imagePath, static_cast<const unsigned char*>(gSdlTextureSurface->pixels),
+                        gSdlTextureSurface->w, gSdlTextureSurface->h, gSdlTextureSurface->pitch,
+                        &capturedWidth, &capturedHeight, &error)) {
+                    std::string message = "snapshot failed: " + error;
+                    setStatus(message.c_str());
+                    return false;
+                }
+            } else {
+                unsigned char* palette = directDrawGetPalette();
+                if (screenshotHandlerPngImpl(gSdlSurface->w, gSdlSurface->h,
+                        static_cast<unsigned char*>(gSdlSurface->pixels), palette) != 0) {
+                    setStatus("snapshot: vanilla PNG write failed");
+                    return false;
+                }
+                capturedWidth = gSdlSurface->w;
+                capturedHeight = gSdlSurface->h;
             }
-            capturedWidth = gSdlSurface->w;
-            capturedHeight = gSdlSurface->h;
             char sidecar[64];
             snprintf(sidecar, sizeof(sidecar), "devshot-%s.json", stamp);
             sidecarPath = outputDirectory / sidecar;
