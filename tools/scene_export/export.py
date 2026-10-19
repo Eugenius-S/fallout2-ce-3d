@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Export one Fallout 2 CE scene from read-only DAT archives."""
+"""Export Fallout 2 CE scenes, one per map elevation, from read-only DAT archives."""
 
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ sys.dont_write_bytecode = True
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE / "vendor"))
 
-from f2lib import Dat2, GameFiles  # noqa: E402
+from f2lib import Dat2, GameFiles, MapFile  # noqa: E402
 from f2lib.gamefiles import norm  # noqa: E402
 from fp.scene import SceneBuilder  # noqa: E402
 from baked_sidecar import VERSION as BAKED_SIDECAR_VERSION  # noqa: E402
@@ -27,11 +27,14 @@ from projection_sidecar import decode_projection_sidecar, encode_projection_side
 from wall_sidecar import VERSION as WALL_SIDECAR_VERSION  # noqa: E402
 from wall_sidecar import decode_wall_sidecar, encode_wall_sidecar  # noqa: E402
 
-EXPORTER_VERSION = "1.6.0"
+EXPORTER_VERSION = "1.7.0"
 FLOOR_SIDECAR_VERSION = 1
 DONOR_REVISION = "0da1cd449f1dc7f2f6986ff7e8728a4b6ae20584"
-MAP_NAME = "kladwtwn"
-ELEVATION = 0
+DEFAULT_MAP = "kladwtwn"
+# Map groups for --maps: every elevation each map has.
+MAP_GROUPS = {
+    "klamath": ("kladwtwn", "klatrap", "klacanyn", "klagraz", "klamall", "klaratcv", "klatoxcv"),
+}
 EXPECTED_OUTPUT_FILES = {"scene.json", "provenance.json", "floor.bin", "walls.bin", "projection.bin", "baked.bin",
                          "tiles.png", "light.png", "rock.png"}
 
@@ -322,7 +325,122 @@ def parse_args(argv=None):
     roots.add_argument("--project-root", type=Path, default=Path(__file__).resolve().parents[2],
                        help="project root containing game/ (default: this repository)")
     roots.add_argument("--game-root", type=Path, help="game directory containing DAT files and data/")
-    return parser.parse_args(argv)
+    targets = parser.add_mutually_exclusive_group()
+    targets.add_argument("--map", default=DEFAULT_MAP, help=f"one map, without .map (default: {DEFAULT_MAP})")
+    targets.add_argument("--maps", help="every elevation of several maps: a group (" + ", ".join(MAP_GROUPS)
+                         + ") or a comma-separated list")
+    parser.add_argument("--elevation", type=int, choices=(0, 1, 2), default=0,
+                        help="the elevation of --map (default: 0)")
+    args = parser.parse_args(argv)
+    names = MAP_GROUPS.get(args.maps.lower(), args.maps.split(",")) if args.maps else [args.map]
+    args.map_names = [name.strip().lower() for name in names]
+    for name in args.map_names:
+        if not re.fullmatch(r"[a-z0-9_]+", name):
+            parser.error(f"invalid map name: {name!r}")
+    return args
+
+
+def scene_directory(game_root: Path, map_name: str, elevation: int) -> Path:
+    """The cache directory of one map elevation, checked before anything is written."""
+    out_dir = game_root / "mod-cache" / "scene" / map_name / str(elevation)
+    if out_dir.resolve() != (game_root / "mod-cache" / "scene" / map_name / str(elevation)).resolve():
+        raise SystemExit("output path resolution escaped the fixed target")
+    for parent in (game_root / "mod-cache", game_root / "mod-cache" / "scene",
+                   game_root / "mod-cache" / "scene" / map_name, out_dir):
+        if parent.exists() and parent.is_symlink():
+            raise SystemExit(f"refusing symlink in output path: {parent}")
+    try:
+        validate_output_contents(out_dir)
+    except ValueError as error:
+        raise SystemExit(str(error)) from error
+    return out_dir
+
+
+def export_scene(gf, game_root: Path, map_name: str, elevation: int, out_dir: Path):
+    """One map elevation into its cache directory (scene_directory)."""
+    out_dir.mkdir(parents=True, exist_ok=True)
+    gf._reads = {}  # provenance lists what this scene read
+    builder = SceneBuilder(gf, map_name, elevation)
+    builder.export(out_dir)
+    scene_path = out_dir / "scene.json"
+    scene = json.loads(scene_path.read_text(encoding="utf-8"))
+    if scene.get("map") != map_name or scene.get("elevation") != elevation:
+        raise RuntimeError("SceneBuilder returned an unexpected map/elevation")
+    live_boards, skip_props, skip_rests = live_solids(builder, scene)
+    wall_payload = encode_wall_sidecar(scene, skip_props, skip_rests)
+    (out_dir / "walls.bin").write_bytes(wall_payload)
+    wall_data = decode_wall_sidecar(wall_payload)
+    baked_payload = encode_baked_sidecar(baked_objects(scene, builder.map.objects[elevation], live_boards))
+    (out_dir / "baked.bin").write_bytes(baked_payload)
+    baked_count = len(decode_baked_sidecar(baked_payload))
+    projection_payload = encode_projection_sidecar(scene)
+    (out_dir / "projection.bin").write_bytes(projection_payload)
+    decode_projection_sidecar(projection_payload)
+
+    vendor_files = sorted((HERE / "vendor").rglob("*.py"))
+    vendor_hashes = {p.relative_to(HERE / "vendor").as_posix(): sha256_file(p) for p in vendor_files}
+    adapter_hashes = {name: sha256_file(HERE / name) for name in
+                      ("export.py", "floor_sidecar.py", "wall_sidecar.py", "projection_sidecar.py", "baked_sidecar.py",
+                       "scene_check.py", "solids.py")}
+    archives = [{"name": name, "path": source.path.relative_to(game_root).as_posix()
+                 if source.path.is_relative_to(game_root) else str(source.path),
+                 "size": source.path.stat().st_size, "sha256": sha256_file(source.path)}
+                for _, name, source in gf.sources if source.archive is not None]
+    source_priority = [
+        {"kind": kind, "name": name,
+         "path": source.path.relative_to(game_root).as_posix()
+         if source.path.is_relative_to(game_root) else str(source.path)}
+        for kind, name, source in gf.sources
+    ]
+    fingerprint_data = {
+        "exporter_version": EXPORTER_VERSION,
+        "donor_revision": DONOR_REVISION,
+        "vendor_sha256": vendor_hashes,
+        "adapter_sha256": adapter_hashes,
+        "archives": archives,
+        "config_sha256": gf.config_hashes,
+        "source_priority": source_priority,
+        "resources": gf._reads,
+        "map": map_name,
+        "elevation": elevation,
+    }
+    fingerprint = hashlib.sha256(json.dumps(fingerprint_data, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    scene["_modCache"] = {
+        "exporterVersion": EXPORTER_VERSION,
+        "inputFingerprintSha256": fingerprint,
+    }
+    scene_path.write_text(json.dumps(scene, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    (out_dir / "floor.bin").write_bytes(encode_floor_sidecar(scene))
+    artifact_hashes = {p.name: sha256_file(p) for p in sorted(out_dir.iterdir()) if p.name != "provenance.json"}
+    provenance = {
+        "exporter": "fallout2-sprite-lighting scene_export",
+        "exporter_version": EXPORTER_VERSION,
+        "donor_revision": DONOR_REVISION,
+        "adapter_sha256": adapter_hashes,
+        "map": map_name,
+        "elevation": elevation,
+        "resource_priority": source_priority,
+        "configuration_sha256": gf.config_hashes,
+        "fingerprint_sha256": fingerprint,
+        "floor_sidecar": {"file": "floor.bin", "format_version": FLOOR_SIDECAR_VERSION,
+                          "sha256": artifact_hashes["floor.bin"]},
+        "wall_sidecar": {"file": "walls.bin", "format_version": WALL_SIDECAR_VERSION,
+                         "sha256": artifact_hashes["walls.bin"],
+                         "triangles": wall_data["triangles"],
+                         "page_batches": [{"page": batch["page"], "size": batch["size"],
+                                           "triangles": batch["triangles"]}
+                                          for batch in wall_data["batches"]]},
+        "baked_sidecar": {"file": "baked.bin", "format_version": BAKED_SIDECAR_VERSION,
+                          "sha256": artifact_hashes["baked.bin"], "objects": baked_count},
+        "projection_sidecar": {"file": "projection.bin", "format_version": PROJECTION_SIDECAR_VERSION,
+                               "sha256": artifact_hashes["projection.bin"], "float64_values": 10},
+        "archives": archives,
+        "resources_read": gf._reads,
+        "artifacts_sha256": artifact_hashes,
+    }
+    (out_dir / "provenance.json").write_text(json.dumps(provenance, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    print(json.dumps({"output": str(out_dir), "files": len(artifact_hashes) + 1,
+                      "fingerprint_sha256": fingerprint, "resources_read": len(gf._reads)}, sort_keys=True))
 
 
 def main(argv=None):
@@ -330,106 +448,34 @@ def main(argv=None):
     game_root = (args.game_root or args.project_root / "game").resolve()
     if not game_root.is_dir():
         raise SystemExit(f"game root not found: {game_root}")
-    out_dir = game_root / "mod-cache" / "scene" / MAP_NAME / str(ELEVATION)
-    expected = (game_root / "mod-cache" / "scene" / MAP_NAME / "0").resolve()
-    if out_dir.resolve() != expected:
-        raise SystemExit("output path resolution escaped the fixed target")
-    for parent in (game_root / "mod-cache", game_root / "mod-cache" / "scene",
-                   game_root / "mod-cache" / "scene" / MAP_NAME, out_dir):
-        if parent.exists() and parent.is_symlink():
-            raise SystemExit(f"refusing symlink in output path: {parent}")
-    try:
-        validate_output_contents(out_dir)
-    except ValueError as error:
-        raise SystemExit(str(error)) from error
-
-    out_dir.mkdir(parents=True, exist_ok=True)
+    if not args.maps:
+        # One scene: its directory is checked before the game data is opened.
+        targets = [(args.map_names[0], args.elevation, scene_directory(game_root, args.map_names[0], args.elevation))]
     gf = ReadOnlyGameFiles(game_root)
+    failed = []
     try:
-        builder = SceneBuilder(gf, MAP_NAME, ELEVATION)
-        builder.export(out_dir)
-        scene_path = out_dir / "scene.json"
-        scene = json.loads(scene_path.read_text(encoding="utf-8"))
-        if scene.get("map") != MAP_NAME or scene.get("elevation") != ELEVATION:
-            raise RuntimeError("SceneBuilder returned an unexpected map/elevation")
-        live_boards, skip_props, skip_rests = live_solids(builder, scene)
-        wall_payload = encode_wall_sidecar(scene, skip_props, skip_rests)
-        (out_dir / "walls.bin").write_bytes(wall_payload)
-        wall_data = decode_wall_sidecar(wall_payload)
-        baked_payload = encode_baked_sidecar(baked_objects(scene, builder.map.objects[ELEVATION], live_boards))
-        (out_dir / "baked.bin").write_bytes(baked_payload)
-        baked_count = len(decode_baked_sidecar(baked_payload))
-        projection_payload = encode_projection_sidecar(scene)
-        (out_dir / "projection.bin").write_bytes(projection_payload)
-        decode_projection_sidecar(projection_payload)
-
-        vendor_files = sorted((HERE / "vendor").rglob("*.py"))
-        vendor_hashes = {p.relative_to(HERE / "vendor").as_posix(): sha256_file(p) for p in vendor_files}
-        adapter_hashes = {name: sha256_file(HERE / name) for name in
-                          ("export.py", "floor_sidecar.py", "wall_sidecar.py", "projection_sidecar.py", "baked_sidecar.py",
-                           "solids.py")}
-        archives = [{"name": name, "path": source.path.relative_to(game_root).as_posix()
-                     if source.path.is_relative_to(game_root) else str(source.path),
-                     "size": source.path.stat().st_size, "sha256": sha256_file(source.path)}
-                    for _, name, source in gf.sources if source.archive is not None]
-        source_priority = [
-            {"kind": kind, "name": name,
-             "path": source.path.relative_to(game_root).as_posix()
-             if source.path.is_relative_to(game_root) else str(source.path)}
-            for kind, name, source in gf.sources
-        ]
-        fingerprint_data = {
-            "exporter_version": EXPORTER_VERSION,
-            "donor_revision": DONOR_REVISION,
-            "vendor_sha256": vendor_hashes,
-            "adapter_sha256": adapter_hashes,
-            "archives": archives,
-            "config_sha256": gf.config_hashes,
-            "source_priority": source_priority,
-            "resources": gf._reads,
-            "map": MAP_NAME,
-            "elevation": ELEVATION,
-        }
-        fingerprint = hashlib.sha256(json.dumps(fingerprint_data, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
-        scene["_modCache"] = {
-            "exporterVersion": EXPORTER_VERSION,
-            "inputFingerprintSha256": fingerprint,
-        }
-        scene_path.write_text(json.dumps(scene, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-        (out_dir / "floor.bin").write_bytes(encode_floor_sidecar(scene))
-        artifact_hashes = {p.name: sha256_file(p) for p in sorted(out_dir.iterdir()) if p.name != "provenance.json"}
-        provenance = {
-            "exporter": "fallout2-sprite-lighting scene_export",
-            "exporter_version": EXPORTER_VERSION,
-            "donor_revision": DONOR_REVISION,
-            "adapter_sha256": adapter_hashes,
-            "map": MAP_NAME,
-            "elevation": ELEVATION,
-            "resource_priority": source_priority,
-            "configuration_sha256": gf.config_hashes,
-            "fingerprint_sha256": fingerprint,
-            "floor_sidecar": {"file": "floor.bin", "format_version": FLOOR_SIDECAR_VERSION,
-                              "sha256": artifact_hashes["floor.bin"]},
-            "wall_sidecar": {"file": "walls.bin", "format_version": WALL_SIDECAR_VERSION,
-                             "sha256": artifact_hashes["walls.bin"],
-                             "triangles": wall_data["triangles"],
-                             "page_batches": [{"page": batch["page"], "size": batch["size"],
-                                               "triangles": batch["triangles"]}
-                                              for batch in wall_data["batches"]]},
-            "baked_sidecar": {"file": "baked.bin", "format_version": BAKED_SIDECAR_VERSION,
-                              "sha256": artifact_hashes["baked.bin"], "objects": baked_count},
-            "projection_sidecar": {"file": "projection.bin", "format_version": PROJECTION_SIDECAR_VERSION,
-                                   "sha256": artifact_hashes["projection.bin"], "float64_values": 10},
-            "archives": archives,
-            "resources_read": gf._reads,
-            "artifacts_sha256": artifact_hashes,
-        }
-        (out_dir / "provenance.json").write_text(json.dumps(provenance, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-        print(json.dumps({"output": str(out_dir), "files": len(artifact_hashes) + 1,
-                          "fingerprint_sha256": fingerprint, "resources_read": len(gf._reads)}, sort_keys=True))
+        if args.maps:
+            targets = []
+            for name in args.map_names:
+                try:
+                    elevations = sorted(MapFile.load(name, gf).tiles)
+                except (OSError, ValueError, SystemExit) as error:
+                    failed.append(f"{name}: {error}")
+                    continue
+                targets.extend((name, elevation, scene_directory(game_root, name, elevation)) for elevation in elevations)
+        for name, elevation, out_dir in targets:
+            if not args.maps:
+                export_scene(gf, game_root, name, elevation, out_dir)
+                continue
+            try:
+                export_scene(gf, game_root, name, elevation, out_dir)
+            except (Exception, SystemExit) as error:  # one bad map must not stop the others
+                failed.append(f"{name} e{elevation}: {error}")
     finally:
         gf.close()
-    return 0
+    for line in failed:
+        print(f"FAILED {line}", file=sys.stderr)
+    return 1 if failed else 0
 
 
 if __name__ == "__main__":

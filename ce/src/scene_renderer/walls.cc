@@ -108,8 +108,9 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
     const unsigned int pageCount = readU32(sidecar.data() + 8);
     const unsigned int batchCount = readU32(sidecar.data() + 12);
     const unsigned int totalTriangles = readU32(sidecar.data() + 16);
+    // A map elevation without walls has no batches and no triangles.
     if (version != 2 || headerSize != kHeaderSize || pageCount == 0 || pageCount > kMaxPages
-        || batchCount == 0 || batchCount > pageCount || totalTriangles == 0 || totalTriangles > kMaxTriangles) {
+        || batchCount > pageCount || totalTriangles > kMaxTriangles || (batchCount == 0) != (totalTriangles == 0)) {
         return fail("walls.bin header counts or version are unsupported");
     }
 

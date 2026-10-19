@@ -5,6 +5,7 @@ from __future__ import annotations
 import math
 import struct
 
+from scene_check import one_map_elevation
 from solids import Projection, rest_card, screen_area, solid_faces
 
 
@@ -142,11 +143,13 @@ def encode_wall_sidecar(scene, skip_props=frozenset(), skip_rests=frozenset()):
     thickness. Backs, cut-open upper parts and slab ends (wallRest, trims) are
     first-person only in the donor viewer; in the game's view they stick out
     at corners."""
-    if scene.get("format") != 6 or scene.get("map") != "kladwtwn" or scene.get("elevation") != 0:
-        raise ValueError("wall sidecar expects kladwtwn elevation 0 in scene format 6")
+    if scene.get("format") != 6 or not one_map_elevation(scene):
+        raise ValueError("wall sidecar expects one map elevation in scene format 6")
     pages_data = scene.get("pages")
     sprites = scene.get("sprites")
-    if not isinstance(pages_data, list) or not pages_data or not isinstance(sprites, list) or not sprites:
+    # A map elevation may have no walls at all (sprites empty): the sidecar
+    # then holds no batches.
+    if not isinstance(pages_data, list) or not pages_data or not isinstance(sprites, list):
         raise ValueError("scene sprite page metadata is missing")
     projection = scene.get("proj")
     if not isinstance(projection, dict):

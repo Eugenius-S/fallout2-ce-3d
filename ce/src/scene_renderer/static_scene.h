@@ -12,6 +12,9 @@ namespace scene_renderer {
 // pages and baked.bin.
 bool loadStaticFloor(const std::filesystem::path& cacheDirectory, std::string* error);
 bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* error);
+// Drops the loaded scene (floor, walls, projection, live objects, the hero)
+// so another map's can be loaded.
+void unloadStaticScene();
 void staticWallStats(unsigned int* triangles, unsigned int* pages);
 
 // Objects walls.bin already draws (baked.bin): the caller only picks them.

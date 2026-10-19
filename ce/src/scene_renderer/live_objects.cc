@@ -92,7 +92,7 @@ bool updateStaticHero(const StaticHeroFrame& frame, std::string* error)
     if (!gInitialized || !gWallsLoaded || !gHeroProjectionLoaded) {
         return fail("static wall/hero projection is unavailable");
     }
-    if (frame.elevation != 0 || frame.tile < 0 || frame.tile >= 200 * 200
+    if (frame.elevation < 0 || frame.elevation > 2 || frame.tile < 0 || frame.tile >= 200 * 200
         || frame.rotation < 0 || frame.rotation >= 6) {
         return fail("hero tile, elevation, or rotation is invalid");
     }

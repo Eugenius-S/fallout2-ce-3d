@@ -9,12 +9,16 @@
 # the hover icon over a critter, then a left click there is logged until the
 # game leaves the scene (a dialog).
 #
+# -Tour "klatrap:0,kladwtwn:0": after the snapshot on -Map, the same process
+# travels to each listed map elevation and takes one snapshot there.
+#
 # Prints the snapshot JSON; the image lies next to it in game/.
 param(
     [string]$Map = "kladwtwn",
     [int]$Elevation = 0,
     [int]$TimeoutSeconds = 90,
     [switch]$Probe,
+    [string]$Tour,
     [ValidateRange(0, 39999)]
     [int]$ViewTile,
     [switch]$Still,
@@ -48,9 +52,13 @@ if ($Still) {
     $arguments += '--dev-still-snapshot'
 }
 if ($Probe) {
+    if ($Tour) { throw '-Tour cannot be combined with -Probe.' }
     $shots = 2
     $arguments += '--dev-pick-probe'
     Remove-Item (Join-Path $GameDir 'devprobe.log') -ErrorAction SilentlyContinue
+} elseif ($Tour) {
+    $shots = 1 + @($Tour.Split(',') | Where-Object { $_.Trim() }).Count
+    $arguments += "--dev-map-tour=$Tour"
 } else {
     $arguments += '--dev-snapshot-once'
 }

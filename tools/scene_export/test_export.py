@@ -9,7 +9,7 @@ from tempfile import TemporaryDirectory
 
 from baked_sidecar import (ENTRY as BAKED_ENTRY, HEADER as BAKED_HEADER, LIFT as BAKED_LIFT, MAGIC as BAKED_MAGIC,
                            SKIP as BAKED_SKIP, baked_objects, decode_baked_sidecar, encode_baked_sidecar)
-from export import ReadOnlyGameFiles, choose_source, main, patch_paths, validate_output_contents
+from export import ReadOnlyGameFiles, choose_source, main, parse_args, patch_paths, scene_directory, validate_output_contents
 from floor_sidecar import HEADER, MAGIC, VERSION, cell_content_rect, decode_floor_sidecar, encode_floor_sidecar
 from projection_sidecar import (HEADER as PROJECTION_HEADER, MAGIC as PROJECTION_MAGIC,
                                 VERSION as PROJECTION_VERSION, decode_projection_sidecar,
@@ -123,6 +123,31 @@ class SourcePriorityTests(unittest.TestCase):
             self.assertEqual([p.name for p in patch_paths(root, "patch%03d.dat")], ["patch000.dat", "patch001.dat"])
 
 
+class TargetTests(unittest.TestCase):
+    def test_one_map_and_elevation(self):
+        args = parse_args(["--map", "KLATRAP", "--elevation", "1"])
+        self.assertEqual((args.map_names, args.elevation, args.maps), (["klatrap"], 1, None))
+
+    def test_default_is_kladwtwn_elevation_0(self):
+        args = parse_args([])
+        self.assertEqual((args.map_names, args.elevation), (["kladwtwn"], 0))
+
+    def test_group_and_list(self):
+        self.assertEqual(len(parse_args(["--maps", "klamath"]).map_names), 7)
+        self.assertEqual(parse_args(["--maps", "kladwtwn, klatrap"]).map_names, ["kladwtwn", "klatrap"])
+
+    def test_rejects_unsafe_map_names(self):
+        with self.assertRaises(SystemExit):
+            parse_args(["--map", "../kladwtwn"])
+        with self.assertRaises(SystemExit):
+            parse_args(["--maps", "kladwtwn,a/b"])
+
+    def test_each_elevation_has_its_directory(self):
+        with TemporaryDirectory() as tmp:
+            game = Path(tmp)
+            self.assertEqual(scene_directory(game, "klatrap", 2), game / "mod-cache" / "scene" / "klatrap" / "2")
+
+
 class OutputSafetyTests(unittest.TestCase):
     def test_accepts_only_known_export_artifact_names(self):
         with TemporaryDirectory() as temp:
@@ -214,8 +239,8 @@ class FloorSidecarTests(unittest.TestCase):
 
     def test_rejects_scene_for_wrong_map_or_elevation(self):
         scene = self.sample_scene()
-        scene["elevation"] = 1
-        with self.assertRaisesRegex(ValueError, "kladwtwn elevation 0"):
+        scene["elevation"] = 3
+        with self.assertRaisesRegex(ValueError, "one map elevation"):
             encode_floor_sidecar(scene)
 
     def test_rejects_floor_reference_outside_cell_table(self):
@@ -383,10 +408,16 @@ class WallSidecarTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "non-finite"):
             decode_wall_sidecar(bad_uv)
 
+    def test_a_scene_without_walls_has_no_batches(self):
+        scene = self.sample_scene()
+        scene["sprites"], scene["walls"], scene["props"], scene["rests"] = [], [], [], []
+        data = decode_wall_sidecar(encode_wall_sidecar(scene))
+        self.assertEqual((data["triangles"], data["batches"]), (0, []))
+
     def test_rejects_other_map_and_out_of_atlas_uv(self):
         scene = self.sample_scene()
-        scene["map"] = "arroyo"
-        with self.assertRaisesRegex(ValueError, "kladwtwn elevation 0"):
+        scene["map"] = "../arroyo"
+        with self.assertRaisesRegex(ValueError, "one map elevation"):
             encode_wall_sidecar(scene)
         scene = self.sample_scene()
         scene["sprites"][0][1] = 95

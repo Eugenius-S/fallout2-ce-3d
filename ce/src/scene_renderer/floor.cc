@@ -40,6 +40,15 @@ void destroyStaticFloor()
 
 using namespace internal;
 
+void unloadStaticScene()
+{
+    destroyStaticObjects();
+    destroyStaticHero();
+    destroyStaticWalls();
+    destroyStaticFloor();
+    resetCamera();
+}
+
 bool loadStaticFloor(const std::filesystem::path& cacheDirectory, std::string* error)
 {
     if (gFloorLoaded) return true;
