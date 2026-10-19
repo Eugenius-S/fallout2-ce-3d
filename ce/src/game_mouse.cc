@@ -27,6 +27,7 @@
 #include "item.h"
 #include "kb.h"
 #include "devtools/devtools.h"
+#include "scene/scene_objects.h"
 #include "map_edge.h"
 #include "mouse.h"
 #include "object.h"
@@ -1731,7 +1732,7 @@ Object* gameMouseGetObjectUnderCursor(ObjectType objectType, bool includeDude, M
 
     // Dev 3D view: what the scene shows under the pointer.
     Object* sceneObject;
-    if (elevation == gElevation && devtools::scenePickObject(mouseX, mouseY, objectType, includeDude, &sceneObject)) {
+    if (elevation == gElevation && scene::pickObject(mouseX, mouseY, objectType, includeDude, &sceneObject)) {
         return sceneObject;
     }
 

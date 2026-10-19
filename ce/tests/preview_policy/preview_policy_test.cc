@@ -2,7 +2,7 @@
 
 #include <cstdio>
 
-using namespace fallout::devtools;
+using namespace fallout::scene;
 
 int main()
 {

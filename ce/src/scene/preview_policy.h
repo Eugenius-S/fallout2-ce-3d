@@ -1,8 +1,8 @@
-#ifndef FALLOUT_DEVTOOLS_PREVIEW_POLICY_H
-#define FALLOUT_DEVTOOLS_PREVIEW_POLICY_H
+#ifndef FALLOUT_SCENE_PREVIEW_POLICY_H
+#define FALLOUT_SCENE_PREVIEW_POLICY_H
 
 namespace fallout {
-namespace devtools {
+namespace scene {
 
 enum class PreviewBlockReason {
     None,
@@ -28,7 +28,7 @@ struct PreviewRuntimeState {
 PreviewBlockReason previewBlockReason(const PreviewRuntimeState& state);
 bool previewMayPresent(const PreviewRuntimeState& state);
 
-} // namespace devtools
+} // namespace scene
 } // namespace fallout
 
-#endif /* FALLOUT_DEVTOOLS_PREVIEW_POLICY_H */
+#endif /* FALLOUT_SCENE_PREVIEW_POLICY_H */

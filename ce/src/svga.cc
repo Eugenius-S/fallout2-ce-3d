@@ -18,6 +18,8 @@
 #include "scan_unimplemented.h"
 #include "settings.h"
 #include "devtools/devtools.h"
+#include "scene/scene_overlay.h"
+#include "scene/scene_view.h"
 #include "scene_renderer/camera.h"
 #include "scene_renderer/context.h"
 #include "scene_renderer/live_objects.h"
@@ -515,21 +517,22 @@ void renderPresent()
     // The 3D scene shows the world: the tile window keeps only what the game
     // draws over it.
     if (scene_renderer::isActive()) {
-        devtools::syncSceneOverlay();
+        devtools::sceneOverlaySynced(scene::syncOverlay());
     }
     // Sprite-lighting mod: the dev panel is drawn into the framebuffer after
     // the game (so it shows in both presentation paths).
     devtools::draw(static_cast<unsigned char*>(gSdlSurface->pixels), gSdlSurface->w, gSdlSurface->h, gSdlSurface->pitch);
     if (scene_renderer::isActive()) {
-        if (devtools::staticScenePreviewShouldPresent()) {
+        if (scene::shouldPresent()) {
             // Read the current hero frame at each scene presentation; nested
             // modal presents yield below and never advance movement observers.
-            devtools::refreshStaticHeroForPresent();
-            if (devtools::staticHeroPreviewActive()) {
+            devtools::scenePresented(scene::refreshForPresent());
+            const scene::View view = scene::activeView();
+            if (view == scene::View::Full) {
                 scene_renderer::drawStaticHeroPreview();
                 // The game's interface, mouse cursor and floating text over it.
                 SDL_BlitSurface(gSdlSurface, nullptr, gSdlTextureSurface, nullptr);
-                devtools::maskSceneOverlay(static_cast<const unsigned char*>(gSdlSurface->pixels), gSdlSurface->pitch,
+                scene::maskOverlay(static_cast<const unsigned char*>(gSdlSurface->pixels), gSdlSurface->pitch,
                     static_cast<unsigned char*>(gSdlTextureSurface->pixels), gSdlTextureSurface->pitch,
                     gSdlSurface->w, gSdlSurface->h);
                 scene_renderer::drawSceneOverlay(static_cast<const unsigned char*>(gSdlTextureSurface->pixels),
@@ -537,12 +540,12 @@ void renderPresent()
                 scene_renderer::swap();
                 return;
             }
-            if (devtools::staticWallPreviewActive()) {
+            if (view == scene::View::Walls) {
                 scene_renderer::drawStaticWallPreview();
                 scene_renderer::swap();
                 return;
             }
-            if (devtools::staticFloorPreviewActive()) {
+            if (view == scene::View::Floor) {
                 scene_renderer::drawStaticFloor();
                 scene_renderer::swap();
                 return;
