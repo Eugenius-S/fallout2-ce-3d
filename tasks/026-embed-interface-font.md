@@ -2,7 +2,7 @@
 id: 026
 title: Embed the interface font
 milestone: M1
-status: doing
+status: done
 owner: gpt
 suggested: glm
 claude-only: no
@@ -103,3 +103,15 @@ Next: finish the six-view runtime regression, record its evidence and open
 the completion PR. Task 009 can follow because task 002 is already merged.
 Check: `ctest --test-dir build --output-on-failure`; run
 `powershell -NoProfile -ExecutionPolicy Bypass -File tools/regression.ps1`.
+
+### 2026-10-19 gpt
+Done: all acceptance holds. Both weights and their licenses are pinned,
+embedded at build time and exposed through the public static-data API.
+Release game/mapper builds and all 44 tests pass. The six runtime regression
+views match the unchanged references with zero changed pixels. Evidence:
+`runs/026-embed-interface-font/` (glyph result, regression report, PNG/JSON).
+Existing renderer/devtools behavior and text drawing are unchanged.
+Next: merge the completion PR, then claim task 009 on main; task 002's merge
+already satisfies the owner's ordering requirement.
+Check: `ctest --test-dir build --output-on-failure`; run the exporter and
+regression Python suites and `tools/regression.ps1`.
