@@ -82,8 +82,35 @@ def _upright(batches, sprites, pages, sprite_id, ua, va, ub, vb, z0, z1, tx, ty,
     ])
 
 
-def _wall_front(batches, sprites, pages, row, hpx, toward_camera):
-    sprite, ua, va, ub, vb, z0, z1, _, _, zc = row[:10]
+def _clip(polygon, side):
+    """The part of a convex polygon of 3D points where side(point) >= 0; side is
+    affine on the polygon's plane, so cut points interpolate exactly."""
+    out = []
+    for index, point in enumerate(polygon):
+        nxt = polygon[(index + 1) % len(polygon)]
+        a, b = side(point), side(nxt)
+        if a >= 0:
+            out.append(point)
+        if (a >= 0) != (b >= 0):
+            f = a / (a - b)
+            out.append(tuple(p + (q - p) * f for p, q in zip(point, nxt)))
+    return out
+
+
+def _split(polygons, side):
+    return [part for polygon in polygons
+            for part in (_clip(polygon, side), _clip(polygon, lambda p: -side(p))) if len(part) >= 3]
+
+
+def _wall_front(batches, proj, sprites, pages, row, toward_camera, continues):
+    """The front up to the cap line, then the slab's top as a real horizontal
+    face as deep as the wall is thick, and what of the picture is higher than
+    that top as an upright face on the slab's far side. Each point samples the
+    texel the game drew it on, so without perspective the picture is the
+    game's. Where the wall goes on in the same line (continues: a end, b end)
+    the piece ends where its picture ends; a free end is cut square, as the
+    slab is."""
+    sprite, ua, va, ub, vb, z0, z1, _, _, zc, thick = row[:11]
     sprite = _int(sprite, "wall sprite")
     if not 0 <= sprite < len(sprites):
         raise ValueError(f"wall sprite index {sprite} is outside scene.sprites")
@@ -93,23 +120,90 @@ def _wall_front(batches, sprites, pages, row, hpx, toward_camera):
         raise ValueError(f"wall sprite page {page} is outside scene.pages")
     x, y, w, h = (_int(value, "wall sprite rectangle") for value in (x, y, w, h))
     z0, z1, zc = (_finite(value, "wall height") for value in (z0, z1, zc))
+    hpx = proj.hpx
     top = (z1 - zc) * hpx
     _upright(batches, sprites, pages, sprite, ua, va, ub, vb, z0, zc,
              x, y + top, w, h - top)
     if top <= 0:
         return
-    k = toward_camera
-    if k[2] == 0:
-        raise ValueError("donor projection has a horizontal camera ray")
-    far = (z1 - zc) / k[2]
-    du, dv = -k[0] * far, -k[1] * far
-    # The top keeps the depth of the front plane it was painted on: what the
-    # game drew the wall over (a lamp post right behind it) stays hidden.
-    home = [-du, -dv, z1 - zc]
-    _quad(batches, page, pages[page], [
-        [ua, va, zc, x, y + top], [ub, vb, zc, x + w, y + top],
-        [ub + du, vb + dv, zc, x + w, y, *home], [ua + du, va + dv, zc, x, y, *home],
-    ])
+    length = math.hypot(ub - ua, vb - va)
+    e0, e1 = proj.ground_to_px(ua, va, zc), proj.ground_to_px(ub, vb, zc)
+    dx = e1[0] - e0[0]
+    if length == 0 or abs(dx) < 1e-9:
+        raise ValueError("wall front has no width on the game's screen")
+    t = ((ub - ua) / length, (vb - va) / length)
+    back = (t[1], -t[0])
+    if back[0] * toward_camera[0] + back[1] * toward_camera[1] > 0:
+        back = (-back[0], -back[1])
+    slope = (e1[1] - e0[1]) / dx
+
+    def texel(point):
+        """(column, px above the front's top line) the game drew `point` on."""
+        qx, qy = proj.ground_to_px(*point)
+        return (qx - e0[0]) * w / dx, e0[1] + slope * (qx - e0[0]) - qy
+
+    def along(point):
+        return (point[0] - ua) * t[0] + (point[1] - va) * t[1]
+
+    def ends(polygon, square=(not continues[0], not continues[1])):
+        # Every face ends where its picture does, so the pieces of a wall meet
+        # without a gap; at a free end the top is also cut square, as the slab is.
+        polygon = _clip(_clip(polygon, lambda p: texel(p)[0]), lambda p: w - texel(p)[0])
+        if square[0]:
+            polygon = _clip(polygon, along)
+        return _clip(polygon, lambda p: length - along(p)) if square[1] else polygon
+
+    reach = length + 4 * thick + 1
+    at = lambda s, d, z: (ua + s * t[0] + d * back[0], va + s * t[1] + d * back[1], z)
+    faces = [ends([at(-reach, 0, zc), at(reach, 0, zc), at(reach, thick, zc), at(-reach, thick, zc)])]
+    rise = (top - texel(at(0, thick, zc))[1]) / hpx
+    if rise > 1e-6:
+        faces.append(ends([at(-reach, thick, zc), at(reach, thick, zc),
+                           at(reach, thick, zc + rise), at(-reach, thick, zc + rise)], (False, False)))
+    faces = [face for face in faces if len(face) >= 3]
+    # A slab deeper than its picture's top rows takes the last row further.
+    faces = _split(faces, lambda p: top - texel(p)[1])
+    for face in faces:
+        corners = []
+        for point in face:
+            column, rows = texel(point)
+            column, rows = min(max(column, 0.0), w), min(max(rows, 0.0), top)
+            # A texel keeps the depth of the front plane it was painted on: what
+            # the game drew the wall over (a lamp post right behind it) stays hidden.
+            f = column / w
+            home = (ua + (ub - ua) * f - point[0], va + (vb - va) * f - point[1], zc + rows / hpx - point[2])
+            corners.append([*point, x + column, y + top - rows, *home])
+        _polygon(batches, proj, page, pages[page], corners)
+
+
+def _continuations(walls):
+    """For each thick wall row: (goes on at a, goes on at b), true where another
+    thick wall of the same line shares that end."""
+    near = 0.05
+    cells = {}
+    for index, row in enumerate(walls):
+        if row[10] > 0:
+            for u, v in ((row[1], row[2]), (row[3], row[4])):
+                cells.setdefault((round(u / near), round(v / near)), []).append((index, u, v))
+    out = {}
+    for index, row in enumerate(walls):
+        if not row[10] > 0:
+            continue
+        du, dv = row[3] - row[1], row[4] - row[2]
+        flags = []
+        for u, v in ((row[1], row[2]), (row[3], row[4])):
+            cu, cv = round(u / near), round(v / near)
+            found = False
+            for key in ((cu + i, cv + j) for i in (-1, 0, 1) for j in (-1, 0, 1)):
+                for other, ou, ov in cells.get(key, ()):
+                    o = walls[other]
+                    odu, odv = o[3] - o[1], o[4] - o[2]
+                    if other != index and math.hypot(ou - u, ov - v) <= near and \
+                            abs(du * odv - dv * odu) <= 0.02 * math.hypot(du, dv) * math.hypot(odu, odv):
+                        found = True
+            flags.append(found)
+        out[index] = tuple(flags)
+    return out
 
 
 def _polygon(batches, proj, page, page_size, corners):
@@ -179,11 +273,16 @@ def encode_wall_sidecar(scene, skip_props=frozenset(), skip_rests=frozenset()):
     walls = scene.get("walls")
     if not isinstance(walls, list):
         raise ValueError("scene.walls is missing")
+    proj = Projection(projection)
     for index, row in enumerate(walls):
         _record(row, 12, f"wall {index}")
-        thickness = _finite(row[10], f"wall {index} thickness")
-        if thickness > 0:
-            _wall_front(batches, sprites, pages, row, hpx, toward_camera)
+        for value in row[1:5]:
+            _finite(value, f"wall {index} position")
+        _finite(row[10], f"wall {index} thickness")
+    continuations = _continuations(walls)
+    for index, row in enumerate(walls):
+        if row[10] > 0:
+            _wall_front(batches, proj, sprites, pages, row, toward_camera, continuations[index])
         else:
             _record(row, 7, f"thin wall {index}")
             sprite = _int(row[0], "thin wall sprite index")
@@ -196,7 +295,6 @@ def encode_wall_sidecar(scene, skip_props=frozenset(), skip_rests=frozenset()):
 
     # Furniture as solids (solids.py), and what of a drum or stem stays a card.
     # skip_*: rows whose object the engine keeps drawing live (it animates).
-    proj = Projection(projection)
     for index, row in enumerate(scene.get("props") or []):
         if index in skip_props:
             continue

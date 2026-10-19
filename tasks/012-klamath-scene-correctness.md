@@ -75,3 +75,18 @@ are laid along the game's parallel view ray (`wall_sidecar._wall_front`), so
 with perspective they slide a little against roofs and corner posts.
 Next: the owner chooses: keep, milder perspective, or real 3D wall tops.
 Check: `tools/regression.ps1` (16 spots retaken for the framing).
+
+### 2026-10-19 claude
+Done: wall tops are real volume (owner's choice). The top is a horizontal face
+as deep as the wall is thick; picture rows higher than that stand upright on
+the slab's far side. Every point samples the texel the game drew it on, so
+without perspective 3D still lies on 2D (store corner: 0.06% of pixels differ
+after a 1 px tolerance). Pieces of one wall meet where their pictures meet; a
+free end of the top is cut square, as the slab is. Exporter 1.9.0.
+Before and after: `runs/012-klamath-scene-correctness/wall-tops/`
+(`store-corner.png`: 2D, without perspective, with perspective; upper row
+the first try, which stretched edge texels at free ends into stripes in the
+caves, lower row the kept one). All regression references retaken.
+Next: the owner walks Klamath in the game.
+Check: `py -3 -m unittest discover -s tools/scene_export -p 'test*.py'`;
+`tools/regression.ps1`.
