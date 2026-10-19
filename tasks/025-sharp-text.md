@@ -7,7 +7,7 @@ owner: none
 suggested: gpt
 claude-only: no
 user-check: yes
-depends-on: [002, 017, 024]
+depends-on: [002, 017, 024, 026]
 reviewed: no
 ---
 
@@ -58,8 +58,9 @@ over critters.
    replaced with the current palette color of its before-value. The game's
    own 8-bit buffers are never changed.
 6. **Draw.** A GL pass after the frame and the 3D scene overlay, at window
-   resolution: glyphs from a TTF atlas (stb_truetype, `ce/third_party/stb/`,
-   rebuilt when the pixel size changes), placed through the same letterbox
+   resolution: glyphs from a TTF atlas (the font and stb_truetype come from
+   task 026, `embedded_fonts.h`; the atlas is rebuilt when the pixel size
+   changes), placed through the same letterbox
    mapping as the frame. Color is the current palette color of the record's
    color index, so fades work. Shadow is one game pixel down-right in black;
    underline at the old underline row. The pass is masked at game resolution:
@@ -70,8 +71,7 @@ over critters.
    to descender fits the game's line height times the scale. A string wider
    than its original width is condensed horizontally to it; a monospaced
    string is drawn character by character in its original cells.
-8. **Font file.** The TTF and its license live in `ce/assets/fonts/`; CMake
-   embeds the TTF into the executable, so nothing extra is installed.
+8. **Font file.** Embedded in the executable by task 026.
 9. **Code.** Capture, records, copies, validity and erase:
    `ce/src/scene/text_layer.{h,cc}`, pure CPU code with a unit test suite in
    `ce/tests/text_layer/` (fake buffers: draw, copy, overwrite, scroll,

@@ -22,6 +22,8 @@ Every push and PR shows whether the whole game still builds and its tests pass.
 - `tools/configure-build.ps1` has paths to MSVC and the Windows SDK of the
   owner's machine hard-coded (that machine's VS install is partly broken, so
   the paths are needed there).
+- The task needs no game files, so it can run in its own worktree next to
+  another agent; the worktree builds into its own `build/`.
 
 ## Acceptance
 

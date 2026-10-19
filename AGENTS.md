@@ -79,7 +79,19 @@ The body has `Goal`, `Context`, `Acceptance`, `Out of scope` and `Log`.
    `owner: <you>`, commit `task NNN: start`, push `main`. Then create the
    branch `task/NNN-slug` and push it.
 5. If another agent may be working in this checkout at the same time, work in
-   a separate `git worktree` next to it instead of switching branches here.
+   your own worktree next to it and never switch branches here:
+
+   ```powershell
+   git worktree add --detach ../fallout2-ce-3d-<you> origin/main
+   # claim there: edit the task header, commit, then
+   git push origin HEAD:main
+   git switch -c task/NNN-slug
+   git push -u origin task/NNN-slug
+   ```
+
+   A worktree has no `game/` and no game build: tasks that run the game
+   (snapshots, regression) are done in this checkout, one agent at a time.
+   After the merge: `git worktree remove ../fallout2-ce-3d-<you>`.
 
 ### While working
 
