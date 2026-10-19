@@ -26,6 +26,13 @@ the production renderer. No physical input, focus changes, owner's executable
 or `dev-launch.ps1` were used. Every run used `tools/dev-snapshot.ps1` with
 this worktree's build and the shared game directory.
 
+The raw fallback PNG exposes an existing dev-snapshot row-pitch issue at an
+odd logical width (1155): the vanilla capture passes padded SDL surface data
+to a tightly packed PNG handler without repacking rows. Its diagonal image
+artifacts are not evidence of a renderer-context failure. The live process,
+map and 2D path are established by its JSON and log. Keep this capture issue
+for task 009 after task 002; devtools was deliberately not changed here.
+
 `scene-context.log` is appended in the game's working directory at startup;
 it records the actual version, renderer, profile and flags. `F2CE_GL_DEBUG=1`
 enables a debug context and the optional ARB callback. Only error and

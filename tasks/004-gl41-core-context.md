@@ -83,3 +83,13 @@ Next: merge the PR promptly for Claude's task 002 rebase, then explicitly
 claim task 026 as the owner requested. Task 009 waits for task 002.
 Check: `powershell -NoProfile -ExecutionPolicy Bypass -File tools/regression.ps1`;
 set `F2CE_GL_DEBUG=1` to collect optional ARB error/deprecation diagnostics.
+
+### 2026-10-19 gpt
+Done: author review identified an existing odd-width vanilla snapshot issue:
+`takeSnapshot` passes padded `gSdlSurface->pixels` to the tight-width PNG
+handler without honoring pitch (fallback width 1155). The raw fallback PNG
+therefore has diagonal artifacts; JSON/log still prove the live 2D path.
+Next: carry this finding into task 009 after task 002, without touching the
+devtools code being reorganized by Claude. Context task acceptance is complete.
+Check: compare the vanilla snapshot call in `devtools.cc` with the row loop
+in `screenshotHandlerPngImpl` in `input.cc`.
