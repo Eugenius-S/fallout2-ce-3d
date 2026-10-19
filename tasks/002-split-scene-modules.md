@@ -64,3 +64,6 @@ Largest file in `scene/` and `scene_renderer/`: 294 lines.
 Check: build and `ctest` pass (4 suites); `tools/regression.ps1`: all six spots
 0 changed pixels after each step; `tools/dev-snapshot.ps1 -Probe`: 9 hit,
 3 hidden behind walls, walk to 25875, talk opens the dialog, as before.
+Rebased onto task 004 (#3): its OpenGL 4.1 context setup is ported into
+`scene_renderer/context.cc`; build, `ctest` and the six regression spots pass
+again (0 changed pixels).
