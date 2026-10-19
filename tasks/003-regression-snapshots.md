@@ -2,7 +2,7 @@
 id: 003
 title: Regression snapshot test
 milestone: M0
-status: doing
+status: done
 owner: gpt
 suggested: gpt
 claude-only: no
@@ -62,3 +62,40 @@ Done: claimed task 003; read AGENTS.md, the roadmap and the snapshot launcher.
 Next: add a fixed view tile and still-snapshot mode, then capture six Klamath
 references and implement the regression runner.
 Check: `powershell -NoProfile -ExecutionPolicy Bypass -File tools/tasks.ps1`.
+
+### 2026-10-19 gpt
+Done: added `--dev-still-snapshot`, exact `--dev-view-tile`, fixed RNG seed,
+stopped background tickers/color cycling and bypassed camera glide for stills.
+`tools/dev-snapshot.ps1` accepts `-Still -ViewTile N -OutputDirectory DIR`,
+matches snapshots by a unique run token, rejects non-windowed configuration
+and cleans up only its own test PID in `finally`. Two tile-25075 launches have
+identical pixels (`runs/003-regression-snapshots/still-a`, `still-b`). Release
+build, 4 engine tests and 30 exporter tests pass.
+Next: add six named spots, image comparison, references and failure/recovery
+evidence; document the single regression command.
+Check: `powershell -NoProfile -ExecutionPolicy Bypass -File tools/dev-snapshot.ps1 -ViewTile 25075 -Still`.
+
+### 2026-10-19 gpt
+Done: added `tools/regression.ps1`, six spots and PNG/JSON references,
+decoded-RGBA comparison, difference/highlight images and metadata validation.
+All six captures passed the explicit `-Update` run. Added 9 image/validation
+unit tests and the command to AGENTS.md. Fixed the launcher exit race by
+waiting for its own PID and copying the test EXE only when its hash changes.
+The gallery is `runs/003-regression-snapshots/gallery.jpg`.
+Next: run two complete unchanged-build regressions, prove a deliberate floor
+rendering failure is detected, restore/rebuild and prove recovery; then PR.
+Check: `powershell -NoProfile -ExecutionPolicy Bypass -File tools/regression.ps1`;
+`py -3 -m unittest discover -s tools/regression -p 'test*.py' -v`.
+
+### 2026-10-19 gpt
+Done: all acceptance checks pass. Two full consecutive regressions each gave
+zero changed pixels at all six spots (`pass-a.json`, `pass-b.json`). A
+temporary zero-count floor draw produced exit 1 and 1,392,871 changed pixels
+with difference/highlight PNGs; restoring the exact source bytes and
+rebuilding returned to zero differences (`restored-summary.json`). The fault
+is preserved only as an evidence patch, not in the renderer. Release build,
+4 engine tests, 30 exporter tests and 9 regression-tool tests pass. Evidence
+and author review: `runs/003-regression-snapshots/README.md`.
+Next: open and squash-merge the task PR, then take task 004 per the board.
+Claude can start task 002 from the merged deterministic baseline.
+Check: `powershell -NoProfile -ExecutionPolicy Bypass -File tools/regression.ps1`.

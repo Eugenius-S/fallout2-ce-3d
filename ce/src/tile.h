@@ -10,6 +10,8 @@ namespace fallout {
 
 #define TILE_SET_CENTER_REFRESH_WINDOW 0x01
 #define TILE_SET_CENTER_FLAG_IGNORE_SCROLL_RESTRICTIONS 0x02
+// Developer snapshots may inspect a precise hex outside normal camera bounds.
+#define TILE_SET_CENTER_FLAG_IGNORE_BOUNDS 0x04
 
 #define TILE_MAX_DISTANCE 9999
 

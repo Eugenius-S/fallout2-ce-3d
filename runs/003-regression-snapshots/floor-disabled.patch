@@ -1,0 +1,13 @@
+﻿diff --git a/ce/src/scene_renderer/scene_gl.cc b/ce/src/scene_renderer/scene_gl.cc
+index 4b3c914..e6b7f54 100644
+--- a/ce/src/scene_renderer/scene_gl.cc
++++ b/ce/src/scene_renderer/scene_gl.cc
+@@ -1627,7 +1627,7 @@ void drawStaticPreview(bool withWalls, bool withHero)
+     glDrawArrays(kTriangles, 0, 6);
+     glUniform1i(gFloorTexturedLocation, 1);
+     glUniform1f(gFloorCutoffLocation, 0.01f);
+-    glDrawArrays(kTriangles, 6, gFloorVertexCount - 6);
++    glDrawArrays(kTriangles, 6, 0);
+     glDepthMask(1);
+ 
+     const bool withObjects = withHero && !gObjectDraws.empty() && gObjectVao != 0;

@@ -24,12 +24,17 @@ namespace devtools {
 //   SHA-256 of the running EXE).
 
 // Consumes --dev-tools / --dev-map / --dev-elevation / --dev-list-maps /
-// --dev-floor-preview / --dev-wall-preview / --dev-hero-preview / --dev-walk-preview.
+// --dev-floor-preview / --dev-wall-preview / --dev-hero-preview / --dev-walk-preview /
+// --dev-view-tile / --dev-still-snapshot / --dev-snapshot-run.
 // Returns true when the argument belonged to devtools.
 bool parseOption(const char* arg);
 
 bool isEnabled();
 bool wantsListMaps();
+
+// Opt-in deterministic test runs only; never used by normal gameplay.
+bool stillSnapshotRequested();
+void prepareStillSnapshot();
 
 // Prints the maps available in game resources (stdout). Requires the game
 // (db) to be initialized.
@@ -39,8 +44,8 @@ void listMaps();
 // Called by main.cc right after the startup save is loaded.
 void applyStartupTarget();
 
-// Per-frame tick (called from the presentation hook): applies pending
-// elevation corrections after map loads settle.
+// Per-frame tick in the main loop after mapHandleTransition: applies pending
+// elevation corrections and startup view positioning after map loads settle.
 void update();
 
 // Requests a map change through the engine's own safe transition

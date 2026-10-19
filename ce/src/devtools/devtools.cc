@@ -19,6 +19,7 @@
 #include "../color.h"
 #include "../combat.h"
 #include "../critter.h"
+#include "../cycle.h"
 #include "../db.h"
 #include "../dialog.h"
 #include "../draw.h"
@@ -33,6 +34,7 @@
 #include "../movie.h"
 #include "../platform/git_version.h"
 #include "../platform_compat.h"
+#include "../random.h"
 #include "../scene_renderer/game_view.h"
 #include "../scene_renderer/scene_gl.h"
 #include "../settings.h"
@@ -68,6 +70,10 @@ bool gStartupFloorPreviewAttempted = false;
 int gStartupFloorPreviewReturnAfter = 0;
 int gStartupFloorPreviewFramesRemaining = 0;
 bool gSnapshotOncePending = false;
+bool gStillSnapshot = false;
+int gViewTile = -1;
+bool gViewTileApplied = false;
+char gSnapshotRun[33] = {};
 // --dev-pick-probe: the mouse is put on the scene's critters one by one and
 // what the game finds there is logged (devprobe.log); snapshots show the hex
 // cursor, then the hover icon over a critter. 0: off, then frames counted.
@@ -918,6 +924,31 @@ bool parseOption(const char* arg)
         gSnapshotOncePending = true;
         return true;
     }
+    if (strcmp(arg, "--dev-still-snapshot") == 0) {
+        gStillSnapshot = true;
+        return true;
+    }
+    const char* viewPrefix = "--dev-view-tile=";
+    if (strncmp(arg, viewPrefix, strlen(viewPrefix)) == 0) {
+        const char* value = arg + strlen(viewPrefix);
+        char* end = nullptr;
+        const long tile = strtol(value, &end, 10);
+        if (end != value && *end == '\0' && tile >= 0 && tile < HEX_GRID_SIZE) {
+            gViewTile = static_cast<int>(tile);
+        } else {
+            fprintf(stderr, "devtools: invalid --dev-view-tile (expected 0..39999)\n");
+        }
+        return true;
+    }
+    const char* runPrefix = "--dev-snapshot-run=";
+    if (strncmp(arg, runPrefix, strlen(runPrefix)) == 0) {
+        const char* value = arg + strlen(runPrefix);
+        if (strlen(value) == 32 && std::all_of(value, value + 32,
+                [](unsigned char ch) { return std::isxdigit(ch) != 0; })) {
+            snprintf(gSnapshotRun, sizeof(gSnapshotRun), "%s", value);
+        }
+        return true;
+    }
     if (strcmp(arg, "--dev-pick-probe") == 0) {
         gPickProbeStage = 1;
         return true;
@@ -957,6 +988,21 @@ bool wantsListMaps()
     return gListMaps;
 }
 
+bool stillSnapshotRequested()
+{
+    return gEnabled && gStillSnapshot;
+}
+
+void prepareStillSnapshot()
+{
+    if (!stillSnapshotRequested()) return;
+    // Keep map-enter scripts synchronous, but stop their background timers,
+    // critter AI, fidgets and animation tickers before any map is loaded.
+    randomSeedPrerandom(1);
+    colorCycleDisable();
+    tickersDisable();
+}
+
 void listMaps()
 {
     rebuildMapList();
@@ -970,7 +1016,7 @@ void listMaps()
     fflush(stdout);
 }
 
-// Called every frame from the presentation hook: applies the pending
+// Called every frame from the main loop after mapHandleTransition: applies the pending
 // elevation correction once the requested map has finished loading.
 void update()
 {
@@ -1021,6 +1067,15 @@ void update()
     if ((gStartupFloorPreviewRequested || gStartupWallPreviewRequested || gStartupHeroPreviewRequested || gStartupWalkPreviewRequested)
         && !gStartupFloorPreviewAttempted
         && !gPendingElevation && gMapHeader.name[0] != '\0' && !inBlockingGameState()) {
+        if (gViewTile >= 0 && !gViewTileApplied) {
+            tileSetCenter(gViewTile, TILE_SET_CENTER_FLAG_IGNORE_SCROLL_RESTRICTIONS
+                | TILE_SET_CENTER_FLAG_IGNORE_BOUNDS | TILE_SET_CENTER_REFRESH_WINDOW);
+            // The renderer initializes at the new center instead of gliding
+            // from an entrance or an intermediate map-load presentation.
+            scene_renderer::setStaticCameraCenterTile(-1);
+            gViewTileApplied = true;
+        }
+        if (stillSnapshotRequested()) colorCycleDisable();
         gStartupFloorPreviewAttempted = true;
         const bool withWalls = gStartupWallPreviewRequested || gStartupHeroPreviewRequested || gStartupWalkPreviewRequested;
         const bool withHero = gStartupHeroPreviewRequested || gStartupWalkPreviewRequested;
@@ -1305,6 +1360,7 @@ void refreshStaticHeroForPresent()
     const Uint64 updateStart = SDL_GetPerformanceCounter();
     // The game scrolls (screen edges, arrow keys, following the hero); the 3D
     // view goes with it.
+    if (stillSnapshotRequested()) scene_renderer::setStaticCameraCenterTile(-1);
     scene_renderer::setStaticCameraCenterTile(gCenterTile);
     updateStaticObjectsFromGame();
     const bool heroUpdated = updateStaticHeroFromGame();
@@ -1906,6 +1962,9 @@ bool takeSnapshot()
         "  \"view\": \"%s\",\n"
         "  \"map\": \"%s\",\n"
         "  \"elevation\": %d,\n"
+        "  \"still_snapshot\": %s,\n"
+        "  \"snapshot_run\": \"%s\",\n"
+        "  \"view_tile\": %d,\n"
         "  \"preview_requested\": %s,\n"
         "  \"camera\": \"%s\",\n"
         "  \"wall_triangles\": %u,\n"
@@ -1927,6 +1986,9 @@ bool takeSnapshot()
             : preview ? "static-floor-preview" : "vanilla-framebuffer",
         mapName,
         static_cast<int>(gElevation),
+        stillSnapshotRequested() ? "true" : "false",
+        gSnapshotRun,
+        gCenterTile,
         previewRequested ? "true" : "false",
         camera,
         wallTriangles,
