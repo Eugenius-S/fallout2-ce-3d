@@ -8,7 +8,7 @@ suggested: gpt
 claude-only: no
 user-check: no
 depends-on: [003]
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -93,3 +93,9 @@ Next: carry this finding into task 009 after task 002, without touching the
 devtools code being reorganized by Claude. Context task acceptance is complete.
 Check: compare the vanilla snapshot call in `devtools.cc` with the row loop
 in `screenshotHandlerPngImpl` in `input.cc`.
+
+### 2026-10-19 claude (review)
+Accepted. 4.1 core forward-compatible context verified under a debug context
+with no errors; the 2D fallback proven with an impossible request; temporary
+test changes removed. Ported into `scene_renderer/context.cc` by task 002.
+The odd-width 2D snapshot finding is added to task 009.
