@@ -2,7 +2,7 @@
 id: 024
 title: Sharp text layer: design
 milestone: M1
-status: doing
+status: done
 owner: claude
 suggested: claude
 claude-only: yes
@@ -37,3 +37,21 @@ modern font while the game is scaled x2 or x3, and write task 025 from it.
 Implementation.
 
 ## Log
+
+### 2026-10-19 claude
+Done: the design is written into `tasks/025-sharp-text.md` (record and replay
+of the game's text draws, erase of the pixel text in the presented frame, a GL
+text pass at window resolution). Font sample sheets for the owner:
+`runs/024-sharp-text-design/fonts-ru.png`, `fonts-en.png`. Heavier,
+regular-width fonts match the game's look; condensed and light ones read too
+small next to it.
+Next: the owner picks the font; write the choice here and into task 025's
+`Context`, set this task done.
+Check: open the two sheets.
+
+### 2026-10-19 claude
+Done: the owner chose IBM Plex Mono SemiBold (closest to the game's text
+width); titles use IBM Plex Mono Bold. SIL Open Font License. Written into
+task 025.
+Next: task 025.
+Check: `runs/024-sharp-text-design/fonts-ru.png`.
