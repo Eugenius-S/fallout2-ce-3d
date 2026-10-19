@@ -2,8 +2,8 @@
 id: 020
 title: Game light sources as real lights
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: claude
 suggested: claude
 claude-only: yes
 user-check: yes
