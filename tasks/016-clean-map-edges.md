@@ -53,3 +53,8 @@ Check: `tools/tasks.ps1`; task branch will follow this claim.
 Done: Added default-on `[3d] clean_edges`, strict default-preserving config reads, per-key scene revision access, authored EDG/floor clip geometry, shared draw and picking cuts, and A/B snapshot metadata.
 Next: Parent reviews this implementation before two-map variant captures.
 Check: Release build passed; `ctest --test-dir build --output-on-failure` passed 9/9; `git diff --check` passed.
+
+### 2026-10-19 gpt
+Done: Added the pure map-clip geometry suite as a standalone CMake/CTest target and CI matrix entry.
+Next: Capture matched authored/floor variants and the clean-edges-off baseline on both Klamath maps for parent review.
+Check: Standalone Release build passed; `ctest --test-dir build-tests-map-clip-ninja --output-on-failure` passed 1/1; `git diff --check` passed.

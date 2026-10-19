@@ -408,13 +408,7 @@ if(BUILD_TESTING)
     target_include_directories(game_view_tests PRIVATE "src/scene_renderer")
     add_test(NAME game_view_tests COMMAND game_view_tests)
 
-    add_executable(map_clip_tests
-        "src/scene_renderer/map_clip.cc"
-        "tests/map_clip/map_clip_test.cc"
-    )
-    target_include_directories(map_clip_tests PRIVATE "src/scene_renderer")
-    add_test(NAME map_clip_tests COMMAND map_clip_tests)
-
+    add_subdirectory(tests/map_clip)
     add_subdirectory(tests/fixed_screen_options)
     add_subdirectory(tests/snapshot_rows)
     add_subdirectory(tests/embedded_fonts)
