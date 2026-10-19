@@ -955,11 +955,16 @@ void _obj_render_scene_overlay(Rect* rect)
         if (object == nullptr || (object->flags & OBJECT_HIDDEN) != OBJECT_NONE) {
             continue;
         }
-        object->x += dx;
-        object->y += dy;
+        // An object on a hex is drawn at its hex plus (x, y); one off the grid
+        // (the cross, put there by _obj_move) at its screen point (sx, sy).
+        const bool onHex = object->tile != -1;
+        int& shiftX = onHex ? object->x : object->sx;
+        int& shiftY = onHex ? object->y : object->sy;
+        shiftX += dx;
+        shiftY += dy;
         _obj_render_object(object, &updatedRect, 0x10000);
-        object->x -= dx;
-        object->y -= dy;
+        shiftX -= dx;
+        shiftY -= dy;
     }
 }
 
