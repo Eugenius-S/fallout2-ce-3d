@@ -274,8 +274,7 @@ void syncSettings(bool suppressInitialEnable)
     if (gMapHeader.name[0] == '\0' || gameGetState() != GameState::Normal) return;
 
     static SettingsLifecycle lifecycle;
-    const SettingsAction action = lifecycle.update(settings.scene3d.enabled,
-        settingsGetThreeDRevision(), suppressInitialEnable);
+    const SettingsAction action = lifecycle.update(enabled(), settingsRevision(), suppressInitialEnable);
     if (action == SettingsAction::EnableFull) {
         std::string error;
         enable(View::Full, &error);

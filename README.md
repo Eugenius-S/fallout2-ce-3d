@@ -1,61 +1,65 @@
 # Fallout 2 CE 3D
 
-Это попытка перенести Fallout 2 в 3D так, чтобы она осталась той самой
-Fallout 2. Пошаговый бой, диалоги, квесты, сохранения и правила не меняются.
-Персонажи остаются оригинальными спрайтами, а вокруг них появляется
-объёмный мир: стены, здания, крупные объекты, камера с лёгкой перспективой
-и живой свет.
+This is an attempt to bring Fallout 2 into 3D while keeping it the same
+Fallout 2. Turn-based combat, dialogs, quests, saves and the rules do not
+change. Characters stay as the original sprites, and a volumetric world
+appears around them: walls, buildings, large objects, a camera with a light
+perspective and live light.
 
-Зачем это нужно. Во-первых, чтобы игра без плясок с бубном запускалась
-на современном железе и больших мониторах. Во-вторых, чтобы картинка стала
-лучше, но сохранила свою атмосферу: лампы и костры по-настоящему освещают
-сцену, здания отбрасывают резкие тени, персонажи темнеют в тени и
-окрашиваются в цвет ближайшего света, а солнце идёт по небу вместе
-с игровым временем.
+Why. First, so the game runs on modern hardware and large monitors without
+ritual dances. Second, so the picture improves but keeps its atmosphere:
+lamps and campfires light the scene for real, buildings cast sharp shadows,
+characters darken in shadow and take the color of the nearest light, and the
+sun moves across the sky with game time.
 
-Шутера из Fallout мы не делаем, свободной камеры и новых моделей персонажей
-тоже не будет.
+We are not making a shooter out of Fallout; there will be no free camera and
+no new character models.
 
-## Что уже работает
+## What already works
 
-Прототип на одном участке Кламата (карта `kladwtwn`, первый этаж):
+A prototype on one Klamath area (the `kladwtwn` map, first elevation):
 
-- пол и стены собираются из ресурсов игры;
-- герой ходит по объёмной сцене, анимация и направление берутся из игры;
-- камера смотрит под тем же углом и в том же масштабе, что и сама игра,
-  с лёгкой перспективой; карта прокручивается вместе с игрой;
-- клик по земле выбирает гекс, путь прокладывает движок;
-- жители, животные, мебель, предметы и двери берутся прямо из игры в их
-  текущем виде: двигаются и меняются так же, как в оригинале;
-- dev-режим для разработки: выбор любой карты и этажа прямо в игре.
+- floor and walls are assembled from the game's resources;
+- the hero walks over the volumetric scene; animation and direction come
+  from the game;
+- the camera looks at the same angle and scale as the game itself, with a
+  light perspective; the map scrolls together with the game;
+- a click on the ground picks a hex; the engine builds the path;
+- residents, animals, furniture, items and doors come straight from the game
+  in their current state: they move and change as in the original;
+- a dev mode for development: pick any map and elevation right in the game.
 
-Дальше по плану: выбор объектов мышью, игровой интерфейс поверх сцены,
-крыши, затем свет и тени. После этого остальные карты и установщик.
+Next on the plan: picking objects with the mouse, the game interface over
+the scene, roofs, then light and shadows. After that the other maps and an
+installer.
 
-Подробности: [спецификация](docs/2026-10-17-fallout2-sprite-lighting-design.md)
-и [технический план с TODO](docs/2026-10-17-fallout2-ce-3d-env-p0-p1.md).
+Details: [the specification](docs/2026-10-17-fallout2-sprite-lighting-design.md)
+and [the technical plan with TODO](docs/2026-10-17-fallout2-ce-3d-env-p0-p1.md).
 
-## Как устроен репозиторий
+## How the repository is laid out
 
-- `ce/` — движок: форк Fallout 2 CE с новым рендером.
-- `tools/scene_export/` — конвертер карт из ресурсов игры в 3D-сцену.
-- `tools/` — скрипты сборки и запуска.
-- `docs/`, `runs/` — планы, отчёты и скриншоты проверок.
-- `game/` и `build/` — локальная копия игры и результаты сборки, в Git не попадают.
+- `ce/` — the engine: a fork of Fallout 2 CE with the new renderer.
+- `tools/scene_export/` — the converter of maps from the game's resources
+  into a 3D scene.
+- `tools/` — build and run scripts.
+- `docs/`, `runs/` — plans, reports and check screenshots.
+- `game/` and `build/` — the local copy of the game and build results; they
+  do not go into Git.
 
-Ресурсы игры, сохранения и собранные EXE в репозиторий не кладутся.
-Нужна своя легально купленная Fallout 2. Играем с Restoration Project
-и русским переводом, подготовка игры описана в [game-setup.md](docs/game-setup.md). Эталонная Steam-установка
-используется только для чтения, игра запускается из копии в `game/`.
+Game resources, saves and built EXEs are not put into the repository. You
+need your own legally purchased Fallout 2. We play with the Restoration
+Project and a Russian translation; preparing the game is described in
+[game-setup.md](docs/game-setup.md). The reference Steam install is used
+read-only; the game runs from the copy in `game/`.
 
-Старые эксперименты лежат в ветках `archive/*`: DLSS5 поверх оригинальной
-игры, D3D12-вьюер и первая версия перспективной камеры.
+Old experiments live in the `archive/*` branches: DLSS5 over the original
+game, a D3D12 viewer and the first version of the perspective camera.
 
-## Сборка
+## Building
 
-Нужны CMake, Ninja, MSVC, Python 3.12+ и файлы Fallout 2. В скрипте сборки
-прописаны пути к MSVC и Windows SDK на этой машине, на другом компьютере
-их придётся поправить.
+You need CMake, Ninja, MSVC, Python 3.12+ and the Fallout 2 files. The build
+script has the paths to MSVC and the Windows SDK of this machine baked in;
+on another computer you will have to adjust them.
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/configure-build.ps1 Release
@@ -65,30 +69,31 @@ py -3 -m unittest discover -s tools/scene_export -p 'test*.py' -v
 py -3 tools/scene_export/export.py --game-root ./game
 ```
 
-В `game/fallout2.cfg` должны быть указаны пути к DAT-файлам игры.
-Dev-запуск описан в [p1-devtools.md](docs/p1-devtools.md).
+`game/fallout2.cfg` must point to the game's DAT files. The dev launch is
+described in [p1-devtools.md](docs/p1-devtools.md).
 
-Свежие изменения из основного CE подтягиваются так:
+Fresh changes from upstream CE are pulled like this:
 
 ```powershell
 git fetch upstream
 git merge -X subtree=ce upstream/main
 ```
 
-## Спасибо
+## Thanks
 
-- **Interplay и Black Isle** — за Fallout 2.
-- **Александру Баталову** ([alexbatalov/fallout2-ce](https://github.com/alexbatalov/fallout2-ce))
-  — за Fallout 2 Community Edition, без которой этого проекта бы не было.
-- **Сообществу [fallout2-ce](https://github.com/fallout2-ce/fallout2-ce)** —
-  за то, что продолжают развивать движок: исправления, поддержку sfall
-  и модов. Наш движок — форк их версии.
+- **Interplay and Black Isle** — for Fallout 2.
+- **Alexander Batalov** ([alexbatalov/fallout2-ce](https://github.com/alexbatalov/fallout2-ce))
+  — for Fallout 2 Community Edition, without which this project would not
+  exist.
+- **The [fallout2-ce](https://github.com/fallout2-ce/fallout2-ce) community**
+  — for continuing to develop the engine: fixes, sfall and mod support. Our
+  engine is a fork of their version.
 - **[Apolotary](https://github.com/Apolotary/fallout2-first-person)** —
-  за fallout2-first-person. Оттуда взят подход к восстановлению объёма
-  карт и часть конвертера.
+  for fallout2-first-person. The approach to restoring map volume and part
+  of the converter come from there.
 
-## Лицензия
+## License
 
-Код движка и конвертера распространяется на условиях исходных проектов —
-Sustainable Use License 1.0 (см. `ce/LICENSE.md` и лицензии
-в `tools/scene_export/`). Это неофициальный некоммерческий фанатский проект.
+The engine and converter code is distributed under the terms of the original
+projects — Sustainable Use License 1.0 (see `ce/LICENSE.md` and the licenses
+in `tools/scene_export/`). This is an unofficial non-commercial fan project.

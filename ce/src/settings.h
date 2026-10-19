@@ -331,7 +331,9 @@ const std::vector<SettingDescriptor>& settingsGetDescriptors();
 SettingValue settingsGetValue(const SettingDescriptor& descriptor);
 // Includes committed restart-required edits without changing the active runtime value.
 SettingValue settingsGetConfiguredValue(const SettingDescriptor& descriptor);
-// Monotonic revision for effective [3d] setting changes. Reads do not consume it.
+// Monotonic revision for effective changes to this setting only.
+std::uint64_t settingsGetRevision(const SettingDescriptor& descriptor);
+// Monotonic aggregate revision for effective [3d] setting changes. Reads do not consume it.
 std::uint64_t settingsGetThreeDRevision();
 bool settingsValidateValue(const SettingDescriptor& descriptor, const SettingValue& value, std::string* error = nullptr);
 // Honors applyPolicy. NextGame is rejected until a game lifecycle apply path exists.

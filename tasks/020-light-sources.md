@@ -83,3 +83,10 @@ Evidence: `runs/020-game-light/` (cave and Klamath at night, 2D | 3D).
 The six cave references retaken; the town spots (day) are unchanged.
 Next: step 2, real lights from light-carrying objects (height, colour, radius).
 Check: `tools/regression.ps1` (16 pass); `ctest --test-dir build` (8/8).
+
+### 2026-10-19 claude
+Done: merged main with task 027. `[3d] lights` keeps only its own revision:
+switching it neither changes the `[3d] enabled` revision nor switches the
+scene (a direct test in `settings_3d`).
+Next: merge PR #20; then step 2.
+Check: `ctest --test-dir build` (8/8); `tools/regression.ps1` (16 pass).

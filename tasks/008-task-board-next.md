@@ -2,8 +2,8 @@
 id: 008
 title: The board tells each agent what to do next
 milestone: M0
-status: todo
-owner: none
+status: doing
+owner: glm
 suggested: glm
 claude-only: no
 user-check: no

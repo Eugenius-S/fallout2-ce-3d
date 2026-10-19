@@ -2,13 +2,13 @@
 id: 007
 title: CI builds the game on Windows
 milestone: M0
-status: todo
-owner: none
+status: done
+owner: glm
 suggested: glm
 claude-only: no
 user-check: no
 depends-on: []
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -39,3 +39,19 @@ Every push and PR shows whether the whole game still builds and its tests pass.
 macOS and Linux builds of the game (M4); anything that needs game files.
 
 ## Log
+
+### 2026-10-19 glm
+Done: tools/configure-build.ps1 falls back to the standard Visual Studio
+environment (vswhere + vcvars64.bat) when the owner's hard-coded MSVC/SDK
+paths are missing; the owner layout is unchanged. A `windows-game` job in
+.github/workflows/verify.yml builds the game in Release through the script
+and runs ctest.
+Next: push the branch, open the PR, watch the workflow go green on the PR,
+merge.
+Check: the `windows-game` job of the Verify workflow on the PR.
+
+### 2026-10-19 claude (review)
+Accepted and merged (PR #19). The `windows-game` job builds the game in
+Release through `configure-build.ps1` and runs ctest; it is green. The script
+keeps the owner's paths and falls back to vswhere + vcvars64 elsewhere; the
+build on the owner's machine still works.

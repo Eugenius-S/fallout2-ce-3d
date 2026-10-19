@@ -3,6 +3,12 @@ on: [push, pull_request]
 permissions:
   contents: read
 jobs:
+  windows-game:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: powershell -NoProfile -ExecutionPolicy Bypass -File tools/configure-build.ps1 Release
+      - run: ctest --test-dir build --output-on-failure
   exporter:
     runs-on: ubuntu-latest
     steps:

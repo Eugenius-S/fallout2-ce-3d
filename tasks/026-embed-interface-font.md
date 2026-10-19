@@ -37,7 +37,7 @@ the sharp text layer (task 025) only has to draw.
 - `ce/src/scene_renderer/embedded_fonts.{h,cc}`: returns the bytes and size of
   the SemiBold or Bold font.
 - Unit test suite `ce/tests/embedded_fonts/`: both fonts load in
-  stb_truetype; glyphs exist for `W`, `Ж`, `ё`, `Щ`, `?`, digits; the suite is
+  stb_truetype; glyphs exist for `W`, Cyrillic Zhe, yo, Shcha, `?`, digits; the suite is
   in the `verify.yml` matrix.
 - The game builds and the other test suites pass.
 

@@ -2,8 +2,8 @@
 id: 016
 title: Clean map edges on black
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: gpt
 suggested: gpt
 claude-only: no
 user-check: yes
@@ -43,3 +43,8 @@ teeth of diamond-shaped tiles.
 Changing what the player may scroll to.
 
 ## Log
+
+### 2026-10-19 gpt
+Done: Claimed task 016 on main; dependencies are done.
+Next: Inspect the target image and clipping/render architecture, then implement two reviewable map-coordinate cut variants.
+Check: `tools/tasks.ps1`; task branch will follow this claim.

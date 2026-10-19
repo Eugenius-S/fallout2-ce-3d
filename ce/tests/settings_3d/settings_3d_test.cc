@@ -10,6 +10,8 @@ namespace fallout {
 
 Config gGameConfig = {};
 static const char* gConfiguredThreeDValue = nullptr;
+static bool gInterruptWalkConfigPresent = true;
+static bool gInterruptWalkConfigValue = false;
 
 bool gameConfigInit(bool, int, char**)
 {
@@ -21,9 +23,16 @@ bool gameConfigExit(bool) { return true; }
 
 bool configGetString(Config*, const char* section, const char* key, char** value)
 {
-    if (std::strcmp(section, "3d") != 0 || std::strcmp(key, "enabled") != 0 || gConfiguredThreeDValue == nullptr) return false;
-    *value = const_cast<char*>(gConfiguredThreeDValue);
-    return true;
+    if (std::strcmp(section, "3d") == 0 && std::strcmp(key, "enabled") == 0 && gConfiguredThreeDValue != nullptr) {
+        *value = const_cast<char*>(gConfiguredThreeDValue);
+        return true;
+    }
+    if (std::strcmp(section, "system") == 0 && std::strcmp(key, "interrupt_walk") == 0
+        && gInterruptWalkConfigPresent) {
+        *value = const_cast<char*>(gInterruptWalkConfigValue ? "1" : "0");
+        return true;
+    }
+    return false;
 }
 bool configGetString(Config*, const char*, const char*, char** value, const char* defaultValue)
 {
@@ -31,7 +40,13 @@ bool configGetString(Config*, const char*, const char*, char** value, const char
     return false;
 }
 bool configGetInt(Config*, const char*, const char*, int*) { return false; }
-bool configGetBool(Config*, const char*, const char*, bool*) { return false; }
+bool configGetBool(Config*, const char* section, const char* key, bool* value)
+{
+    if (std::strcmp(section, "system") != 0 || std::strcmp(key, "interrupt_walk") != 0
+        || !gInterruptWalkConfigPresent) return false;
+    *value = gInterruptWalkConfigValue;
+    return true;
+}
 bool configGetDouble(Config*, const char*, const char*, double*) { return false; }
 bool configSetString(Config*, const char* section, const char* key, const char* value)
 {
@@ -45,6 +60,10 @@ bool configSetBool(Config*, const char* section, const char* key, bool value)
 {
     if (std::strcmp(section, "3d") == 0 && std::strcmp(key, "enabled") == 0) {
         gConfiguredThreeDValue = value ? "1" : "0";
+    }
+    if (std::strcmp(section, "system") == 0 && std::strcmp(key, "interrupt_walk") == 0) {
+        gInterruptWalkConfigPresent = true;
+        gInterruptWalkConfigValue = value;
     }
     return true;
 }
@@ -89,6 +108,14 @@ const fallout::SettingDescriptor* findThreeDDescriptor()
     return nullptr;
 }
 
+const fallout::SettingDescriptor* findDescriptor(const char* id)
+{
+    for (const auto& descriptor : fallout::settingsGetDescriptors()) {
+        if (descriptor.id == id) return &descriptor;
+    }
+    return nullptr;
+}
+
 } // namespace
 
 int main()
@@ -103,6 +130,10 @@ int main()
     if (!check(descriptor->applyPolicy == SettingApplyPolicy::OnClose
             && descriptor->fallbackLabel == "Enable 3D scene" && !descriptor->fallbackDescription.empty(),
             "descriptor has apply policy and fallback menu metadata")) return 1;
+    const SettingDescriptor* unrelatedDescriptor = findDescriptor("system.interrupt_walk");
+    if (!check(unrelatedDescriptor != nullptr, "real unrelated setting descriptor is registered")) return 1;
+    if (!check(settingsGetRevision(*descriptor) == 0 && settingsGetRevision(*unrelatedDescriptor) == 1,
+            "config read increments only the changed setting revision")) return 1;
     if (!check(scene::enabled() && scene::settingsRevision() == 0, "missing value uses true default")) return 1;
     const SettingDescriptor* lights = nullptr;
     for (const auto& candidate : settingsGetDescriptors()) {
@@ -110,8 +141,31 @@ int main()
     }
     if (!check(lights != nullptr && std::get<bool>(lights->defaultValue) && settings.scene3d.lights
             && lights->fallbackLabel == "Light", "[3d].lights is registered, default on, with a menu label")) return 1;
+    if (!check(settingsGetThreeDRevision() == 0, "unrelated config read does not change the 3D section revision")) return 1;
+
+    scene::SettingsLifecycle unrelatedRevision;
+    if (!check(unrelatedRevision.update(scene::enabled(), scene::settingsRevision(), false) == scene::SettingsAction::EnableFull,
+            "setting lifecycle initializes from its enabled-key revision")) return 1;
+    if (!check(unrelatedRevision.update(scene::enabled(), settingsGetThreeDRevision() + 1, false) == scene::SettingsAction::NoChange,
+            "unrelated section revision does not change the enabled state")) return 1;
+    gInterruptWalkConfigValue = true;
+    if (!check(initializeWith(nullptr), "read changed unrelated setting through registry")) return 1;
+    if (!check(settingsGetRevision(*unrelatedDescriptor) == 2 && settingsGetRevision(*descriptor) == 0,
+            "unrelated setting read leaves enabled-key revision unchanged")) return 1;
+    if (!check(scene::settingsRevision() == 0 && settingsGetThreeDRevision() == 0,
+            "unrelated setting read leaves both enabled and 3D revisions unchanged")) return 1;
+    if (!check(unrelatedRevision.update(scene::enabled(), scene::settingsRevision(), false) == scene::SettingsAction::NoChange,
+            "unrelated registered setting does not trigger scene lifecycle")) return 1;
 
     std::string error;
+    if (!check(settingsSetValue(*lights, SettingValue(false), &error) && !settings.scene3d.lights,
+            "[3d].lights can be switched off")) return 1;
+    if (!check(settingsGetRevision(*lights) == 1 && settingsGetRevision(*descriptor) == 0
+            && scene::settingsRevision() == 0, "[3d].lights leaves the enabled-key revision unchanged")) return 1;
+    if (!check(unrelatedRevision.update(scene::enabled(), scene::settingsRevision(), false) == scene::SettingsAction::NoChange,
+            "a second [3d] key does not switch the scene")) return 1;
+    if (!check(settingsSetValue(*lights, SettingValue(true), &error) && settings.scene3d.lights,
+            "[3d].lights can be switched back on")) return 1;
     if (!check(settingsSetValue(*descriptor, SettingValue(false), &error), "registered setting accepts false")) return 1;
     if (!check(!scene::enabled() && scene::settingsRevision() == 1, "change increments the monotonic revision")) return 1;
     const auto firstReaderRevision = scene::settingsRevision();
