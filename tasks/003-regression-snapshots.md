@@ -2,7 +2,7 @@
 id: 003
 title: Regression snapshot test
 milestone: M0
-status: doing
+status: done
 owner: gpt
 suggested: gpt
 claude-only: no
@@ -86,3 +86,16 @@ Next: run two complete unchanged-build regressions, prove a deliberate floor
 rendering failure is detected, restore/rebuild and prove recovery; then PR.
 Check: `powershell -NoProfile -ExecutionPolicy Bypass -File tools/regression.ps1`;
 `py -3 -m unittest discover -s tools/regression -p 'test*.py' -v`.
+
+### 2026-10-19 gpt
+Done: all acceptance checks pass. Two full consecutive regressions each gave
+zero changed pixels at all six spots (`pass-a.json`, `pass-b.json`). A
+temporary zero-count floor draw produced exit 1 and 1,392,871 changed pixels
+with difference/highlight PNGs; restoring the exact source bytes and
+rebuilding returned to zero differences (`restored-summary.json`). The fault
+is preserved only as an evidence patch, not in the renderer. Release build,
+4 engine tests, 30 exporter tests and 9 regression-tool tests pass. Evidence
+and author review: `runs/003-regression-snapshots/README.md`.
+Next: open and squash-merge the task PR, then take task 004 per the board.
+Claude can start task 002 from the merged deterministic baseline.
+Check: `powershell -NoProfile -ExecutionPolicy Bypass -File tools/regression.ps1`.

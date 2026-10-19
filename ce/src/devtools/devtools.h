@@ -44,8 +44,8 @@ void listMaps();
 // Called by main.cc right after the startup save is loaded.
 void applyStartupTarget();
 
-// Per-frame tick (called from the presentation hook): applies pending
-// elevation corrections after map loads settle.
+// Per-frame tick in the main loop after mapHandleTransition: applies pending
+// elevation corrections and startup view positioning after map loads settle.
 void update();
 
 // Requests a map change through the engine's own safe transition

@@ -1016,7 +1016,7 @@ void listMaps()
     fflush(stdout);
 }
 
-// Called every frame from the presentation hook: applies the pending
+// Called every frame from the main loop after mapHandleTransition: applies the pending
 // elevation correction once the requested map has finished loading.
 void update()
 {

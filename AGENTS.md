@@ -34,6 +34,7 @@ continue from the last commit without asking anybody.
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/configure-build.ps1 Release
 ctest --test-dir build --output-on-failure
 py -3 -m unittest discover -s tools/scene_export -p 'test*.py' -v
+py -3 -m unittest discover -s tools/regression -p 'test*.py' -v
 py -3 tools/scene_export/export.py --game-root ./game
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/dev-snapshot.ps1 -Map kladwtwn -Elevation 0
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/regression.ps1

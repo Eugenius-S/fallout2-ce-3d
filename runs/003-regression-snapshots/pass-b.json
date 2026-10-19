@@ -1,0 +1,278 @@
+{
+  "success": true,
+  "update": false,
+  "channel_tolerance": 2,
+  "max_changed_fraction": 1e-05,
+  "spots": [
+    {
+      "spot": "entrance",
+      "status": "pass",
+      "capture": {
+        "image": "devhero-20261019-112428-000.png",
+        "view": "static-wall-plus-hero-preview",
+        "map": "KLADWTWN.MAP",
+        "elevation": 0,
+        "still_snapshot": true,
+        "snapshot_run": "6a5d5ab31ce74902841bf3d973f7471a",
+        "view_tile": 25075,
+        "preview_requested": true,
+        "camera": "fixed eye=(36.64466,46.23085,86.46700), target=(-12.54167,0.00000,12.68750), fov_y=25.0, near=0.1, far=400.0, screen_right=-cross(forward,world_up)",
+        "wall_triangles": 7725,
+        "wall_pages": 1,
+        "hero": {
+          "tile": 25075,
+          "fid": 16777278,
+          "frame": 0,
+          "rotation": 3,
+          "world_anchor": [
+            -12.541666667,
+            12.6875
+          ]
+        },
+        "objects": {
+          "drawn": 4600,
+          "skipped": 0
+        },
+        "preview_availability": "available",
+        "renderer": "scene-gl",
+        "light": "off",
+        "resolution": "2310x1298",
+        "drawable": "2310x1298",
+        "ce_commit": "905e988",
+        "tools_commit": "-",
+        "exe_sha256": "774966c2636fdbdd74266c75fcace8a5fce4a54e659ffa64cd7106cc148edee9",
+        "taken": "20261019-112428"
+      },
+      "image_sha256": "794e3dc380bf7a9294a927c01496ad6de15e8183fe99a82544476e332adc855e",
+      "changed_pixels": 0,
+      "changed_fraction": 0.0,
+      "max_channel_delta": 0,
+      "difference_bbox": null
+    },
+    {
+      "spot": "corrals",
+      "status": "pass",
+      "capture": {
+        "image": "devhero-20261019-112439-000.png",
+        "view": "static-wall-plus-hero-preview",
+        "map": "KLADWTWN.MAP",
+        "elevation": 0,
+        "still_snapshot": true,
+        "snapshot_run": "602c4df4b4fe4b2a8e82a7e0fcb99422",
+        "view_tile": 23481,
+        "preview_requested": true,
+        "camera": "fixed eye=(39.64466,46.23085,82.46700), target=(-9.54167,0.00000,8.68750), fov_y=25.0, near=0.1, far=400.0, screen_right=-cross(forward,world_up)",
+        "wall_triangles": 7725,
+        "wall_pages": 1,
+        "hero": {
+          "tile": 25075,
+          "fid": 16777278,
+          "frame": 0,
+          "rotation": 3,
+          "world_anchor": [
+            -12.541666667,
+            12.6875
+          ]
+        },
+        "objects": {
+          "drawn": 4600,
+          "skipped": 0
+        },
+        "preview_availability": "available",
+        "renderer": "scene-gl",
+        "light": "off",
+        "resolution": "2310x1298",
+        "drawable": "2310x1298",
+        "ce_commit": "905e988",
+        "tools_commit": "-",
+        "exe_sha256": "774966c2636fdbdd74266c75fcace8a5fce4a54e659ffa64cd7106cc148edee9",
+        "taken": "20261019-112439"
+      },
+      "image_sha256": "02f9a8730781c3d3fc01c621c942200ae0a13b42e5b47ad1fd997dac927a4bbd",
+      "changed_pixels": 0,
+      "changed_fraction": 0.0,
+      "max_channel_delta": 0,
+      "difference_bbox": null
+    },
+    {
+      "spot": "residents",
+      "status": "pass",
+      "capture": {
+        "image": "devhero-20261019-112456-000.png",
+        "view": "static-wall-plus-hero-preview",
+        "map": "KLADWTWN.MAP",
+        "elevation": 0,
+        "still_snapshot": true,
+        "snapshot_run": "05b7dc018d72411ca457ec493281a139",
+        "view_tile": 22885,
+        "preview_requested": true,
+        "camera": "fixed eye=(41.64466,46.23085,80.96700), target=(-7.54167,0.00000,7.18750), fov_y=25.0, near=0.1, far=400.0, screen_right=-cross(forward,world_up)",
+        "wall_triangles": 7725,
+        "wall_pages": 1,
+        "hero": {
+          "tile": 25075,
+          "fid": 16777278,
+          "frame": 0,
+          "rotation": 3,
+          "world_anchor": [
+            -12.541666667,
+            12.6875
+          ]
+        },
+        "objects": {
+          "drawn": 4600,
+          "skipped": 0
+        },
+        "preview_availability": "available",
+        "renderer": "scene-gl",
+        "light": "off",
+        "resolution": "2310x1298",
+        "drawable": "2310x1298",
+        "ce_commit": "905e988",
+        "tools_commit": "-",
+        "exe_sha256": "774966c2636fdbdd74266c75fcace8a5fce4a54e659ffa64cd7106cc148edee9",
+        "taken": "20261019-112456"
+      },
+      "image_sha256": "58fc33b4b251abb35006ffe06ef53d5a39adf282744e8997d9de861a88b29a9e",
+      "changed_pixels": 0,
+      "changed_fraction": 0.0,
+      "max_channel_delta": 0,
+      "difference_bbox": null
+    },
+    {
+      "spot": "central-doors",
+      "status": "pass",
+      "capture": {
+        "image": "devhero-20261019-112508-000.png",
+        "view": "static-wall-plus-hero-preview",
+        "map": "KLADWTWN.MAP",
+        "elevation": 0,
+        "still_snapshot": true,
+        "snapshot_run": "bb334b752def429ea03b231e1d67b1ea",
+        "view_tile": 17699,
+        "preview_requested": true,
+        "camera": "fixed eye=(48.64466,46.23085,67.96700), target=(-0.54167,0.00000,-5.81250), fov_y=25.0, near=0.1, far=400.0, screen_right=-cross(forward,world_up)",
+        "wall_triangles": 7725,
+        "wall_pages": 1,
+        "hero": {
+          "tile": 25075,
+          "fid": 16777278,
+          "frame": 0,
+          "rotation": 3,
+          "world_anchor": [
+            -12.541666667,
+            12.6875
+          ]
+        },
+        "objects": {
+          "drawn": 4600,
+          "skipped": 0
+        },
+        "preview_availability": "available",
+        "renderer": "scene-gl",
+        "light": "off",
+        "resolution": "2310x1298",
+        "drawable": "2310x1298",
+        "ce_commit": "905e988",
+        "tools_commit": "-",
+        "exe_sha256": "774966c2636fdbdd74266c75fcace8a5fce4a54e659ffa64cd7106cc148edee9",
+        "taken": "20261019-112508"
+      },
+      "image_sha256": "4154a3eab5dc94fab3f714023c9892e42b81f6274442009ba2e9ba6e1cedb023",
+      "changed_pixels": 0,
+      "changed_fraction": 0.0,
+      "max_channel_delta": 0,
+      "difference_bbox": null
+    },
+    {
+      "spot": "north-rooms",
+      "status": "pass",
+      "capture": {
+        "image": "devhero-20261019-112519-000.png",
+        "view": "static-wall-plus-hero-preview",
+        "map": "KLADWTWN.MAP",
+        "elevation": 0,
+        "still_snapshot": true,
+        "snapshot_run": "cbf94905a1db49039f5e91fd66d86134",
+        "view_tile": 14892,
+        "preview_requested": true,
+        "camera": "fixed eye=(45.14466,46.23085,61.21700), target=(-4.04167,0.00000,-12.56250), fov_y=25.0, near=0.1, far=400.0, screen_right=-cross(forward,world_up)",
+        "wall_triangles": 7725,
+        "wall_pages": 1,
+        "hero": {
+          "tile": 25075,
+          "fid": 16777278,
+          "frame": 0,
+          "rotation": 3,
+          "world_anchor": [
+            -12.541666667,
+            12.6875
+          ]
+        },
+        "objects": {
+          "drawn": 4600,
+          "skipped": 0
+        },
+        "preview_availability": "available",
+        "renderer": "scene-gl",
+        "light": "off",
+        "resolution": "2310x1298",
+        "drawable": "2310x1298",
+        "ce_commit": "905e988",
+        "tools_commit": "-",
+        "exe_sha256": "774966c2636fdbdd74266c75fcace8a5fce4a54e659ffa64cd7106cc148edee9",
+        "taken": "20261019-112519"
+      },
+      "image_sha256": "f95f4caa5a4537ff134ad5ca11b580b139bb4acbe50d8f8bf71b85e9bbc62a65",
+      "changed_pixels": 0,
+      "changed_fraction": 0.0,
+      "max_channel_delta": 0,
+      "difference_bbox": null
+    },
+    {
+      "spot": "map-edge",
+      "status": "pass",
+      "capture": {
+        "image": "devhero-20261019-112534-000.png",
+        "view": "static-wall-plus-hero-preview",
+        "map": "KLADWTWN.MAP",
+        "elevation": 0,
+        "still_snapshot": true,
+        "snapshot_run": "f344fcca7b734de1b86c47ef8d6bf618",
+        "view_tile": 5910,
+        "preview_requested": true,
+        "camera": "fixed eye=(54.14466,46.23085,38.71700), target=(4.95833,0.00000,-35.06250), fov_y=25.0, near=0.1, far=400.0, screen_right=-cross(forward,world_up)",
+        "wall_triangles": 7725,
+        "wall_pages": 1,
+        "hero": {
+          "tile": 25075,
+          "fid": 16777278,
+          "frame": 0,
+          "rotation": 3,
+          "world_anchor": [
+            -12.541666667,
+            12.6875
+          ]
+        },
+        "objects": {
+          "drawn": 4600,
+          "skipped": 0
+        },
+        "preview_availability": "available",
+        "renderer": "scene-gl",
+        "light": "off",
+        "resolution": "2310x1298",
+        "drawable": "2310x1298",
+        "ce_commit": "905e988",
+        "tools_commit": "-",
+        "exe_sha256": "774966c2636fdbdd74266c75fcace8a5fce4a54e659ffa64cd7106cc148edee9",
+        "taken": "20261019-112534"
+      },
+      "image_sha256": "07ffc810610ca15ee7960785fedf8a7cd6658aa05018eb55d083a34041cd06e7",
+      "changed_pixels": 0,
+      "changed_fraction": 0.0,
+      "max_channel_delta": 0,
+      "difference_bbox": null
+    }
+  ]
+}
