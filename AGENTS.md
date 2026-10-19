@@ -27,6 +27,9 @@ continue from the last commit without asking anybody.
 - Every new player-facing feature gets a key in the `[3d]` settings, a default
   and a line in the options menu, and switches itself off with a log line if it
   fails to start.
+- Add the key to `Scene3dSettings` and register it in `ce/src/settings.cc`.
+- Put its literal default on the field in `Scene3dSettings`.
+- Give it an English fallback menu label and description in the descriptor.
 
 ## Build and check
 

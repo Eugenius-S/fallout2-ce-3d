@@ -1,6 +1,7 @@
 #ifndef FALLOUT_SETTINGS_H_
 #define FALLOUT_SETTINGS_H_
 
+#include <cstdint>
 #include <optional>
 #include <string>
 #include <variant>
@@ -280,6 +281,10 @@ struct QolSettings {
     bool fast_ammo_load = true;
 };
 
+struct Scene3dSettings {
+    bool enabled = true;
+};
+
 struct MapperSettings {
     bool override_librarian = false;
     bool librarian = false;
@@ -310,6 +315,7 @@ struct Settings {
     DebugSettings debug;
     CombatAiSettings combat_ai;
     QolSettings qol;
+    Scene3dSettings scene3d;
     MapperSettings mapper;
 };
 
@@ -324,6 +330,8 @@ const std::vector<SettingDescriptor>& settingsGetDescriptors();
 SettingValue settingsGetValue(const SettingDescriptor& descriptor);
 // Includes committed restart-required edits without changing the active runtime value.
 SettingValue settingsGetConfiguredValue(const SettingDescriptor& descriptor);
+// Monotonic revision for effective [3d] setting changes. Reads do not consume it.
+std::uint64_t settingsGetThreeDRevision();
 bool settingsValidateValue(const SettingDescriptor& descriptor, const SettingValue& value, std::string* error = nullptr);
 // Honors applyPolicy. NextGame is rejected until a game lifecycle apply path exists.
 bool settingsSetValue(const SettingDescriptor& descriptor, const SettingValue& value, std::string* error = nullptr);

@@ -30,6 +30,10 @@ bool disable();
 // with one log line. Called before each presented frame.
 void syncToMap();
 
+// Applies the default 3D setting once, then reacts to later setting revisions.
+// Startup debug previews/classic captures can suppress only the initial enable.
+void syncSettings(bool suppressInitialEnable);
+
 // The view asked for, whatever map is loaded now.
 View requestedView();
 // The requested view while the scene shows the current map, else Off.

@@ -564,6 +564,7 @@ void renderPresent()
         // render movie frame if present
         movieRenderDirectOverlay();
         scene_renderer::swap();
+        devtools::vanillaPresented();
         return;
     }
 
@@ -573,6 +574,7 @@ void renderPresent()
     // render movie SDL texture if present
     movieRenderDirectOverlay();
     SDL_RenderPresent(gSdlRenderer);
+    devtools::vanillaPresented();
 }
 
 } // namespace fallout

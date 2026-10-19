@@ -10,6 +10,7 @@
 #include <SDL.h>
 
 #include "preview_policy.h"
+#include "scene_settings.h"
 #include "scene_objects.h"
 #include "../art.h"
 #include "../dialog.h"
@@ -246,11 +247,32 @@ void syncToMap()
     }
 }
 
+void syncSettings(bool suppressInitialEnable)
+{
+    // Wait until gameplay has a real map; settings must not activate a scene
+    // from the main menu or while a map transition is still being installed.
+    if (gMapHeader.name[0] == '\0' || gameGetState() != GameState::Normal) return;
+
+    static SettingsLifecycle lifecycle;
+    const SettingsAction action = lifecycle.update(settings.scene3d.enabled,
+        settingsGetThreeDRevision(), suppressInitialEnable);
+    if (action == SettingsAction::EnableFull) {
+        std::string error;
+        enable(View::Full, &error);
+    } else if (action == SettingsAction::Disable) {
+        disable();
+    }
+}
+
 bool enable(View view, std::string* message)
 {
     if (view == View::Off) {
         disable();
         return true;
+    }
+    if (!settings.scene3d.enabled) {
+        *message = "3D scene is disabled in settings";
+        return false;
     }
     gView = view;
     gFailedMap.clear();
@@ -286,7 +308,7 @@ View requestedView()
 
 View activeView()
 {
-    return gView != View::Off && showsCurrentMap() ? gView : View::Off;
+    return settings.scene3d.enabled && gView != View::Off && showsCurrentMap() ? gView : View::Off;
 }
 
 bool shouldPresent()
