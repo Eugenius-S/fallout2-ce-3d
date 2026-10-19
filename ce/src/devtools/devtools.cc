@@ -76,6 +76,15 @@ bool gStartupFloorPreviewAttempted = false;
 int gStartupFloorPreviewReturnAfter = 0;
 int gStartupFloorPreviewFramesRemaining = 0;
 bool gSnapshotOncePending = false;
+// --dev-map-tour: the map elevations to visit after the startup one; the
+// step counts snapshots taken (-1: no tour).
+struct TourStop {
+    std::string map;
+    int elevation;
+};
+std::vector<TourStop> gTour;
+int gTourStep = -1;
+int gTourFrames = 0;
 bool gStillSnapshot = false;
 int gViewTile = -1;
 bool gViewTileApplied = false;
@@ -463,17 +472,19 @@ bool enableStaticPreview(bool withWalls, bool withHero = false)
     }
     if (withHero) {
         setStatus("wall and hero preview on (Ctrl+F10 to return)");
-        printf("devtools: static wall+hero preview started for KLADWTWN elevation 0\n");
+        printf("devtools: static wall+hero preview started for %s elevation %d\n", gMapHeader.name,
+            static_cast<int>(gElevation));
     } else if (withWalls) {
         unsigned int triangles = 0;
         unsigned int pages = 0;
         scene_renderer::staticWallStats(&triangles, &pages);
         setStatus("static wall preview on (Ctrl+F10 to return)");
-        printf("devtools: static wall preview started for KLADWTWN elevation 0 (%u triangles, %u pages)\n",
-            triangles, pages);
+        printf("devtools: static wall preview started for %s elevation %d (%u triangles, %u pages)\n",
+            gMapHeader.name, static_cast<int>(gElevation), triangles, pages);
     } else {
         setStatus("static floor preview on (Ctrl+F10 to return)");
-        printf("devtools: static floor preview started for KLADWTWN elevation 0\n");
+        printf("devtools: static floor preview started for %s elevation %d\n", gMapHeader.name,
+            static_cast<int>(gElevation));
     }
     fflush(stdout);
     if (gSnapshotOncePending && !withHero) {
@@ -655,6 +666,22 @@ bool parseOption(const char* arg)
         gPickProbeStage = 1;
         return true;
     }
+    const char* tourPrefix = "--dev-map-tour=";
+    if (strncmp(arg, tourPrefix, strlen(tourPrefix)) == 0) {
+        // map:elevation,map:elevation,...
+        std::string list = arg + strlen(tourPrefix);
+        size_t start = 0;
+        while (start <= list.size()) {
+            const size_t comma = std::min(list.find(',', start), list.size());
+            const std::string entry = list.substr(start, comma - start);
+            const size_t colon = entry.find(':');
+            const int elevation = colon == std::string::npos ? 0 : atoi(entry.c_str() + colon + 1);
+            if (!entry.empty()) gTour.push_back({ entry.substr(0, colon), std::clamp(elevation, 0, static_cast<int>(ELEVATION_COUNT) - 1) });
+            start = comma + 1;
+        }
+        gTourStep = 0;
+        return true;
+    }
     if (strncmp(arg, "--dev-map=", 10) == 0) {
         stripMapExtension(arg + 10, gStartupMap, sizeof(gStartupMap));
         return true;
@@ -734,9 +761,6 @@ void update()
             fclose(log);
         }
     }
-    if (scene::requestedView() != scene::View::Off && !scene::showsCurrentMap()) {
-        disableStaticFloorPreview("static floor preview off: map/elevation changed");
-    }
     if (scene::requestedView() != scene::View::Off && gStartupFloorPreviewFramesRemaining > 0) {
         gStartupFloorPreviewFramesRemaining--;
         if (gStartupFloorPreviewFramesRemaining == 0) {
@@ -790,6 +814,32 @@ void update()
             gSnapshotOncePending = false;
             printf("devtools: one-shot preview snapshot skipped: preview did not start\n");
             fflush(stdout);
+        }
+    }
+
+    // --dev-map-tour: a snapshot where the startup landed, then one on each
+    // listed map elevation in turn, all in this process.
+    if (gTourStep >= 0 && gStartupFloorPreviewAttempted && !gPendingElevation && !inBlockingGameState()) {
+        bool arrived = gTourStep == 0;
+        if (!arrived) {
+            char base[64];
+            stripMapExtension(gMapHeader.name, base, sizeof(base));
+            const TourStop& stop = gTour[gTourStep - 1];
+            arrived = compat_stricmp(base, stop.map.c_str()) == 0 && static_cast<int>(gElevation) == stop.elevation;
+        }
+        if (arrived && ++gTourFrames >= 30) {
+            gTourFrames = 0;
+            takeSnapshot();
+            if (gTourStep < static_cast<int>(gTour.size())) {
+                const TourStop& next = gTour[gTourStep++];
+                if (!requestMapChange(next.map.c_str(), next.elevation)) {
+                    printf("devtools: map tour stopped at %s e%d: %s\n", next.map.c_str(), next.elevation, gStatus);
+                    fflush(stdout);
+                    gTourStep = -1;
+                }
+            } else {
+                gTourStep = -1;
+            }
         }
     }
 }

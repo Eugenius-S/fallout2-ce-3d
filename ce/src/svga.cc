@@ -517,6 +517,7 @@ void renderPresent()
     // The 3D scene shows the world: the tile window keeps only what the game
     // draws over it.
     if (scene_renderer::isActive()) {
+        scene::syncToMap();
         devtools::sceneOverlaySynced(scene::syncOverlay());
     }
     // Sprite-lighting mod: the dev panel is drawn into the framebuffer after

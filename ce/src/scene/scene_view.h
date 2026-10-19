@@ -14,15 +14,21 @@ enum class View {
     Full, // the game in 3D: walls, live objects, the hero, the game's interface over them
 };
 
-// Whether a built scene exists for the current map and elevation (today only
-// KLADWTWN elevation 0).
+// Whether the scene of the current map and elevation is loaded (the exporter
+// builds one per map elevation into mod-cache/scene/<map>/<elevation>).
 bool showsCurrentMap();
 
-// Loads the current map's scene and shows it as `view`. On failure the view
-// stays as it was and `message` says why.
+// Asks for `view` on every map from now on and loads the current map's scene.
+// False when the current map cannot show it: `message` says why, the game
+// shows it in 2D, and the view still comes on for maps that have a scene.
 bool enable(View view, std::string* message);
 // Back to the game's own picture. False when the scene was off already.
 bool disable();
+
+// Follows the game to another map or elevation: the old scene is dropped and
+// the new one loaded. A map without a scene, or with a broken one, stays 2D
+// with one log line. Called before each presented frame.
+void syncToMap();
 
 // The view asked for, whatever map is loaded now.
 View requestedView();

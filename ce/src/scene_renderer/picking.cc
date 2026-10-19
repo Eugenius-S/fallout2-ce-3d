@@ -38,7 +38,7 @@ bool pickStaticGroundTile(int logicalX, int logicalY, GroundPickResult* result)
     }
     const double u = worldX + 50.0;
     const double v = worldZ + 50.0;
-    // This preview is the exported 100x100 Kladwtwn square map only.
+    // The exported scene covers the map's 100x100 squares.
     if (u < 0.0 || u >= 100.0 || v < 0.0 || v >= 100.0) return false;
     const double artX = projection.origin[0] + u * projection.squ[0] + v * projection.sqv[0];
     const double artY = projection.origin[1] + u * projection.squ[1] + v * projection.sqv[1];

@@ -3,6 +3,8 @@
 import base64
 import struct
 
+from scene_check import one_map_elevation
+
 MAGIC = b"F2FL"
 VERSION = 1
 GRID_WIDTH = 100
@@ -26,8 +28,8 @@ def cell_content_rect(cell, image_size):
 
 def encode_floor_sidecar(scene):
     """Encode floor atlas indices and tile cells from one format-6 scene."""
-    if scene.get("format") != 6 or scene.get("map") != "kladwtwn" or scene.get("elevation") != 0:
-        raise ValueError("floor sidecar expects kladwtwn elevation 0 in scene format 6")
+    if scene.get("format") != 6 or not one_map_elevation(scene):
+        raise ValueError("floor sidecar expects one map elevation in scene format 6")
     tiles = scene.get("tiles")
     if not isinstance(tiles, dict):
         raise ValueError("scene tiles metadata is missing")

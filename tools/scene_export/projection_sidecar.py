@@ -5,6 +5,8 @@ from __future__ import annotations
 import math
 import struct
 
+from scene_check import one_map_elevation
+
 
 MAGIC = b"F2PJ"
 VERSION = 1
@@ -20,8 +22,8 @@ def _finite(value, name):
 
 
 def _projection(scene):
-    if scene.get("map") != "kladwtwn" or scene.get("elevation") != 0:
-        raise ValueError("projection sidecar requires kladwtwn elevation 0")
+    if not one_map_elevation(scene):
+        raise ValueError("projection sidecar requires one map elevation")
     raw = scene.get("proj")
     if not isinstance(raw, dict):
         raise ValueError("scene.proj is missing")
