@@ -27,7 +27,13 @@ param(
     [ValidateRange(0, 39999)]
     [int]$HeroTile,
     [switch]$Still,
-    [string]$OutputDirectory
+    [string]$OutputDirectory,
+    [ValidateRange(640, 7680)]
+    [int]$ScreenWidth = 1920,
+    [ValidateRange(480, 4320)]
+    [int]$ScreenHeight = 1080,
+    [ValidateRange(1, 4)]
+    [int]$Scale = 2
 )
 $ErrorActionPreference = 'Stop'
 $Root = Split-Path -Parent $PSScriptRoot
@@ -40,8 +46,9 @@ if (-not (Test-Path -LiteralPath $GameDir)) {
 $built = Join-Path $Root 'build\fallout2-ce.exe'
 if (-not (Test-Path $built)) { throw "No build at $built; run tools/configure-build.ps1 first." }
 $exe = Join-Path $GameDir 'fallout2-ce-test.exe'
-if (-not (Select-String -LiteralPath (Join-Path $GameDir 'fallout2.cfg') -Pattern '^windowed\s*=\s*1\s*$' -Quiet)) {
-    throw 'Background snapshots require windowed=1 in game/fallout2.cfg.'
+if (($ScreenWidth % $Scale) -ne 0 -or ($ScreenHeight % $Scale) -ne 0 -or
+    ($ScreenWidth / $Scale) -lt 640 -or ($ScreenHeight / $Scale) -lt 480) {
+    throw 'The requested scale must divide the screen and leave at least a 640x480 logical framebuffer.'
 }
 if (-not (Test-Path -LiteralPath $exe) -or
     (Get-FileHash -LiteralPath $built).Hash -ne (Get-FileHash -LiteralPath $exe).Hash) {
@@ -51,7 +58,8 @@ if (-not (Test-Path -LiteralPath $exe) -or
 $shots = 1
 $runId = [guid]::NewGuid().ToString('N')
 $view = if ($Classic) { '--dev-classic' } else { '--dev-hero-preview' }
-$arguments = @('--dev-tools', '--dev-new-game', "--dev-map=$Map", "--dev-elevation=$Elevation", $view, "--dev-snapshot-run=$runId")
+$arguments = @('--dev-tools', "--dev-screen=${ScreenWidth}x${ScreenHeight}", "--dev-scale=$Scale",
+    '--dev-new-game', "--dev-map=$Map", "--dev-elevation=$Elevation", $view, "--dev-snapshot-run=$runId")
 if ($PSBoundParameters.ContainsKey('ViewTile')) { $arguments += "--dev-view-tile=$ViewTile" }
 if ($PSBoundParameters.ContainsKey('HeroTile')) { $arguments += "--dev-hero-tile=$HeroTile" }
 # -Parallel: no perspective, so the scene lies on the game's 2D pixel for pixel.

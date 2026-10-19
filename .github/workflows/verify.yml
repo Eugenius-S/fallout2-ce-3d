@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        suite: [ground_pick, preview_policy, sprite_card, game_view, embedded_fonts]
+        suite: [ground_pick, preview_policy, sprite_card, game_view, embedded_fonts, fixed_screen_options]
     steps:
       - uses: actions/checkout@v4
       - run: cmake -S ce/tests/${{ matrix.suite }} -B build-tests -DCMAKE_BUILD_TYPE=Release

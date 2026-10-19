@@ -85,6 +85,9 @@ static bool commandLineDevNewGame = false;
 // 0x48099C
 int falloutMain(int argc, char** argv)
 {
+    if (!devtools::initializeFixedScreenOptions(argc, argv)) {
+        return 1;
+    }
     if (!autorunMutexCreate()) {
         return 1;
     }

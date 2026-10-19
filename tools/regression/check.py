@@ -16,6 +16,13 @@ HERE = Path(__file__).resolve().parent
 
 def load_spots(path, selected=None):
     config = json.loads(path.read_text(encoding="utf-8-sig"))
+    screen = config["screen"]
+    if (not isinstance(screen, dict) or type(screen.get("width")) is not int or type(screen.get("height")) is not int
+            or type(screen.get("scale")) is not int or not 640 <= screen["width"] <= 7680
+            or not 480 <= screen["height"] <= 4320 or not 1 <= screen["scale"] <= 4
+            or screen["width"] % screen["scale"] or screen["height"] % screen["scale"]
+            or screen["width"] // screen["scale"] < 640 or screen["height"] // screen["scale"] < 480):
+        raise ValueError("invalid fixed screen size or scale")
     spots = config["spots"]
     names = set()
     if not spots:
@@ -38,7 +45,7 @@ def load_spots(path, selected=None):
     return config, spots
 
 
-def read_capture(directory, spot):
+def read_capture(directory, spot, screen):
     files = list(directory.glob("devshot-*.json"))
     if len(files) != 1:
         raise ValueError("expected exactly one capture JSON")
@@ -49,6 +56,14 @@ def read_capture(directory, spot):
     for key, value in expected.items():
         if metadata.get(key) != value:
             raise ValueError(f"capture {key}: expected {value!r}, got {metadata.get(key)!r}")
+    resolution = f"{screen['width']}x{screen['height']}"
+    logical_resolution = f"{screen['width'] // screen['scale']}x{screen['height'] // screen['scale']}"
+    if metadata.get("scale") != screen["scale"]:
+        raise ValueError(f"capture scale: expected {screen['scale']!r}, got {metadata.get('scale')!r}")
+    if metadata.get("windowed") is not True:
+        raise ValueError("capture is not windowed")
+    if metadata.get("logical_resolution") != logical_resolution:
+        raise ValueError(f"capture logical_resolution: expected {logical_resolution!r}, got {metadata.get('logical_resolution')!r}")
     image = metadata["image"]
     if Path(image).name != image or not image.endswith(".png"):
         raise ValueError("invalid capture image name")
@@ -56,6 +71,8 @@ def read_capture(directory, spot):
     if not path.is_file():
         raise ValueError("capture PNG is missing")
     with Image.open(path) as decoded:
+        if f"{decoded.width}x{decoded.height}" != resolution:
+            raise ValueError(f"capture PNG resolution: expected {resolution}, got {decoded.width}x{decoded.height}")
         if metadata.get("resolution") != f"{decoded.width}x{decoded.height}":
             raise ValueError("capture resolution does not match the PNG")
         decoded.verify()
@@ -81,7 +98,7 @@ def main(argv=None):
     for spot in spots:
         row = {"spot": spot["name"], "status": "error"}
         try:
-            metadata, actual = read_capture(args.run / spot["name"], spot)
+            metadata, actual = read_capture(args.run / spot["name"], spot, config["screen"])
             row["capture"] = metadata
             row["image_sha256"] = hashlib.sha256(actual.read_bytes()).hexdigest()
             captures.append((spot, metadata, actual))

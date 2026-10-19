@@ -64,3 +64,15 @@ Seen once after task 012's framing change: `klacanyn-e0` gave "No snapshot
 within 90 s" (the capture, not the pixels); two reruns passed. If it comes
 back, find where the still snapshot stalls on that map before raising the
 timeout.
+
+### 2026-10-19 gpt
+Done: Added early dev-only fixed screen parsing, windowed settings override,
+and guards for config migration and saves. The snapshot launcher defaults to
+1920x1080 at scale 2; regression dimensions live in `spots.json`, and the
+checker validates image size, logical size, scale and windowed mode even on
+`--update`. Added parser and checker tests.
+Next: After review, fix the vanilla framebuffer pitch for odd widths, then
+verify fixed-size captures against isolated config fixtures and retake the 16
+references.
+Check: Release build succeeded; `ctest` passed 6/6; exporter tests passed 36
+and regression tests passed 12. No runtime captures were run in this step.

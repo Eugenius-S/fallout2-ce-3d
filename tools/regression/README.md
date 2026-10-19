@@ -11,7 +11,9 @@ The runner takes six independent background snapshots through
 `tools/dev-snapshot.ps1`. It never builds, exports resources, starts the owner's
 game or sends input to a window. Only its own `fallout2-ce-test.exe` PID is
 stopped; the script waits for that process to exit before the next capture.
-The game configuration must have `windowed=1`.
+The test process receives a fixed screen size and scale from `spots.json`. It
+forces windowed mode and does not save `fallout2.cfg`, so its result is
+independent of the owner's screen settings.
 
 `spots.json` names each map, elevation and exact view hex. The player remains
 at the map entrance. `--dev-view-tile=N` bypasses camera bounds and starts the
