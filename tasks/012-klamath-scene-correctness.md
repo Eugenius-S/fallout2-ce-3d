@@ -2,8 +2,8 @@
 id: 012
 title: Correct scenes on all Klamath maps
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: claude
 suggested: claude
 claude-only: yes
 user-check: yes
