@@ -25,6 +25,7 @@
 #include "../dialog.h"
 #include "../draw.h"
 #include "../input.h"
+#include "../light.h"
 #include "../kb.h"
 #include "../map.h"
 #include "../map_defs.h"
@@ -95,6 +96,7 @@ std::vector<TourStop> gTour;
 int gTourStep = -1;
 int gTourFrames = 0;
 bool gStillSnapshot = false;
+int gDevAmbient = -1; // --dev-ambient: the map's ambient light held there (night views)
 int gViewTile = -1;
 bool gViewTileApplied = false;
 int gHeroTile = -1; // --dev-hero-tile: the hero is put there before the scene starts
@@ -667,6 +669,11 @@ bool parseOption(const char* arg)
         gStillSnapshot = true;
         return true;
     }
+    const char* ambientPrefix = "--dev-ambient=";
+    if (strncmp(arg, ambientPrefix, strlen(ambientPrefix)) == 0) {
+        gDevAmbient = static_cast<int>(std::clamp(strtol(arg + strlen(ambientPrefix), nullptr, 10), 0L, 65536L));
+        return true;
+    }
     const char* heroPrefix = "--dev-hero-tile=";
     if (strncmp(arg, heroPrefix, strlen(heroPrefix)) == 0) {
         const long tile = strtol(arg + strlen(heroPrefix), nullptr, 10);
@@ -829,6 +836,10 @@ void update()
 {
     if (!gEnabled) {
         return;
+    }
+    // Map scripts set the light by the hour; a dev view holds its own.
+    if (gDevAmbient >= 0 && gMapHeader.name[0] != '\0' && lightGetAmbientIntensity() != gDevAmbient) {
+        lightSetAmbientIntensity(gDevAmbient, true);
     }
     if (gPickProbeClick[0] >= 0) {
         _gmouse_handle_event(gPickProbeClick[0], gPickProbeClick[1], MOUSE_EVENT_LEFT_BUTTON_UP);

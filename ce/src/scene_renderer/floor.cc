@@ -30,6 +30,7 @@ void destroyStaticFloor()
     }
     destroySceneShader();
     destroyRoofs();
+    destroyStaticLight();
     gFloorVao = 0;
     gFloorVbo = 0;
     gFloorTexture = 0;

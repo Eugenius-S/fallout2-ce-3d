@@ -46,6 +46,8 @@ struct StaticObjectFrame {
     // tint's RGB, and whether the glass gray table is used; tint < 0: opaque.
     float tint[3] = { -1.0f, -1.0f, -1.0f };
     bool glassGray = false;
+    // The engine paints it at full light, whatever its hex (OBJECT_TRANS_WALL).
+    bool fullLight = false;
     int pickId = -1; // the caller's id for pickStaticObjects, -1: never picked
     // Drawn by walls.bin (a wall, furniture made solid): its card is only
     // picked. Seen from the game's camera a solid covers its sprite's pixels.

@@ -435,6 +435,30 @@ void initSettingsRegistry(bool isMapper)
         settingsWrite("3d", "enabled", onlyAdd ? scene3dDefault : settings.scene3d.enabled);
     };
 
+    registerSetting("3d", "lights", settings.scene3d.lights);
+    SettingDescriptor& lightsDescriptor = settingDescriptors.back();
+    lightsDescriptor.category = SettingCategory::Uncategorized;
+    lightsDescriptor.applyPolicy = SettingApplyPolicy::OnClose;
+    lightsDescriptor.subsection = "3D";
+    lightsDescriptor.fallbackLabel = "Light";
+    lightsDescriptor.fallbackDescription = "Light the 3D scene with the game's light.";
+    settingsRegistry.back().descriptor = lightsDescriptor;
+    const bool lightsDefault = std::get<bool>(lightsDescriptor.defaultValue);
+    settingsRegistry.back().read = [lightsDefault]() {
+        bool lights = lightsDefault;
+        char* configuredValue = nullptr;
+        if (configGetString(&gGameConfig, "3d", "lights", &configuredValue)) {
+            parseThreeDEnabled(configuredValue, &lights);
+        }
+        if (settings.scene3d.lights != lights) {
+            settings.scene3d.lights = lights;
+        }
+    };
+    settingsRegistry.back().write = [lightsDefault](bool onlyAdd) {
+        if (onlyAdd && settingsKeyExists("3d", "lights")) return;
+        settingsWrite("3d", "lights", onlyAdd ? lightsDefault : settings.scene3d.lights);
+    };
+
     if (isMapper) {
 #define SECT mapper
         SETTING(override_librarian);

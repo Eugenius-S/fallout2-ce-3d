@@ -135,6 +135,12 @@ int main()
     if (!check(settingsGetRevision(*descriptor) == 0 && settingsGetRevision(*unrelatedDescriptor) == 1,
             "config read increments only the changed setting revision")) return 1;
     if (!check(scene::enabled() && scene::settingsRevision() == 0, "missing value uses true default")) return 1;
+    const SettingDescriptor* lights = nullptr;
+    for (const auto& candidate : settingsGetDescriptors()) {
+        if (candidate.section == "3d" && candidate.key == "lights") lights = &candidate;
+    }
+    if (!check(lights != nullptr && std::get<bool>(lights->defaultValue) && settings.scene3d.lights
+            && lights->fallbackLabel == "Light", "[3d].lights is registered, default on, with a menu label")) return 1;
     if (!check(settingsGetThreeDRevision() == 0, "unrelated config read does not change the 3D section revision")) return 1;
 
     scene::SettingsLifecycle unrelatedRevision;
@@ -152,6 +158,14 @@ int main()
             "unrelated registered setting does not trigger scene lifecycle")) return 1;
 
     std::string error;
+    if (!check(settingsSetValue(*lights, SettingValue(false), &error) && !settings.scene3d.lights,
+            "[3d].lights can be switched off")) return 1;
+    if (!check(settingsGetRevision(*lights) == 1 && settingsGetRevision(*descriptor) == 0
+            && scene::settingsRevision() == 0, "[3d].lights leaves the enabled-key revision unchanged")) return 1;
+    if (!check(unrelatedRevision.update(scene::enabled(), scene::settingsRevision(), false) == scene::SettingsAction::NoChange,
+            "a second [3d] key does not switch the scene")) return 1;
+    if (!check(settingsSetValue(*lights, SettingValue(true), &error) && settings.scene3d.lights,
+            "[3d].lights can be switched back on")) return 1;
     if (!check(settingsSetValue(*descriptor, SettingValue(false), &error), "registered setting accepts false")) return 1;
     if (!check(!scene::enabled() && scene::settingsRevision() == 1, "change increments the monotonic revision")) return 1;
     const auto firstReaderRevision = scene::settingsRevision();

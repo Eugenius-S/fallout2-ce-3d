@@ -321,6 +321,7 @@ set(FALLOUT_PLATFORM_SOURCES
     "src/scene_renderer/live_objects.h"
     "src/scene_renderer/picking.cc"
     "src/scene_renderer/picking.h"
+    "src/scene_renderer/lighting.cc"
     "src/scene_renderer/roofs.cc"
     "src/scene_renderer/scene_draw.cc"
     "src/scene_renderer/scene_draw.h"

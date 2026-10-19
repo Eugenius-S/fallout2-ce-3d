@@ -25,6 +25,11 @@ void setStaticRoofVisibility(const unsigned char* visible);
 // top-left corner on screen, in game logical pixels. The mask must stay alive.
 void setStaticEgg(const unsigned char* mask, int width, int height, int left, int top);
 void clearStaticEgg();
+// The game's light: each hex's intensity (HEX_GRID_SIZE values, 65536 full)
+// and the ambient level. The scene is lit as the engine paints: the floor
+// by its hexes, walls and sprites by their own hex, roofs by the ambient.
+void setStaticLight(const int* tileIntensity, int ambient);
+void clearStaticLight();
 
 // Objects walls.bin already draws (baked.bin): the caller only picks them.
 bool staticObjectBaked(int tile, int fid);
@@ -35,6 +40,8 @@ bool staticObjectLift(int tile, int fid, float lift[3]);
 // cuts them as the game does: begin, mark each, end (uploads on a change).
 void beginStaticWallSeeThrough();
 void markStaticWallSeeThrough(int tile, int fid);
+// A baked object the engine paints at full light (OBJECT_TRANS_WALL), this frame.
+void markStaticWallFullLight(int tile, int fid);
 void endStaticWallSeeThrough();
 
 } // namespace scene_renderer

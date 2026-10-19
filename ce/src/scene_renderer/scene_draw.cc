@@ -55,7 +55,16 @@ void drawStaticPreview(bool withWalls, bool withHero)
     // part blended over the hero and what lies behind at the end.
     const bool egg = withHero && bindEgg(x, y, width, height);
     const bool wallEgg = egg && withWalls && gWallSeeThroughAny && gWallSeeThroughTexture != 0;
-    if (wallEgg) {
+    // The game's light, as the engine paints: the floor by its hexes, walls
+    // and sprites by their own hex, roofs by the ambient level.
+    const bool lit = withHero && bindLight();
+    glUniform1i(gSceneLightModeLocation, 0);
+    auto lightSprite = [&](int tile) {
+        glUniform1i(gSceneLightModeLocation, lit ? 3 : 0);
+        glUniform1f(gSceneLightValueLocation, lightAtTile(tile));
+    };
+    if (withWalls && gWallSeeThroughTexture != 0 && (wallEgg || lit)) {
+        flushWallObjectTable();
         glActiveTexture(kTexture0 + 2);
         glBindTexture(kTexture2D, gWallSeeThroughTexture);
         glUniform1i(gSceneSeeThroughObjectsLocation, 2);
@@ -75,6 +84,7 @@ void drawStaticPreview(bool withWalls, bool withHero)
     glDrawArrays(kTriangles, 0, 6);
     glUniform1i(gSceneTexturedLocation, 1);
     glUniform1f(gSceneCutoffLocation, 0.01f);
+    glUniform1i(gSceneLightModeLocation, lit ? 1 : 0);
     glDrawArrays(kTriangles, 6, gFloorVertexCount - 6);
     glDepthMask(1);
 
@@ -87,6 +97,7 @@ void drawStaticPreview(bool withWalls, bool withHero)
         glBindVertexArray(gObjectVao);
         for (const ObjectDraw& draw : gObjectDraws) {
             if (draw.pickOnly || !draw.flat || draw.tint[0] >= 0.0f) continue;
+            lightSprite(draw.tile);
             glBindTexture(kTexture2D, draw.texture);
             glDrawArrays(kTriangles, draw.firstVertex, 6);
         }
@@ -100,6 +111,7 @@ void drawStaticPreview(bool withWalls, bool withHero)
         glUniform1f(gSceneCutoffLocation, 0.5f);
         glUniform1i(gSceneSeeThroughLocation, wallEgg ? 1 : 0);
         glUniform1i(gSceneEggPassLocation, wallEgg ? 1 : 0);
+        glUniform1i(gSceneLightModeLocation, lit ? 2 : 0);
         for (const WallBatch& batch : gWallBatches) {
             glBindVertexArray(batch.vao);
             glBindTexture(kTexture2D, batch.texture);
@@ -114,6 +126,7 @@ void drawStaticPreview(bool withWalls, bool withHero)
         for (const ObjectDraw& draw : gObjectDraws) {
             if (draw.pickOnly || draw.flat || draw.tint[0] >= 0.0f) continue;
             glUniform1i(gSceneSeeThroughLocation, egg && draw.seeThrough ? 2 : 0);
+            lightSprite(draw.tile);
             glBindTexture(kTexture2D, draw.texture);
             glDrawArrays(kTriangles, draw.firstVertex, 6);
         }
@@ -121,6 +134,8 @@ void drawStaticPreview(bool withWalls, bool withHero)
     glUniform1i(gSceneSeeThroughLocation, 0);
     glUniform1i(gSceneEggPassLocation, 0);
     if (withHero && gHeroLoaded) {
+        StaticHeroInfo hero;
+        lightSprite(staticHeroInfo(&hero) ? hero.tile : -1);
         glUniform1f(gSceneCutoffLocation, 0.5f);
         glBindVertexArray(gHeroVao);
         glBindTexture(kTexture2D, gHeroTexture);
@@ -135,6 +150,7 @@ void drawStaticPreview(bool withWalls, bool withHero)
         if (wallEgg) {
             glEnable(kCullFace);
             glUniform1i(gSceneSeeThroughLocation, 1);
+            glUniform1i(gSceneLightModeLocation, lit ? 2 : 0);
             for (const WallBatch& batch : gWallBatches) {
                 glBindVertexArray(batch.vao);
                 glBindTexture(kTexture2D, batch.texture);
@@ -147,6 +163,7 @@ void drawStaticPreview(bool withWalls, bool withHero)
             glBindVertexArray(gObjectVao);
             for (const ObjectDraw& draw : gObjectDraws) {
                 if (draw.pickOnly || draw.flat || draw.tint[0] >= 0.0f || !draw.seeThrough) continue;
+                lightSprite(draw.tile);
                 glBindTexture(kTexture2D, draw.texture);
                 glDrawArrays(kTriangles, draw.firstVertex, 6);
             }
@@ -158,13 +175,15 @@ void drawStaticPreview(bool withWalls, bool withHero)
     }
     if (withObjects) {
         glEnable(kBlend);
-        glBlendFunc(kSrcAlpha, kOneMinusSrcAlpha);
+        // The shader gives the blend with its light applied (premultiplied).
+        glBlendFunc(kOne, kOneMinusSrcAlpha);
         glDepthMask(0);
         glUniform1i(gSceneTranslucentLocation, 1);
         glUniform1f(gSceneCutoffLocation, 0.5f);
         glBindVertexArray(gObjectVao);
         for (const ObjectDraw& draw : gObjectDraws) {
             if (draw.pickOnly || draw.tint[0] < 0.0f) continue;
+            lightSprite(draw.tile);
             glUniform3f(gSceneTintLocation, draw.tint[0], draw.tint[1], draw.tint[2]);
             glUniform1i(gSceneGlassGrayLocation, draw.glassGray ? 1 : 0);
             glBindTexture(kTexture2D, draw.texture);
@@ -174,7 +193,10 @@ void drawStaticPreview(bool withWalls, bool withHero)
         glDepthMask(1);
         glDisable(kBlend);
     }
+    glUniform1i(gSceneLightModeLocation, lit ? 3 : 0);
+    glUniform1f(gSceneLightValueLocation, lightAmbient());
     if (withHero) drawRoofs(x, y, width, height);
+    glUniform1i(gSceneLightModeLocation, 0);
     glUniform1i(gSceneDepthAtLocation, 0);
 
     glDisable(kBlend);
