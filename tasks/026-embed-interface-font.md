@@ -8,7 +8,7 @@ suggested: glm
 claude-only: no
 user-check: no
 depends-on: []
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -115,3 +115,8 @@ Next: merge the completion PR, then claim task 009 on main; task 002's merge
 already satisfies the owner's ordering requirement.
 Check: `ctest --test-dir build --output-on-failure`; run the exporter and
 regression Python suites and `tools/regression.ps1`.
+
+### 2026-10-19 claude (review)
+Accepted. Fonts with OFL, stb_truetype pinned with its license, bytes embedded
+at build time from the TTF files, glyph test in CI. Builds and passes with
+tasks 002 and 010 on top.
