@@ -286,7 +286,6 @@ class WallSidecarTests(unittest.TestCase):
     def test_encodes_game_view_front_and_cap_only(self):
         decoded = decode_wall_sidecar(encode_wall_sidecar(self.sample_scene()))
         self.assertEqual(decoded["version"], WALL_VERSION)
-        self.assertEqual(decoded["triangles"], 4)
         batch = decoded["batches"][0]
         self.assertEqual(batch["page"], 0)
         self.assertEqual(batch["size"], (100, 100))
@@ -297,35 +296,37 @@ class WallSidecarTests(unittest.TestCase):
             self.assertAlmostEqual(actual, expected)
         for actual, expected in zip(vertices[1], (-47.0, 0.0, -48.0, 0.2, 0.4)):
             self.assertAlmostEqual(actual, expected)
-        # First cap triangle starts after the two front triangles. It is laid back
-        # by the exact donor projection ray and samples the top sprite rows.
-        cap = vertices[6]
-        self.assertAlmostEqual(cap[0], -49.0)
-        hpx = self.sample_scene()["proj"]["hpx"]
-        self.assertAlmostEqual(cap[1], 2.0 - 10.0 / hpx)
-        self.assertAlmostEqual(cap[2], -48.0)
-        self.assertAlmostEqual(cap[3], 0.1)
-        self.assertAlmostEqual(cap[4], 0.3)
-        far = vertices[8]
-        projection = self.sample_scene()["proj"]
-        ray = [projection["sqv"][0], -projection["squ"][0],
-               (projection["sqv"][0] * projection["squ"][1] -
-                projection["squ"][0] * projection["sqv"][1]) / hpx]
-        length = sum(component * component for component in ray) ** 0.5
-        toward = [component / length for component in ray]
-        far_distance = (2.0 - (2.0 - 10.0 / hpx)) / toward[2]
-        self.assertAlmostEqual(far[0], 3.0 - toward[0] * far_distance - 50.0, places=5)
-        self.assertAlmostEqual(far[2], 2.0 - toward[1] * far_distance - 50.0, places=5)
-        # A front vertex takes its own depth; the far edge of the top takes that of
-        # the top edge of the front plane it was painted on (donor wallFront home).
-        self.assertEqual(vertices[0][5:], vertices[0][:3])
-        for actual, expected in zip(vertices[8][5:], (-47.0, 2.0, -48.0)):
-            self.assertAlmostEqual(actual, expected, places=5)
-        for actual, expected in zip(vertices[11][5:], (-49.0, 2.0, -48.0)):
-            self.assertAlmostEqual(actual, expected, places=5)
+        # Then the top: a horizontal face as deep as the wall is thick, cut square
+        # at the free ends, and what of the picture is higher as an upright face
+        # on the slab's far side. Every point samples the texel the game drew it
+        # on and keeps the depth of the front plane that texel lies on.
+        scene = self.sample_scene()
+        hpx = scene["proj"]["hpx"]
+        zc, thick = 2.0 - 10.0 / hpx, 0.25
+        proj = Projection(scene["proj"])
+        e0, e1 = proj.ground_to_px(1.0, 2.0, zc), proj.ground_to_px(3.0, 2.0, zc)
+        slope = (e1[1] - e0[1]) / (e1[0] - e0[0])
+        top = vertices[6:]
+        self.assertTrue([vertex for vertex in top if abs(vertex[1] - zc) < 1e-5])
+        for vertex in top:
+            u, z, v = vertex[0] + 50.0, vertex[1], vertex[2] + 50.0
+            self.assertTrue(2.0 - thick - 1e-5 <= v <= 2.0 + 1e-5)
+            self.assertTrue(zc - 1e-5 <= z <= 2.0 + 1e-5)
+            if z > zc + 1e-5:
+                self.assertAlmostEqual(v, 2.0 - thick, places=5)
+            if v > 2.0 - thick + 1e-5:
+                self.assertTrue(1.0 - 1e-5 <= u <= 3.0 + 1e-5)
+            qx, qy = proj.ground_to_px(u, v, z)
+            column = (qx - e0[0]) * 10 / (e1[0] - e0[0])
+            rows = min(e0[1] + slope * (qx - e0[0]) - qy, 10.0)
+            self.assertAlmostEqual(vertex[3], (10 + column) / 100, places=4)
+            self.assertAlmostEqual(vertex[4], (20 + 10 - rows) / 100, places=4)
+            self.assertAlmostEqual(vertex[7], -48.0, places=5)
+            self.assertAlmostEqual(vertex[6], zc + rows / hpx, places=5)
         # No back face (sprite 1), slab end or door: the game's camera does not see
         # backs and ends, and the engine draws doors live so they open.
-        self.assertEqual(len(vertices), 12)
+        for vertex in vertices:
+            self.assertTrue(0.1 - 1e-6 <= vertex[3] <= 0.2 + 1e-6)
 
     def test_rejects_invalid_sprite_index_and_bad_page(self):
         scene = self.sample_scene()
@@ -382,12 +383,23 @@ class WallSidecarTests(unittest.TestCase):
         for vertex in drum["batches"][0]["vertices"]:
             self.assertEqual(vertex[5:], vertex[:3])
 
+    def test_wall_tops_meet_where_a_wall_goes_on(self):
+        from wall_sidecar import _continuations
+        row = lambda ua, ub, thick=0.25: [0, ua, 2.0, ub, 2.0, 0.0, 2.0, 0, 1, 1.8, thick, -1]
+        across = [0, 3.0, 2.0, 3.0, 4.0, 0.0, 2.0, 0, 1, 1.8, 0.25, -1]
+        ends = _continuations([row(1.0, 3.0), row(3.0, 5.0), across, row(5.0, 6.0, 0.0)])
+        self.assertEqual(ends[0], (False, True))
+        self.assertEqual(ends[1], (True, False))   # a thin wall does not go on a thick one
+        self.assertEqual(ends[2], (False, False))  # nor does one across it
+        self.assertNotIn(3, ends)
+
     def test_first_person_surfaces_are_left_out(self):
         scene = self.sample_scene()
         scene["walls"][0].extend([1, 1])
         scene["trims"] = [[0, 1.0, 2.0, 3.0, 2.0, 0.0, 1.0, 0, 0, 1, 1]]
         decoded = decode_wall_sidecar(encode_wall_sidecar(scene))
-        self.assertEqual(decoded["triangles"], 4)
+        plain = decode_wall_sidecar(encode_wall_sidecar(self.sample_scene()))
+        self.assertEqual(decoded["triangles"], plain["triangles"])
 
     def test_binary_corruption_is_rejected(self):
         payload = encode_wall_sidecar(self.sample_scene())
