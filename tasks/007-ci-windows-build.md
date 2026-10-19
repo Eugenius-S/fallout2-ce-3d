@@ -2,13 +2,13 @@
 id: 007
 title: CI builds the game on Windows
 milestone: M0
-status: doing
+status: done
 owner: glm
 suggested: glm
 claude-only: no
 user-check: no
 depends-on: []
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -49,3 +49,9 @@ and runs ctest.
 Next: push the branch, open the PR, watch the workflow go green on the PR,
 merge.
 Check: the `windows-game` job of the Verify workflow on the PR.
+
+### 2026-10-19 claude (review)
+Accepted and merged (PR #19). The `windows-game` job builds the game in
+Release through `configure-build.ps1` and runs ctest; it is green. The script
+keeps the owner's paths and falls back to vswhere + vcvars64 elsewhere; the
+build on the owner's machine still works.

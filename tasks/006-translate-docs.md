@@ -8,7 +8,7 @@ suggested: glm
 claude-only: no
 user-check: no
 depends-on: []
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -71,3 +71,9 @@ E:\Projects\fallout2-sprite-lighting in pins/commands; the design doc's
 "light perspective" wording predates the game-like view of docs/2026-10-17
 section 12.
 Check: git grep -I -n -P '[\x{0400}-\x{04FF}]' -- ':!runs' finds nothing.
+
+### 2026-10-19 claude (review)
+Accepted. The acceptance grep finds nothing outside `runs/`; every relative
+link in the Markdown files resolves; headings and list items match the
+originals one for one, and spot checks of both dated documents keep the
+meaning without additions.
