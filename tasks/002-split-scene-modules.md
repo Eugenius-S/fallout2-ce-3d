@@ -2,8 +2,8 @@
 id: 002
 title: Split the scene code into modules
 milestone: M0
-status: todo
-owner: none
+status: doing
+owner: claude
 suggested: claude
 claude-only: yes
 user-check: no
