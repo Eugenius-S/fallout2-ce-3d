@@ -26,6 +26,12 @@ constexpr unsigned int kRGBA = 0x1908;
 constexpr unsigned int kUnsignedByte = 0x1401;
 constexpr unsigned int kRgba8 = 0x8058;
 constexpr unsigned int kNearest = 0x2600;
+constexpr unsigned int kLinear = 0x2601;
+constexpr unsigned int kRed = 0x1903;
+constexpr unsigned int kRG = 0x8227;
+constexpr unsigned int kRG8 = 0x822B;
+constexpr unsigned int kR16 = 0x822A;
+constexpr unsigned int kUnsignedShort = 0x1403;
 constexpr unsigned int kClampToEdge = 0x812F;
 constexpr unsigned int kTextureMinFilter = 0x2801;
 constexpr unsigned int kTextureMagFilter = 0x2800;
@@ -160,6 +166,15 @@ extern int gSceneViewportLocation;
 extern int gSceneLogicalLocation;
 // The egg over walls and scenery the hero stands behind: which draws it cuts
 // (uSeeThrough, per walls.bin object row from a texture on unit 2) and the pass.
+// The game's light (lighting.cc): how a draw is lit (uLightMode: 0 not, 1 by
+// the hex under each fragment, 2 walls by their object's hex, 3 uLightValue),
+// the light per hex (texture unit 3) and the ground-to-game-pixel projection.
+extern int gSceneLightModeLocation;
+extern int gSceneLightMapLocation;
+extern int gSceneLightValueLocation;
+extern int gSceneLightSquLocation;
+extern int gSceneLightSqvLocation;
+extern int gSceneLightOriginLocation;
 extern int gSceneSeeThroughLocation;
 extern int gSceneSeeThroughObjectsLocation;
 extern int gSceneEggPassLocation;
@@ -192,6 +207,17 @@ void drawRoofs(int viewportX, int viewportY, int viewportWidth, int viewportHeig
 // no egg is shown.
 bool bindEgg(int viewportX, int viewportY, int viewportWidth, int viewportHeight);
 
+// --- lighting.cc: the game's light per hex -----------------------------------
+
+bool lightShown();
+// A hex's light as the engine paints objects on it (1: full, or no light).
+float lightAtTile(int tile);
+float lightAmbient();
+// Uploads the light map if it changed and binds it (unit 3); false when the
+// scene shows no light.
+bool bindLight();
+void destroyStaticLight();
+
 // --- walls.cc: walls.bin and the objects it draws (baked.bin) ----------------
 
 struct WallBatch {
@@ -208,6 +234,9 @@ extern bool gWallsLoaded;
 // wide), and whether any row is set.
 extern unsigned int gWallSeeThroughTexture;
 extern bool gWallSeeThroughAny;
+// Uploads the wall object table (R: see-through, G: the light of the object's
+// hex) when it changed.
+void flushWallObjectTable();
 
 void destroyStaticWalls();
 
@@ -245,6 +274,7 @@ struct ObjectDraw {
     int pickId; // the caller's id for picking, -1: not picked
     bool pickOnly; // drawn by walls.bin; its card is only picked
     bool seeThrough; // the hero stands behind it: the egg cuts it
+    int tile; // its hex, for its light
 };
 
 extern std::vector<ObjectDraw> gObjectDraws;

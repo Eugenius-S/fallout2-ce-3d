@@ -225,7 +225,7 @@ bool addStaticObject(const StaticObjectFrame& frame, std::string* error)
 
     gObjectDraws.push_back({ texture, static_cast<int>(gObjectVertices.size()), frame.flat,
         { frame.tint[0], frame.tint[1], frame.tint[2] }, frame.glassGray, frame.pickId, frame.pickOnly,
-        frame.seeThrough });
+        frame.seeThrough, frame.tile });
     // A thing standing on a solid moves onto it, and so does its row plane.
     float lift[3] = { 0.0f, 0.0f, 0.0f };
     const bool lifted = staticObjectLift(frame.tile, frame.fid, lift);

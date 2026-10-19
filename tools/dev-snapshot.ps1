@@ -33,6 +33,8 @@ param(
     [ValidateRange(0, 39999)]
     [int]$HeroTile,
     [switch]$Still,
+    [ValidateRange(0, 65536)]
+    [int]$Ambient = -1,
     [string]$OutputDirectory,
     [switch]$CaptureConsole,
     [ValidateRange(640, 7680)]
@@ -92,6 +94,9 @@ if ($PSBoundParameters.ContainsKey('ViewTile')) { $arguments += "--dev-view-tile
 if ($PSBoundParameters.ContainsKey('HeroTile')) { $arguments += "--dev-hero-tile=$HeroTile" }
 # -Parallel: no perspective, so the scene lies on the game's 2D pixel for pixel.
 if ($Parallel) { $arguments += '--dev-parallel' }
+# -Ambient: the map's ambient light held at this level (16384 is the game's
+# darkest night, 65536 full day).
+if ($Ambient -ge 0) { $arguments += "--dev-ambient=$Ambient" }
 if ($Still) {
     if ($Probe) { throw '-Still cannot be combined with the interactive -Probe.' }
     $arguments += '--dev-still-snapshot'

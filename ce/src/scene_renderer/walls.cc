@@ -39,7 +39,8 @@ std::unordered_map<unsigned long long, BakedObject> gBakedObjects;
 constexpr int kSeeThroughRowWidth = 1024;
 std::unordered_map<unsigned long long, unsigned int> gWallObjectRows;
 std::vector<unsigned char> gWallSeeThrough;
-std::vector<unsigned char> gWallSeeThroughUploaded;
+std::vector<int> gWallObjectTiles;
+std::vector<unsigned char> gWallObjectTable; // as uploaded: R, G per row
 
 struct WallVertex {
     DepthVertex vertex;
@@ -73,7 +74,8 @@ void destroyStaticWalls()
     gWallSeeThroughAny = false;
     gWallObjectRows.clear();
     gWallSeeThrough.clear();
-    gWallSeeThroughUploaded.clear();
+    gWallObjectTiles.clear();
+    gWallObjectTable.clear();
 }
 
 } // namespace internal
@@ -252,9 +254,11 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
         return fail("walls.bin has a truncated object table");
     }
     std::unordered_map<unsigned long long, unsigned int> objectRows;
+    std::vector<int> objectTiles(objectCount);
     for (unsigned int row = 0; row < objectCount; row++) {
         const unsigned char* entry = sidecar.data() + offset + row * kObjectSize;
-        objectRows[bakedObjectKey(static_cast<int>(readU32(entry)), static_cast<int>(readU32(entry + 4)))] = row;
+        objectTiles[row] = static_cast<int>(readU32(entry));
+        objectRows[bakedObjectKey(objectTiles[row], static_cast<int>(readU32(entry + 4)))] = row;
     }
     offset += static_cast<size_t>(objectCount) * kObjectSize;
     if (offset != sidecar.size() || observedTriangles != totalTriangles) {
@@ -333,16 +337,17 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
     if (objectCount > 0) {
         const unsigned int rows = (objectCount + kSeeThroughRowWidth - 1) / kSeeThroughRowWidth;
         gWallSeeThrough.assign(static_cast<size_t>(rows) * kSeeThroughRowWidth, 0);
-        gWallSeeThroughUploaded = gWallSeeThrough;
+        gWallObjectTable.assign(gWallSeeThrough.size() * 2, 255);
         glGenTextures(1, &gWallSeeThroughTexture);
         glBindTexture(kTexture2D, gWallSeeThroughTexture);
-        glTexImage2D(kTexture2D, 0, 0x8229 /* GL_R8 */, kSeeThroughRowWidth, rows, 0, 0x1903 /* GL_RED */,
-            kUnsignedByte, gWallSeeThrough.data());
+        glTexImage2D(kTexture2D, 0, kRG8, kSeeThroughRowWidth, rows, 0, kRG, kUnsignedByte,
+            gWallObjectTable.data());
         glTexParameteri(kTexture2D, kTextureMinFilter, kNearest);
         glTexParameteri(kTexture2D, kTextureMagFilter, kNearest);
         if (glGetError() != 0) return fail("OpenGL failed to upload the wall object table");
     }
     gWallObjectRows = std::move(objectRows);
+    gWallObjectTiles = std::move(objectTiles);
     gWallTriangleCount = totalTriangles;
     gBakedObjects = std::move(bakedObjects);
     gWallsLoaded = true;
@@ -363,14 +368,30 @@ void markStaticWallSeeThrough(int tile, int fid)
 
 void endStaticWallSeeThrough()
 {
-    if (gWallSeeThroughTexture == 0 || gWallSeeThrough == gWallSeeThroughUploaded) return;
-    gWallSeeThroughUploaded = gWallSeeThrough;
     gWallSeeThroughAny = std::find(gWallSeeThrough.begin(), gWallSeeThrough.end(), 255) != gWallSeeThrough.end();
-    glBindTexture(kTexture2D, gWallSeeThroughTexture);
-    glTexSubImage2D(kTexture2D, 0, 0, 0, kSeeThroughRowWidth,
-        static_cast<int>(gWallSeeThrough.size() / kSeeThroughRowWidth), 0x1903 /* GL_RED */, kUnsignedByte,
-        gWallSeeThrough.data());
 }
+
+namespace internal {
+
+void flushWallObjectTable()
+{
+    if (gWallSeeThroughTexture == 0) return;
+    std::vector<unsigned char> table(gWallSeeThrough.size() * 2);
+    for (size_t row = 0; row < gWallSeeThrough.size(); row++) {
+        table[row * 2] = gWallSeeThrough[row];
+        const float light = row < gWallObjectTiles.size() ? lightAtTile(gWallObjectTiles[row]) : 1.0f;
+        table[row * 2 + 1] = static_cast<unsigned char>(light * 255.0f + 0.5f);
+    }
+    if (table == gWallObjectTable) return;
+    gWallObjectTable = std::move(table);
+    glBindTexture(kTexture2D, gWallSeeThroughTexture);
+    glPixelStorei(kUnpackAlignment, 2);
+    glTexSubImage2D(kTexture2D, 0, 0, 0, kSeeThroughRowWidth,
+        static_cast<int>(gWallSeeThrough.size() / kSeeThroughRowWidth), kRG, kUnsignedByte, gWallObjectTable.data());
+    glPixelStorei(kUnpackAlignment, 4);
+}
+
+} // namespace internal
 
 } // namespace scene_renderer
 } // namespace fallout

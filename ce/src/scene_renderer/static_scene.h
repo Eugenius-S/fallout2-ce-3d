@@ -25,6 +25,11 @@ void setStaticRoofVisibility(const unsigned char* visible);
 // top-left corner on screen, in game logical pixels. The mask must stay alive.
 void setStaticEgg(const unsigned char* mask, int width, int height, int left, int top);
 void clearStaticEgg();
+// The game's light: each hex's intensity (HEX_GRID_SIZE values, 65536 full)
+// and the ambient level. The scene is lit as the engine paints: the floor
+// by its hexes, walls and sprites by their own hex, roofs by the ambient.
+void setStaticLight(const int* tileIntensity, int ambient);
+void clearStaticLight();
 
 // Objects walls.bin already draws (baked.bin): the caller only picks them.
 bool staticObjectBaked(int tile, int fid);

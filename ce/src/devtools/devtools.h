@@ -27,7 +27,8 @@ namespace devtools {
 // --dev-floor-preview / --dev-wall-preview / --dev-hero-preview / --dev-walk-preview /
 // --dev-view-tile / --dev-still-snapshot / --dev-snapshot-run /
 // --dev-map-tour=<map:elevation[:view hex],...> (a snapshot on arrival, then on
-// each) / --dev-classic (the same without the 3D scene) / --dev-hero-tile.
+// each) / --dev-classic (the same without the 3D scene) / --dev-hero-tile /
+// --dev-ambient=<0..65536> (the map's ambient light held there).
 // Returns true when the argument belonged to devtools.
 bool parseOption(const char* arg);
 

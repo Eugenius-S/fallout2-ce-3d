@@ -104,6 +104,12 @@ int main()
             && descriptor->fallbackLabel == "Enable 3D scene" && !descriptor->fallbackDescription.empty(),
             "descriptor has apply policy and fallback menu metadata")) return 1;
     if (!check(scene::enabled() && scene::settingsRevision() == 0, "missing value uses true default")) return 1;
+    const SettingDescriptor* lights = nullptr;
+    for (const auto& candidate : settingsGetDescriptors()) {
+        if (candidate.section == "3d" && candidate.key == "lights") lights = &candidate;
+    }
+    if (!check(lights != nullptr && std::get<bool>(lights->defaultValue) && settings.scene3d.lights
+            && lights->fallbackLabel == "Light", "[3d].lights is registered, default on, with a menu label")) return 1;
 
     std::string error;
     if (!check(settingsSetValue(*descriptor, SettingValue(false), &error), "registered setting accepts false")) return 1;

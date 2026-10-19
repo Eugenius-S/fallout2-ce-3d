@@ -283,6 +283,7 @@ struct QolSettings {
 
 struct Scene3dSettings {
     bool enabled = true;
+    bool lights = true;
 };
 
 struct MapperSettings {
