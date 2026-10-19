@@ -2,8 +2,8 @@
 id: 007
 title: CI builds the game on Windows
 milestone: M0
-status: todo
-owner: none
+status: doing
+owner: glm
 suggested: glm
 claude-only: no
 user-check: no
