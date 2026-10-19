@@ -2,8 +2,8 @@
 id: 018
 title: See-through walls around the hero
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: claude
 suggested: claude
 claude-only: yes
 user-check: yes
