@@ -2,13 +2,13 @@
 id: 027
 title: 3D settings report changes per key and log a failed start
 milestone: M1
-status: doing
+status: done
 owner: gpt
 suggested: gpt
 claude-only: no
 user-check: no
 depends-on: [014]
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -53,3 +53,10 @@ Check: Release build; CTest 8/8. A background ARTEMPLE snapshot with an isolated
 Done: Completed the normal 16-spot regression without updating references; all 16 passed with 0 changed pixels. Curated the machine-readable summary and the ARTEMPLE empty-cache fallback PNG/metadata/stdout evidence in `runs/027-3d-settings-per-key/`. The fallback remained vanilla (`scene_view: off`) and emitted one failure reason line. The primary game config hash stayed `8D95CE8F0A11FDB975C2EAFE4836248DD4F9983074161BA4578EE463F2CCEF7F` before and after.
 Next: Parent review; after resume, PR and merge by parent.
 Check: Release build; CTest 8/8; exporter 38 and regression 12 passed (parent independent run); normal regression summary reports `success: true`, `update: false`, 16/16 pass, 0 changed pixels; `git diff --check` clean.
+
+### 2026-10-19 claude (review)
+Accepted and merged (PR #21). Each setting keeps its own revision; the scene
+follows only `[3d] enabled`, and the lifecycle ignores a revision whose value
+did not change. A failed start stays in 2D with one reason line. The test
+changes a real key from another section; the direct test with a second `[3d]`
+key comes with `[3d] lights` in task 020 (PR #20).
