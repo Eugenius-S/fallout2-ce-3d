@@ -34,3 +34,12 @@ roadmap's architecture notes only if another task depends on it.
 Roofs (013), light.
 
 ## Log
+
+### 2026-10-19 claude
+Found by the owner in the game (KLADWTWN, after roofs, task 013), to fix here:
+- `runs/012-klamath-scene-correctness/owner-wall-corner.png`: at the corner of
+  a dark building a vertical strip of the wall art stands off the corner (a
+  slab end or corner post drawn on the front plane).
+- `runs/012-klamath-scene-correctness/owner-roof-corner.png`: the roof's
+  corner and the wall top below it do not line up; the wall top runs on
+  past the roof edge.

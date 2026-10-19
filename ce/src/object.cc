@@ -941,18 +941,19 @@ void _obj_render_scene_overlay(Rect* rect)
 
     textObjectsRenderInRect(&updatedRect);
 
-    // The mouse's cursor objects. In move mode they stand on a hex, drawn
-    // where the scene shows it; otherwise they follow the mouse on screen.
-    const bool onHex = gameMouseGetMode() == GAME_MOUSE_MODE_MOVE;
+    // The mouse's cursor objects. In move mode they stand on the hex under the
+    // mouse, drawn where the scene shows it (the no-path cross is placed by
+    // the hex's screen position, so it takes the hex's shift too); otherwise
+    // they follow the mouse on screen.
+    int dx = 0;
+    int dy = 0;
+    if (gameMouseGetMode() == GAME_MOUSE_MODE_MOVE && gGameMouseHexCursor != nullptr) {
+        tileSceneShift(gGameMouseHexCursor->tile, &dx, &dy);
+    }
     Object* const cursors[] = { gGameMouseHexCursor, gGameMouseBouncingCursor };
     for (Object* object : cursors) {
         if (object == nullptr || (object->flags & OBJECT_HIDDEN) != OBJECT_NONE) {
             continue;
-        }
-        int dx = 0;
-        int dy = 0;
-        if (onHex) {
-            tileSceneShift(object->tile, &dx, &dy);
         }
         object->x += dx;
         object->y += dy;
