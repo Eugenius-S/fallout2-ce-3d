@@ -41,3 +41,15 @@ relative to the hex cursor.
 The hex cursor itself (it is right).
 
 ## Log
+
+### 2026-10-19 claude
+Done: the cross stands in the red hex cursor, as in 2D. In walk mode
+`_obj_move` puts the cross off the grid (tile -1) at a screen point
+(`sx`, `sy`); `_obj_render_object` draws such an object there and ignores
+`x`, `y`, so PR #8's hex shift reached the hex cursor only. The overlay now
+shifts `sx`, `sy` for objects off the grid.
+Evidence: `runs/019-no-path-cross/owner-before-wall-corner.png` (the
+owner's, before) and `after-store-counter.png` (the probe's pointer on a
+blocked hex at the store counter, after).
+Check: build, `ctest --test-dir build` (8/8); `dev-snapshot.ps1 -Probe
+-HeroTile 21678 -ViewTile 21678` (the probe points at blocked hex 22276).
