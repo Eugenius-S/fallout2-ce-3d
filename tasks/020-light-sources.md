@@ -65,3 +65,21 @@ Shadows from point lights.
 Done: research; findings and plan in `## Plan`.
 Next: start when the dependencies are done.
 Check: read `## Plan`.
+
+### 2026-10-19 claude
+Done, step 1: the scene shows the game's own light, as the engine paints it.
+Each frame the scene takes every hex's light (at least the ambient level) as
+a 200 x 200 map: the floor is lit by the hexes under it, between them; walls
+by their object's hex (walls.bin's object table); sprites and the hero by
+their hex; roofs by the ambient level. The texel is darkened in the engine's
+128 steps on its 5-bit colour, so dark places match 2D (cave: 0.93..0.99 of
+the 2D brightness; Klamath at the darkest night: 13.0 against 13.6).
+`[3d] lights` (default on, menu label "Light"): off shows the unlit scene.
+New dev option `--dev-ambient` (`dev-snapshot.ps1 -Ambient 16384`) holds the
+map's ambient light for night views.
+Choice: 3D light replaces the 2D light in the picture; step 1 is the 2D light
+itself, so nothing changes at day and caves and nights are as dark as in 2D.
+Evidence: `runs/020-game-light/` (cave and Klamath at night, 2D | 3D).
+The six cave references retaken; the town spots (day) are unchanged.
+Next: step 2, real lights from light-carrying objects (height, colour, radius).
+Check: `tools/regression.ps1` (16 pass); `ctest --test-dir build` (8/8).
