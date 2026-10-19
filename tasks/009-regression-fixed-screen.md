@@ -33,6 +33,9 @@ machine the references cannot match at all.
   (a common 16:9 size at x2); references are taken again at it.
 - Checked: switching the owner's config between 16:9, 21:9 and full screen
   does not change the results; the `Log` says how it was checked.
+- 2D (vanilla framebuffer) snapshots are right at any width: today
+  `takeSnapshot` passes the padded `gSdlSurface` rows to a tightly packed PNG
+  writer, so an odd width (1155) gives diagonal artifacts (found in task 004).
 
 ## Out of scope
 

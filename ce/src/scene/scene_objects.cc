@@ -1,0 +1,266 @@
+#include "scene_objects.h"
+
+#include <stdio.h>
+#include <string>
+
+#include "../art.h"
+#include "../color.h"
+#include "../critter.h"
+#include "../game_mouse.h"
+#include "../map.h"
+#include "../object.h"
+#include "../scene_renderer/live_objects.h"
+#include "../scene_renderer/picking.h"
+#include "../scene_renderer/static_scene.h"
+#include "../svga.h"
+#include "../tile.h"
+
+namespace fallout {
+namespace scene {
+
+namespace {
+
+std::vector<PickEntry> gPickObjects;
+int gHeroPickId = -1;
+int gHeroStack = 0; // standing sprites the game paints on the hero's hex before the hero
+unsigned int gObjectCardsSkipped = 0;
+bool gHeroUnavailableLogged = false;
+
+bool updateHeroFromGame()
+{
+    auto unavailable = [&](const char* reason) {
+        scene_renderer::clearStaticHero();
+        if (!gHeroUnavailableLogged) {
+            printf("scene: hero card skipped: %s\n", reason);
+            fflush(stdout);
+            gHeroUnavailableLogged = true;
+        }
+        return false;
+    };
+    if (gDude == nullptr) return unavailable("player object is missing");
+    if (gDude->elevation != gElevation || !hexGridTileIsValid(gDude->tile)
+        || (gDude->flags & OBJECT_HIDDEN) != OBJECT_NONE) {
+        return unavailable("player is hidden, off-map, or on another elevation");
+    }
+    if (gDude->rotation < ROTATION_FIRST || gDude->rotation >= ROTATION_COUNT) {
+        return unavailable("player rotation is invalid");
+    }
+
+    FrmImage image;
+    const FrmId frmId(gDude);
+    if (!image.lock(frmId, gDude->frame, gDude->rotation)) {
+        return unavailable("current player FRM frame could not be locked");
+    }
+    const int width = image.getWidth();
+    const int height = image.getHeight();
+    if (width <= 0 || height <= 0 || width > 2048 || height > 2048
+        || gDude->x < -32768 || gDude->x > 32768 || gDude->y < -32768 || gDude->y > 32768) {
+        return unavailable("current player FRM dimensions or movement are out of bounds");
+    }
+    const unsigned char* indices = image.getData();
+    unsigned char* palette = directDrawGetPalette();
+    if (indices == nullptr || palette == nullptr) return unavailable("player palette or pixels are unavailable");
+
+    const size_t pixelCount = static_cast<size_t>(width) * static_cast<size_t>(height);
+    std::vector<unsigned char> rgba(pixelCount * 4);
+    for (size_t index = 0; index < pixelCount; index++) {
+        const unsigned char colorIndex = indices[index];
+        rgba[index * 4] = static_cast<unsigned char>(palette[colorIndex * 3] << 2);
+        rgba[index * 4 + 1] = static_cast<unsigned char>(palette[colorIndex * 3 + 1] << 2);
+        rgba[index * 4 + 2] = static_cast<unsigned char>(palette[colorIndex * 3 + 2] << 2);
+        rgba[index * 4 + 3] = colorIndex == 0 ? 0 : 255;
+    }
+
+    scene_renderer::StaticHeroFrame frame = {
+        gDude->tile, static_cast<int>(gDude->elevation), gDude->fid, gDude->frame,
+        static_cast<int>(gDude->rotation), gDude->x, gDude->y,
+        image.getXOffset(), image.getYOffset(), width, height, rgba.data(), rgba.size(),
+    };
+    frame.stack = gHeroStack;
+    frame.pickId = gHeroPickId;
+    std::string error;
+    if (!scene_renderer::updateStaticHero(frame, &error)) return unavailable(error.c_str());
+    gHeroUnavailableLogged = false;
+    return true;
+}
+
+struct ObjectCardPass {
+    unsigned char* palette;
+    std::vector<unsigned char> rgba;
+    unsigned int skipped;
+    int lastTile; // tile of the previous standing sprite, for the per-hex count
+    int onTile; // standing sprites painted on lastTile so far
+};
+
+// How many standing sprites the game paints on this object's hex before it
+// (the walk is in the game's own painting order).
+int nextStackOnTile(ObjectCardPass& pass, Object* object)
+{
+    if ((object->flags & OBJECT_FLAT) != OBJECT_NONE) return 0;
+    if (object->tile != pass.lastTile) {
+        pass.lastTile = object->tile;
+        pass.onTile = 0;
+    }
+    return pass.onTile++;
+}
+
+void addObjectCard(Object* object, void* context)
+{
+    ObjectCardPass& pass = *static_cast<ObjectCardPass*>(context);
+    // The mouse's cursor objects are drawn over the scene with the interface.
+    if ((object->flags & OBJECT_HIDDEN) != OBJECT_NONE || !hexGridTileIsValid(object->tile)
+        || object == gGameMouseHexCursor || object == gGameMouseBouncingCursor) {
+        return;
+    }
+    const int pickId = static_cast<int>(gPickObjects.size());
+    gPickObjects.push_back({ object, object->tile });
+    // walls.bin draws it: its card is only picked, and the game's count of
+    // sprites on its hex does not include it.
+    const bool pickOnly = scene_renderer::staticObjectBaked(object->tile, object->fid);
+    const int stack = pickOnly ? (object->tile == pass.lastTile ? pass.onTile : 0) : nextStackOnTile(pass, object);
+    if (object == gDude) {
+        gHeroStack = stack; // the hero card is drawn on its own
+        gHeroPickId = pickId;
+        return;
+    }
+    if (object->rotation < ROTATION_FIRST || object->rotation >= ROTATION_COUNT) {
+        pass.skipped++;
+        return;
+    }
+    FrmImage image;
+    if (!image.lock(FrmId(object), object->frame, object->rotation)) {
+        pass.skipped++;
+        return;
+    }
+    const int width = image.getWidth();
+    const int height = image.getHeight();
+    if (width <= 0 || height <= 0 || width > 2048 || height > 2048) {
+        pass.skipped++;
+        return;
+    }
+    const bool cached = scene_renderer::staticObjectArtCached(object->fid, object->frame, object->rotation);
+    if (!cached) {
+        const unsigned char* indices = image.getData();
+        if (indices == nullptr) {
+            pass.skipped++;
+            return;
+        }
+        const size_t pixelCount = static_cast<size_t>(width) * static_cast<size_t>(height);
+        pass.rgba.resize(pixelCount * 4);
+        for (size_t index = 0; index < pixelCount; index++) {
+            const unsigned char colorIndex = indices[index];
+            pass.rgba[index * 4] = static_cast<unsigned char>(pass.palette[colorIndex * 3] << 2);
+            pass.rgba[index * 4 + 1] = static_cast<unsigned char>(pass.palette[colorIndex * 3 + 1] << 2);
+            pass.rgba[index * 4 + 2] = static_cast<unsigned char>(pass.palette[colorIndex * 3 + 2] << 2);
+            pass.rgba[index * 4 + 3] = colorIndex == 0 ? 0 : 255;
+        }
+    }
+    scene_renderer::StaticObjectFrame frame = {
+        object->tile, object->fid, object->frame, static_cast<int>(object->rotation), object->x, object->y,
+        image.getXOffset(), image.getYOffset(), width, height, (object->flags & OBJECT_FLAT) != OBJECT_NONE,
+        cached ? nullptr : pass.rgba.data(), cached ? 0 : pass.rgba.size(),
+    };
+    frame.stack = stack;
+    frame.pickId = pickId;
+    frame.pickOnly = pickOnly;
+    // The engine's translucent kinds and their tints (_obj_render_object).
+    Color tint = COLOR_WHITE;
+    bool translucent = true;
+    switch (object->flags & OBJECT_FLAG_0xFC000) {
+    case OBJECT_TRANS_RED:
+        tint = COLOR_RED;
+        break;
+    case OBJECT_TRANS_WALL:
+        tint = COLOR_PALE_BLUE;
+        break;
+    case OBJECT_TRANS_GLASS:
+        tint = COLOR_CYAN;
+        frame.glassGray = true;
+        break;
+    case OBJECT_TRANS_STEAM:
+        tint = COLOR_WHITE;
+        break;
+    case OBJECT_TRANS_ENERGY:
+        tint = COLOR_YELLOW_GREEN;
+        break;
+    default:
+        translucent = false;
+        break;
+    }
+    if (translucent) {
+        const int rgb = Color2RGB(tint);
+        frame.tint[0] = ((rgb >> 10) & 0x1F) / 31.0f;
+        frame.tint[1] = ((rgb >> 5) & 0x1F) / 31.0f;
+        frame.tint[2] = (rgb & 0x1F) / 31.0f;
+    }
+    std::string error;
+    if (!scene_renderer::addStaticObject(frame, &error)) pass.skipped++;
+}
+
+struct PickFilter {
+    int objectType;
+};
+
+bool pickWanted(int pickId, void* context)
+{
+    const PickFilter& filter = *static_cast<const PickFilter*>(context);
+    if (pickId < 0 || pickId >= static_cast<int>(gPickObjects.size())) return false;
+    const PickEntry& entry = gPickObjects[pickId];
+    if (!objectIsOnTile(entry.object, entry.tile)) return false;
+    return filter.objectType == OBJ_TYPE_INVALID || FrmId(entry.object).objectType() == filter.objectType;
+}
+
+} // namespace
+
+bool updateObjectsFromGame()
+{
+    scene_renderer::beginStaticObjects();
+    gPickObjects.clear();
+    gHeroPickId = -1;
+    ObjectCardPass pass = { directDrawGetPalette(), {}, 0, -1, 0 };
+    if (pass.palette != nullptr) objectForEachAtElevation(gElevation, addObjectCard, &pass);
+    scene_renderer::endStaticObjects();
+    gObjectCardsSkipped = pass.skipped;
+    return updateHeroFromGame();
+}
+
+unsigned int objectCardsSkipped()
+{
+    return gObjectCardsSkipped;
+}
+
+const std::vector<PickEntry>& pickEntries()
+{
+    return gPickObjects;
+}
+
+void resetHeroLog()
+{
+    gHeroUnavailableLogged = false;
+}
+
+bool pickObject(int mouseX, int mouseY, int objectType, bool includeDude, Object** found)
+{
+    if (!tileSceneOverlayActive()) return false;
+    // gameMouseGetObjectUnderCursor on the scene's picture: from the nearest
+    // down, the first opaque one that is not a dead or unconscious critter,
+    // else the last one under the pointer.
+    PickFilter filter = { objectType };
+    int picked[8];
+    const int count = scene_renderer::pickStaticObjects(mouseX, mouseY, pickWanted, &filter, picked, 8);
+    *found = nullptr;
+    for (int index = 0; index < count; index++) {
+        Object* object = gPickObjects[picked[index]].object;
+        if (!includeDude && object == gDude) continue;
+        *found = object;
+        const bool translucent = (object->flags & OBJECT_FLAG_0xFC000) != OBJECT_NONE
+            && (object->flags & OBJECT_TRANS_NONE) == OBJECT_NONE;
+        const bool down = FrmId(object).objectType() == OBJ_TYPE_CRITTER
+            && (object->data.critter.combat.results & (DAM_KNOCKED_OUT | DAM_DEAD)) != 0;
+        if (!translucent && !down) break;
+    }
+    return true;
+}
+
+} // namespace scene
+} // namespace fallout

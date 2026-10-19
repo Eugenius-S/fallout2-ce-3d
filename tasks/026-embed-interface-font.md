@@ -84,3 +84,10 @@ expired and no further permission is needed for the new font getter files.
 Next: incorporate origin/main's module split, add the public embedded_fonts
 API, route tests through it, rebuild and run the unchanged regression views.
 Check: `ctest --test-dir build --output-on-failure`.
+
+### 2026-10-19 gpt
+Done: incorporated origin/main's merged task 002 (`055dcba`) with an automatic
+CMake merge; the scene module split and the font embedding rules are both
+preserved. No existing renderer or devtools logic was changed for task 026.
+Next: add the getter API and rebuild the combined tree before final checks.
+Check: `git diff origin/main -- ce/CMakeLists.txt ce/src/scene_renderer/`.
