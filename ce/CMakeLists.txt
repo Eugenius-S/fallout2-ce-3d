@@ -374,6 +374,7 @@ if(BUILD_TESTING)
     )
     target_include_directories(game_view_tests PRIVATE "src/scene_renderer")
     add_test(NAME game_view_tests COMMAND game_view_tests)
+    add_subdirectory(tests/embedded_fonts)
 endif()
 
 target_sources(${EXECUTABLE_NAME} PUBLIC
@@ -825,3 +826,10 @@ if(CMAKE_SYSTEM_NAME MATCHES "Emscripten")
     set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -g")
     set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g")
 endif()
+
+include(cmake/EmbeddedFonts.cmake)
+foreach(font_target ${EXECUTABLE_NAME} mapper-ce)
+    if(TARGET ${font_target})
+        fallout_embed_font_data(${font_target})
+    endif()
+endforeach()

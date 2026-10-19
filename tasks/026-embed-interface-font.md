@@ -72,3 +72,15 @@ Next: connect the generator to the game/tests, implement the embedded font
 getter and glyph/rasterization tests after permission for its new renderer
 files or task 002's merge. Do not start task 009 before task 002 merges.
 Check: `cmake -DFONT_DIRECTORY=<absolute-font-dir> -DOUTPUT=<build>/font-data.cc -P ce/cmake/embed_font_data.cmake`.
+
+### 2026-10-19 gpt
+Done: added shared CMake embedding rules, a single stb implementation per
+target, standalone font tests and the CI matrix entry. The game, mapper and
+test executable each contain both complete original TTF byte streams. All
+5 native tests pass; both fonts initialize and rasterize W, Cyrillic Zhe/yo/
+Shcha, question mark and all digits (30 glyphs total).
+Task 002 is now merged as PR #4 (`055dcba`), so its directory restriction has
+expired and no further permission is needed for the new font getter files.
+Next: incorporate origin/main's module split, add the public embedded_fonts
+API, route tests through it, rebuild and run the unchanged regression views.
+Check: `ctest --test-dir build --output-on-failure`.
