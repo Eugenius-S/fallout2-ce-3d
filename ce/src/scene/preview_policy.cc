@@ -1,7 +1,7 @@
 #include "preview_policy.h"
 
 namespace fallout {
-namespace devtools {
+namespace scene {
 
 PreviewBlockReason previewBlockReason(const PreviewRuntimeState& state)
 {
@@ -20,5 +20,5 @@ bool previewMayPresent(const PreviewRuntimeState& state)
     return previewBlockReason(state) == PreviewBlockReason::None;
 }
 
-} // namespace devtools
+} // namespace scene
 } // namespace fallout

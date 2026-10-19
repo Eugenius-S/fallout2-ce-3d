@@ -294,13 +294,34 @@ set(FALLOUT_PLATFORM_SOURCES
     "src/settings.cc"
     "src/settings.h"
     "src/devtools/devtools.cc"
-    "src/devtools/preview_policy.cc"
+    "src/scene/preview_policy.cc"
+    "src/scene/preview_policy.h"
+    "src/scene/scene_objects.cc"
+    "src/scene/scene_objects.h"
+    "src/scene/scene_overlay.cc"
+    "src/scene/scene_overlay.h"
+    "src/scene/scene_view.cc"
+    "src/scene/scene_view.h"
     "src/devtools/devtools.h"
     "src/scene_renderer/gl_api.cc"
     "src/scene_renderer/gl_api.h"
     "src/scene_renderer/gl_procs.h"
-    "src/scene_renderer/scene_gl.cc"
-    "src/scene_renderer/scene_gl.h"
+    "src/scene_renderer/camera.cc"
+    "src/scene_renderer/camera.h"
+    "src/scene_renderer/context.cc"
+    "src/scene_renderer/context.h"
+    "src/scene_renderer/floor.cc"
+    "src/scene_renderer/live_objects.cc"
+    "src/scene_renderer/live_objects.h"
+    "src/scene_renderer/picking.cc"
+    "src/scene_renderer/picking.h"
+    "src/scene_renderer/scene_draw.cc"
+    "src/scene_renderer/scene_draw.h"
+    "src/scene_renderer/scene_internal.cc"
+    "src/scene_renderer/scene_internal.h"
+    "src/scene_renderer/scene_shader.cc"
+    "src/scene_renderer/static_scene.h"
+    "src/scene_renderer/walls.cc"
     "src/scene_renderer/ground_pick.cc"
     "src/scene_renderer/ground_pick.h"
     "src/scene_renderer/sprite_card.cc"
@@ -347,10 +368,10 @@ set(FALLOUT_PLATFORM_SOURCES
 include(CTest)
 if(BUILD_TESTING)
     add_executable(preview_policy_tests
-        "src/devtools/preview_policy.cc"
+        "src/scene/preview_policy.cc"
         "tests/preview_policy/preview_policy_test.cc"
     )
-    target_include_directories(preview_policy_tests PRIVATE "src/devtools")
+    target_include_directories(preview_policy_tests PRIVATE "src/scene")
     add_test(NAME preview_policy_tests COMMAND preview_policy_tests)
 
     add_executable(ground_pick_tests
