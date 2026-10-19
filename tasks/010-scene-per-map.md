@@ -2,8 +2,8 @@
 id: 010
 title: A 3D scene for any map and elevation
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: claude
 suggested: gpt
 claude-only: no
 user-check: no
