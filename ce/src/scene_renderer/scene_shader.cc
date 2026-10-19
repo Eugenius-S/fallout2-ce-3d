@@ -36,6 +36,11 @@ uniform int uTranslucent; // the engine's translucent blend: steam, glass, energ
 uniform vec3 uTint;
 uniform int uGlassGray;
 uniform int uPick; // the pick pass: every texel shown is the object's id colour
+uniform int uEgg; // the see-through circle around the hero
+uniform sampler2D uEggMask;
+uniform vec4 uEggRect; // game logical pixels: left, top, width, height
+uniform vec4 uViewport; // GL viewport of the game picture
+uniform vec2 uLogical; // the game picture's size in game logical pixels
 out vec4 outColor;
 void main() {
     if (uTextured == 0) {
@@ -56,6 +61,17 @@ void main() {
             outColor = vec4(uTint, min(gray, 7.0) / 7.0);
         } else {
             outColor = texel;
+            if (uEgg != 0) {
+                // _intensity_mask_buf_to_buf: inside the egg a nonzero mask
+                // value is the roof's share in 128ths.
+                vec2 game = (gl_FragCoord.xy - uViewport.xy) / uViewport.zw * uLogical;
+                game.y = uLogical.y - game.y;
+                vec2 e = (game - uEggRect.xy) / uEggRect.zw;
+                if (e.x >= 0.0 && e.y >= 0.0 && e.x < 1.0 && e.y < 1.0) {
+                    float m = floor(texture(uEggMask, e).r * 255.0 + 0.5);
+                    if (m > 0.0) outColor.a *= min(m, 128.0) / 128.0;
+                }
+            }
         }
     }
 }
@@ -74,6 +90,11 @@ int gSceneTranslucentLocation = -1;
 int gSceneTintLocation = -1;
 int gSceneGlassGrayLocation = -1;
 int gScenePickLocation = -1;
+int gSceneEggLocation = -1;
+int gSceneEggMaskLocation = -1;
+int gSceneEggRectLocation = -1;
+int gSceneViewportLocation = -1;
+int gSceneLogicalLocation = -1;
 
 bool createSceneShader(std::string* error)
 {
@@ -112,10 +133,17 @@ bool createSceneShader(std::string* error)
     gSceneTintLocation = glGetUniformLocation(gSceneProgram, "uTint");
     gSceneGlassGrayLocation = glGetUniformLocation(gSceneProgram, "uGlassGray");
     gScenePickLocation = glGetUniformLocation(gSceneProgram, "uPick");
+    gSceneEggLocation = glGetUniformLocation(gSceneProgram, "uEgg");
+    gSceneEggMaskLocation = glGetUniformLocation(gSceneProgram, "uEggMask");
+    gSceneEggRectLocation = glGetUniformLocation(gSceneProgram, "uEggRect");
+    gSceneViewportLocation = glGetUniformLocation(gSceneProgram, "uViewport");
+    gSceneLogicalLocation = glGetUniformLocation(gSceneProgram, "uLogical");
     if (gSceneMvpLocation < 0 || gSceneTextureLocation < 0
         || gSceneTexturedLocation < 0 || gSceneColorLocation < 0 || gSceneCutoffLocation < 0
         || gSceneDepthAtLocation < 0 || gSceneTranslucentLocation < 0 || gSceneTintLocation < 0
-        || gSceneGlassGrayLocation < 0 || gScenePickLocation < 0) {
+        || gSceneGlassGrayLocation < 0 || gScenePickLocation < 0 || gSceneEggLocation < 0
+        || gSceneEggMaskLocation < 0 || gSceneEggRectLocation < 0 || gSceneViewportLocation < 0
+        || gSceneLogicalLocation < 0) {
         *error = "static floor shader uniforms are missing";
         return false;
     }

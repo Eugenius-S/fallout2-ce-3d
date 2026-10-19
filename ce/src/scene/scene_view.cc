@@ -1,7 +1,9 @@
 #include "scene_view.h"
 
 #include <ctype.h>
+#include <cmath>
 #include <filesystem>
+#include <vector>
 #include <stdio.h>
 #include <string.h>
 
@@ -9,7 +11,11 @@
 
 #include "preview_policy.h"
 #include "scene_objects.h"
+#include "../art.h"
 #include "../dialog.h"
+#include "../object.h"
+#include "../scene_renderer/game_view.h"
+#include "../scene_renderer/picking.h"
 #include "../combat.h"
 #include "../game.h"
 #include "../map.h"
@@ -99,6 +105,48 @@ bool loadScene(View view, const std::string& map, int elevation, std::string* me
         return false;
     }
     return true;
+}
+
+// Roofs as the game shows them now: hidden over the building the hero is in
+// (tile_fill_roof), all of them off with the roof toggle; and the hero's
+// see-through circle over them (the egg, as tileRenderRoof uses it).
+void updateRoofsFromGame()
+{
+    static unsigned char visible[SQUARE_GRID_SIZE];
+    const bool roofsOn = tileRoofIsVisible() != 0;
+    const TileData* squares = _square[gElevation];
+    for (int index = 0; index < SQUARE_GRID_SIZE; index++) {
+        // The upper 16 bits: the roof's 12-bit frame and 4 flag bits.
+        const unsigned int roof = static_cast<unsigned int>(squares->tileFid[index]) >> 16;
+        const unsigned int flags = (roof >> 12) & 0xF;
+        visible[index] = roofsOn && (flags & 0x3 /* TemporarilyHidden | AlwaysHidden */) == 0 ? 1 : 0;
+    }
+    scene_renderer::setStaticRoofVisibility(visible);
+
+    static std::vector<unsigned char> eggMask;
+    static int eggWidth = 0, eggHeight = 0, eggX = 0, eggY = 0;
+    if (eggMask.empty() && gEgg != nullptr) {
+        FrmImage image;
+        if (image.lock(FrmId(gEgg)) && image.getData() != nullptr) {
+            eggWidth = image.getWidth();
+            eggHeight = image.getHeight();
+            eggX = image.getXOffset();
+            eggY = image.getYOffset();
+            eggMask.assign(image.getData(), image.getData() + eggWidth * eggHeight);
+        }
+    }
+    double pixel[2], x, y;
+    if (eggMask.empty() || gEgg == nullptr || !hexGridTileIsValid(gEgg->tile)) {
+        scene_renderer::clearStaticEgg();
+        return;
+    }
+    scene_renderer::gameViewTilePixel(gEgg->tile, pixel);
+    if (!scene_renderer::staticScreenFromGamePixel(pixel[0] + eggX + gEgg->x, pixel[1] + eggY + gEgg->y, &x, &y)) {
+        scene_renderer::clearStaticEgg();
+        return;
+    }
+    scene_renderer::setStaticEgg(eggMask.data(), eggWidth, eggHeight,
+        static_cast<int>(std::lround(x)) - eggWidth / 2, static_cast<int>(std::lround(y)) - eggHeight + 1);
 }
 
 PreviewRuntimeState runtimeState()
@@ -266,6 +314,7 @@ RefreshResult refreshForPresent()
     if (!gCameraGlide) scene_renderer::setStaticCameraCenterTile(-1);
     scene_renderer::setStaticCameraCenterTile(gCenterTile);
     const bool heroUpdated = updateObjectsFromGame();
+    updateRoofsFromGame();
     const double seconds = static_cast<double>(SDL_GetPerformanceCounter() - start) / SDL_GetPerformanceFrequency();
     return { heroUpdated, seconds };
 }

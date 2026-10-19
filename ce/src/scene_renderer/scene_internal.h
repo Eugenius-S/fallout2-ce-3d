@@ -150,6 +150,14 @@ extern int gSceneTranslucentLocation;
 extern int gSceneTintLocation;
 extern int gSceneGlassGrayLocation;
 extern int gScenePickLocation;
+// The see-through circle (roofs.cc): on/off, its mask (texture unit 1), its
+// rect in game logical pixels, and the GL viewport and logical size to find
+// a fragment's game pixel.
+extern int gSceneEggLocation;
+extern int gSceneEggMaskLocation;
+extern int gSceneEggRectLocation;
+extern int gSceneViewportLocation;
+extern int gSceneLogicalLocation;
 
 bool createSceneShader(std::string* error);
 void destroySceneShader();
@@ -162,6 +170,19 @@ extern int gFloorVertexCount;
 extern bool gFloorLoaded;
 
 void destroyStaticFloor();
+
+// --- roofs.cc: roof squares from floor.bin, drawn over the scene ------------
+
+struct RoofSquare {
+    int index; // square index, y * 100 + x, as the engine's tileFid
+    float x0, z0, x1, z1;
+    float u0, v0, u1, v1;
+};
+
+void setRoofSquares(std::vector<RoofSquare> squares);
+void destroyRoofs();
+// With the scene program in use and the game view's matrix set.
+void drawRoofs(int viewportX, int viewportY, int viewportWidth, int viewportHeight);
 
 // --- walls.cc: walls.bin and the objects it draws (baked.bin) ----------------
 

@@ -17,6 +17,15 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
 void unloadStaticScene();
 void staticWallStats(unsigned int* triangles, unsigned int* pages);
 
+// Which roof squares the game shows now: 100 x 100 bytes in the engine's
+// square order (y * 100 + x), nonzero shown.
+void setStaticRoofVisibility(const unsigned char* visible);
+// The game's see-through circle around the hero (its egg) over roofs: the
+// egg's mask (0: the roof shows whole, else its share in 128ths) and its
+// top-left corner on screen, in game logical pixels. The mask must stay alive.
+void setStaticEgg(const unsigned char* mask, int width, int height, int left, int top);
+void clearStaticEgg();
+
 // Objects walls.bin already draws (baked.bin): the caller only picks them.
 bool staticObjectBaked(int tile, int fid);
 // Things standing on a solid (an item on a table) are moved onto it, along the
