@@ -47,3 +47,8 @@ The menu UI (task 017).
 Done: Claimed task 014 to add the schema-backed `[3d]` setting store and a small scene API for reading values and detecting updates.
 Next: Inspect the current settings schema and scene APIs, then propose the smallest compatible design before implementation.
 Check: `tools/tasks.ps1`; task branch `task/014-settings-3d-store`.
+
+### 2026-10-19 gpt
+Done: Registered `[3d].enabled` with default on, strict key-specific boolean parsing, fallback menu metadata, and a scene API exposing the value plus a non-consuming monotonic revision. Added real-registry tests and three-line key-add guidance.
+Next: Parent review of Step 1; scene activation remains for Step 2.
+Check: Release build; root CTest 8/8; standalone `settings_3d_tests` 1/1.

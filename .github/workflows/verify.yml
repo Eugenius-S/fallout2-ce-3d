@@ -16,9 +16,15 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        suite: [ground_pick, preview_policy, sprite_card, game_view, embedded_fonts, fixed_screen_options, snapshot_rows]
+        suite: [ground_pick, preview_policy, sprite_card, game_view, embedded_fonts, fixed_screen_options, snapshot_rows, settings_3d]
     steps:
       - uses: actions/checkout@v4
       - run: cmake -S ce/tests/${{ matrix.suite }} -B build-tests -DCMAKE_BUILD_TYPE=Release
+      - run: cmake --build build-tests --target settings_3d_tests
+        if: matrix.suite == 'settings_3d'
       - run: cmake --build build-tests
+        if: matrix.suite != 'settings_3d'
+      - run: ctest --test-dir build-tests -R '^settings_3d_tests$' --output-on-failure
+        if: matrix.suite == 'settings_3d'
       - run: ctest --test-dir build-tests --output-on-failure
+        if: matrix.suite != 'settings_3d'

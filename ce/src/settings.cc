@@ -8,6 +8,8 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cctype>
+#include <cstdint>
 #include <functional>
 #include <string>
 #include <type_traits>
@@ -29,6 +31,7 @@ struct SettingRegistryEntry {
 
 static std::vector<SettingRegistryEntry> settingsRegistry;
 static std::vector<SettingDescriptor> settingDescriptors;
+static std::uint64_t gThreeDSettingsRevision = 0;
 
 Settings settings;
 
@@ -69,6 +72,26 @@ static void settingsRead(const char* section, const char* key, bool& value)
     if (configGetBool(&gGameConfig, section, key, &v)) {
         value = v;
     }
+}
+
+static bool parseThreeDEnabled(const char* text, bool* value)
+{
+    if (text == nullptr || value == nullptr) return false;
+    std::string normalized(text);
+    auto first = std::find_if_not(normalized.begin(), normalized.end(), [](unsigned char ch) { return std::isspace(ch) != 0; });
+    auto last = std::find_if_not(normalized.rbegin(), normalized.rend(), [](unsigned char ch) { return std::isspace(ch) != 0; }).base();
+    if (first >= last) return false;
+    normalized = std::string(first, last);
+    std::transform(normalized.begin(), normalized.end(), normalized.begin(), [](unsigned char ch) { return static_cast<char>(std::tolower(ch)); });
+    if (normalized == "1" || normalized == "true" || normalized == "yes" || normalized == "on") {
+        *value = true;
+        return true;
+    }
+    if (normalized == "0" || normalized == "false" || normalized == "no" || normalized == "off") {
+        *value = false;
+        return true;
+    }
+    return false;
 }
 
 static void settingsRead(const char* section, const char* key, double& value)
@@ -387,6 +410,27 @@ void initSettingsRegistry(bool isMapper)
     SETTING(fast_ammo_load);
 #undef SECT
 
+    registerSetting("3d", "enabled", settings.scene3d.enabled);
+    SettingDescriptor& scene3dDescriptor = settingDescriptors.back();
+    scene3dDescriptor.category = SettingCategory::Uncategorized;
+    scene3dDescriptor.applyPolicy = SettingApplyPolicy::OnClose;
+    scene3dDescriptor.subsection = "3D";
+    scene3dDescriptor.fallbackLabel = "Enable 3D scene";
+    scene3dDescriptor.fallbackDescription = "Show the 3D world view where a scene is available.";
+    settingsRegistry.back().descriptor = scene3dDescriptor;
+    const bool scene3dDefault = std::get<bool>(scene3dDescriptor.defaultValue);
+    settingsRegistry.back().read = [scene3dDefault]() {
+        bool enabled = scene3dDefault;
+        char* configuredValue = nullptr;
+        if (configGetString(&gGameConfig, "3d", "enabled", &configuredValue)) {
+            parseThreeDEnabled(configuredValue, &enabled);
+        }
+        if (settings.scene3d.enabled != enabled) {
+            settings.scene3d.enabled = enabled;
+            ++gThreeDSettingsRevision;
+        }
+    };
+
     if (isMapper) {
 #define SECT mapper
         SETTING(override_librarian);
@@ -531,6 +575,11 @@ SettingValue settingsGetConfiguredValue(const SettingDescriptor& descriptor)
         : settingsGetValue(descriptor);
 }
 
+std::uint64_t settingsGetThreeDRevision()
+{
+    return gThreeDSettingsRevision;
+}
+
 bool settingsValidateValue(const SettingDescriptor& descriptor, const SettingValue& value, std::string* error)
 {
     const SettingRegistryEntry* entry = settingsFindEntry(descriptor);
@@ -604,7 +653,13 @@ bool settingsSetValue(const SettingDescriptor& descriptor, const SettingValue& v
 
     switch (entry->descriptor.applyPolicy) {
     case SettingApplyPolicy::OnClose:
-        entry->setValue(value);
+        {
+            const SettingValue previousValue = entry->getValue();
+            entry->setValue(value);
+            if (entry->descriptor.section == "3d" && previousValue != entry->getValue()) {
+                ++gThreeDSettingsRevision;
+            }
+        }
         break;
     case SettingApplyPolicy::Restart:
         if (value == entry->getValue()) {
