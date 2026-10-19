@@ -24,6 +24,10 @@ teeth of diamond-shaped tiles.
   scrolling (`mapEdgeIsOverClippedArea`), but they still describe where the
   map is meant to end.
 
+- The owner's target: `runs/016-clean-map-edges/owner-target.webp` (left:
+  now, the teeth of the diamond tiles; right: wanted, the map's sides cut as
+  straight lines through the outermost tiles, black beyond).
+
 ## Acceptance
 
 - The scene is cut along straight lines: the map edge rectangle where the map
