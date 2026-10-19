@@ -2,7 +2,7 @@
 id: 005
 title: Audit the history before going public
 milestone: M0
-status: doing
+status: done
 owner: claude
 suggested: gpt
 claude-only: no
@@ -87,3 +87,9 @@ Next: the owner turns on "Keep my email addresses private"
 makes the repository public; then set `visibility: public` in
 `.foundation/project.yml` and close this task.
 Check: `git ls-remote origin` shows no `archive/dlss5`.
+
+### 2026-10-19 claude
+Done: the owner hid the e-mail; the repository is public
+(<https://github.com/Eugenius-S/fallout2-ce-3d>); `.foundation/project.yml`
+says `visibility: public`.
+Check: `gh repo view Eugenius-S/fallout2-ce-3d --json visibility`.

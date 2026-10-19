@@ -2,4 +2,4 @@ scope: personal
 source_mode: files
 owner: Eugenius-S
 repository: fallout2-ce-3d
-visibility: private
+visibility: public
