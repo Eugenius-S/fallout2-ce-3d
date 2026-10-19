@@ -1314,10 +1314,11 @@ bool handleKey(int key)
             return true;
         }
         if (scene::requestedView() != scene::View::Off) {
-            disableStaticFloorPreview("static floor preview off");
+            disableStaticFloorPreview("3D scene off");
             return true;
         }
-        enableStaticPreview(false);
+        // Back to the whole 3D scene, as the game starts it.
+        enableStaticPreview(true, true);
         return true;
     }
 
