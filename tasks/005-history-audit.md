@@ -2,8 +2,8 @@
 id: 005
 title: Audit the history before going public
 milestone: M0
-status: todo
-owner: none
+status: doing
+owner: claude
 suggested: gpt
 claude-only: no
 user-check: yes
