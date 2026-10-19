@@ -26,6 +26,10 @@ void setStaticCameraCenterTile(int tile);
 
 StaticPreviewCamera staticPreviewCamera(bool withWalls);
 
+// The game view's eye distance (units, 100 by default); a far eye (thousands)
+// is the game's own parallel projection, for comparing with 2D.
+void setStaticViewDistance(double units);
+
 } // namespace scene_renderer
 } // namespace fallout
 
