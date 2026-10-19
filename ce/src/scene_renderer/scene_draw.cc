@@ -48,6 +48,18 @@ void drawStaticPreview(bool withWalls, bool withHero)
     glUniform1i(gSceneDepthAtLocation, 0);
     glUniform1i(gSceneTranslucentLocation, 0);
     glUniform1i(gScenePickLocation, 0);
+    glUniform1i(gSceneSeeThroughLocation, 0);
+    glUniform1i(gSceneEggPassLocation, 0);
+    // The game shows the hero through the walls and scenery he stands behind,
+    // inside its egg: they are drawn without the egg's part first, and that
+    // part blended over the hero and what lies behind at the end.
+    const bool egg = withHero && bindEgg(x, y, width, height);
+    const bool wallEgg = egg && withWalls && gWallSeeThroughAny && gWallSeeThroughTexture != 0;
+    if (wallEgg) {
+        glActiveTexture(kTexture0 + 2);
+        glBindTexture(kTexture2D, gWallSeeThroughTexture);
+        glUniform1i(gSceneSeeThroughObjectsLocation, 2);
+    }
     glActiveTexture(kTexture0);
     glUniform1i(gSceneTextureLocation, 0);
     glBindVertexArray(gFloorVao);
@@ -86,6 +98,8 @@ void drawStaticPreview(bool withWalls, bool withHero)
         // Wall faces are seen from outside only, as in the donor's game view.
         glEnable(kCullFace);
         glUniform1f(gSceneCutoffLocation, 0.5f);
+        glUniform1i(gSceneSeeThroughLocation, wallEgg ? 1 : 0);
+        glUniform1i(gSceneEggPassLocation, wallEgg ? 1 : 0);
         for (const WallBatch& batch : gWallBatches) {
             glBindVertexArray(batch.vao);
             glBindTexture(kTexture2D, batch.texture);
@@ -95,18 +109,52 @@ void drawStaticPreview(bool withWalls, bool withHero)
     }
     if (withObjects) {
         glUniform1f(gSceneCutoffLocation, 0.5f);
+        glUniform1i(gSceneEggPassLocation, egg ? 1 : 0);
         glBindVertexArray(gObjectVao);
         for (const ObjectDraw& draw : gObjectDraws) {
             if (draw.pickOnly || draw.flat || draw.tint[0] >= 0.0f) continue;
+            glUniform1i(gSceneSeeThroughLocation, egg && draw.seeThrough ? 2 : 0);
             glBindTexture(kTexture2D, draw.texture);
             glDrawArrays(kTriangles, draw.firstVertex, 6);
         }
     }
+    glUniform1i(gSceneSeeThroughLocation, 0);
+    glUniform1i(gSceneEggPassLocation, 0);
     if (withHero && gHeroLoaded) {
         glUniform1f(gSceneCutoffLocation, 0.5f);
         glBindVertexArray(gHeroVao);
         glBindTexture(kTexture2D, gHeroTexture);
         glDrawArrays(kTriangles, 0, 6);
+    }
+    if (egg) {
+        glEnable(kBlend);
+        glBlendFunc(kSrcAlpha, kOneMinusSrcAlpha);
+        glDepthMask(0);
+        glUniform1i(gSceneEggPassLocation, 2);
+        glUniform1f(gSceneCutoffLocation, 0.5f);
+        if (wallEgg) {
+            glEnable(kCullFace);
+            glUniform1i(gSceneSeeThroughLocation, 1);
+            for (const WallBatch& batch : gWallBatches) {
+                glBindVertexArray(batch.vao);
+                glBindTexture(kTexture2D, batch.texture);
+                glDrawArrays(kTriangles, 0, static_cast<int>(batch.triangleCount * 3));
+            }
+            glDisable(kCullFace);
+        }
+        if (withObjects) {
+            glUniform1i(gSceneSeeThroughLocation, 2);
+            glBindVertexArray(gObjectVao);
+            for (const ObjectDraw& draw : gObjectDraws) {
+                if (draw.pickOnly || draw.flat || draw.tint[0] >= 0.0f || !draw.seeThrough) continue;
+                glBindTexture(kTexture2D, draw.texture);
+                glDrawArrays(kTriangles, draw.firstVertex, 6);
+            }
+        }
+        glUniform1i(gSceneSeeThroughLocation, 0);
+        glUniform1i(gSceneEggPassLocation, 0);
+        glDepthMask(1);
+        glDisable(kBlend);
     }
     if (withObjects) {
         glEnable(kBlend);

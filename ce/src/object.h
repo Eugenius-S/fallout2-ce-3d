@@ -76,6 +76,9 @@ void objectForEachAtElevation(MapElevation elevation, void (*visit)(Object* obje
 // Whether `object` is still in the map's list of `tile` (compares pointers only).
 bool objectIsOnTile(const Object* object, int tile);
 Object* objectFindFirstAtLocation(MapElevation elevation, int tile);
+// Whether the game draws a wall or scenery see-through inside the egg around
+// the hero (it stands behind it).
+bool objectSeeThroughAroundDude(Object* object);
 Object* objectFindNextAtLocation();
 void objectGetRect(Object* obj, Rect* rect);
 bool _obj_occupied(int tile_num, MapElevation elev);

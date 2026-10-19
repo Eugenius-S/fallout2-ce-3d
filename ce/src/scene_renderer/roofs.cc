@@ -106,23 +106,27 @@ void drawRoofs(int viewportX, int viewportY, int viewportWidth, int viewportHeig
     glUniform1i(gScenePickLocation, 0);
     glUniform1i(gSceneTexturedLocation, 1);
     glUniform1f(gSceneCutoffLocation, 0.01f);
-    if (gEggShown && gEggTexture != 0) {
-        glActiveTexture(kTexture0 + 1);
-        glBindTexture(kTexture2D, gEggTexture);
-        glUniform1i(gSceneEggMaskLocation, 1);
-        glUniform1i(gSceneEggLocation, 1);
-        glUniform4f(gSceneEggRectLocation, static_cast<float>(gEggLeft), static_cast<float>(gEggTop),
-            static_cast<float>(gEggWidth), static_cast<float>(gEggHeight));
-        glUniform4f(gSceneViewportLocation, static_cast<float>(viewportX), static_cast<float>(viewportY),
-            static_cast<float>(viewportWidth), static_cast<float>(viewportHeight));
-        glUniform2f(gSceneLogicalLocation, static_cast<float>(gLogicalWidth), static_cast<float>(gLogicalHeight));
-        glActiveTexture(kTexture0);
-    }
+    if (bindEgg(viewportX, viewportY, viewportWidth, viewportHeight)) glUniform1i(gSceneEggLocation, 1);
     glBindTexture(kTexture2D, gFloorTexture);
     glBindVertexArray(gRoofVao);
     glDrawArrays(kTriangles, 0, gRoofVertexCount);
     glUniform1i(gSceneEggLocation, 0);
     glDisable(kBlend);
+}
+
+bool bindEgg(int viewportX, int viewportY, int viewportWidth, int viewportHeight)
+{
+    if (!gEggShown || gEggTexture == 0) return false;
+    glActiveTexture(kTexture0 + 1);
+    glBindTexture(kTexture2D, gEggTexture);
+    glUniform1i(gSceneEggMaskLocation, 1);
+    glUniform4f(gSceneEggRectLocation, static_cast<float>(gEggLeft), static_cast<float>(gEggTop),
+        static_cast<float>(gEggWidth), static_cast<float>(gEggHeight));
+    glUniform4f(gSceneViewportLocation, static_cast<float>(viewportX), static_cast<float>(viewportY),
+        static_cast<float>(viewportWidth), static_cast<float>(viewportHeight));
+    glUniform2f(gSceneLogicalLocation, static_cast<float>(gLogicalWidth), static_cast<float>(gLogicalHeight));
+    glActiveTexture(kTexture0);
+    return true;
 }
 
 } // namespace internal

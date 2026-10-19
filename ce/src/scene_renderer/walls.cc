@@ -1,5 +1,6 @@
 #include "static_scene.h"
 
+#include <algorithm>
 #include <cmath>
 #include <stdio.h>
 
@@ -16,6 +17,8 @@ namespace internal {
 
 std::vector<WallBatch> gWallBatches;
 bool gWallsLoaded = false;
+unsigned int gWallSeeThroughTexture = 0;
+bool gWallSeeThroughAny = false;
 
 } // namespace internal
 
@@ -30,6 +33,18 @@ struct BakedObject {
 
 unsigned int gWallTriangleCount = 0;
 std::unordered_map<unsigned long long, BakedObject> gBakedObjects;
+
+// walls.bin's object table: (tile, fid) -> row, and per row whether the hero
+// stands behind it (this frame and as uploaded).
+constexpr int kSeeThroughRowWidth = 1024;
+std::unordered_map<unsigned long long, unsigned int> gWallObjectRows;
+std::vector<unsigned char> gWallSeeThrough;
+std::vector<unsigned char> gWallSeeThroughUploaded;
+
+struct WallVertex {
+    DepthVertex vertex;
+    float object; // row in walls.bin's object table, -1: none
+};
 
 unsigned long long bakedObjectKey(int tile, int fid)
 {
@@ -53,6 +68,12 @@ void destroyStaticWalls()
     gWallTriangleCount = 0;
     gWallsLoaded = false;
     gBakedObjects.clear();
+    if (gContext != nullptr && gWallSeeThroughTexture != 0) glDeleteTextures(1, &gWallSeeThroughTexture);
+    gWallSeeThroughTexture = 0;
+    gWallSeeThroughAny = false;
+    gWallObjectRows.clear();
+    gWallSeeThrough.clear();
+    gWallSeeThroughUploaded.clear();
 }
 
 } // namespace internal
@@ -88,9 +109,11 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
     };
     if (!gInitialized || !gFloorLoaded) return fail("static floor renderer is unavailable");
 
-    constexpr size_t kHeaderSize = 20;
+    constexpr size_t kHeaderSize = 24;
     constexpr size_t kBatchSize = 16;
-    constexpr size_t kVertexSize = 32;
+    constexpr size_t kVertexSize = 36;
+    constexpr size_t kObjectSize = 8;
+    constexpr unsigned int kMaxObjects = 1000000;
     constexpr size_t kMaxSidecarBytes = 64 * 1024 * 1024;
     constexpr unsigned int kMaxPages = 16;
     constexpr unsigned int kMaxTriangles = 1000000;
@@ -108,8 +131,9 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
     const unsigned int pageCount = readU32(sidecar.data() + 8);
     const unsigned int batchCount = readU32(sidecar.data() + 12);
     const unsigned int totalTriangles = readU32(sidecar.data() + 16);
+    const unsigned int objectCount = readU32(sidecar.data() + 20);
     // A map elevation without walls has no batches and no triangles.
-    if (version != 2 || headerSize != kHeaderSize || pageCount == 0 || pageCount > kMaxPages
+    if (version != 3 || headerSize != kHeaderSize || objectCount > kMaxObjects || pageCount == 0 || pageCount > kMaxPages
         || batchCount > pageCount || totalTriangles > kMaxTriangles || (batchCount == 0) != (totalTriangles == 0)) {
         return fail("walls.bin header counts or version are unsupported");
     }
@@ -119,7 +143,7 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
         unsigned int triangleCount;
         unsigned int width;
         unsigned int height;
-        std::vector<DepthVertex> vertices;
+        std::vector<WallVertex> vertices;
         std::vector<unsigned char> rgba;
     };
     std::vector<WallBatchData> batches;
@@ -160,7 +184,13 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
         batch.vertices.resize(static_cast<size_t>(vertexCount));
         for (size_t vertexIndex = 0; vertexIndex < batch.vertices.size(); vertexIndex++) {
             const unsigned char* vertexData = sidecar.data() + offset + vertexIndex * kVertexSize;
-            DepthVertex& vertex = batch.vertices[vertexIndex];
+            DepthVertex& vertex = batch.vertices[vertexIndex].vertex;
+            const float object = readF32(vertexData + 32);
+            if (object != -1.0f && !(object >= 0.0f && object < static_cast<float>(objectCount)
+                    && object == std::floor(object))) {
+                return fail("walls.bin names an object outside its table");
+            }
+            batch.vertices[vertexIndex].object = object;
             vertex.x = readF32(vertexData);
             vertex.y = readF32(vertexData + 4);
             vertex.z = readF32(vertexData + 8);
@@ -218,6 +248,15 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
         }
         batches.push_back(std::move(batch));
     }
+    if (sidecar.size() - offset < static_cast<size_t>(objectCount) * kObjectSize) {
+        return fail("walls.bin has a truncated object table");
+    }
+    std::unordered_map<unsigned long long, unsigned int> objectRows;
+    for (unsigned int row = 0; row < objectCount; row++) {
+        const unsigned char* entry = sidecar.data() + offset + row * kObjectSize;
+        objectRows[bakedObjectKey(static_cast<int>(readU32(entry)), static_cast<int>(readU32(entry + 4)))] = row;
+    }
+    offset += static_cast<size_t>(objectCount) * kObjectSize;
     if (offset != sidecar.size() || observedTriangles != totalTriangles) {
         return fail("walls.bin has trailing data or a mismatched triangle count");
     }
@@ -268,8 +307,15 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
         glGenBuffers(1, &batch.vbo);
         glBindBuffer(kArrayBuffer, batch.vbo);
         glBufferData(kArrayBuffer,
-            static_cast<long long>(source.vertices.size() * sizeof(DepthVertex)), source.vertices.data(), kStaticDraw);
-        depthVertexLayout();
+            static_cast<long long>(source.vertices.size() * sizeof(WallVertex)), source.vertices.data(), kStaticDraw);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, 0x1406 /* GL_FLOAT */, 0, sizeof(WallVertex), reinterpret_cast<const void*>(0));
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 2, 0x1406, 0, sizeof(WallVertex), reinterpret_cast<const void*>(3 * sizeof(float)));
+        glEnableVertexAttribArray(2);
+        glVertexAttribPointer(2, 3, 0x1406, 0, sizeof(WallVertex), reinterpret_cast<const void*>(5 * sizeof(float)));
+        glEnableVertexAttribArray(3);
+        glVertexAttribPointer(3, 1, 0x1406, 0, sizeof(WallVertex), reinterpret_cast<const void*>(8 * sizeof(float)));
         glGenTextures(1, &batch.texture);
         glBindTexture(kTexture2D, batch.texture);
         glTexImage2D(kTexture2D, 0, kRgba8, source.width, source.height, 0, kRGBA, kUnsignedByte, source.rgba.data());
@@ -284,11 +330,46 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
     }
     glPixelStorei(kUnpackAlignment, 4);
     glBindVertexArray(0);
+    if (objectCount > 0) {
+        const unsigned int rows = (objectCount + kSeeThroughRowWidth - 1) / kSeeThroughRowWidth;
+        gWallSeeThrough.assign(static_cast<size_t>(rows) * kSeeThroughRowWidth, 0);
+        gWallSeeThroughUploaded = gWallSeeThrough;
+        glGenTextures(1, &gWallSeeThroughTexture);
+        glBindTexture(kTexture2D, gWallSeeThroughTexture);
+        glTexImage2D(kTexture2D, 0, 0x8229 /* GL_R8 */, kSeeThroughRowWidth, rows, 0, 0x1903 /* GL_RED */,
+            kUnsignedByte, gWallSeeThrough.data());
+        glTexParameteri(kTexture2D, kTextureMinFilter, kNearest);
+        glTexParameteri(kTexture2D, kTextureMagFilter, kNearest);
+        if (glGetError() != 0) return fail("OpenGL failed to upload the wall object table");
+    }
+    gWallObjectRows = std::move(objectRows);
     gWallTriangleCount = totalTriangles;
     gBakedObjects = std::move(bakedObjects);
     gWallsLoaded = true;
     if (error != nullptr) error->clear();
     return true;
+}
+
+void beginStaticWallSeeThrough()
+{
+    std::fill(gWallSeeThrough.begin(), gWallSeeThrough.end(), 0);
+}
+
+void markStaticWallSeeThrough(int tile, int fid)
+{
+    const auto found = gWallObjectRows.find(bakedObjectKey(tile, fid));
+    if (found != gWallObjectRows.end()) gWallSeeThrough[found->second] = 255;
+}
+
+void endStaticWallSeeThrough()
+{
+    if (gWallSeeThroughTexture == 0 || gWallSeeThrough == gWallSeeThroughUploaded) return;
+    gWallSeeThroughUploaded = gWallSeeThrough;
+    gWallSeeThroughAny = std::find(gWallSeeThrough.begin(), gWallSeeThrough.end(), 255) != gWallSeeThrough.end();
+    glBindTexture(kTexture2D, gWallSeeThroughTexture);
+    glTexSubImage2D(kTexture2D, 0, 0, 0, kSeeThroughRowWidth,
+        static_cast<int>(gWallSeeThrough.size() / kSeeThroughRowWidth), 0x1903 /* GL_RED */, kUnsignedByte,
+        gWallSeeThrough.data());
 }
 
 } // namespace scene_renderer

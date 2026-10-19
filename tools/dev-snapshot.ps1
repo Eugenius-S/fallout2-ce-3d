@@ -14,6 +14,9 @@
 # snapshot there. -Classic: the same in the game's own 2D picture.
 #
 # Prints the snapshot JSON; the image lies next to it in game/.
+# Scenes come from build/scene-cache when that folder exists (a worktree
+# exports there with export.py --cache-root build/scene-cache), so a game
+# running from game/ keeps its own mod-cache.
 # -ConfigDirectory: read fallout2.cfg and ddraw.ini beside the test executable
 # in an isolated build/task009-* folder, while game resources remain in game/.
 param(
@@ -109,6 +112,9 @@ if ($Probe) {
 $started = Get-Date
 $previousBackground = $env:F2CE_DEV_BACKGROUND
 $env:F2CE_DEV_BACKGROUND = '1'
+$previousSceneCache = $env:F2CE_SCENE_CACHE
+$sceneCache = Join-Path $Root 'build\scene-cache'
+if (Test-Path -LiteralPath $sceneCache -PathType Container) { $env:F2CE_SCENE_CACHE = $sceneCache }
 $process = $null
 $snapshots = @()
 try {
@@ -141,6 +147,7 @@ try {
     Start-Sleep -Milliseconds 500
 } finally {
     $env:F2CE_DEV_BACKGROUND = $previousBackground
+    $env:F2CE_SCENE_CACHE = $previousSceneCache
     if ($null -ne $process) {
         if (-not $process.HasExited) { Stop-Process -Id $process.Id -Force }
         if (-not $process.WaitForExit(10000)) { throw 'The background test process did not exit.' }

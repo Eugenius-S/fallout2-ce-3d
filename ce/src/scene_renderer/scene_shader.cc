@@ -13,12 +13,23 @@ constexpr const char* kSceneVertexShader = R"(#version 330 core
 layout(location = 0) in vec3 aPosition;
 layout(location = 1) in vec2 aTexcoord;
 layout(location = 2) in vec3 aDepthAt; // the point whose depth this vertex takes
+layout(location = 3) in float aObject; // walls.bin: the object row it shows, -1: none
 uniform mat4 uMvp;
 uniform int uDepthAt;
+// Whether the egg cuts what is drawn: 0 no, 1 the walls whose object row is
+// set in uSeeThroughObjects (the hero stands behind them), 2 the whole draw.
+uniform int uSeeThrough;
+uniform sampler2D uSeeThroughObjects;
 out vec2 vTexcoord;
+flat out int vSeeThrough;
 void main() {
     gl_Position = uMvp * vec4(aPosition, 1.0);
     vTexcoord = aTexcoord;
+    vSeeThrough = uSeeThrough == 2 ? 1 : 0;
+    if (uSeeThrough == 1 && aObject >= 0.0) {
+        int row = int(aObject + 0.5);
+        vSeeThrough = texelFetch(uSeeThroughObjects, ivec2(row % 1024, row / 1024), 0).r > 0.5 ? 1 : 0;
+    }
     if (uDepthAt != 0) {
         vec4 q = uMvp * vec4(aDepthAt, 1.0);
         gl_Position.z = q.z / q.w * gl_Position.w;
@@ -28,6 +39,7 @@ void main() {
 
 constexpr const char* kSceneFragmentShader = R"(#version 330 core
 in vec2 vTexcoord;
+flat in int vSeeThrough;
 uniform sampler2D uTexture;
 uniform int uTextured;
 uniform vec4 uColor;
@@ -41,7 +53,19 @@ uniform sampler2D uEggMask;
 uniform vec4 uEggRect; // game logical pixels: left, top, width, height
 uniform vec4 uViewport; // GL viewport of the game picture
 uniform vec2 uLogical; // the game picture's size in game logical pixels
+// The egg over walls the hero stands behind: 1 leaves out what it shows
+// through, 2 draws only that, blended over what lies behind.
+uniform int uEggPass;
 out vec4 outColor;
+// _intensity_mask_buf_to_buf: inside the egg a nonzero mask value is the
+// surface's share in 128ths; 0 outside it and where the surface stays whole.
+float eggShare() {
+    vec2 game = (gl_FragCoord.xy - uViewport.xy) / uViewport.zw * uLogical;
+    game.y = uLogical.y - game.y;
+    vec2 e = (game - uEggRect.xy) / uEggRect.zw;
+    if (e.x < 0.0 || e.y < 0.0 || e.x >= 1.0 || e.y >= 1.0) return 0.0;
+    return min(floor(texture(uEggMask, e).r * 255.0 + 0.5), 128.0);
+}
 void main() {
     if (uTextured == 0) {
         outColor = uColor;
@@ -62,14 +86,16 @@ void main() {
         } else {
             outColor = texel;
             if (uEgg != 0) {
-                // _intensity_mask_buf_to_buf: inside the egg a nonzero mask
-                // value is the roof's share in 128ths.
-                vec2 game = (gl_FragCoord.xy - uViewport.xy) / uViewport.zw * uLogical;
-                game.y = uLogical.y - game.y;
-                vec2 e = (game - uEggRect.xy) / uEggRect.zw;
-                if (e.x >= 0.0 && e.y >= 0.0 && e.x < 1.0 && e.y < 1.0) {
-                    float m = floor(texture(uEggMask, e).r * 255.0 + 0.5);
-                    if (m > 0.0) outColor.a *= min(m, 128.0) / 128.0;
+                float m = eggShare();
+                if (m > 0.0) outColor.a *= m / 128.0;
+            }
+            if (uEggPass != 0) {
+                float m = vSeeThrough != 0 ? eggShare() : 0.0;
+                if (uEggPass == 1) {
+                    if (m > 0.0) discard;
+                } else {
+                    if (m <= 0.0) discard;
+                    outColor.a *= m / 128.0;
                 }
             }
         }
@@ -95,6 +121,9 @@ int gSceneEggMaskLocation = -1;
 int gSceneEggRectLocation = -1;
 int gSceneViewportLocation = -1;
 int gSceneLogicalLocation = -1;
+int gSceneSeeThroughLocation = -1;
+int gSceneSeeThroughObjectsLocation = -1;
+int gSceneEggPassLocation = -1;
 
 bool createSceneShader(std::string* error)
 {
@@ -138,12 +167,16 @@ bool createSceneShader(std::string* error)
     gSceneEggRectLocation = glGetUniformLocation(gSceneProgram, "uEggRect");
     gSceneViewportLocation = glGetUniformLocation(gSceneProgram, "uViewport");
     gSceneLogicalLocation = glGetUniformLocation(gSceneProgram, "uLogical");
+    gSceneSeeThroughLocation = glGetUniformLocation(gSceneProgram, "uSeeThrough");
+    gSceneSeeThroughObjectsLocation = glGetUniformLocation(gSceneProgram, "uSeeThroughObjects");
+    gSceneEggPassLocation = glGetUniformLocation(gSceneProgram, "uEggPass");
     if (gSceneMvpLocation < 0 || gSceneTextureLocation < 0
         || gSceneTexturedLocation < 0 || gSceneColorLocation < 0 || gSceneCutoffLocation < 0
         || gSceneDepthAtLocation < 0 || gSceneTranslucentLocation < 0 || gSceneTintLocation < 0
         || gSceneGlassGrayLocation < 0 || gScenePickLocation < 0 || gSceneEggLocation < 0
         || gSceneEggMaskLocation < 0 || gSceneEggRectLocation < 0 || gSceneViewportLocation < 0
-        || gSceneLogicalLocation < 0) {
+        || gSceneLogicalLocation < 0 || gSceneSeeThroughLocation < 0 || gSceneSeeThroughObjectsLocation < 0
+        || gSceneEggPassLocation < 0) {
         *error = "static floor shader uniforms are missing";
         return false;
     }

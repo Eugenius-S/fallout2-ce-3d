@@ -13,6 +13,7 @@
 #include "scene_settings.h"
 #include "scene_objects.h"
 #include "../art.h"
+#include "../devtools/devtools.h"
 #include "../dialog.h"
 #include "../object.h"
 #include "../scene_renderer/game_view.h"
@@ -91,7 +92,13 @@ std::string currentMapName()
 // Loads what `view` needs of the current map's scene.
 bool loadScene(View view, const std::string& map, int elevation, std::string* message)
 {
-    const std::filesystem::path cacheDirectory = gameRootPath() / "mod-cache" / "scene" / map / std::to_string(elevation);
+    // F2CE_SCENE_CACHE (dev tools only): a worktree's own scene cache, so a test
+    // run of a new exporter leaves the cache of a game running alongside alone.
+    const char* devCache = devtools::isEnabled() ? SDL_getenv("F2CE_SCENE_CACHE") : nullptr;
+    const std::filesystem::path scenes = devCache != nullptr && devCache[0] != '\0'
+        ? std::filesystem::path(devCache)
+        : gameRootPath() / "mod-cache" / "scene";
+    const std::filesystem::path cacheDirectory = scenes / map / std::to_string(elevation);
     std::string error;
     if (!scene_renderer::loadStaticFloor(cacheDirectory, &error)) {
         *message = "floor preview unavailable: " + error;
