@@ -58,3 +58,8 @@ Check: Release build passed; `ctest --test-dir build --output-on-failure` passed
 Done: Added the pure map-clip geometry suite as a standalone CMake/CTest target and CI matrix entry.
 Next: Capture matched authored/floor variants and the clean-edges-off baseline on both Klamath maps for parent review.
 Check: Standalone Release build passed; `ctest --test-dir build-tests-map-clip-ninja --output-on-failure` passed 1/1; `git diff --check` passed.
+
+### 2026-10-19 gpt
+Done: Replaced the rejected floor-grid bounding box with a straight floor cut derived from occupied cell centers in the cached game projection, inset by half a projected cell. Floor-only debug metadata now identifies its grid fallback.
+Next: Retake matched authored/floor/off screenshots on both Klamath maps and ask parent to review the corrected floor cut.
+Check: Release build passed; CTest passed 9/9 including the projected diamond-mask geometry cases; no regression references were changed.

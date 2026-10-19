@@ -8,6 +8,7 @@ enum class MapClipSource {
     Disabled,
     Authored,
     Floor,
+    FloorGridFallback,
 };
 
 struct MapClipPoint {
@@ -39,6 +40,12 @@ MapClip makeMapClip(const MapClipPoint points[4], MapClipSource source);
 
 // Builds a normalized axis-aligned rectangle. Coordinates are map world X/Z.
 MapClip makeMapClipRect(double left, double top, double right, double bottom, MapClipSource source);
+
+// Builds a straight game-pixel rectangle from occupied floor-square centers,
+// inset by half a projected square so the outermost tile rim is cut cleanly.
+// The returned quadrilateral is in map world X/Z; invalid or tiny inputs fail closed.
+MapClip makeProjectedFloorMapClip(const unsigned char* occupied, int width, int height,
+    const double squ[2], const double sqv[2], const double origin[2]);
 
 bool mapClipContains(const MapClip& clip, double x, double z);
 

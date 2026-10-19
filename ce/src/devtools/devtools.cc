@@ -1886,7 +1886,8 @@ bool takeSnapshot()
     }
     const scene_renderer::MapClip mapClip = scene_renderer::staticMapClip();
     const char* clipSource = mapClip.source == scene_renderer::MapClipSource::Authored ? "authored"
-        : mapClip.source == scene_renderer::MapClipSource::Floor ? "floor" : "disabled";
+        : mapClip.source == scene_renderer::MapClipSource::Floor ? "floor"
+        : mapClip.source == scene_renderer::MapClipSource::FloorGridFallback ? "floor-grid-fallback" : "disabled";
     const char* clipVariant = "off";
     if (scene::cleanEdges()) {
         const char* requested = isEnabled() ? SDL_getenv("F2CE_DEV_CLEAN_EDGES") : nullptr;

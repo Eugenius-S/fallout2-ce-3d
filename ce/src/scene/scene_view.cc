@@ -229,6 +229,12 @@ bool loadScene(View view, const std::string& map, int elevation, std::string* me
         *message = "hero projection unavailable: " + error;
         return false;
     }
+    if (view == View::Full) {
+        scene_renderer::SpriteCardProjection projection;
+        if (scene_renderer::currentGameProjection(&projection)) {
+            scene_renderer::setStaticFloorMapProjection(projection);
+        }
+    }
     gClipMap.clear(); // Full loads add the projection needed to convert legacy EDG pixels.
     gClipElevation = -1;
     gCleanEdgesRevision = static_cast<std::uint64_t>(-1);

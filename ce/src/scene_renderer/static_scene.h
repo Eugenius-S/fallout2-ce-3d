@@ -10,6 +10,8 @@
 namespace fallout {
 namespace scene_renderer {
 
+struct SpriteCardProjection;
+
 // The exported scene of one map elevation, from one cache directory: the
 // versioned floor.bin sidecar with tiles.png, and walls.bin with its atlas
 // pages and baked.bin.
@@ -20,6 +22,7 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
 void unloadStaticScene();
 void staticWallStats(unsigned int* triangles, unsigned int* pages);
 MapClip staticFloorMapClip();
+bool setStaticFloorMapProjection(const SpriteCardProjection& projection);
 void setStaticMapClip(const MapClip& clip);
 MapClip staticMapClip();
 void bindStaticMapClipUniforms();

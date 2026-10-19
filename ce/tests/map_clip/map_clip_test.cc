@@ -12,6 +12,18 @@ bool check(bool condition, const char* message)
     return condition;
 }
 
+void pixelToWorld(double px, double py, const double squ[2], const double sqv[2], const double origin[2],
+    double* x, double* z)
+{
+    const double dx = px - origin[0];
+    const double dy = py - origin[1];
+    const double determinant = squ[0] * sqv[1] - sqv[0] * squ[1];
+    const double u = (sqv[1] * dx - sqv[0] * dy) / determinant;
+    const double v = (squ[0] * dy - squ[1] * dx) / determinant;
+    *x = u - 50.0;
+    *z = v - 50.0;
+}
+
 } // namespace
 
 int main()
@@ -55,5 +67,38 @@ int main()
     edgeOffsetToGamePixel(3184.0, 24.0, 3200.0, 0.0, 4800.0, -1180.0, &gameX, &gameY);
     if (!check(gameX == 4816.0 && gameY == -1156.0,
             "v1 edge pixels use the anchored inverted-X and normal-Y conversion")) return 1;
+
+    // A diamond in floor-grid coordinates projects to a straight pixel rectangle.
+    // The cut follows that rectangle, not the much larger world-grid AABB.
+    unsigned char diamond[7 * 7] = {};
+    for (int row = 0; row < 7; row++) {
+        for (int col = 0; col < 7; col++) {
+            diamond[row * 7 + col] = std::abs(row - 3) + std::abs(col - 3) <= 3 ? 1 : 0;
+        }
+    }
+    const double squ[2] = { -2.0, 1.0 };
+    const double sqv[2] = { 2.0, 1.0 };
+    const double origin[2] = { 10.0, -5.0 };
+    const MapClip projectedFloor = makeProjectedFloorMapClip(diamond, 7, 7, squ, sqv, origin);
+    double insideX = 0.0, insideZ = 0.0, outsideX = 0.0, outsideZ = 0.0;
+    pixelToWorld(10.0, 3.5, squ, sqv, origin, &insideX, &insideZ);
+    pixelToWorld(14.1, 1.0, squ, sqv, origin, &outsideX, &outsideZ);
+    if (!check(projectedFloor.enabled && projectedFloor.source == MapClipSource::Floor,
+            "diamond floor mask produces a projected four-sided floor cut")) return 1;
+    if (!check(mapClipContains(projectedFloor, insideX, insideZ)
+            && !mapClipContains(projectedFloor, outsideX, outsideZ),
+            "projected cell centers and half-cell inset produce the straight pixel rectangle")) return 1;
+    if (!check(std::abs(projectedFloor.planes[0].x) > 0.01f && std::abs(projectedFloor.planes[0].z) > 0.01f,
+            "projected pixel edge remains a rotated ground-plane edge")) return 1;
+
+    const double singularSqu[2] = { 1.0, 2.0 };
+    const double singularSqv[2] = { 2.0, 4.0 };
+    if (!check(!makeProjectedFloorMapClip(diamond, 7, 7, singularSqu, singularSqv, origin).enabled,
+            "singular floor projection disables the clip")) return 1;
+    unsigned char emptyFloor[4] = {};
+    unsigned char oneCell[1] = { 1 };
+    if (!check(!makeProjectedFloorMapClip(emptyFloor, 2, 2, squ, sqv, origin).enabled
+            && !makeProjectedFloorMapClip(oneCell, 1, 1, squ, sqv, origin).enabled,
+            "empty and too-small floor masks disable the clip")) return 1;
     return 0;
 }
