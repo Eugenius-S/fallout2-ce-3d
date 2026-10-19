@@ -23,6 +23,7 @@ param(
     [switch]$Probe,
     [string]$Tour,
     [switch]$Classic,
+    [switch]$NoPreview,
     [switch]$Parallel,
     [ValidateRange(0, 39999)]
     [int]$ViewTile,
@@ -80,9 +81,10 @@ if (-not (Test-Path -LiteralPath $exe) -or
 }
 $shots = 1
 $runId = [guid]::NewGuid().ToString('N')
-$view = if ($Classic) { '--dev-classic' } else { '--dev-hero-preview' }
 $arguments = @('--dev-tools', "--dev-screen=${ScreenWidth}x${ScreenHeight}", "--dev-scale=$Scale",
-    '--dev-new-game', "--dev-map=$Map", "--dev-elevation=$Elevation", $view, "--dev-snapshot-run=$runId")
+    '--dev-new-game', "--dev-map=$Map", "--dev-elevation=$Elevation", "--dev-snapshot-run=$runId")
+if ($Classic) { $arguments += '--dev-classic' }
+elseif (-not $NoPreview) { $arguments += '--dev-hero-preview' }
 if ($PSBoundParameters.ContainsKey('ViewTile')) { $arguments += "--dev-view-tile=$ViewTile" }
 if ($PSBoundParameters.ContainsKey('HeroTile')) { $arguments += "--dev-hero-tile=$HeroTile" }
 # -Parallel: no perspective, so the scene lies on the game's 2D pixel for pixel.

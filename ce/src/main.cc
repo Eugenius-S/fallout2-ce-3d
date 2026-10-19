@@ -43,6 +43,7 @@
 #include "window_manager_private.h"
 #include "word_wrap.h"
 #include "devtools/devtools.h"
+#include "scene/scene_view.h"
 #include "worldmap.h"
 
 namespace fallout {
@@ -471,6 +472,9 @@ static void mainLoop()
         // applied here - after a completed mapHandleTransition, in the main
         // loop (never from the draw path, which also runs during loads).
         devtools::update();
+        if (devtools::sceneStartupReady()) {
+            scene::syncSettings(devtools::suppressInitialSceneEnable());
+        }
 
         if (_main_game_paused != 0) {
             _main_game_paused = 0;

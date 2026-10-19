@@ -52,3 +52,8 @@ Check: `tools/tasks.ps1`; task branch `task/014-settings-3d-store`.
 Done: Registered `[3d].enabled` with default on, strict key-specific boolean parsing, fallback menu metadata, and a scene API exposing the value plus a non-consuming monotonic revision. Added real-registry tests and three-line key-add guidance.
 Next: Parent review of Step 1; scene activation remains for Step 2.
 Check: Release build; root CTest 8/8; standalone `settings_3d_tests` 1/1.
+
+### 2026-10-19 gpt
+Done: Connected `[3d].enabled` to scene lifecycle updates: enabled defaults to Full gameplay scenes, disabled gates all 3D views, and revision changes switch immediately. Ctrl+F10 enables the schema setting before switching Full. Startup snapshots wait for target map/elevation readiness; vanilla presentation supplies a one-shot when 3D is off or unavailable. Dev snapshots now support `-NoPreview`; pending map tours also run startup positioning.
+Next: Parent review of Step 2; full regression and task completion remain out of scope.
+Check: Release build; CTest 8/8; standalone settings suite 1/1. Background snapshots through `tools/dev-snapshot.ps1` on EXE SHA-256 `a5d24a31f7b3a9882bfcce5001ea8ccb8947cc5183e30af630f5dc6dda32f7da`: missing/default, `enabled=1`, invalid `enabled=2` yielded enabled Full; `enabled=0` yielded disabled vanilla framebuffer. All at KLARATCV e1 tile 14701, 1920x1080/logical 960x540/scale 2/windowed. ARTEMPLE e0 same-map `-NoPreview` fallback captured tile 17288; no-preview KLADWTWN0 → KLARATCV1 → KLADWTWN0 tour completed with requested metadata. Fixture config hashes remained unchanged; owner config remains `875111504363B0A54B63002919598B175E64DECF9E84C5F5A67BC915291FE927`. Evidence is under ignored `build/task014-proof/`; no full regression run.

@@ -56,6 +56,11 @@ void applyStartupTarget();
 // Per-frame tick in the main loop after mapHandleTransition: applies pending
 // elevation corrections and startup view positioning after map loads settle.
 void update();
+// True when an explicit startup debug view should suppress only the default
+// initial Full view. Later [3d].enabled revisions still apply.
+bool suppressInitialSceneEnable();
+// False until an explicitly requested startup map/elevation has settled.
+bool sceneStartupReady();
 
 // Requests a map change through the engine's own safe transition
 // (mapSetTransition); the load itself happens in the game loop. Refused
@@ -70,6 +75,9 @@ bool staticWalkPreviewActive();
 void scenePresented(const scene::RefreshResult& refreshed);
 // Called after the scene's overlay is switched for a presented frame.
 void sceneOverlaySynced(bool on);
+// Called after a vanilla framebuffer is presented, for one-shot snapshots
+// when no 3D view is active.
+void vanillaPresented();
 bool handleClick(int mouseX, int mouseY);
 
 // Draws the panel into the 8-bit framebuffer (before palette expansion).

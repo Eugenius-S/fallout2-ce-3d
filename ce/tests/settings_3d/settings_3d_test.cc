@@ -11,7 +11,11 @@ namespace fallout {
 Config gGameConfig = {};
 static const char* gConfiguredThreeDValue = nullptr;
 
-bool gameConfigInit(bool, int, char**) { return true; }
+bool gameConfigInit(bool, int, char**)
+{
+    settingsWriteToConfig(true);
+    return true;
+}
 bool gameConfigSave() { return true; }
 bool gameConfigExit(bool) { return true; }
 
@@ -29,9 +33,21 @@ bool configGetString(Config*, const char*, const char*, char** value, const char
 bool configGetInt(Config*, const char*, const char*, int*) { return false; }
 bool configGetBool(Config*, const char*, const char*, bool*) { return false; }
 bool configGetDouble(Config*, const char*, const char*, double*) { return false; }
-bool configSetString(Config*, const char*, const char*, const char*) { return true; }
+bool configSetString(Config*, const char* section, const char* key, const char* value)
+{
+    if (std::strcmp(section, "3d") == 0 && std::strcmp(key, "enabled") == 0) {
+        gConfiguredThreeDValue = value;
+    }
+    return true;
+}
 bool configSetInt(Config*, const char*, const char*, int) { return true; }
-bool configSetBool(Config*, const char*, const char*, bool) { return true; }
+bool configSetBool(Config*, const char* section, const char* key, bool value)
+{
+    if (std::strcmp(section, "3d") == 0 && std::strcmp(key, "enabled") == 0) {
+        gConfiguredThreeDValue = value ? "1" : "0";
+    }
+    return true;
+}
 bool configSetDouble(Config*, const char*, const char*, double) { return true; }
 
 int compat_stricmp(const char* left, const char* right)
@@ -117,5 +133,31 @@ int main()
     if (!check(initializeWith("2") && scene::enabled(), "invalid numeric value restores true after false")) return 1;
     if (!check(scene::settingsRevision() == 10, "invalid numeric fallback transition increments revision")) return 1;
     if (!check(!settingsSetValue(*descriptor, SettingValue(1), &error), "wrong value type is rejected")) return 1;
+
+    scene::SettingsLifecycle initialZeroRevision;
+    if (!check(initialZeroRevision.update(true, 0, false) == scene::SettingsAction::EnableFull,
+            "default-on setting activates Full from initial revision zero")) return 1;
+
+    scene::SettingsLifecycle lifecycle;
+    if (!check(lifecycle.update(scene::enabled(), scene::settingsRevision(), false) == scene::SettingsAction::EnableFull,
+            "default-on setting activates Full once at current revision")) return 1;
+    if (!check(settingsSetValue(*descriptor, SettingValue(false), &error), "lifecycle test disables through schema")) return 1;
+    if (!check(lifecycle.update(scene::enabled(), scene::settingsRevision(), false) == scene::SettingsAction::Disable,
+            "setting revision applies OFF to live scene")) return 1;
+    if (!check(lifecycle.update(scene::enabled(), scene::settingsRevision(), false) == scene::SettingsAction::NoChange,
+            "manual view changes are not overridden without a setting revision")) return 1;
+    if (!check(settingsSetValue(*descriptor, SettingValue(true), &error), "lifecycle test enables through schema")) return 1;
+    if (!check(lifecycle.update(scene::enabled(), scene::settingsRevision(), false) == scene::SettingsAction::EnableFull,
+            "OFF-to-ON revision reactivates Full")) return 1;
+
+    scene::SettingsLifecycle debugStartup;
+    if (!check(debugStartup.update(scene::enabled(), scene::settingsRevision(), true) == scene::SettingsAction::NoChange,
+            "explicit debug startup suppresses only default automatic activation")) return 1;
+    if (!check(settingsSetValue(*descriptor, SettingValue(false), &error), "debug lifecycle test disables through schema")) return 1;
+    if (!check(debugStartup.update(scene::enabled(), scene::settingsRevision(), true) == scene::SettingsAction::Disable,
+            "debug startup still responds to later setting revisions")) return 1;
+    settingsWriteToConfig(false);
+    if (!check(gConfiguredThreeDValue != nullptr && std::strcmp(gConfiguredThreeDValue, "0") == 0,
+            "normal settings save writes the current disabled value")) return 1;
     return 0;
 }

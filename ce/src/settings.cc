@@ -430,6 +430,10 @@ void initSettingsRegistry(bool isMapper)
             ++gThreeDSettingsRevision;
         }
     };
+    settingsRegistry.back().write = [scene3dDefault](bool onlyAdd) {
+        if (onlyAdd && settingsKeyExists("3d", "enabled")) return;
+        settingsWrite("3d", "enabled", onlyAdd ? scene3dDefault : settings.scene3d.enabled);
+    };
 
     if (isMapper) {
 #define SECT mapper

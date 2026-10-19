@@ -37,6 +37,7 @@
 #include "../platform_compat.h"
 #include "../random.h"
 #include "../scene/scene_objects.h"
+#include "../scene/scene_settings.h"
 #include "../scene/scene_view.h"
 #include "../scene_renderer/game_view.h"
 #include "../scene_renderer/camera.h"
@@ -71,6 +72,8 @@ FixedScreenOptions gFixedScreenOptions;
 char gStartupMap[16] = {};
 int gStartupElevation = 0;
 bool gStartupApplied = false;
+bool gStartupTargetSettled = true;
+bool gStartupTargetAwaitingFinal = false;
 bool gStartupFloorPreviewRequested = false;
 bool gStartupWallPreviewRequested = false;
 bool gStartupHeroPreviewRequested = false;
@@ -504,6 +507,22 @@ bool enableStaticPreview(bool withWalls, bool withHero = false)
     return true;
 }
 
+bool setSceneSettingEnabled(bool enabled)
+{
+    for (const SettingDescriptor& descriptor : settingsGetDescriptors()) {
+        if (descriptor.section == "3d" && descriptor.key == "enabled") {
+            std::string error;
+            if (!settingsSetValue(descriptor, SettingValue(enabled), &error)) {
+                setStatus(error.c_str());
+                return false;
+            }
+            return true;
+        }
+    }
+    setStatus("3D setting is unavailable");
+    return false;
+}
+
 // One candidate check shared by the search and fallback. A Grid floor is the
 // engine's blank floor frame; this only rejects blank cells and known blockers,
 // and does not claim to prove path connectivity from the current tile.
@@ -843,14 +862,24 @@ void update()
                 snprintf(gStatus, sizeof(gStatus), "elevation %d absent on this map",
                     gPendingElevationValue);
             } else if (applyElevationChange(gPendingElevationValue)) {
+                gStartupTargetAwaitingFinal = true;
                 snprintf(gStatus, sizeof(gStatus), "moving to elevation %d", gPendingElevationValue);
                 return; // let the scheduled transition settle before preview activation
             }
         }
+        if (!gStartupTargetAwaitingFinal) gStartupTargetSettled = true;
+    }
+    if (gStartupTargetAwaitingFinal) {
+        if (static_cast<int>(gMapHeader.index) != gPendingMapId
+            || static_cast<int>(gElevation) != gPendingElevationValue) {
+            return;
+        }
+        gStartupTargetAwaitingFinal = false;
+        gStartupTargetSettled = true;
     }
 
     if ((gStartupFloorPreviewRequested || gStartupWallPreviewRequested || gStartupHeroPreviewRequested || gStartupWalkPreviewRequested
-            || gClassic)
+            || gClassic || gSnapshotOncePending || gTourStep >= 0)
         && !gStartupFloorPreviewAttempted
         && !gPendingElevation && gMapHeader.name[0] != '\0' && !inBlockingGameState()) {
         if (gHeroTile >= 0) {
@@ -870,11 +899,13 @@ void update()
         gStartupFloorPreviewAttempted = true;
         const bool withWalls = gStartupWallPreviewRequested || gStartupHeroPreviewRequested || gStartupWalkPreviewRequested;
         const bool withHero = gStartupHeroPreviewRequested || gStartupWalkPreviewRequested;
-        const bool started = gClassic || enableStaticPreview(withWalls, withHero);
+        const bool explicitPreview = gStartupFloorPreviewRequested || gStartupWallPreviewRequested
+            || gStartupHeroPreviewRequested || gStartupWalkPreviewRequested;
+        const bool started = gClassic || !explicitPreview || enableStaticPreview(withWalls, withHero);
         if (started) {
             gStartupFloorPreviewFramesRemaining = gStartupFloorPreviewReturnAfter;
         }
-        if (!started && gSnapshotOncePending) {
+        if (!started && gSnapshotOncePending && scene::enabled()) {
             gSnapshotOncePending = false;
             printf("devtools: one-shot preview snapshot skipped: preview did not start\n");
             fflush(stdout);
@@ -927,6 +958,17 @@ void update()
     }
 }
 
+bool suppressInitialSceneEnable()
+{
+    return gClassic || gStartupFloorPreviewRequested || gStartupWallPreviewRequested
+        || gStartupHeroPreviewRequested || gStartupWalkPreviewRequested;
+}
+
+bool sceneStartupReady()
+{
+    return !gEnabled || (gStartupTargetSettled && !gPendingElevation && !gStartupTargetAwaitingFinal);
+}
+
 void applyStartupTarget()
 {
     if (gStartupApplied || !gEnabled) {
@@ -934,7 +976,12 @@ void applyStartupTarget()
     }
     gStartupApplied = true;
     if (gStartupMap[0] != '\0') {
-        requestMapChange(gStartupMap, gStartupElevation);
+        gStartupTargetSettled = false;
+        if (requestMapChange(gStartupMap, gStartupElevation)) {
+            gStartupTargetAwaitingFinal = true;
+        } else {
+            gStartupTargetSettled = true;
+        }
     }
 }
 
@@ -985,6 +1032,8 @@ bool requestMapChange(const char* mapFileName, int elevation)
         if (!applyElevationChange(elevation)) {
             return false;
         }
+        gPendingMapId = mapId;
+        gPendingElevationValue = elevation;
         if (elevation == static_cast<int>(gElevation)) {
             setStatus("already on this elevation");
         } else {
@@ -1161,6 +1210,7 @@ void runPickProbe()
 
 void scenePresented(const scene::RefreshResult& refreshed)
 {
+    if (!sceneStartupReady()) return;
     if (scene::activeView() != scene::View::Full) return;
     // Frame rate of the 3D view, logged every two seconds: presented frames
     // per second and the share of each frame spent rebuilding live objects.
@@ -1195,6 +1245,18 @@ void scenePresented(const scene::RefreshResult& refreshed)
             captured ? "saved" : "failed", gStatus);
         fflush(stdout);
     }
+}
+
+void vanillaPresented()
+{
+    if (!gSnapshotOncePending || !gEnabled || !sceneStartupReady() || !gStartupFloorPreviewAttempted
+        || scene::activeView() != scene::View::Off) {
+        return;
+    }
+    gSnapshotOncePending = false;
+    const bool captured = takeSnapshot();
+    printf("devtools: one-shot vanilla snapshot %s: %s\n", captured ? "saved" : "failed", gStatus);
+    fflush(stdout);
 }
 
 void sceneOverlaySynced(bool on)
@@ -1244,6 +1306,13 @@ bool handleKey(int key)
     }
 
     if (key == KEY_CTRL_F10) {
+        if (!scene::enabled()) {
+            if (!setSceneSettingEnabled(true)) return true;
+            std::string message;
+            if (!scene::enable(scene::View::Full, &message)) setStatus(message.c_str());
+            else setStatus("3D scene on (Ctrl+F10 to return)");
+            return true;
+        }
         if (scene::requestedView() != scene::View::Off) {
             disableStaticFloorPreview("static floor preview off");
             return true;
@@ -1696,6 +1765,8 @@ bool takeSnapshot()
         "  \"snapshot_run\": \"%s\",\n"
         "  \"view_tile\": %d,\n"
         "  \"preview_requested\": %s,\n"
+        "  \"scene_3d_enabled\": %s,\n"
+        "  \"scene_view\": \"%s\",\n"
         "  \"camera\": \"%s\",\n"
         "  \"wall_triangles\": %u,\n"
         "  \"wall_pages\": %u,\n"
@@ -1723,6 +1794,10 @@ bool takeSnapshot()
         gSnapshotRun,
         gCenterTile,
         previewRequested ? "true" : "false",
+        scene::enabled() ? "true" : "false",
+        scene::activeView() == scene::View::Full ? "full"
+            : scene::activeView() == scene::View::Walls ? "walls"
+            : scene::activeView() == scene::View::Floor ? "floor" : "off",
         camera,
         wallTriangles,
         wallPages,
