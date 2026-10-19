@@ -111,17 +111,20 @@ void main() {
             vec3 c = floor(texel.rgb * 255.0 / 8.0);
             float gray = uGlassGray != 0 ? floor(floor((c.r + 5.0 * c.g + 4.0 * c.b) / 10.0) / 4.0)
                                          : floor(floor((c.b + 3.0 * c.r + 6.0 * c.g) / 10.0) / 4.0);
-            if (gray < 1.0) discard;
-            // The engine then darkens the blended colour by the object's
-            // light, what lies behind included: L * (tint * a + behind * (1 - a)).
+            // Level 0 leaves what lies behind unchanged; then the engine darkens
+            // the result by the object's light, what lies behind included:
+            // L * (tint * a + behind * (1 - a)).
             float a = min(gray, 7.0) / 7.0;
             float light = min(floor(sceneLight() * 128.0 + 0.0001), 128.0) / 128.0;
             outColor = vec4(uTint * a * light, 1.0 - light * (1.0 - a));
         } else {
             outColor = texel;
+            // A sprite's animated colours (alpha 254) stay at full light.
+            bool fullBright = abs(texel.a * 255.0 - 254.0) < 0.5;
+            if (fullBright) outColor.a = 1.0;
             // _dark_trans_buf_to_buf: the engine darkens a texel by its light in
             // 128 steps, on its 5-bit colour rounded down (setIntensityTableColor).
-            float steps = floor(sceneLight() * 128.0 + 0.0001);
+            float steps = fullBright ? 128.0 : floor(sceneLight() * 128.0 + 0.0001);
             if (steps < 128.0) outColor.rgb = floor(floor(outColor.rgb * 31.0 + 0.5) * steps / 128.0) / 31.0;
             if (uEgg != 0) {
                 float m = eggShare();

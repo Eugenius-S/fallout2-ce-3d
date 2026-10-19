@@ -24,6 +24,10 @@ plasma shots.
 - Sprite frames become RGBA card textures in the bridge; floor and wall
   textures come from the exporter. The glow mask has to be made where the
   palette index is still known: at both places.
+- The same colours stay at full light in the engine's darkening. Sprite cards
+  already mark them (alpha 254, task 020); floor and wall textures from the
+  exporter do not yet, so in caves and at night they dim there: the
+  exporter's mask fixes that too.
 - Energy weapon shots and explosions: check which colors their art uses; if
   they are not cycling colors, add their palette colors to the mask list.
 - Post effects stay within OpenGL 4.1 core.

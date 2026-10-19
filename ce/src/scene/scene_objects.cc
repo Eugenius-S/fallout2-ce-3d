@@ -20,6 +20,15 @@ namespace scene {
 
 namespace {
 
+// A sprite texel's alpha: 0 for the transparent index; the engine's animated
+// colours (index 229 and up), which it paints at full light whatever the light
+// (_dark_trans_buf_to_buf), are marked with 254 for the scene's shader.
+unsigned char spriteAlpha(unsigned char colorIndex)
+{
+    if (colorIndex == 0) return 0;
+    return colorIndex >= 0xE5 ? 254 : 255;
+}
+
 std::vector<PickEntry> gPickObjects;
 int gHeroPickId = -1;
 int gHeroStack = 0; // standing sprites the game paints on the hero's hex before the hero
@@ -68,7 +77,7 @@ bool updateHeroFromGame()
         rgba[index * 4] = static_cast<unsigned char>(palette[colorIndex * 3] << 2);
         rgba[index * 4 + 1] = static_cast<unsigned char>(palette[colorIndex * 3 + 1] << 2);
         rgba[index * 4 + 2] = static_cast<unsigned char>(palette[colorIndex * 3 + 2] << 2);
-        rgba[index * 4 + 3] = colorIndex == 0 ? 0 : 255;
+        rgba[index * 4 + 3] = spriteAlpha(colorIndex);
     }
 
     scene_renderer::StaticHeroFrame frame = {
@@ -158,7 +167,7 @@ void addObjectCard(Object* object, void* context)
             pass.rgba[index * 4] = static_cast<unsigned char>(pass.palette[colorIndex * 3] << 2);
             pass.rgba[index * 4 + 1] = static_cast<unsigned char>(pass.palette[colorIndex * 3 + 1] << 2);
             pass.rgba[index * 4 + 2] = static_cast<unsigned char>(pass.palette[colorIndex * 3 + 2] << 2);
-            pass.rgba[index * 4 + 3] = colorIndex == 0 ? 0 : 255;
+            pass.rgba[index * 4 + 3] = spriteAlpha(colorIndex);
         }
     }
     scene_renderer::StaticObjectFrame frame = {
