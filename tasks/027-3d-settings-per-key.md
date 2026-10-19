@@ -2,8 +2,8 @@
 id: 027
 title: 3D settings report changes per key and log a failed start
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: gpt
 suggested: gpt
 claude-only: no
 user-check: no
