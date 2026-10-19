@@ -95,8 +95,9 @@ The body has `Goal`, `Context`, `Acceptance`, `Out of scope` and `Log`.
    git push -u origin task/NNN-slug
    ```
 
-   A worktree has no `game/` and no game build: tasks that run the game
-   (snapshots, regression) are done in this checkout, one agent at a time.
+   A worktree has no `game/`: `dev-snapshot.ps1` and `regression.ps1` run there
+   use the main checkout's `game/` with the worktree's own build. Only one
+   agent runs the background test instance at a time.
    After the merge: `git worktree remove ../fallout2-ce-3d-<you>`.
 
 ### While working

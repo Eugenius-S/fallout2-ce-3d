@@ -23,6 +23,11 @@ param(
 $ErrorActionPreference = 'Stop'
 $Root = Split-Path -Parent $PSScriptRoot
 $GameDir = Join-Path $Root 'game'
+if (-not (Test-Path -LiteralPath $GameDir)) {
+    # An agent's worktree has no game: use the main checkout's, with this build.
+    $main = (git -C $Root worktree list --porcelain | Select-Object -First 1) -replace '^worktree ', ''
+    $GameDir = Join-Path $main 'game'
+}
 $built = Join-Path $Root 'build\fallout2-ce.exe'
 if (-not (Test-Path $built)) { throw "No build at $built; run tools/configure-build.ps1 first." }
 $exe = Join-Path $GameDir 'fallout2-ce-test.exe'
