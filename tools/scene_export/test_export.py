@@ -193,7 +193,10 @@ class OutputSafetyTests(unittest.TestCase):
 
     def test_rejects_symlinks(self):
         with TemporaryDirectory() as temp:
-            out = Path(temp)
+            # The target lies outside the export directory, so the link is
+            # the only entry there, whatever order the directory lists in.
+            out = Path(temp) / "out"
+            out.mkdir()
             target = Path(temp) / "target.txt"
             target.write_text("safe", encoding="utf-8")
             link = out / "scene.json"
