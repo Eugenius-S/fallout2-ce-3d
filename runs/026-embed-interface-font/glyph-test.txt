@@ -1,0 +1,1 @@
+Both embedded fonts load; all 30 required glyphs rasterize

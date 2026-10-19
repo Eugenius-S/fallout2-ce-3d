@@ -2,7 +2,7 @@
 id: 026
 title: Embed the interface font
 milestone: M1
-status: doing
+status: done
 owner: gpt
 suggested: glm
 claude-only: no
@@ -58,3 +58,60 @@ been asked whether the new embedded_fonts files are an allowed exception.
 Task 009 is explicitly deferred until task 002 merges.
 Check: inspect this task's header on origin/main and the branch
 `task/026-embed-interface-font`.
+
+### 2026-10-19 gpt
+Done: vendored unmodified IBM Plex Mono SemiBold/Bold and OFL at Google Fonts
+`01d5d9f05246fb7090a8403b81257535cb1a088b` (2026-09-28), plus stb_truetype 1.26
+and its license at `6e9f34d5429cf16790ec43c9bac3f1ee4ad1f760` (2024-07-15).
+Directory READMEs record the sources and SHA-256 values. Both TTFs load with
+the expected family/weight. `ce/cmake/embed_font_data.cmake` generates a C++
+source file; validation decoded its arrays and matched all 140216/137784
+original bytes exactly (maximum source line length 80). No renderer/devtools
+files were edited for task 026.
+Next: connect the generator to the game/tests, implement the embedded font
+getter and glyph/rasterization tests after permission for its new renderer
+files or task 002's merge. Do not start task 009 before task 002 merges.
+Check: `cmake -DFONT_DIRECTORY=<absolute-font-dir> -DOUTPUT=<build>/font-data.cc -P ce/cmake/embed_font_data.cmake`.
+
+### 2026-10-19 gpt
+Done: added shared CMake embedding rules, a single stb implementation per
+target, standalone font tests and the CI matrix entry. The game, mapper and
+test executable each contain both complete original TTF byte streams. All
+5 native tests pass; both fonts initialize and rasterize W, Cyrillic Zhe/yo/
+Shcha, question mark and all digits (30 glyphs total).
+Task 002 is now merged as PR #4 (`055dcba`), so its directory restriction has
+expired and no further permission is needed for the new font getter files.
+Next: incorporate origin/main's module split, add the public embedded_fonts
+API, route tests through it, rebuild and run the unchanged regression views.
+Check: `ctest --test-dir build --output-on-failure`.
+
+### 2026-10-19 gpt
+Done: incorporated origin/main's merged task 002 (`055dcba`) with an automatic
+CMake merge; the scene module split and the font embedding rules are both
+preserved. No existing renderer or devtools logic was changed for task 026.
+Next: add the getter API and rebuild the combined tree before final checks.
+Check: `git diff origin/main -- ce/CMakeLists.txt ce/src/scene_renderer/`.
+
+### 2026-10-19 gpt
+Done: added the public embedded_fonts getter, switched the glyph tests to
+that API and rebuilt against task 002's module split. Unknown weights return
+an empty view; both supported weights return distinct static TTF buffers.
+The game, mapper and test executable each contain both original TTF streams
+byte for byte. All 5 CTest suites, 30 exporter tests and 9 regression-tool
+tests pass. The owner also explicitly approved the two new renderer files.
+Next: finish the six-view runtime regression, record its evidence and open
+the completion PR. Task 009 can follow because task 002 is already merged.
+Check: `ctest --test-dir build --output-on-failure`; run
+`powershell -NoProfile -ExecutionPolicy Bypass -File tools/regression.ps1`.
+
+### 2026-10-19 gpt
+Done: all acceptance holds. Both weights and their licenses are pinned,
+embedded at build time and exposed through the public static-data API.
+Release game/mapper builds and all 44 tests pass. The six runtime regression
+views match the unchanged references with zero changed pixels. Evidence:
+`runs/026-embed-interface-font/` (glyph result, regression report, PNG/JSON).
+Existing renderer/devtools behavior and text drawing are unchanged.
+Next: merge the completion PR, then claim task 009 on main; task 002's merge
+already satisfies the owner's ordering requirement.
+Check: `ctest --test-dir build --output-on-failure`; run the exporter and
+regression Python suites and `tools/regression.ps1`.
