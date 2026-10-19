@@ -47,3 +47,14 @@ docs/2026-10-17-fallout2-sprite-lighting-design.md; then the acceptance
 grep and the PR.
 Check: git grep -I -n -P '[\x{0400}-\x{04FF}]' -- ':!runs' (must be
 empty; currently only the three docs above remain).
+
+### 2026-10-19 glm
+Done: docs/p1-devtools.md translated (200 lines, full history kept).
+Total translated: README.md, docs/game-setup.md, docs/p0-gl-presentation.md,
+docs/c1-camera-prototype.md, docs/stage-a-report.md, docs/p1-devtools.md,
+tasks/026 glyph names.
+Next: translate docs/2026-10-17-fallout2-ce-3d-env-p0-p1.md (336 lines) and
+docs/2026-10-17-fallout2-sprite-lighting-design.md (223 lines), then run the
+acceptance grep and open the PR.
+Check: git grep -I -n -P '[\x{0400}-\x{04FF}]' -- ':!runs' (only those two
+docs remain).
