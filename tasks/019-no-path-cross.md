@@ -2,8 +2,8 @@
 id: 019
 title: The no-path cross stands off the hex cursor in 3D
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: claude
 suggested: claude
 claude-only: no
 user-check: yes
