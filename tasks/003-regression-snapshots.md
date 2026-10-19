@@ -2,8 +2,8 @@
 id: 003
 title: Regression snapshot test
 milestone: M0
-status: todo
-owner: none
+status: doing
+owner: gpt
 suggested: gpt
 claude-only: no
 user-check: no
@@ -56,3 +56,9 @@ One command tells any agent whether the 3D picture changed, and shows where.
 CI integration (needs the game files, which CI does not have).
 
 ## Log
+
+### 2026-10-19 gpt
+Done: claimed task 003; read AGENTS.md, the roadmap and the snapshot launcher.
+Next: add a fixed view tile and still-snapshot mode, then capture six Klamath
+references and implement the regression runner.
+Check: `powershell -NoProfile -ExecutionPolicy Bypass -File tools/tasks.ps1`.
