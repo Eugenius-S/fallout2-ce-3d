@@ -749,6 +749,11 @@ bool fixedScreenOptionsEnabled()
     return gFixedScreenOptions.enabled;
 }
 
+bool backgroundCaptureActive()
+{
+    return fixedScreenOptionsEnabled() && SDL_getenv("F2CE_DEV_BACKGROUND") != nullptr;
+}
+
 void applyFixedScreenOptions()
 {
     if (!gFixedScreenOptions.enabled) return;

@@ -35,6 +35,7 @@ bool parseOption(const char* arg);
 // initialization. Invalid options fail startup before any window is created.
 bool initializeFixedScreenOptions(int argc, char** argv);
 bool fixedScreenOptionsEnabled();
+bool backgroundCaptureActive();
 void applyFixedScreenOptions();
 
 bool isEnabled();

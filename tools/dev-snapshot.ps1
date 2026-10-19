@@ -30,6 +30,7 @@ param(
     [int]$HeroTile,
     [switch]$Still,
     [string]$OutputDirectory,
+    [switch]$CaptureConsole,
     [ValidateRange(640, 7680)]
     [int]$ScreenWidth = 1920,
     [ValidateRange(480, 4320)]
@@ -109,7 +110,20 @@ $env:F2CE_DEV_BACKGROUND = '1'
 $process = $null
 $snapshots = @()
 try {
-    $process = Start-Process -FilePath $exe -WorkingDirectory $GameDir -PassThru -ArgumentList $arguments
+    $startParameters = @{
+        FilePath = $exe
+        WorkingDirectory = $GameDir
+        WindowStyle = 'Hidden'
+        PassThru = $true
+        ArgumentList = $arguments
+    }
+    if ($CaptureConsole) {
+        if (-not $OutputDirectory) { throw '-CaptureConsole requires -OutputDirectory.' }
+        New-Item -ItemType Directory -Path $OutputDirectory -Force | Out-Null
+        $startParameters.RedirectStandardOutput = Join-Path $OutputDirectory 'process.stdout.log'
+        $startParameters.RedirectStandardError = Join-Path $OutputDirectory 'process.stderr.log'
+    }
+    $process = Start-Process @startParameters
     $deadline = $started.AddSeconds($TimeoutSeconds)
     while ((Get-Date) -lt $deadline -and -not $process.HasExited) {
         $snapshots = @(Get-ChildItem $GameDir -Filter 'devshot-*.json' | Where-Object {
