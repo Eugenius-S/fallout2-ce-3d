@@ -8,7 +8,7 @@ suggested: glm
 claude-only: no
 user-check: no
 depends-on: []
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -60,3 +60,9 @@ Checked by hand on the current board:
 Next: merge; the PR run of the Verify workflow is expected green (no game
 code touched).
 Check: the three -Next commands and -Review above.
+
+### 2026-10-19 claude (review)
+Accepted (PR #22). `-Next` and `-Review` give the right answers on today's
+board, and `AGENTS.md` uses them. One bug: a dependency that is not done does
+not block a task (`$done[id]` is `$null`, not `$false`, so `-notcontains
+$false` always holds); 021, waiting for 020, counts as free. Task 029.
