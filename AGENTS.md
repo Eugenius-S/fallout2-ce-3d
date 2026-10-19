@@ -100,7 +100,10 @@ The body has `Goal`, `Context`, `Acceptance`, `Out of scope` and `Log`.
 
    A worktree has no `game/`: `dev-snapshot.ps1` and `regression.ps1` run there
    use the main checkout's `game/` with the worktree's own build. Only one
-   agent runs the background test instance at a time.
+   agent runs the background test instance at a time. A changed exporter
+   writes to the worktree (`export.py --game-root <main>/game --maps klamath
+   --cache-root build/scene-cache`); test runs read scenes from there, and the
+   owner's game keeps `game/mod-cache` until the merge.
    After the merge: `git worktree remove ../fallout2-ce-3d-<you>`.
 
 ### While working

@@ -381,7 +381,22 @@ class WallSidecarTests(unittest.TestCase):
         drum = decode_wall_sidecar(encode_wall_sidecar(scene))
         self.assertGreater(drum["triangles"], 16)
         for vertex in drum["batches"][0]["vertices"]:
-            self.assertEqual(vertex[5:], vertex[:3])
+            self.assertEqual(vertex[5:8], vertex[:3])
+
+    def test_faces_name_the_map_object_they_show(self):
+        from types import SimpleNamespace
+        scene = self.sample_scene()
+        thin = [1, 4.0, 2.0, 5.0, 2.0, 0.0, 1.0, 0, 0, 1.0, 0.0, -1]
+        scene["walls"].append(thin)
+        objects = [SimpleNamespace(tile=20100, fid=0x3000010), SimpleNamespace(tile=20102, fid=0x3000011)]
+        decoded = decode_wall_sidecar(encode_wall_sidecar(scene, map_objects=objects))
+        self.assertEqual(decoded["objects"], [(20102, 0x3000011), (20100, 0x3000010)])
+        owners = {vertex[8] for vertex in decoded["batches"][0]["vertices"]}
+        self.assertEqual(owners, {0.0, 1.0})
+        # Without the map's objects no face names one.
+        plain = decode_wall_sidecar(encode_wall_sidecar(self.sample_scene()))
+        self.assertEqual(plain["objects"], [])
+        self.assertEqual({vertex[8] for vertex in plain["batches"][0]["vertices"]}, {-1.0})
 
     def test_wall_tops_meet_where_a_wall_goes_on(self):
         from wall_sidecar import _continuations

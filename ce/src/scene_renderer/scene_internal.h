@@ -158,6 +158,11 @@ extern int gSceneEggMaskLocation;
 extern int gSceneEggRectLocation;
 extern int gSceneViewportLocation;
 extern int gSceneLogicalLocation;
+// The egg over walls and scenery the hero stands behind: which draws it cuts
+// (uSeeThrough, per walls.bin object row from a texture on unit 2) and the pass.
+extern int gSceneSeeThroughLocation;
+extern int gSceneSeeThroughObjectsLocation;
+extern int gSceneEggPassLocation;
 
 bool createSceneShader(std::string* error);
 void destroySceneShader();
@@ -183,6 +188,9 @@ void setRoofSquares(std::vector<RoofSquare> squares);
 void destroyRoofs();
 // With the scene program in use and the game view's matrix set.
 void drawRoofs(int viewportX, int viewportY, int viewportWidth, int viewportHeight);
+// Binds the egg's mask (unit 1) and sets its rect and the viewport; false when
+// no egg is shown.
+bool bindEgg(int viewportX, int viewportY, int viewportWidth, int viewportHeight);
 
 // --- walls.cc: walls.bin and the objects it draws (baked.bin) ----------------
 
@@ -196,6 +204,10 @@ struct WallBatch {
 
 extern std::vector<WallBatch> gWallBatches;
 extern bool gWallsLoaded;
+// Per walls.bin object row, whether the hero stands behind it (R8, 1024 rows
+// wide), and whether any row is set.
+extern unsigned int gWallSeeThroughTexture;
+extern bool gWallSeeThroughAny;
 
 void destroyStaticWalls();
 
@@ -232,6 +244,7 @@ struct ObjectDraw {
     bool glassGray;
     int pickId; // the caller's id for picking, -1: not picked
     bool pickOnly; // drawn by walls.bin; its card is only picked
+    bool seeThrough; // the hero stands behind it: the egg cuts it
 };
 
 extern std::vector<ObjectDraw> gObjectDraws;

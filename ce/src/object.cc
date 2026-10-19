@@ -5041,6 +5041,50 @@ static void objectDrawOutline(Object* object, Rect* rect)
     artUnlock(cacheEntry);
 }
 
+// Whether the game draws `object` see-through inside the egg around the
+// hero: a wall or scenery the hero stands behind (from _obj_render_object).
+bool objectSeeThroughAroundDude(Object* object)
+{
+    if (object == nullptr || gDude == nullptr) return false;
+    const ObjectType type = FrmId(object).objectType();
+    if (type != OBJ_TYPE_SCENERY && type != OBJ_TYPE_WALL) return false;
+    if ((gDude->flags & OBJECT_HIDDEN) != OBJECT_NONE || (object->flags & OBJECT_FLAG_0xFC000) != OBJECT_NONE) {
+        return false;
+    }
+    Proto* proto;
+    if (protoGetProto(object, &proto) == -1 || proto == nullptr) return false;
+
+    bool v17;
+    ProtoExtendedFlags extendedFlags = proto->critter.extendedFlags;
+    if ((extendedFlags & PROTO_EXT_FLAG_HIDDEN) != PROTO_EXT_FLAG_NONE || (extendedFlags & PROTO_EXT_FLAG_WEST_CORNER) != PROTO_EXT_FLAG_NONE) {
+        // TODO: Verify this visibility branch against the original logic.
+        v17 = tileIsInFrontOf(object->tile, gDude->tile);
+        if (!v17
+            || !tileIsToRightOf(object->tile, gDude->tile)
+            || (object->flags & OBJECT_WALL_TRANS_END) == OBJECT_NONE) {
+            // nothing
+        } else {
+            v17 = false;
+        }
+    } else if ((extendedFlags & PROTO_EXT_FLAG_NORTH_CORNER) != PROTO_EXT_FLAG_NONE) {
+        // NOTE: Original code used bitwise OR here; logical OR is clearer.
+        v17 = tileIsInFrontOf(object->tile, gDude->tile)
+            || tileIsToRightOf(gDude->tile, object->tile);
+    } else if ((extendedFlags & PROTO_EXT_FLAG_SOUTH_CORNER) != PROTO_EXT_FLAG_NONE) {
+        v17 = tileIsInFrontOf(object->tile, gDude->tile)
+            && tileIsToRightOf(gDude->tile, object->tile);
+    } else {
+        v17 = tileIsToRightOf(gDude->tile, object->tile);
+        if (v17
+            && tileIsInFrontOf(gDude->tile, object->tile)
+            && (object->flags & OBJECT_WALL_TRANS_END) != OBJECT_NONE) {
+            v17 = 0;
+        }
+    }
+
+    return v17;
+}
+
 // 0x48F1B0 obj_render_object
 static void _obj_render_object(Object* object, Rect* rect, int light)
 {
@@ -5112,120 +5156,87 @@ static void _obj_render_object(Object* object, Rect* rect, int light)
     }
 
     if (type == OBJ_TYPE_SCENERY || type == OBJ_TYPE_WALL) {
-        if ((gDude->flags & OBJECT_HIDDEN) == OBJECT_NONE && (object->flags & OBJECT_FLAG_0xFC000) == OBJECT_NONE) {
-            Proto* proto;
-            protoGetProto(object, &proto);
-
-            bool v17;
-            ProtoExtendedFlags extendedFlags = proto->critter.extendedFlags;
-            if ((extendedFlags & PROTO_EXT_FLAG_HIDDEN) != PROTO_EXT_FLAG_NONE || (extendedFlags & PROTO_EXT_FLAG_WEST_CORNER) != PROTO_EXT_FLAG_NONE) {
-                // TODO: Verify this visibility branch against the original logic.
-                v17 = tileIsInFrontOf(object->tile, gDude->tile);
-                if (!v17
-                    || !tileIsToRightOf(object->tile, gDude->tile)
-                    || (object->flags & OBJECT_WALL_TRANS_END) == OBJECT_NONE) {
-                    // nothing
-                } else {
-                    v17 = false;
-                }
-            } else if ((extendedFlags & PROTO_EXT_FLAG_NORTH_CORNER) != PROTO_EXT_FLAG_NONE) {
-                // NOTE: Original code used bitwise OR here; logical OR is clearer.
-                v17 = tileIsInFrontOf(object->tile, gDude->tile)
-                    || tileIsToRightOf(gDude->tile, object->tile);
-            } else if ((extendedFlags & PROTO_EXT_FLAG_SOUTH_CORNER) != PROTO_EXT_FLAG_NONE) {
-                v17 = tileIsInFrontOf(object->tile, gDude->tile)
-                    && tileIsToRightOf(gDude->tile, object->tile);
-            } else {
-                v17 = tileIsToRightOf(gDude->tile, object->tile);
-                if (v17
-                    && tileIsInFrontOf(gDude->tile, object->tile)
-                    && (object->flags & OBJECT_WALL_TRANS_END) != OBJECT_NONE) {
-                    v17 = 0;
-                }
+        if (objectSeeThroughAroundDude(object)) {
+            CacheEntry* eggHandle;
+            Art* egg = artLock(FrmId(gEgg), &eggHandle);
+            if (egg == nullptr) {
+                return;
             }
 
-            if (v17) {
-                CacheEntry* eggHandle;
-                Art* egg = artLock(FrmId(gEgg), &eggHandle);
-                if (egg == nullptr) {
-                    return;
-                }
+            int eggWidth;
+            int eggHeight;
+            artGetSize(egg, 0, ROTATION_NE, &eggWidth, &eggHeight);
 
-                int eggWidth;
-                int eggHeight;
-                artGetSize(egg, 0, ROTATION_NE, &eggWidth, &eggHeight);
+            int eggScreenX;
+            int eggScreenY;
+            tileToScreenXY(gEgg->tile, &eggScreenX, &eggScreenY);
+            eggScreenX += 16;
+            eggScreenY += 8;
 
-                int eggScreenX;
-                int eggScreenY;
-                tileToScreenXY(gEgg->tile, &eggScreenX, &eggScreenY);
-                eggScreenX += 16;
-                eggScreenY += 8;
+            eggScreenX += egg->xOffsets[0];
+            eggScreenY += egg->yOffsets[0];
 
-                eggScreenX += egg->xOffsets[0];
-                eggScreenY += egg->yOffsets[0];
+            eggScreenX += gEgg->x;
+            eggScreenY += gEgg->y;
 
-                eggScreenX += gEgg->x;
-                eggScreenY += gEgg->y;
+            Rect eggRect;
+            eggRect.left = eggScreenX - eggWidth / 2;
+            eggRect.top = eggScreenY - (eggHeight - 1);
+            eggRect.right = eggRect.left + eggWidth - 1;
+            eggRect.bottom = eggScreenY;
 
-                Rect eggRect;
-                eggRect.left = eggScreenX - eggWidth / 2;
-                eggRect.top = eggScreenY - (eggHeight - 1);
-                eggRect.right = eggRect.left + eggWidth - 1;
-                eggRect.bottom = eggScreenY;
+            gEgg->sx = eggRect.left;
+            gEgg->sy = eggRect.top;
 
-                gEgg->sx = eggRect.left;
-                gEgg->sy = eggRect.top;
+            Rect updatedEggRect;
+            if (rectIntersection(&eggRect, &objectRect, &updatedEggRect) == 0) {
+                Rect rects[4];
 
-                Rect updatedEggRect;
-                if (rectIntersection(&eggRect, &objectRect, &updatedEggRect) == 0) {
-                    Rect rects[4];
+                rects[0].left = objectRect.left;
+                rects[0].top = objectRect.top;
+                rects[0].right = objectRect.right;
+                rects[0].bottom = updatedEggRect.top - 1;
 
-                    rects[0].left = objectRect.left;
-                    rects[0].top = objectRect.top;
-                    rects[0].right = objectRect.right;
-                    rects[0].bottom = updatedEggRect.top - 1;
+                rects[1].left = objectRect.left;
+                rects[1].top = updatedEggRect.top;
+                rects[1].right = updatedEggRect.left - 1;
+                rects[1].bottom = updatedEggRect.bottom;
 
-                    rects[1].left = objectRect.left;
-                    rects[1].top = updatedEggRect.top;
-                    rects[1].right = updatedEggRect.left - 1;
-                    rects[1].bottom = updatedEggRect.bottom;
+                rects[2].left = updatedEggRect.right + 1;
+                rects[2].top = updatedEggRect.top;
+                rects[2].right = objectRect.right;
+                rects[2].bottom = updatedEggRect.bottom;
 
-                    rects[2].left = updatedEggRect.right + 1;
-                    rects[2].top = updatedEggRect.top;
-                    rects[2].right = objectRect.right;
-                    rects[2].bottom = updatedEggRect.bottom;
+                rects[3].left = objectRect.left;
+                rects[3].top = updatedEggRect.bottom + 1;
+                rects[3].right = objectRect.right;
+                rects[3].bottom = objectRect.bottom;
 
-                    rects[3].left = objectRect.left;
-                    rects[3].top = updatedEggRect.bottom + 1;
-                    rects[3].right = objectRect.right;
-                    rects[3].bottom = objectRect.bottom;
-
-                    for (int i = 0; i < 4; i++) {
-                        Rect* v21 = &(rects[i]);
-                        if (v21->left <= v21->right && v21->top <= v21->bottom) {
-                            unsigned char* sp = src + frameWidth * (v21->top - objectRect.top) + (v21->left - objectRect.left);
-                            _dark_trans_buf_to_buf(sp, v21->right - v21->left + 1, v21->bottom - v21->top + 1, frameWidth, gObjectsWindowBuffer, v21->left, v21->top, gObjectsWindowPitch, light);
-                        }
+                for (int i = 0; i < 4; i++) {
+                    Rect* v21 = &(rects[i]);
+                    if (v21->left <= v21->right && v21->top <= v21->bottom) {
+                        unsigned char* sp = src + frameWidth * (v21->top - objectRect.top) + (v21->left - objectRect.left);
+                        _dark_trans_buf_to_buf(sp, v21->right - v21->left + 1, v21->bottom - v21->top + 1, frameWidth, gObjectsWindowBuffer, v21->left, v21->top, gObjectsWindowPitch, light);
                     }
-
-                    unsigned char* mask = artGetFrameData(egg);
-                    _intensity_mask_buf_to_buf(
-                        src + frameWidth * (updatedEggRect.top - objectRect.top) + (updatedEggRect.left - objectRect.left),
-                        updatedEggRect.right - updatedEggRect.left + 1,
-                        updatedEggRect.bottom - updatedEggRect.top + 1,
-                        frameWidth,
-                        gObjectsWindowBuffer + gObjectsWindowPitch * updatedEggRect.top + updatedEggRect.left,
-                        gObjectsWindowPitch,
-                        mask + eggWidth * (updatedEggRect.top - eggRect.top) + (updatedEggRect.left - eggRect.left),
-                        eggWidth,
-                        light);
-                    artUnlock(eggHandle);
-                    artUnlock(cacheEntry);
-                    return;
                 }
 
+                unsigned char* mask = artGetFrameData(egg);
+                _intensity_mask_buf_to_buf(
+                    src + frameWidth * (updatedEggRect.top - objectRect.top) + (updatedEggRect.left - objectRect.left),
+                    updatedEggRect.right - updatedEggRect.left + 1,
+                    updatedEggRect.bottom - updatedEggRect.top + 1,
+                    frameWidth,
+                    gObjectsWindowBuffer + gObjectsWindowPitch * updatedEggRect.top + updatedEggRect.left,
+                    gObjectsWindowPitch,
+                    mask + eggWidth * (updatedEggRect.top - eggRect.top) + (updatedEggRect.left - eggRect.left),
+                    eggWidth,
+                    light);
                 artUnlock(eggHandle);
+                artUnlock(cacheEntry);
+                return;
             }
+
+            artUnlock(eggHandle);
         }
     }
 

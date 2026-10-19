@@ -28,7 +28,7 @@ from projection_sidecar import decode_projection_sidecar, encode_projection_side
 from wall_sidecar import VERSION as WALL_SIDECAR_VERSION  # noqa: E402
 from wall_sidecar import decode_wall_sidecar, encode_wall_sidecar  # noqa: E402
 
-EXPORTER_VERSION = "1.9.0"
+EXPORTER_VERSION = "1.10.0"
 DONOR_REVISION = "0da1cd449f1dc7f2f6986ff7e8728a4b6ae20584"
 DEFAULT_MAP = "kladwtwn"
 # Map groups for --maps: every elevation each map has.
@@ -331,6 +331,9 @@ def parse_args(argv=None):
                          + ") or a comma-separated list")
     parser.add_argument("--elevation", type=int, choices=(0, 1, 2), default=0,
                         help="the elevation of --map (default: 0)")
+    parser.add_argument("--cache-root", type=Path,
+                        help="where the scenes go instead of <game>/mod-cache/scene (a worktree's own cache, "
+                             "read by the test game through F2CE_SCENE_CACHE, so a running game keeps its own)")
     args = parser.parse_args(argv)
     names = MAP_GROUPS.get(args.maps.lower(), args.maps.split(",")) if args.maps else [args.map]
     args.map_names = [name.strip().lower() for name in names]
@@ -340,13 +343,15 @@ def parse_args(argv=None):
     return args
 
 
-def scene_directory(game_root: Path, map_name: str, elevation: int) -> Path:
+def scene_directory(game_root: Path, map_name: str, elevation: int, cache_root: Path = None) -> Path:
     """The cache directory of one map elevation, checked before anything is written."""
-    out_dir = game_root / "mod-cache" / "scene" / map_name / str(elevation)
-    if out_dir.resolve() != (game_root / "mod-cache" / "scene" / map_name / str(elevation)).resolve():
+    scenes = cache_root if cache_root is not None else game_root / "mod-cache" / "scene"
+    out_dir = scenes / map_name / str(elevation)
+    if out_dir.resolve() != (scenes / map_name / str(elevation)).resolve():
         raise SystemExit("output path resolution escaped the fixed target")
-    for parent in (game_root / "mod-cache", game_root / "mod-cache" / "scene",
-                   game_root / "mod-cache" / "scene" / map_name, out_dir):
+    parents = (scenes, scenes / map_name, out_dir) if cache_root is not None else (game_root / "mod-cache", scenes,
+                                                                                     scenes / map_name, out_dir)
+    for parent in parents:
         if parent.exists() and parent.is_symlink():
             raise SystemExit(f"refusing symlink in output path: {parent}")
     try:
@@ -367,7 +372,7 @@ def export_scene(gf, game_root: Path, map_name: str, elevation: int, out_dir: Pa
     if scene.get("map") != map_name or scene.get("elevation") != elevation:
         raise RuntimeError("SceneBuilder returned an unexpected map/elevation")
     live_boards, skip_props, skip_rests = live_solids(builder, scene)
-    wall_payload = encode_wall_sidecar(scene, skip_props, skip_rests)
+    wall_payload = encode_wall_sidecar(scene, skip_props, skip_rests, builder.map.objects[elevation])
     (out_dir / "walls.bin").write_bytes(wall_payload)
     wall_data = decode_wall_sidecar(wall_payload)
     baked_payload = encode_baked_sidecar(baked_objects(scene, builder.map.objects[elevation], live_boards))
@@ -448,9 +453,11 @@ def main(argv=None):
     game_root = (args.game_root or args.project_root / "game").resolve()
     if not game_root.is_dir():
         raise SystemExit(f"game root not found: {game_root}")
+    cache_root = args.cache_root.resolve() if args.cache_root else None
     if not args.maps:
         # One scene: its directory is checked before the game data is opened.
-        targets = [(args.map_names[0], args.elevation, scene_directory(game_root, args.map_names[0], args.elevation))]
+        targets = [(args.map_names[0], args.elevation, scene_directory(game_root, args.map_names[0], args.elevation,
+                                                                            cache_root))]
     gf = ReadOnlyGameFiles(game_root)
     failed = []
     try:
@@ -462,7 +469,8 @@ def main(argv=None):
                 except (OSError, ValueError, SystemExit) as error:
                     failed.append(f"{name}: {error}")
                     continue
-                targets.extend((name, elevation, scene_directory(game_root, name, elevation)) for elevation in elevations)
+                targets.extend((name, elevation, scene_directory(game_root, name, elevation, cache_root))
+                               for elevation in elevations)
         for name, elevation, out_dir in targets:
             if not args.maps:
                 export_scene(gf, game_root, name, elevation, out_dir)

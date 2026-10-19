@@ -50,6 +50,8 @@ struct StaticObjectFrame {
     // Drawn by walls.bin (a wall, furniture made solid): its card is only
     // picked. Seen from the game's camera a solid covers its sprite's pixels.
     bool pickOnly = false;
+    // A wall or scenery the hero stands behind: the egg around him cuts it.
+    bool seeThrough = false;
 };
 
 struct StaticHeroInfo {

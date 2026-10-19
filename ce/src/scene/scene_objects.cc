@@ -117,6 +117,9 @@ void addObjectCard(Object* object, void* context)
     // walls.bin draws it: its card is only picked, and the game's count of
     // sprites on its hex does not include it.
     const bool pickOnly = scene_renderer::staticObjectBaked(object->tile, object->fid);
+    // The game shows the hero through walls and scenery he stands behind.
+    const bool seeThrough = objectSeeThroughAroundDude(object);
+    if (pickOnly && seeThrough) scene_renderer::markStaticWallSeeThrough(object->tile, object->fid);
     const int stack = pickOnly ? (object->tile == pass.lastTile ? pass.onTile : 0) : nextStackOnTile(pass, object);
     if (object == gDude) {
         gHeroStack = stack; // the hero card is drawn on its own
@@ -163,6 +166,7 @@ void addObjectCard(Object* object, void* context)
     frame.stack = stack;
     frame.pickId = pickId;
     frame.pickOnly = pickOnly;
+    frame.seeThrough = seeThrough;
     // The engine's translucent kinds and their tints (_obj_render_object).
     Color tint = COLOR_WHITE;
     bool translucent = true;
@@ -215,11 +219,13 @@ bool pickWanted(int pickId, void* context)
 bool updateObjectsFromGame()
 {
     scene_renderer::beginStaticObjects();
+    scene_renderer::beginStaticWallSeeThrough();
     gPickObjects.clear();
     gHeroPickId = -1;
     ObjectCardPass pass = { directDrawGetPalette(), {}, 0, -1, 0 };
     if (pass.palette != nullptr) objectForEachAtElevation(gElevation, addObjectCard, &pass);
     scene_renderer::endStaticObjects();
+    scene_renderer::endStaticWallSeeThrough();
     gObjectCardsSkipped = pass.skipped;
     return updateHeroFromGame();
 }
