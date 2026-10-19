@@ -30,8 +30,10 @@ over critters.
   (`ce/src/draw.cc`). Windows reach the screen surface through the window
   manager; the mouse cursor is drawn into the screen surface too (`mouse.cc`).
 - Russian text is CP1251; the Russian fonts come from `mods/rpu_russian.dat`.
-- The font: see the owner's choice in task 024's `Log`. Font sample sheets and
-  the script that makes them: `runs/024-sharp-text-design/`.
+- The font, chosen by the owner: IBM Plex Mono SemiBold, titles IBM Plex Mono
+  Bold (SIL Open Font License, <https://github.com/google/fonts/tree/main/ofl/ibmplexmono>).
+  Font sample sheets and the script that makes them:
+  `runs/024-sharp-text-design/`.
 
 ## Design
 

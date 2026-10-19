@@ -2,7 +2,7 @@
 id: 024
 title: Sharp text layer: design
 milestone: M1
-status: doing
+status: done
 owner: claude
 suggested: claude
 claude-only: yes
@@ -48,3 +48,10 @@ small next to it.
 Next: the owner picks the font; write the choice here and into task 025's
 `Context`, set this task done.
 Check: open the two sheets.
+
+### 2026-10-19 claude
+Done: the owner chose IBM Plex Mono SemiBold (closest to the game's text
+width); titles use IBM Plex Mono Bold. SIL Open Font License. Written into
+task 025.
+Next: task 025.
+Check: `runs/024-sharp-text-design/fonts-ru.png`.
