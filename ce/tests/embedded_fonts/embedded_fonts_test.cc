@@ -1,15 +1,9 @@
 #include "stb_truetype.h"
+#include "embedded_fonts.h"
 
 #include <algorithm>
 #include <cstddef>
 #include <cstdio>
-
-namespace fallout { namespace scene_renderer { namespace font_data {
-extern const unsigned char kSemiBold[];
-extern const std::size_t kSemiBoldSize;
-extern const unsigned char kBold[];
-extern const std::size_t kBoldSize;
-} } }
 
 bool checkFont(const unsigned char* data, std::size_t size)
 {
@@ -37,8 +31,12 @@ bool checkFont(const unsigned char* data, std::size_t size)
 
 int main()
 {
-    using namespace fallout::scene_renderer::font_data;
-    if (!checkFont(kSemiBold, kSemiBoldSize) || !checkFont(kBold, kBoldSize)) {
+    using namespace fallout::scene_renderer;
+    const EmbeddedFont semiBold = embeddedFont(InterfaceFontWeight::SemiBold);
+    const EmbeddedFont bold = embeddedFont(InterfaceFontWeight::Bold);
+    const EmbeddedFont unknown = embeddedFont(static_cast<InterfaceFontWeight>(-1));
+    if (semiBold.data == bold.data || unknown.data != nullptr || unknown.size != 0
+        || !checkFont(semiBold.data, semiBold.size) || !checkFont(bold.data, bold.size)) {
         std::fprintf(stderr, "Embedded font initialization, glyph lookup or rasterization failed\n");
         return 1;
     }

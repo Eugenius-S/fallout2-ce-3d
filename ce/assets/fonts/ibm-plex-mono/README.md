@@ -8,6 +8,12 @@ Pinned revision: `01d5d9f05246fb7090a8403b81257535cb1a088b`
 SemiBold is the interface text weight; Bold is for titles. These TTF files
 are the only font-data sources; the build generates C++ byte arrays from them.
 
+`scene_renderer/embedded_fonts.h` exposes `embeddedFont(weight)` as a pointer
+and byte count with static lifetime. Use `InterfaceFontWeight::SemiBold` or
+`InterfaceFontWeight::Bold`; pass the trusted bytes to stb_truetype. Both game
+targets and the standalone `ce/tests/embedded_fonts/` suite use the same
+`ce/cmake/EmbeddedFonts.cmake` build helper. Text drawing belongs to task 025.
+
 | File | SHA-256 |
 |---|---|
 | IBMPlexMono-SemiBold.ttf | d3c38e55c78f5b0f28009fddba4834ec503278936a5986032424c9bd2d23aa46 |

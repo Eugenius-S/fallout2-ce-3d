@@ -91,3 +91,15 @@ CMake merge; the scene module split and the font embedding rules are both
 preserved. No existing renderer or devtools logic was changed for task 026.
 Next: add the getter API and rebuild the combined tree before final checks.
 Check: `git diff origin/main -- ce/CMakeLists.txt ce/src/scene_renderer/`.
+
+### 2026-10-19 gpt
+Done: added the public embedded_fonts getter, switched the glyph tests to
+that API and rebuilt against task 002's module split. Unknown weights return
+an empty view; both supported weights return distinct static TTF buffers.
+The game, mapper and test executable each contain both original TTF streams
+byte for byte. All 5 CTest suites, 30 exporter tests and 9 regression-tool
+tests pass. The owner also explicitly approved the two new renderer files.
+Next: finish the six-view runtime regression, record its evidence and open
+the completion PR. Task 009 can follow because task 002 is already merged.
+Check: `ctest --test-dir build --output-on-failure`; run
+`powershell -NoProfile -ExecutionPolicy Bypass -File tools/regression.ps1`.
