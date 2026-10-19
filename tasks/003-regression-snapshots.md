@@ -74,3 +74,15 @@ build, 4 engine tests and 30 exporter tests pass.
 Next: add six named spots, image comparison, references and failure/recovery
 evidence; document the single regression command.
 Check: `powershell -NoProfile -ExecutionPolicy Bypass -File tools/dev-snapshot.ps1 -ViewTile 25075 -Still`.
+
+### 2026-10-19 gpt
+Done: added `tools/regression.ps1`, six spots and PNG/JSON references,
+decoded-RGBA comparison, difference/highlight images and metadata validation.
+All six captures passed the explicit `-Update` run. Added 9 image/validation
+unit tests and the command to AGENTS.md. Fixed the launcher exit race by
+waiting for its own PID and copying the test EXE only when its hash changes.
+The gallery is `runs/003-regression-snapshots/gallery.jpg`.
+Next: run two complete unchanged-build regressions, prove a deliberate floor
+rendering failure is detected, restore/rebuild and prove recovery; then PR.
+Check: `powershell -NoProfile -ExecutionPolicy Bypass -File tools/regression.ps1`;
+`py -3 -m unittest discover -s tools/regression -p 'test*.py' -v`.

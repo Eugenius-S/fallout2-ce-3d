@@ -36,10 +36,14 @@ ctest --test-dir build --output-on-failure
 py -3 -m unittest discover -s tools/scene_export -p 'test*.py' -v
 py -3 tools/scene_export/export.py --game-root ./game
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/dev-snapshot.ps1 -Map kladwtwn -Elevation 0
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/regression.ps1
 ```
 
 `dev-snapshot.ps1` prints the snapshot JSON; the PNG lies next to it in
 `game/`. `-Probe` also checks the mouse (see `docs/p1-devtools.md`).
+`tools/regression.ps1 -Spot entrance` checks one view; `-Update` explicitly
+accepts new references. See `tools/regression/README.md` for still-mode
+constraints, tolerance and difference images.
 
 ## Tasks
 

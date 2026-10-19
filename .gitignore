@@ -9,3 +9,6 @@ build/
 # CE is pinned as a Git submodule; game assets and build output stay local.
 __pycache__/
 *.py[cod]
+
+# Generated regression captures; curated evidence lives in runs/NNN-slug/.
+runs/regression/

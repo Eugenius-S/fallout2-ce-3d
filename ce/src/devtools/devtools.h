@@ -24,7 +24,8 @@ namespace devtools {
 //   SHA-256 of the running EXE).
 
 // Consumes --dev-tools / --dev-map / --dev-elevation / --dev-list-maps /
-// --dev-floor-preview / --dev-wall-preview / --dev-hero-preview / --dev-walk-preview.
+// --dev-floor-preview / --dev-wall-preview / --dev-hero-preview / --dev-walk-preview /
+// --dev-view-tile / --dev-still-snapshot / --dev-snapshot-run.
 // Returns true when the argument belonged to devtools.
 bool parseOption(const char* arg);
 

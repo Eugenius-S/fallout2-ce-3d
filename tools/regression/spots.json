@@ -1,0 +1,12 @@
+{
+  "channel_tolerance": 2,
+  "max_changed_fraction": 0.00001,
+  "spots": [
+    {"name": "entrance", "map": "kladwtwn", "elevation": 0, "tile": 25075, "coverage": "Player, entrance street, building walls"},
+    {"name": "corrals", "map": "kladwtwn", "elevation": 0, "tile": 23481, "coverage": "Brahmin, fences, layered sprites"},
+    {"name": "residents", "map": "kladwtwn", "elevation": 0, "tile": 22885, "coverage": "People and furniture in the western rooms"},
+    {"name": "central-doors", "map": "kladwtwn", "elevation": 0, "tile": 17699, "coverage": "Doors and central building interiors"},
+    {"name": "north-rooms", "map": "kladwtwn", "elevation": 0, "tile": 14892, "coverage": "Northern walls, furniture and people"},
+    {"name": "map-edge", "map": "kladwtwn", "elevation": 0, "tile": 5910, "coverage": "Northern map edge, scenery against empty ground"}
+  ]
+}

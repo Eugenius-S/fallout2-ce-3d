@@ -29,7 +29,10 @@ $exe = Join-Path $GameDir 'fallout2-ce-test.exe'
 if (-not (Select-String -LiteralPath (Join-Path $GameDir 'fallout2.cfg') -Pattern '^windowed\s*=\s*1\s*$' -Quiet)) {
     throw 'Background snapshots require windowed=1 in game/fallout2.cfg.'
 }
-Copy-Item $built $exe -Force
+if (-not (Test-Path -LiteralPath $exe) -or
+    (Get-FileHash -LiteralPath $built).Hash -ne (Get-FileHash -LiteralPath $exe).Hash) {
+    Copy-Item $built $exe -Force
+}
 
 $shots = 1
 $runId = [guid]::NewGuid().ToString('N')
@@ -69,7 +72,10 @@ try {
     Start-Sleep -Milliseconds 500
 } finally {
     $env:F2CE_DEV_BACKGROUND = $previousBackground
-    if ($null -ne $process -and -not $process.HasExited) { Stop-Process -Id $process.Id -Force }
+    if ($null -ne $process) {
+        if (-not $process.HasExited) { Stop-Process -Id $process.Id -Force }
+        if (-not $process.WaitForExit(10000)) { throw 'The background test process did not exit.' }
+    }
 }
 if ($snapshots.Count -lt $shots) { throw "No snapshot within $TimeoutSeconds s." }
 foreach ($snapshot in $snapshots) {
