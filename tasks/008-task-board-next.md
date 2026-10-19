@@ -27,9 +27,8 @@ branch in another worktree.
 
 - `tools/tasks.ps1 -Next <agent>` prints one task with its file and branch
   name `task/NNN-slug`: the agent's own `doing` task first; otherwise the
-  lowest-id `todo` task whose `depends-on` are all `done` and that is not
-  `claude-only` unless the agent is `claude`; otherwise says nothing is free
-  and which tasks block the agent.
+  free task by the rule in `AGENTS.md` (suggested for the agent first, then
+  any); otherwise says nothing is free and which tasks block the agent.
 - `tools/tasks.ps1 -Review` lists `done` tasks with `reviewed: no`.
 - Both read the task files from `origin/main` (`git show origin/main:tasks/...`)
   after a `git fetch`; without a network they fall back to the working tree
