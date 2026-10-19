@@ -75,8 +75,11 @@ The body has `Goal`, `Context`, `Acceptance`, `Out of scope` and `Log`.
    branch and continue.
 3. Otherwise take the first `todo` task (lowest id) whose `depends-on` are all
    `done` and which is not `claude-only` (unless you are claude).
-4. Set `status: doing` and `owner: <you>`, commit on a new branch
-   `task/NNN-slug` (message `task NNN: start`), push the branch.
+4. Claim it on `main`, so the board shows it taken: set `status: doing` and
+   `owner: <you>`, commit `task NNN: start`, push `main`. Then create the
+   branch `task/NNN-slug` and push it.
+5. If another agent may be working in this checkout at the same time, work in
+   a separate `git worktree` next to it instead of switching branches here.
 
 ### While working
 

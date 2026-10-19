@@ -2,12 +2,12 @@
 id: 024
 title: Sharp text layer: design
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: claude
 suggested: claude
 claude-only: yes
 user-check: yes
-depends-on: [002]
+depends-on: []
 reviewed: no
 ---
 

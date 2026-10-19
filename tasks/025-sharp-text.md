@@ -7,7 +7,7 @@ owner: none
 suggested: gpt
 claude-only: no
 user-check: yes
-depends-on: [024, 017]
+depends-on: [002, 017, 024]
 reviewed: no
 ---
 
