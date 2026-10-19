@@ -2,8 +2,8 @@
 id: 004
 title: OpenGL 4.1 core context
 milestone: M0
-status: todo
-owner: none
+status: doing
+owner: gpt
 suggested: gpt
 claude-only: no
 user-check: no
@@ -38,3 +38,18 @@ Decided ceiling: OpenGL 4.1 core, no compute shaders, no SSBOs.
 The macOS build itself (M4).
 
 ## Log
+
+### 2026-10-19 gpt
+Done: claimed task 004 after task 003 merged as PR #2 (`bb64a69`). Read the
+current init/loader/fallback paths. The renderer still requests 3.3 core,
+does not request forward compatibility and does not log context identity.
+Worktree: `E:/Projects/fallout2-ce-3d-gpt`; branch: `task/004-gl41-core-context`.
+Claude owns task 005 in its separate worktree; do not take it or switch the
+shared game checkout away from main.
+Next: request and verify 4.1 core plus forward compatibility, log the actual
+version/renderer once, test debug-context errors and unavailable-context
+fallback, then run the six unchanged references from task 003. Build in this
+worktree; runtime checks must use `tools/dev-snapshot.ps1` in the shared game
+checkout, one background instance at a time. No implementation changes yet.
+Check: `git show origin/main:tasks/004-gl41-core-context.md`; inspect
+`ce/src/scene_renderer/scene_gl.cc` (`init`) and `gl_api.cc` (`glLoad`).
