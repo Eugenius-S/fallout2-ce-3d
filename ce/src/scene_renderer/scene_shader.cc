@@ -112,7 +112,11 @@ void main() {
             float gray = uGlassGray != 0 ? floor(floor((c.r + 5.0 * c.g + 4.0 * c.b) / 10.0) / 4.0)
                                          : floor(floor((c.b + 3.0 * c.r + 6.0 * c.g) / 10.0) / 4.0);
             if (gray < 1.0) discard;
-            outColor = vec4(uTint, min(gray, 7.0) / 7.0);
+            // The engine then darkens the blended colour by the object's
+            // light, what lies behind included: L * (tint * a + behind * (1 - a)).
+            float a = min(gray, 7.0) / 7.0;
+            float light = min(floor(sceneLight() * 128.0 + 0.0001), 128.0) / 128.0;
+            outColor = vec4(uTint * a * light, 1.0 - light * (1.0 - a));
         } else {
             outColor = texel;
             // _dark_trans_buf_to_buf: the engine darkens a texel by its light in

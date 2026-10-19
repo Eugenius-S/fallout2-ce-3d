@@ -48,6 +48,7 @@ constexpr unsigned int kDepthBufferBit = 0x0100;
 constexpr unsigned int kDepthTest = 0x0B71;
 constexpr unsigned int kCullFace = 0x0B44;
 constexpr unsigned int kLess = 0x0201;
+constexpr unsigned int kOne = 1;
 constexpr unsigned int kSrcAlpha = 0x0302;
 constexpr unsigned int kOneMinusSrcAlpha = 0x0303;
 constexpr unsigned int kPackAlignment = 0x0D05;
@@ -274,7 +275,7 @@ struct ObjectDraw {
     int pickId; // the caller's id for picking, -1: not picked
     bool pickOnly; // drawn by walls.bin; its card is only picked
     bool seeThrough; // the hero stands behind it: the egg cuts it
-    int tile; // its hex, for its light
+    int tile; // its hex, for its light; -1: full light
 };
 
 extern std::vector<ObjectDraw> gObjectDraws;

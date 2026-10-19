@@ -176,6 +176,7 @@ void addObjectCard(Object* object, void* context)
         break;
     case OBJECT_TRANS_WALL:
         tint = COLOR_PALE_BLUE;
+        frame.fullLight = true;
         break;
     case OBJECT_TRANS_GLASS:
         tint = COLOR_CYAN;

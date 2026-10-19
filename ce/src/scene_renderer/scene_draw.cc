@@ -175,14 +175,15 @@ void drawStaticPreview(bool withWalls, bool withHero)
     }
     if (withObjects) {
         glEnable(kBlend);
-        glBlendFunc(kSrcAlpha, kOneMinusSrcAlpha);
+        // The shader gives the blend with its light applied (premultiplied).
+        glBlendFunc(kOne, kOneMinusSrcAlpha);
         glDepthMask(0);
-        glUniform1i(gSceneLightModeLocation, 0);
         glUniform1i(gSceneTranslucentLocation, 1);
         glUniform1f(gSceneCutoffLocation, 0.5f);
         glBindVertexArray(gObjectVao);
         for (const ObjectDraw& draw : gObjectDraws) {
             if (draw.pickOnly || draw.tint[0] < 0.0f) continue;
+            lightSprite(draw.tile);
             glUniform3f(gSceneTintLocation, draw.tint[0], draw.tint[1], draw.tint[2]);
             glUniform1i(gSceneGlassGrayLocation, draw.glassGray ? 1 : 0);
             glBindTexture(kTexture2D, draw.texture);
