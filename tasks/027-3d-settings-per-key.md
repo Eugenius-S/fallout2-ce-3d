@@ -38,3 +38,13 @@ drops the error from `scene::enable`.
 The options menu (017).
 
 ## Log
+
+### 2026-10-19 gpt
+Done: Claimed task 027 on main and created `task/027-3d-settings-per-key`.
+Next: Add per-setting revisions and keep failed scene starts in plain 2D with one reason line.
+Check: `tools/tasks.ps1`; task branch pushed to origin.
+
+### 2026-10-19 gpt
+Done: Added monotonic revisions per registered setting, incremented only on effective config reads or applied edits, and retained the aggregate `[3d]` revision. Scene settings now read the `[3d].enabled` revision; lifecycle ignores revision changes when the enabled value stays the same. Tests change the real unrelated `system.interrupt_walk` descriptor and inject an unrelated aggregate revision; no synthetic `[3d]` key was added. Kept `syncToMap` as the single failed-start reporter.
+Next: Run the normal 16-spot regression and compare the owner config hash before/after; send for parent review before PR.
+Check: Release build; CTest 8/8. A background ARTEMPLE snapshot with an isolated empty scene cache stayed vanilla and logged one stdout failure reason: `floor.bin is missing or unreadable`; metadata is in ignored `build/task027-proof/artemple-empty-cache/`.

@@ -7,6 +7,7 @@ namespace fallout {
 namespace scene {
 
 bool enabled();
+// Revision for the enabled key only; reads never consume it.
 std::uint64_t settingsRevision();
 
 enum class SettingsAction {
@@ -15,13 +16,14 @@ enum class SettingsAction {
     Disable,
 };
 
-// Tracks the setting once per consumer. Reads never consume a shared change flag.
+// Tracks the setting once per consumer. Same-value revisions do not cause an action.
 class SettingsLifecycle {
 public:
     SettingsAction update(bool enabled, std::uint64_t revision, bool suppressInitialEnable);
 
 private:
     bool initialized_ = false;
+    bool enabled_ = false;
     std::uint64_t revision_ = 0;
 };
 
