@@ -1,0 +1,96 @@
+{
+  "task": "009",
+  "captured_at_utc": "2026-10-19T10:15:11Z",
+  "fixture_configs": "build/task009-* isolated copies",
+  "owner_fallout2_cfg_sha256": "875111504363b0a54b63002919598b175e64decf9e84c5f5a67bc915291fe927",
+  "fixtures": [
+    {
+      "name": "16-9",
+      "input_config": {
+        "width": 1920,
+        "height": 1080,
+        "scale": 1,
+        "windowed": true
+      },
+      "input_files": {
+        "fallout2_cfg": {
+          "sha256": "0902120a2db8642f72b0a6adf244358930d9111d95e971557ee7534f4df85c61",
+          "last_write_utc": "2026-10-19T09:43:54Z"
+        },
+        "ddraw_ini": {
+          "sha256": "4dfd014718513ada6396f33684b7718ad85dfcd64b94aa99f66e29298d69a1b3",
+          "last_write_utc": "2025-10-18T04:20:41Z"
+        }
+      },
+      "observed_capture": {
+        "resolution": "1920x1080",
+        "logical_resolution": "960x540",
+        "scale": 2,
+        "windowed": true,
+        "exe_sha256": "2bf1566c37807e18d30fb825051f55f20129f3ec75f16f94e1523e7febc244bb"
+      }
+    },
+    {
+      "name": "21-9",
+      "input_config": {
+        "width": 2520,
+        "height": 1080,
+        "scale": 3,
+        "windowed": true
+      },
+      "input_files": {
+        "fallout2_cfg": {
+          "sha256": "d6cecd2d5183b3c4bcce40ca5ae163b6ed96677b3454cd219432dd8c7646726c",
+          "last_write_utc": "2026-10-19T09:44:24Z"
+        },
+        "ddraw_ini": {
+          "sha256": "4dfd014718513ada6396f33684b7718ad85dfcd64b94aa99f66e29298d69a1b3",
+          "last_write_utc": "2025-10-18T04:20:41Z"
+        }
+      },
+      "observed_capture": {
+        "resolution": "1920x1080",
+        "logical_resolution": "960x540",
+        "scale": 2,
+        "windowed": true,
+        "exe_sha256": "2bf1566c37807e18d30fb825051f55f20129f3ec75f16f94e1523e7febc244bb"
+      }
+    },
+    {
+      "name": "fullscreen",
+      "input_config": {
+        "width": 3840,
+        "height": 2160,
+        "scale": 1,
+        "windowed": false
+      },
+      "input_files": {
+        "fallout2_cfg": {
+          "sha256": "480e30431eefcaff42b5a731977521723639ab7d4f497a1e18cfb6e3a635e016",
+          "last_write_utc": "2026-10-19T09:43:54Z"
+        },
+        "ddraw_ini": {
+          "sha256": "4dfd014718513ada6396f33684b7718ad85dfcd64b94aa99f66e29298d69a1b3",
+          "last_write_utc": "2025-10-18T04:20:41Z"
+        }
+      },
+      "observed_capture": {
+        "resolution": "1920x1080",
+        "logical_resolution": "960x540",
+        "scale": 2,
+        "windowed": true,
+        "exe_sha256": "2bf1566c37807e18d30fb825051f55f20129f3ec75f16f94e1523e7febc244bb"
+      }
+    }
+  ],
+  "pixel_proof": {
+    "image_dimensions": "1920x1080",
+    "decoded_rgba_sha256": "8812d5747fb595e97f0b50f2cf3931e1a81b7b72d699ec12a3cb5c37cf276e51",
+    "png_sha256": "730bba94e9ed8b1e394570afc6f86e41a7515658011464db9095180fc97759c0",
+    "all_three_decoded_rgba_identical": true
+  },
+  "captures": {
+    "original_json": "fixture-proof/16-9-fixed-screen.json",
+    "original_png": "fixture-proof/16-9-fixed-screen.png"
+  }
+}

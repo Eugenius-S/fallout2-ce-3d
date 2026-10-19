@@ -3,6 +3,7 @@
 #include "game_config_migration.h"
 #include "settings.h"
 #include "sfall_config.h"
+#include "devtools/devtools.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -156,7 +157,8 @@ bool gameConfigInit(bool isMapper, int argc, char** argv)
 
     debugPrint("Game config loaded from %s.\n", gGameConfigFilePath);
 
-    if (!isMapper && gameConfigMigrateFromF2Res(gGameConfigFilePath, &gGameConfig)) {
+    if (!isMapper && !devtools::fixedScreenOptionsEnabled()
+        && gameConfigMigrateFromF2Res(gGameConfigFilePath, &gGameConfig)) {
         debugPrint("Migrated settings from f2_res.ini.\n");
         configWriteEx(&gGameConfig, gGameConfigFilePath, CONFIG_RETAIN_ALL);
     }
@@ -186,6 +188,9 @@ EM_ASYNC_JS(void, do_save_idbfs_gameconfig, (), {
 // 0x444C14 gconfig_save
 bool gameConfigSave()
 {
+    if (devtools::fixedScreenOptionsEnabled()) {
+        return true;
+    }
     if (!gGameConfigInitialized) {
         return false;
     }

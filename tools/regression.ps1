@@ -6,6 +6,8 @@ param(
 $ErrorActionPreference = 'Stop'
 $Root = Split-Path -Parent $PSScriptRoot
 $Checker = Join-Path $PSScriptRoot 'regression\check.py'
+$manifest = Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot 'regression\spots.json') | ConvertFrom-Json
+$screen = $manifest.screen
 $select = @()
 if ($Spot) { $select = @('--spot', $Spot) }
 $list = & py -3 $Checker --list @select
@@ -19,7 +21,8 @@ foreach ($entry in $spots) {
     New-Item -ItemType Directory -Path $directory -Force | Out-Null
     Write-Host "Capturing $($entry.name) ($($entry.map) e$($entry.elevation), tile $($entry.tile))"
     try {
-        & (Join-Path $PSScriptRoot 'dev-snapshot.ps1') -Map $entry.map -Elevation $entry.elevation -ViewTile $entry.tile -Still -OutputDirectory $directory |
+        & (Join-Path $PSScriptRoot 'dev-snapshot.ps1') -Map $entry.map -Elevation $entry.elevation -ViewTile $entry.tile -Still -CaptureConsole `
+            -ScreenWidth $screen.width -ScreenHeight $screen.height -Scale $screen.scale -OutputDirectory $directory |
             Set-Content -LiteralPath (Join-Path $directory 'capture.log') -Encoding UTF8
     } catch {
         $_ | Out-String | Set-Content -LiteralPath (Join-Path $directory 'capture-error.txt') -Encoding UTF8

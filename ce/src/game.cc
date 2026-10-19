@@ -151,7 +151,15 @@ int gameInitWithOptions(const char* windowTitle, bool isMapper, int font, int fl
     // SFALL: Execute all code that should be executed BEFORE game init
     sfallOnBeforeGameInit();
 
-    settingsInit(isMapper, argc, argv);
+    if (!settingsInit(isMapper, argc, argv)) {
+        settingsExit(false);
+        sfallConfigExit();
+        return -1;
+    }
+
+    if (!isMapper) {
+        devtools::applyFixedScreenOptions();
+    }
 
     debugModeInit(settings.debug.mode.c_str());
 

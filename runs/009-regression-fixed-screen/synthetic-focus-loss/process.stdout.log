@@ -1,0 +1,3 @@
+devdiag: pushed SDL_WINDOWEVENT_FOCUS_LOST rc=1 window=1
+devdiag: processed SDL_WINDOWEVENT_FOCUS_LOST
+devdiag: entered _GNW95_lost_focus active=0

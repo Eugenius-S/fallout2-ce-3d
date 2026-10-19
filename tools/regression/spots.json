@@ -1,4 +1,9 @@
 {
+  "screen": {
+    "width": 1920,
+    "height": 1080,
+    "scale": 2
+  },
   "channel_tolerance": 2,
   "max_changed_fraction": 1e-05,
   "spots": [

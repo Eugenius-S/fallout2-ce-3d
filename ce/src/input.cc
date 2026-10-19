@@ -8,6 +8,7 @@
 #include "debug.h"
 #include "delay.h"
 #include "dinput.h"
+#include "devtools/devtools.h"
 #include "draw.h"
 #include "game.h"
 #include "kb.h"
@@ -1055,6 +1056,8 @@ void _GNW95_process_message()
                 audioEngineResume();
                 break;
             case SDL_WINDOWEVENT_FOCUS_LOST:
+                // The offscreen snapshot helper must not wait for OS focus.
+                if (devtools::backgroundCaptureActive()) break;
                 gProgramIsActive = false;
                 mouseDeviceInitMode();
                 audioEnginePause();

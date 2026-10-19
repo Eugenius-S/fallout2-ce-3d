@@ -3,6 +3,7 @@
 
 #include <SDL.h>
 
+#include "fixed_screen_options.h"
 #include "../scene/scene_view.h"
 
 namespace fallout {
@@ -22,13 +23,20 @@ namespace devtools {
 //   metadata (map, elevation, renderer, light, resolutions, CE commit,
 //   SHA-256 of the running EXE).
 
-// Consumes --dev-tools / --dev-map / --dev-elevation / --dev-list-maps /
+// Consumes --dev-tools / --dev-screen / --dev-scale / --dev-map / --dev-elevation / --dev-list-maps /
 // --dev-floor-preview / --dev-wall-preview / --dev-hero-preview / --dev-walk-preview /
 // --dev-view-tile / --dev-still-snapshot / --dev-snapshot-run /
 // --dev-map-tour=<map:elevation[:view hex],...> (a snapshot on arrival, then on
 // each) / --dev-classic (the same without the 3D scene) / --dev-hero-tile.
 // Returns true when the argument belonged to devtools.
 bool parseOption(const char* arg);
+
+// Parses and validates the fixed-size startup flags before config or video
+// initialization. Invalid options fail startup before any window is created.
+bool initializeFixedScreenOptions(int argc, char** argv);
+bool fixedScreenOptionsEnabled();
+bool backgroundCaptureActive();
+void applyFixedScreenOptions();
 
 bool isEnabled();
 bool wantsListMaps();

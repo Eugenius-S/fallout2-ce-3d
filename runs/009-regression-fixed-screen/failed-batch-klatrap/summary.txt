@@ -1,0 +1,16 @@
+entrance: not-updated 0 changed pixels
+corrals: not-updated 0 changed pixels
+residents: not-updated 0 changed pixels
+central-doors: not-updated 0 changed pixels
+north-rooms: not-updated 0 changed pixels
+map-edge: not-updated 0 changed pixels
+klacanyn-e0: not-updated 0 changed pixels
+klagraz-e0: not-updated 0 changed pixels
+klamall-e0: not-updated 0 changed pixels
+klaratcv-e0: not-updated 0 changed pixels
+klaratcv-e1: not-updated 0 changed pixels
+klaratcv-e2: not-updated 0 changed pixels
+klatoxcv-e0: not-updated 0 changed pixels
+klatoxcv-e1: not-updated 0 changed pixels
+klatoxcv-e2: not-updated 0 changed pixels
+klatrap-e0: error expected exactly one capture JSON

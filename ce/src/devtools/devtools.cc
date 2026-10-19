@@ -1,4 +1,5 @@
 #include "devtools.h"
+#include "snapshot_rows.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -20,6 +21,7 @@
 #include "../critter.h"
 #include "../cycle.h"
 #include "../db.h"
+#include "../debug.h"
 #include "../dialog.h"
 #include "../draw.h"
 #include "../input.h"
@@ -65,6 +67,7 @@ namespace {
 
 bool gEnabled = false;
 bool gListMaps = false;
+FixedScreenOptions gFixedScreenOptions;
 char gStartupMap[16] = {};
 int gStartupElevation = 0;
 bool gStartupApplied = false;
@@ -728,6 +731,38 @@ bool parseOption(const char* arg)
         return true;
     }
     return false;
+}
+
+bool initializeFixedScreenOptions(int argc, char** argv)
+{
+    const char* error = nullptr;
+    if (!parseFixedScreenOptions(argc, argv, &gFixedScreenOptions, &error)) {
+        fprintf(stderr, "devtools: %s\n", error != nullptr ? error : "invalid fixed screen options");
+        fflush(stderr);
+        return false;
+    }
+    return true;
+}
+
+bool fixedScreenOptionsEnabled()
+{
+    return gFixedScreenOptions.enabled;
+}
+
+bool backgroundCaptureActive()
+{
+    return fixedScreenOptionsEnabled() && SDL_getenv("F2CE_DEV_BACKGROUND") != nullptr;
+}
+
+void applyFixedScreenOptions()
+{
+    if (!gFixedScreenOptions.enabled) return;
+    settings.screen.resolution_x = gFixedScreenOptions.width;
+    settings.screen.resolution_y = gFixedScreenOptions.height;
+    settings.screen.scale = gFixedScreenOptions.scale;
+    settings.screen.windowed = WindowMode::Windowed;
+    debugPrint("DEVTOOLS: fixed screen %dx%d scale %d, windowed\n",
+        gFixedScreenOptions.width, gFixedScreenOptions.height, gFixedScreenOptions.scale);
 }
 
 bool isEnabled()
@@ -1575,8 +1610,15 @@ bool takeSnapshot()
                 }
             } else {
                 unsigned char* palette = directDrawGetPalette();
+                std::vector<unsigned char> tightlyPacked(static_cast<size_t>(gSdlSurface->w) * gSdlSurface->h);
+                if (!copySnapshotRowsTightly(static_cast<const unsigned char*>(gSdlSurface->pixels),
+                        gSdlSurface->w, gSdlSurface->h, gSdlSurface->pitch,
+                        tightlyPacked.data(), tightlyPacked.size())) {
+                    setStatus("snapshot: invalid framebuffer row pitch");
+                    return false;
+                }
                 if (screenshotHandlerPngImpl(gSdlSurface->w, gSdlSurface->h,
-                        static_cast<unsigned char*>(gSdlSurface->pixels), palette) != 0) {
+                        tightlyPacked.data(), palette) != 0) {
                     setStatus("snapshot: vanilla PNG write failed");
                     return false;
                 }
@@ -1663,6 +1705,9 @@ bool takeSnapshot()
         "  \"renderer\": \"%s\",\n"
         "  \"light\": \"off\",\n"
         "  \"resolution\": \"%dx%d\",\n"
+        "  \"logical_resolution\": \"%dx%d\",\n"
+        "  \"scale\": %d,\n"
+        "  \"windowed\": %s,\n"
         "  \"drawable\": \"%dx%d\",\n"
         "  \"ce_commit\": \"%s\",\n"
         "  \"tools_commit\": \"%s\",\n"
@@ -1688,6 +1733,10 @@ bool takeSnapshot()
         activeRendererName(),
         capturedWidth,
         capturedHeight,
+        screenGetWidth(),
+        screenGetHeight(),
+        settings.screen.scale,
+        settings.screen.windowed == WindowMode::Windowed ? "true" : "false",
         drawableW,
         drawableH,
         _BUILD_HASH,
