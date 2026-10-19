@@ -1,0 +1,16 @@
+entrance: updated 0 changed pixels
+corrals: updated 0 changed pixels
+residents: updated 0 changed pixels
+central-doors: updated 0 changed pixels
+north-rooms: updated 0 changed pixels
+map-edge: updated 0 changed pixels
+klacanyn-e0: updated 0 changed pixels
+klagraz-e0: updated 0 changed pixels
+klamall-e0: updated 0 changed pixels
+klaratcv-e0: updated 0 changed pixels
+klaratcv-e1: updated 0 changed pixels
+klaratcv-e2: updated 0 changed pixels
+klatoxcv-e0: updated 0 changed pixels
+klatoxcv-e1: updated 0 changed pixels
+klatoxcv-e2: updated 0 changed pixels
+klatrap-e0: updated 0 changed pixels

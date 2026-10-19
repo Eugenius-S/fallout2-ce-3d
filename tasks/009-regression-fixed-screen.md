@@ -2,7 +2,7 @@
 id: 009
 title: Regression snapshots at a fixed screen size
 milestone: M0
-status: doing
+status: done
 owner: gpt
 suggested: gpt
 claude-only: no
@@ -49,7 +49,7 @@ merged; its dependency is now explicit. The existing GPT worktree is reused
 for its build cache, without switching the shared primary checkout.
 Next: parse dev-only screen/scale overrides before video initialization,
 force background snapshots to windowed mode without config writes, fix the
-vanilla surface pitch, then retake and compare all six references at 1920x1080
+vanilla surface pitch, then retake and compare all 16 references at 1920x1080
 and scale 2. Verify alternate owner configs through isolated test config data.
 Check: `tools/tasks.ps1`; task branch `task/009-regression-fixed-screen`.
 
@@ -86,3 +86,8 @@ Check: One clean Release rebuild (to avoid inherited stale MSVC/Ninja header dep
 Done: Confirmed the intermittent capture stall can be caused by the SDL focus-loss pause path: an in-process synthetic `SDL_WINDOWEVENT_FOCUS_LOST` was processed and entered `_GNW95_lost_focus`, then no snapshot appeared within 20 seconds. Added a narrow exception for fixed-screen background captures only; normal/manual focus handling remains unchanged. Repeating the same synthetic event now completes and writes a real PNG/JSON. Temporary event injection/logging was removed, `input.cc` was rebuilt for game and mapper, and the final source/EXEs contain no probe marker. The regression launcher now records stdout/stderr per spot.
 Next: Retake and compare all 16 references with the updated capture runner; document any failed batches and preserve the old references unless the entire update validates.
 Check: Release incremental build succeeded; CTest 7/7, exporter 36/36, regression 12/12. Focus failure/success logs and successful capture are under `runs/009-regression-fixed-screen/synthetic-focus-loss*`. Two earlier full updates failed atomically at `klamall-e0` and `klatrap-e0`; isolated same-map captures succeeded. Their actual historical focus state was not observed, so the reproduced focus pause is a proven cause for possible stalls, not a claim about those two events.
+
+### 2026-10-19 gpt
+Done: Replaced all 16 regression PNG/JSON references atomically at 1920x1080, logical 960x540, scale 2 and windowed mode. The following full comparison passed all 16 unchanged references with 0 changed pixels each. Fixture proof records the 16:9, 21:9 and fullscreen input config shapes and hashes; each produced identical decoded RGBA pixels while the owner config hash remained unchanged. A before/after entrance pair documents the intentional size change from 2310x1298 to 1920x1080. Earlier failed update runs at `klamall-e0` and `klatrap-e0` were atomic; final successful run IDs `20261019-170723-951-65956` (update) and `20261019-171029-833-62892` (comparison) are summarized under `runs/009-regression-fixed-screen/`.
+Next: Parent final review and PR acceptance.
+Check: Full `tools/regression.ps1 -Update` passed all 16; subsequent `tools/regression.ps1` passed all 16 with 0 changed pixels. References and evidence metadata were validated at 1920x1080, logical 960x540, scale 2, windowed true. `tools/tasks.ps1` reports task 009 done; `reviewed: no` pending parent review.
