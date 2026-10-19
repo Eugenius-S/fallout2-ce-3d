@@ -23,6 +23,26 @@ buildings, roofs and solids; characters darken in shadow.
   shadows.
 - What a hidden roof does to shadows is decided in task 013.
 
+## Plan (claude, 2026-10-19)
+
+- Sun position from `gameTimeGetTime()` (36000 ticks an hour, `scripts.h`):
+  height by hour; strength and color follow the ambient the map scripts set,
+  so the game's own day and night decide how bright the sun is. The azimuth is
+  tuned on snapshots with the owner.
+- No sun where `scene.json` says `indoor` (underground); `daylight` marks maps
+  under the sky.
+- One directional shadow map (depth texture, OpenGL 4.1) over the visible
+  ground plus a margin. Casters: walls, trims, doors, solids, forms, roofs
+  (hidden ones too, see 013). Receivers: floor, walls, and sprites by one
+  lookup at the anchor slightly above ground, smoothed over ~150 ms.
+- The game art has shadows painted in. The exporter already gives the
+  shadow-free sprite of each such board (`shadows`: board, sprite without the
+  painted shadow, shadow sprite) and floor shade (`casts`). With the sun on,
+  use the shadow-free sprites and drop `casts`; with it off, the originals.
+- Pixelation: snap shadow lookups to a world grid of N game pixels.
+- A jump of game time (wait, travel, load) sets the sun at once instead of
+  sweeping it.
+
 ## Acceptance
 
 - Sun direction, height and color follow game time: long shadows morning and
@@ -41,3 +61,8 @@ buildings, roofs and solids; characters darken in shadow.
 Cloud shadows (023).
 
 ## Log
+
+### 2026-10-19 claude
+Done: research; findings and plan in `## Plan`.
+Next: start when the dependencies are done.
+Check: read `## Plan`.

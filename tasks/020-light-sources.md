@@ -28,6 +28,24 @@ brighten near them, darken away from them and take their color.
   to it, by comparing both on Klamath at night and day; write the choice in
   the `Log`.
 
+## Plan (claude, 2026-10-19)
+
+- Today the 3D scene applies no light at all: night maps and caves show at full
+  brightness, unlike 2D. First restore the game's own light as the authentic
+  base: ambient (`lightGetAmbientIntensity`; map scripts set it by hour through
+  `set_light_level`, `interpreter_extra.cc`), and the per-tile intensity the
+  engine spreads from light objects (`lightGetTileIntensity`; objects with
+  `lightDistance` up to 8 hexes and `lightIntensity` up to 65536). Floor and
+  walls lit per tile, interpolated; sprites by their anchor tile. Snapshots
+  must match 2D brightness at day and night.
+- Then real lights: one point light per object with `lightDistance > 0`,
+  live every frame (position, radius, intensity, on/off). Height and color
+  from the exporter's `glows` (`scene.json`: u, v, px right, height, r, g, b;
+  fires 1.0/0.5/0.18, lamps 1.0/0.86/0.6), matched by position; otherwise a
+  default by object kind.
+- The exporter's `light.png` (R lamps, G daylight, B floor shade) is a static
+  bake: a reference picture, not a live source.
+
 ## Acceptance
 
 - Every light-carrying object on Klamath maps lights floor, walls and sprites;
@@ -42,3 +60,8 @@ brighten near them, darken away from them and take their color.
 Shadows from point lights.
 
 ## Log
+
+### 2026-10-19 claude
+Done: research; findings and plan in `## Plan`.
+Next: start when the dependencies are done.
+Check: read `## Plan`.
