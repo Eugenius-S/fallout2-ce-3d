@@ -2,13 +2,13 @@
 id: 019
 title: The no-path cross stands off the hex cursor in 3D
 milestone: M1
-status: doing
+status: done
 owner: claude
 suggested: claude
 claude-only: no
 user-check: yes
 depends-on: []
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -53,3 +53,6 @@ owner's, before) and `after-store-counter.png` (the probe's pointer on a
 blocked hex at the store counter, after).
 Check: build, `ctest --test-dir build` (8/8); `dev-snapshot.ps1 -Probe
 -HeroTile 21678 -ViewTile 21678` (the probe points at blocked hex 22276).
+
+### 2026-10-19 claude
+Done: the owner checked it in the game and accepted: the cross is in place.
