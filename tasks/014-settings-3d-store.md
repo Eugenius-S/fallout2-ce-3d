@@ -2,7 +2,7 @@
 id: 014
 title: Settings store for 3D features
 milestone: M1
-status: doing
+status: done
 owner: gpt
 suggested: glm
 claude-only: no
@@ -57,3 +57,8 @@ Check: Release build; root CTest 8/8; standalone `settings_3d_tests` 1/1.
 Done: Connected `[3d].enabled` to scene lifecycle updates: enabled defaults to Full gameplay scenes, disabled gates all 3D views, and revision changes switch immediately. Ctrl+F10 enables the schema setting before switching Full. Startup snapshots wait for target map/elevation readiness; vanilla presentation supplies a one-shot when 3D is off or unavailable. Dev snapshots now support `-NoPreview`; pending map tours also run startup positioning.
 Next: Parent review of Step 2; full regression and task completion remain out of scope.
 Check: Release build; CTest 8/8; standalone settings suite 1/1. Background snapshots through `tools/dev-snapshot.ps1` on EXE SHA-256 `a5d24a31f7b3a9882bfcce5001ea8ccb8947cc5183e30af630f5dc6dda32f7da`: missing/default, `enabled=1`, invalid `enabled=2` yielded enabled Full; `enabled=0` yielded disabled vanilla framebuffer. All at KLARATCV e1 tile 14701, 1920x1080/logical 960x540/scale 2/windowed. ARTEMPLE e0 same-map `-NoPreview` fallback captured tile 17288; no-preview KLADWTWN0 → KLARATCV1 → KLADWTWN0 tour completed with requested metadata. Fixture config hashes remained unchanged; owner config remains `875111504363B0A54B63002919598B175E64DECF9E84C5F5A67BC915291FE927`. Evidence is under ignored `build/task014-proof/`; no full regression run.
+
+### 2026-10-19 gpt
+Done: Documented the 3D setting and scene revision API in `docs/scene-settings.md`; curated runtime and regression evidence in `runs/014-settings-3d-store/`. Marking task implementation complete for review.
+Next: Parent review; `reviewed: no` remains unchanged.
+Check: Normal `tools/regression.ps1` run (no `-Update`) passed all 16 spots with zero changed pixels. Evidence includes the full summary, setting on/off/default/invalid captures, ARTEMPLE fallback, and tour metadata. Release build, CTest 8/8, standalone settings suite 1/1; exporter and Python regression suites independently passed 36 and 12 tests.
