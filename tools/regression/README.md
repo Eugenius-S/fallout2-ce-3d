@@ -14,6 +14,9 @@ stopped; the script waits for that process to exit before the next capture.
 The test process receives a fixed screen size and scale from `spots.json`. It
 forces windowed mode and does not save `fallout2.cfg`, so its result is
 independent of the owner's screen settings.
+For isolated config checks, `dev-snapshot.ps1 -ConfigDirectory` can read a
+separate `fallout2.cfg` and `ddraw.ini` from a `build/task009-*` folder while
+keeping the game's resource directory as its working directory.
 
 `spots.json` names each map, elevation and exact view hex. The player remains
 at the map entrance. `--dev-view-tile=N` bypasses camera bounds and starts the

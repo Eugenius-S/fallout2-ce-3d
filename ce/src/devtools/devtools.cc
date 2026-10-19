@@ -1,4 +1,5 @@
 #include "devtools.h"
+#include "snapshot_rows.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1604,8 +1605,15 @@ bool takeSnapshot()
                 }
             } else {
                 unsigned char* palette = directDrawGetPalette();
+                std::vector<unsigned char> tightlyPacked(static_cast<size_t>(gSdlSurface->w) * gSdlSurface->h);
+                if (!copySnapshotRowsTightly(static_cast<const unsigned char*>(gSdlSurface->pixels),
+                        gSdlSurface->w, gSdlSurface->h, gSdlSurface->pitch,
+                        tightlyPacked.data(), tightlyPacked.size())) {
+                    setStatus("snapshot: invalid framebuffer row pitch");
+                    return false;
+                }
                 if (screenshotHandlerPngImpl(gSdlSurface->w, gSdlSurface->h,
-                        static_cast<unsigned char*>(gSdlSurface->pixels), palette) != 0) {
+                        tightlyPacked.data(), palette) != 0) {
                     setStatus("snapshot: vanilla PNG write failed");
                     return false;
                 }

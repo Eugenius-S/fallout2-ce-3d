@@ -14,6 +14,8 @@
 # snapshot there. -Classic: the same in the game's own 2D picture.
 #
 # Prints the snapshot JSON; the image lies next to it in game/.
+# -ConfigDirectory: read fallout2.cfg and ddraw.ini beside the test executable
+# in an isolated build/task009-* folder, while game resources remain in game/.
 param(
     [string]$Map = "kladwtwn",
     [int]$Elevation = 0,
@@ -33,7 +35,8 @@ param(
     [ValidateRange(480, 4320)]
     [int]$ScreenHeight = 1080,
     [ValidateRange(1, 4)]
-    [int]$Scale = 2
+    [int]$Scale = 2,
+    [string]$ConfigDirectory
 )
 $ErrorActionPreference = 'Stop'
 $Root = Split-Path -Parent $PSScriptRoot
@@ -45,7 +48,27 @@ if (-not (Test-Path -LiteralPath $GameDir)) {
 }
 $built = Join-Path $Root 'build\fallout2-ce.exe'
 if (-not (Test-Path $built)) { throw "No build at $built; run tools/configure-build.ps1 first." }
-$exe = Join-Path $GameDir 'fallout2-ce-test.exe'
+$configRoot = $null
+if ($ConfigDirectory) {
+    if (-not (Test-Path -LiteralPath $ConfigDirectory -PathType Container)) {
+        throw "Config directory does not exist: $ConfigDirectory"
+    }
+    $configRoot = (Resolve-Path -LiteralPath $ConfigDirectory).Path
+    $buildRoot = (Resolve-Path -LiteralPath (Join-Path $Root 'build')).Path
+    $configLeaf = Split-Path -Leaf $configRoot
+    if ((Split-Path -Parent $configRoot) -ne $buildRoot -or
+        -not $configLeaf.StartsWith('task009-', [System.StringComparison]::OrdinalIgnoreCase)) {
+        throw 'ConfigDirectory must be an isolated build/task009-* folder.'
+    }
+    if (-not (Test-Path -LiteralPath (Join-Path $configRoot 'fallout2.cfg') -PathType Leaf)) {
+        throw "Isolated config is missing fallout2.cfg: $configRoot"
+    }
+}
+$exeDirectory = if ($configRoot) { $configRoot } else { $GameDir }
+$exe = Join-Path $exeDirectory 'fallout2-ce-test.exe'
+if (Get-Process fallout2-ce-test -ErrorAction SilentlyContinue) {
+    throw 'Another fallout2-ce-test.exe instance is already running.'
+}
 if (($ScreenWidth % $Scale) -ne 0 -or ($ScreenHeight % $Scale) -ne 0 -or
     ($ScreenWidth / $Scale) -lt 640 -or ($ScreenHeight / $Scale) -lt 480) {
     throw 'The requested scale must divide the screen and leave at least a 640x480 logical framebuffer.'
@@ -54,7 +77,6 @@ if (-not (Test-Path -LiteralPath $exe) -or
     (Get-FileHash -LiteralPath $built).Hash -ne (Get-FileHash -LiteralPath $exe).Hash) {
     Copy-Item $built $exe -Force
 }
-
 $shots = 1
 $runId = [guid]::NewGuid().ToString('N')
 $view = if ($Classic) { '--dev-classic' } else { '--dev-hero-preview' }

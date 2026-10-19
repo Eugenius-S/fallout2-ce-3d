@@ -76,3 +76,8 @@ verify fixed-size captures against isolated config fixtures and retake the 16
 references.
 Check: Release build succeeded; `ctest` passed 6/6; exporter tests passed 36
 and regression tests passed 12. No runtime captures were run in this step.
+
+### 2026-10-19 gpt
+Done: The vanilla SDL snapshot path now copies rows using the surface pitch before PNG encoding; its production-helper test checks all pixels at width 1155 with 5 padding bytes per row. `dev-snapshot.ps1 -ConfigDirectory` uses a copied test executable and isolated `fallout2.cfg`/`ddraw.ini` in `build/task009-*`, while the main game directory remains the resource working directory. Captures from 16:9, 21:9 and fullscreen fixtures produced identical decoded RGBA pixels. Each reports 1920x1080 drawable, 960x540 logical, scale 2 and windowed mode. Owner `fallout2.cfg` remains at SHA-256 `875111504363B0A54B63002919598B175E64DECF9E84C5F5A67BC915291FE927`.
+Next: Parent review Step2; then retake all 16 regression references at 1920x1080 and scale 2 after authorization.
+Check: One clean Release rebuild (to avoid inherited stale MSVC/Ninja header dependencies) passed; CTest 7/7, exporter 36 and regression 12; padded-row standalone test 1/1. Three background captures used tile 25075; their decoded 1920x1080 RGBA buffers matched byte-for-byte. Fixture config timestamps predate captures and final hashes were recorded; no test process remains.

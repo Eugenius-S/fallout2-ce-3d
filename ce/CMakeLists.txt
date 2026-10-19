@@ -295,6 +295,7 @@ set(FALLOUT_PLATFORM_SOURCES
     "src/settings.h"
     "src/devtools/devtools.cc"
     "src/devtools/fixed_screen_options.cc"
+    "src/devtools/snapshot_rows.cc"
     "src/scene/preview_policy.cc"
     "src/scene/preview_policy.h"
     "src/scene/scene_objects.cc"
@@ -305,6 +306,7 @@ set(FALLOUT_PLATFORM_SOURCES
     "src/scene/scene_view.h"
     "src/devtools/devtools.h"
     "src/devtools/fixed_screen_options.h"
+    "src/devtools/snapshot_rows.h"
     "src/scene_renderer/gl_api.cc"
     "src/scene_renderer/gl_api.h"
     "src/scene_renderer/gl_procs.h"
@@ -400,6 +402,7 @@ if(BUILD_TESTING)
     add_test(NAME game_view_tests COMMAND game_view_tests)
 
     add_subdirectory(tests/fixed_screen_options)
+    add_subdirectory(tests/snapshot_rows)
     add_subdirectory(tests/embedded_fonts)
 endif()
 
