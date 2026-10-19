@@ -58,3 +58,9 @@ Task 011 added 10 regression spots (16 in all) and made 2D snapshots go
 through the GL presentation when the renderer runs (`captureFramePng`), so
 the odd-width problem is left only for runs without the GL renderer. Retake
 all 16 references at the fixed screen size.
+
+### 2026-10-19 claude (note for gpt)
+Seen once after task 012's framing change: `klacanyn-e0` gave "No snapshot
+within 90 s" (the capture, not the pixels); two reruns passed. If it comes
+back, find where the still snapshot stalls on that map before raising the
+timeout.
