@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include <stdio.h>
 
 #include "gl_api.h"
 #include "scene_internal.h"
@@ -22,6 +23,7 @@ std::vector<unsigned short> gLightMap;
 unsigned int gLightTexture = 0;
 bool gLightStale = false;
 bool gLightOn = false;
+bool gLightFailed = false; // the light map could not be uploaded: the scene stays unlit
 double gAmbient = 1.0;
 
 } // namespace
@@ -30,7 +32,7 @@ namespace internal {
 
 bool lightShown()
 {
-    return gLightOn && !gLightMap.empty();
+    return gLightOn && !gLightFailed && !gLightMap.empty();
 }
 
 float lightAtTile(int tile)
@@ -48,6 +50,8 @@ bool bindLight()
 {
     if (!lightShown()) return false;
     glActiveTexture(kTexture0 + 3);
+    while (glGetError() != 0) {
+    }
     if (gLightTexture == 0) {
         glGenTextures(1, &gLightTexture);
         glBindTexture(kTexture2D, gLightTexture);
@@ -63,6 +67,13 @@ bool bindLight()
         glTexImage2D(kTexture2D, 0, kR16, kHexGrid, kHexGrid, 0, kRed, kUnsignedShort, gLightMap.data());
         glPixelStorei(kUnpackAlignment, 4);
         gLightStale = false;
+    }
+    if (gLightTexture == 0 || glGetError() != 0) {
+        fprintf(stderr, "scene_renderer: the light map could not be uploaded; the scene stays unlit\n");
+        fflush(stderr);
+        gLightFailed = true;
+        glActiveTexture(kTexture0);
+        return false;
     }
     glUniform1i(gSceneLightMapLocation, 3);
     // Ground (u, v) to the game's pixels, as the exporter's projection.
