@@ -75,3 +75,15 @@ history it contains is already public and was left out: 88 own commits).
 Next: the owner decides on the three fixes; then make the repository public
 and set `visibility: public` in `.foundation/project.yml`.
 Check: this report.
+
+### 2026-10-19 claude
+Done, as the owner decided: the `archive/*` branches are saved as a verified
+bundle outside the repository
+(`E:\Projects\fallout2-ce-3d-archive\archive-branches-2026-10-19.bundle`);
+`archive/dlss5` is deleted from GitHub; `LICENSE.md` at the root is the
+Sustainable Use License 1.0, the same text as `ce/LICENSE.md`.
+Next: the owner turns on "Keep my email addresses private"
+(<https://github.com/settings/emails>; the gh token has no `user` scope) and
+makes the repository public; then set `visibility: public` in
+`.foundation/project.yml` and close this task.
+Check: `git ls-remote origin` shows no `archive/dlss5`.
