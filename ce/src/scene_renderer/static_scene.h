@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+#include "map_clip.h"
+
 namespace fallout {
 namespace scene_renderer {
 
@@ -17,6 +19,10 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
 // so another map's can be loaded.
 void unloadStaticScene();
 void staticWallStats(unsigned int* triangles, unsigned int* pages);
+MapClip staticFloorMapClip();
+void setStaticMapClip(const MapClip& clip);
+MapClip staticMapClip();
+void bindStaticMapClipUniforms();
 
 // Which roof squares the game shows now: 100 x 100 bytes in the engine's
 // square order (y * 100 + x), nonzero shown.

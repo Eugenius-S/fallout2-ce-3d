@@ -1884,6 +1884,31 @@ bool takeSnapshot()
     } else {
         snprintf(heroMetadata, sizeof(heroMetadata), "null");
     }
+    const scene_renderer::MapClip mapClip = scene_renderer::staticMapClip();
+    const char* clipSource = mapClip.source == scene_renderer::MapClipSource::Authored ? "authored"
+        : mapClip.source == scene_renderer::MapClipSource::Floor ? "floor" : "disabled";
+    const char* clipVariant = "off";
+    if (scene::cleanEdges()) {
+        const char* requested = isEnabled() ? SDL_getenv("F2CE_DEV_CLEAN_EDGES") : nullptr;
+        clipVariant = requested != nullptr && strcmp(requested, "floor") == 0 ? "floor" : "authored";
+    }
+    char clipMetadata[768];
+    if (mapClip.enabled) {
+        snprintf(clipMetadata, sizeof(clipMetadata),
+            "{\"enabled\":true,\"setting_enabled\":%s,\"variant\":\"%s\",\"source\":\"%s\","
+            "\"world_bounds\":[%.6f,%.6f,%.6f,%.6f],\"planes\":[[%.7f,%.7f,%.7f],[%.7f,%.7f,%.7f],"
+            "[%.7f,%.7f,%.7f],[%.7f,%.7f,%.7f]]}",
+            scene::cleanEdges() ? "true" : "false", clipVariant, clipSource,
+            mapClip.left, mapClip.top, mapClip.right, mapClip.bottom,
+            mapClip.planes[0].x, mapClip.planes[0].z, mapClip.planes[0].offset,
+            mapClip.planes[1].x, mapClip.planes[1].z, mapClip.planes[1].offset,
+            mapClip.planes[2].x, mapClip.planes[2].z, mapClip.planes[2].offset,
+            mapClip.planes[3].x, mapClip.planes[3].z, mapClip.planes[3].offset);
+    } else {
+        snprintf(clipMetadata, sizeof(clipMetadata),
+            "{\"enabled\":false,\"setting_enabled\":%s,\"variant\":\"%s\",\"source\":\"disabled\"}",
+            scene::cleanEdges() ? "true" : "false", clipVariant);
+    }
     if (!preview && gSdlWindow != nullptr) {
         SDL_GL_GetDrawableSize(gSdlWindow, &drawableW, &drawableH);
     }
@@ -1909,6 +1934,7 @@ bool takeSnapshot()
         "  \"preview_requested\": %s,\n"
         "  \"scene_3d_enabled\": %s,\n"
         "  \"scene_view\": \"%s\",\n"
+        "  \"map_clip\": %s,\n"
         "  \"camera\": \"%s\",\n"
         "  \"wall_triangles\": %u,\n"
         "  \"wall_pages\": %u,\n"
@@ -1940,6 +1966,7 @@ bool takeSnapshot()
         scene::activeView() == scene::View::Full ? "full"
             : scene::activeView() == scene::View::Walls ? "walls"
             : scene::activeView() == scene::View::Floor ? "floor" : "off",
+        clipMetadata,
         camera,
         wallTriangles,
         wallPages,

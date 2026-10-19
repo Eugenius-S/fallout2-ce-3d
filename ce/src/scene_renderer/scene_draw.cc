@@ -7,6 +7,7 @@
 #include "context.h"
 #include "gl_api.h"
 #include "scene_internal.h"
+#include "static_scene.h"
 
 namespace fallout {
 namespace scene_renderer {
@@ -45,6 +46,7 @@ void drawStaticPreview(bool withWalls, bool withHero)
         glBlendFunc(kSrcAlpha, kOneMinusSrcAlpha);
     }
     glUseProgram(gSceneProgram);
+    bindStaticMapClipUniforms();
     glUniformMatrix4fv(gSceneMvpLocation, 1, 0, mvp);
     glUniform1i(gSceneDepthAtLocation, 0);
     glUniform1i(gSceneTranslucentLocation, 0);

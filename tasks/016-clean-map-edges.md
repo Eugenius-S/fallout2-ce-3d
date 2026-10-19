@@ -48,3 +48,8 @@ Changing what the player may scroll to.
 Done: Claimed task 016 on main; dependencies are done.
 Next: Inspect the target image and clipping/render architecture, then implement two reviewable map-coordinate cut variants.
 Check: `tools/tasks.ps1`; task branch will follow this claim.
+
+### 2026-10-19 gpt
+Done: Added default-on `[3d] clean_edges`, strict default-preserving config reads, per-key scene revision access, authored EDG/floor clip geometry, shared draw and picking cuts, and A/B snapshot metadata.
+Next: Parent reviews this implementation before two-map variant captures.
+Check: Release build passed; `ctest --test-dir build --output-on-failure` passed 9/9; `git diff --check` passed.

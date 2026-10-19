@@ -7,6 +7,9 @@
 namespace fallout {
 namespace scene_renderer {
 
+struct GameView;
+struct SpriteCardProjection;
+
 struct StaticPreviewCamera {
     float eye[3];
     float target[3];
@@ -25,6 +28,9 @@ bool loadStaticProjection(const std::filesystem::path& cacheDirectory, std::stri
 void setStaticCameraCenterTile(int tile);
 
 StaticPreviewCamera staticPreviewCamera(bool withWalls);
+
+// The donor's pixel-to-ground projection, once projection.bin is loaded.
+bool currentGameProjection(SpriteCardProjection* projection);
 
 // The game view's eye distance (units, 100 by default); a far eye (thousands)
 // is the game's own parallel projection, for comparing with 2D.
