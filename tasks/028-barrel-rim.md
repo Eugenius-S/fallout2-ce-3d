@@ -2,8 +2,8 @@
 id: 028
 title: The rim of a burning barrel breaks off in 3D
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: claude
 suggested: claude
 claude-only: no
 user-check: yes
