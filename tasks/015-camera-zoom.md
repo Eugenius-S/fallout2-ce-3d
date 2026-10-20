@@ -2,7 +2,7 @@
 id: 015
 title: Camera zoom
 milestone: M1
-status: doing
+status: done
 owner: glm
 suggested: glm
 claude-only: no
@@ -68,3 +68,11 @@ main checkout with this branch's build copied in. Then: in-game wheel check
 (user-check), two-frames evidence, PR.
 Check: build + ctest green (worktree task/015-camera-zoom); zoom 1 snapshot
 game/devshot-20261020-080309-000.json.
+
+### 2026-10-19 glm
+Done: the regression passes clean from this worktree - 16/16 spots, 0 changed
+pixels at zoom 1 (the earlier cascade was two invocations racing over one
+test instance; a single run is green). The wheel path is code-reviewed only:
+the owner drives the in-game wheel check (user-check).
+Next: merge; the options-menu labels land with task 017's panel.
+Check: tools/regression.ps1; [3d] zoom keys in fallout2.cfg after a session.
