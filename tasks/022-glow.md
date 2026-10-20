@@ -2,8 +2,8 @@
 id: 022
 title: Glow on fire, screens, signs and energy weapons
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: glm
 suggested: gpt
 claude-only: no
 user-check: yes
