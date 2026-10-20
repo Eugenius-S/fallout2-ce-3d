@@ -2,8 +2,8 @@
 id: 017
 title: Options menu with a 3D panel
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: gpt
 suggested: gpt
 claude-only: no
 user-check: yes
@@ -42,3 +42,8 @@ Every new setting is in the game's own options menu.
 The sharp text layer (task 025); the panel uses the game's text drawing now.
 
 ## Log
+
+### 2026-10-20 gpt
+Done: Claimed task 017 after task 016 merged to main at `0c123c9e`. Reviewed the existing preferences screen and `OptionsSettingsModel`; the accepted implementation plan keeps the legacy page in a 640-pixel offscreen canvas, scrolls the content through a clipped viewport, and pins the existing footer.
+Next: Add optional numeric range metadata and complete the descriptor/model layer with focused tests before integrating the scrollable UI.
+Check: Fresh worktree is based on `origin/main` at `0c123c9e`; ignored build and private scene cache were preserved across checkout recreation. No implementation changes yet.
