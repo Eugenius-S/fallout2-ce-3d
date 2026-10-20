@@ -2,8 +2,8 @@
 id: 030
 title: No long dashes in our texts
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: glm
 suggested: glm
 claude-only: no
 user-check: no
