@@ -2214,6 +2214,8 @@ bool takeSnapshot()
     if (!preview && gSdlWindow != nullptr) {
         SDL_GL_GetDrawableSize(gSdlWindow, &drawableW, &drawableH);
     }
+    // Preview snapshots come before the first frame that would update it.
+    scene::updateSunFromGame();
     const scene::Sun& sun = scene::currentSun();
     char sunMetadata[384];
     snprintf(sunMetadata, sizeof(sunMetadata),
