@@ -2,6 +2,7 @@
 
 import unittest
 import base64
+import gzip
 import json
 import struct
 from pathlib import Path
@@ -64,6 +65,24 @@ class SourcePriorityTests(unittest.TestCase):
                     [name for _, name, _ in files.sources],
                     ["mods/rpu_russian.dat", "mods/rpu.dat", "critter_dat", "master_dat", "cwd_fallback"],
                 )
+            finally:
+                files.close()
+
+    def test_a_loose_file_the_game_wrote_gzipped_reads_as_plain(self):
+        with TemporaryDirectory() as temp:
+            game = Path(temp)
+            (game / "fallout2.cfg").write_text(
+                "[system]\nmaster_dat=master.dat\nmaster_patches=data\ncritter_dat=critter.dat\n",
+                encoding="cp1252",
+            )
+            write_dat2({"maps/kladwtwn.map": b"master"}, game / "master.dat")
+            write_dat2({"maps/kladwtwn.map": b"critter"}, game / "critter.dat")
+            (game / "data" / "proto" / "critters").mkdir(parents=True)
+            (game / "data" / "proto" / "critters" / "00000097.pro").write_bytes(gzip.compress(b"proto"))
+
+            files = ReadOnlyGameFiles(game)
+            try:
+                self.assertEqual(files.read("proto/critters/00000097.pro"), b"proto")
             finally:
                 files.close()
 
