@@ -10,10 +10,13 @@ from solids import Projection, rest_card, screen_area, solid_faces
 
 
 MAGIC = b"F2WL"
-VERSION = 3
+VERSION = 4
 # magic, version, header bytes, atlas pages, batches, triangles, objects
 HEADER = struct.Struct("<4sHHIIII")
-BATCH = struct.Struct("<IIII")  # atlas page, width, height, triangles
+# atlas page, width, height, triangles, flags. A page has up to two batches:
+# what every camera draws, and what only a free camera does (FLY_ONLY).
+BATCH = struct.Struct("<IIIII")
+FLY_ONLY = 1
 # GL position xyz, top-down normalized atlas uv, GL point whose depth the vertex
 # takes (itself, except on wall tops: the front-plane point its texel was painted
 # on), the map object it shows (its row in the object table after the batches;
@@ -110,6 +113,28 @@ def _clip(polygon, side):
 def _split(polygons, side):
     return [part for polygon in polygons
             for part in (_clip(polygon, side), _clip(polygon, lambda p: -side(p))) if len(part) >= 3]
+
+
+def _wall_back(batches, sprites, pages, row, hpx):
+    """What the game's camera does not see of a solid wall (donor wallRest): its
+    far side, `thick` behind the front, the same outline seen from behind up to
+    the cap line, in the picture `back` (-1: the wall's own below its top band),
+    mirrored as seen from that side."""
+    s, ua, va, ub, vb, z0, z1 = row[:7]
+    zc, thick, back = _finite(row[9], "wall cap"), _finite(row[10], "wall thickness"), _int(row[11], "wall back")
+    s = _int(s, "wall sprite index")
+    if not 0 <= s < len(sprites) or not -1 <= back < len(sprites):
+        raise ValueError("wall back sprite index is outside scene.sprites")
+    _, front_x, front_y, w, front_h = sprites[s][:5]
+    top = (z1 - zc) * hpx
+    length = math.hypot(ub - ua, vb - va) or 1.0
+    nu, nv = (vb - va) / length * thick, (ua - ub) / length * thick
+    picture = back if back >= 0 else s
+    x, y, h = (sprites[back][1], sprites[back][2], sprites[back][4]) if back >= 0 \
+        else (front_x, front_y + top, front_h - top)
+    if h <= 0 or zc <= z0:
+        return
+    _upright(batches, sprites, pages, picture, ub - nu, vb - nv, ua - nu, va - nv, z0, zc, x + w, y, -w, h)
 
 
 def _wall_front(batches, proj, sprites, pages, row, toward_camera, continues):
@@ -246,10 +271,12 @@ def _quad_triangle(batches, page, page_size, corners):
 def encode_wall_sidecar(scene, skip_props=frozenset(), skip_rests=frozenset(), map_objects=None):
     """Build the donor game view's wall triangles for one scene: what the game's
     camera sees of walls (fronts and tops) and the sheets that have no
-    thickness. Backs, cut-open upper parts and slab ends (wallRest, trims) are
-    first-person only in the donor viewer; in the game's view they stick out
-    at corners. map_objects: the elevation's objects in map file order (the
-    rows' serial numbers); the faces of each object name it in the table."""
+    thickness. Backs and slab ends (wallRest, trims) are first-person only in
+    the donor viewer, and in the game's view they would stick out at corners:
+    they go into FLY_ONLY batches, which only the fly camera draws. (Cut-open
+    upper parts are left out.) map_objects: the elevation's objects in map file
+    order (the rows' serial numbers); the faces of each object name it in the
+    table."""
     if scene.get("format") != 6 or not one_map_elevation(scene):
         raise ValueError("wall sidecar expects one map elevation in scene format 6")
     pages_data = scene.get("pages")
@@ -283,6 +310,7 @@ def encode_wall_sidecar(scene, skip_props=frozenset(), skip_rests=frozenset(), m
         pages.append((width, height))
 
     batches = _Batches()
+    fly = _Batches()
     table = {}
 
     def owner(serial):
@@ -313,6 +341,22 @@ def encode_wall_sidecar(scene, skip_props=frozenset(), skip_rests=frozenset(), m
                 raise ValueError(f"thin wall {index} sprite index is outside scene.sprites")
             _upright(batches, sprites, pages, sprite, *row[1:7], *sprites[sprite][1:5])
 
+    # Backs of the solid walls (not those a solid or a form stands for in first
+    # person) and the strips that close their ends and bridge where they meet.
+    hidden_walls = set(scene.get("hiddenWalls") or [])
+    for index, row in enumerate(walls):
+        if row[10] > 0 and index not in hidden_walls:
+            fly.object = owner(row[8])
+            _wall_back(fly, sprites, pages, row, hpx)
+    fly.object = -1.0
+    for index, row in enumerate(scene.get("trims") or []):
+        _record(row, 11, f"trim {index}")
+        sprite = _int(row[0], "trim sprite index")
+        if not 0 <= sprite < len(sprites):
+            raise ValueError(f"trim {index} sprite index is outside scene.sprites")
+        _upright(fly, sprites, pages, sprite, *row[1:7], sprites[sprite][1] + row[7], sprites[sprite][2] + row[8],
+                 row[9], row[10])
+
     # Doors are not baked: they open and close, so the engine draws them live
     # as sprite cards with their current frame.
 
@@ -336,19 +380,19 @@ def encode_wall_sidecar(scene, skip_props=frozenset(), skip_rests=frozenset(), m
         page, corners = rest_card(proj, sprites, row)
         _polygon(batches, proj, page, pages[page], corners)
 
-    total_triangles = sum(len(values) // (3 * FLOATS) for values in batches.values())
-    if total_triangles > 0xFFFFFFFF or len(batches) > 0xFFFFFFFF:
+    groups = [(0, page, batches[page]) for page in sorted(batches)] + [(FLY_ONLY, page, fly[page]) for page in sorted(fly)]
+    total_triangles = sum(len(values) // (3 * FLOATS) for _, _, values in groups)
+    if total_triangles > 0xFFFFFFFF or len(groups) > 0xFFFFFFFF:
         raise ValueError("wall sidecar exceeds binary format limits")
     if len(pages) > 0xFFFFFFFF:
         raise ValueError("scene has too many sprite atlas pages")
-    payload = bytearray(HEADER.pack(MAGIC, VERSION, HEADER.size, len(pages), len(batches), total_triangles, len(table)))
-    for page in sorted(batches):
-        values = batches[page]
+    payload = bytearray(HEADER.pack(MAGIC, VERSION, HEADER.size, len(pages), len(groups), total_triangles, len(table)))
+    for flags, page, values in groups:
         if len(values) % (3 * FLOATS):
             raise AssertionError("internal wall sidecar vertex alignment error")
         width, height = pages[page]
         triangle_count = len(values) // (3 * FLOATS)
-        payload.extend(BATCH.pack(page, width, height, triangle_count))
+        payload.extend(BATCH.pack(page, width, height, triangle_count, flags))
         payload.extend(struct.pack(f"<{len(values)}f", *values))
     for (tile, fid), _ in sorted(table.items(), key=lambda item: item[1]):
         payload.extend(OBJECT.pack(tile, fid))
@@ -362,7 +406,7 @@ def decode_wall_sidecar(data):
     magic, version, header_size, page_count, batch_count, triangle_count, object_count = HEADER.unpack_from(data)
     if magic != MAGIC or version != VERSION or header_size != HEADER.size:
         raise ValueError("unsupported wall sidecar magic/version/header")
-    if page_count == 0 or batch_count > page_count:
+    if page_count == 0 or batch_count > 2 * page_count:
         raise ValueError("invalid wall sidecar atlas/batch count")
     offset = HEADER.size
     batches = []
@@ -371,11 +415,12 @@ def decode_wall_sidecar(data):
     for _ in range(batch_count):
         if offset + BATCH.size > len(data):
             raise ValueError("truncated wall sidecar batch")
-        page, width, height, count = BATCH.unpack_from(data, offset)
+        page, width, height, count, flags = BATCH.unpack_from(data, offset)
         offset += BATCH.size
-        if page >= page_count or page in seen_pages or width == 0 or height == 0 or count == 0:
+        if page >= page_count or (page, flags) in seen_pages or flags not in (0, FLY_ONLY) \
+                or width == 0 or height == 0 or count == 0:
             raise ValueError("invalid wall sidecar page batch")
-        seen_pages.add(page)
+        seen_pages.add((page, flags))
         vertex_count = count * 3
         byte_count = vertex_count * VERTEX.size
         if offset + byte_count > len(data):
@@ -389,7 +434,8 @@ def decode_wall_sidecar(data):
                 raise ValueError("wall sidecar vertex names an object outside its table")
             if not (0 <= u <= 1 and 0 <= v <= 1):
                 raise ValueError("wall sidecar UV is outside normalized atlas bounds")
-        batches.append({"page": page, "size": (width, height), "vertices": vertices, "triangles": count})
+        batches.append({"page": page, "size": (width, height), "vertices": vertices, "triangles": count,
+                        "fly_only": flags == FLY_ONLY})
         observed_triangles += count
     if offset + object_count * OBJECT.size > len(data):
         raise ValueError("truncated wall sidecar object table")

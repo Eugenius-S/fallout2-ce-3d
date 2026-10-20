@@ -61,7 +61,7 @@ void destroyStaticWalls()
 {
     if (gContext != nullptr) {
         for (WallBatch& batch : gWallBatches) {
-            if (batch.texture != 0) glDeleteTextures(1, &batch.texture);
+            if (batch.texture != 0 && batch.ownsTexture) glDeleteTextures(1, &batch.texture);
             if (batch.vbo != 0) glDeleteBuffers(1, &batch.vbo);
             if (batch.vao != 0) glDeleteVertexArrays(1, &batch.vao);
         }
@@ -113,7 +113,9 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
     if (!gInitialized || !gFloorLoaded) return fail("static floor renderer is unavailable");
 
     constexpr size_t kHeaderSize = 24;
-    constexpr size_t kBatchSize = 16;
+    constexpr size_t kBatchSizeV3 = 16;
+    constexpr size_t kBatchSizeV4 = 20; // and flags
+    constexpr unsigned int kFlyOnly = 1;
     constexpr size_t kVertexSize = 36;
     constexpr size_t kObjectSize = 8;
     constexpr unsigned int kMaxObjects = 1000000;
@@ -136,13 +138,18 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
     const unsigned int totalTriangles = readU32(sidecar.data() + 16);
     const unsigned int objectCount = readU32(sidecar.data() + 20);
     // A map elevation without walls has no batches and no triangles.
-    if (version != 3 || headerSize != kHeaderSize || objectCount > kMaxObjects || pageCount == 0 || pageCount > kMaxPages
-        || batchCount > pageCount || totalTriangles > kMaxTriangles || (batchCount == 0) != (totalTriangles == 0)) {
+    // Version 4 adds batch flags: a page has up to two batches, the second
+    // for the fly camera only.
+    if ((version != 3 && version != 4) || headerSize != kHeaderSize || objectCount > kMaxObjects || pageCount == 0
+        || pageCount > kMaxPages || batchCount > pageCount * (version == 4 ? 2 : 1) || totalTriangles > kMaxTriangles
+        || (batchCount == 0) != (totalTriangles == 0)) {
         return fail("walls.bin header counts or version are unsupported");
     }
+    const size_t kBatchSize = version == 4 ? kBatchSizeV4 : kBatchSizeV3;
 
     struct WallBatchData {
         unsigned int page;
+        bool flyOnly;
         unsigned int triangleCount;
         unsigned int width;
         unsigned int height;
@@ -151,7 +158,8 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
     };
     std::vector<WallBatchData> batches;
     batches.reserve(batchCount);
-    std::vector<bool> seenPages(pageCount, false);
+    std::vector<bool> seenPages(static_cast<size_t>(pageCount) * 2, false); // by page and fly-only
+    std::vector<bool> decodedPages(pageCount, false);
     size_t offset = kHeaderSize;
     unsigned long long observedTriangles = 0;
     unsigned long long totalDecodedBytes = 0;
@@ -163,13 +171,14 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
         const unsigned int width = readU32(sidecar.data() + offset + 4);
         const unsigned int height = readU32(sidecar.data() + offset + 8);
         const unsigned int triangleCount = readU32(sidecar.data() + offset + 12);
+        const unsigned int flags = version == 4 ? readU32(sidecar.data() + offset + 16) : 0;
         offset += kBatchSize;
-        if (page >= pageCount || seenPages[page] || width == 0 || height == 0
+        if (page >= pageCount || (flags & ~kFlyOnly) != 0 || seenPages[page * 2 + flags] || width == 0 || height == 0
             || width > kMaxImageDimension || height > kMaxImageDimension
             || triangleCount == 0 || triangleCount > kMaxTriangles) {
             return fail("walls.bin contains an invalid page batch");
         }
-        seenPages[page] = true;
+        seenPages[page * 2 + flags] = true;
         const unsigned long long vertexCount = static_cast<unsigned long long>(triangleCount) * 3;
         const unsigned long long vertexBytes = vertexCount * kVertexSize;
         if (vertexBytes > sidecar.size() - offset) {
@@ -181,6 +190,7 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
         }
         WallBatchData batch;
         batch.page = page;
+        batch.flyOnly = flags == kFlyOnly;
         batch.triangleCount = triangleCount;
         batch.width = width;
         batch.height = height;
@@ -210,6 +220,18 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
             }
         }
         offset += static_cast<size_t>(vertexBytes);
+
+        // A page's second batch draws with the first one's texture.
+        if (decodedPages[page]) {
+            for (const WallBatchData& other : batches) {
+                if (other.page == page && (other.width != width || other.height != height)) {
+                    return fail("walls.bin batches of one page disagree on its size");
+                }
+            }
+            batches.push_back(std::move(batch));
+            continue;
+        }
+        decodedPages[page] = true;
 
         char textureName[32];
         snprintf(textureName, sizeof(textureName), "sprites%u.png", page);
@@ -304,6 +326,7 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
         gWallBatches.emplace_back();
         WallBatch& batch = gWallBatches.back();
         batch.page = source.page;
+        batch.flyOnly = source.flyOnly;
         batch.triangleCount = source.triangleCount;
         glGenVertexArrays(1, &batch.vao);
         glBindVertexArray(batch.vao);
@@ -319,7 +342,15 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
         glVertexAttribPointer(2, 3, 0x1406, 0, sizeof(WallVertex), reinterpret_cast<const void*>(5 * sizeof(float)));
         glEnableVertexAttribArray(3);
         glVertexAttribPointer(3, 1, 0x1406, 0, sizeof(WallVertex), reinterpret_cast<const void*>(8 * sizeof(float)));
+        if (source.rgba.empty()) {
+            for (const WallBatch& other : gWallBatches) {
+                if (other.ownsTexture && other.page == source.page) batch.texture = other.texture;
+            }
+            if (batch.texture == 0) return fail("walls.bin page batch has no texture");
+            continue;
+        }
         glGenTextures(1, &batch.texture);
+        batch.ownsTexture = true;
         glBindTexture(kTexture2D, batch.texture);
         glTexImage2D(kTexture2D, 0, kRgba8, source.width, source.height, 0, kRGBA, kUnsignedByte, source.rgba.data());
         glTexParameteri(kTexture2D, kTextureMinFilter, kNearest);

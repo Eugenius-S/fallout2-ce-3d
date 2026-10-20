@@ -41,3 +41,20 @@ the sun's shadows (021) are cast by slabs, not by single sheets.
 Roofs seen from below; interiors of the caves' rock (`rock.py`).
 
 ## Log
+
+### 2026-10-20 claude
+Done: `walls.bin` version 4 gives every batch a flag; a page has up to two
+batches, the second for the fly camera only (the engine still reads version
+3, and a page's two batches share one texture). Into the fly-only batches go
+the backs of the solid walls (donor `wallRest`: the same outline `thick`
+behind the front, up to the cap line, in the picture of the side it faces,
+mirrored) and the donor's trims (ends of free stretches and doorways, bridges
+where walls meet). Cut-open upper parts (`above`) are left out: Klamath has
+none. Regression 16/16 pixel for pixel; exporter tests 39/39 (the first-person
+test now checks the game camera's batches stay the same and the trim lands in
+a fly-only one); unit tests 10/10.
+Evidence in `runs/034-wall-backs/`: the house with the bed from behind, before
+| after; another angle; a cave (KLARATCV e1) from the air.
+Next: merge after PR #35, export Klamath into `game/mod-cache`.
+Check: `py -m unittest discover -s tools/scene_export`, `tools/regression.ps1`,
+`tools/dev-snapshot.ps1 -HeroTile 17665 -ViewTile 17467 -FlyTurn 180 -FlyPitch 30 -FlyDistance 7`.

@@ -242,6 +242,8 @@ struct WallBatch {
     unsigned int vao = 0;
     unsigned int vbo = 0;
     unsigned int texture = 0;
+    bool ownsTexture = false; // a page's second batch draws with its first one's texture
+    bool flyOnly = false; // what the game's camera never sees (walls' backs and ends)
 };
 
 extern std::vector<WallBatch> gWallBatches;
