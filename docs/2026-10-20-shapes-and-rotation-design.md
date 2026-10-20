@@ -74,9 +74,9 @@ hydrant, the round table, doors and a fence gate, the stove, the bed, chairs,
 crates, the computer stand, a barrel, a locker, car parts.
 
 - Each FRM has a label in `tools/shapes/eval/labels.json`: the expected shape
-  and, for solids, its rough size in hexes and height. Claude writes the
-  labels and the owner approves them once. After that they are frozen: no
-  agent changes a label to make it pass.
+  and, for solids, its rough size in hexes and height. Claude wrote them
+  (task 036); the owner changes them at will. No agent changes a
+  label, least of all to make it pass.
 - Each FRM has a contact sheet: one instance on its map seen from 0, 90, 180
   and 270 degrees (and 45 for the 45-degree question), at the game camera's
   pitch, side by side with its label.
@@ -118,6 +118,10 @@ One task each, in this order; each can be finished by any agent:
 4. 039: all Klamath: every static FRM's sheet looked at once, exceptions for
    the frequent failures, the weighted Klamath score 70% or more, the owner's
    look from turned views.
+5. 040: the eval FRMs still failing after 037 (any agent, any time).
+
+Where it stands (2026-10-20): 036, 037 and 038 are done; the eval is 35/40
+(88%). 039 and 040 are free.
 
 021 (the sun) is free to go in between once 020 is closed.
 
@@ -134,10 +138,11 @@ and ask the owner. Klamath only: the rest of the game is a later decision.
   tools, the code layout.
 - An agent may not: change the eval labels, lower the 70% gate, change the
   game's view, retake regression references without a before | after image,
-  or add exceptions beyond the cap. Any of these goes to the owner.
+  or add exceptions beyond the cap. Any of these goes to the owner; until the
+  answer comes, work on something else, never wait.
 - Every working session ends with a `Log` entry: what was done, the score,
   the next step, so the next agent starts from the last commit.
-- When Claude is back, before new work it reviews every `done` task with
+- When Claude has limits again, before new work it reviews every `done` task with
   `reviewed: no`: reads the diff, runs the checks, scores the eval itself. A
   problem becomes a new task; a stage is reverted only if it broke the game's
   view.

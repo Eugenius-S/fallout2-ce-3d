@@ -9,6 +9,26 @@ Agents work one at a time in this one checkout. Any agent may stop at any
 moment when its limits run out, so leave the work so that the next one can
 continue from the last commit without asking anybody.
 
+Nobody waits. The owner looks at the visual results and changes these rules as
+the work goes; nothing waits for the owner's or Claude's approval. When a
+task's acceptance holds, finish it (`status: done`) and take the next one. A
+task with `user-check: yes` is done when its acceptance holds; whatever the
+owner rejects in it later becomes a new task. An unreviewed task never blocks
+another.
+
+Where things are:
+
+- [The roadmap](docs/2026-10-19-roadmap-design.md): goals and decisions.
+- [Shapes of things and camera rotation](docs/2026-10-20-shapes-and-rotation-design.md):
+  how things get their 3D shapes, the eval set, what an agent may and may not
+  change there.
+- [Dev tools](docs/p1-devtools.md): dev options, the fly camera, snapshots,
+  `-Solo`, `-Turn`.
+- [Regression](tools/regression/README.md): the reference views.
+- The shapes eval: `tools/shapes/eval/eval.py` (`shoot`, `sheets`, `score`),
+  labels in `tools/shapes/eval/labels.json`, exceptions by name in
+  `tools/scene_export/shapes/overrides.json`.
+
 ## Rules
 
 - Everything in the repository is in English.
@@ -135,10 +155,26 @@ The body has `Goal`, `Context`, `Acceptance`, `Out of scope` and `Log`.
 3. `gh pr create` using the template, with the snapshots; then
    `gh pr merge --squash --delete-branch`; then `git switch main`, `git pull`.
 
+## Restarting the owner's game
+
+Only when the owner asks. The game in `game/` reads `game/mod-cache`, and the
+engine and the exporter change together, so build and export together, in the
+main checkout, on `main`:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/configure-build.ps1 Release
+py -3 tools/scene_export/export.py --game-root ./game --maps klamath
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/dev-launch.ps1 -Slot 1
+```
+
+`dev-launch.ps1` puts the new build in place of the running one and starts it;
+the owner closes the old window. Never export into `game/mod-cache` without
+that build: an older engine cannot read a newer export.
+
 ## Review
 
 Claude lists them with `tools/tasks.ps1 -Review` and reviews every
-`done` task with `reviewed: no` when it has limits:
+`done` task with `reviewed: no` when it has limits (nobody waits for that):
 reads the PR diff, runs the checks, sets `reviewed: yes`, and turns each
 problem into a new task. Pull requests from outside contributors are merged
 only after Claude's review.

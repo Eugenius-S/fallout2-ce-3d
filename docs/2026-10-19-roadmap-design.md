@@ -54,8 +54,8 @@ time, never simultaneously; any of them may run out of limits at any moment.
 - Work goes on a branch `task/NNN-slug`, ends in a PR, and the author merges
   it. Claude reviews every merged task with `reviewed: no` when it has limits;
   problems become new tasks. Claude's own work is reviewed by the owner.
-  The owner's visual check (`user-check: yes`) never blocks a merge; a
-  rejection becomes a new task.
+  The owner's visual check (`user-check: yes`) never blocks a merge or the
+  next task; a rejection becomes a new task. Nobody waits for an approval.
 - PRs from outside contributors are merged only after Claude's review.
 
 Suggested split: Claude takes the scene core, light and reviews; GPT takes

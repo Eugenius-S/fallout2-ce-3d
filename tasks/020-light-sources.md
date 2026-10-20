@@ -2,10 +2,10 @@
 id: 020
 title: Game light sources as real lights
 milestone: M1
-status: doing
+status: done
 owner: claude
 suggested: claude
-claude-only: yes
+claude-only: no
 user-check: yes
 depends-on: [012, 014]
 reviewed: no
@@ -122,3 +122,8 @@ the valid tiles is kept), and the engine's spreads are kept while the lights
 and the engine's light map stay the same; colours, which follow the palette's
 cycling, are still added up every frame. Lights now take about 1 ms a frame.
 Regression 16/16, pixel for pixel.
+
+### 2026-10-20 claude
+Done: its acceptance held at the merge; it stayed open only for the owner's
+look, which blocks nothing (AGENTS.md, "Nobody waits"). What the owner
+rejects in the game becomes a new task.
