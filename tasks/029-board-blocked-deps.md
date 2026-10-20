@@ -2,8 +2,8 @@
 id: 029
 title: The board treats a task with an unfinished dependency as free
 milestone: M0
-status: todo
-owner: none
+status: doing
+owner: glm
 suggested: glm
 claude-only: no
 user-check: no
