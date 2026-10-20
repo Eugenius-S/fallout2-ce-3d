@@ -36,3 +36,18 @@ A burning barrel in 3D shows its whole rim, as in 2D.
 Glow of the fire (022).
 
 ## Log
+
+### 2026-10-20 claude
+Done: the rim belonged to the solid, not to the fire. A drum (burning
+barrel, metal barrel, hydrant, pot) on its card's depth drew only the quarter
+of its body facing the camera, so its body was about 0.7 of the rim's width
+and the full top stood out over it. Now it draws the near half of the body
+(angles 0 to 180), each side showing the sprite pixel it lands on, as the game
+sees it. A drum with its own depth (board -1) keeps the donor's mirrored sides.
+Evidence: `runs/028-barrel-rim/burning-barrels-2d-before-after.png` (three
+burning barrels of Klamath: 2D, 3D before, 3D after) and
+`regression-changes-before-after.png` (every changed spot of the regression:
+drums only). Regression references retaken for the 13 cases with drums; 16/16
+on them. New exporter test: a drum's body spans its rim on the game's screen.
+Next: merge, then `export.py` into `game/mod-cache` for the owner's game.
+Check: `py -m unittest discover -s tools/scene_export`, `tools/regression.ps1`.
