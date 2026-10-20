@@ -29,9 +29,11 @@ building or fence pieces that lie past the transition-zone corner.
 
 ## Acceptance
 
-- For the first two reviewed Klamath town maps, the 3D cut matches the
-  current installation's Classic 2D EDG visible rectangle, transformed into
-  world coordinates. Do not replace it with the floor-derived fallback.
+- On Klamath maps with a valid active EDG rectangle, the 3D cut matches the
+  current installation's Classic 2D visible rectangle, transformed into
+  world coordinates. Current runtime evidence covers KLADWTWN and KLAMALL;
+  the remaining Klamath maps still need verification. Do not replace authored
+  EDG bounds with the floor-derived fallback where EDG data exists.
 - Floor, walls, objects, and picking share the cut. Click-to-move requests
   whose ground target lies outside the cut are rejected, while existing
   exit-grid transitions remain usable.
@@ -89,3 +91,8 @@ Check: Current branch base is `origin/main` `10fff6d5`; five still captures rema
 Done: Reframed acceptance around the actual playable edge, not preserving all scenery. Read the active RPU EDG v1 rectangles for KLADWTWN and KLAMALL, verified authored 3D world bounds against runtime metadata, captured four Classic 2D corner references per map, and captured matched 2D/3D views at KLADWTWN tile 24768 and KLAMALL tile 13237. The latter shows the boundary beside a building in Trapper Town. Copied owner annotations and original PNG/JSON evidence to `runs/016-clean-map-edges/boundary-reference/`.
 Next: Parent reviews the evidence. Audit and verify the outside-edge click command path and a real exit-grid transition before changing implementation or claiming those behaviors.
 Check: Eight Classic corner snapshots and four matched edge snapshots report the requested camera tiles, 1920x1080 at 2x, and the same Release EXE SHA-256. At code level, `pickStaticGroundTile` applies `mapClipContains`, and `sceneTileAt` maps a failed ground pick to `-1`; the full movement command path and live exit transition remain unverified.
+
+### 2026-10-20 gpt
+Done: Parent review confirmed that move-mode mouse handling leaves the previous cursor tile in place when `tileUnderMouse` returns `-1`. PR #26 and the evidence README now describe the corrected playable-boundary target without presenting the floor-derived cut as preferred.
+Next: Add a focused input guard, verify an outside-edge click cannot issue a stale movement command, then verify a normal exit-grid transition. Check the remaining Klamath maps with active EDG rectangles before marking the task complete.
+Check: Code path inspected at `ce/src/scene/scene_overlay.cc`, `ce/src/scene_renderer/picking.cc`, and `ce/src/game_mouse.cc`; this is a code audit, not a runtime input test.

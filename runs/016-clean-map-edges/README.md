@@ -56,8 +56,10 @@ playable edge as marked by the owner:
 | Corner 4, tile 25780 | [PNG](boundary-reference/klamall/classic-corners/corner-4/scr00108.png), [JSON](boundary-reference/klamall/classic-corners/corner-4/devshot-20261020-094708.json) | - |
 
 The Classic snapshots verify the engine's 2D EDG cut for the current RPU
-installation. The authored snapshot metadata reports the same transformed
-world rectangle for KLAMALL. `pickStaticGroundTile` applies that clip and
+installation. Authored snapshot metadata reports matching transformed bounds
+for both town maps. These are the first two verified Klamath maps; the other
+Klamath maps with EDG rectangles remain to be checked before task completion.
+`pickStaticGroundTile` applies that clip and
 `sceneTileAt` returns `-1` when the ground pick is outside it. In move mode,
 `game_mouse.cc` leaves the previous cursor tile in place when `tileUnderMouse`
 returns `-1`. The full mouse command path and a real exit-grid transition have
