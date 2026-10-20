@@ -4,7 +4,7 @@ title: Solid shapes for chairs, crate heaps, the notice board, the car and cave 
 milestone: M1
 status: todo
 owner: none
-suggested: claude
+suggested: gpt
 claude-only: no
 user-check: yes
 depends-on: [037]

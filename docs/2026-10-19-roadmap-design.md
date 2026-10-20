@@ -40,26 +40,15 @@ face the camera).
 
 ## Team and process
 
-Three agents (Claude, GPT Sol 6.1, GLM 5.3) and the owner as critic and
-moderator. One checkout on one PC, one GitHub repository. Agents work one at a
-time, never simultaneously; any of them may run out of limits at any moment.
+Three agents (Claude, GPT Sol 6.1, GLM 5.3) and the owner, who accepts the
+visuals. Agents work one at a time and any of them may run out of limits at
+any moment. How they take, hand off, finish and review tasks is in
+[AGENTS.md](../AGENTS.md), the only instruction for every agent.
 
-- `AGENTS.md` is the single instruction for every agent: build, test, rules,
-  how to take a task and how to hand it off.
-- One task is one file in `tasks/`. Status, owner and the handoff log live in
-  that file and are committed together with the code, so the last commit
-  always shows where the work stopped.
-- Any agent takes the first `todo` task whose dependencies are done, except
-  tasks marked `claude-only`.
-- Work goes on a branch `task/NNN-slug`, ends in a PR, and the author merges
-  it. Claude reviews every merged task with `reviewed: no` when it has limits;
-  problems become new tasks. Claude's own work is reviewed by the owner.
-  The owner's visual check (`user-check: yes`) never blocks a merge or the
-  next task; a rejection becomes a new task. Nobody waits for an approval.
-- PRs from outside contributors are merged only after Claude's review.
-
-Suggested split: Claude takes the scene core, light and reviews; GPT takes
-large self-contained features; GLM takes well-bounded smaller tasks.
+Split: Claude keeps the strategy (the board's order, cutting big tasks into
+bounded ones with script checks, the specs, reviews of risky PRs) and the
+design-heavy scene core; GPT takes large self-contained features; GLM takes
+well-bounded smaller tasks.
 
 ## Milestones
 

@@ -8,7 +8,7 @@ suggested: gpt
 claude-only: no
 user-check: yes
 depends-on: [031]
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal

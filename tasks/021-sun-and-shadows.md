@@ -1,72 +1,49 @@
 ---
 id: 021
-title: Sun by game time and building shadows
+title: The sun follows game time
 milestone: M1
 status: todo
 owner: none
-suggested: claude
+suggested: glm
 claude-only: no
-user-check: yes
+user-check: no
 depends-on: [013, 020, 034]
 reviewed: no
 ---
 
 ## Goal
 
-A sun that moves across the sky with game time and casts sharp shadows from
-buildings and big things; characters darken in shadow.
+The scene knows where the sun is: its direction, height, color and strength
+follow game time. This task draws nothing new; building shadows (045) and
+characters in shadow (046) build on it.
 
 ## Context
 
-- Game time comes from the engine; it jumps on waiting, travel and save load.
-- Walls, roofs and furniture solids are geometry; character sprites cast no
-  shadows.
-- Casters, by the owner (2026-10-20, `docs/2026-10-20-shapes-and-rotation-design.md`):
-  walls with their backs and ends, roofs, doors, and big solids (at least two
-  hexes across or taller than half a wall). Small things cast no sun shadow
-  and keep the shadows painted into their art. This narrows the Plan below.
-- What a hidden roof does to shadows is decided in task 013.
-
-## Plan (claude, 2026-10-19)
-
-- Sun position from `gameTimeGetTime()` (36000 ticks an hour, `scripts.h`):
-  height by hour; strength and color follow the ambient the map scripts set,
-  so the game's own day and night decide how bright the sun is. The azimuth is
-  tuned on snapshots with the owner.
-- No sun where `scene.json` says `indoor` (underground); `daylight` marks maps
-  under the sky.
-- One directional shadow map (depth texture, OpenGL 4.1) over the visible
-  ground plus a margin. Casters: walls, trims, doors, solids, forms, roofs
-  (hidden ones too, see 013). Receivers: floor, walls, and sprites by one
-  lookup at the anchor slightly above ground, smoothed over ~150 ms.
-- The game art has shadows painted in. The exporter already gives the
-  shadow-free sprite of each such board (`shadows`: board, sprite without the
-  painted shadow, shadow sprite) and floor shade (`casts`). With the sun on,
-  use the shadow-free sprites and drop `casts`; with it off, the originals.
-- Pixelation: snap shadow lookups to a world grid of N game pixels.
-- A jump of game time (wait, travel, load) sets the sun at once instead of
-  sweeping it.
+- Game time: `gameTimeGetTime()` (36000 ticks an hour, `scripts.h`). It
+  jumps on waiting, travel and save load.
+- Strength and color follow the ambient the map scripts set, so the game's own
+  day and night decide how bright the sun is. Night: no sun.
+- `scene.json` marks maps: `indoor` (underground, no sun), `daylight` (under
+  the sky).
+- The azimuth is a constant for now; the owner tunes it on 045's snapshots.
+- A jump of game time sets the sun at once; normal time moves it smoothly.
 
 ## Acceptance
 
-- Sun direction, height and color follow game time: long shadows morning and
-  evening, no sun at night, no sun inside interiors. Time jumps do not flicker.
-- Sharp shadows that follow open doors, hidden roofs and changed objects;
-  an adjustable slight pixelation of shadows in the original graphic style,
-  stable while the camera and the sun move.
-- A sprite whose anchor is in a building's shadow darkens as a whole, keeping
-  ambient light and other lamps, with a short transition at the border.
-- `[3d] sun`, `[3d] shadows`, `[3d] shadow_pixel_size` with menu labels.
-- Snapshots at noon, sunset and night; a character inside and outside a
-  shadow; the frame time with shadows on and off in the `Log`.
+- `[3d] sun` (default on) with a menu label; the sun is off indoors and at
+  night.
+- The sun's direction, height, color and strength appear in the dev snapshot
+  JSON.
+- Unit tests: the sun at 6:00, 12:00, 19:00 and 0:00; a time jump snaps it.
+- The game view does not change (the regression passes as it is).
 
 ## Out of scope
 
-Cloud shadows (023).
+Shadows (045), characters in shadow (046), cloud shadows (023).
 
 ## Log
 
-### 2026-10-19 claude
-Done: research; findings and plan in `## Plan`.
-Next: start when the dependencies are done.
-Check: read `## Plan`.
+### 2026-10-20 claude
+Done: the research of 2026-10-19 is split into 021, 045 and 046.
+Next: take it.
+Check: read the Context.

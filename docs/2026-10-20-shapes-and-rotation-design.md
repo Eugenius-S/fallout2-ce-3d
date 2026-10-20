@@ -109,40 +109,32 @@ keep the shadows painted into their art. Task 021 follows this.
 
 ## Stages
 
-One task each, in this order; each can be finished by any agent:
-
-1. 036: the eval set, its labels and contact sheets, and the score of today's
-   shapes.
-2. 037: the algorithm, until the eval score is 70% or more.
-3. 038: the rotation option, look-only, 90-degree steps.
+1. 036: the eval set, its labels and contact sheets, the score of today's
+   shapes. Done.
+2. 037: the algorithm, until the eval score is 70% or more. Done.
+3. 038: the rotation option, look-only, 90-degree steps. Done.
 4. 039: all Klamath: every static FRM's sheet looked at once, exceptions for
    the frequent failures, the weighted Klamath score 70% or more, the owner's
    look from turned views.
-5. 040: the eval FRMs still failing after 037 (any agent, any time).
+5. 040: the eval FRMs still failing (any agent, any time).
+6. 043, 044: the eval shows only changed sheets and finds vanishing things by
+   itself, so fewer sheets need eyes.
+7. 048: labels from a second town (the Den), so the score is not a fit to
+   Klamath.
 
-Where it stands (2026-10-20): 036, 037 and 038 are done; the eval is 35/40
-(88%). 039 and 040 are free.
+Where it stands (2026-10-20): the eval is 35/40 (88%), weighted 99%.
 
-021 (the sun) is free to go in between once 020 is closed.
-
-Stop points: if 037 is under 70% after two iterations that each failed to
-raise the score, stop, write the score and the failing FRMs into the `Log`,
-and ask the owner. Klamath only: the rest of the game is a later decision.
+Stop points: if a change leaves the score lower twice in a row, stop, write
+the score and the failing FRMs into the `Log`, and take other work. Klamath
+first; the rest of the game is a later decision.
 
 ## How the agents work on this
 
-- One agent at a time: whoever has limits takes the next stage. No stage is
-  split between agents running at once. `suggested` is a preference; if that
-  agent is out of limits, the next one takes the task.
+[AGENTS.md](../AGENTS.md) holds; on top of it:
+
 - An agent may decide alone: the algorithm's inside, its thresholds, the
   tools, the code layout.
 - An agent may not: change the eval labels, lower the 70% gate, change the
   game's view, retake regression references without a before | after image,
-  or add exceptions beyond the cap. Any of these goes to the owner; until the
-  answer comes, work on something else, never wait.
-- Every working session ends with a `Log` entry: what was done, the score,
-  the next step, so the next agent starts from the last commit.
-- When Claude has limits again, before new work it reviews every `done` task with
-  `reviewed: no`: reads the diff, runs the checks, scores the eval itself. A
-  problem becomes a new task; a stage is reverted only if it broke the game's
-  view.
+  or add exceptions beyond the cap. Any of these goes into `tasks/inbox.md`
+  for the owner; meanwhile take other work.

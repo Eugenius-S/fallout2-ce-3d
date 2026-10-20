@@ -240,3 +240,20 @@ check.
 `runs/p1-devtools-map-header-regression.ps1`: a forensic check of the
 offsets and fields of a real `KLADWTWN.SAV`; it is not a unit test of the
 probe and not a game acceptance.
+
+## Restarting the owner's game
+
+Only when the owner asks. The game in `game/` reads `game/mod-cache`, and the
+engine and the exporter change together, so build and export together, in the
+main checkout, on `main`:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/configure-build.ps1 Release
+py -3 tools/scene_export/export.py --game-root ./game --maps klamath
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/dev-launch.ps1 -Slot 1
+```
+
+`dev-launch.ps1` puts the new build in place of the running one and starts it
+from save slot 1; the owner closes the old window. Never export into
+`game/mod-cache` without that build: an older engine cannot read a newer
+export.
