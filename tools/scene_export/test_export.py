@@ -421,6 +421,22 @@ class WallSidecarTests(unittest.TestCase):
         for vertex in drum["batches"][0]["vertices"]:
             self.assertEqual(vertex[5:8], vertex[:3])
 
+    def test_the_fly_camera_gets_a_whole_drum_of_its_own(self):
+        # Its near half, for the game's camera alone, shows the sprite's outline
+        # stretched round the sides; the fly camera's drum repeats the front.
+        scene = self.sample_scene()
+        scene["walls"] = []
+        scene["pages"][0]["size"] = [400, 400]
+        scene["sprites"].append([0, 100, 100, 200, 200, -100, -150])
+        scene["props"] = [[2, 10.0, 10.0, 0, 1, 10.0, 10.0, 18.0, 8.0, 0.0, 0.5, 0.0, 0.0]]
+        scene["boards"] = [[2, 10.0, 10.0, 0, 0, 0]]
+        batches = decode_wall_sidecar(encode_wall_sidecar(scene))["batches"]
+        self.assertEqual(sorted((b["fly_only"], b["game_only"]) for b in batches),
+                         [(False, False), (False, True), (True, False)])
+        game = next(b for b in batches if b["game_only"])["triangles"]
+        fly = next(b for b in batches if b["fly_only"])["triangles"]
+        self.assertEqual(fly, 2 * game)
+
     def test_drum_body_is_as_wide_as_its_rim(self):
         # A drum on its card's depth shows the near half of its body: on the game's
         # screen the body spans the rim's width (a burning barrel's rim stood out).
@@ -434,7 +450,9 @@ class WallSidecarTests(unittest.TestCase):
         def screen_x(vertex):
             u, v = vertex[0] + 50.0, vertex[2] + 50.0
             return p["origin"][0] + u * p["squ"][0] + v * p["sqv"][0]
-        vertices = decode_wall_sidecar(encode_wall_sidecar(scene))["batches"][0]["vertices"]
+        # What the game's camera draws: every batch but the fly camera's own.
+        vertices = [vertex for batch in decode_wall_sidecar(encode_wall_sidecar(scene))["batches"]
+                    if not batch["fly_only"] for vertex in batch["vertices"]]
         body = [screen_x(v) for v in vertices if v[1] < 0.25]
         rim = [screen_x(v) for v in vertices]
         self.assertAlmostEqual(min(body), min(rim), places=3)

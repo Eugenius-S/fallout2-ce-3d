@@ -1,8 +1,8 @@
 {
- "judged": "2026-10-20 claude; doorb06, gate, cab1 again after 037's doors on planes and low cards flat",
+ "judged": "2026-10-20 claude; drums and rests again after 040 (the fly camera gets its own drums and crossed rests)",
  "barrel4.frm": {
-  "verdict": "fail",
-  "why": "striped ghost backs at 45, 90, 270"
+  "verdict": "pass",
+  "why": "barrels from every side"
  },
  "bed3.frm": {
   "verdict": "pass",
@@ -65,8 +65,8 @@
   "why": ""
  },
  "firehy.frm": {
-  "verdict": "fail",
-  "why": "a hole: the far side is missing at 270"
+  "verdict": "pass",
+  "why": "whole from every side"
  },
  "gate.frm": {
   "verdict": "pass",
@@ -121,8 +121,8 @@
   "why": "stretched mirrored sides at 90 and 180"
  },
  "tbl1000.frm": {
-  "verdict": "fail",
-  "why": "the top floats, no stem from the side"
+  "verdict": "pass",
+  "why": "the stem crossed under the top"
  },
  "tbl2000.frm": {
   "verdict": "pass",

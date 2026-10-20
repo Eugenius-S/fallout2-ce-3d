@@ -168,6 +168,7 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
     constexpr size_t kBatchSizeV3 = 16;
     constexpr size_t kBatchSizeV4 = 20; // and flags
     constexpr unsigned int kFlyOnly = 1;
+    constexpr unsigned int kGameOnly = 2; // version 5
     constexpr size_t kVertexSize = 36;
     constexpr size_t kObjectSize = 8;
     constexpr unsigned int kMaxObjects = 1000000;
@@ -192,16 +193,18 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
     // A map elevation without walls has no batches and no triangles.
     // Version 4 adds batch flags: a page has up to two batches, the second
     // for the fly camera only.
-    if ((version != 3 && version != 4) || headerSize != kHeaderSize || objectCount > kMaxObjects || pageCount == 0
-        || pageCount > kMaxPages || batchCount > pageCount * (version == 4 ? 2 : 1) || totalTriangles > kMaxTriangles
+    // Version 5 adds a third, for the game's camera only.
+    if (version < 3 || version > 5 || headerSize != kHeaderSize || objectCount > kMaxObjects || pageCount == 0
+        || pageCount > kMaxPages || batchCount > pageCount * (version - 2) || totalTriangles > kMaxTriangles
         || (batchCount == 0) != (totalTriangles == 0)) {
         return fail("walls.bin header counts or version are unsupported");
     }
-    const size_t kBatchSize = version == 4 ? kBatchSizeV4 : kBatchSizeV3;
+    const size_t kBatchSize = version >= 4 ? kBatchSizeV4 : kBatchSizeV3;
 
     struct WallBatchData {
         unsigned int page;
         bool flyOnly;
+        bool gameOnly;
         unsigned int triangleCount;
         unsigned int width;
         unsigned int height;
@@ -210,7 +213,7 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
     };
     std::vector<WallBatchData> batches;
     batches.reserve(batchCount);
-    std::vector<bool> seenPages(static_cast<size_t>(pageCount) * 2, false); // by page and fly-only
+    std::vector<bool> seenPages(static_cast<size_t>(pageCount) * 3, false); // by page and flags
     std::vector<bool> decodedPages(pageCount, false);
     size_t offset = kHeaderSize;
     unsigned long long observedTriangles = 0;
@@ -223,14 +226,14 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
         const unsigned int width = readU32(sidecar.data() + offset + 4);
         const unsigned int height = readU32(sidecar.data() + offset + 8);
         const unsigned int triangleCount = readU32(sidecar.data() + offset + 12);
-        const unsigned int flags = version == 4 ? readU32(sidecar.data() + offset + 16) : 0;
+        const unsigned int flags = version >= 4 ? readU32(sidecar.data() + offset + 16) : 0;
         offset += kBatchSize;
-        if (page >= pageCount || (flags & ~kFlyOnly) != 0 || seenPages[page * 2 + flags] || width == 0 || height == 0
+        if (page >= pageCount || flags > (version == 5 ? kGameOnly : kFlyOnly) || seenPages[page * 3 + flags] || width == 0 || height == 0
             || width > kMaxImageDimension || height > kMaxImageDimension
             || triangleCount == 0 || triangleCount > kMaxTriangles) {
             return fail("walls.bin contains an invalid page batch");
         }
-        seenPages[page * 2 + flags] = true;
+        seenPages[page * 3 + flags] = true;
         const unsigned long long vertexCount = static_cast<unsigned long long>(triangleCount) * 3;
         const unsigned long long vertexBytes = vertexCount * kVertexSize;
         if (vertexBytes > sidecar.size() - offset) {
@@ -243,6 +246,7 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
         WallBatchData batch;
         batch.page = page;
         batch.flyOnly = flags == kFlyOnly;
+        batch.gameOnly = flags == kGameOnly;
         batch.triangleCount = triangleCount;
         batch.width = width;
         batch.height = height;
@@ -399,6 +403,7 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
         WallBatch& batch = gWallBatches.back();
         batch.page = source.page;
         batch.flyOnly = source.flyOnly;
+        batch.gameOnly = source.gameOnly;
         batch.triangleCount = source.triangleCount;
         glGenVertexArrays(1, &batch.vao);
         glBindVertexArray(batch.vao);
