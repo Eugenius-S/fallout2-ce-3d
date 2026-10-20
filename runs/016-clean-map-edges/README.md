@@ -7,6 +7,10 @@ commit `f29410be` (SHA-256
 captures are 1920x1080 at 2x scale, elevation 0, with a fixed camera and hero
 tile per map. The original snapshot JSON is kept beside each PNG.
 
+The implementation branch is rebased on `origin/main` at `10fff6d5`, preserving
+the newer camera zoom and lighting changes alongside map clipping. The five
+review captures remain pinned to their original source and executable metadata.
+
 ## KLADWTWN
 
 View tile and hero tile: 8711.
@@ -33,5 +37,6 @@ parent's visual review found that the floor-derived cut preserves the building
 better on KLADWTWN; owner choice is still pending. Regression references were
 not updated.
 
-Validation on the rebased Release build: CTest 10/10; scene-export unit tests
-38/38; regression unit tests 12/12. `git diff --check` passed.
+Validation on the rebased Release build: clean Release build passed; CTest
+10/10; scene-export unit tests 38/38; regression unit tests 12/12.
+`git diff --check` passed.
