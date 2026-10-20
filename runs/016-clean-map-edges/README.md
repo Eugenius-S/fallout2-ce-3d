@@ -127,7 +127,7 @@ all-black map view, so the accepted comparison uses tile 20733, where the
 house and fence meet the playable edge. KLARATCV e0/e1 are naturally very dark;
 their matched coordinates and EDG planes are verified in metadata, but those
 frames provide limited visual detail. An ambient-override attempt did not
-brighten the cave renderer and is retained separately as a diagnostic only.
+brighten the cave renderer and its diagnostic captures are excluded.
 
 The two cave e2 regression snapshots also report `source=authored`; their
 world bounds and four planes are in the regression run metadata. The RPU EDG
@@ -142,7 +142,6 @@ map darkness; the cave evidence should be read with that limitation.
 ground pick is outside it. The runtime probe below verifies that move-mode
 mouse-up cannot use the stale cursor tile after an outside pick, and that a
 reachable exit still transitions through the engine's normal exit-grid path.
-This does not yet verify visual bounds for the other five Klamath maps.
 
 ### Live exit-grid transition probe
 
@@ -169,6 +168,35 @@ The run ID is `806e4533ce9645d4983cc4d231048451`. The executable SHA-256 is
 `b5742fbd121a3bfbc2896ee256a5a65fe15e9d950059fe48cffef91638d12566`; it was
 built from source commit `22baf835` plus the local dev-probe-only transition
 check captured in this evidence checkpoint.
+
+### Final regression references
+
+The final Release run used source commit `5bfbddcc` plus the effective-clip
+gate fix recorded in the final task log. Its executable SHA-256 is
+`a933abe956a57ed29d393d860aff3b83422df57ec77076d2a1eeda2aad8f4e0e`. The
+authored clip was enabled with 1920x1080 output, 2x scale, and the private
+scene cache. All 16 regression
+spots passed. Pixel comparison against the pre-update references found zero
+pixels above the configured channel tolerance of 2 in every spot. The updated
+PNG/JSON files are in `tools/regression/reference/`; the prior PNGs remain
+available at commit `5bfbddcca59a8a248495dc4b833e4d44edf8713a`.
+
+Five pristine `origin/main` controls at `839673b912bf7e4c6495670f57a4de6e5dc88c2b`
+were compared with matching clean-edges-off captures. All five pairs were
+pixel-identical (zero pixels above tolerance 2). Their differences from the
+pre-update regression references are therefore inherited baseline drift:
+
+| Spot | Main vs off changed pixels / max channel delta | Main vs previous reference changed pixels / max delta |
+|---|---:|---:|
+| central-doors | 0 / 0 | 133 / 136 |
+| KLARATCV e1 | 0 / 0 | 821 / 74 |
+| KLATOXCV e1 | 0 / 0 | 22601 / 207 |
+| KLARATCV e2 | 0 / 0 | 3847 / 66 |
+| KLAMALL e0 | 0 / 0 | 3120 / 164 |
+
+The main/off control captures and original JSON metadata are preserved in
+[`regression-attribution/`](regression-attribution/). The final reference update
+does not attribute these five old-reference deltas to clean-edge clipping.
 
 ## Earlier comparison captures
 

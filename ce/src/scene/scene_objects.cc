@@ -124,8 +124,8 @@ void addObjectCard(Object* object, void* context)
         return;
     }
     const FrmId objectFid(object);
-    if (scene::isCleanEdgesBoundaryMask(scene::cleanEdges(), objectFid.objectType() == OBJ_TYPE_SCENERY,
-            objectFid.filePath())) {
+    if (scene::isCleanEdgesBoundaryMask(scene::cleanEdges(), scene_renderer::staticMapClip().enabled,
+            objectFid.objectType() == OBJ_TYPE_SCENERY, objectFid.filePath())) {
         return;
     }
     const int pickId = static_cast<int>(gPickObjects.size());

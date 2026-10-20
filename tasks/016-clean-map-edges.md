@@ -2,7 +2,7 @@
 id: 016
 title: Clean map edges on black
 milestone: M1
-status: doing
+status: done
 owner: gpt
 suggested: gpt
 claude-only: no
@@ -121,3 +121,8 @@ Check: Release build passed; CTest passed 10/10; `git diff --check` passed. `too
 Done: Added matched Classic/authored e0 references for the five remaining Klamath maps and cave e1 references; existing cave e2 regression metadata also reports authored clip planes. Curated the good KLATRAP boundary view at tile 20733 and corrected the EDG archive audit. The earlier claim that e2 EDG rectangles were absent was incorrect.
 Next: Attribute small non-edge regression differences before updating references. A targeted shader varying experiment will compare off-mode controls for central doors and one cave e1 view.
 Check: Runtime evidence and exact source bounds are indexed in `runs/016-clean-map-edges/README.md`. Full on-run at `build/task016-regression/current-20261020-142049/summary.json` had 2/16 passes; off-mode controls at `build/task016-regression/off-20261020-142435/summary.json`, `off-interior-20261020-142627/summary.json`, and `off-e2-20261020-142823/summary.json` show some differences also occur with clipping disabled. No references were updated.
+
+### 2026-10-20 gpt
+Done: Corrected BLACK002 suppression to require the effective map clip to be active, even when the clean-edges setting is enabled. This preserves the boundary mask if authored or fallback clip setup fails. Updated all 16 regression references from the final authored-clip Release run and recorded the five pristine-main controls, before/after images, differences, and attribution in `runs/016-clean-map-edges/regression-attribution/`. All Klamath e0 maps and cave e1/e2 levels have authored EDG bounds; the visual edge set covers all seven e0 maps and both caves at e1.
+Next: Parent handles the PR review response and merge. Task 017 remains separate.
+Check: Final regression checker passed 16/16 with zero changed pixels at channel tolerance 2. Five pristine `origin/main` controls matched their clean-edges-off captures pixel-for-pixel; CTest passed 10/10, scene-export tests 39/39, regression tests 12/12, and `git diff --check` passed. Live outside-click rejection and normal exit-grid transition are verified in the evidence README.

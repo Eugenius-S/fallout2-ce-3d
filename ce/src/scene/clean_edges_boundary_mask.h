@@ -9,9 +9,9 @@ namespace scene {
 
 // BLACK002 is a dedicated opaque border card in the scenery art list. Match its
 // resolved art path rather than its fill color, which is also used by real art.
-inline bool isCleanEdgesBoundaryMask(bool cleanEdges, bool isSceneryType, const char* artPath)
+inline bool isCleanEdgesBoundaryMask(bool cleanEdges, bool clipEnabled, bool isSceneryType, const char* artPath)
 {
-    if (!cleanEdges || !isSceneryType || artPath == nullptr) return false;
+    if (!cleanEdges || !clipEnabled || !isSceneryType || artPath == nullptr) return false;
 
     const char* basename = artPath;
     for (const char* character = artPath; *character != '\0'; character++) {
