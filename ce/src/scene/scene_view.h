@@ -64,6 +64,18 @@ RefreshResult refreshForPresent();
 // up and presenting.
 void adjustZoom(int steps);
 
+// Camera rotation ([3d] camera_rotation): `steps` quarter turns round the
+// point the view looks at, animated; false when it is off or the full 3D view
+// is not shown. A turned camera is for looking only (the fly camera's
+// drawing: cards face it, no interface); a full turn lands it.
+bool turnCamera(int steps);
+// The camera at once `steps` quarter turns round, whatever the setting says
+// (dev snapshots).
+void setCameraTurnNow(int steps);
+bool cameraTurned();
+// Every frame, from the main loop.
+void updateCameraTurn();
+
 } // namespace scene
 } // namespace fallout
 

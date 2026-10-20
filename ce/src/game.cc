@@ -556,6 +556,12 @@ int gameHandleKey(int eventCode, bool isInCombatMode)
         return 0;
     }
 
+    // 3D camera rotation ([3d] camera_rotation): [ and ] turn it.
+    if ((eventCode == KEY_BRACKET_LEFT || eventCode == KEY_BRACKET_RIGHT)
+        && scene::turnCamera(eventCode == KEY_BRACKET_RIGHT ? 1 : -1)) {
+        return 0;
+    }
+
     // NOTE: Uninline.
     if (gameGetState() == GameState::DialogRequested) {
         _gdialogSystemEnter();

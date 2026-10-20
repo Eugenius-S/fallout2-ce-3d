@@ -2,7 +2,7 @@
 id: 038
 title: Optional camera rotation in 90-degree steps
 milestone: M1
-status: doing
+status: done
 owner: claude
 suggested: gpt
 claude-only: no
@@ -44,3 +44,22 @@ A player who switches it on can turn the camera around the hero in steps of
 Steps of 45 degrees. Clicking in turned views.
 
 ## Log
+
+### 2026-10-20 claude
+Done: `[3d] camera_rotation` (off by default, "Camera rotation
+(experimental)"; the 017 panel will list it). With it on, [ and ] turn the 3D
+camera a quarter round the floor point the view looks at, 360 degrees a
+second (`scene::turnCamera`, `updateCameraTurn` from the main loop); a full
+turn lands it. A turned camera is the fly camera's drawing (cards face it,
+doors on their walls, the fly-only geometry of 033 to 040, no interface) at
+the game view's framing: `scene_renderer::staticGameViewCamera` puts a plain
+perspective camera (the game's 25 degrees) where it shows the same floor width
+across the screen's middle as the game's view. Clicks do nothing while it is
+turned (`game_mouse.cc`); it lands by itself when the full 3D view goes
+(menus, dialog, combat). `dev-snapshot.ps1 -Turn N` takes a turned snapshot.
+Evidence: `runs/038-camera-rotation/kladwtwn-bathhouse-0-90-180-270.jpg`.
+Regression 16/16 unchanged (off by default); unit tests 10/10.
+Not checked: the keys and the animation in a real game (the background test
+instance takes no keys); the owner's look.
+Next: 039 (all of Klamath from turned views).
+Check: `tools/dev-snapshot.ps1 -HeroTile 17665 -ViewTile 17467 -Turn 2`.

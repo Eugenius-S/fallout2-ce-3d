@@ -89,7 +89,10 @@ crates, the computer stand, a barrel, a locker, car parts.
 ## Rotated views
 
 - The camera turns over about a quarter of a second; the game's view (0
-  degrees) is the default and comes back with one key.
+  degrees) is the default. [ and ] turn it a quarter each way
+  (`scene::turnCamera`); four turns one way bring the game's view back. A
+  turned camera stands where a plain perspective camera shows the same width
+  of floor as the game's view, and draws as the fly camera does: no interface.
 - Version 1 is look-only: clicks and the hex cursor work at 0 degrees, a turned
   view only looks. The game picks objects in its own 2D screen, which a turned
   view does not match; picking in turned views is a later task if wanted.

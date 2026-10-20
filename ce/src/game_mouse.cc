@@ -27,6 +27,7 @@
 #include "item.h"
 #include "kb.h"
 #include "devtools/devtools.h"
+#include "scene/scene_view.h"
 #include "scene/scene_objects.h"
 #include "map_edge.h"
 #include "mouse.h"
@@ -993,6 +994,11 @@ void _gmouse_handle_event(int mouseX, int mouseY, int mouseState)
 
     // Sprite-lighting mod: clicks on the dev panel belong to the panel.
     if (devtools::handleClick(mouseX, mouseY)) {
+        return;
+    }
+
+    // A turned 3D camera is for looking only.
+    if (scene::cameraTurned()) {
         return;
     }
 
