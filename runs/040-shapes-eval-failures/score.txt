@@ -24,7 +24,7 @@ PASS  tbl2000.frm   label drum     engine drum    eye pass
 PASS  tbl1000.frm   label drum     engine drum    eye pass
 PASS  doorb06.frm   label plane    engine plane   eye pass
 PASS  gate.frm      label plane    engine plane   eye pass
-fail  sstove2.frm   label drum     engine box     eye fail
+PASS  sstove2.frm   label drum     engine drum    eye pass
 PASS  ss122.frm     label box+back engine box+back eye pass
 PASS  bed3.frm      label flat     engine flat    eye pass
 fail  ss108.frm     label box+back engine box     eye pass
@@ -38,4 +38,4 @@ fail  car5.frm      label box      engine card    eye fail
 PASS  cab1.frm      label flat     engine flat    eye pass
 PASS  bigshlf1.frm  label box      engine box+back eye pass
 fail  cavbrac1.frm  label sheet    engine plane   eye fail
-score 34/40 = 85%, weighted by how often they stand 99%
+score 35/40 = 88%, weighted by how often they stand 99%

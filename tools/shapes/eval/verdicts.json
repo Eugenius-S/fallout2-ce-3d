@@ -1,5 +1,5 @@
 {
- "judged": "2026-10-20 claude; drums and rests again after 040 (the fly camera gets its own drums and crossed rests)",
+ "judged": "2026-10-20 claude; sstove2 again after 040 part 4",
  "barrel4.frm": {
   "verdict": "pass",
   "why": "barrels from every side"
@@ -117,8 +117,8 @@
   "why": ""
  },
  "sstove2.frm": {
-  "verdict": "fail",
-  "why": "stretched mirrored sides at 90 and 180"
+  "verdict": "pass",
+  "why": "a round stove from every side (a drum by name)"
  },
  "tbl1000.frm": {
   "verdict": "pass",
