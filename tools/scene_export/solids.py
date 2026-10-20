@@ -173,7 +173,7 @@ def solid_faces(proj, sprites, boards, row):
                 return quarter / 2 + (quarter - n if turn % 2 else n)
 
             if plane is None:
-                face(side(i, i + 1), side(source(within), source(within + 1)))
+                face(side(i, i + 1), side(source(within), source(within + 1)), away=i >= DRUM_SIDES // 2)
             elif i < DRUM_SIDES // 2:
                 face(side(i, i + 1))
             else:
