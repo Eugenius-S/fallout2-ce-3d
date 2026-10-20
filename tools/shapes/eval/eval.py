@@ -31,7 +31,7 @@ from baked_sidecar import FLAT, FLY_FLAT, PLANE, decode_baked_sidecar  # noqa: E
 
 # How scene.json's shapes of today read in the labels' words.
 TODAY = {"card": "card", "card (donor: crossed)": "card", "card (door)": "card", "flat": "flat",
-         "panel": "plane", "box": "box", "drum": "drum", "part of a solid": "boxes"}
+         "panel": "plane", "box": "box", "box+back": "box+back", "drum": "drum", "part of a solid": "boxes"}
 
 
 def labels():
@@ -111,7 +111,8 @@ def score(scenes):
             modes = baked.setdefault(key, {(entry[0], entry[1]): entry[2] for entry in decode_baked_sidecar(
                 (scenes / name / str(elevation) / "baked.bin").read_bytes())})
             shape = {FLAT: "flat", FLY_FLAT: "flat", PLANE: "plane"}.get(modes.get((tile, fid)), shape)
-        kind = shape == label["shape"]
+        # A box with a back is still a box; a plain box is no box with a back.
+        kind = shape == label["shape"] or (label["shape"], shape) == ("box", "box+back")
         eye = judged.get(label["frm"], {}).get("verdict") == "pass"
         ok = kind and eye
         passed += ok

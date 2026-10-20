@@ -23,6 +23,7 @@ from export import MAP_GROUPS, ReadOnlyGameFiles  # noqa: E402
 from f2lib import MapFile  # noqa: E402
 
 ITEM, SCENERY = 0, 2  # pid types of the things shapes are for
+BACK_RISE = 0.15  # units a box's far side rises over its top to be a back
 
 
 def todays_shapes(scene):
@@ -37,7 +38,10 @@ def todays_shapes(scene):
         shape[boards[index][-1]] = "part of a solid"
     for row in scene.get("props") or []:
         if row[3] >= 0:
-            shape[boards[row[3]][-1]] = "drum" if row[4] else "box"
+            # A box whose far sides go on well over its top (wallU, wallV) has
+            # a back on its far edge: a bed's headboard.
+            back = not row[4] and max(row[11], row[12]) - row[10] > BACK_RISE
+            shape[boards[row[3]][-1]] = "drum" if row[4] else "box+back" if back else "box"
     for row in scene.get("walls") or []:
         shape.setdefault(row[8], "panel")
     for row in scene.get("doors") or []:

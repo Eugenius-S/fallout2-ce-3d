@@ -56,3 +56,16 @@ tolerance); exporter tests 43/43.
 Next: the stove (the donor fits a box), the heap of crates, the notice board,
 the car, the cave brace; the bed and the chair as a box with a back; crate1.
 Check: `py -3 tools/shapes/eval/eval.py score`.
+
+### 2026-10-20 claude (part 2)
+Done: the score reads a box whose far sides rise more than 0.15 units over its
+top (the donor's wallU, wallV) as a box with a back: the bed's headboard
+stands on its far edge, so ss122 passes. A box label accepts a box with a back
+(it is still a box); a box-with-a-back label does not accept a plain box.
+Eval 33/40 (82%), weighted 99%.
+Left: ss108 (the chair) and crate1 are cards because the donor's fit
+(`vendor/fp/props.py`: top fill, bulk, cover) turns down things on legs and
+small crates; the stove is a box the label wants as a drum; the heap of
+crates, the notice board, the car, the cave brace.
+Next: a fitter for a seat on legs with a back (chairs), then crate1.
+Check: `py -3 tools/shapes/eval/eval.py score`.
