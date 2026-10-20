@@ -837,13 +837,15 @@ constexpr float kFlySpeed = 6.0f; // units a second
 constexpr float kFlyTurn = 0.0025f; // radians a mouse count
 constexpr float kFlyPitchLimit = 1.5f;
 
-void stopFlying(const char* status)
+// `restoreView`: the game's view goes back where it was (not while a frame
+// is being presented: that would redraw the map inside it).
+void stopFlying(const char* status, bool restoreView)
 {
     if (!gFlying) return;
     gFlying = false;
     scene_renderer::setStaticFlyCamera(nullptr);
     mouseDeviceSetCaptured(false);
-    if (gFlyCenterTile >= 0 && gCenterTile != gFlyCenterTile) {
+    if (restoreView && gFlyCenterTile >= 0 && gCenterTile != gFlyCenterTile) {
         tileSetCenter(gFlyCenterTile, TILE_SET_CENTER_REFRESH_WINDOW);
     }
     setStatus(status);
@@ -871,7 +873,7 @@ void fly()
 {
     if (!gFlying) return;
     if (scene::activeView() != scene::View::Full || !scene::shouldPresent()) {
-        stopFlying("fly camera landed: the 3D scene is not shown");
+        stopFlying("fly camera landed: the 3D scene is not shown", true);
         return;
     }
     const Uint64 now = SDL_GetPerformanceCounter();
@@ -1400,6 +1402,11 @@ void restartInOtherAspect()
 #endif
 }
 
+void landFlight()
+{
+    stopFlying("fly camera landed: the 3D scene is not shown", false);
+}
+
 bool handleKey(int key)
 {
     if (!gEnabled) {
@@ -1407,13 +1414,13 @@ bool handleKey(int key)
     }
 
     if (key == KEY_CTRL_F12) {
-        if (gFlying) stopFlying("fly camera landed");
+        if (gFlying) stopFlying("fly camera landed", true);
         else startFlying(true);
         return true;
     }
     // A flying camera owns the keyboard: the game gets no key.
     if (gFlying) {
-        if (key == KEY_ESCAPE) stopFlying("fly camera landed");
+        if (key == KEY_ESCAPE) stopFlying("fly camera landed", true);
         if (key == KEY_F9) takeSnapshot();
         return true;
     }

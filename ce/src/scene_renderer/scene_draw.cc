@@ -312,7 +312,7 @@ bool captureStaticPreviewPng(const std::filesystem::path& path, bool withWalls, 
     while (glGetError() != 0) {
     }
     drawStaticPreview(withWalls, withHero);
-    if (withHero && gSceneOverlayReady) {
+    if (withHero && gSceneOverlayReady && !staticFlyCameraActive()) {
         // With what the game draws over it, as presented.
         glViewport(0, 0, drawableWidth, drawableHeight);
         glEnable(kBlend);

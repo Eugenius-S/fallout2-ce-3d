@@ -70,6 +70,11 @@ void mouseDeviceSetCaptured(bool captured)
 
 bool mouseDeviceInitMode()
 {
+    // The dev tools' fly camera keeps the mouse, focus changes included.
+    if (gMouseCaptured) {
+        return SDL_SetRelativeMouseMode(SDL_TRUE) == 0;
+    }
+
     // "Relative mode" means cursor position is owned by the application, and we move based on mouse deltas
     // "Absolute mode" means cursor position is controlled by the OS, and we read it directly.
     // Mouse sensitivity settings can only apply in relative mode.
