@@ -2,8 +2,8 @@
 id: 040
 title: The shapes that still fail the eval
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: claude
 suggested: claude
 claude-only: no
 user-check: yes
