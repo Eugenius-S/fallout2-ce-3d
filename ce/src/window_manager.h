@@ -158,7 +158,7 @@ typedef struct Button {
     Button* prev;
     Button* next;
 
-    // Holds FrmImage objects purely for cleanup — their destructors
+    // Holds FrmImage objects purely for cleanup: their destructors
     // unlock both CacheEntry* (fid-based) and shared_ptr<NamedCacheEntry>
     // (path-based). Data pointers are stored separately in normalImage /
     // pressedImage / etc.

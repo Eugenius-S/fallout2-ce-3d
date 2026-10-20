@@ -7,7 +7,7 @@ Date: 2026-10-17. Specification:
 
 - Upstream: https://github.com/fallout2-ce/fallout2-ce, commit
   `fb8ba51e016b09597bc0b4277fbac26899e43342` (2026-10-17, "Typesafe sound.h
-  enum usage (#868)") — see `pinned-commit.md`. The clone lives in `ce/` and
+  enum usage (#868)"): see `pinned-commit.md`. The clone lives in `ce/` and
   is not part of this repository. No changes to the CE sources.
 - Build: `tools/configure-build.ps1` (Ninja + MSVC 14.40, SDK 22621,
   CMake 4.4). All targets built: `fallout2-ce.exe`, `mapper-ce.exe`,
@@ -15,12 +15,12 @@ Date: 2026-10-17. Specification:
 
 ### Toolchain quirks of this machine
 
-1. VS BuildTools has a broken vcvars (vswhere does not see VC.Tools) — the
+1. VS BuildTools has a broken vcvars (vswhere does not see VC.Tools): the
    environment (PATH/INCLUDE/LIB) is set by the script manually.
 2. CE defines `_STATIC_CPPLIB` (a static STL). With CMake's default dynamic
    runtime (`/MD`) linking fails with LNK2038/LNK1319 (libcpmt.lib = MT
    against MD objects). The fix without touching upstream:
-   `CMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded$<$<CONFIG:Debug>:Debug>` — the
+   `CMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded$<$<CONFIG:Debug>:Debug>`: the
    whole build is static (/MT), the exe is self-contained.
 
 ## Working copy of the game
@@ -28,14 +28,14 @@ Date: 2026-10-17. Specification:
 - Source: `D:\SteamLibrary\steamapps\common\Fallout 2` (read-only; the
   reference was not modified; CE was never run in it).
 - `game/`: `master.dat`, `critter.dat`, `patch000.dat`, `fallout2.cfg`.
-  Checksums (md5) — `runs/a-dat-checksums.txt`:
+  Checksums (md5): `runs/a-dat-checksums.txt`:
   - master.dat `5acf4f9a8bb017af0f7b35c7f920a48b`
   - critter.dat `9b16e92ac88d168e81126b72e6f9ab3c`
   - patch000.dat `6afa3fde17b95191cb6bae18bfd10291`
 - Important: CE reads/writes `fallout2.cfg` and creates `data/` **next to
   its exe**, not in the current directory. The correct layout is the exe in
   the game folder (`game/fallout2-ce.exe`), as in a stock CE install. A test
-  run of the exe from `build/` left a `build/fallout2.cfg` with defaults —
+  run of the exe from `build/` left a `build/fallout2.cfg` with defaults,
   this explains why `skip_opening_movies=1` in `game/fallout2.cfg` did not
   work at first.
 - `game/fallout2.cfg`: the `[ui]` section got `skip_opening_movies=1`
@@ -73,7 +73,7 @@ From the upstream README (+SFALL_COMPATIBILITY.md for sfall scripts):
   choice, the last save slot is remembered, a fancy ammo meter.
 - "Dozens of small things": better pathfinding, fewer graphics glitches.
 - The save format is extended (a save gains `ce.sav`, `sfallgv.sav`); test
-  saves of the original exe only on copies (done — all work in `game/`, the
+  saves of the original exe only on copies (done: all work in `game/`, the
   reference untouched).
 
 In short: CE does not promise the exact behavior of the original (as the

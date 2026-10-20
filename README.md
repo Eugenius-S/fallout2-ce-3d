@@ -38,12 +38,12 @@ and [the technical plan with TODO](docs/2026-10-17-fallout2-ce-3d-env-p0-p1.md).
 
 ## How the repository is laid out
 
-- `ce/` — the engine: a fork of Fallout 2 CE with the new renderer.
-- `tools/scene_export/` — the converter of maps from the game's resources
+- `ce/`: the engine: a fork of Fallout 2 CE with the new renderer.
+- `tools/scene_export/`: the converter of maps from the game's resources
   into a 3D scene.
-- `tools/` — build and run scripts.
-- `docs/`, `runs/` — plans, reports and check screenshots.
-- `game/` and `build/` — the local copy of the game and build results; they
+- `tools/`: build and run scripts.
+- `docs/`, `runs/`: plans, reports and check screenshots.
+- `game/` and `build/`: the local copy of the game and build results; they
   do not go into Git.
 
 Game resources, saves and built EXEs are not put into the repository. You
@@ -81,19 +81,17 @@ git merge -X subtree=ce upstream/main
 
 ## Thanks
 
-- **Interplay and Black Isle** — for Fallout 2.
-- **Alexander Batalov** ([alexbatalov/fallout2-ce](https://github.com/alexbatalov/fallout2-ce))
-  — for Fallout 2 Community Edition, without which this project would not
+- **Interplay and Black Isle**: for Fallout 2.
+- **Alexander Batalov** ([alexbatalov/fallout2-ce](https://github.com/alexbatalov/fallout2-ce)), for Fallout 2 Community Edition, without which this project would not
   exist.
-- **The [fallout2-ce](https://github.com/fallout2-ce/fallout2-ce) community**
-  — for continuing to develop the engine: fixes, sfall and mod support. Our
+- **The [fallout2-ce](https://github.com/fallout2-ce/fallout2-ce) community**, for continuing to develop the engine: fixes, sfall and mod support. Our
   engine is a fork of their version.
-- **[Apolotary](https://github.com/Apolotary/fallout2-first-person)** —
+- **[Apolotary](https://github.com/Apolotary/fallout2-first-person)**:
   for fallout2-first-person. The approach to restoring map volume and part
   of the converter come from there.
 
 ## License
 
 The engine and converter code is distributed under the terms of the original
-projects — Sustainable Use License 1.0 (see `ce/LICENSE.md` and the licenses
+projects: Sustainable Use License 1.0 (see `ce/LICENSE.md` and the licenses
 in `tools/scene_export/`). This is an unofficial non-commercial fan project.

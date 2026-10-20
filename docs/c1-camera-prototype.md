@@ -14,8 +14,8 @@ tilted by `pitch` degrees and sits `distance` vanilla pixels from the view
 center. The azimuth is vanilla, so sprites show exactly the sides they were
 drawn with (clause 46 of the specification).
 
-- `src/lighting/lighting.*` — projection, inverse projection (the mouse),
-  render margins; `src/lighting/lighting_quad_blit.*` — a
+- `src/lighting/lighting.*`: projection, inverse projection (the mouse),
+  render margins; `src/lighting/lighting_quad_blit.*`: a
   perspective-correct quad blitter of the 8-bit palette (index-0
   transparency, light darkening as in `_dark_trans_buf_to_buf`,
   translucency through blend tables).
@@ -40,10 +40,10 @@ drawn with (clause 46 of the specification).
 
 ## Evidence (runs/)
 
-- `c1-original.png` — the same save, camera 0 (control, unchanged).
-- `c1-persp-weak.png` / a restart with the defaults (62°, 700) — variant 1.
-- `c1-persp-strong.png` (55°, 450) — variant 2, stronger.
-- `c1-v3-margins.png`, `c1-v3-walk*.png` — iterations of the render margins
+- `c1-original.png`: the same save, camera 0 (control, unchanged).
+- `c1-persp-weak.png` / a restart with the defaults (62°, 700): variant 1.
+- `c1-persp-strong.png` (55°, 450): variant 2, stronger.
+- `c1-v3-margins.png`, `c1-v3-walk*.png`: iterations of the render margins
   fix.
 
 Comparison: the scene center (the character, the temple entrance) is covered
@@ -55,13 +55,13 @@ rules (a visual layer).
 
 1. **Void beyond the map edge.** The tilted view shows an area outside the
    map's hex grid: at the ARTEMPLE start there is blackness top-right, and
-   its size grows with the perspective strength. There are no tiles there —
+   its size grows with the perspective strength. There are no tiles there,
    nothing to draw. Solution options (stage C, by agreement): softer
    parameters, a "curtain"/vignette at the edges, drawing the map edges
    (map edge data).
 2. **Cursor art in vanilla coordinates.** The red cursor oval and the
    object highlight/outline are drawn in vanilla screen coordinates while
-   the picked tile is computed by the inverse projection — at the screen
+   the picked tile is computed by the inverse projection: at the screen
    edges the oval is slightly off the highlighted tile. Treatment (stage C):
    draw the cursor objects through the same perspective path.
 3. **Glass walls/corpse "eggs"** are drawn simplified under perspective
@@ -71,7 +71,7 @@ rules (a visual layer).
 
 ## How to check by hand
 
-Run: `game\fallout2-ce.exe` (save slot 1 — `--dev-load-game=1`).
+Run: `game\fallout2-ce.exe` (save slot 1: `--dev-load-game=1`).
 Alt+P switches the camera in place; the `[lighting]` section of
 `fallout2.cfg` tunes the strength. A click on the ground is a step;
 doors/combat/inventory are as in the original.

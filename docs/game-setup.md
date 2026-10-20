@@ -7,8 +7,8 @@ translation.
 ## Source
 
 - RPU v2.4.34, https://github.com/BGforgeNet/Fallout2_Restoration_Project/releases/tag/v2.4.34
-- `rpu_v2.4.34.zip` — SHA-256 `b8f8a9c900a553c4e781e74bcf805f5663bc37b3633ebfbebfc928b70470285e`
-- `rpu_v2.4.34_translations.zip` — SHA-256 `cc9ca1e12e477cbf4cd0156097d4b9185f370033e5ac8ce9c4ef16f741b45644`
+- `rpu_v2.4.34.zip`: SHA-256 `b8f8a9c900a553c4e781e74bcf805f5663bc37b3633ebfbebfc928b70470285e`
+- `rpu_v2.4.34_translations.zip`: SHA-256 `cc9ca1e12e477cbf4cd0156097d4b9185f370033e5ac8ce9c4ef16f741b45644`
 - CE's README declares full Restoration Project support.
 
 ## Steps
