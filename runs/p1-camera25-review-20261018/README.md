@@ -1,4 +1,4 @@
-# FOV25 and sprite facing review — 2026-10-18
+# FOV25 and sprite facing review: 2026-10-18
 
 The reviewer restarted the sandbox on the new build and inspected its actual window and GL screenshots. Wall/hero/walk now use FOV 25 degrees, unchanged target/pitch/azimuth, and eye-target distance scaled by `tan(25 degrees)/tan(12.5 degrees)` to retain the approximate subject scale. The horizontal basis corrects the reflection introduced by mapping donor `(u,v,z)` to GL `(u,z,v)`.
 

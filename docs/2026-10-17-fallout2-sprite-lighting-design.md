@@ -6,7 +6,7 @@ agent.
 **The user's decision:** keep the game and its mechanics in CE, use the
 reconstruction of the environment by the principles of
 Apolotary/fallout2-first-person. First a live area of Klamath; the other
-maps — after the integration is confirmed.
+maps: after the integration is confirmed.
 
 This edition replaces the former direction of "perspective cardboard + light"
 in this file. The former plan of the perspective cardboards and the
@@ -16,7 +16,7 @@ plan P0–P1: `2026-10-17-fallout2-ce-3d-env-p0-p1.md` in this folder.
 ## 1. The goal and the boundaries
 
 The same Fallout 2: turn-based combat, quests, dialogs, inventory, saves,
-atmosphere. The image — the original textures and sprites, a volumetric
+atmosphere. The image: the original textures and sprites, a volumetric
 environment, a fixed perspective camera from above at an angle, then dynamic
 light.
 
@@ -75,14 +75,14 @@ OUTPUT: a playable Fallout 2 with a volumetric environment and perspective.
 DIRECT CHECK: one save and the same actions in the stock and the new renderers.
 ```
 
-### CE — the only owner of the game
+### CE: the only owner of the game
 
 Do not rewrite combat, scripts, AI, pathing, inventory, saves and the game
 light. The renderer reads the state; the mouse pick is converted into
 ordinary CE actions. The geometry does not create an independent world of
 collisions: walkability and interactions are decided by the engine.
 
-### The converter — the representation of the environment
+### The converter: the representation of the environment
 
 Adapt the existing Python converter; do not write DAT/MAP/FRM parsers anew
 without an established need. Study tools/fp/scene.py, proj.py, the wall/item
@@ -171,7 +171,7 @@ scene without resetting the game.
   system. Account for the elevation, the viewport, the DPI/window size. Do
   not treat the vanilla screen coordinates as ready world coordinates.
 - The ground is picked by a ray onto the plane of the current floor. An
-  object — by its visible representation and handle; a ground projection is
+  object: by its visible representation and handle; a ground projection is
   not enough for a door/a tall wall.
 - Transparent pixels do not intercept the pick. The cursor/highlight match
   the image in the center and at the edges; the UI handles its clicks first.
@@ -187,17 +187,17 @@ scene without resetting the game.
 
 ## 5. Light and authenticity
 
-The first showing — without the new light. After the geometry is accepted
+The first showing: without the new light. After the geometry is accepted
 add one movable point source: different sides of a wall, the floor and an
 item react to the direction/distance. Then bind it to an existing lamp/fire.
 
 The geometry uses its own normals. For characters/fallbacks a careful
-simplified light is allowed at first. Normal/height maps — only for a
+simplified light is allowed at first. Normal/height maps: only for a
 verified set; one map for all the character poses is forbidden. The
 brightness of the original picture does not prove the shape of a surface.
 
 Account for the already drawn shadows. Keep the palette/texture; do not
-replace volume with a global gloss/bloom. New shadows — after the light is
+replace volume with a global gloss/bloom. New shadows: after the light is
 accepted, with a check of an open/closed door and a roof.
 
 The new light does not affect sneak, hits, visibility and the other CE
@@ -207,7 +207,7 @@ for that comparison.
 
 ## 6. Stages and acceptance
 
-### P0 — the technical plan and the output
+### P0: the technical plan and the output
 
 Research the actual integration points of src/svga.cc, tile.cc, object.cc,
 art.cc, game_mouse.cc, map.cc, palette.cc. The new plan holds concrete
@@ -219,7 +219,7 @@ Keep C1. Verify the GPU + the original UI inside CE, a stock launch, resize
 and the return to the old view. A primitive is acceptable for a short
 context check but does not count as a visual result.
 
-### P1 — a live Klamath area
+### P1: a live Klamath area
 
 #### The mandatory dev mode for the executor (added 2026-10-18)
 
@@ -297,7 +297,7 @@ screenshot or an export does not replace the game checks.
 **Before the mass conversion the user must accept the look of P1.** If the
 picture does not fit, fix it on one area.
 
-### P2 — light and performance
+### P2: light and performance
 
 Show light OFF/ON at one camera, moving a source around a wall/item.
 Surfaces react; the UI and the rules are unchanged. Check the animations,
@@ -315,7 +315,7 @@ light from a single FPS.
 Game time and the animation rate are not sped up. 60 FPS of output do not
 mean 60 unique source frames of a character.
 
-### P3 — all maps
+### P3: all maps
 
 After P1/P2 convert the remaining maps. Build the list from the game's
 resources/registry, including the used elevations, interiors and random
@@ -326,13 +326,13 @@ visual check → game check → errors. Do not mix a successful export with a
 confirmed playability. A repeated run uses only a valid cache with matching
 inputs.
 
-To claim "all maps are converted" — the full list, no exceptions of the
+To claim "all maps are converted": the full list, no exceptions of the
 stock renderer and a visual check of every map/elevation pair. "The game is
 playable" requires separate checks of the routes/quests. The behavior matrix
 includes a street, a tight interior, a cave, an elevator/floors, a random
 encounter, roofs, translucent walls and script creation/deletion.
 
-### P4 — the Russian language and installation
+### P4: the Russian language and installation
 
 The russifier is chosen: the RPU v2.4.34 translation (the source and hashes
 are in `docs/game-setup.md`). The resources are in place; the look in the
@@ -346,7 +346,7 @@ Check the install, the update, the removal and the launch of the original.
 Keep the CE saves separate; test the compatibility with the original EXE
 only on copies.
 
-### P5 — the optional DLSS5
+### P5: the optional DLSS5
 
 A separate research after an accepted useful game. Choosing OpenGL does not
 guarantee a future compatibility with the NVIDIA runtime. The base mod
@@ -356,8 +356,8 @@ project into a release automatically.
 ## 7. Structure, verification and reproducibility
 
 Keep ce/, build/, game/, tools/, docs/, runs/. The proposed areas:
-ce/src/scene_renderer/ — the GPU and the adapter; tools/scene_export/ — the
-converter; game/mod-cache/ — the derived data. These new paths are not
+ce/src/scene_renderer/: the GPU and the adapter; tools/scene_export/: the
+converter; game/mod-cache/: the derived data. These new paths are not
 claimed as implemented yet; clarify them in the technical plan.
 
 Follow the CE/donor style; do not reformat the whole upstream. Separate the
@@ -408,7 +408,7 @@ stay a separate task.
 > exact files/contracts/checks. Then the minimal GPU output inside CE and a
 > kladwtwn area: volumetric walls, sprite characters, a door, an item, a
 > talk, combat, a save. The first visual showing without the new light. Mass
-> export — after the result is accepted. Report separately what is built,
+> export: after the result is accepted. Report separately what is built,
 > what is visible, what is verified by actions and what is not verified yet.
 
 Sources: https://github.com/fallout2-ce/fallout2-ce ;

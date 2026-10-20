@@ -11,8 +11,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File 'E:\Projects\fallout2-ce-3d\
 ```
 
 The launcher itself sets in `game\fallout2.cfg` a 16:9 window as tall as the
-monitor above the task bar and the ×2 scale (`scale=2`); `-Aspect 21:9` —
-the full monitor width, `-FullScreen` — the whole screen without a frame
+monitor above the task bar and the ×2 scale (`scale=2`); `-Aspect 21:9`,
+the full monitor width, `-FullScreen`: the whole screen without a frame
 (`windowed=2`). Ctrl+F11 in the game restarts it in the other window format
 (16:9 ↔ 21:9): the engine sets the screen size once at start. Also
 `[ui] skip_opening_movies=1`.
@@ -59,26 +59,26 @@ to the window the same way 480 × 400 related to 640 × 480.
 
 ## CLI
 
-- `--dev-tools` — enables the mode (the panel, the hotkeys).
-- `--dev-new-game` — start a new game right away with the first ready-made
+- `--dev-tools`: enables the mode (the panel, the hotkeys).
+- `--dev-new-game`: start a new game right away with the first ready-made
   character.
-- `--dev-map=<name>` / `--dev-elevation=<0..2>` — the target after the save
+- `--dev-map=<name>` / `--dev-elevation=<0..2>`: the target after the save
   loads or the new game starts.
-- `--dev-list-maps` — prints all maps from the game resources (155 on the
+- `--dev-list-maps`: prints all maps from the game resources (155 on the
   current DATs) and exits. Log: `runs/p1-listmaps.log`.
 
 ## The panel (Alt+D opens/closes)
 
-- filter — a live case-insensitive filter over map names (arrows —
+- filter: a live case-insensitive filter over map names (arrows,
   selection, Backspace, printable characters);
-- elev: [0][1][2] — floor choice; the current one is marked, `-` — the floor
+- elev: [0][1][2]: floor choice; the current one is marked, `-`: the floor
   is absent on the current map;
-- `<prev` / `next>` — the neighboring map of the list; `GO` — travel;
-  `SNAP` — a snapshot;
-- the current map/floor and the active renderer are shown (`scene-gl` — for
+- `<prev` / `next>`: the neighboring map of the list; `GO`: travel;
+  `SNAP`: a snapshot;
+- the current map/floor and the active renderer are shown (`scene-gl`: for
   now the GL presentation of vanilla; light: off until P2).
 
-Hotkeys: Alt+D — the panel, F9 — a snapshot (works with the panel open too).
+Hotkeys: Alt+D: the panel, F9: a snapshot (works with the panel open too).
 
 ## Transitions
 
@@ -93,7 +93,7 @@ F9/SNAP writes `devshot-YYYYMMDD-HHMMSS.json` + `scrNNNNN.png` into `game/`:
 the map, floor, renderer, light, internal resolution, drawable, CE commit,
 SHA-256 of the running EXE, time.
 
-## Acceptance (the spec, "Acceptance of the dev tools") — done
+## Acceptance (the spec, "Acceptance of the dev tools"): done
 
 | Step | Result | Evidence |
 |---|---|---|
@@ -118,13 +118,13 @@ SHA-256 of the running EXE, time.
 ## Review of 2026-10-18 (an external check of a650e85) and fixes (ce 6dda27c)
 
 1. The floor was not applied: tile=-1 → the engine skips setting the floor.
-   Now a same-map switch passes enteringTile; cross-map — a follow-up
+   Now a same-map switch passes enteringTile; cross-map: a follow-up
    correction after the load (update()).
 2. The panel/snapshot showed the panel's choice, not the actual floor. Now
    the engine's actual gElevation; the panel choice is a separate value
    "(want eN)".
 3. Floor presence was determined by _square != null (never null). Now the
-   MAP_HEADER_ELEVATION_* bits from gMapHeader.flags — as in the loader; a
+   MAP_HEADER_ELEVATION_* bits from gMapHeader.flags: as in the loader; a
    same-map transition to an absent floor is refused at once.
 4. The floor click zone is aligned with the labels.
 5. A list click accounts for the scroll (mirroring the draw).
@@ -184,7 +184,7 @@ Dev mode status: closed per the reviewer's conditions (a successful
 floor-to-floor transition + a refusal on an absent one + a JSON with
 metadata).
 
-## Tile choice on a floor change — fixed, acceptance of the current build awaits a check
+## Tile choice on a floor change: fixed, acceptance of the current build awaits a check
 
 A tile of the target floor is picked for the hero at a distance of at most 4
 from his current position. A candidate is accepted only if the tile number is
@@ -207,6 +207,6 @@ current build after the floor, scroll-blocker and bounds checks. Acceptance
 of the safe tile choice in the game for the current build awaits a separate
 check.
 
-`runs/p1-devtools-map-header-regression.ps1` — a forensic check of the
+`runs/p1-devtools-map-header-regression.ps1`: a forensic check of the
 offsets and fields of a real `KLADWTWN.SAV`; it is not a unit test of the
 probe and not a game acceptance.
