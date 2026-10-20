@@ -101,3 +101,8 @@ Check: Code path inspected at `ce/src/scene/scene_overlay.cc`, `ce/src/scene_ren
 Done: Move-mode mouse-up now rejects a fresh outside pick while the 3D scene overlay is active, and refreshes the hex cursor when the fresh valid pick differs from its cached tile. Movement is canceled if that refresh does not land on the fresh target. Classic movement remains unchanged.
 Next: Parent reviews the guard. A live outside-click and exit-grid transition test remain pending; continue checking active EDG bounds on the remaining Klamath maps before marking task 016 complete.
 Check: Release build passed; CTest passed 10/10; `git diff --check` passed. This is a code-path fix only; SDL input delivery, a live movement command, and an exit-grid transition remain unverified.
+
+### 2026-10-20 gpt
+Done: Audited the active RPU EDG records for all seven Klamath maps. Each has an e0 and e1 record; none has an e2 EDG record. KLARATCV and KLATOXCV have e2 map fixtures, so missing e2 clipping data does not mean the map elevation is absent. Added exact source rectangles and this caveat to the evidence README.
+Next: Runtime visual references for the other five maps, a live outside-click movement check, and a reachable exit-grid transition remain pending.
+Check: Read-only archive audit of active `mods/rpu.dat` (SHA-256 `27db830e0fb67d02b60e166e2acb772a92292f5f4dd88f733b740b406a0864ee`); no game or configuration files changed. No runtime probe was added, so movement and exit behavior remain unverified at runtime.

@@ -24,6 +24,30 @@ The pixel rectangle is the EDG v1 visible rectangle. It is distinct from the
 contracted scroll border and from the discrete exit-grid tiles. The exit grids
 remain the map's transition triggers; they are not used as map-wide bounds.
 
+### Active EDG coverage
+
+The same active RPU archive contains one EDG zone at e0 and one at e1 for each
+of the seven Klamath maps below. No e2 EDG record was found. That only describes
+the clipping data: KLARATCV and KLATOXCV still have e2 map fixtures, so a
+missing e2 EDG record must not be read as a missing map elevation. Rectangles
+below are source tile rectangles in `(left, top, right, bottom)` order; the
+KLAGRAZ e0 source rectangle has reversed X endpoints and needs normalization
+before use.
+
+| Map | e0 EDG tile rectangle | e1 EDG tile rectangle | e2 EDG |
+|---|---|---|---|
+| KLACANYN | `(12111, 11684, 19447, 23294)` | `(199, 0, 39800, 39999)` | absent |
+| KLADWTWN | `(13331, 6901, 23253, 25771)` | `(199, 0, 39800, 39999)` | absent |
+| KLAGRAZ | `(21760, 13682, 21278, 26560)` | `(199, 0, 39800, 39999)` | absent |
+| KLAMALL | `(24776, 6704, 29075, 33306)` | `(199, 0, 39800, 39999)` | absent |
+| KLARATCV | `(15561, 13262, 20451, 24149)` | `(12922, 11266, 23452, 30104)` | absent |
+| KLATOXCV | `(18350, 14276, 22465, 27320)` | `(13954, 10451, 20037, 28332)` | absent |
+| KLATRAP | `(17939, 9281, 21063, 27334)` | `(199, 0, 39800, 39999)` | absent |
+
+This is an archive-data audit, not a visual reference for every map. The
+Classic corner captures below currently verify KLADWTWN and KLAMALL only; the
+remaining maps still need runtime boundary review.
+
 ## Runtime references
 
 All frames use the same Release executable, SHA-256
