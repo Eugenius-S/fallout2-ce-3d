@@ -37,6 +37,7 @@
 #include "../mouse.h"
 #include "../movie.h"
 #include "../platform/git_version.h"
+#include "../proto.h"
 #include "../platform_compat.h"
 #include "../random.h"
 #include "../scene/scene_objects.h"
@@ -115,6 +116,8 @@ int gPickProbeOutsideX = -1;
 int gPickProbeOutsideY = -1;
 int gPickProbeOutsideHeroTile = -1;
 bool gPickProbeOutsideClick = false;
+bool gPickProbeExitPending = false;
+int gPickProbeExitWaitFrames = 0;
 char gToolsCommit[32] = "-";
 
 bool gPanelOpen = false;
@@ -926,6 +929,8 @@ void fly()
 
 } // namespace
 
+void finishPickProbe();
+
 void listMaps()
 {
     rebuildMapList();
@@ -956,6 +961,14 @@ void update()
         const int heroTileBefore = gDude->tile;
         const bool busyBefore = animationIsBusy(gDude) == -1;
         _gmouse_handle_event(gPickProbeClick[0], gPickProbeClick[1], MOUSE_EVENT_LEFT_BUTTON_UP);
+        if (gPickProbeExitPending) {
+            if (FILE* log = fopen("devprobe.log", "a")) {
+                fprintf(log, "exit click dispatched: map=%s hero=%d->%d busy=%d->%d at (%d,%d)\n",
+                    gMapHeader.name, heroTileBefore, gDude->tile, busyBefore, animationIsBusy(gDude) == -1,
+                    gPickProbeClick[0], gPickProbeClick[1]);
+                fclose(log);
+            }
+        }
         if (edgeClick) {
             if (FILE* log = fopen("devprobe.log", "a")) {
                 fprintf(log, "outside click: fresh=%d cursor=%d hero=%d->%d busy=%d->%d\n",
@@ -970,6 +983,41 @@ void update()
         if (FILE* log = fopen("devprobe.log", "a")) {
             fprintf(log, "probe click: hero busy=%d tile=%d\n", animationIsBusy(gDude) == -1 ? 1 : 0, gDude->tile);
             fclose(log);
+        }
+    }
+    if (gPickProbeExitPending) {
+        gPickProbeExitWaitFrames++;
+        if (strncmp(gMapHeader.name, "KLADWTWN.MAP", sizeof(gMapHeader.name)) == 0
+            && gMapHeader.index == 9 && gDude->tile == 25142
+            && gDude->elevation == ELEVATION_FIRST) {
+            if (FILE* log = fopen("devprobe.log", "a")) {
+                fprintf(log, "exit transition passed: map=%s index=%d elevation=%d tile=%d after=%d frames\n",
+                    gMapHeader.name, gMapHeader.index, gDude->elevation, gDude->tile, gPickProbeExitWaitFrames);
+                fclose(log);
+            }
+            finishPickProbe();
+        } else if (strcmp(gMapHeader.name, "KLADWTWN.MAP") == 0) {
+            if (FILE* log = fopen("devprobe.log", "a")) {
+                fprintf(log, "outside probe failed: wrong exit arrival map=%s index=%d elevation=%d tile=%d\n",
+                    gMapHeader.name, gMapHeader.index, gDude->elevation, gDude->tile);
+                fclose(log);
+            }
+            finishPickProbe();
+        } else if (gPickProbeExitWaitFrames % 60 == 0) {
+            if (FILE* log = fopen("devprobe.log", "a")) {
+                fprintf(log, "exit transition waiting: map=%s elevation=%d hero=%d busy=%d frames=%d\n",
+                    gMapHeader.name, gDude->elevation, gDude->tile, animationIsBusy(gDude) == -1,
+                    gPickProbeExitWaitFrames);
+                fclose(log);
+            }
+        }
+        if (gPickProbeExitPending && gPickProbeExitWaitFrames >= 1800) {
+            if (FILE* log = fopen("devprobe.log", "a")) {
+                fprintf(log, "outside probe failed: exit transition timed out at map=%s elevation=%d hero=%d\n",
+                    gMapHeader.name, gDude->elevation, gDude->tile);
+                fclose(log);
+            }
+            finishPickProbe();
         }
     }
     if (scene::requestedView() != scene::View::Off && gStartupFloorPreviewFramesRemaining > 0) {
@@ -1226,6 +1274,7 @@ void finishPickProbe()
             scene::availability());
         fclose(log);
     }
+    gPickProbeExitPending = false;
     gPickProbeStage = 0;
 }
 
@@ -1395,6 +1444,45 @@ void runPickProbe()
             finishPickProbe();
         }
     } else if (stage == 500) {
+        if (strcmp(gMapHeader.name, "KLAMALL.MAP") == 0) {
+            constexpr int exitTile = 28078;
+            Object* exitGrid = nullptr;
+            for (Object* object = objectFindFirstAtLocation(gElevation, exitTile); object != nullptr;
+                 object = objectFindNextAtLocation()) {
+                if (isExitGridProtoId(ProtoId(object->pid))) {
+                    exitGrid = object;
+                    break;
+                }
+            }
+            double pixel[2], x, y;
+            const bool reachable = _make_path(gDude, gDude->tile, exitTile, nullptr, 1) > 0;
+            scene_renderer::gameViewTilePixel(exitTile, pixel);
+            const bool projected = scene_renderer::staticScreenFromGamePixel(pixel[0], pixel[1], &x, &y);
+            const int mx = projected ? static_cast<int>(x) : -1;
+            const int my = projected ? static_cast<int>(y) : -1;
+            const bool picked = projected && windowGetAtPoint(mx, my) == gIsoWindow
+                && tileUnderMouse(mx, my) == exitTile;
+            if (exitGrid == nullptr || exitGrid->data.misc.map != 9 || exitGrid->data.misc.tile != 25142
+                || exitGrid->data.misc.elevation != ELEVATION_FIRST || !reachable || !picked) {
+                note("outside probe failed: exit not ready hero=%d target=%d grid=%d dest=%d/%d reachable=%d picked=%d\n",
+                    gDude->tile, exitTile, exitGrid != nullptr, exitGrid != nullptr ? exitGrid->data.misc.map : -1,
+                    exitGrid != nullptr ? exitGrid->data.misc.tile : -1, reachable, picked);
+                finishPickProbe();
+                if (log != nullptr) fclose(log);
+                return;
+            }
+            gameMouseSetMode(GAME_MOUSE_MODE_MOVE);
+            _mouse_set_position(mx, my);
+            gPickProbeClick[0] = mx;
+            gPickProbeClick[1] = my;
+            gPickProbeExitPending = true;
+            gPickProbeExitWaitFrames = 0;
+            note("exit probe queued: map=%s elevation=%d hero=%d exit=%d dest=%d/%d/%d reachable=%d picked=%d at (%d,%d)\n",
+                gMapHeader.name, gElevation, gDude->tile, exitTile, exitGrid->data.misc.map,
+                exitGrid->data.misc.tile, exitGrid->data.misc.elevation, reachable, picked, mx, my);
+            if (log != nullptr) fclose(log);
+            return;
+        }
         // Then talk: the pointer on the nearest critter the hero can talk to.
         Object* talker = nullptr;
         int talkerX = -1, talkerY = -1, nearest = 1 << 30;
@@ -1423,7 +1511,7 @@ void runPickProbe()
             gPickProbeClick[0] = talkerX;
             gPickProbeClick[1] = talkerY;
         }
-    } else if (stage >= 1200) {
+    } else if (stage >= 1200 && !gPickProbeExitPending) {
         finishPickProbe(); // the click led nowhere the scene leaves for
     }
     if (log != nullptr) fclose(log);
@@ -1488,7 +1576,7 @@ void vanillaPresented()
 void sceneOverlaySynced(bool on)
 {
     // --dev-pick-probe: the click took the game out of the scene (a dialog).
-    if (!on && gPickProbeStage > 115) finishPickProbe();
+    if (!on && gPickProbeStage > 115 && !gPickProbeExitPending) finishPickProbe();
 }
 
 // Ctrl+F11: the window between 16:9 and 21:9. The engine sizes its screen once

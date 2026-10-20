@@ -1,0 +1,24 @@
+probe Траппер at (102,171) tile=26904: hit -> Траппер
+probe Траппер at (148,183) tile=27303: hit -> Траппер
+probe Траппер at (81,207) tile=27306: hit -> Траппер
+probe Гражданин at (496,330) tile=30098: hit -> Гражданин
+probe critters: hit=4 hidden=0 miss=0
+probe floor at (722,256): tile=29687
+probe hover at (496,330): Гражданин
+probe walk target tile=29889 at (692,281)
+probe click: hex cursor tile=29889
+probe click: hero busy=1 tile=29089
+probe after click (frame 200): hero busy=0 tile=29889
+probe after click (frame 400): hero busy=0 tile=29889
+inside movement control passed: hero=29089->29889
+outside probe target=29688 hero=29889
+outside candidate pick=-1 stale=29688 hero=29889 at (956,2)
+outside click: fresh=-1 cursor=29688 hero=29889->29889 busy=0->0
+probe click: hero busy=0 tile=29889
+outside probe result: hero=29889 expected=29889 busy=0
+outside movement rejected
+exit probe queued: map=KLAMALL.MAP elevation=0 hero=29889 exit=28078 dest=9/25142/0 reachable=1 picked=1 at (804,115)
+exit click dispatched: map=KLAMALL.MAP hero=29889->29889 busy=0->1 target=29688
+probe click: hero busy=1 tile=29889
+exit transition passed: map=KLADWTWN.MAP index=9 elevation=0 tile=25142 after=59 frames
+probe done: hero tile=25142 busy=0 scene=available

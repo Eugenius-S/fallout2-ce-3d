@@ -106,12 +106,37 @@ The Classic snapshots verify the engine's 2D EDG cut for the current RPU
 installation. Authored snapshot metadata reports matching transformed bounds
 for both town maps. These are the first two verified Klamath maps; the other
 Klamath maps with EDG rectangles remain to be checked before task completion.
-`pickStaticGroundTile` applies that clip and
-`sceneTileAt` returns `-1` when the ground pick is outside it. In move mode,
-`game_mouse.cc` leaves the previous cursor tile in place when `tileUnderMouse`
-returns `-1`. The full mouse command path and a real exit-grid transition have
-not yet been verified, so this evidence does not claim that movement outside
-the edge is blocked or that every exit remains reachable.
+`pickStaticGroundTile` applies that clip and `sceneTileAt` returns `-1` when the
+ground pick is outside it. The runtime probe below verifies that move-mode
+mouse-up cannot use the stale cursor tile after an outside pick, and that a
+reachable exit still transitions through the engine's normal exit-grid path.
+This does not yet verify visual bounds for the other five Klamath maps.
+
+### Live exit-grid transition probe
+
+The existing dev pick probe ran on KLAMALL e0, with the authored clip enabled,
+using the isolated `task009-clean-edges-on` config and private scene cache. It
+found the live exit-grid object at tile 28078 and verified its destination
+fields: map index 9, tile 25142, elevation 0. The hero moved normally from tile
+29889 to that grid; the click changed animation from idle to moving (`busy=0->1`).
+The engine then loaded KLADWTWN e0, map index 9, at tile 25142 after 59 probe
+frames. The probe did not invoke `mapSetTransition` or move the hero by a test
+teleport. The map files and maps table came from the active `mods/rpu.dat`
+archive recorded in the scene provenance.
+
+The raw log's `exit probe queued` line records the live exit tile and
+destination; `exit transition passed` records the arrival. Its `exit click
+dispatched` line has a stale `target=29688` field from the preceding outside
+click stage, so that field is not evidence of the exit target. The dev-probe
+logger was corrected afterward to record the dispatched screen coordinates.
+
+The original [`devprobe.log`](exit-transition/klamall-to-kladwtwn/devprobe.log),
+two same-run PNG/JSON snapshot pairs, and metadata are in
+[`exit-transition/klamall-to-kladwtwn`](exit-transition/klamall-to-kladwtwn/).
+The run ID is `806e4533ce9645d4983cc4d231048451`. The executable SHA-256 is
+`b5742fbd121a3bfbc2896ee256a5a65fe15e9d950059fe48cffef91638d12566`; it was
+built from source commit `22baf835` plus the local dev-probe-only transition
+check captured in this evidence checkpoint.
 
 ## Earlier comparison captures
 
