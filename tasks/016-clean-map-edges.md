@@ -13,34 +13,35 @@ reviewed: no
 
 ## Goal
 
-The map ends in straight edges on a black background instead of the ragged
-teeth of diamond-shaped tiles.
+The 3D map ends at the same playable boundary as the current installation's
+Classic 2D map, with straight edges against black. The boundary may cut through
+building or fence pieces that lie past the transition-zone corner.
 
 ## Context
 
-- Floor tiles are diamonds, so the outer border of a map is jagged.
-- Many maps limit the visible area: `ce/src/map_edge.cc` (Restoration
-  Project's map edge rectangles). In 3D these limits are switched off for
-  scrolling (`mapEdgeIsOverClippedArea`), but they still describe where the
-  map is meant to end.
-
-- The owner's target: `runs/016-clean-map-edges/owner-target.webp` (left:
-  now, the teeth of the diamond tiles; right: wanted, the map's sides cut as
-  straight lines through the outermost tiles, black beyond).
+- The owner's marked references are preserved at
+  `runs/016-clean-map-edges/boundary-reference/owner-input/`.
+- Current Classic 2D edge data comes from the active RPU `maps/*.edg` files.
+  Its visible EDG rectangle is separate from the contracted scroll border and
+  from the exit-grid tiles.
+- The focused map evidence and transformed coordinates are in
+  `runs/016-clean-map-edges/README.md`.
 
 ## Acceptance
 
-- The scene is cut along straight lines: the map edge rectangle where the map
-  has one, otherwise the straight envelope of the floor. Floor, walls and
-  objects beyond the cut are not drawn; beyond is black.
-- Before finishing, show the owner both variants of the cut on two Klamath
-  maps (snapshots in the PR) and keep the chosen one.
-- `[3d] clean_edges` (default on) with a menu label.
-- Regression references updated with before and after images.
+- For the first two reviewed Klamath town maps, the 3D cut matches the
+  current installation's Classic 2D EDG visible rectangle, transformed into
+  world coordinates. Do not replace it with the floor-derived fallback.
+- Floor, walls, objects, and picking share the cut. Click-to-move requests
+  whose ground target lies outside the cut are rejected, while existing
+  exit-grid transitions remain usable.
+- Keep the existing `[3d] clean_edges` setting and menu label.
+- After boundary behavior is accepted, update regression references with
+  before and after images.
 
 ## Out of scope
 
-Changing what the player may scroll to.
+Changing EDG data, collision, pathfinding, saves, or exit-grid locations.
 
 ## Log
 
@@ -66,7 +67,7 @@ Check: Release build passed; CTest passed 9/9 including the projected diamond-ma
 
 ### 2026-10-20 gpt
 Done: Traced KLACANYN's remaining gray staircase to RPU's opaque BLACK002 boundary-mask cards. Clean edges now omits only scenery resolving to `BLACK002.frm` before creating render and pick entries; added focused path/type behavior coverage. The matching opaque BLACK003 card is absent from the effective scenery list and both reviewed maps.
-Next: Retake KLACANYN's floor-cut snapshot at view tile 15909 for review, then capture matched A/B/off variants on both maps after the parent accepts the corrected B image.
+Next: Superseded by the 2026-10-20 acceptance clarification: compare against the active Classic 2D playable boundary and capture town edges where that boundary crosses scenery.
 Check: Release build passed; CTest passed 10/10; `git diff --check` passed. BLACK002 is a 160x168 full-fill card (palette 207 / RGB 12,12,12); MOUNT02 remains classified as normal scenery.
 
 ### 2026-10-20 gpt
@@ -75,11 +76,16 @@ Next: Capture matched authored/floor/off stills for KLADWTWN e0 view/hero 8711 a
 Check: One corrected KLACANYN B image was captured with view tile 15909 and accepted by the parent. No final six-capture launch has started because another `fallout2-ce-test.exe` run occupies the shared queue.
 
 ### 2026-10-20 gpt
-Done: Captured and curated five matched still PNG/JSON pairs under `runs/016-clean-map-edges/`. KLADWTWN has authored, floor, and off; KLACANYN has authored and floor. All captured JSON matches the requested view/hero tile, camera, 1920x1080 resolution, 2x scale, source commit `f29410be`, and Release EXE SHA-256. The parent visually reviewed KLADWTWN A/B and found the floor-derived cut preserves the building better.
-Next: Capture KLACANYN off when the shared helper queue clears, then update README and draft PR with immutable snapshot links. Wait for the owner's A/B choice before updating task status, rebasing, or merging.
+Done: Captured and curated five matched still PNG/JSON pairs under `runs/016-clean-map-edges/`. KLADWTWN has authored, floor, and off; KLACANYN has authored and floor. These are historical A/B evidence only. The owner clarified that the required boundary follows the original playable edge, even where it cuts scenery beyond the transition corner.
+Next: Superseded by the 2026-10-20 acceptance clarification and current boundary-reference evidence.
 Check: `tools/dev-snapshot.ps1` five still captures; metadata assertions passed for map, elevation, view/hero, camera, output size, source commit, and EXE hash. CTest 10/10, scene-export unit tests 38/38, regression unit tests 12/12, and `git diff --check` passed.
 
 ### 2026-10-20 gpt
 Done: Rebased the implementation on `origin/main` `10fff6d5`, preserving zoom 015, lighting 020 part 2, and clean map clipping. The three conflict resolutions combined camera zoom with the map-projection accessor, required both lighting and clip shader uniforms, and retained all `Scene3dSettings` fields. A clean Release rebuild passed; CTest passed 10/10, scene-export unit tests 38/38, regression unit tests 12/12, and `git diff --check` passed.
-Next: Keep the draft PR open for the owner's A/B choice. KLACANYN off remains pending in the shared helper queue; do not update task status or merge until owner choice and remaining acceptance work.
+Next: Parent reviews the boundary-reference evidence and decides the next behavior-verification step. KLACANYN off remains pending as a historical comparison capture.
 Check: Current branch base is `origin/main` `10fff6d5`; five still captures remain pinned to source commit `f29410be` and the same EXE SHA-256. No snapshots were regenerated after rebase.
+
+### 2026-10-20 gpt
+Done: Reframed acceptance around the actual playable edge, not preserving all scenery. Read the active RPU EDG v1 rectangles for KLADWTWN and KLAMALL, verified authored 3D world bounds against runtime metadata, captured four Classic 2D corner references per map, and captured matched 2D/3D views at KLADWTWN tile 24768 and KLAMALL tile 13237. The latter shows the boundary beside a building in Trapper Town. Copied owner annotations and original PNG/JSON evidence to `runs/016-clean-map-edges/boundary-reference/`.
+Next: Parent reviews the evidence. Audit and verify the outside-edge click command path and a real exit-grid transition before changing implementation or claiming those behaviors.
+Check: Eight Classic corner snapshots and four matched edge snapshots report the requested camera tiles, 1920x1080 at 2x, and the same Release EXE SHA-256. At code level, `pickStaticGroundTile` applies `mapClipContains`, and `sceneTileAt` maps a failed ground pick to `-1`; the full movement command path and live exit transition remain unverified.
