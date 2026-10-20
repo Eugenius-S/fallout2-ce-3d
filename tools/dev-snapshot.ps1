@@ -35,6 +35,7 @@ param(
     [switch]$Still,
     [ValidateRange(0, 65536)]
     [int]$Ambient = -1,
+    [switch]$Fly,
     [string]$OutputDirectory,
     [switch]$CaptureConsole,
     [ValidateRange(640, 7680)]
@@ -97,6 +98,8 @@ if ($Parallel) { $arguments += '--dev-parallel' }
 # -Ambient: the map's ambient light held at this level (16384 is the game's
 # darkest night, 65536 full day).
 if ($Ambient -ge 0) { $arguments += "--dev-ambient=$Ambient" }
+# -Fly: the snapshot is taken from the fly camera's start (Ctrl+F12 in the game).
+if ($Fly) { $arguments += '--dev-fly' }
 if ($Still) {
     if ($Probe) { throw '-Still cannot be combined with the interactive -Probe.' }
     $arguments += '--dev-still-snapshot'

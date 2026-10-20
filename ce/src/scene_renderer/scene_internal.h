@@ -275,6 +275,8 @@ SpriteCardProjection cardProjection();
 bool currentGameView(GameView* view);
 // The fixed preview camera's matrix (floor-only overview).
 void makeFloorMvp(float aspect, const StaticPreviewCamera& camera, float* out);
+// The fly camera's matrix; false when it does not fly.
+bool flyCameraMvp(float aspect, float* out);
 void resetCamera();
 
 // --- live_objects.cc: live map objects and the hero, as cards ----------------

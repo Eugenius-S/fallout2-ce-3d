@@ -42,3 +42,18 @@ and to record videos, as in the donor viewer.
 Recording video inside the game (an outside recorder is used).
 
 ## Log
+
+### 2026-10-20 claude
+Done: Ctrl+F12 (with `--dev-tools`) takes the 3D view up into a free camera
+and lands it again. The mouse turns it, WASD moves it, Q / E go down and up,
+Shift is faster and Ctrl slower, by the time between frames. While it flies it
+owns the keyboard and the mouse (`mouseDeviceSetCaptured`: the game sees the
+mouse standing still with no buttons, so no clicks and no edge scrolling) and
+the scene is drawn from it alone: no interface, no egg. Landing puts the game's
+view back; it lands by itself when the 3D scene stops showing (combat,
+dialog). It starts on the game view's ray, closer to the ground. F9 works in
+the air; `dev-snapshot.ps1 -Fly` (`--dev-fly`) snapshots the take-off, without
+taking the mouse. Documented in `docs/p1-devtools.md`.
+Evidence: `runs/031-free-camera/klamath-from-the-air.png`.
+Next: the owner flies it in the game (mouse and keys can only be checked by hand).
+Check: `tools/regression.ps1` (16 pass); `ctest --test-dir build` (8/8).

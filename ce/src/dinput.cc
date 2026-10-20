@@ -51,6 +51,23 @@ bool mouseDeviceUsesRelativeMode()
     return mouseRelativeMode;
 }
 
+static bool gMouseCaptured = false;
+// The last position read in absolute mode: a captured mouse stays there.
+static int gMouseLastX = 0;
+static int gMouseLastY = 0;
+
+void mouseDeviceSetCaptured(bool captured)
+{
+    if (captured == gMouseCaptured) return;
+    gMouseCaptured = captured;
+    if (captured) {
+        SDL_SetRelativeMouseMode(SDL_TRUE);
+        SDL_GetRelativeMouseState(nullptr, nullptr);
+    } else {
+        mouseDeviceInitMode();
+    }
+}
+
 bool mouseDeviceInitMode()
 {
     // "Relative mode" means cursor position is owned by the application, and we move based on mouse deltas
@@ -95,11 +112,23 @@ bool mouseDeviceGetData(MouseData* mouseState)
     // TODO: Move mouse events processing into `GNW95_process_message` and
     // update mouse position manually.
     SDL_PumpEvents();
+    if (gMouseCaptured) {
+        *mouseState = {};
+        if (!mouseDeviceUsesRelativeMode()) {
+            mouseState->x = gMouseLastX;
+            mouseState->y = gMouseLastY;
+        }
+        gMouseWheelDeltaX = 0;
+        gMouseWheelDeltaY = 0;
+        return true;
+    }
     Uint32 buttons = mouseDeviceUsesRelativeMode()
         ? SDL_GetRelativeMouseState(&(mouseState->x), &(mouseState->y))
         : SDL_GetMouseState(&(mouseState->x), &(mouseState->y));
     if (!mouseDeviceUsesRelativeMode()) {
         mouseDeviceMapWindowToLogicalPosition(&(mouseState->x), &(mouseState->y));
+        gMouseLastX = mouseState->x;
+        gMouseLastY = mouseState->y;
     }
     mouseState->buttons[0] = (buttons & SDL_BUTTON(SDL_BUTTON_LEFT)) != 0;
     mouseState->buttons[1] = (buttons & SDL_BUTTON(SDL_BUTTON_RIGHT)) != 0;

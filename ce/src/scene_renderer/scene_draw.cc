@@ -30,7 +30,8 @@ void drawStaticPreview(bool withWalls, bool withHero)
     float mvp[16];
     const StaticPreviewCamera camera = staticPreviewCamera(withWalls);
     GameView view;
-    if (!withWalls || !currentGameView(&view) || !gameViewMatrix(view, mvp)) {
+    const bool flying = withWalls && flyCameraMvp(static_cast<float>(width) / height, mvp);
+    if (!flying && (!withWalls || !currentGameView(&view) || !gameViewMatrix(view, mvp))) {
         makeFloorMvp(static_cast<float>(width) / height, camera, mvp);
     }
     glEnable(kDepthTest);

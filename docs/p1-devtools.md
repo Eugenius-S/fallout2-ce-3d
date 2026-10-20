@@ -80,6 +80,17 @@ to the window the same way 480 × 400 related to 640 × 480.
 
 Hotkeys: Alt+D — the panel, F9 — a snapshot (works with the panel open too).
 
+## The fly camera
+
+Ctrl+F12 in the 3D scene takes off: a free camera for looking at a map up
+close and recording videos. The mouse turns it, WASD moves it, Q / E go down
+and up, Shift is faster and Ctrl slower. While it flies it owns the keyboard
+and the mouse and shows the world alone (no interface, no egg); the game keeps
+running. Ctrl+F12 or Esc lands it and puts the game's view back; it lands by
+itself when the 3D scene stops showing (combat, dialog). F9 takes a snapshot
+from the air. `dev-snapshot.ps1 -Fly` (`--dev-fly`) takes one from where the
+camera takes off.
+
 ## Transitions
 
 Only the stock mechanism: `mapSetTransition` → the load in the safe phase of

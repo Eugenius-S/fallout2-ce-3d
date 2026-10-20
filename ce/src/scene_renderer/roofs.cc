@@ -116,7 +116,8 @@ void drawRoofs(int viewportX, int viewportY, int viewportWidth, int viewportHeig
 
 bool bindEgg(int viewportX, int viewportY, int viewportWidth, int viewportHeight)
 {
-    if (!gEggShown || gEggTexture == 0) return false;
+    // The egg is a place on the game's screen: a fly camera has none.
+    if (!gEggShown || gEggTexture == 0 || staticFlyCameraActive()) return false;
     glActiveTexture(kTexture0 + 1);
     glBindTexture(kTexture2D, gEggTexture);
     glUniform1i(gSceneEggMaskLocation, 1);

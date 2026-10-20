@@ -531,6 +531,11 @@ void renderPresent()
             const scene::View view = scene::activeView();
             if (view == scene::View::Full) {
                 scene_renderer::drawStaticHeroPreview();
+                // A fly camera shows the world alone.
+                if (scene_renderer::staticFlyCameraActive()) {
+                    scene_renderer::swap();
+                    return;
+                }
                 // The game's interface, mouse cursor and floating text over it.
                 SDL_BlitSurface(gSdlSurface, nullptr, gSdlTextureSurface, nullptr);
                 scene::maskOverlay(static_cast<const unsigned char*>(gSdlSurface->pixels), gSdlSurface->pitch,

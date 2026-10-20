@@ -27,6 +27,7 @@
 #include "../input.h"
 #include "../light.h"
 #include "../kb.h"
+#include "../dinput.h"
 #include "../map.h"
 #include "../map_defs.h"
 #include "../game.h"
@@ -97,6 +98,7 @@ int gTourStep = -1;
 int gTourFrames = 0;
 bool gStillSnapshot = false;
 int gDevAmbient = -1; // --dev-ambient: the map's ambient light held there (night views)
+bool gDevFly = false; // --dev-fly: the fly camera takes off at the first 3D frame (snapshots)
 int gViewTile = -1;
 bool gViewTileApplied = false;
 int gHeroTile = -1; // --dev-hero-tile: the hero is put there before the scene starts
@@ -669,6 +671,10 @@ bool parseOption(const char* arg)
         gStillSnapshot = true;
         return true;
     }
+    if (strcmp(arg, "--dev-fly") == 0) {
+        gDevFly = true;
+        return true;
+    }
     const char* ambientPrefix = "--dev-ambient=";
     if (strncmp(arg, ambientPrefix, strlen(ambientPrefix)) == 0) {
         gDevAmbient = static_cast<int>(std::clamp(strtol(arg + strlen(ambientPrefix), nullptr, 10), 0L, 65536L));
@@ -817,6 +823,84 @@ void prepareStillSnapshot()
     scene::setCameraGlide(false);
 }
 
+namespace {
+
+// Ctrl+F12: a free camera flies over the 3D scene, for looking at a map up
+// close and recording videos. It owns the keyboard and the mouse while it
+// flies; the game keeps running.
+bool gFlying = false;
+scene_renderer::StaticFlyCamera gFly = {};
+Uint64 gFlyLast = 0;
+int gFlyCenterTile = -1; // the game's view, put back when the flight ends
+
+constexpr float kFlySpeed = 6.0f; // units a second
+constexpr float kFlyTurn = 0.0025f; // radians a mouse count
+constexpr float kFlyPitchLimit = 1.5f;
+
+void stopFlying(const char* status)
+{
+    if (!gFlying) return;
+    gFlying = false;
+    scene_renderer::setStaticFlyCamera(nullptr);
+    mouseDeviceSetCaptured(false);
+    if (gFlyCenterTile >= 0 && gCenterTile != gFlyCenterTile) {
+        tileSetCenter(gFlyCenterTile, TILE_SET_CENTER_REFRESH_WINDOW);
+    }
+    setStatus(status);
+}
+
+// `capture`: the camera owns the mouse (a background test run leaves it alone).
+void startFlying(bool capture)
+{
+    if (scene::activeView() != scene::View::Full || !scene::shouldPresent()
+        || !scene_renderer::staticGameViewPose(&gFly)) {
+        setStatus("the fly camera needs the 3D scene");
+        return;
+    }
+    gFlying = true;
+    gFlyLast = SDL_GetPerformanceCounter();
+    gFlyCenterTile = gCenterTile;
+    mouseDeviceSetCaptured(capture);
+    scene_renderer::setStaticFlyCamera(&gFly);
+    setStatus("fly camera: WASD, mouse, Q/E down/up, Shift fast, Ctrl slow; Ctrl+F12 or Esc to land");
+}
+
+// One step of the flight: the mouse turns, the keys move, by the time since
+// the last step.
+void fly()
+{
+    if (!gFlying) return;
+    if (scene::activeView() != scene::View::Full || !scene::shouldPresent()) {
+        stopFlying("fly camera landed: the 3D scene is not shown");
+        return;
+    }
+    const Uint64 now = SDL_GetPerformanceCounter();
+    const float seconds = std::min(static_cast<float>(now - gFlyLast) / SDL_GetPerformanceFrequency(), 0.1f);
+    gFlyLast = now;
+
+    int dx = 0, dy = 0;
+    SDL_GetRelativeMouseState(&dx, &dy);
+    gFly.yaw -= dx * kFlyTurn;
+    gFly.pitch = std::clamp(gFly.pitch - dy * kFlyTurn, -kFlyPitchLimit, kFlyPitchLimit);
+
+    const Uint8* keys = SDL_GetKeyboardState(nullptr);
+    float forward[3], right[3];
+    scene_renderer::staticFlyCameraAxes(gFly, forward, right);
+    float move[3] = { 0.0f, 0.0f, 0.0f };
+    const float ahead = (keys[SDL_SCANCODE_W] ? 1.0f : 0.0f) - (keys[SDL_SCANCODE_S] ? 1.0f : 0.0f);
+    const float aside = (keys[SDL_SCANCODE_D] ? 1.0f : 0.0f) - (keys[SDL_SCANCODE_A] ? 1.0f : 0.0f);
+    const float rise = (keys[SDL_SCANCODE_E] ? 1.0f : 0.0f) - (keys[SDL_SCANCODE_Q] ? 1.0f : 0.0f);
+    for (int i = 0; i < 3; i++) move[i] = forward[i] * ahead + right[i] * aside;
+    move[1] += rise;
+    float speed = kFlySpeed;
+    if (keys[SDL_SCANCODE_LSHIFT] || keys[SDL_SCANCODE_RSHIFT]) speed *= 4.0f;
+    if (keys[SDL_SCANCODE_LCTRL] || keys[SDL_SCANCODE_RCTRL]) speed *= 0.25f;
+    for (int i = 0; i < 3; i++) gFly.eye[i] += move[i] * speed * seconds;
+    scene_renderer::setStaticFlyCamera(&gFly);
+}
+
+} // namespace
+
 void listMaps()
 {
     rebuildMapList();
@@ -837,6 +921,7 @@ void update()
     if (!gEnabled) {
         return;
     }
+    fly();
     // Map scripts set the light by the hour; a dev view holds its own.
     if (gDevAmbient >= 0 && gMapHeader.name[0] != '\0' && lightGetAmbientIntensity() != gDevAmbient) {
         lightSetAmbientIntensity(gDevAmbient, true);
@@ -1249,6 +1334,11 @@ void scenePresented(const scene::RefreshResult& refreshed)
         runPickProbe();
         return;
     }
+    if (refreshed.heroUpdated && gDevFly && !gFlying) {
+        gDevFly = false;
+        startFlying(false);
+        return; // the snapshot comes with the next frame, from the air
+    }
     if (refreshed.heroUpdated && gSnapshotOncePending) {
         gSnapshotOncePending = false;
         const bool captured = takeSnapshot();
@@ -1314,6 +1404,18 @@ bool handleKey(int key)
 {
     if (!gEnabled) {
         return false;
+    }
+
+    if (key == KEY_CTRL_F12) {
+        if (gFlying) stopFlying("fly camera landed");
+        else startFlying(true);
+        return true;
+    }
+    // A flying camera owns the keyboard: the game gets no key.
+    if (gFlying) {
+        if (key == KEY_ESCAPE) stopFlying("fly camera landed");
+        if (key == KEY_F9) takeSnapshot();
+        return true;
     }
 
     if (key == KEY_CTRL_F10) {
