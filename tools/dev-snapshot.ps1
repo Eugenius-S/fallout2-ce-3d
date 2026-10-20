@@ -135,6 +135,9 @@ if ($Probe) {
 $started = Get-Date
 $previousBackground = $env:F2CE_DEV_BACKGROUND
 $env:F2CE_DEV_BACKGROUND = '1'
+# No sound device at all: a background run must not hiss or play.
+$previousAudio = $env:SDL_AUDIODRIVER
+$env:SDL_AUDIODRIVER = 'dummy'
 $previousSceneCache = $env:F2CE_SCENE_CACHE
 $sceneCache = Join-Path $Root 'build\scene-cache'
 if (Test-Path -LiteralPath $sceneCache -PathType Container) { $env:F2CE_SCENE_CACHE = $sceneCache }
@@ -170,6 +173,7 @@ try {
     Start-Sleep -Milliseconds 500
 } finally {
     $env:F2CE_DEV_BACKGROUND = $previousBackground
+    $env:SDL_AUDIODRIVER = $previousAudio
     $env:F2CE_SCENE_CACHE = $previousSceneCache
     if ($null -ne $process) {
         if (-not $process.HasExited) { Stop-Process -Id $process.Id -Force }

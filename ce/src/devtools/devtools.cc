@@ -92,6 +92,12 @@ struct TourStop {
     std::string map;
     int elevation;
     int viewTile; // -1: where the game puts the view
+    // Batch views of one thing (the shapes eval): only what stands within
+    // `solo` hexes of the view tile, from the fly camera `turn` degrees round
+    // and `distance` units away. solo -1: everything; turn NaN: no flight.
+    int solo = -1;
+    double turn = std::nan("");
+    double distance = -1.0;
 };
 // --dev-classic: the same startup and snapshots without the 3D scene.
 bool gClassic = false;
@@ -775,7 +781,7 @@ bool parseOption(const char* arg)
     }
     const char* tourPrefix = "--dev-map-tour=";
     if (strncmp(arg, tourPrefix, strlen(tourPrefix)) == 0) {
-        // map:elevation[:view hex],map:elevation[:view hex],...
+        // map:elevation[:view hex[:solo hexes:turn degrees:distance]],...
         std::string list = arg + strlen(tourPrefix);
         size_t start = 0;
         while (start <= list.size()) {
@@ -786,8 +792,20 @@ bool parseOption(const char* arg)
             const size_t second = colon == std::string::npos ? std::string::npos : entry.find(':', colon + 1);
             const int viewTile = second == std::string::npos ? -1 : atoi(entry.c_str() + second + 1);
             if (!entry.empty()) {
-                gTour.push_back({ entry.substr(0, colon), std::clamp(elevation, 0, static_cast<int>(ELEVATION_COUNT) - 1),
-                    viewTile >= 0 && viewTile < HEX_GRID_SIZE ? viewTile : -1 });
+                TourStop stop = { entry.substr(0, colon), std::clamp(elevation, 0, static_cast<int>(ELEVATION_COUNT) - 1),
+                    viewTile >= 0 && viewTile < HEX_GRID_SIZE ? viewTile : -1 };
+                const size_t third = second == std::string::npos ? std::string::npos : entry.find(':', second + 1);
+                if (third != std::string::npos) {
+                    int solo = -1;
+                    double turn = 0.0;
+                    double distance = -1.0;
+                    if (sscanf(entry.c_str() + third + 1, "%d:%lf:%lf", &solo, &turn, &distance) == 3) {
+                        stop.solo = solo;
+                        stop.turn = turn;
+                        stop.distance = distance;
+                    }
+                }
+                gTour.push_back(stop);
             }
             start = comma + 1;
         }
@@ -1171,9 +1189,18 @@ void update()
         // snapshotted where the game is, and the tour goes on.
         gTourFrames++;
         if (arrived && gTourFrames == 1 && gTourStep > 0 && gTour[gTourStep - 1].viewTile >= 0) {
-            tileSetCenter(gTour[gTourStep - 1].viewTile, TILE_SET_CENTER_FLAG_IGNORE_SCROLL_RESTRICTIONS
+            const TourStop& stop = gTour[gTourStep - 1];
+            if (gFlying) stopFlying("", true);
+            tileSetCenter(stop.viewTile, TILE_SET_CENTER_FLAG_IGNORE_SCROLL_RESTRICTIONS
                 | TILE_SET_CENTER_FLAG_IGNORE_BOUNDS | TILE_SET_CENTER_REFRESH_WINDOW);
             scene_renderer::setStaticCameraCenterTile(-1);
+            if (stop.solo >= 0) scene_renderer::resoloStaticWalls(stop.viewTile, stop.solo);
+        }
+        // A batch view: the fly camera takes off once the view has settled.
+        if (arrived && gTourFrames == 15 && gTourStep > 0 && !std::isnan(gTour[gTourStep - 1].turn)) {
+            const TourStop& stop = gTour[gTourStep - 1];
+            startFlying(false);
+            if (gFlying) circleFlight(stop.turn == 0.0 ? 0.01 : stop.turn, -1.0, stop.distance);
         }
         const bool ready = arrived && gTourFrames >= 30;
         const bool stuck = !arrived && gTourFrames >= 600;

@@ -44,21 +44,43 @@ def verdicts():
 
 
 def shoot(only):
+    """All views of one map elevation in one run of the test instance: a map
+    tour (dev-snapshot -Tour) whose stops each show one thing alone from one
+    angle. Its first snapshot is the start, before the tour."""
+    import shutil
+    groups = {}
     for label in labels():
-        if only and label["frm"] not in only:
-            continue
-        name, elevation, tile = label["instance"][:3]
-        for angle in ANGLES:
-            folder = OUT / "shots" / label["frm"] / str(angle)
-            folder.mkdir(parents=True, exist_ok=True)
-            for old in folder.glob("*"):
-                old.unlink()
-            subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
-                            str(ROOT / "tools" / "dev-snapshot.ps1"), "-Map", name, "-Elevation", str(elevation),
-                            "-ViewTile", str(tile), "-Solo", "1", "-Fly", "-FlyTurn", str(angle or 0.01),
-                            "-FlyDistance", "6" if label["big"] else "3.5", "-Ambient", "65536", "-OutputDirectory", str(folder)],
-                           check=True, capture_output=True)
-            print(label["frm"], angle, flush=True)
+        if not only or label["frm"] in only:
+            groups.setdefault(tuple(label["instance"][:2]), []).append(label)
+    for (name, elevation), group in groups.items():
+        stops, order = [], []
+        for label in group:
+            distance = 6 if label["big"] else 3.5
+            for angle in ANGLES:
+                stops.append(f"{name}:{elevation}:{label['instance'][2]}:1:{angle}:{distance}")
+                order.append((label["frm"], angle))
+        folder = OUT / "batch" / f"{name}-{elevation}"
+        if folder.exists():
+            shutil.rmtree(folder)
+        folder.mkdir(parents=True)
+        # -Command, quoted: through -File a list with commas becomes an array.
+        command = (f"& '{ROOT / 'tools' / 'dev-snapshot.ps1'}' -Map {name} -Elevation {elevation} "
+                   f"-Tour '{','.join(stops)}' -Ambient 65536 -OutputDirectory '{folder}' "
+                   f"-TimeoutSeconds {60 + 3 * len(stops)}")
+        run = subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", command],
+                             capture_output=True, text=True)
+        if run.returncode != 0:
+            raise SystemExit(f"{name} e{elevation}: dev-snapshot failed: {run.stderr[-600:]}")
+        shots = sorted(folder.glob("*.png"))[1:]
+        if len(shots) != len(order):
+            raise SystemExit(f"{name} e{elevation}: {len(shots)} views for {len(order)} stops")
+        for (frm, angle), shot in zip(order, shots):
+            target = OUT / "shots" / frm / str(angle)
+            if target.exists():
+                shutil.rmtree(target)
+            target.mkdir(parents=True)
+            shutil.copy(shot, target / shot.name)
+        print(name, elevation, len(shots), "views", flush=True)
 
 
 def sheets():
