@@ -1,0 +1,163 @@
+{
+ "judged": "2026-10-20 claude, today's shapes",
+ "barrel4.frm": {
+  "verdict": "fail",
+  "why": "striped ghost backs at 45, 90, 270"
+ },
+ "bed3.frm": {
+  "verdict": "pass",
+  "why": ""
+ },
+ "bigshlf1.frm": {
+  "verdict": "pass",
+  "why": ""
+ },
+ "boxes2.frm": {
+  "verdict": "fail",
+  "why": "stray pieces stick out"
+ },
+ "bush3.frm": {
+  "verdict": "pass",
+  "why": ""
+ },
+ "cab1.frm": {
+  "verdict": "pass",
+  "why": ""
+ },
+ "car5.frm": {
+  "verdict": "fail",
+  "why": "a card: from the side a thin sliver"
+ },
+ "cavbrac1.frm": {
+  "verdict": "fail",
+  "why": "a plane along the cave wall: edge-on it vanishes"
+ },
+ "char03.frm": {
+  "verdict": "pass",
+  "why": ""
+ },
+ "corn5.frm": {
+  "verdict": "pass",
+  "why": ""
+ },
+ "crate1.frm": {
+  "verdict": "pass",
+  "why": ""
+ },
+ "desk1.frm": {
+  "verdict": "pass",
+  "why": ""
+ },
+ "doorb06.frm": {
+  "verdict": "fail",
+  "why": "turns with the camera"
+ },
+ "drock4.frm": {
+  "verdict": "pass",
+  "why": ""
+ },
+ "drock7.frm": {
+  "verdict": "pass",
+  "why": ""
+ },
+ "eggs7.frm": {
+  "verdict": "pass",
+  "why": ""
+ },
+ "firehy.frm": {
+  "verdict": "fail",
+  "why": "a hole: the far side is missing at 270"
+ },
+ "gate.frm": {
+  "verdict": "fail",
+  "why": "turns with the camera"
+ },
+ "locker6.frm": {
+  "verdict": "pass",
+  "why": ""
+ },
+ "maryj01.frm": {
+  "verdict": "pass",
+  "why": ""
+ },
+ "maryj02.frm": {
+  "verdict": "pass",
+  "why": ""
+ },
+ "posts.frm": {
+  "verdict": "fail",
+  "why": "fanned planes at 45 and 90"
+ },
+ "rock09.frm": {
+  "verdict": "pass",
+  "why": ""
+ },
+ "rock10.frm": {
+  "verdict": "pass",
+  "why": ""
+ },
+ "roks.frm": {
+  "verdict": "pass",
+  "why": ""
+ },
+ "roks2.frm": {
+  "verdict": "pass",
+  "why": ""
+ },
+ "roks3.frm": {
+  "verdict": "pass",
+  "why": ""
+ },
+ "ss108.frm": {
+  "verdict": "pass",
+  "why": ""
+ },
+ "ss122.frm": {
+  "verdict": "pass",
+  "why": ""
+ },
+ "sstove2.frm": {
+  "verdict": "fail",
+  "why": "stretched mirrored sides at 90 and 180"
+ },
+ "tbl1000.frm": {
+  "verdict": "fail",
+  "why": "the top floats, no stem from the side"
+ },
+ "tbl2000.frm": {
+  "verdict": "pass",
+  "why": ""
+ },
+ "tree7.frm": {
+  "verdict": "pass",
+  "why": ""
+ },
+ "tree8.frm": {
+  "verdict": "pass",
+  "why": ""
+ },
+ "tree9.frm": {
+  "verdict": "pass",
+  "why": ""
+ },
+ "weed01.frm": {
+  "verdict": "pass",
+  "why": ""
+ },
+ "weed02.frm": {
+  "verdict": "pass",
+  "why": ""
+ },
+ "weed03.frm": {
+  "verdict": "pass",
+  "why": ""
+ },
+ "weed04.frm": {
+  "verdict": "pass",
+  "why": ""
+ },
+ "weed07.frm": {
+  "verdict": "pass",
+  "why": ""
+ }
+}

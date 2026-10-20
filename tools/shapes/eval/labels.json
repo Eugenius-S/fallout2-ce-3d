@@ -16,7 +16,7 @@
  {
   "frm": "weed01.frm",
   "name": "Scrub",
-  "shape": "crossed",
+  "shape": "card",
   "big": false,
   "note": "",
   "count": 2191,
@@ -30,7 +30,7 @@
  {
   "frm": "tree8.frm",
   "name": "Tree",
-  "shape": "crossed",
+  "shape": "card",
   "big": true,
   "note": "",
   "count": 404,
@@ -44,7 +44,7 @@
  {
   "frm": "tree7.frm",
   "name": "Tree",
-  "shape": "crossed",
+  "shape": "card",
   "big": true,
   "note": "",
   "count": 293,
@@ -58,7 +58,7 @@
  {
   "frm": "tree9.frm",
   "name": "Tree",
-  "shape": "crossed",
+  "shape": "card",
   "big": true,
   "note": "",
   "count": 280,
@@ -86,7 +86,7 @@
  {
   "frm": "bush3.frm",
   "name": "Bush",
-  "shape": "crossed",
+  "shape": "card",
   "big": false,
   "note": "",
   "count": 241,
@@ -100,7 +100,7 @@
  {
   "frm": "weed02.frm",
   "name": "Scrub",
-  "shape": "crossed",
+  "shape": "card",
   "big": false,
   "note": "",
   "count": 203,
@@ -114,7 +114,7 @@
  {
   "frm": "weed04.frm",
   "name": "Scrub",
-  "shape": "crossed",
+  "shape": "card",
   "big": false,
   "note": "",
   "count": 182,
@@ -128,7 +128,7 @@
  {
   "frm": "maryj02.frm",
   "name": "Plant",
-  "shape": "crossed",
+  "shape": "card",
   "big": false,
   "note": "a low bush",
   "count": 176,
@@ -142,7 +142,7 @@
  {
   "frm": "maryj01.frm",
   "name": "Plant",
-  "shape": "crossed",
+  "shape": "card",
   "big": false,
   "note": "a low bush",
   "count": 147,
@@ -156,7 +156,7 @@
  {
   "frm": "corn5.frm",
   "name": "Plant",
-  "shape": "crossed",
+  "shape": "card",
   "big": false,
   "note": "",
   "count": 45,
@@ -170,9 +170,9 @@
  {
   "frm": "rock09.frm",
   "name": "Rocks",
-  "shape": "box",
+  "shape": "card",
   "big": false,
-  "note": "a heap of rocks",
+  "note": "a low heap of rocks",
   "count": 54,
   "instance": [
    "kladwtwn",
@@ -226,9 +226,9 @@
  {
   "frm": "rock10.frm",
   "name": "Rocks",
-  "shape": "box",
+  "shape": "card",
   "big": false,
-  "note": "a heap of rocks",
+  "note": "a low heap of rocks",
   "count": 87,
   "instance": [
    "kladwtwn",
@@ -252,31 +252,31 @@
   ]
  },
  {
-  "frm": "goop03.frm",
-  "name": "Radioactive Goo",
-  "shape": "flat",
+  "frm": "weed03.frm",
+  "name": "Scrub",
+  "shape": "card",
   "big": false,
   "note": "",
-  "count": 76,
+  "count": 63,
   "instance": [
-   "klatoxcv",
+   "kladwtwn",
    0,
-   19289,
-   365
+   9082,
+   113
   ]
  },
  {
-  "frm": "goop04.frm",
-  "name": "Radioactive Goo",
+  "frm": "drock4.frm",
+  "name": "Rocks",
   "shape": "flat",
   "big": false,
   "note": "",
-  "count": 67,
+  "count": 31,
   "instance": [
-   "klatoxcv",
+   "kladwtwn",
    0,
-   19110,
-   351
+   11110,
+   377
   ]
  },
  {
@@ -462,17 +462,17 @@
   ]
  },
  {
-  "frm": "bvs35.frm",
-  "name": "Computer",
+  "frm": "desk1.frm",
+  "name": "Desk",
   "shape": "box",
   "big": false,
-  "note": "a computer (owner: the stand should be a box)",
+  "note": "a desk",
   "count": 1,
   "instance": [
-   "klatoxcv",
-   2,
-   14691,
-   216
+   "kladwtwn",
+   0,
+   22669,
+   2968
   ]
  },
  {
@@ -534,7 +534,7 @@
  {
   "frm": "bigshlf1.frm",
   "name": "Shelves",
-  "shape": "sheet",
+  "shape": "box",
   "big": true,
   "note": "a big shelf",
   "count": 6,

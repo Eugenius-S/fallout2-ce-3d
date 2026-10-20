@@ -92,6 +92,9 @@ from the air. `dev-snapshot.ps1 -Fly` (`--dev-fly`) takes one from where the
 camera takes off; `-FlyTurn D -FlyPitch D -FlyDistance U` (`--dev-fly-turn=`,
 `--dev-fly-pitch=`, `--dev-fly-distance=`) first circle it round the point it
 looks at: D degrees round, D degrees above the floor, U units from it.
+`-Solo R` (`--dev-solo=TILE,R`, TILE is `-ViewTile`) draws only the things
+within R hexes of it, without walls, roofs or the hero: one thing seen alone
+from every side (the shapes eval, `tools/shapes/eval/eval.py`).
 
 From the air things are seen from any side: sprite cards stand upright and
 face the camera, and solids show their far sides (the near sides' pixels

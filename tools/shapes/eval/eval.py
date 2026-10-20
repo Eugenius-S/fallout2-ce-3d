@@ -6,7 +6,7 @@
 
 Shots and sheets go to build/shapes-eval/. Each FRM's instance is seen alone
 (dev-snapshot -Solo) from 0, 45, 90, 180 and 270 degrees round it at the game
-camera's pitch. An FRM passes when the engine gives it its labelled shape and
+camera's pitch, in full daylight. An FRM passes when the engine gives it its labelled shape and
 its by-eye verdict (verdicts.json, written after looking at its sheet) is
 "pass". labels.json is frozen: no change without the owner.
 """
@@ -53,7 +53,7 @@ def shoot(only):
             subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
                             str(ROOT / "tools" / "dev-snapshot.ps1"), "-Map", name, "-Elevation", str(elevation),
                             "-ViewTile", str(tile), "-Solo", "1", "-Fly", "-FlyTurn", str(angle or 0.01),
-                            "-FlyDistance", "6" if label["big"] else "3.5", "-OutputDirectory", str(folder)],
+                            "-FlyDistance", "6" if label["big"] else "3.5", "-Ambient", "65536", "-OutputDirectory", str(folder)],
                            check=True, capture_output=True)
             print(label["frm"], angle, flush=True)
 

@@ -1,34 +1,38 @@
 """Writes labels.json from the list below and the inventory's first instance
 of each FRM (build/shapes-eval/inventory.json, tools/shapes/inventory.py).
-Run once; after the owner's approval labels.json is frozen."""
+Run once; after the owner's approval labels.json is frozen. Nothing from
+klatoxcv: a fight starts there at once and the fly camera lands."""
 import json
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
 
+# Plants and low heaps are cards: turned to the camera they read right from
+# every side (the first 18 sheets, 2026-10-20); crossed sheets would show
+# their cross from above.
 # frm, shape, big (at least two hexes across or taller than half a wall), note
 LABELS = [
     ("eggs7.frm", "flat", False, "small rocks"),
-    ("weed01.frm", "crossed", False, ""),
-    ("tree8.frm", "crossed", True, ""),
-    ("tree7.frm", "crossed", True, ""),
-    ("tree9.frm", "crossed", True, ""),
+    ("weed01.frm", "card", False, ""),
+    ("tree8.frm", "card", True, ""),
+    ("tree7.frm", "card", True, ""),
+    ("tree9.frm", "card", True, ""),
     ("roks2.frm", "flat", False, ""),
-    ("bush3.frm", "crossed", False, ""),
-    ("weed02.frm", "crossed", False, ""),
-    ("weed04.frm", "crossed", False, ""),
-    ("maryj02.frm", "crossed", False, "a low bush"),
-    ("maryj01.frm", "crossed", False, "a low bush"),
-    ("corn5.frm", "crossed", False, ""),
-    ("rock09.frm", "box", False, "a heap of rocks"),
+    ("bush3.frm", "card", False, ""),
+    ("weed02.frm", "card", False, ""),
+    ("weed04.frm", "card", False, ""),
+    ("maryj02.frm", "card", False, "a low bush"),
+    ("maryj01.frm", "card", False, "a low bush"),
+    ("corn5.frm", "card", False, ""),
+    ("rock09.frm", "card", False, "a low heap of rocks"),
     ("roks3.frm", "flat", False, ""),
     ("weed07.frm", "flat", False, "a low mound with weeds"),
     ("roks.frm", "flat", False, ""),
-    ("rock10.frm", "box", False, "a heap of rocks"),
+    ("rock10.frm", "card", False, "a low heap of rocks"),
     ("drock7.frm", "flat", False, ""),
-    ("goop03.frm", "flat", False, ""),
-    ("goop04.frm", "flat", False, ""),
+    ("weed03.frm", "card", False, ""),
+    ("drock4.frm", "flat", False, ""),
     ("posts.frm", "sheet", False, "the notice board (owner: crumpled from the air)"),
     ("firehy.frm", "drum", False, "the hydrant (owner: a hole)"),
     ("tbl2000.frm", "drum", False, "a cable spool"),
@@ -42,12 +46,12 @@ LABELS = [
     ("char03.frm", "box", False, "a low seat"),
     ("crate1.frm", "box", False, "a crate"),
     ("boxes2.frm", "boxes", False, "a heap of crates (owner: a stray piece)"),
-    ("bvs35.frm", "box", False, "a computer (owner: the stand should be a box)"),
+    ("desk1.frm", "box", False, "a desk"),
     ("locker6.frm", "box", True, "a locker"),
     ("barrel4.frm", "drum", False, ""),
     ("car5.frm", "box", True, "a wrecked car"),
     ("cab1.frm", "flat", False, "a small flat thing on the floor"),
-    ("bigshlf1.frm", "sheet", True, "a big shelf"),
+    ("bigshlf1.frm", "box", True, "a big shelf"),
     ("cavbrac1.frm", "sheet", True, "a cave brace: a beam on posts"),
 ]
 
