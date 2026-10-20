@@ -1015,6 +1015,24 @@ void _gmouse_handle_event(int mouseX, int mouseY, int mouseState)
 
     if ((mouseState & MOUSE_EVENT_LEFT_BUTTON_UP) != 0) {
         if (gGameMouseMode == GAME_MOUSE_MODE_MOVE) {
+            const bool overlayActive = tileSceneOverlayActive();
+            if (overlayActive) {
+                const int pickedTile = tileUnderMouse(mouseX, mouseY);
+                if (pickedTile < 0) {
+                    return;
+                }
+
+                // Mouse-up can arrive before the next cursor refresh. Keep
+                // the movement command aligned with this fresh pick.
+                if (pickedTile != gGameMouseHexCursor->tile) {
+                    Rect cursorRect;
+                    _gmouse_3d_move_to(mouseX, mouseY, gElevation, &cursorRect);
+                    if (gGameMouseHexCursor->tile != pickedTile) {
+                        return;
+                    }
+                }
+            }
+
             int actionPoints;
             if (isInCombat()) {
                 actionPoints = _combat_free_move + gDude->data.critter.combat.ap;

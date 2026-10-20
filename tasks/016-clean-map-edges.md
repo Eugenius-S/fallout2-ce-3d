@@ -96,3 +96,8 @@ Check: Eight Classic corner snapshots and four matched edge snapshots report the
 Done: Parent review confirmed that move-mode mouse handling leaves the previous cursor tile in place when `tileUnderMouse` returns `-1`. PR #26 and the evidence README now describe the corrected playable-boundary target without presenting the floor-derived cut as preferred.
 Next: Add a focused input guard, verify an outside-edge click cannot issue a stale movement command, then verify a normal exit-grid transition. Check the remaining Klamath maps with active EDG rectangles before marking the task complete.
 Check: Code path inspected at `ce/src/scene/scene_overlay.cc`, `ce/src/scene_renderer/picking.cc`, and `ce/src/game_mouse.cc`; this is a code audit, not a runtime input test.
+
+### 2026-10-20 gpt
+Done: Move-mode mouse-up now rejects a fresh outside pick while the 3D scene overlay is active, and refreshes the hex cursor when the fresh valid pick differs from its cached tile. Movement is canceled if that refresh does not land on the fresh target. Classic movement remains unchanged.
+Next: Parent reviews the guard. A live outside-click and exit-grid transition test remain pending; continue checking active EDG bounds on the remaining Klamath maps before marking task 016 complete.
+Check: Release build passed; CTest passed 10/10; `git diff --check` passed. This is a code-path fix only; SDL input delivery, a live movement command, and an exit-grid transition remain unverified.
