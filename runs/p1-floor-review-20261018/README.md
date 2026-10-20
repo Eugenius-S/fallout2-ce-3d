@@ -1,4 +1,4 @@
-# P1 static-floor review — 2026-10-18
+# P1 static-floor review, 2026-10-18
 
 ## Verdict
 

@@ -1,4 +1,4 @@
-# Perspective walking review — 2026-10-18
+# Perspective walking review, 2026-10-18
 
 The reviewer and user confirmed visible perspective walking and the yellow ground-hex marker. Modal presentation is a separate outstanding regression at this checkpoint: a preview can cover options/pause while their nested loops keep rendering. This report does not accept menus, object picking, UI overlay or full P1.
 
