@@ -2,8 +2,8 @@
 id: 034
 title: Walls with a back, ends and bridges
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: claude
 suggested: claude
 claude-only: no
 user-check: yes
