@@ -2,7 +2,7 @@
 id: 035
 title: Boards, shelves and junk piles stand as the donor stands them
 milestone: M1
-status: doing
+status: done
 owner: claude
 suggested: claude
 claude-only: no
@@ -43,3 +43,28 @@ lies on the floor, a heap of crates has its depth, as in the donor's viewer.
 Walls (034). Real 3D models (M2).
 
 ## Log
+
+### 2026-10-20 claude (part 1)
+Done: what the donor lays on the floor (`things.stand` -> "flat",
+`scene.decals`: hay, trash, goo, planks, mattresses) is now drawn flat when it
+is an item or scenery (critters live and die, they stay standing): `baked.bin`
+version 3 gives such objects the mode FLAT, and the engine (which still reads
+version 2) draws their live cards flat, as it draws the game's FLAT objects.
+In the game's view a pile no longer pokes through the wall the game paints
+over it: the regression's `entrance` changes at one fence post, reference
+retaken (`runs/035-donor-things/regression-entrance-before-after.png`); the
+other 15 cases are unchanged. Exporter tests 40/40, unit tests 10/10.
+Left: the notice board and the bed's corner from the owner's screenshots need
+their spots found; heaps of crates are cards, turned to the fly camera by 033.
+Next: PR (part 1), then find the owner's spots.
+Check: `py -m unittest discover -s tools/scene_export`, `tools/regression.ps1`.
+
+### 2026-10-20 claude (closed after part 1)
+Done: part 1 above. The owner's second round from the air
+(`runs/035-donor-things/owner-2/`: the notice board, a hydrant with a hole, a
+round table's stem, doors and gates turned to the camera, the bed's extra face,
+chairs, a crate's stray piece, the computer stand, the stove's flickering top)
+is not fixed here: the owner wants these solved by one algorithm, not by hand
+one by one. They are cases of the eval set in
+`docs/2026-10-20-shapes-and-rotation-design.md` and its tasks 036 to 039.
+Check: `tools/regression.ps1`.

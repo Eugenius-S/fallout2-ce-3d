@@ -65,6 +65,9 @@ bool staticObjectBaked(int tile, int fid);
 // Things standing on a solid (an item on a table) are moved onto it, along the
 // game's view ray: GL offset (x, y up, z). False when the object stays put.
 bool staticObjectLift(int tile, int fid, float lift[3]);
+// Items and scenery the donor lays on the floor (low piles): drawn flat, as
+// the game's FLAT objects are.
+bool staticObjectFlat(int tile, int fid);
 // The walls and scenery walls.bin draws that the hero stands behind, so the egg
 // cuts them as the game does: begin, mark each, end (uploads on a change).
 void beginStaticWallSeeThrough();

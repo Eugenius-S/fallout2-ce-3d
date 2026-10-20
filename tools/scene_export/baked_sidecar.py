@@ -4,7 +4,10 @@ Walls, the scenery panels in wall planes and furniture solids are baked into
 walls.bin; the engine skips those objects (SKIP). Things standing on a solid
 (an item on a table) are lifted onto it (LIFT): moved by (du, dv) on the floor
 and dz up, along the game's view ray, so the game's camera still sees them on
-the same pixels. Doors are not here: they open, so the engine draws them live.
+the same pixels. Items and scenery the donor lays on the floor (low piles of
+junk, hay, goo: things.py `stand` -> "flat", scene.decals) are drawn flat
+(FLAT), as the game draws its FLAT objects. Doors are not here: they open, so
+the engine draws them live; nor are critters, which live and die.
 """
 
 from __future__ import annotations
@@ -13,11 +16,13 @@ import struct
 
 
 MAGIC = b"F2BK"
-VERSION = 2
+VERSION = 3
 HEADER = struct.Struct("<4sHHI")  # magic, version, header bytes, entries
 ENTRY = struct.Struct("<iIIfff")  # object tile, object fid, mode, du, dv, dz
 SKIP = 0
 LIFT = 1
+FLAT = 2
+FLAT_TYPES = (0, 2)  # items, scenery (fid >> 24)
 MAX_ENTRIES = 1000000
 
 
@@ -57,6 +62,12 @@ def baked_objects(scene, map_objects, live_boards=frozenset()):
             continue
         obj = _object(map_objects, boards[board][5], f"lifted board {board}")
         entries.setdefault((obj.tile, obj.fid), (LIFT, float(du), float(dv), float(dz)))
+    for index, row in enumerate(scene.get("decals") or []):
+        if not isinstance(row, list) or len(row) < 5:
+            raise ValueError(f"invalid decal {index} record")
+        obj = _object(map_objects, row[4], f"decal {index}")
+        if (int(obj.fid) >> 24) & 0xF in FLAT_TYPES:
+            entries.setdefault((obj.tile, obj.fid), (FLAT, 0.0, 0.0, 0.0))
     return sorted((tile, fid, *rest) for (tile, fid), rest in entries.items())
 
 
@@ -70,7 +81,7 @@ def encode_baked_sidecar(entries):
             raise ValueError(f"baked object tile {tile} is outside the hex grid")
         if not 0 <= fid <= 0xFFFFFFFF:
             raise ValueError(f"baked object fid {fid} is out of range")
-        if mode not in (SKIP, LIFT):
+        if mode not in (SKIP, LIFT, FLAT):
             raise ValueError(f"baked object mode {mode} is unknown")
         payload.extend(ENTRY.pack(tile, fid, mode, du, dv, dz))
     return bytes(payload)
@@ -87,6 +98,6 @@ def decode_baked_sidecar(payload):
     entries = [ENTRY.unpack_from(payload, HEADER.size + index * ENTRY.size) for index in range(count)]
     if any(not 0 <= entry[0] < 200 * 200 for entry in entries):
         raise ValueError("baked sidecar names a tile outside the hex grid")
-    if any(entry[2] not in (SKIP, LIFT) for entry in entries):
+    if any(entry[2] not in (SKIP, LIFT, FLAT) for entry in entries):
         raise ValueError("baked sidecar has an unknown mode")
     return entries

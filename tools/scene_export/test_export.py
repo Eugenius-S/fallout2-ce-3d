@@ -8,7 +8,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from baked_sidecar import (ENTRY as BAKED_ENTRY, HEADER as BAKED_HEADER, LIFT as BAKED_LIFT, MAGIC as BAKED_MAGIC,
-                           SKIP as BAKED_SKIP, baked_objects, decode_baked_sidecar, encode_baked_sidecar)
+                           SKIP as BAKED_SKIP, FLAT as BAKED_FLAT, baked_objects, decode_baked_sidecar, encode_baked_sidecar)
 from export import ReadOnlyGameFiles, choose_source, main, parse_args, patch_paths, scene_directory, validate_output_contents
 from floor_sidecar import HEADER, MAGIC, VERSION, cell_content_rect, decode_floor_sidecar, encode_floor_sidecar
 from projection_sidecar import (HEADER as PROJECTION_HEADER, MAGIC as PROJECTION_MAGIC,
@@ -535,6 +535,18 @@ class BakedSidecarTests(unittest.TestCase):
         self.assertEqual(payload[:4], BAKED_MAGIC)
         self.assertEqual(len(payload), BAKED_HEADER.size + 5 * BAKED_ENTRY.size)
         self.assertEqual(decode_baked_sidecar(payload), entries)
+
+    def test_things_the_donor_lays_flat_are_flat_but_not_critters(self):
+        scene, objects = self.sample()
+        objects += [self.MapObject(600, 0x02000020), self.MapObject(700, 0x01000030), self.MapObject(800, 0x00000040)]
+        # decals: [sprite, u, v, name, object]; a wall's object stays skipped.
+        scene["decals"] = [[0, 1, 1, 0, 5], [0, 1, 1, 0, 6], [0, 1, 1, 0, 7], [0, 1, 1, 0, 0]]
+        entries = baked_objects(scene, objects)
+        self.assertIn((600, 0x02000020, BAKED_FLAT, 0.0, 0.0, 0.0), entries)
+        self.assertIn((800, 0x00000040, BAKED_FLAT, 0.0, 0.0, 0.0), entries)
+        self.assertNotIn(700, [entry[0] for entry in entries])
+        self.assertIn((100, 0x03000010, BAKED_SKIP, 0.0, 0.0, 0.0), entries)
+        self.assertEqual(decode_baked_sidecar(encode_baked_sidecar(entries)), entries)
 
     def test_an_animated_solid_stays_live(self):
         scene, objects = self.sample()
