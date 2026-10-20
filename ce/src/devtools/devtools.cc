@@ -865,6 +865,12 @@ void applyFixedScreenOptions()
     settings.screen.resolution_y = gFixedScreenOptions.height;
     settings.screen.scale = gFixedScreenOptions.scale;
     settings.screen.windowed = WindowMode::Windowed;
+    // A background test run shares game/fallout2.cfg with the owner's game:
+    // the owner's zoom and camera rotation must not move its views.
+    if (backgroundCaptureActive()) {
+        settings.scene3d.zoom = 1.0;
+        settings.scene3d.camera_rotation = false;
+    }
     debugPrint("DEVTOOLS: fixed screen %dx%d scale %d, windowed\n",
         gFixedScreenOptions.width, gFixedScreenOptions.height, gFixedScreenOptions.scale);
 }
