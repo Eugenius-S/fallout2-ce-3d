@@ -4,7 +4,7 @@
   "map": "KLATOXCV.MAP",
   "elevation": 1,
   "still_snapshot": true,
-  "snapshot_run": "2d86bd9d90ff4bcdae0b6e9191d27a66",
+  "snapshot_run": "8650d944cb26407e83a93982cdf6c741",
   "view_tile": 19091,
   "preview_requested": true,
   "scene_3d_enabled": true,
@@ -44,7 +44,7 @@
     ]
   },
   "camera": "fixed eye=(44.64466,46.23085,71.46700), target=(-4.54167,0.00000,-2.31250), fov_y=25.0, near=0.1, far=400.0, screen_right=-cross(forward,world_up)",
-  "wall_triangles": 6936,
+  "wall_triangles": 9842,
   "wall_pages": 1,
   "hero": {
     "tile": 18531,
@@ -68,11 +68,11 @@
   "scale": 2,
   "windowed": true,
   "drawable": "1920x1080",
-  "ce_commit": "5bfbddcc",
+  "ce_commit": "c174b340",
   "tools_commit": "-",
-  "exe_sha256": "a933abe956a57ed29d393d860aff3b83422df57ec77076d2a1eeda2aad8f4e0e",
-  "taken": "20261020-145214",
-  "capture_image": "devhero-20261020-145214-000.png",
+  "exe_sha256": "56666cb851b12256092c99b5f409d772e3e6d1bed0aed59f1ee2814bcd731251",
+  "taken": "20261020-153255",
+  "capture_image": "devhero-20261020-153255-000.png",
   "spot": {
     "name": "klatoxcv-e1",
     "map": "klatoxcv",

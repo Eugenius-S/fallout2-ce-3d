@@ -4,7 +4,7 @@
   "map": "KLADWTWN.MAP",
   "elevation": 0,
   "still_snapshot": true,
-  "snapshot_run": "cdb33eb85c39410185325230db931d7a",
+  "snapshot_run": "4b9874188f7c4b3aa06936daa1f964a5",
   "view_tile": 23481,
   "preview_requested": true,
   "scene_3d_enabled": true,
@@ -44,7 +44,7 @@
     ]
   },
   "camera": "fixed eye=(39.64466,46.23085,82.46700), target=(-9.54167,0.00000,8.68750), fov_y=25.0, near=0.1, far=400.0, screen_right=-cross(forward,world_up)",
-  "wall_triangles": 10101,
+  "wall_triangles": 11883,
   "wall_pages": 1,
   "hero": {
     "tile": 25075,
@@ -68,11 +68,11 @@
   "scale": 2,
   "windowed": true,
   "drawable": "1920x1080",
-  "ce_commit": "5bfbddcc",
+  "ce_commit": "c174b340",
   "tools_commit": "-",
-  "exe_sha256": "a933abe956a57ed29d393d860aff3b83422df57ec77076d2a1eeda2aad8f4e0e",
-  "taken": "20261020-145003",
-  "capture_image": "devhero-20261020-145003-000.png",
+  "exe_sha256": "56666cb851b12256092c99b5f409d772e3e6d1bed0aed59f1ee2814bcd731251",
+  "taken": "20261020-153030",
+  "capture_image": "devhero-20261020-153030-000.png",
   "spot": {
     "name": "corrals",
     "map": "kladwtwn",
