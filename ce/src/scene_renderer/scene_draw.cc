@@ -119,7 +119,7 @@ void drawStaticPreview(bool withWalls, bool withHero)
         glUniform1i(gSceneEggPassLocation, wallEgg ? 1 : 0);
         glUniform1i(gSceneLightModeLocation, lit ? 2 : 0);
         for (const WallBatch& batch : gWallBatches) {
-            if (batch.flyOnly && !flying) continue;
+            if (batch.flyOnly ? !flying : batch.gameOnly && flying) continue;
             glBindVertexArray(batch.vao);
             glBindTexture(kTexture2D, batch.texture);
             glDrawArrays(kTriangles, 0, static_cast<int>(batch.triangleCount * 3));
@@ -159,7 +159,7 @@ void drawStaticPreview(bool withWalls, bool withHero)
             glUniform1i(gSceneSeeThroughLocation, 1);
             glUniform1i(gSceneLightModeLocation, lit ? 2 : 0);
             for (const WallBatch& batch : gWallBatches) {
-                if (batch.flyOnly && !flying) continue;
+                if (batch.flyOnly ? !flying : batch.gameOnly && flying) continue;
                 glBindVertexArray(batch.vao);
                 glBindTexture(kTexture2D, batch.texture);
                 glDrawArrays(kTriangles, 0, static_cast<int>(batch.triangleCount * 3));
