@@ -2,13 +2,13 @@
 id: 021
 title: The sun follows game time
 milestone: M1
-status: doing
+status: done
 owner: claude
 suggested: claude
 claude-only: no
 user-check: no
 depends-on: [013, 020, 034]
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -47,3 +47,17 @@ Shadows (045), characters in shadow (046), cloud shadows (023).
 Done: the research of 2026-10-19 is split into 021, 045 and 046.
 Next: take it.
 Check: read the Context.
+
+### 2026-10-20 claude
+Done: `ce/src/scene/sun.{h,cc}`: the sun by game time (rises 6:00, 60 degrees
+at noon, sets 18:00, crosses the sky; warm when low), its strength from the
+ambient the scripts set (none at the engine's lowest), faded over a second on
+an ambient change and set at once on a time jump or a new map. The engine
+reads `daylight` from scene.json on load (`scene_view.cc`); `[3d] sun`
+(default on); the frame's sun in the snapshot JSON (`"sun"`). Nothing is drawn
+with it yet. Noon azimuth `kNoonAzimuth` (225) waits for 045's snapshots.
+Unit tests `ce/tests/sun` (6:00, 7:00, 12:00, 17:00, 19:00, 0:00, indoors,
+night ambient, fades and jumps). Regression 16/16, unchanged.
+Next: 045 (building shadows).
+Check: `tools/dev-snapshot.ps1 -Map kladwtwn -Tour klaratcv:0`: "sun" up in
+the town at 8:24 (35 degrees), none in the cave.

@@ -4,6 +4,8 @@
 #include <ctype.h>
 #include <cmath>
 #include <filesystem>
+#include <fstream>
+#include <sstream>
 #include <vector>
 #include <stdio.h>
 #include <string.h>
@@ -206,6 +208,23 @@ void updateMapClip()
     gCleanEdgesRevision = revision;
 }
 
+// scene.json's `"daylight": true`: the map elevation is under the sky. An
+// export without the key (or without the file) has no sun.
+bool readDaylight(const std::filesystem::path& cacheDirectory)
+{
+    std::ifstream file(cacheDirectory / "scene.json", std::ios::binary);
+    if (!file) return false;
+    std::ostringstream text;
+    text << file.rdbuf();
+    const std::string json = text.str();
+    const size_t key = json.find("\"daylight\"");
+    if (key == std::string::npos) return false;
+    size_t value = json.find(':', key);
+    if (value == std::string::npos) return false;
+    value = json.find_first_not_of(" \t\r\n", value + 1);
+    return value != std::string::npos && json.compare(value, 4, "true") == 0;
+}
+
 // Loads what `view` needs of the current map's scene.
 bool loadScene(View view, const std::string& map, int elevation, std::string* message)
 {
@@ -221,6 +240,7 @@ bool loadScene(View view, const std::string& map, int elevation, std::string* me
         *message = "floor preview unavailable: " + error;
         return false;
     }
+    setSceneDaylight(readDaylight(cacheDirectory));
     if (view != View::Floor && !scene_renderer::loadStaticWalls(cacheDirectory, &error)) {
         *message = "wall preview unavailable: " + error;
         return false;
@@ -560,6 +580,7 @@ RefreshResult refreshForPresent()
     const bool heroUpdated = updateObjectsFromGame();
     updateRoofsFromGame();
     updateLightsFromGame();
+    updateSunFromGame();
     const double seconds = static_cast<double>(SDL_GetPerformanceCounter() - start) / SDL_GetPerformanceFrequency();
     return { heroUpdated, seconds };
 }

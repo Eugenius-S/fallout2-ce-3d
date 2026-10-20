@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <array>
+#include <chrono>
 #include <cstdlib>
 #include <map>
 #include <tuple>
@@ -11,6 +12,7 @@
 #include "../light.h"
 #include "../map.h"
 #include "../object.h"
+#include "../scripts.h"
 #include "../scene_renderer/static_scene.h"
 #include "../settings.h"
 #include "../svga.h"
@@ -69,6 +71,9 @@ struct SpreadCache {
 };
 
 SpreadCache gSpreads;
+
+bool gDaylight = false;
+SunTracker gSun;
 
 // The palette indices the engine cycles and paints at full light (cycle.cc):
 // slime, monitors, slow and fast fire, the alarm; not the shoreline.
@@ -307,6 +312,33 @@ void updateLightsFromGame()
         }
     }
     scene_renderer::setStaticLight(lightGetAmbientIntensity(), std::move(hexLight), std::move(color), std::move(lights));
+}
+
+void setSceneDaylight(bool daylight)
+{
+    gDaylight = daylight;
+    gSun.reset();
+}
+
+bool sceneDaylight()
+{
+    return gDaylight;
+}
+
+void updateSunFromGame()
+{
+    using Clock = std::chrono::steady_clock;
+    static Clock::time_point last = Clock::now();
+    const Clock::time_point now = Clock::now();
+    const double seconds = std::chrono::duration<double>(now - last).count();
+    last = now;
+    gSun.update(gameTimeGetTime(), static_cast<double>(lightGetAmbientIntensity()) / LIGHT_INTENSITY_MAX,
+        settings.scene3d.sun && gDaylight, seconds);
+}
+
+const Sun& currentSun()
+{
+    return gSun.sun();
 }
 
 } // namespace scene
