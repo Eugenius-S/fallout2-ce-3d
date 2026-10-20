@@ -12,6 +12,8 @@ continue from the last commit without asking anybody.
 ## Rules
 
 - Everything in the repository is in English.
+- Never write the long dash (U+2014) in any text: docs, tasks, PRs, commits,
+  comments. Use a colon, a comma, a full stop or parentheses.
 - Never commit game files, `game/`, `game-vanilla/`, `build/`, tokens or keys.
 - The owner may have the game open (`game/fallout2-ce.exe`). Never close it,
   never kill it, never steal its focus. Check your work with the background
