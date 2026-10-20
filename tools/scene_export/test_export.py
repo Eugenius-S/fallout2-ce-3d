@@ -9,7 +9,8 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from baked_sidecar import (ENTRY as BAKED_ENTRY, HEADER as BAKED_HEADER, LIFT as BAKED_LIFT, MAGIC as BAKED_MAGIC,
-                           SKIP as BAKED_SKIP, FLAT as BAKED_FLAT, baked_objects, decode_baked_sidecar, encode_baked_sidecar)
+                           SKIP as BAKED_SKIP, FLAT as BAKED_FLAT, FLY_FLAT as BAKED_FLY_FLAT, PLANE as BAKED_PLANE,
+                           baked_objects, decode_baked_sidecar, encode_baked_sidecar)
 from export import ReadOnlyGameFiles, choose_source, main, parse_args, patch_paths, scene_directory, validate_output_contents
 from floor_sidecar import HEADER, MAGIC, VERSION, cell_content_rect, decode_floor_sidecar, encode_floor_sidecar
 from projection_sidecar import (HEADER as PROJECTION_HEADER, MAGIC as PROJECTION_MAGIC,
@@ -566,6 +567,23 @@ class BakedSidecarTests(unittest.TestCase):
         self.assertNotIn(700, [entry[0] for entry in entries])
         self.assertIn((100, 0x03000010, BAKED_SKIP, 0.0, 0.0, 0.0), entries)
         self.assertEqual(decode_baked_sidecar(encode_baked_sidecar(entries)), entries)
+
+    def test_doors_lie_on_their_wall_and_low_cards_lie_flat_in_flight(self):
+        scene, objects = self.sample()
+        objects += [self.MapObject(600, 0x02000020), self.MapObject(700, 0x02000030), self.MapObject(800, 0x02000040)]
+        scene["sprites"] = [[0, 0, 0, 30, 15], [0, 0, 0, 20, 40]]  # page, x, y, w, h: low, tall
+        scene["boards"] += [[0, 1, 1, 0, 0, 5], [1, 1, 1, 0, 0, 6]]
+        # doors: [sprite, ua, va, ub, vb, z0, z1, name, object]; GL x, z = u, v less 50
+        scene["doors"] = [[0, 51.0, 52.0, 51.0, 54.0, 0.0, 1.0, 0, 7]]
+        entries = baked_objects(scene, objects)
+        self.assertIn((600, 0x02000020, BAKED_FLY_FLAT, 0.0, 0.0, 0.0), entries)
+        self.assertNotIn(700, [entry[0] for entry in entries])
+        door = next(entry for entry in entries if entry[0] == 800)
+        self.assertEqual(door[2:5], (BAKED_PLANE, 1.0, 2.0))
+        self.assertAlmostEqual(door[5], 1.5707963, places=6)
+        self.assertIn((500, 0x00000011, BAKED_LIFT, 0.25, -0.5, 0.75), entries)
+        decoded = decode_baked_sidecar(encode_baked_sidecar(entries))
+        self.assertEqual([entry[:3] for entry in decoded], [entry[:3] for entry in entries])
 
     def test_an_animated_solid_stays_live(self):
         scene, objects = self.sample()

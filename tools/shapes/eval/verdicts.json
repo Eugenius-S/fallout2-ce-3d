@@ -1,5 +1,5 @@
 {
- "judged": "2026-10-20 claude, today's shapes",
+ "judged": "2026-10-20 claude; doorb06, gate, cab1 again after 037's doors on planes and low cards flat",
  "barrel4.frm": {
   "verdict": "fail",
   "why": "striped ghost backs at 45, 90, 270"
@@ -49,8 +49,8 @@
   "why": ""
  },
  "doorb06.frm": {
-  "verdict": "fail",
-  "why": "turns with the camera"
+  "verdict": "pass",
+  "why": "stays on its plane"
  },
  "drock4.frm": {
   "verdict": "pass",
@@ -69,8 +69,8 @@
   "why": "a hole: the far side is missing at 270"
  },
  "gate.frm": {
-  "verdict": "fail",
-  "why": "turns with the camera"
+  "verdict": "pass",
+  "why": "stays on its plane"
  },
  "locker6.frm": {
   "verdict": "pass",

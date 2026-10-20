@@ -67,7 +67,7 @@ def inventory(game_root, scenes):
                     thing["name"] = thing["name"] or gf.protos.name(obj.pid) or ""
                     thing["today"][shape.get(serial, "not drawn")] += 1
                     if len(thing["instances"]) < 3:
-                        thing["instances"].append([name, elevation, obj.tile, serial])
+                        thing["instances"].append([name, elevation, obj.tile, serial, obj.fid])
     finally:
         gf.close()
     # What the engine never draws (blockers, scroll eggs) has no shape.

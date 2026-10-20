@@ -27,7 +27,7 @@ LABELS = [
     ("corn5.frm", "card", False, ""),
     ("rock09.frm", "card", False, "a low heap of rocks"),
     ("roks3.frm", "flat", False, ""),
-    ("weed07.frm", "flat", False, "a low mound with weeds"),
+    ("weed07.frm", "card", False, "a low mound with weeds"),
     ("roks.frm", "flat", False, ""),
     ("rock10.frm", "card", False, "a low heap of rocks"),
     ("drock7.frm", "flat", False, ""),

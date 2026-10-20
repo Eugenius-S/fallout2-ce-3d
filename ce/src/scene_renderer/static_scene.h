@@ -68,6 +68,11 @@ bool staticObjectLift(int tile, int fid, float lift[3]);
 // Items and scenery the donor lays on the floor (low piles): drawn flat, as
 // the game's FLAT objects are.
 bool staticObjectFlat(int tile, int fid);
+// Doors and gates: GL x and z of a point of their wall's plane and its
+// direction (radians); under the fly camera they lie on it.
+bool staticObjectPlane(int tile, int fid, float plane[3]);
+// Low cards (a cabbage, a tin): flat under the fly camera.
+bool staticObjectFlyFlat(int tile, int fid);
 // Dev (--dev-solo): draw only the things within radius hexes of tile, without
 // walls and roofs, to look at one thing from every side. Set before a map loads.
 void setStaticSolo(int tile, int radius);

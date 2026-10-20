@@ -2,7 +2,7 @@
 id: 037
 title: Things get their shapes by one algorithm
 milestone: M1
-status: doing
+status: done
 owner: claude
 suggested: claude
 claude-only: no
@@ -40,3 +40,20 @@ design, and at least 70% of the eval set passes.
 The rotation option (038). Hand-written exceptions beyond the eval set (039).
 
 ## Log
+
+### 2026-10-20 claude (done)
+Done: two rules in `tools/scene_export/baked_sidecar.py` (baked.bin version
+4), each only under the fly camera, so the game's view stays pixel for pixel:
+doors and gates (scene.doors) lie on their wall's plane (PLANE: each card
+corner slides along the game camera's ray onto it, `onFlyPlane`); cards no
+more than 20 px tall and wider than tall lie flat (FLY_FLAT). Laying them flat
+in the game's view too changed 8 regression views, so it is flight only.
+Eval 25/40 -> 29/40 (72%), weighted 98% (`runs/037-shapes-algorithm/score.txt`,
+after sheets `after-doors-gate-cabbage.jpg`, before in
+`runs/036-shapes-eval/today-page4.jpg` and `today-page5.jpg`).
+The solo dev view keeps the hero now: without it the fly camera does not take
+off. weed07 is labelled a card, as the other plants (it read right as one).
+Regression 16/16 unchanged; exporter tests 42/42.
+Left: the failures listed in task 040.
+Next: 040 or 038.
+Check: `py -3 tools/shapes/eval/eval.py score` (on the worktree's export).
