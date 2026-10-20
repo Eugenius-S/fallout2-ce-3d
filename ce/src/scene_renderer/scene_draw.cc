@@ -106,7 +106,9 @@ void drawStaticPreview(bool withWalls, bool withHero)
         glDepthMask(1);
     }
 
-    glUniform1i(gSceneDepthAtLocation, 1);
+    // Depth anchors are made for the game camera: a fly camera looks from
+    // anywhere and takes each vertex's own depth.
+    glUniform1i(gSceneDepthAtLocation, flying ? 0 : 1);
     if (withWalls) {
         // Wall faces are seen from outside only, as in the donor's game view.
         glEnable(kCullFace);
