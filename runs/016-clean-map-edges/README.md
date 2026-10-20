@@ -50,9 +50,32 @@ remaining maps still need runtime boundary review.
 
 ## Runtime references
 
-All frames use the same Release executable, SHA-256
+The boundary-reference frames use the same Release executable, SHA-256
 `ecdd1f0bec75e62ad1ba6e7ca57c8011bc55be68397fc76e8cce46b313b1ca38`, at
 1920x1080 and 2x scale. Each original snapshot JSON is beside its PNG.
+
+### Live outside-click movement probe
+
+The probe ran with the authored e0 clip on KLADWTWN through
+`tools/dev-snapshot.ps1 -Probe`, using the isolated `task009-clean-edges-on`
+configuration and private scene cache. Both snapshots share run ID
+`5efe3b7e7ad6435088b0f3f15ec7e9de`, view tile 24678, hero tile 25075, and
+Release executable SHA-256
+`782ca2da4d04499592f26390097914d86ba2108fbdc9930bd6b967275589ce1e`
+(`ce_commit` `a98aa84f`). Original PNG and JSON files are in
+[`movement-probe/kladwtwn`](movement-probe/kladwtwn/).
+
+The in-bounds positive control moved the hero from tile 25075 to 25875. The
+probe then primed a pathable adjacent cursor target at tile 25674, distinct
+from the idle hero at 25875. At logical screen coordinate `(956, 51)`, the
+fresh 3D ground pick was `-1` while the cursor still held tile 25674. The
+synthetic engine mouse-up left the hero at 25875 and animation state idle
+(`busy=0->0`); after the follow-up wait the hero remained at 25875 and idle.
+The log records `outside movement rejected`, with no probe failure. The
+existing talker-click stage ran only after this assertion.
+
+The raw [`devprobe.log`](movement-probe/kladwtwn/devprobe.log) and both
+same-run snapshot pairs are retained byte-for-byte as runtime evidence.
 
 KLADWTWN Classic 2D corner views are centered at tiles 14424, 6108, 33688,
 and 25372. The matched edge view at tile 24768 compares the 2D cut with the
