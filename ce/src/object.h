@@ -79,6 +79,10 @@ Object* objectFindFirstAtLocation(MapElevation elevation, int tile);
 // Whether the game draws a wall or scenery see-through inside the egg around
 // the hero (it stands behind it).
 bool objectSeeThroughAroundDude(Object* object);
+// The hexes a light-carrying object lights, as the engine spreads its light
+// (walls stop it): `visit` gets each hex and the intensity added there. The
+// game's own light map is not touched. False: the object gives no light.
+bool objectSpreadLight(Object* object, void (*visit)(int tile, int intensity, void* context), void* context);
 Object* objectFindNextAtLocation();
 void objectGetRect(Object* obj, Rect* rect);
 bool _obj_occupied(int tile_num, MapElevation elev);

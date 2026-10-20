@@ -30,7 +30,8 @@ constexpr unsigned int kLinear = 0x2601;
 constexpr unsigned int kRed = 0x1903;
 constexpr unsigned int kRG = 0x8227;
 constexpr unsigned int kRG8 = 0x822B;
-constexpr unsigned int kR16 = 0x822A;
+constexpr unsigned int kR8 = 0x8229;
+constexpr unsigned int kRGBA16 = 0x805B;
 constexpr unsigned int kUnsignedShort = 0x1403;
 constexpr unsigned int kClampToEdge = 0x812F;
 constexpr unsigned int kTextureMinFilter = 0x2801;
@@ -167,15 +168,26 @@ extern int gSceneViewportLocation;
 extern int gSceneLogicalLocation;
 // The egg over walls and scenery the hero stands behind: which draws it cuts
 // (uSeeThrough, per walls.bin object row from a texture on unit 2) and the pass.
-// The game's light (lighting.cc): how a draw is lit (uLightMode: 0 not, 1 by
-// the hex under each fragment, 2 walls by their object's hex, 3 uLightValue),
-// the light per hex (texture unit 3) and the ground-to-game-pixel projection.
+// The game's light (lighting.cc): how a draw is lit (uLightMode: 0 not, 1 the
+// floor at each fragment, 2 walls at each fragment, by the lights they face,
+// 3 sprites at their hex (uLightAnchor), 4 uLightValue), the ambient level,
+// the point lights, their reach (texture unit 3) and the ground-to-game-pixel
+// projection that finds a fragment's hex.
 extern int gSceneLightModeLocation;
+extern int gSceneLightReachLocation;
 extern int gSceneLightMapLocation;
 extern int gSceneLightValueLocation;
 extern int gSceneLightSquLocation;
 extern int gSceneLightSqvLocation;
 extern int gSceneLightOriginLocation;
+extern int gSceneLightAnchorLocation;
+extern int gSceneAmbientLocation;
+extern int gSceneHexUnitLocation;
+extern int gSceneTowardCameraLocation;
+extern int gSceneLightCountLocation;
+extern int gSceneLightPosLocation;
+extern int gSceneLightColorLocation;
+extern int gSceneLightWindowLocation;
 extern int gSceneSeeThroughLocation;
 extern int gSceneSeeThroughObjectsLocation;
 extern int gSceneEggPassLocation;
@@ -208,14 +220,15 @@ void drawRoofs(int viewportX, int viewportY, int viewportWidth, int viewportHeig
 // no egg is shown.
 bool bindEgg(int viewportX, int viewportY, int viewportWidth, int viewportHeight);
 
-// --- lighting.cc: the game's light per hex -----------------------------------
+// --- lighting.cc: the game's light as point lights -----------------------------
 
 bool lightShown();
-// A hex's light as the engine paints objects on it (1: full, or no light).
-float lightAtTile(int tile);
 float lightAmbient();
-// Uploads the light map if it changed and binds it (unit 3); false when the
-// scene shows no light.
+// Sets the hex a sprite is lit at (uLightAnchor).
+void setLightAnchor(int tile);
+// Places the lights, uploads their reach (unit 3) and the light per hex
+// (unit 4) if they changed and sets the light uniforms; false when the scene
+// shows no light.
 bool bindLight();
 void destroyStaticLight();
 

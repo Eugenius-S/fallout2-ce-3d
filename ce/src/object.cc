@@ -4114,8 +4114,40 @@ static int _obj_connect_to_tile(ObjectListNode* node, int tile, MapElevation ele
     return 0;
 }
 
+static int objectSpreadLightWith(Object* obj, AdjustLightIntensityProc* adjustLightIntensity, Rect* rect);
+
 // 0x48DC28 obj_adjust_light
 static int _obj_adjust_light(Object* obj, int a2, Rect* rect)
+{
+    return objectSpreadLightWith(obj, a2 ? lightDecreaseTileIntensity : lightIncreaseTileIntensity, rect);
+}
+
+namespace {
+
+void (*gLightSpreadVisit)(int tile, int intensity, void* context) = nullptr;
+void* gLightSpreadContext = nullptr;
+
+void lightSpreadVisit(MapElevation, int tile, int intensity)
+{
+    gLightSpreadVisit(tile, intensity, gLightSpreadContext);
+}
+
+} // namespace
+
+bool objectSpreadLight(Object* object, void (*visit)(int tile, int intensity, void* context), void* context)
+{
+    if (visit == nullptr) return false;
+    gLightSpreadVisit = visit;
+    gLightSpreadContext = context;
+    const int result = objectSpreadLightWith(object, lightSpreadVisit, nullptr);
+    gLightSpreadVisit = nullptr;
+    gLightSpreadContext = nullptr;
+    return result == 0;
+}
+
+// The body of obj_adjust_light: spreads `obj`'s light through
+// `adjustLightIntensity`.
+static int objectSpreadLightWith(Object* obj, AdjustLightIntensityProc* adjustLightIntensity, Rect* rect)
 {
     if (obj == nullptr) {
         return -1;
@@ -4137,7 +4169,6 @@ static int _obj_adjust_light(Object* obj, int a2, Rect* rect)
         return -1;
     }
 
-    AdjustLightIntensityProc* adjustLightIntensity = a2 ? lightDecreaseTileIntensity : lightIncreaseTileIntensity;
     adjustLightIntensity(obj->elevation, obj->tile, obj->lightIntensity);
 
     Rect objectRect;

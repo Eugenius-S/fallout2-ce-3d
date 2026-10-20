@@ -11,6 +11,7 @@
 
 #include "preview_policy.h"
 #include "scene_settings.h"
+#include "scene_lights.h"
 #include "scene_objects.h"
 #include "../art.h"
 #include "../devtools/devtools.h"
@@ -20,7 +21,6 @@
 #include "../scene_renderer/picking.h"
 #include "../combat.h"
 #include "../game.h"
-#include "../light.h"
 #include "../map.h"
 #include "../movie.h"
 #include "../platform_compat.h"
@@ -156,18 +156,6 @@ void updateRoofsFromGame()
     }
     scene_renderer::setStaticEgg(eggMask.data(), eggWidth, eggHeight,
         static_cast<int>(std::lround(x)) - eggWidth / 2, static_cast<int>(std::lround(y)) - eggHeight + 1);
-}
-
-// The game's light on this elevation, as the engine paints with it.
-void updateLightFromGame()
-{
-    if (!settings.scene3d.lights) {
-        scene_renderer::clearStaticLight();
-        return;
-    }
-    static int intensity[HEX_GRID_SIZE];
-    for (int tile = 0; tile < HEX_GRID_SIZE; tile++) intensity[tile] = lightGetTileIntensity(gElevation, tile);
-    scene_renderer::setStaticLight(intensity, lightGetAmbientIntensity());
 }
 
 PreviewRuntimeState runtimeState()
@@ -356,7 +344,7 @@ RefreshResult refreshForPresent()
     scene_renderer::setStaticCameraCenterTile(gCenterTile);
     const bool heroUpdated = updateObjectsFromGame();
     updateRoofsFromGame();
-    updateLightFromGame();
+    updateLightsFromGame();
     const double seconds = static_cast<double>(SDL_GetPerformanceCounter() - start) / SDL_GetPerformanceFrequency();
     return { heroUpdated, seconds };
 }
