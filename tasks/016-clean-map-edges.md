@@ -106,3 +106,8 @@ Check: Release build passed; CTest passed 10/10; `git diff --check` passed. This
 Done: Audited the active RPU EDG records for all seven Klamath maps. Each has an e0 and e1 record; none has an e2 EDG record. KLARATCV and KLATOXCV have e2 map fixtures, so missing e2 clipping data does not mean the map elevation is absent. Added exact source rectangles and this caveat to the evidence README.
 Next: Runtime visual references for the other five maps, a live outside-click movement check, and a reachable exit-grid transition remain pending.
 Check: Read-only archive audit of active `mods/rpu.dat` (SHA-256 `27db830e0fb67d02b60e166e2acb772a92292f5f4dd88f733b740b406a0864ee`); no game or configuration files changed. No runtime probe was added, so movement and exit behavior remain unverified at runtime.
+
+### 2026-10-20 gpt
+Done: Extended the existing dev pick probe with an inside-movement control and a stale-cursor outside-click case. The probe chooses a reachable adjacent target, accepts a 2D-edge candidate only after the scene ground pick returns `-1`, then checks click-time and delayed hero/animation state.
+Next: Rebase this bounded probe onto the latest main, rebuild and run CTest, then run one isolated `--dev-pick-probe` when the shared helper is free. Treat the live result as pending until its log confirms both the positive control and rejected outside movement.
+Check: Source change only; no helper launch or owner game/config/cache access. Runtime behavior remains unverified.

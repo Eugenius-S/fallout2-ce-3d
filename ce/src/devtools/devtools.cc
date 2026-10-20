@@ -29,6 +29,7 @@
 #include "../kb.h"
 #include "../dinput.h"
 #include "../map.h"
+#include "../map_edge.h"
 #include "../map_defs.h"
 #include "../game.h"
 #include "../game_mouse.h"
@@ -108,6 +109,12 @@ char gSnapshotRun[33] = {};
 // cursor, then the hover icon over a critter. 0: off, then frames counted.
 int gPickProbeStage = 0;
 int gPickProbeClick[2] = { -1, -1 }; // a left click the game loop is to take
+int gPickProbeStartTile = -1;
+int gPickProbeEdgeTarget = -1;
+int gPickProbeOutsideX = -1;
+int gPickProbeOutsideY = -1;
+int gPickProbeOutsideHeroTile = -1;
+bool gPickProbeOutsideClick = false;
 char gToolsCommit[32] = "-";
 
 bool gPanelOpen = false;
@@ -945,7 +952,20 @@ void update()
         lightSetAmbientIntensity(gDevAmbient, true);
     }
     if (gPickProbeClick[0] >= 0) {
+        const bool edgeClick = gPickProbeOutsideClick;
+        const int heroTileBefore = gDude->tile;
+        const bool busyBefore = animationIsBusy(gDude) == -1;
         _gmouse_handle_event(gPickProbeClick[0], gPickProbeClick[1], MOUSE_EVENT_LEFT_BUTTON_UP);
+        if (edgeClick) {
+            if (FILE* log = fopen("devprobe.log", "a")) {
+                fprintf(log, "outside click: fresh=%d cursor=%d hero=%d->%d busy=%d->%d\n",
+                    tileUnderMouse(gPickProbeClick[0], gPickProbeClick[1]),
+                    gGameMouseHexCursor != nullptr ? gGameMouseHexCursor->tile : -1, heroTileBefore, gDude->tile,
+                    busyBefore, animationIsBusy(gDude) == -1);
+                fclose(log);
+            }
+            gPickProbeOutsideClick = false;
+        }
         gPickProbeClick[0] = gPickProbeClick[1] = -1;
         if (FILE* log = fopen("devprobe.log", "a")) {
             fprintf(log, "probe click: hero busy=%d tile=%d\n", animationIsBusy(gDude) == -1 ? 1 : 0, gDude->tile);
@@ -1222,6 +1242,7 @@ void runPickProbe()
         if (log != nullptr) fprintf(log, format, values...);
     };
     if (stage == 30) {
+        gPickProbeStartTile = gDude->tile;
         // The pointer a little above each critter's hex, as the scene shows it.
         int hits = 0, hidden = 0, misses = 0;
         const std::vector<scene::PickEntry> entries = scene::pickEntries();
@@ -1288,6 +1309,92 @@ void runPickProbe()
         note("probe after click (frame %d): hero busy=%d tile=%d\n", stage, animationIsBusy(gDude) == -1 ? 1 : 0, gDude->tile);
     } else if (stage == 400) {
         note("probe after click (frame %d): hero busy=%d tile=%d\n", stage, animationIsBusy(gDude) == -1 ? 1 : 0, gDude->tile);
+        if (animationIsBusy(gDude) == -1) {
+            gPickProbeStage = 400;
+            if (log != nullptr) fclose(log);
+            return;
+        }
+        if (gDude->tile == gPickProbeStartTile) {
+            note("outside probe failed: inside move did not move hero\n");
+            finishPickProbe();
+            if (log != nullptr) fclose(log);
+            return;
+        }
+        note("inside movement control passed: hero=%d->%d\n", gPickProbeStartTile, gDude->tile);
+        gameMouseSetMode(GAME_MOUSE_MODE_MOVE);
+        for (int direction = ROTATION_FIRST; direction <= ROTATION_LAST; direction++) {
+            const int target = tileGetTileInDirection(gDude->tile, static_cast<Rotation>(direction), 1);
+            if (target < 0 || _make_path(gDude, gDude->tile, target, nullptr, 1) <= 0) continue;
+            double pixel[2], x, y;
+            scene_renderer::gameViewTilePixel(target, pixel);
+            if (!scene_renderer::staticScreenFromGamePixel(pixel[0], pixel[1], &x, &y)) continue;
+            probeX = static_cast<int>(x);
+            probeY = static_cast<int>(y);
+            if (tileUnderMouse(probeX, probeY) == target) {
+                gPickProbeEdgeTarget = target;
+                break;
+            }
+        }
+        _mouse_set_position(probeX, probeY);
+        note("outside probe target=%d hero=%d\n", gPickProbeEdgeTarget, gDude->tile);
+        if (gPickProbeEdgeTarget < 0) {
+            finishPickProbe();
+            if (log != nullptr) fclose(log);
+            return;
+        }
+    } else if (stage == 401) {
+        if (tileUnderMouse(probeX, probeY) != gPickProbeEdgeTarget || gGameMouseHexCursor == nullptr
+            || gGameMouseHexCursor->tile != gPickProbeEdgeTarget) {
+            note("outside probe failed: valid target not primed\n");
+            finishPickProbe();
+        } else {
+            Rect area = {}, viewport = {};
+            const int hasArea = mapEdgeComputeVisibleArea(gElevation, &area) && windowGetRect(gIsoWindow, &viewport) == 0;
+            if (hasArea) {
+                const int minX = viewport.left + 2, maxX = viewport.right - 3;
+                const int minY = viewport.top + 2, maxY = viewport.bottom - 3;
+                const int mx = std::clamp((area.left + area.right) / 2, minX, maxX);
+                const int my = std::clamp((area.top + area.bottom) / 2, minY, maxY);
+                const int xs[] = { std::clamp(area.left - 2, minX, maxX), std::clamp(area.right + 2, minX, maxX), mx, mx };
+                const int ys[] = { my, my, std::clamp(area.top - 2, minY, maxY), std::clamp(area.bottom + 2, minY, maxY) };
+                for (int i = 0; i < 4 && gPickProbeOutsideX < 0; i++) {
+                    if (windowGetAtPoint(xs[i], ys[i]) == gIsoWindow && tileUnderMouse(xs[i], ys[i]) < 0) {
+                        gPickProbeOutsideX = xs[i];
+                        gPickProbeOutsideY = ys[i];
+                    }
+                }
+            }
+            if (gPickProbeOutsideX < 0) {
+                note("outside probe failed: no candidate pick=-1\n");
+                finishPickProbe();
+            } else {
+                gPickProbeOutsideHeroTile = gDude->tile;
+                _mouse_set_position(gPickProbeOutsideX, gPickProbeOutsideY);
+            }
+        }
+    } else if (stage == 402) {
+        const int freshTile = tileUnderMouse(gPickProbeOutsideX, gPickProbeOutsideY);
+        const int cursorTile = gGameMouseHexCursor != nullptr ? gGameMouseHexCursor->tile : -1;
+        note("outside candidate pick=%d stale=%d hero=%d at (%d,%d)\n", freshTile, cursorTile, gDude->tile,
+            gPickProbeOutsideX, gPickProbeOutsideY);
+        if (freshTile < 0 && cursorTile == gPickProbeEdgeTarget && gDude->tile == gPickProbeOutsideHeroTile) {
+            gPickProbeClick[0] = gPickProbeOutsideX;
+            gPickProbeClick[1] = gPickProbeOutsideY;
+            gPickProbeOutsideClick = true;
+        } else {
+            note("outside probe failed: stale target state changed\n");
+            finishPickProbe();
+        }
+    } else if (stage == 430) {
+        note("outside probe result: hero=%d expected=%d busy=%d\n", gDude->tile, gPickProbeOutsideHeroTile,
+            animationIsBusy(gDude) == -1 ? 1 : 0);
+        if (gDude->tile == gPickProbeOutsideHeroTile && animationIsBusy(gDude) != -1) {
+            note("outside movement rejected\n");
+        } else {
+            note("outside probe failed: movement state changed\n");
+            finishPickProbe();
+        }
+    } else if (stage == 500) {
         // Then talk: the pointer on the nearest critter the hero can talk to.
         Object* talker = nullptr;
         int talkerX = -1, talkerY = -1, nearest = 1 << 30;
