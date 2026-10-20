@@ -75,7 +75,7 @@ if ($Next) {
             $_.status -eq 'todo' `
                 -and ($_.claude -ne 'yes' -or $agent -eq 'claude') `
                 -and (($_.deps -replace '[\[\]]', '').Split(',') | Where-Object { $_.Trim() } |
-                    ForEach-Object { $done[$_.Trim()] }) -notcontains $false
+                    ForEach-Object { [bool]$done[$_.Trim()] }) -notcontains $false
         })
         $suggested = @($free | Where-Object { $_.suggested -eq $agent } | Sort-Object { [int]$_.id })
         if ($suggested.Count -gt 0) {
