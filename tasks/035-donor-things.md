@@ -2,8 +2,8 @@
 id: 035
 title: Boards, shelves and junk piles stand as the donor stands them
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: claude
 suggested: claude
 claude-only: no
 user-check: yes
