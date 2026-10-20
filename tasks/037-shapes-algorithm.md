@@ -2,8 +2,8 @@
 id: 037
 title: Things get their shapes by one algorithm
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: claude
 suggested: claude
 claude-only: no
 user-check: yes
