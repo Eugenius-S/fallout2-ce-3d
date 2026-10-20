@@ -40,6 +40,8 @@
 #include "../proto.h"
 #include "../platform_compat.h"
 #include "../random.h"
+#include "../scene/scene_lights.h"
+#include "../scripts.h"
 #include "../scene/scene_objects.h"
 #include "../scene/scene_settings.h"
 #include "../scene/scene_view.h"
@@ -2212,6 +2214,16 @@ bool takeSnapshot()
     if (!preview && gSdlWindow != nullptr) {
         SDL_GL_GetDrawableSize(gSdlWindow, &drawableW, &drawableH);
     }
+    // Preview snapshots come before the first frame that would update it.
+    scene::updateSunFromGame();
+    const scene::Sun& sun = scene::currentSun();
+    char sunMetadata[384];
+    snprintf(sunMetadata, sizeof(sunMetadata),
+        "{\"setting\":%s,\"daylight\":%s,\"game_time\":%u,\"up\":%s,\"height\":%.3f,\"azimuth\":%.3f,"
+        "\"direction\":[%.5f,%.5f,%.5f],\"color\":[%.4f,%.4f,%.4f],\"strength\":%.4f}",
+        settings.scene3d.sun ? "true" : "false", scene::sceneDaylight() ? "true" : "false", gameTimeGetTime(),
+        sun.up ? "true" : "false", sun.height, sun.azimuth, sun.direction[0], sun.direction[1], sun.direction[2],
+        sun.color[0], sun.color[1], sun.color[2], sun.strength);
 
     FILE* f = fopen(sidecarPath.string().c_str(), "w");
     if (f == nullptr) {
@@ -2243,6 +2255,7 @@ bool takeSnapshot()
         "  \"preview_availability\": \"%s\",\n"
         "  \"renderer\": \"%s\",\n"
         "  \"light\": \"off\",\n"
+        "  \"sun\": %s,\n"
         "  \"resolution\": \"%dx%d\",\n"
         "  \"logical_resolution\": \"%dx%d\",\n"
         "  \"scale\": %d,\n"
@@ -2275,6 +2288,7 @@ bool takeSnapshot()
         heroPreview ? scene::objectCardsSkipped() : 0u,
         previewRequested ? (scene_renderer::isActive() ? scene::availability() : "renderer-inactive") : "not-requested",
         activeRendererName(),
+        sunMetadata,
         capturedWidth,
         capturedHeight,
         screenGetWidth(),

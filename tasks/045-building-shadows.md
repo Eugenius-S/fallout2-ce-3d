@@ -4,7 +4,7 @@ title: Buildings and big things cast sun shadows
 milestone: M1
 status: todo
 owner: none
-suggested: gpt
+suggested: claude
 claude-only: no
 user-check: yes
 depends-on: [021]

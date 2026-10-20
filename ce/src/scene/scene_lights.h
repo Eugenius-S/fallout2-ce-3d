@@ -1,6 +1,8 @@
 #ifndef FALLOUT_SCENE_SCENE_LIGHTS_H
 #define FALLOUT_SCENE_SCENE_LIGHTS_H
 
+#include "sun.h"
+
 namespace fallout {
 namespace scene {
 
@@ -11,6 +13,14 @@ namespace scene {
 // reach is the engine's own spread, so walls stop it as in the game.
 // `[3d] lights` off: the scene is unlit.
 void updateLightsFromGame();
+
+// Whether the loaded map elevation is under the sky (scene.json `daylight`).
+void setSceneDaylight(bool daylight);
+bool sceneDaylight();
+// The sun of this frame from game time and the ambient level; `[3d] sun`
+// off, indoors and at night: none.
+void updateSunFromGame();
+const Sun& currentSun();
 
 } // namespace scene
 } // namespace fallout
