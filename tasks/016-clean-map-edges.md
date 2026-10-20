@@ -68,3 +68,8 @@ Check: Release build passed; CTest passed 9/9 including the projected diamond-ma
 Done: Traced KLACANYN's remaining gray staircase to RPU's opaque BLACK002 boundary-mask cards. Clean edges now omits only scenery resolving to `BLACK002.frm` before creating render and pick entries; added focused path/type behavior coverage. The matching opaque BLACK003 card is absent from the effective scenery list and both reviewed maps.
 Next: Retake KLACANYN's floor-cut snapshot at view tile 15909 for review, then capture matched A/B/off variants on both maps after the parent accepts the corrected B image.
 Check: Release build passed; CTest passed 10/10; `git diff --check` passed. BLACK002 is a 160x168 full-fill card (palette 207 / RGB 12,12,12); MOUNT02 remains classified as normal scenery.
+
+### 2026-10-20 gpt
+Done: Rebased the fix on `origin/main`; the parent accepted the corrected KLACANYN floor-cut image. Release build and CTest passed 10/10; the parent independently verified scene-export tests 38/38 and regression tests 12/12. Prepared isolated on/off capture configs with the same Release EXE and `ddraw.ini`; their only `fallout2.cfg` difference is `clean_edges=0`.
+Next: Capture matched authored/floor/off stills for KLADWTWN e0 view/hero 8711 and KLACANYN e0 view/hero 15909 at 1920x1080, scale 2; verify JSON camera and EXE identity; add the six PNG/JSON pairs and draft the PR after the shared helper queue clears.
+Check: One corrected KLACANYN B image was captured with view tile 15909 and accepted by the parent. No final six-capture launch has started because another `fallout2-ce-test.exe` run occupies the shared queue.
