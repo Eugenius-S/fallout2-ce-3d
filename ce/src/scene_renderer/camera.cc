@@ -47,6 +47,9 @@ void multiply4x4(const float* a, const float* b, float* out)
 // own parallel projection: 52, then 100.
 double gViewDistance = 100.0;
 
+// The 3D view zoom around the screen center (1 = the game's own size).
+double gZoom = 1.0;
+
 double gameViewDistance()
 {
     return gViewDistance;
@@ -126,6 +129,7 @@ bool currentGameView(GameView* view)
             std::round(gCameraPixel[1] * screenPerGame) / screenPerGame },
         gLogicalWidth, gLogicalHeight, gameViewDistance(),
     };
+    view->zoom = gZoom;
     // The 2D's own place for the center hex, so the 3D frames the map as 2D does.
     int screenX, screenY;
     if (tileToScreenXY(gCameraCenterTile, &screenX, &screenY) == 0) {
@@ -145,6 +149,12 @@ void resetCamera()
 }
 
 } // namespace internal
+
+void setCameraZoom(double zoom)
+{
+    if (!std::isfinite(zoom) || zoom < 0.1 || zoom > 10.0) return;
+    gZoom = zoom;
+}
 
 void setStaticViewDistance(double units)
 {

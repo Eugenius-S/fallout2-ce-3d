@@ -38,6 +38,9 @@ enum GameMouseActionMenuItem : int {
     GAME_MOUSE_ACTION_MENU_ITEM_COUNT,
 };
 
+// Sprite-lighting mod: whether the cursor hovers the interface bar.
+bool gameMouseIsOverInterfaceBar();
+
 enum MouseCursorType : int {
     MOUSE_CURSOR_INVALID = -1,
     MOUSE_CURSOR_NONE,

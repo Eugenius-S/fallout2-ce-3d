@@ -23,6 +23,7 @@ struct GameView {
     int logicalWidth; // the game's screen, in game pixels
     int logicalHeight;
     double distance; // units from the view center to the eye
+    double zoom = 1.0; // on-screen scale around the screen center; 1 = the game's own size
     // Where on the screen the engine draws the center hex (logical pixels):
     // the middle of its map window above the interface, moved by the map's
     // edge alignment. Not set: the middle of the whole screen.

@@ -52,6 +52,7 @@
 #include "queue.h"
 #include "random.h"
 #include "scripts.h"
+#include "scene/scene_view.h"
 #include "settings.h"
 #include "sfall_arrays.h"
 #include "sfall_callbacks.h"
@@ -564,6 +565,14 @@ int gameHandleKey(int eventCode, bool isInCombatMode)
             int wheelX;
             int wheelY;
             mouseGetWheel(&wheelX, &wheelY);
+
+            // Sprite-lighting mod: with the 3D view up and the mouse over the
+            // map, the wheel zooms; the stock wheel jobs keep the rest.
+            if (scene::activeView() == scene::View::Full && scene::shouldPresent()
+                && !gameMouseIsOverInterfaceBar()) {
+                scene::adjustZoom(wheelY);
+                return 0;
+            }
 
             int dx = 0;
             if (wheelX > 0) {
