@@ -56,6 +56,11 @@ static bool gMouseCaptured = false;
 static int gMouseLastX = 0;
 static int gMouseLastY = 0;
 
+bool mouseDeviceIsCaptured()
+{
+    return gMouseCaptured;
+}
+
 void mouseDeviceSetCaptured(bool captured)
 {
     if (captured == gMouseCaptured) return;

@@ -30,6 +30,8 @@ bool mouseDeviceGetData(MouseData* mouseData);
 // The dev tools' fly camera owns the mouse: the game sees it standing still
 // with no buttons, while the camera reads its movement (relative mode).
 void mouseDeviceSetCaptured(bool captured);
+// The fly camera owns the keyboard and the mouse: script hooks get neither.
+bool mouseDeviceIsCaptured();
 bool keyboardDeviceAcquire();
 bool keyboardDeviceUnacquire();
 bool keyboardDeviceReset();
