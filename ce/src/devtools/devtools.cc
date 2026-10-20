@@ -1423,6 +1423,11 @@ void landFlight()
     stopFlying("fly camera landed: the 3D scene is not shown", false);
 }
 
+void gameReset()
+{
+    gFlyRestorePending = false;
+}
+
 bool handleKey(int key)
 {
     if (!gEnabled) {

@@ -97,8 +97,15 @@ void drawRoofs(int viewportX, int viewportY, int viewportWidth, int viewportHeig
     if (gRoofVertexCount == 0) return;
 
     // The engine paints roofs over everything on the map, so they come last
-    // and are not hidden by anything.
-    glDisable(kDepthTest);
+    // and are not hidden by anything. A fly camera sees them from any side:
+    // there what is nearer hides them.
+    const bool flying = staticFlyCameraActive();
+    if (flying) {
+        glEnable(kDepthTest);
+        glDepthMask(0);
+    } else {
+        glDisable(kDepthTest);
+    }
     glEnable(kBlend);
     glBlendFunc(kSrcAlpha, kOneMinusSrcAlpha);
     glUniform1i(gSceneDepthAtLocation, 0);
@@ -112,6 +119,7 @@ void drawRoofs(int viewportX, int viewportY, int viewportWidth, int viewportHeig
     glDrawArrays(kTriangles, 0, gRoofVertexCount);
     glUniform1i(gSceneEggLocation, 0);
     glDisable(kBlend);
+    if (flying) glDepthMask(1);
 }
 
 bool bindEgg(int viewportX, int viewportY, int viewportWidth, int viewportHeight)
