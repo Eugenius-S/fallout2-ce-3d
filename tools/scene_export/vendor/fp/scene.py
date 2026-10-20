@@ -50,10 +50,10 @@ GLOW_FIRE, GLOW_LAMP = (1.0, 0.5, 0.18), (1.0, 0.86, 0.6)
 SMALL_AREA, TALL = 0.2, 0.9     # a solid with a smaller footprint (units^2) that is also lower (units) is stepped over
 SMALL_CARD = (48, 64)           # px: a card narrower and lower than this does not stop the player either (chairs)
 WALK_THROUGH = 160  # px: a thing that stops no one is a solid all the same if it is this wide (a gateway)
-# FRMs that are boxes whatever the fit says (the shapes design allows such
+# FRMs whose solid is set by name, whatever the fit says (the shapes design allows such
 # exceptions, at most a tenth of a map group's distinct FRMs).
-FORCED_BOXES = frozenset(json.loads((Path(__file__).resolve().parents[2] / "shapes" / "overrides.json")
-                                    .read_text(encoding="utf-8"))["box"])
+_OVERRIDES = json.loads((Path(__file__).resolve().parents[2] / "shapes" / "overrides.json").read_text(encoding="utf-8"))
+FORCED = {name: kind for kind in ("box", "drum") for name in _OVERRIDES.get(kind, {})}
 MIN_BOX = 0.1       # units: what is left of a box that is cut back at a wall, at least
 ON_TOP = 0.05       # units outside a solid's footprint that still count as on it
 AT_SOLID = 0.3      # an invisible blocker this close to a solid is part of it (units)
@@ -536,7 +536,7 @@ class SceneBuilder:
             blocking = any(not piece.obj.flags & mapfile.OBJECT_NO_BLOCK for piece in group)
             # A box by name (tools/scene_export/shapes/overrides.json): chairs and
             # crates the fit takes for plants.
-            forced = len(group) == 1 and (self.gf.art.name(first.obj.fid) or "").lower() in FORCED_BOXES
+            forced = FORCED.get((self.gf.art.name(first.obj.fid) or "").lower()) if len(group) == 1 else None
             if len(group) == 1 and not blocking and first.index.shape[1] < WALK_THROUGH and not forced:
                 continue                                # loose things: cards
             index, rgba, x, y = props.compose(group) if len(group) > 1 else (first.index, first.rgba, first.x, first.y)
@@ -582,7 +582,7 @@ class SceneBuilder:
                     pu, pv = pu - u, pv - v
                 self.props.append([sprite] + _round((u, v)) + [board, int(round_)]
                                   + _round((u + pu, v + pv, a, b, z0, z1, wall_u, wall_v)) + [self.name_id(first.obj.pid)]
-                                  + [int(forced)])
+                                  + [int(bool(forced))])
                 half = (radius, radius) if round_ else (a / 2, b / 2)
                 area = math.pi * radius ** 2 if round_ else a * b
                 if not forced:                          # a solid by name lifts nothing: the game's view keeps its cards
