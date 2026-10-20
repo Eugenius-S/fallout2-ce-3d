@@ -43,3 +43,16 @@ four turned views, and a score that says how many of them look right.
 Changing any shape (037).
 
 ## Log
+
+### 2026-10-20 claude
+Done: `tools/shapes/inventory.py` counts Klamath's static things by FRM (465
+FRMs, 10226 things the engine draws; plants, rocks and goo are most of them)
+and says how the engine draws each today. `tools/shapes/eval/labels.json`
+(from `make_labels.py`): 40 FRMs, the 20 most frequent (the two black
+map-edge masks swapped for corn5 and rock09) and 20 by kind and the owner's
+reports. `--dev-solo=TILE,R` / `dev-snapshot.ps1 -Solo R` draws only the
+things within R hexes of the view tile (no walls, roofs or hero), so a thing
+is seen alone from every side. `tools/shapes/eval/eval.py` shoots, makes the
+sheets and scores. The engine gives 17 of 40 their labelled shape today.
+Next: shoot all, look at the sheets, write verdicts.json, the score.
+Check: `py -3 tools/shapes/eval/eval.py score`.

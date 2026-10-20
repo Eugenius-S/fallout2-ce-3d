@@ -68,6 +68,10 @@ bool staticObjectLift(int tile, int fid, float lift[3]);
 // Items and scenery the donor lays on the floor (low piles): drawn flat, as
 // the game's FLAT objects are.
 bool staticObjectFlat(int tile, int fid);
+// Dev (--dev-solo): draw only the things within radius hexes of tile, without
+// walls and roofs, to look at one thing from every side. Set before a map loads.
+void setStaticSolo(int tile, int radius);
+bool staticSoloKeeps(int tile);
 // The walls and scenery walls.bin draws that the hero stands behind, so the egg
 // cuts them as the game does: begin, mark each, end (uploads on a change).
 void beginStaticWallSeeThrough();

@@ -39,6 +39,8 @@ param(
     [double]$FlyTurn = 0,
     [double]$FlyPitch = -1,
     [double]$FlyDistance = -1,
+    # -Solo R: only the things within R hexes of -ViewTile, no walls or roofs.
+    [int]$Solo = -1,
     [string]$OutputDirectory,
     [switch]$CaptureConsole,
     [ValidateRange(640, 7680)]
@@ -109,6 +111,7 @@ if ($Fly) { $arguments += '--dev-fly' }
 if ($FlyTurn -ne 0) { $arguments += "--dev-fly-turn=$FlyTurn" }
 if ($FlyPitch -gt 0) { $arguments += "--dev-fly-pitch=$FlyPitch" }
 if ($FlyDistance -gt 0) { $arguments += "--dev-fly-distance=$FlyDistance" }
+if ($Solo -ge 0 -and $PSBoundParameters.ContainsKey('ViewTile')) { $arguments += "--dev-solo=$ViewTile,$Solo" }
 if ($Still) {
     if ($Probe) { throw '-Still cannot be combined with the interactive -Probe.' }
     $arguments += '--dev-still-snapshot'
