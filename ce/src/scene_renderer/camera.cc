@@ -155,6 +155,16 @@ void resetCamera()
     gCameraMoved = 0;
 }
 
+bool flyCameraRight(double* x, double* z)
+{
+    if (!gFlying) return false;
+    float forward[3], right[3];
+    staticFlyCameraAxes(gFly, forward, right);
+    *x = right[0];
+    *z = right[2];
+    return true;
+}
+
 bool flyCameraMvp(float aspect, float* out)
 {
     if (!gFlying) return false;

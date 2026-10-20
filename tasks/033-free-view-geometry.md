@@ -2,7 +2,7 @@
 id: 033
 title: Things seen from anywhere by the fly camera
 milestone: M1
-status: doing
+status: done
 owner: claude
 suggested: claude
 claude-only: no
@@ -49,3 +49,21 @@ slabs: a later task if the owner wants them. Static rest cards (a drum's
 flames, stems) stay as they are.
 
 ## Log
+
+### 2026-10-20 claude
+Done: under the fly camera every standing card (live objects, the hero)
+stands upright on the middle of its footprint and faces the camera
+(`faceFlyCamera`). Solids get their far sides: a box's two, a drum's far
+half, showing the near sides' pixels mirrored and wound to face away from the
+game's camera, which culls them (no sidecar format change). Regression 16/16
+pixel for pixel on the new export: the game's camera sees nothing new.
+Evidence in `runs/033-free-view-geometry/`: the Klamath room with the bed from
+above and from 70 degrees round (before | after), from 140 and 180 degrees
+after. New dev options to take such views: `-FlyTurn`, `-FlyPitch`,
+`-FlyDistance`.
+Seen and left: walls are still single sheets, so from behind a wall its
+picture's top rows lie on its top edge (walls as slabs, out of scope).
+Next: merge, export Klamath into `game/mod-cache`, the owner's look from the
+air.
+Check: `py -m unittest discover -s tools/scene_export`, `tools/regression.ps1`,
+`tools/dev-snapshot.ps1 -HeroTile 17665 -ViewTile 17467 -FlyTurn 70 -FlyPitch 25 -FlyDistance 7`.

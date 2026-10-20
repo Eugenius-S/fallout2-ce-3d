@@ -277,6 +277,13 @@ bool currentGameView(GameView* view);
 void makeFloorMvp(float aspect, const StaticPreviewCamera& camera, float* out);
 // The fly camera's matrix; false when it does not fly.
 bool flyCameraMvp(float aspect, float* out);
+// The fly camera's screen right along the floor (GL x, z); false when it does
+// not fly.
+bool flyCameraRight(double* x, double* z);
+// While the fly camera flies a standing card is seen from anywhere: it stands
+// upright on the middle of its footprint and turns to face the camera, as in
+// the donor's first person. The game's camera keeps the card it sees.
+void faceFlyCamera(SpriteCardVertex corners[4]);
 void resetCamera();
 
 // --- live_objects.cc: live map objects and the hero, as cards ----------------

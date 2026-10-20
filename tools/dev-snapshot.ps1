@@ -36,6 +36,9 @@ param(
     [ValidateRange(0, 65536)]
     [int]$Ambient = -1,
     [switch]$Fly,
+    [double]$FlyTurn = 0,
+    [double]$FlyPitch = -1,
+    [double]$FlyDistance = -1,
     [string]$OutputDirectory,
     [switch]$CaptureConsole,
     [ValidateRange(640, 7680)]
@@ -100,6 +103,12 @@ if ($Parallel) { $arguments += '--dev-parallel' }
 if ($Ambient -ge 0) { $arguments += "--dev-ambient=$Ambient" }
 # -Fly: the snapshot is taken from the fly camera's start (Ctrl+F12 in the game).
 if ($Fly) { $arguments += '--dev-fly' }
+# -FlyTurn D, -FlyPitch D, -FlyDistance U: from there the camera circles the
+# point it looks at, D degrees round, D degrees above the floor, U units from
+# it (each implies -Fly).
+if ($FlyTurn -ne 0) { $arguments += "--dev-fly-turn=$FlyTurn" }
+if ($FlyPitch -gt 0) { $arguments += "--dev-fly-pitch=$FlyPitch" }
+if ($FlyDistance -gt 0) { $arguments += "--dev-fly-distance=$FlyDistance" }
 if ($Still) {
     if ($Probe) { throw '-Still cannot be combined with the interactive -Probe.' }
     $arguments += '--dev-still-snapshot'

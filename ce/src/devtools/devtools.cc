@@ -99,6 +99,12 @@ int gTourFrames = 0;
 bool gStillSnapshot = false;
 int gDevAmbient = -1; // --dev-ambient: the map's ambient light held there (night views)
 bool gDevFly = false; // --dev-fly: the fly camera takes off at the first 3D frame (snapshots)
+// --dev-fly-turn=D, --dev-fly-pitch=D, --dev-fly-distance=U: then it circles
+// the point it looks at, D degrees round, D degrees above the floor, U units
+// from it (a side view of a thing).
+double gDevFlyTurn = 0.0;
+double gDevFlyPitch = -1.0;
+double gDevFlyDistance = -1.0;
 int gViewTile = -1;
 bool gViewTileApplied = false;
 int gHeroTile = -1; // --dev-hero-tile: the hero is put there before the scene starts
@@ -675,6 +681,24 @@ bool parseOption(const char* arg)
         gDevFly = true;
         return true;
     }
+    const char* flyTurnPrefix = "--dev-fly-turn=";
+    if (strncmp(arg, flyTurnPrefix, strlen(flyTurnPrefix)) == 0) {
+        gDevFly = true;
+        gDevFlyTurn = strtod(arg + strlen(flyTurnPrefix), nullptr);
+        return true;
+    }
+    const char* flyDistancePrefix = "--dev-fly-distance=";
+    if (strncmp(arg, flyDistancePrefix, strlen(flyDistancePrefix)) == 0) {
+        gDevFly = true;
+        gDevFlyDistance = std::clamp(strtod(arg + strlen(flyDistancePrefix), nullptr), 1.0, 200.0);
+        return true;
+    }
+    const char* flyPitchPrefix = "--dev-fly-pitch=";
+    if (strncmp(arg, flyPitchPrefix, strlen(flyPitchPrefix)) == 0) {
+        gDevFly = true;
+        gDevFlyPitch = std::clamp(strtod(arg + strlen(flyPitchPrefix), nullptr), 1.0, 85.0);
+        return true;
+    }
     const char* ambientPrefix = "--dev-ambient=";
     if (strncmp(arg, ambientPrefix, strlen(ambientPrefix)) == 0) {
         gDevAmbient = static_cast<int>(std::clamp(strtol(arg + strlen(ambientPrefix), nullptr, 10), 0L, 65536L));
@@ -880,6 +904,25 @@ void startFlying(bool capture)
     mouseDeviceSetCaptured(capture);
     scene_renderer::setStaticFlyCamera(&gFly);
     setStatus("fly camera: WASD, mouse, Q/E down/up, Shift fast, Ctrl slow; Ctrl+F12 or Esc to land");
+}
+
+// The fly camera circles the floor point it looks at: `turn` degrees round,
+// `pitch` degrees above the floor and `distance` units from it, each when
+// above 0.
+void circleFlight(double turn, double pitch, double distance)
+{
+    float forward[3], right[3];
+    scene_renderer::staticFlyCameraAxes(gFly, forward, right);
+    if (!(forward[1] < -0.01f)) return;
+    const float reach = -gFly.eye[1] / forward[1];
+    const float target[3] = { gFly.eye[0] + forward[0] * reach, 0.0f, gFly.eye[2] + forward[2] * reach };
+    constexpr double kRadians = 3.14159265358979323846 / 180.0;
+    gFly.yaw += static_cast<float>(turn * kRadians);
+    if (pitch > 0.0) gFly.pitch = static_cast<float>(-pitch * kRadians);
+    scene_renderer::staticFlyCameraAxes(gFly, forward, right);
+    const float away = distance > 0.0 ? static_cast<float>(distance) : reach;
+    for (int i = 0; i < 3; i++) gFly.eye[i] = target[i] - forward[i] * away;
+    scene_renderer::setStaticFlyCamera(&gFly);
 }
 
 // One step of the flight: the mouse turns, the keys move, by the time since
@@ -1355,6 +1398,9 @@ void scenePresented(const scene::RefreshResult& refreshed)
     if (refreshed.heroUpdated && gDevFly && !gFlying) {
         gDevFly = false;
         startFlying(false);
+        if (gFlying && (gDevFlyTurn != 0.0 || gDevFlyPitch > 0.0 || gDevFlyDistance > 0.0)) {
+            circleFlight(gDevFlyTurn, gDevFlyPitch, gDevFlyDistance);
+        }
         return; // the snapshot comes with the next frame, from the air
     }
     if (refreshed.heroUpdated && gSnapshotOncePending) {

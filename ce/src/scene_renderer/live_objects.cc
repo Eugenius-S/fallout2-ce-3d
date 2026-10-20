@@ -1,5 +1,7 @@
 #include "live_objects.h"
 
+#include <cmath>
+
 #include "gl_api.h"
 #include "scene_internal.h"
 #include "static_scene.h"
@@ -52,6 +54,25 @@ void destroyStaticObjectTextures()
 } // namespace
 
 namespace internal {
+
+void faceFlyCamera(SpriteCardVertex corners[4])
+{
+    double rightX, rightZ;
+    if (!flyCameraRight(&rightX, &rightZ)) return;
+    // The card's lean cancels out between its top and bottom corners: their
+    // middle is the footprint's, and the left edge's middle is half the
+    // card's width from it.
+    const double middleX = (corners[0].x + corners[1].x + corners[2].x + corners[3].x) / 4.0;
+    const double middleZ = (corners[0].z + corners[1].z + corners[2].z + corners[3].z) / 4.0;
+    const double leftX = (corners[0].x + corners[1].x) / 2.0 - middleX;
+    const double leftZ = (corners[0].z + corners[1].z) / 2.0 - middleZ;
+    const double half = std::sqrt(leftX * leftX + leftZ * leftZ);
+    for (int index = 0; index < 4; index++) {
+        const double side = index < 2 ? -half : half;
+        corners[index].x = middleX + rightX * side;
+        corners[index].z = middleZ + rightZ * side;
+    }
+}
 
 void destroyStaticHero()
 {
@@ -116,6 +137,7 @@ bool updateStaticHero(const StaticHeroFrame& frame, std::string* error)
     if (!standingSpriteCard(cardProjection(), art, corners, &worldU, &worldV)) {
         return fail("hero card anchor or height is not finite");
     }
+    faceFlyCamera(corners);
     const double row = spriteRowPlane(cardProjection(), frame.tile, frame.stack);
     const StaticPreviewCamera camera = staticPreviewCamera(true);
     const DepthVertex topLeft = cardVertex(corners[0], row, camera.eye);
@@ -191,6 +213,8 @@ bool addStaticObject(const StaticObjectFrame& frame, std::string* error)
         if (!flatSpriteCard(cardProjection(), art, kFlatObjectHeight, corners)) return fail("flat object card is invalid");
     } else if (!standingSpriteCard(cardProjection(), art, corners, nullptr, nullptr)) {
         return fail("object card is invalid");
+    } else {
+        faceFlyCamera(corners);
     }
     const double row = frame.flat ? 0.0 : spriteRowPlane(cardProjection(), frame.tile, frame.stack);
     const StaticPreviewCamera camera = staticPreviewCamera(true);
