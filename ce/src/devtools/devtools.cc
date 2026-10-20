@@ -834,23 +834,32 @@ Uint64 gFlyLast = 0;
 int gFlyCenterTile = -1; // the game's view, put back when the flight ends
 char gFlyMap[16] = {}; // on this map and elevation only
 int gFlyElevation = -1;
+bool gFlyRestorePending = false; // landed inside a frame: the view goes back at the next update
 
 constexpr float kFlySpeed = 6.0f; // units a second
 constexpr float kFlyTurn = 0.0025f; // radians a mouse count
 constexpr float kFlyPitchLimit = 1.5f;
 
-// `restoreView`: the game's view goes back where it was (not while a frame
-// is being presented: that would redraw the map inside it).
+// The game's view goes back where it was before the flight, on the same map.
+void restoreFlightView()
+{
+    gFlyRestorePending = false;
+    const bool sameMap = gFlyElevation == gElevation && strncmp(gFlyMap, gMapHeader.name, sizeof(gFlyMap)) == 0;
+    if (sameMap && gFlyCenterTile >= 0 && gCenterTile != gFlyCenterTile) {
+        tileSetCenter(gFlyCenterTile, TILE_SET_CENTER_REFRESH_WINDOW);
+    }
+}
+
+// `restoreView`: the view goes back now; otherwise (a frame is being
+// presented, and redrawing the map inside it is not safe) at the next update.
 void stopFlying(const char* status, bool restoreView)
 {
     if (!gFlying) return;
     gFlying = false;
     scene_renderer::setStaticFlyCamera(nullptr);
     mouseDeviceSetCaptured(false);
-    const bool sameMap = gFlyElevation == gElevation && strncmp(gFlyMap, gMapHeader.name, sizeof(gFlyMap)) == 0;
-    if (restoreView && sameMap && gFlyCenterTile >= 0 && gCenterTile != gFlyCenterTile) {
-        tileSetCenter(gFlyCenterTile, TILE_SET_CENTER_REFRESH_WINDOW);
-    }
+    if (restoreView) restoreFlightView();
+    else gFlyRestorePending = true;
     setStatus(status);
 }
 
@@ -863,6 +872,7 @@ void startFlying(bool capture)
         return;
     }
     gFlying = true;
+    gFlyRestorePending = false;
     gFlyLast = SDL_GetPerformanceCounter();
     gFlyCenterTile = gCenterTile;
     strncpy(gFlyMap, gMapHeader.name, sizeof(gFlyMap));
@@ -876,6 +886,7 @@ void startFlying(bool capture)
 // the last step.
 void fly()
 {
+    if (gFlyRestorePending) restoreFlightView();
     if (!gFlying) return;
     if (scene::activeView() != scene::View::Full || !scene::shouldPresent()) {
         stopFlying("fly camera landed: the 3D scene is not shown", true);
