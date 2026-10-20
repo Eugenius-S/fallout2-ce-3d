@@ -47,3 +47,8 @@ The sharp text layer (task 025); the panel uses the game's text drawing now.
 Done: Claimed task 017 after task 016 merged to main at `0c123c9e`. Reviewed the existing preferences screen and `OptionsSettingsModel`; the accepted implementation plan keeps the legacy page in a 640-pixel offscreen canvas, scrolls the content through a clipped viewport, and pins the existing footer.
 Next: Add optional numeric range metadata and complete the descriptor/model layer with focused tests before integrating the scrollable UI.
 Check: Fresh worktree is based on `origin/main` at `0c123c9e`; ignored build and private scene cache were preserved across checkout recreation. No implementation changes yet.
+
+### 2026-10-20 gpt
+Done: Added optional numeric range metadata to setting descriptors and schema parsing, projected staged settings into ordered panel rows by section and value type, and synchronized the registered apply policy for all three zoom settings. Added focused schema, row projection, and zoom apply-policy tests.
+Next: Wait for owner review of this model-layer patch before integrating scroll, rendering, and input into the preferences window.
+Check: Release build and CTest pass, 11/11 tests.

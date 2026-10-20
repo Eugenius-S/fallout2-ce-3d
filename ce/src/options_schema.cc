@@ -128,6 +128,17 @@ namespace {
         return true;
     }
 
+    bool parseFiniteDouble(const std::string& raw, double* value)
+    {
+        std::string trimmed = trim(raw);
+        char* end;
+        errno = 0;
+        double number = std::strtod(trimmed.c_str(), &end);
+        if (errno != 0 || end == trimmed.c_str() || *end != '\0' || !std::isfinite(number)) return false;
+        *value = number;
+        return true;
+    }
+
     bool parseSettingValue(const std::string& raw, SettingValueType type, SettingValue* value)
     {
         std::string trimmed = trim(raw);
@@ -244,10 +255,41 @@ bool optionsSchemaParseSection(Config* config, const char* sectionName, SettingD
     if (descriptor.valueType == SettingValueType::Choice && descriptor.choices.empty()) return false;
     if (descriptor.valueType != SettingValueType::Choice && !descriptor.choices.empty()) return false;
 
+    char* minimumStr = nullptr;
+    char* maximumStr = nullptr;
+    char* stepStr = nullptr;
+    bool hasMinimum = configGetString(config, sectionName, "min", &minimumStr) && minimumStr != nullptr;
+    bool hasMaximum = configGetString(config, sectionName, "max", &maximumStr) && maximumStr != nullptr;
+    bool hasStep = configGetString(config, sectionName, "step", &stepStr) && stepStr != nullptr;
+    if (hasMinimum != hasMaximum || (hasStep && !hasMinimum)) return false;
+    if (hasMinimum) {
+        if (descriptor.valueType != SettingValueType::Integer && descriptor.valueType != SettingValueType::Real) return false;
+
+        SettingNumericRange range {};
+        if (!parseFiniteDouble(minimumStr, &range.minimum)
+            || !parseFiniteDouble(maximumStr, &range.maximum)
+            || range.minimum >= range.maximum) return false;
+        if (hasStep) {
+            double step;
+            if (!parseFiniteDouble(stepStr, &step) || step <= 0.0) return false;
+            range.step = step;
+        }
+        if (descriptor.valueType == SettingValueType::Integer
+            && (std::floor(range.minimum) != range.minimum || std::floor(range.maximum) != range.maximum
+                || (range.step.has_value() && std::floor(*range.step) != *range.step))) return false;
+        descriptor.numericRange = range;
+    }
+
     char* defStr = nullptr;
     if (!configGetString(config, sectionName, "default", &defStr)
         || defStr == nullptr
         || !parseDescriptorValue(defStr, descriptor, &descriptor.defaultValue)) return false;
+    if (descriptor.numericRange.has_value()) {
+        double defaultValue = descriptor.valueType == SettingValueType::Integer
+            ? static_cast<double>(std::get<int>(descriptor.defaultValue))
+            : std::get<double>(descriptor.defaultValue);
+        if (defaultValue < descriptor.numericRange->minimum || defaultValue > descriptor.numericRange->maximum) return false;
+    }
 
     char* vanStr = nullptr;
     if (configGetString(config, sectionName, "vanilla", &vanStr) && vanStr != nullptr) {

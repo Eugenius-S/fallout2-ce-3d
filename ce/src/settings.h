@@ -50,6 +50,12 @@ struct SettingChoice {
     std::string fallbackLabel;
 };
 
+struct SettingNumericRange {
+    double minimum;
+    double maximum;
+    std::optional<double> step;
+};
+
 struct SettingDescriptor {
     std::string id;
     std::string source = "fallout2.cfg";
@@ -71,6 +77,7 @@ struct SettingDescriptor {
     std::string fallbackDescription;
     std::string asset;
     std::vector<SettingChoice> choices;
+    std::optional<SettingNumericRange> numericRange;
     std::optional<SettingValue> vanillaValue;
 };
 
