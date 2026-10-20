@@ -1005,7 +1005,7 @@ void _GNW95_process_message()
         case SDL_MOUSEBUTTONDOWN:
         case SDL_MOUSEBUTTONUP:
         case SDL_MOUSEWHEEL:
-            if (e.type == SDL_MOUSEBUTTONDOWN || e.type == SDL_MOUSEBUTTONUP) {
+            if ((e.type == SDL_MOUSEBUTTONDOWN || e.type == SDL_MOUSEBUTTONUP) && !mouseDeviceIsCaptured()) {
                 inputHandleMouseClickHook(e.button.button, e.type == SDL_MOUSEBUTTONDOWN);
             }
             handleMouseEvent(&e);
@@ -1025,7 +1025,9 @@ void _GNW95_process_message()
             keyboardData.down = (e.key.state & SDL_PRESSED) != 0;
             bool syntheticSfallKey = sfall_kb_consume_synthetic_key_event(keyboardData.key, keyboardData.down);
             if (!keyboardIsDisabled()) {
-                if (!e.key.repeat && !syntheticSfallKey) {
+                // The dev tools' fly camera keeps its keys from script hooks;
+                // the keys still reach the dev tools.
+                if (!e.key.repeat && !syntheticSfallKey && !mouseDeviceIsCaptured()) {
                     int keyOverride = sfall_kb_handle_key_pressed(keyboardData.key, keyboardData.down);
                     if (keyOverride == SDL_SCANCODE_UNKNOWN) {
                         break;

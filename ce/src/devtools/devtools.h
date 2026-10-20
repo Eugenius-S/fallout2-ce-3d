@@ -70,6 +70,11 @@ bool requestMapChange(const char* mapFileName, int elevation);
 
 bool panelOpen();
 bool handleKey(int key);
+// The fly camera lands (a frame is presented without the 3D scene: combat,
+// dialog, a movie).
+void landFlight();
+// A new or loaded game: a view restore queued by the last one is dropped.
+void gameReset();
 bool staticWalkPreviewActive();
 // The dev side of a presented 3D frame, after the scene took the game's state:
 // the frame rate log, the mouse probe and the one-shot snapshot.

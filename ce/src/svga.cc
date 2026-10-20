@@ -523,6 +523,12 @@ void renderPresent()
     // Sprite-lighting mod: the dev panel is drawn into the framebuffer after
     // the game (so it shows in both presentation paths).
     devtools::draw(static_cast<unsigned char*>(gSdlSurface->pixels), gSdlSurface->w, gSdlSurface->h, gSdlSurface->pitch);
+    // A frame without the 3D scene (combat, dialog, ...) lands the fly camera
+    // before the game takes input again.
+    if (scene_renderer::staticFlyCameraActive()
+        && (!scene_renderer::isActive() || !scene::shouldPresent() || scene::activeView() != scene::View::Full)) {
+        devtools::landFlight();
+    }
     if (scene_renderer::isActive()) {
         if (scene::shouldPresent()) {
             // Read the current hero frame at each scene presentation; nested
@@ -531,6 +537,11 @@ void renderPresent()
             const scene::View view = scene::activeView();
             if (view == scene::View::Full) {
                 scene_renderer::drawStaticHeroPreview();
+                // A fly camera shows the world alone.
+                if (scene_renderer::staticFlyCameraActive()) {
+                    scene_renderer::swap();
+                    return;
+                }
                 // The game's interface, mouse cursor and floating text over it.
                 SDL_BlitSurface(gSdlSurface, nullptr, gSdlTextureSurface, nullptr);
                 scene::maskOverlay(static_cast<const unsigned char*>(gSdlSurface->pixels), gSdlSurface->pitch,

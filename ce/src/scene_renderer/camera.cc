@@ -55,6 +55,13 @@ double gameViewDistance()
     return gViewDistance;
 }
 
+bool gFlying = false;
+StaticFlyCamera gFly = {};
+constexpr float kFlyFovY = 50.0f;
+// The game's GL world is the donor's ground reflected (u, z, v): its screen
+// right is reflected too, as the game view's.
+constexpr bool kFlyScreenRight = true;
+
 } // namespace
 
 namespace internal {
@@ -148,6 +155,20 @@ void resetCamera()
     gCameraMoved = 0;
 }
 
+bool flyCameraMvp(float aspect, float* out)
+{
+    if (!gFlying) return false;
+    float forward[3], right[3];
+    staticFlyCameraAxes(gFly, forward, right);
+    const StaticPreviewCamera camera = {
+        { gFly.eye[0], gFly.eye[1], gFly.eye[2] },
+        { gFly.eye[0] + forward[0], gFly.eye[1] + forward[1], gFly.eye[2] + forward[2] },
+        kFlyFovY, 0.05f, 400.0f, kFlyScreenRight,
+    };
+    makeFloorMvp(aspect, camera, out);
+    return true;
+}
+
 } // namespace internal
 
 void setCameraZoom(double zoom)
@@ -159,6 +180,45 @@ void setCameraZoom(double zoom)
 void setStaticViewDistance(double units)
 {
     gViewDistance = units;
+}
+
+void setStaticFlyCamera(const StaticFlyCamera* camera)
+{
+    gFlying = camera != nullptr;
+    if (camera != nullptr) gFly = *camera;
+}
+
+bool staticFlyCameraActive()
+{
+    return gFlying;
+}
+
+void staticFlyCameraAxes(const StaticFlyCamera& camera, float forward[3], float right[3])
+{
+    forward[0] = std::cos(camera.pitch) * std::cos(camera.yaw);
+    forward[1] = std::sin(camera.pitch);
+    forward[2] = std::cos(camera.pitch) * std::sin(camera.yaw);
+    // previewCameraBasis with the reflected screen right.
+    const float length = std::max(std::sqrt(forward[0] * forward[0] + forward[2] * forward[2]), 1e-6f);
+    right[0] = forward[2] / length;
+    right[1] = 0.0f;
+    right[2] = -forward[0] / length;
+}
+
+bool staticGameViewPose(StaticFlyCamera* camera)
+{
+    GameView view;
+    double eye[3], centerX, centerZ;
+    if (!currentGameView(&view) || !gameViewEye(view, eye) || !gameViewCenter(view, &centerX, &centerZ)) return false;
+    const double to[3] = { centerX - eye[0], -eye[1], centerZ - eye[2] };
+    const double length = std::sqrt(to[0] * to[0] + to[1] * to[1] + to[2] * to[2]);
+    if (!(length > 0.0)) return false;
+    // Start three quarters of the way to the ground: the game view's eye is far up its ray.
+    const double start = 0.75;
+    for (int i = 0; i < 3; i++) camera->eye[i] = static_cast<float>(eye[i] + to[i] * start);
+    camera->yaw = static_cast<float>(std::atan2(to[2], to[0]));
+    camera->pitch = static_cast<float>(std::asin(to[1] / length));
+    return true;
 }
 
 StaticPreviewCamera staticPreviewCamera(bool withWalls)

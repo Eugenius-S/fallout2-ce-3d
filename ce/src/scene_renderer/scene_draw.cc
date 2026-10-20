@@ -30,7 +30,8 @@ void drawStaticPreview(bool withWalls, bool withHero)
     float mvp[16];
     const StaticPreviewCamera camera = staticPreviewCamera(withWalls);
     GameView view;
-    if (!withWalls || !currentGameView(&view) || !gameViewMatrix(view, mvp)) {
+    const bool flying = withWalls && flyCameraMvp(static_cast<float>(width) / height, mvp);
+    if (!flying && (!withWalls || !currentGameView(&view) || !gameViewMatrix(view, mvp))) {
         makeFloorMvp(static_cast<float>(width) / height, camera, mvp);
     }
     glEnable(kDepthTest);
@@ -105,7 +106,9 @@ void drawStaticPreview(bool withWalls, bool withHero)
         glDepthMask(1);
     }
 
-    glUniform1i(gSceneDepthAtLocation, 1);
+    // Depth anchors are made for the game camera: a fly camera looks from
+    // anywhere and takes each vertex's own depth.
+    glUniform1i(gSceneDepthAtLocation, flying ? 0 : 1);
     if (withWalls) {
         // Wall faces are seen from outside only, as in the donor's game view.
         glEnable(kCullFace);
@@ -311,7 +314,7 @@ bool captureStaticPreviewPng(const std::filesystem::path& path, bool withWalls, 
     while (glGetError() != 0) {
     }
     drawStaticPreview(withWalls, withHero);
-    if (withHero && gSceneOverlayReady) {
+    if (withHero && gSceneOverlayReady && !staticFlyCameraActive()) {
         // With what the game draws over it, as presented.
         glViewport(0, 0, drawableWidth, drawableHeight);
         glEnable(kBlend);
