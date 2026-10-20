@@ -4,11 +4,45 @@
   "map": "KLACANYN.MAP",
   "elevation": 0,
   "still_snapshot": true,
-  "snapshot_run": "6b638418b21046288ef0653d779253ae",
+  "snapshot_run": "c771578c6e5246898714ddcbdd2d4f7c",
   "view_tile": 15909,
   "preview_requested": true,
   "scene_3d_enabled": true,
   "scene_view": "full",
+  "map_clip": {
+    "enabled": true,
+    "setting_enabled": true,
+    "variant": "authored",
+    "source": "authored",
+    "world_bounds": [
+      -31.541667,
+      -25.5625,
+      17.458333,
+      14.4375
+    ],
+    "planes": [
+      [
+        0.4472136,
+        0.8944272,
+        21.9880009
+      ],
+      [
+        -0.8320503,
+        0.5547002,
+        15.8089552
+      ],
+      [
+        -0.4472136,
+        -0.8944272,
+        5.7392411
+      ],
+      [
+        0.8320503,
+        -0.5547002,
+        21.355957
+      ]
+    ]
+  },
   "camera": "fixed eye=(53.64466,46.23085,63.46700), target=(4.45833,0.00000,-10.31250), fov_y=25.0, near=0.1, far=400.0, screen_right=-cross(forward,world_up)",
   "wall_triangles": 92,
   "wall_pages": 1,
@@ -23,7 +57,7 @@
     ]
   },
   "objects": {
-    "drawn": 2107,
+    "drawn": 2093,
     "skipped": 0
   },
   "preview_availability": "available",
@@ -34,11 +68,11 @@
   "scale": 2,
   "windowed": true,
   "drawable": "1920x1080",
-  "ce_commit": "9b2a4eb",
+  "ce_commit": "5bfbddcc",
   "tools_commit": "-",
-  "exe_sha256": "510fe82cc361a4300a27a085ac49b710b4119072292f47a2741348e8a853750c",
-  "taken": "20261019-195452",
-  "capture_image": "devhero-20261019-195452-000.png",
+  "exe_sha256": "a933abe956a57ed29d393d860aff3b83422df57ec77076d2a1eeda2aad8f4e0e",
+  "taken": "20261020-145056",
+  "capture_image": "devhero-20261020-145056-000.png",
   "spot": {
     "name": "klacanyn-e0",
     "map": "klacanyn",

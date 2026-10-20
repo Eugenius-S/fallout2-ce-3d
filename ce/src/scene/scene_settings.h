@@ -9,6 +9,9 @@ namespace scene {
 bool enabled();
 // Revision for the enabled key only; reads never consume it.
 std::uint64_t settingsRevision();
+bool cleanEdges();
+// Revision for the clean_edges key only; unrelated [3d] edits do not change it.
+std::uint64_t cleanEdgesRevision();
 
 enum class SettingsAction {
     NoChange,

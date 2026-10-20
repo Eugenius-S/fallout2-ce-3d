@@ -1,0 +1,30 @@
+probe Мэйда at (327,81) tile=22678: hit -> Мэйда
+probe Виски Боб at (108,126) tile=22687: hit -> Виски Боб
+probe Ардин at (170,126) tile=22885: hit -> Ардин
+probe Клиент бара at (198,148) tile=23285: hit -> Клиент бара
+probe Сулик at (387,126) tile=23478: hidden -> Стена
+probe Клиент бара at (308,137) tile=23481: hidden -> Стена
+probe Ребенок at (93,243) tile=24092: hit -> Ребенок
+probe Торр at (125,243) tile=24291: hit -> Торр
+probe Альдо at (280,343) tile=25890: hit -> Альдо
+probe Брамин at (496,356) tile=26684: hit -> Брамин
+probe Брамин at (678,318) tile=26877: hit -> Брамин
+probe Брамин at (649,396) tile=27681: hit -> Брамин
+probe critters: hit=10 hidden=2 miss=0
+probe floor at (673,244): tile=25673
+probe hover at (678,318): Брамин
+probe walk target tile=25875 at (642,268)
+probe click: hex cursor tile=25875
+probe click: hero busy=1 tile=25075
+probe after click (frame 200): hero busy=0 tile=25875
+probe after click (frame 400): hero busy=0 tile=25875
+inside movement control passed: hero=25075->25875
+outside probe target=25674 hero=25875
+outside candidate pick=-1 stale=25674 hero=25875 at (956,51)
+outside click: fresh=-1 cursor=25674 hero=25875->25875 busy=0->0
+probe click: hero busy=0 tile=25875
+outside probe result: hero=25875 expected=25875 busy=0
+outside movement rejected
+probe talk target: Альдо at (280,343)
+probe click: hero busy=1 tile=25875
+probe done: hero tile=25889 busy=0 scene=game-mode

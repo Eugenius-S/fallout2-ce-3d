@@ -1,5 +1,6 @@
 #include "scene_view.h"
 
+#include <algorithm>
 #include <ctype.h>
 #include <cmath>
 #include <filesystem>
@@ -16,6 +17,7 @@
 #include "../art.h"
 #include "../devtools/devtools.h"
 #include "../dialog.h"
+#include "../map_edge.h"
 #include "../object.h"
 #include "../scene_renderer/game_view.h"
 #include "../scene_renderer/picking.h"
@@ -27,6 +29,7 @@
 #include "../scene_renderer/camera.h"
 #include "../scene_renderer/live_objects.h"
 #include "../scene_renderer/static_scene.h"
+#include "../scene_renderer/sprite_card.h"
 #include "../settings.h"
 #include "../tile.h"
 
@@ -48,6 +51,12 @@ int gFailedElevation = -1;
 std::string gFailure;
 PreviewBlockReason gLastBlockReason = PreviewBlockReason::None;
 bool gPolicyLogged = false;
+std::uint64_t gCleanEdgesRevision = static_cast<std::uint64_t>(-1);
+std::string gClipMap;
+int gClipElevation = -1;
+std::string gClipFailureMap;
+int gClipFailureElevation = -1;
+std::uint64_t gClipFailureRevision = static_cast<std::uint64_t>(-1);
 
 void stripMapExtension(const char* name, char* out, size_t size)
 {
@@ -90,6 +99,113 @@ std::string currentMapName()
     return name;
 }
 
+scene_renderer::MapClip authoredMapClip()
+{
+    using namespace scene_renderer;
+    const MapClip floorClip = staticFloorMapClip();
+    if (!mapEdgeIsLoaded()) return floorClip;
+    const MapElevation elevation = static_cast<MapElevation>(gElevation);
+
+    if (mapEdgeHasSquareRect(elevation)) {
+        Rect square;
+        mapEdgeGetSquareRect(elevation, &square);
+        if (square.left < 0 || square.left > 99 || square.right < 0 || square.right > 99
+            || square.top < 0 || square.top > 99 || square.bottom < 0 || square.bottom > 99) return floorClip;
+        const double left = std::min(square.left, square.right) - 50.0;
+        const double right = std::max(square.left, square.right) + 1.0 - 50.0;
+        const double top = std::min(square.top, square.bottom) - 50.0;
+        const double bottom = std::max(square.top, square.bottom) + 1.0 - 50.0;
+        return makeMapClipRect(left, top, right, bottom, MapClipSource::Authored);
+    }
+
+    const EdgeElevationData& data = mapEdgeGetElevationData(elevation);
+    if (data.zones.empty()) return floorClip;
+    int minX = 0, maxX = 0, minY = 0, maxY = 0;
+    bool haveZone = false;
+    for (const EdgeZone& zone : data.zones) {
+        const int left = std::min(zone.pixelRect.left, zone.pixelRect.right);
+        const int right = std::max(zone.pixelRect.left, zone.pixelRect.right);
+        const int top = std::min(zone.pixelRect.top, zone.pixelRect.bottom);
+        const int bottom = std::max(zone.pixelRect.top, zone.pixelRect.bottom);
+        if (left == right || top == bottom) continue;
+        if (!haveZone) {
+            minX = left; maxX = right; minY = top; maxY = bottom;
+            haveZone = true;
+        } else {
+            minX = std::min(minX, left); maxX = std::max(maxX, right);
+            minY = std::min(minY, top); maxY = std::max(maxY, bottom);
+        }
+    }
+    if (!haveZone) return floorClip;
+
+    // EDG v1 offsets are a different map coordinate origin and have opposite X
+    // handedness from game pixels. Anchor at the same known hex, then apply the
+    // game's own projection inverse to ground. Envelope zones before conversion
+    // so walking across a zone never changes the cut.
+    int anchorEdgeX = 0, anchorEdgeY = 0;
+    tileToPixelOffset(0, anchorEdgeX, anchorEdgeY);
+    double anchorGame[2];
+    gameViewTilePixel(0, anchorGame);
+    const double edgeCorners[4][2] = {
+        { static_cast<double>(minX), static_cast<double>(minY) },
+        { static_cast<double>(maxX), static_cast<double>(minY) },
+        { static_cast<double>(maxX), static_cast<double>(maxY) },
+        { static_cast<double>(minX), static_cast<double>(maxY) },
+    };
+    SpriteCardProjection projection;
+    if (!scene_renderer::currentGameProjection(&projection)) return floorClip;
+    MapClipPoint points[4];
+    for (int index = 0; index < 4; index++) {
+        double gameX = 0.0, gameY = 0.0;
+        edgeOffsetToGamePixel(edgeCorners[index][0], edgeCorners[index][1], anchorEdgeX, anchorEdgeY,
+            anchorGame[0], anchorGame[1], &gameX, &gameY);
+        if (!spritePixelToGround(projection, gameX, gameY, &points[index].x, &points[index].z)) return floorClip;
+    }
+    const MapClip authored = makeMapClip(points, MapClipSource::Authored);
+    return authored.enabled ? authored : floorClip;
+}
+
+void updateMapClip()
+{
+    if (gLoadedMap.empty() || gLoadedMap != currentMapName() || gLoadedElevation != static_cast<int>(gElevation)) {
+        scene_renderer::setStaticMapClip({});
+        gClipMap.clear();
+        gClipElevation = -1;
+        return;
+    }
+    const std::uint64_t revision = cleanEdgesRevision();
+    if (gClipMap == gLoadedMap && gClipElevation == gLoadedElevation && gCleanEdgesRevision == revision) return;
+    scene_renderer::MapClip clip;
+    if (cleanEdges()) {
+        const char* requested = devtools::isEnabled() ? SDL_getenv("F2CE_DEV_CLEAN_EDGES") : nullptr;
+        if (requested != nullptr && compat_stricmp(requested, "floor") == 0) {
+            clip = scene_renderer::staticFloorMapClip();
+        } else {
+            clip = authoredMapClip();
+        }
+    }
+    scene_renderer::setStaticMapClip(clip);
+    if (cleanEdges() && !clip.enabled
+        && (gClipFailureMap != gLoadedMap || gClipFailureElevation != gLoadedElevation
+            || gClipFailureRevision != revision)) {
+        const char* reason = "no valid authored edge rectangle or floor envelope";
+        printf("scene: %s elevation %d clean map edges disabled: %s\n",
+            gLoadedMap.c_str(), gLoadedElevation, reason);
+        fflush(stdout);
+        if (FILE* log = fopen("scene.log", "a")) {
+            fprintf(log, "scene: %s elevation %d clean map edges disabled: %s\n",
+                gLoadedMap.c_str(), gLoadedElevation, reason);
+            fclose(log);
+        }
+        gClipFailureMap = gLoadedMap;
+        gClipFailureElevation = gLoadedElevation;
+        gClipFailureRevision = revision;
+    }
+    gClipMap = gLoadedMap;
+    gClipElevation = gLoadedElevation;
+    gCleanEdgesRevision = revision;
+}
+
 // Loads what `view` needs of the current map's scene.
 bool loadScene(View view, const std::string& map, int elevation, std::string* message)
 {
@@ -113,6 +229,15 @@ bool loadScene(View view, const std::string& map, int elevation, std::string* me
         *message = "hero projection unavailable: " + error;
         return false;
     }
+    if (view == View::Full) {
+        scene_renderer::SpriteCardProjection projection;
+        if (scene_renderer::currentGameProjection(&projection)) {
+            scene_renderer::setStaticFloorMapProjection(projection);
+        }
+    }
+    gClipMap.clear(); // Full loads add the projection needed to convert legacy EDG pixels.
+    gClipElevation = -1;
+    gCleanEdgesRevision = static_cast<std::uint64_t>(-1);
     return true;
 }
 
@@ -253,6 +378,7 @@ void syncToMap()
         gFreeScroll = active;
         resetHeroLog();
     }
+    updateMapClip();
 }
 
 void syncSettings(bool suppressInitialEnable)

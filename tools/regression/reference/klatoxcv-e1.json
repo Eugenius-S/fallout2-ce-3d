@@ -4,13 +4,47 @@
   "map": "KLATOXCV.MAP",
   "elevation": 1,
   "still_snapshot": true,
-  "snapshot_run": "2bb890dbb20b4bcf8a96954571e01d18",
+  "snapshot_run": "2d86bd9d90ff4bcdae0b6e9191d27a66",
   "view_tile": 19091,
   "preview_requested": true,
   "scene_3d_enabled": true,
   "scene_view": "full",
+  "map_clip": {
+    "enabled": true,
+    "setting_enabled": true,
+    "variant": "authored",
+    "source": "authored",
+    "world_bounds": [
+      -42.041667,
+      -41.3125,
+      41.958333,
+      33.1875
+    ],
+    "planes": [
+      [
+        0.4472136,
+        0.8944272,
+        32.7211266
+      ],
+      [
+        -0.8320503,
+        0.5547002,
+        30.7858601
+      ],
+      [
+        -0.4472136,
+        -0.8944272,
+        25.4166393
+      ],
+      [
+        0.8320503,
+        -0.5547002,
+        26.348259
+      ]
+    ]
+  },
   "camera": "fixed eye=(44.64466,46.23085,71.46700), target=(-4.54167,0.00000,-2.31250), fov_y=25.0, near=0.1, far=400.0, screen_right=-cross(forward,world_up)",
-  "wall_triangles": 7816,
+  "wall_triangles": 6936,
   "wall_pages": 1,
   "hero": {
     "tile": 18531,
@@ -23,7 +57,7 @@
     ]
   },
   "objects": {
-    "drawn": 2018,
+    "drawn": 1997,
     "skipped": 0
   },
   "preview_availability": "available",
@@ -34,11 +68,11 @@
   "scale": 2,
   "windowed": true,
   "drawable": "1920x1080",
-  "ce_commit": "198894a9",
+  "ce_commit": "5bfbddcc",
   "tools_commit": "-",
-  "exe_sha256": "22bf5f8dd775c9270adbd148f1db3dbea1bbf59043a9e3c07d332adf80913da9",
-  "taken": "20261020-131701",
-  "capture_image": "devhero-20261020-131701-000.png",
+  "exe_sha256": "a933abe956a57ed29d393d860aff3b83422df57ec77076d2a1eeda2aad8f4e0e",
+  "taken": "20261020-145214",
+  "capture_image": "devhero-20261020-145214-000.png",
   "spot": {
     "name": "klatoxcv-e1",
     "map": "klatoxcv",

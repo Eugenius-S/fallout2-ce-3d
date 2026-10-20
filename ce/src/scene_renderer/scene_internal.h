@@ -158,6 +158,8 @@ extern int gSceneTranslucentLocation;
 extern int gSceneTintLocation;
 extern int gSceneGlassGrayLocation;
 extern int gScenePickLocation;
+extern int gSceneClipEnabledLocation;
+extern int gSceneClipPlaneLocations[4];
 // The see-through circle (roofs.cc): on/off, its mask (texture unit 1), its
 // rect in game logical pixels, and the GL viewport and logical size to find
 // a fragment's game pixel.

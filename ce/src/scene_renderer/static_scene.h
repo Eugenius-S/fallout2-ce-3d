@@ -5,8 +5,12 @@
 #include <string>
 #include <vector>
 
+#include "map_clip.h"
+
 namespace fallout {
 namespace scene_renderer {
+
+struct SpriteCardProjection;
 
 // The exported scene of one map elevation, from one cache directory: the
 // versioned floor.bin sidecar with tiles.png, and walls.bin with its atlas
@@ -17,6 +21,11 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
 // so another map's can be loaded.
 void unloadStaticScene();
 void staticWallStats(unsigned int* triangles, unsigned int* pages);
+MapClip staticFloorMapClip();
+bool setStaticFloorMapProjection(const SpriteCardProjection& projection);
+void setStaticMapClip(const MapClip& clip);
+MapClip staticMapClip();
+void bindStaticMapClipUniforms();
 
 // Which roof squares the game shows now: 100 x 100 bytes in the engine's
 // square order (y * 100 + x), nonzero shown.

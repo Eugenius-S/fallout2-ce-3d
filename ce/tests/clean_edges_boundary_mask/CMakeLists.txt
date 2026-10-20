@@ -1,0 +1,5 @@
+project(clean_edges_boundary_mask_tests LANGUAGES CXX)
+
+add_executable(clean_edges_boundary_mask_tests clean_edges_boundary_mask_test.cc)
+target_include_directories(clean_edges_boundary_mask_tests PRIVATE ../../src/scene)
+add_test(NAME clean_edges_boundary_mask_tests COMMAND clean_edges_boundary_mask_tests)

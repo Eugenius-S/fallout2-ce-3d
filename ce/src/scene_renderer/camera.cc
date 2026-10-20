@@ -177,6 +177,13 @@ void setCameraZoom(double zoom)
     gZoom = zoom;
 }
 
+bool currentGameProjection(SpriteCardProjection* projection)
+{
+    if (!internal::gHeroProjectionLoaded || projection == nullptr) return false;
+    *projection = internal::cardProjection();
+    return true;
+}
+
 void setStaticViewDistance(double units)
 {
     gViewDistance = units;
