@@ -86,7 +86,9 @@ The body has `Goal`, `Context`, `Acceptance`, `Out of scope` and `Log`.
 3. Otherwise ask the board: `tools/tasks.ps1 -Next <you>` prints the one
    free task to take (its file and branch name), applying the rule: `todo`,
    all `depends-on` are `done`, not `claude-only` (unless you are claude),
-   the ones `suggested` for you first.
+   the ones `suggested` for you first. `suggested` is a preference: if that
+   agent is out of limits, take the task. One agent works at a time; do not
+   split a task between agents running at once.
 4. Claim it on `main`, so the board shows it taken: set `status: doing` and
    `owner: <you>`, commit `task NNN: start`, push `main`. Then create the
    branch `task/NNN-slug` and push it.

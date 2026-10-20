@@ -5,7 +5,7 @@ milestone: M1
 status: todo
 owner: none
 suggested: claude
-claude-only: yes
+claude-only: no
 user-check: yes
 depends-on: [013, 020, 034]
 reviewed: no
@@ -14,13 +14,17 @@ reviewed: no
 ## Goal
 
 A sun that moves across the sky with game time and casts sharp shadows from
-buildings, roofs and solids; characters darken in shadow.
+buildings and big things; characters darken in shadow.
 
 ## Context
 
 - Game time comes from the engine; it jumps on waiting, travel and save load.
 - Walls, roofs and furniture solids are geometry; character sprites cast no
   shadows.
+- Casters, by the owner (2026-10-20, `docs/2026-10-20-shapes-and-rotation-design.md`):
+  walls with their backs and ends, roofs, doors, and big solids (at least two
+  hexes across or taller than half a wall). Small things cast no sun shadow
+  and keep the shadows painted into their art. This narrows the Plan below.
 - What a hidden roof does to shadows is decided in task 013.
 
 ## Plan (claude, 2026-10-19)

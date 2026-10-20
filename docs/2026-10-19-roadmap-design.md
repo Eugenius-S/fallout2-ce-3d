@@ -34,7 +34,7 @@ face the camera).
 |---|---|
 | Graphics API | OpenGL 4.1 core, the macOS ceiling: no compute shaders, no SSBOs. DLSS later through OpenGL-Vulkan interop on NVIDIA. |
 | First milestone | A vertical slice: all seven Klamath maps brought to the final look before scaling to the whole game. |
-| Camera rotation | Later (M5); sprites will always face the camera. |
+| Camera rotation | An option, off by default, in 90-degree steps; things get their shapes by an algorithm ([design](2026-10-20-shapes-and-rotation-design.md)). |
 | Language | Everything in the repository in English: code, docs, tasks, handoff notes, commits, PRs. |
 | Visibility | The repository becomes public after a history audit (task 005); the owner flips the switch. |
 
