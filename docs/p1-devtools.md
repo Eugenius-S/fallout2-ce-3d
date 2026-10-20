@@ -92,6 +92,8 @@ from the air. `dev-snapshot.ps1 -Fly` (`--dev-fly`) takes one from where the
 camera takes off; `-FlyTurn D -FlyPitch D -FlyDistance U` (`--dev-fly-turn=`,
 `--dev-fly-pitch=`, `--dev-fly-distance=`) first circle it round the point it
 looks at: D degrees round, D degrees above the floor, U units from it.
+`-Turn N` (`--dev-camera-turn=N`) takes the snapshot with the 3D camera N
+quarter turns round, as `[3d] camera_rotation` turns it with [ and ].
 `-Solo R` (`--dev-solo=TILE,R`, TILE is `-ViewTile`) draws only the things
 within R hexes of it, without walls or roofs (the hero stays: the fly camera needs it): one thing seen alone
 from every side (the shapes eval, `tools/shapes/eval/eval.py`).

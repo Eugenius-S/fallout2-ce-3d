@@ -460,6 +460,78 @@ void setCameraGlide(bool glide)
     gCameraGlide = glide;
 }
 
+namespace {
+
+double gTurnAt = 0.0; // degrees round, where the camera is
+double gTurnTo = 0.0; // and where it goes
+bool gTurnOwnsCamera = false;
+Uint64 gTurnLast = 0;
+scene_renderer::StaticFlyCamera gTurnPose = {};
+constexpr double kTurnSpeed = 360.0; // degrees a second: a quarter turn in a quarter of a second
+
+void landCameraTurn()
+{
+    gTurnAt = gTurnTo = 0.0;
+    if (gTurnOwnsCamera) scene_renderer::setStaticFlyCamera(nullptr);
+    gTurnOwnsCamera = false;
+}
+
+} // namespace
+
+bool turnCamera(int steps)
+{
+    if (!settings.scene3d.camera_rotation || steps == 0) return false;
+    if (activeView() != View::Full || !shouldPresent()) return false;
+    if (scene_renderer::staticFlyCameraActive() && !gTurnOwnsCamera) return false; // the dev fly camera
+    gTurnTo += 90.0 * steps;
+    return true;
+}
+
+void setCameraTurnNow(int steps)
+{
+    gTurnAt = gTurnTo = 90.0 * steps;
+    gTurnLast = 0;
+}
+
+bool cameraTurned()
+{
+    return gTurnOwnsCamera;
+}
+
+void updateCameraTurn()
+{
+    if (!gTurnOwnsCamera && gTurnAt == 0.0 && gTurnTo == 0.0) return;
+    if (activeView() != View::Full || !shouldPresent()
+        || (scene_renderer::staticFlyCameraActive() && !gTurnOwnsCamera)) {
+        landCameraTurn();
+        return;
+    }
+    const Uint64 now = SDL_GetPerformanceCounter();
+    const double seconds = gTurnLast == 0 ? 0.0
+        : static_cast<double>(now - gTurnLast) / static_cast<double>(SDL_GetPerformanceFrequency());
+    gTurnLast = now;
+    const double step = std::min(kTurnSpeed * seconds, std::abs(gTurnTo - gTurnAt));
+    gTurnAt += gTurnTo > gTurnAt ? step : -step;
+    if (gTurnAt == gTurnTo && std::fmod(gTurnTo, 360.0) == 0.0) {
+        landCameraTurn();
+        return;
+    }
+    // The game's view, circled round the floor point it looks at.
+    scene_renderer::StaticFlyCamera pose;
+    if (!scene_renderer::staticGameViewCamera(&pose)) return;
+    float forward[3], right[3];
+    scene_renderer::staticFlyCameraAxes(pose, forward, right);
+    if (!(forward[1] < -0.01f)) return;
+    const float reach = -pose.eye[1] / forward[1];
+    const float target[3] = { pose.eye[0] + forward[0] * reach, 0.0f, pose.eye[2] + forward[2] * reach };
+    pose.yaw += static_cast<float>(gTurnAt * 3.14159265358979323846 / 180.0);
+    scene_renderer::staticFlyCameraAxes(pose, forward, right);
+    for (int i = 0; i < 3; i++) pose.eye[i] = target[i] - forward[i] * reach;
+    gTurnPose = pose;
+    scene_renderer::setStaticFlyCamera(&gTurnPose);
+    gTurnOwnsCamera = true;
+}
+
 void adjustZoom(int steps)
 {
     if (steps == 0) return;

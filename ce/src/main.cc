@@ -472,6 +472,7 @@ static void mainLoop()
         // applied here - after a completed mapHandleTransition, in the main
         // loop (never from the draw path, which also runs during loads).
         devtools::update();
+        scene::updateCameraTurn();
         if (devtools::sceneStartupReady()) {
             scene::syncSettings(devtools::suppressInitialSceneEnable());
         }

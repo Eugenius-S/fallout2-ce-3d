@@ -46,6 +46,7 @@ struct StaticFlyCamera {
     float eye[3];
     float yaw;
     float pitch;
+    float fovY = 0.0f; // degrees; 0: the fly camera's own
 };
 
 // nullptr: back to the game view.
@@ -54,6 +55,9 @@ bool staticFlyCameraActive();
 // Where the game view looks from and at (GL), as a fly camera's start; false
 // before the view is known.
 bool staticGameViewPose(StaticFlyCamera* camera);
+// The game view's camera itself: its eye and field of view (camera rotation
+// circles it).
+bool staticGameViewCamera(StaticFlyCamera* camera);
 // The direction a fly camera looks in, and its screen right, in GL world.
 void staticFlyCameraAxes(const StaticFlyCamera& camera, float forward[3], float right[3]);
 

@@ -438,6 +438,10 @@ void initSettingsRegistry(bool isMapper)
         "Show the 3D world view where a scene is available.", SettingApplyPolicy::OnClose);
     registerThreeDBoolean("clean_edges", settings.scene3d.clean_edges, "Clean map edges",
         "Cut the 3D scene to the map boundary, leaving black beyond it.", SettingApplyPolicy::OnClose);
+    registerThreeDBoolean("camera_rotation", settings.scene3d.camera_rotation, "Camera rotation (experimental)",
+        "[ and ] turn the 3D camera round the view in steps of 90 degrees, at your own risk. "
+        "A turned view is for looking only: the game takes no clicks until the camera is back.",
+        SettingApplyPolicy::OnClose);
 
     registerSetting("3d", "lights", settings.scene3d.lights);
     SettingDescriptor& lightsDescriptor = settingDescriptors.back();

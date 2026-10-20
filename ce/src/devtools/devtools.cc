@@ -105,6 +105,7 @@ bool gDevFly = false; // --dev-fly: the fly camera takes off at the first 3D fra
 // the point it looks at, D degrees round, D degrees above the floor, U units
 // from it (a side view of a thing).
 double gDevFlyTurn = 0.0;
+int gDevCameraTurn = 0; // --dev-camera-turn=N: the 3D camera N quarter turns round before the snapshot
 double gDevFlyPitch = -1.0;
 double gDevFlyDistance = -1.0;
 int gViewTile = -1;
@@ -695,6 +696,11 @@ bool parseOption(const char* arg)
     if (strncmp(arg, flyTurnPrefix, strlen(flyTurnPrefix)) == 0) {
         gDevFly = true;
         gDevFlyTurn = strtod(arg + strlen(flyTurnPrefix), nullptr);
+        return true;
+    }
+    const char* cameraTurnPrefix = "--dev-camera-turn=";
+    if (strncmp(arg, cameraTurnPrefix, strlen(cameraTurnPrefix)) == 0) {
+        gDevCameraTurn = static_cast<int>(strtol(arg + strlen(cameraTurnPrefix), nullptr, 10)) % 4;
         return true;
     }
     const char* flyDistancePrefix = "--dev-fly-distance=";
@@ -1603,6 +1609,11 @@ void scenePresented(const scene::RefreshResult& refreshed)
     if (refreshed.heroUpdated && gPickProbeStage > 0) {
         runPickProbe();
         return;
+    }
+    if (refreshed.heroUpdated && gDevCameraTurn != 0) {
+        scene::setCameraTurnNow(gDevCameraTurn);
+        gDevCameraTurn = 0;
+        return; // the snapshot comes with a later frame, turned
     }
     if (refreshed.heroUpdated && gDevFly && !gFlying) {
         gDevFly = false;
