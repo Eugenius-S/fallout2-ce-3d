@@ -2,8 +2,8 @@
 id: 040
 title: The shapes that still fail the eval
 milestone: M1
-status: doing
-owner: claude
+status: todo
+owner: none
 suggested: claude
 claude-only: no
 user-check: yes
@@ -96,3 +96,10 @@ allows 1.6), is one, for the fly camera only like the boxes by name. It passes
 Left: the chair as a box with a back, the heap of crates, the notice board,
 the car, the cave brace.
 Check: `py -3 tools/shapes/eval/eval.py score`.
+
+### 2026-10-20 claude (handed over)
+Free for any agent: claude is out of limits until the weekly reset. Parts 1 to
+4 are merged (#42, #43, #44); the eval is 35/40. What is left and why is in
+the entries above. Work from a fresh branch off main; the eval's views come
+from the worktree's own export (`export.py ... --cache-root build/scene-cache`,
+then `eval.py shoot --only <frm>`, `eval.py sheets`, `eval.py score`).

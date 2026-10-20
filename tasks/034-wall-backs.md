@@ -2,7 +2,7 @@
 id: 034
 title: Walls with a back, ends and bridges
 milestone: M1
-status: doing
+status: done
 owner: claude
 suggested: claude
 claude-only: no
@@ -58,3 +58,7 @@ Evidence in `runs/034-wall-backs/`: the house with the bed from behind, before
 Next: merge after PR #35, export Klamath into `game/mod-cache`.
 Check: `py -m unittest discover -s tools/scene_export`, `tools/regression.ps1`,
 `tools/dev-snapshot.ps1 -HeroTile 17665 -ViewTile 17467 -FlyTurn 180 -FlyPitch 30 -FlyDistance 7`.
+
+### 2026-10-20 claude
+Done: merged in #36; the board still said doing. Klamath was exported into
+`game/mod-cache` after the merge.
