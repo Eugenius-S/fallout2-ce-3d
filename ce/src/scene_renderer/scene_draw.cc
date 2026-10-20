@@ -203,7 +203,7 @@ void drawStaticPreview(bool withWalls, bool withHero)
     }
     glUniform1i(gSceneLightModeLocation, lit ? 4 : 0);
     glUniform1f(gSceneLightValueLocation, lightAmbient());
-    if (withHero) drawRoofs(x, y, width, height);
+    if (withHero && staticSoloKeeps(-1)) drawRoofs(x, y, width, height); // solo: no roofs
     glUniform1i(gSceneLightModeLocation, 0);
     glUniform1i(gSceneDepthAtLocation, 0);
 

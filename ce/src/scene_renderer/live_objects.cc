@@ -117,6 +117,10 @@ bool updateStaticHero(const StaticHeroFrame& frame, std::string* error)
         || frame.rotation < 0 || frame.rotation >= 6) {
         return fail("hero tile, elevation, or rotation is invalid");
     }
+    if (!staticSoloKeeps(frame.tile)) {
+        destroyStaticHero();
+        return true;
+    }
     if (frame.width <= 0 || frame.height <= 0 || frame.width > 2048 || frame.height > 2048
         || frame.objectX < -32768 || frame.objectX > 32768
         || frame.objectY < -32768 || frame.objectY > 32768
@@ -206,6 +210,7 @@ bool addStaticObject(const StaticObjectFrame& frame, std::string* error)
     };
     if (!gInitialized || !gWallsLoaded || !gHeroProjectionLoaded) return fail("static scene is unavailable");
     if (frame.rotation < 0 || frame.rotation >= 6) return fail("object rotation is invalid");
+    if (!staticSoloKeeps(frame.tile)) return true;
     const SpriteCardArt art = { frame.tile, frame.objectX, frame.objectY, frame.artXOffset, frame.artYOffset,
         frame.width, frame.height };
     SpriteCardVertex corners[4];

@@ -741,6 +741,20 @@ bool parseOption(const char* arg)
         }
         return true;
     }
+    // --dev-solo=TILE,R: only the things within R hexes of TILE are drawn (no
+    // walls, no roofs), to look at one thing from every side.
+    const char* soloPrefix = "--dev-solo=";
+    if (strncmp(arg, soloPrefix, strlen(soloPrefix)) == 0) {
+        int tile = -1;
+        int radius = -1;
+        if (sscanf(arg + strlen(soloPrefix), "%d,%d", &tile, &radius) == 2 && tile >= 0 && tile < HEX_GRID_SIZE
+            && radius >= 0) {
+            scene_renderer::setStaticSolo(tile, radius);
+        } else {
+            fprintf(stderr, "devtools: invalid --dev-solo (expected TILE,R)\n");
+        }
+        return true;
+    }
     if (strcmp(arg, "--dev-parallel") == 0) {
         scene_renderer::setStaticViewDistance(9000.0);
         return true;

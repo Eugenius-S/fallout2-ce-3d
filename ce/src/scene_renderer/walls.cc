@@ -33,6 +33,24 @@ struct BakedObject {
 
 unsigned int gWallTriangleCount = 0;
 std::unordered_map<unsigned long long, BakedObject> gBakedObjects;
+int gSoloTile = -1;
+int gSoloRadius = 0;
+
+int soloHexDistance(int tile1, int tile2)
+{
+    // Even-q cube coordinates, as scene_lights.cc counts hexes.
+    const auto cube = [](int tile, int* x, int* z) {
+        const int column = tile % 200;
+        *x = column;
+        *z = tile / 200 - (column + (column & 1)) / 2;
+    };
+    int x1, z1, x2, z2;
+    cube(tile1, &x1, &z1);
+    cube(tile2, &x2, &z2);
+    const int dx = x1 - x2;
+    const int dz = z1 - z2;
+    return std::max({ std::abs(dx), std::abs(dz), std::abs(dx + dz) });
+}
 
 // walls.bin's object table: (tile, fid) -> row, and per row whether the hero
 // stands behind it (this frame and as uploaded).
@@ -91,6 +109,17 @@ bool staticObjectBaked(int tile, int fid)
 {
     const auto found = gBakedObjects.find(bakedObjectKey(tile, fid));
     return found != gBakedObjects.end() && found->second.mode == BakedObject::Skip;
+}
+
+void setStaticSolo(int tile, int radius)
+{
+    gSoloTile = tile;
+    gSoloRadius = radius;
+}
+
+bool staticSoloKeeps(int tile)
+{
+    return gSoloTile < 0 || (tile >= 0 && soloHexDistance(tile, gSoloTile) <= gSoloRadius);
 }
 
 bool staticObjectFlat(int tile, int fid)
@@ -283,9 +312,25 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
         return fail("walls.bin has a truncated object table");
     }
     std::unordered_map<unsigned long long, unsigned int> objectRows;
+    std::vector<bool> soloRows(objectCount, false);
     for (unsigned int row = 0; row < objectCount; row++) {
         const unsigned char* entry = sidecar.data() + offset + row * kObjectSize;
-        objectRows[bakedObjectKey(static_cast<int>(readU32(entry)), static_cast<int>(readU32(entry + 4)))] = row;
+        const int tile = static_cast<int>(readU32(entry));
+        const int fid = static_cast<int>(readU32(entry + 4));
+        objectRows[bakedObjectKey(tile, fid)] = row;
+        soloRows[row] = ((fid >> 24) & 0xF) != 3 && staticSoloKeeps(tile); // 3: walls
+    }
+    if (gSoloTile >= 0) {
+        for (WallBatchData& batch : batches) {
+            std::vector<WallVertex> kept;
+            for (size_t index = 0; index + 2 < batch.vertices.size(); index += 3) {
+                const float object = batch.vertices[index].object;
+                if (object < 0.0f || !soloRows[static_cast<size_t>(object)]) continue;
+                kept.insert(kept.end(), batch.vertices.begin() + index, batch.vertices.begin() + index + 3);
+            }
+            batch.triangleCount = static_cast<unsigned int>(kept.size() / 3);
+            batch.vertices = std::move(kept);
+        }
     }
     offset += static_cast<size_t>(objectCount) * kObjectSize;
     if (offset != sidecar.size() || observedTriangles != totalTriangles) {
