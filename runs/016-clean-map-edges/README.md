@@ -26,27 +26,27 @@ remain the map's transition triggers; they are not used as map-wide bounds.
 
 ### Active EDG coverage
 
-The same active RPU archive contains one EDG zone at e0 and one at e1 for each
-of the seven Klamath maps below. No e2 EDG record was found. That only describes
-the clipping data: KLARATCV and KLATOXCV still have e2 map fixtures, so a
-missing e2 EDG record must not be read as a missing map elevation. Rectangles
-below are source tile rectangles in `(left, top, right, bottom)` order; the
-KLAGRAZ e0 source rectangle has reversed X endpoints and needs normalization
-before use.
+The active RPU EDG files are version 1. The engine reads each tile rectangle
+followed by its next-elevation indicator; the indicator is not a zone count.
+Parsing with the engine's `map_edge.cc` layout finds one rectangle at each of
+e0, e1, and e2 for all seven maps. Rectangles below are source tile rectangles
+in `(left, top, right, bottom)` order. The KLAGRAZ e0 source rectangle has
+reversed X endpoints and needs normalization before use.
 
-| Map | e0 EDG tile rectangle | e1 EDG tile rectangle | e2 EDG |
+| Map | e0 EDG tile rectangle | e1 EDG tile rectangle | e2 EDG tile rectangle |
 |---|---|---|---|
-| KLACANYN | `(12111, 11684, 19447, 23294)` | `(199, 0, 39800, 39999)` | absent |
-| KLADWTWN | `(13331, 6901, 23253, 25771)` | `(199, 0, 39800, 39999)` | absent |
-| KLAGRAZ | `(21760, 13682, 21278, 26560)` | `(199, 0, 39800, 39999)` | absent |
-| KLAMALL | `(24776, 6704, 29075, 33306)` | `(199, 0, 39800, 39999)` | absent |
-| KLARATCV | `(15561, 13262, 20451, 24149)` | `(12922, 11266, 23452, 30104)` | absent |
-| KLATOXCV | `(18350, 14276, 22465, 27320)` | `(13954, 10451, 20037, 28332)` | absent |
-| KLATRAP | `(17939, 9281, 21063, 27334)` | `(199, 0, 39800, 39999)` | absent |
+| KLACANYN | `(12111, 11684, 19447, 23294)` | `(199, 0, 39800, 39999)` | `(199, 0, 39800, 39999)` |
+| KLADWTWN | `(13331, 6901, 23253, 25771)` | `(199, 0, 39800, 39999)` | `(199, 0, 39800, 39999)` |
+| KLAGRAZ | `(21760, 13682, 21278, 26560)` | `(199, 0, 39800, 39999)` | `(199, 0, 39800, 39999)` |
+| KLAMALL | `(24776, 6704, 29075, 33306)` | `(199, 0, 39800, 39999)` | `(199, 0, 39800, 39999)` |
+| KLARATCV | `(15561, 13262, 20451, 24149)` | `(12922, 11266, 23452, 30104)` | `(17334, 14863, 27665, 29939)` |
+| KLATOXCV | `(18350, 14276, 22465, 27320)` | `(13954, 10451, 20037, 28332)` | `(12506, 10867, 23063, 24897)` |
+| KLATRAP | `(17939, 9281, 21063, 27334)` | `(199, 0, 39800, 39999)` | `(199, 0, 39800, 39999)` |
 
-This is an archive-data audit, not a visual reference for every map. The
-Classic corner captures below currently verify KLADWTWN and KLAMALL only; the
-remaining maps still need runtime boundary review.
+This is an archive-data audit. The matched runtime evidence below covers all
+seven e0 maps and both cave maps at e1. The cave e2 source rectangles are
+confirmed in the current e2 runtime snapshots; the remaining e1/e2 rectangles
+are broad full-map bounds.
 
 ## Runtime references
 
@@ -102,10 +102,42 @@ playable edge as marked by the owner:
 | Corner 3, tile 34493 | [PNG](boundary-reference/klamall/classic-corners/corner-3/scr00107.png), [JSON](boundary-reference/klamall/classic-corners/corner-3/devshot-20261020-094654.json) | - |
 | Corner 4, tile 25780 | [PNG](boundary-reference/klamall/classic-corners/corner-4/scr00108.png), [JSON](boundary-reference/klamall/classic-corners/corner-4/devshot-20261020-094708.json) | - |
 
+### Remaining Klamath edge views on the rebased build
+
+These matched views use the same Release EXE SHA-256
+`ce48a2392c0eeea9e5a818ff88fa2f2c9c7375e0e20c4d1d5586af4639e52ee9`,
+1920x1080 output, and 2x scale. Each authored JSON records the EDG-derived
+four-plane clip and its world bounds. The Classic and authored views share the
+same map, elevation, and view tile.
+
+| Map/elevation and view tile | Classic 2D | Authored 3D | Authored world bounds |
+|---|---|---|---|
+| KLADWTWN e0, 24768 | [PNG](boundary-reference/kladwtwn/matched-edge-rebased/classic/scr00129.png), [JSON](boundary-reference/kladwtwn/matched-edge-rebased/classic/devshot-20261020-141954.json) | [PNG](boundary-reference/kladwtwn/matched-edge-rebased/authored/devhero-20261020-142006-000.png), [JSON](boundary-reference/kladwtwn/matched-edge-rebased/authored/devshot-20261020-142006-000.json) | `[-38.041667,-34.562500,35.958333,34.437500]` |
+| KLAMALL e0, 13237 | [PNG](boundary-reference/klamall/matched-edge-rebased/classic/scr00130.png), [JSON](boundary-reference/klamall/matched-edge-rebased/classic/devshot-20261020-142018.json) | [PNG](boundary-reference/klamall/matched-edge-rebased/authored/devhero-20261020-142030-000.png), [JSON](boundary-reference/klamall/matched-edge-rebased/authored/devshot-20261020-142030-000.json) | `[-37.041667,-35.812500,39.958333,36.187500]` |
+| KLACANYN e0, 15909 | [PNG](boundary-reference/klacanyn/matched-edge/classic/scr00118.png), [JSON](boundary-reference/klacanyn/matched-edge/classic/devshot-20261020-141218.json) | [PNG](boundary-reference/klacanyn/matched-edge/authored/devhero-20261020-141228-000.png), [JSON](boundary-reference/klacanyn/matched-edge/authored/devshot-20261020-141228-000.json) | `[-31.541667,-25.562500,17.458333,14.437500]` |
+| KLAGRAZ e0, 24373 | [PNG](boundary-reference/klagraz/matched-edge/classic/scr00119.png), [JSON](boundary-reference/klagraz/matched-edge/classic/devshot-20261020-141249.json) | [PNG](boundary-reference/klagraz/matched-edge/authored/devhero-20261020-141300-000.png), [JSON](boundary-reference/klagraz/matched-edge/authored/devshot-20261020-141300-000.json) | `[-20.041667,-25.562500,35.958333,28.437500]` |
+| KLARATCV e0, 13471 | [PNG](boundary-reference/klaratcv/matched-edge/classic/scr00120.png), [JSON](boundary-reference/klaratcv/matched-edge/classic/devshot-20261020-141311.json) | [PNG](boundary-reference/klaratcv/matched-edge/authored/devhero-20261020-141324-000.png), [JSON](boundary-reference/klaratcv/matched-edge/authored/devshot-20261020-141324-000.json) | `[-32.041667,-34.312500,39.958333,26.187500]` |
+| KLATOXCV e0, 15919 | [PNG](boundary-reference/klatoxcv/matched-edge/classic/scr00121.png), [JSON](boundary-reference/klatoxcv/matched-edge/classic/devshot-20261020-141335.json) | [PNG](boundary-reference/klatoxcv/matched-edge/authored/devhero-20261020-141346-000.png), [JSON](boundary-reference/klatoxcv/matched-edge/authored/devshot-20261020-141346-000.json) | `[-26.541667,-25.812500,32.458333,25.687500]` |
+| KLATRAP e0, 20733 | [PNG](boundary-reference/klatrap/matched-edge-20733/classic/scr00124.png), [JSON](boundary-reference/klatrap/matched-edge-20733/classic/devshot-20261020-141547.json) | [PNG](boundary-reference/klatrap/matched-edge-20733/authored/devhero-20261020-141557-000.png), [JSON](boundary-reference/klatrap/matched-edge-20733/authored/devshot-20261020-141557-000.json) | `[-31.041667,-32.312500,30.458333,27.437500]` |
+| KLARATCV e1, 14621 | [PNG](boundary-reference/klaratcv/matched-edge-e1/classic/scr00127.png), [JSON](boundary-reference/klaratcv/matched-edge-e1/classic/devshot-20261020-141739.json) | [PNG](boundary-reference/klaratcv/matched-edge-e1/authored/devhero-20261020-141749-000.png), [JSON](boundary-reference/klaratcv/matched-edge-e1/authored/devshot-20261020-141749-000.json) | `[-37.541667,-31.562500,30.458333,30.937500]` |
+| KLATOXCV e1, 19091 | [PNG](boundary-reference/klatoxcv/matched-edge-e1/classic/scr00128.png), [JSON](boundary-reference/klatoxcv/matched-edge-e1/classic/devshot-20261020-141800.json) | [PNG](boundary-reference/klatoxcv/matched-edge-e1/authored/devhero-20261020-141810-000.png), [JSON](boundary-reference/klatoxcv/matched-edge-e1/authored/devshot-20261020-141810-000.json) | `[-42.041667,-41.312500,41.958333,33.187500]` |
+
+KLATRAP tile 15823 was fully outside the active rectangle and produced an
+all-black map view, so the accepted comparison uses tile 20733, where the
+house and fence meet the playable edge. KLARATCV e0/e1 are naturally very dark;
+their matched coordinates and EDG planes are verified in metadata, but those
+frames provide limited visual detail. An ambient-override attempt did not
+brighten the cave renderer and is retained separately as a diagnostic only.
+
+The two cave e2 regression snapshots also report `source=authored`; their
+world bounds and four planes are in the regression run metadata. The RPU EDG
+source rectangles are KLARATCV `(17334, 14863, 27665, 29939)` and KLATOXCV
+`(12506, 10867, 23063, 24897)`.
+
 The Classic snapshots verify the engine's 2D EDG cut for the current RPU
-installation. Authored snapshot metadata reports matching transformed bounds
-for both town maps. These are the first two verified Klamath maps; the other
-Klamath maps with EDG rectangles remain to be checked before task completion.
+installation. Authored snapshot metadata reports EDG-derived bounds for all
+seven e0 maps and the restricted cave e1/e2 levels. Visual detail varies by
+map darkness; the cave evidence should be read with that limitation.
 `pickStaticGroundTile` applies that clip and `sceneTileAt` returns `-1` when the
 ground pick is outside it. The runtime probe below verifies that move-mode
 mouse-up cannot use the stale cursor tile after an outside pick, and that a

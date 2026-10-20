@@ -29,11 +29,11 @@ building or fence pieces that lie past the transition-zone corner.
 
 ## Acceptance
 
-- On Klamath maps with a valid active EDG rectangle, the 3D cut matches the
-  current installation's Classic 2D visible rectangle, transformed into
-  world coordinates. Current runtime evidence covers KLADWTWN and KLAMALL;
-  the remaining Klamath maps still need verification. Do not replace authored
-  EDG bounds with the floor-derived fallback where EDG data exists.
+- On Klamath maps with an active EDG rectangle, the 3D cut matches the current
+  installation's Classic 2D visible rectangle, transformed into world
+  coordinates. Runtime references cover all seven maps at e0 and both cave
+  maps at e1/e2. Do not replace authored EDG bounds with the floor-derived
+  fallback where EDG data exists.
 - Floor, walls, objects, and picking share the cut. Click-to-move requests
   whose ground target lies outside the cut are rejected, while existing
   exit-grid transitions remain usable.
@@ -116,3 +116,8 @@ Check: Rebased on `origin/main` `91500779`; Release build passed; CTest passed 1
 Done: Extended the existing `--dev-pick-probe` with a KLAMALL exit-grid stage. It validates the live exit object and destination, requires a fresh ground pick of the exit tile and a successful engine path, then queues a normal move-mode mouse-up. The probe does not call `mapSetTransition` or teleport the hero.
 Next: Parent reviews the probe diff and runtime log. Visual boundary review for the remaining five Klamath maps is still pending; task 016 remains open.
 Check: Release build passed; CTest passed 10/10; `git diff --check` passed. `tools/dev-snapshot.ps1 -Map klamall -Elevation 0 -Probe` passed the outside-click guard and the real transition: hero moved from 29889 toward exit 28078, live destination was map 9/tile 25142/elevation 0, and the engine arrived at `KLADWTWN.MAP` e0 tile 25142 after 59 frames. Raw log and the two same-run PNG/JSON snapshots are under `runs/016-clean-map-edges/exit-transition/klamall-to-kladwtwn/`. The captured dispatch line has a stale target value, documented in the README; the queued-exit and engine-arrival lines are authoritative. The logger now records dispatch coordinates. EXE SHA-256: `b5742fbd121a3bfbc2896ee256a5a65fe15e9d950059fe48cffef91638d12566`; `fallout2.cfg` remained at the expected hash `8D95CE8F0A11FDB975C2EAFE4836248DD4F9983074161BA4578EE463F2CCEF7F`.
+
+### 2026-10-20 gpt
+Done: Added matched Classic/authored e0 references for the five remaining Klamath maps and cave e1 references; existing cave e2 regression metadata also reports authored clip planes. Curated the good KLATRAP boundary view at tile 20733 and corrected the EDG archive audit. The earlier claim that e2 EDG rectangles were absent was incorrect.
+Next: Attribute small non-edge regression differences before updating references. A targeted shader varying experiment will compare off-mode controls for central doors and one cave e1 view.
+Check: Runtime evidence and exact source bounds are indexed in `runs/016-clean-map-edges/README.md`. Full on-run at `build/task016-regression/current-20261020-142049/summary.json` had 2/16 passes; off-mode controls at `build/task016-regression/off-20261020-142435/summary.json`, `off-interior-20261020-142627/summary.json`, and `off-e2-20261020-142823/summary.json` show some differences also occur with clipping disabled. No references were updated.
