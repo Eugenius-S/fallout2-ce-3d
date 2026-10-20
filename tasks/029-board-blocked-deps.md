@@ -8,7 +8,7 @@ suggested: glm
 claude-only: no
 user-check: no
 depends-on: [008]
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -52,3 +52,9 @@ Checked by hand on the current board (020 doing):
 Next: merge.
 Check: tools/tasks.ps1 -Next <agent> with 020 doing - 021/023 are absent
 from every output.
+
+### 2026-10-20 claude (review)
+Accepted (PR #28). The free filter now treats a missing `done` as unfinished,
+the same test the "nothing is free" branch uses. Checked on the current board
+(020 doing): `-Next nobody` and `-Next glm` give 017; 021 and 023 are offered
+to no one.

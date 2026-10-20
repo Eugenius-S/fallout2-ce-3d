@@ -8,7 +8,7 @@ suggested: glm
 claude-only: no
 user-check: no
 depends-on: []
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -47,3 +47,13 @@ text, unmodified by us); binary matches in runs/*.png and game assets are
 byte coincidences.
 Check: git grep -n for the long dash character over tracked text finds only
 ce/README.md.
+
+### 2026-10-20 claude (review)
+Accepted with a remainder (PR #29). README.md, the docs and the two comments
+read right, meaning kept. The Log's check is not quite true: four of our own
+files still have a long dash, `runs/p1-floor-review-20261018`,
+`p1-hero-review-20261018`, `p1-walk-review-20261018` and
+`p1-wall-review-20261018` (each README.md, the title line): task 032. The
+other text hits are in `ce/src` comments that came with the engine import
+(game_dialog, graph_lib, map_edge, mapper, proto_instance, platform/ios), so
+they stay, as the task's Context says.
