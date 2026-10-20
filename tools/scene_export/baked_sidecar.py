@@ -6,22 +6,31 @@ walls.bin; the engine skips those objects (SKIP). Things standing on a solid
 and dz up, along the game's view ray, so the game's camera still sees them on
 the same pixels. Items and scenery the donor lays on the floor (low piles of
 junk, hay, goo: things.py `stand` -> "flat", scene.decals) are drawn flat
-(FLAT), as the game draws its FLAT objects. Doors are not here: they open, so
-the engine draws them live; nor are critters, which live and die.
+(FLAT), as the game draws its FLAT objects. The cards no more than LOW_HEIGHT
+pixels tall (a cabbage, a tin) lie flat only when the camera flies (FLY_FLAT):
+the game's camera sees a flat card on other pixels. Doors and gates stay live (they
+open), but on their wall's plane (PLANE: GL x, z of a point of it and dz
+the plane's direction, radians from +u toward +v) when the camera flies.
+Critters are not here: they live and die.
 """
 
 from __future__ import annotations
 
+import math
 import struct
 
 
 MAGIC = b"F2BK"
-VERSION = 3
+VERSION = 4
 HEADER = struct.Struct("<4sHHI")  # magic, version, header bytes, entries
 ENTRY = struct.Struct("<iIIfff")  # object tile, object fid, mode, du, dv, dz
 SKIP = 0
 LIFT = 1
 FLAT = 2
+PLANE = 3
+FLY_FLAT = 4
+GL_MAP_OFFSET = 50.0  # GL x, z = u, v less this (wall_sidecar.py)
+LOW_HEIGHT = 20  # px: a card this low (and wider than tall) lies flat
 FLAT_TYPES = (0, 2)  # items, scenery (fid >> 24)
 MAX_ENTRIES = 1000000
 
@@ -68,6 +77,21 @@ def baked_objects(scene, map_objects, live_boards=frozenset()):
         obj = _object(map_objects, row[4], f"decal {index}")
         if (int(obj.fid) >> 24) & 0xF in FLAT_TYPES:
             entries.setdefault((obj.tile, obj.fid), (FLAT, 0.0, 0.0, 0.0))
+    sprites = scene.get("sprites") or []
+    for index, row in enumerate(boards):
+        if index in replaced or index in live_boards or not 0 <= row[0] < len(sprites):
+            continue
+        width, height = sprites[row[0]][3], sprites[row[0]][4]
+        obj = _object(map_objects, row[5], f"board {index}")
+        if height <= LOW_HEIGHT and height < width and (int(obj.fid) >> 24) & 0xF in FLAT_TYPES:
+            entries.setdefault((obj.tile, obj.fid), (FLY_FLAT, 0.0, 0.0, 0.0))
+    for index, row in enumerate(scene.get("doors") or []):
+        if not isinstance(row, list) or len(row) < 9:
+            raise ValueError(f"invalid door {index} record")
+        obj = _object(map_objects, row[8], f"door {index}")
+        ua, va, ub, vb = (float(value) for value in row[1:5])
+        entries.setdefault((obj.tile, obj.fid), (PLANE, ua - GL_MAP_OFFSET, va - GL_MAP_OFFSET,
+                                                 math.atan2(vb - va, ub - ua)))
     return sorted((tile, fid, *rest) for (tile, fid), rest in entries.items())
 
 
@@ -81,7 +105,7 @@ def encode_baked_sidecar(entries):
             raise ValueError(f"baked object tile {tile} is outside the hex grid")
         if not 0 <= fid <= 0xFFFFFFFF:
             raise ValueError(f"baked object fid {fid} is out of range")
-        if mode not in (SKIP, LIFT, FLAT):
+        if mode not in (SKIP, LIFT, FLAT, PLANE, FLY_FLAT):
             raise ValueError(f"baked object mode {mode} is unknown")
         payload.extend(ENTRY.pack(tile, fid, mode, du, dv, dz))
     return bytes(payload)
@@ -98,6 +122,6 @@ def decode_baked_sidecar(payload):
     entries = [ENTRY.unpack_from(payload, HEADER.size + index * ENTRY.size) for index in range(count)]
     if any(not 0 <= entry[0] < 200 * 200 for entry in entries):
         raise ValueError("baked sidecar names a tile outside the hex grid")
-    if any(entry[2] not in (SKIP, LIFT, FLAT) for entry in entries):
+    if any(entry[2] not in (SKIP, LIFT, FLAT, PLANE, FLY_FLAT) for entry in entries):
         raise ValueError("baked sidecar has an unknown mode")
     return entries

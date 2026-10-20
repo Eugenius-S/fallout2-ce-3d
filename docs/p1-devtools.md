@@ -93,12 +93,14 @@ camera takes off; `-FlyTurn D -FlyPitch D -FlyDistance U` (`--dev-fly-turn=`,
 `--dev-fly-pitch=`, `--dev-fly-distance=`) first circle it round the point it
 looks at: D degrees round, D degrees above the floor, U units from it.
 `-Solo R` (`--dev-solo=TILE,R`, TILE is `-ViewTile`) draws only the things
-within R hexes of it, without walls, roofs or the hero: one thing seen alone
+within R hexes of it, without walls or roofs (the hero stays: the fly camera needs it): one thing seen alone
 from every side (the shapes eval, `tools/shapes/eval/eval.py`).
 
 From the air things are seen from any side: sprite cards stand upright and
 face the camera, and solids show their far sides (the near sides' pixels
 mirrored, as the donor's first person does); the game's camera culls those.
+Doors and gates do not turn: they lie on their wall's plane. Cards no more
+than 20 pixels tall lie flat on the floor.
 Walls show their backs and the strips that close their ends: `walls.bin`
 (version 4) keeps them in batches only the fly camera draws.
 

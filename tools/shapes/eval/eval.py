@@ -26,6 +26,9 @@ sys.path.insert(0, str(HERE.parent))
 
 from inventory import todays_shapes  # noqa: E402
 
+sys.path.insert(0, str(ROOT / "tools" / "scene_export"))
+from baked_sidecar import FLAT, FLY_FLAT, PLANE, decode_baked_sidecar  # noqa: E402
+
 # How scene.json's shapes of today read in the labels' words.
 TODAY = {"card": "card", "card (donor: crossed)": "card", "card (door)": "card", "flat": "flat",
          "panel": "plane", "box": "box", "drum": "drum", "part of a solid": "boxes"}
@@ -44,7 +47,7 @@ def shoot(only):
     for label in labels():
         if only and label["frm"] not in only:
             continue
-        name, elevation, tile, _ = label["instance"]
+        name, elevation, tile = label["instance"][:3]
         for angle in ANGLES:
             folder = OUT / "shots" / label["frm"] / str(angle)
             folder.mkdir(parents=True, exist_ok=True)
@@ -95,14 +98,19 @@ def sheets():
 def score(scenes):
     judged = verdicts()
     cache = {}
+    baked = {}
     passed = weighted = total = 0
     for label in labels():
-        name, elevation, _, serial = label["instance"]
+        name, elevation, tile, serial, fid = label["instance"]
         key = (name, elevation)
         if key not in cache:
             cache[key] = todays_shapes(json.loads((scenes / name / str(elevation) / "scene.json")
                                                   .read_text(encoding="utf-8")))
         shape = TODAY.get(cache[key].get(serial, "not drawn"), "none")
+        if shape == "card":  # the engine may lay a card flat or on a plane (baked.bin)
+            modes = baked.setdefault(key, {(entry[0], entry[1]): entry[2] for entry in decode_baked_sidecar(
+                (scenes / name / str(elevation) / "baked.bin").read_bytes())})
+            shape = {FLAT: "flat", FLY_FLAT: "flat", PLANE: "plane"}.get(modes.get((tile, fid)), shape)
         kind = shape == label["shape"]
         eye = judged.get(label["frm"], {}).get("verdict") == "pass"
         ok = kind and eye
@@ -119,8 +127,10 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("command", choices=("shoot", "sheets", "score"))
     parser.add_argument("--only", help="comma-separated FRMs (shoot)")
-    parser.add_argument("--scenes", type=Path, default=ROOT.parent / "fallout2-ce-3d" / "game" / "mod-cache" / "scene"
-                        if not (ROOT / "game").is_dir() else ROOT / "game" / "mod-cache" / "scene")
+    # A worktree's own export (AGENTS.md), else the game's mod cache.
+    parser.add_argument("--scenes", type=Path, default=next(
+        path for path in (ROOT / "build" / "scene-cache", ROOT / "game" / "mod-cache" / "scene",
+                          ROOT.parent / "fallout2-ce-3d" / "game" / "mod-cache" / "scene") if path.is_dir()))
     args = parser.parse_args()
     if args.command == "shoot":
         shoot(set(args.only.split(",")) if args.only else None)
