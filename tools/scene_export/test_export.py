@@ -9,7 +9,8 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from baked_sidecar import (ENTRY as BAKED_ENTRY, HEADER as BAKED_HEADER, LIFT as BAKED_LIFT, MAGIC as BAKED_MAGIC,
-                           SKIP as BAKED_SKIP, FLAT as BAKED_FLAT, FLY_FLAT as BAKED_FLY_FLAT, PLANE as BAKED_PLANE,
+                           SKIP as BAKED_SKIP, FLAT as BAKED_FLAT, FLY_FLAT as BAKED_FLY_FLAT, FLY_SKIP as BAKED_FLY_SKIP,
+                           PLANE as BAKED_PLANE,
                            baked_objects, decode_baked_sidecar, encode_baked_sidecar)
 from export import ReadOnlyGameFiles, choose_source, main, parse_args, patch_paths, scene_directory, validate_output_contents
 from floor_sidecar import HEADER, MAGIC, VERSION, cell_content_rect, decode_floor_sidecar, encode_floor_sidecar
@@ -602,6 +603,14 @@ class BakedSidecarTests(unittest.TestCase):
         self.assertIn((500, 0x00000011, BAKED_LIFT, 0.25, -0.5, 0.75), entries)
         decoded = decode_baked_sidecar(encode_baked_sidecar(entries))
         self.assertEqual([entry[:3] for entry in decoded], [entry[:3] for entry in entries])
+
+    def test_a_solid_by_name_hides_its_card_only_in_flight(self):
+        scene, objects = self.sample()
+        scene["props"][0] = [0, 1, 1, 0] + [0.0] * 10 + [1]  # row[14]: made by name (overrides.json)
+        entries = baked_objects(scene, objects)
+        self.assertIn((300, 0x02000099, BAKED_FLY_SKIP, 0.0, 0.0, 0.0), entries)
+        self.assertIn((400, 0x00000036, BAKED_SKIP, 0.0, 0.0, 0.0), entries)
+        self.assertEqual(decode_baked_sidecar(encode_baked_sidecar(entries)), entries)
 
     def test_an_animated_solid_stays_live(self):
         scene, objects = self.sample()

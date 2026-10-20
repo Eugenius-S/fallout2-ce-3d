@@ -8,7 +8,8 @@ the same pixels. Items and scenery the donor lays on the floor (low piles of
 junk, hay, goo: things.py `stand` -> "flat", scene.decals) are drawn flat
 (FLAT), as the game draws its FLAT objects. The cards no more than LOW_HEIGHT
 pixels tall (a cabbage, a tin) lie flat only when the camera flies (FLY_FLAT):
-the game's camera sees a flat card on other pixels. Doors and gates stay live (they
+the game's camera sees a flat card on other pixels. A card that a solid made
+by name stands for (overrides.json) is skipped only in flight (FLY_SKIP). Doors and gates stay live (they
 open), but on their wall's plane (PLANE: GL x, z of a point of it and dz
 the plane's direction, radians from +u toward +v) when the camera flies.
 Critters are not here: they live and die.
@@ -21,7 +22,7 @@ import struct
 
 
 MAGIC = b"F2BK"
-VERSION = 4
+VERSION = 5
 HEADER = struct.Struct("<4sHHI")  # magic, version, header bytes, entries
 ENTRY = struct.Struct("<iIIfff")  # object tile, object fid, mode, du, dv, dz
 SKIP = 0
@@ -29,6 +30,7 @@ LIFT = 1
 FLAT = 2
 PLANE = 3
 FLY_FLAT = 4
+FLY_SKIP = 5  # a card a solid made by name stands for, but only in flight
 GL_MAP_OFFSET = 50.0  # GL x, z = u, v less this (wall_sidecar.py)
 LOW_HEIGHT = 20  # px: a card this low (and wider than tall) lies flat
 FLAT_TYPES = (0, 2)  # items, scenery (fid >> 24)
@@ -60,11 +62,12 @@ def baked_objects(scene, map_objects, live_boards=frozenset()):
     # with any of them only the boards a solid names are left out.
     replaced = set(scene.get("hidden") or []) if not scene.get("forms") else {
         row[3] for row in scene.get("props") or [] if row[3] >= 0}
+    forced = {row[3] for row in scene.get("props") or [] if len(row) > 14 and row[14] and row[3] >= 0}
     for board in sorted(replaced - set(live_boards)):
         if not 0 <= board < len(boards):
             raise ValueError(f"hidden board {board} is outside scene.boards")
         obj = _object(map_objects, boards[board][5], f"board {board}")
-        entries[(obj.tile, obj.fid)] = (SKIP, 0.0, 0.0, 0.0)
+        entries[(obj.tile, obj.fid)] = (FLY_SKIP if board in forced else SKIP, 0.0, 0.0, 0.0)
     for row in scene.get("lifts") or []:
         board, du, dv, dz = row[:4]
         if board in replaced and board not in live_boards:
@@ -105,7 +108,7 @@ def encode_baked_sidecar(entries):
             raise ValueError(f"baked object tile {tile} is outside the hex grid")
         if not 0 <= fid <= 0xFFFFFFFF:
             raise ValueError(f"baked object fid {fid} is out of range")
-        if mode not in (SKIP, LIFT, FLAT, PLANE, FLY_FLAT):
+        if mode not in (SKIP, LIFT, FLAT, PLANE, FLY_FLAT, FLY_SKIP):
             raise ValueError(f"baked object mode {mode} is unknown")
         payload.extend(ENTRY.pack(tile, fid, mode, du, dv, dz))
     return bytes(payload)
@@ -122,6 +125,6 @@ def decode_baked_sidecar(payload):
     entries = [ENTRY.unpack_from(payload, HEADER.size + index * ENTRY.size) for index in range(count)]
     if any(not 0 <= entry[0] < 200 * 200 for entry in entries):
         raise ValueError("baked sidecar names a tile outside the hex grid")
-    if any(entry[2] not in (SKIP, LIFT, FLAT, PLANE, FLY_FLAT) for entry in entries):
+    if any(entry[2] not in (SKIP, LIFT, FLAT, PLANE, FLY_FLAT, FLY_SKIP) for entry in entries):
         raise ValueError("baked sidecar has an unknown mode")
     return entries

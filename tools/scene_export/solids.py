@@ -119,6 +119,15 @@ def depth_home(proj, corner, plane):
     return [proj.toward[0] * t, proj.toward[1] * t, proj.toward[2] * t]
 
 
+def _forced(row, faces):
+    """A solid made by name (overrides.json, props row[14]) is not the game's
+    view pixel for pixel: the fly camera alone draws it, and the game's camera
+    keeps the card."""
+    if len(row) < 15 or not row[14]:
+        return faces
+    return [(page, polygon, away, "fly") for page, polygon, away, camera in faces if camera != "game"]
+
+
 def solid_faces(proj, sprites, boards, row):
     """(page, polygon, away, camera) of each face of one scene.props row; polygon
     corners are [u, v, z, atlas x, atlas y, home u, home v, home z], clipped to
@@ -184,7 +193,7 @@ def solid_faces(proj, sprites, boards, row):
                 face(side(i, i + 1), camera="game")
             face(side(i, i + 1), around, away=i >= DRUM_SIDES // 2, camera="fly")
         face([rim(i, z1) for i in range(DRUM_SIDES)])
-        return faces
+        return _forced(row, faces)
 
     u0, u1, v0, v1 = cu - a / 2, cu + a / 2, cv - b / 2, cv + b / 2
 
@@ -204,7 +213,7 @@ def solid_faces(proj, sprites, boards, row):
         face(along_u(v0, z1, wall_u))
     if wall_v > z1:
         face(along_v(u0, z1, wall_v))
-    return faces
+    return _forced(row, faces)
 
 
 def rest_card(proj, sprites, row):
