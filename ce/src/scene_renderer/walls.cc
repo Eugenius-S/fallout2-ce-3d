@@ -39,6 +39,7 @@ unsigned int gWallTriangleCount = 0;
 std::unordered_map<unsigned long long, BakedObject> gBakedObjects;
 int gSoloTile = -1;
 int gSoloRadius = 0;
+std::filesystem::path gWallsDirectory; // what loadStaticWalls last loaded, for a new solo
 
 int soloHexDistance(int tile1, int tile2)
 {
@@ -122,6 +123,16 @@ void setStaticSolo(int tile, int radius)
 {
     gSoloTile = tile;
     gSoloRadius = radius;
+}
+
+bool resoloStaticWalls(int tile, int radius)
+{
+    setStaticSolo(tile, radius);
+    if (gWallsDirectory.empty()) return false;
+    const std::filesystem::path directory = gWallsDirectory;
+    destroyStaticWalls();
+    std::string error;
+    return loadStaticWalls(directory, &error);
 }
 
 bool staticSoloKeeps(int tile)
@@ -463,6 +474,7 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
     gBakedObjects = std::move(bakedObjects);
     gWallsLoaded = true;
     if (error != nullptr) error->clear();
+    gWallsDirectory = cacheDirectory;
     return true;
 }
 

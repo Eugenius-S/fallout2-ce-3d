@@ -1,6 +1,6 @@
 ---
 id: 040
-title: The shapes that still fail the eval
+title: Solid shapes for chairs, crate heaps, the notice board, the car and cave braces
 milestone: M1
 status: todo
 owner: none

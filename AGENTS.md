@@ -22,7 +22,7 @@ Where things are:
 - [Shapes of things and camera rotation](docs/2026-10-20-shapes-and-rotation-design.md):
   how things get their 3D shapes, the eval set, what an agent may and may not
   change there.
-- [Dev tools](docs/p1-devtools.md): dev options, the fly camera, snapshots,
+- [Dev tools](docs/p1-devtools.md): dev options, the fly camera, snapshots, map tours,
   `-Solo`, `-Turn`.
 - [Regression](tools/regression/README.md): the reference views.
 - The shapes eval: `tools/shapes/eval/eval.py` (`shoot`, `sheets`, `score`),

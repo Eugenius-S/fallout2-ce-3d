@@ -76,6 +76,8 @@ bool staticObjectFlyFlat(int tile, int fid);
 // Dev (--dev-solo): draw only the things within radius hexes of tile, without
 // walls and roofs, to look at one thing from every side. Set before a map loads.
 void setStaticSolo(int tile, int radius);
+// The same on a loaded map: walls.bin is read again (dev batch snapshots).
+bool resoloStaticWalls(int tile, int radius);
 bool staticSoloKeeps(int tile);
 // The walls and scenery walls.bin draws that the hero stands behind, so the egg
 // cuts them as the game does: begin, mark each, end (uploads on a change).
