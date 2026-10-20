@@ -386,6 +386,26 @@ class WallSidecarTests(unittest.TestCase):
         for vertex in drum["batches"][0]["vertices"]:
             self.assertEqual(vertex[5:8], vertex[:3])
 
+    def test_drum_body_is_as_wide_as_its_rim(self):
+        # A drum on its card's depth shows the near half of its body: on the game's
+        # screen the body spans the rim's width (a burning barrel's rim stood out).
+        scene = self.sample_scene()
+        scene["walls"] = []
+        scene["pages"][0]["size"] = [400, 400]
+        scene["sprites"].append([0, 100, 100, 200, 200, -100, -150])
+        scene["props"] = [[2, 10.0, 10.0, 0, 1, 10.0, 10.0, 18.0, 8.0, 0.0, 0.5, 0.0, 0.0]]
+        scene["boards"] = [[2, 10.0, 10.0, 0, 0, 0]]
+        p = scene["proj"]
+        def screen_x(vertex):
+            u, v = vertex[0] + 50.0, vertex[2] + 50.0
+            return p["origin"][0] + u * p["squ"][0] + v * p["sqv"][0]
+        vertices = decode_wall_sidecar(encode_wall_sidecar(scene))["batches"][0]["vertices"]
+        body = [screen_x(v) for v in vertices if v[1] < 0.25]
+        rim = [screen_x(v) for v in vertices]
+        self.assertAlmostEqual(min(body), min(rim), places=3)
+        self.assertAlmostEqual(max(body), max(rim), places=3)
+        self.assertAlmostEqual(max(rim) - min(rim), 2 * 18.0, places=3)
+
     def test_faces_name_the_map_object_they_show(self):
         from types import SimpleNamespace
         scene = self.sample_scene()

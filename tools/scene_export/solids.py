@@ -145,11 +145,14 @@ def solid_faces(proj, sprites, boards, row):
                                  for corner in corners]))
 
     if round_:
-        # The cylinder over the floor ellipse a x b px on the game's screen: only the
-        # quarter facing the camera shows what it lands on; the others repeat it
-        # mirrored at every seam. Taking its card's depth, a drum is drawn as the
-        # game's view does: that quarter and the top. The others would tie with
-        # them in depth and show their mirror images (a cable spool looked torn).
+        # The cylinder over the floor ellipse a x b px on the game's screen. Taking
+        # its card's depth, a drum is drawn as the game's view sees it: the near
+        # half (angles 0 to 180, down the screen), each side showing what it lands
+        # on, and the top. The rim then sits on a body as wide as itself (a burning
+        # barrel's rim stood out over its front quarter alone).
+        # A drum with its own depth is seen from anywhere (the donor's first
+        # person): only the quarter facing the camera shows what it lands on; the
+        # others repeat it mirrored at every seam.
         quarter = DRUM_SIDES // 4
 
         def rim(i, z):
@@ -167,8 +170,10 @@ def solid_faces(proj, sprites, boards, row):
             def source(n):
                 return quarter / 2 + (quarter - n if turn % 2 else n)
 
-            if turn == 0 or plane is None:
+            if plane is None:
                 face(side(i, i + 1), side(source(within), source(within + 1)))
+            elif i < DRUM_SIDES // 2:
+                face(side(i, i + 1))
         face([rim(i, z1) for i in range(DRUM_SIDES)])
         return faces
 
