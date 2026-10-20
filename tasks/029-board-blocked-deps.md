@@ -37,3 +37,18 @@ reviewed: no
 Other changes to the board.
 
 ## Log
+
+### 2026-10-19 glm
+Done: the free-task filter casts each dependency lookup to [bool], so a not
+done dependency (which yields $null) counts as unfinished and the task is
+not offered. One-line change in tools/tasks.ps1.
+Checked by hand on the current board (020 doing):
+- -Next claude -> tasks/018-see-through-walls.md (its doing task);
+- -Next gpt -> tasks/016-clean-map-edges.md (its doing task);
+- -Next glm -> tasks/029-board-blocked-deps.md (this task);
+- -Next nobody (no doing task, runs the free path) -> tasks/017
+  (options-menu-3d-panel); neither 021 (waits for 020) nor 023 (waits for
+  021) is offered.
+Next: merge.
+Check: tools/tasks.ps1 -Next <agent> with 020 doing - 021/023 are absent
+from every output.
