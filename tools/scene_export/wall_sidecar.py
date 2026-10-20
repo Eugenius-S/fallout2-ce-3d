@@ -368,6 +368,7 @@ def encode_wall_sidecar(scene, skip_props=frozenset(), skip_rests=frozenset(), m
     board_owner = lambda board: owner(boards[board][5]) if 0 <= board < len(boards) else -1.0
     # A solid's rest cards stand on its axis: they belong to its object.
     axis_owner = {}
+    forced_axes = {(row[5], row[6]) for row in scene.get("props") or [] if len(row) > 14 and row[14]}
     for index, row in enumerate(scene.get("props") or []):
         axis_owner.setdefault((row[5], row[6]), board_owner(row[3]))
         if index in skip_props:
@@ -384,7 +385,8 @@ def encode_wall_sidecar(scene, skip_props=frozenset(), skip_rests=frozenset(), m
         # each from both sides.
         game.object = fly.object = axis_owner.get((row[1], row[2]), -1.0)
         page, corners = rest_card(proj, sprites, row)
-        _polygon(game, proj, page, pages[page], corners)
+        if (row[1], row[2]) not in forced_axes:  # the game's camera sees that solid's card whole
+            _polygon(game, proj, page, pages[page], corners)
         for page, corners in rest_cross(proj, sprites, row):
             # The sheet across the screen is a line to the game's camera, so
             # it is wound both ways without asking that camera.

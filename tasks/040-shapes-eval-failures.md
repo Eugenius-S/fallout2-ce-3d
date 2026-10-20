@@ -69,3 +69,20 @@ small crates; the stove is a box the label wants as a drum; the heap of
 crates, the notice board, the car, the cave brace.
 Next: a fitter for a seat on legs with a back (chairs), then crate1.
 Check: `py -3 tools/shapes/eval/eval.py score`.
+
+### 2026-10-20 claude (part 3)
+Done: exceptions by name, `tools/scene_export/shapes/overrides.json` ("box":
+the donor's box fit whatever its thresholds say; `props.fit(force=True)`).
+Chairs and small slatted crates are as ragged as plants (0.33 to 0.40 against
+0.37 to 0.58), so raggedness cannot tell them apart. Such a solid is not the
+game's view pixel for pixel (crate1's box hid part of it behind a barrel), so
+it is the fly camera's alone: its faces go to fly-only batches, its card is
+skipped only in flight (baked.bin version 5, FLY_SKIP), and it lifts nothing,
+casts no floor shade and keeps its card's light blob. Its body sprite still
+repacks the atlas: klamall-e0 moved 115 scattered wall pixels, nothing to see
+(`runs/040-shapes-eval-failures/regression-klamall-atlas-shift-highlight.jpg`),
+reference retaken. crate1 passes; ss108 is a tall box, not a box with a back.
+Eval 34/40 (85%), weighted 99%. Regression 16/16; exporter tests 43/43.
+Left: the chair as a box with a back, the stove, the heap of crates, the
+notice board, the car, the cave brace.
+Check: `py -3 tools/shapes/eval/eval.py score`.

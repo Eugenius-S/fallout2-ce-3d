@@ -29,8 +29,9 @@ namespace {
 struct BakedObject {
     // Skip: walls.bin draws it; Flat: the donor laid it on the floor; Plane: a
     // door, on its wall's plane under the fly camera.
-    // FlyFlat: a low card, laid flat under the fly camera.
-    enum Mode { Skip, Lift, Flat, Plane, FlyFlat } mode;
+    // FlyFlat: a low card, laid flat under the fly camera; FlySkip: a card a
+    // solid made by name stands for in flight only.
+    enum Mode { Skip, Lift, Flat, Plane, FlyFlat, FlySkip } mode;
     float offset[3]; // GL x, y, z when lifted; a plane's point x, its direction, z
 };
 
@@ -111,7 +112,10 @@ void staticWallStats(unsigned int* triangles, unsigned int* pages)
 bool staticObjectBaked(int tile, int fid)
 {
     const auto found = gBakedObjects.find(bakedObjectKey(tile, fid));
-    return found != gBakedObjects.end() && found->second.mode == BakedObject::Skip;
+    if (found == gBakedObjects.end()) return false;
+    double rightX, rightZ;
+    return found->second.mode == BakedObject::Skip
+        || (found->second.mode == BakedObject::FlySkip && flyCameraRight(&rightX, &rightZ));
 }
 
 void setStaticSolo(int tile, int radius)
@@ -367,11 +371,11 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
         return fail("baked.bin is missing or unreadable; re-run the scene exporter");
     }
     if (baked.size() < kBakedHeaderSize || baked[0] != 'F' || baked[1] != '2' || baked[2] != 'B' || baked[3] != 'K'
-        || readU16(baked.data() + 4) < 2 || readU16(baked.data() + 4) > 4
+        || readU16(baked.data() + 4) < 2 || readU16(baked.data() + 4) > 5
         || readU16(baked.data() + 6) != kBakedHeaderSize) {
         return fail("baked.bin has an invalid header");
     }
-    const unsigned int bakedVersion = readU16(baked.data() + 4); // 3 adds Flat, 4 Plane and FlyFlat
+    const unsigned int bakedVersion = readU16(baked.data() + 4); // 3 adds Flat, 4 Plane and FlyFlat, 5 FlySkip
     const unsigned int bakedCount = readU32(baked.data() + 8);
     if (bakedCount > kMaxBakedEntries || baked.size() != kBakedHeaderSize + bakedCount * kBakedEntrySize) {
         return fail("baked.bin has a bad length");
@@ -386,7 +390,7 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
         const float dz = readF32(entry + 20);
         if (tile < 0 || tile >= HEX_GRID_SIZE) return fail("baked.bin names a tile outside the hex grid");
         const float reach = mode == 3 ? 1000.0f : 10.0f; // a plane's point is on the map, a lift is small
-        if (mode > (bakedVersion == 4 ? 4u : bakedVersion - 1) || !std::isfinite(du) || !std::isfinite(dv) || !std::isfinite(dz)
+        if (mode > (bakedVersion >= 4 ? bakedVersion : bakedVersion - 1) || !std::isfinite(du) || !std::isfinite(dv) || !std::isfinite(dz)
             || std::abs(du) > reach || std::abs(dv) > reach || std::abs(dz) > 10.0f) {
             return fail("baked.bin has an unknown mode or a bad lift");
         }
