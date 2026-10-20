@@ -2,8 +2,8 @@
 id: 015
 title: Camera zoom
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: glm
 suggested: glm
 claude-only: no
 user-check: yes
