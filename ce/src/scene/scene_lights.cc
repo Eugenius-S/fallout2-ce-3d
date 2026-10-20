@@ -178,22 +178,22 @@ void borrowColor(Candidate* candidate, const std::vector<Candidate>& candidates)
     for (int channel = 0; channel < 3; channel++) light.color[channel] = static_cast<float>(sum[channel] / top);
 }
 
-// Adds a light's colour, by the share of its light each hex gets, around its
-// hex (walls do not stop it here: the light itself comes from the engine).
-void splatColor(const scene_renderer::StaticPointLight& light, std::vector<float>* color)
+// Adds a light's colour to the hexes its light reaches, by the light each
+// gets, as the engine spreads it (walls stop it).
+void addColor(Candidate* candidate, std::vector<float>* color)
 {
-    const int column0 = light.tile % HEX_GRID_WIDTH;
-    const int row0 = light.tile / HEX_GRID_WIDTH;
-    for (int row = row0 - light.distance; row <= row0 + light.distance; row++) {
-        for (int column = column0 - light.distance; column <= column0 + light.distance; column++) {
-            if (row < 0 || column < 0 || row >= HEX_GRID_HEIGHT || column >= HEX_GRID_WIDTH) continue;
-            const int tile = row * HEX_GRID_WIDTH + column;
-            const int away = tileDistanceBetween(light.tile, tile);
-            if (away > light.distance) continue;
-            const float share = light.intensity * (1.0f - static_cast<float>(away) / (light.distance + 1));
-            for (int channel = 0; channel < 3; channel++) (*color)[tile * 3 + channel] += share * light.color[channel];
+    struct Paint {
+        const float* rgb;
+        std::vector<float>* color;
+    };
+    Paint paint = { candidate->light.color, color };
+    objectSpreadLight(candidate->object, [](int tile, int intensity, void* context) {
+        auto* paint = static_cast<Paint*>(context);
+        if (intensity <= 0) return;
+        for (int channel = 0; channel < 3; channel++) {
+            (*paint->color)[tile * 3 + channel] += static_cast<float>(intensity) * paint->rgb[channel];
         }
-    }
+    }, &paint);
 }
 
 } // namespace
@@ -245,7 +245,7 @@ void updateLightsFromGame()
     for (Candidate& candidate : candidates) {
         if (candidate.object == nullptr) continue;
         borrowColor(&candidate, candidates);
-        splatColor(candidate.light, &color);
+        addColor(&candidate, &color);
     }
     for (int tile = 0; tile < HEX_GRID_SIZE; tile++) {
         hexLight[tile] = std::max(hexLight[tile], 0);

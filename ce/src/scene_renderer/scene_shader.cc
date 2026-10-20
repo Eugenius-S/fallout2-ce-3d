@@ -112,10 +112,10 @@ vec4 pointLights(vec3 w, vec3 n, bool facing) {
         vec3 toLight = uLightPos[i].xyz - w;
         float hexes = length(toLight.xz) / uHexUnit;
         float span = uLightPos[i].w;
-        // obj_adjust_light: full on its own hex, then down a step per ring.
-        float share = hexes < 1.0 ? mix(1.0, 1.0 - 2.0 / span, hexes) : 1.0 - (hexes + 1.0) / span;
-        if (share <= 0.0) continue;
-        float c = uLightColor[i].a * share * reached;
+        // obj_adjust_light: ring k gets I - k (I - base) / span; between rings.
+        float ring = hexes / span;
+        if (ring >= 1.0) continue;
+        float c = mix(uLightColor[i].a, 655.0 / 65536.0, ring) * reached;
         if (facing) c *= 0.55 + 0.65 * max(dot(n, normalize(toLight)), 0.0);
         sum += c;
         colored += c * uLightColor[i].rgb;
