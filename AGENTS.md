@@ -9,9 +9,9 @@ decisions: [the roadmap](docs/2026-10-19-roadmap-design.md).
   `Log`, without asking anybody.
 - Nobody waits. Nothing waits for the owner's or Claude's approval; whatever
   the owner rejects later becomes a new task.
-- Claude keeps the strategy: the order of the board, big tasks cut into
-  bounded ones with checks a script can run, the specs, and the reviews. The
-  board always has free work for `gpt` and `glm`.
+- Claude keeps the strategy (the order of the board, big tasks cut into
+  bounded ones with checks a script can run, the specs, the reviews) and codes
+  the design-heavy core; the board always has free work for `gpt` and `glm`.
 - The owner's finds from chat go to [tasks/inbox.md](tasks/inbox.md), not
   into the current work, unless the owner says "now".
 

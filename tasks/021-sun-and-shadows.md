@@ -2,9 +2,9 @@
 id: 021
 title: The sun follows game time
 milestone: M1
-status: todo
-owner: none
-suggested: glm
+status: doing
+owner: claude
+suggested: claude
 claude-only: no
 user-check: no
 depends-on: [013, 020, 034]
