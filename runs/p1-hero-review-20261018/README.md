@@ -1,4 +1,4 @@
-# Hero-card preview review — 2026-10-18
+# Hero-card preview review, 2026-10-18
 
 Accepted scope: the current CE player frame rendered as one upright card in the accepted Klamath wall scene. Camera angle, scale and target remain unchanged. P1 is still incomplete: picking, interactive doors, NPCs, UI overlay, camera follow and full donor row-plane occlusion remain outstanding. Walking/animation continuity was not established by this runtime check.
 

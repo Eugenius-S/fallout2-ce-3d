@@ -1,4 +1,4 @@
-# Static wall preview review — 2026-10-18
+# Static wall preview review, 2026-10-18
 
 Accepted scope: fixed-camera Klamath e0 floor, static walls and doors, using original textures. This is not completed P1: live objects, interactive doors, picking, UI overlay and new lighting remain outstanding.
 
