@@ -361,9 +361,16 @@ class WallSidecarTests(unittest.TestCase):
         proj = Projection(p)
         toward = proj.toward
         plane = row_plane(proj, 10.0, 10.0, 1) + 2e-5
+        # The far sides (v = 9.9, u = 9.75, up to the top; the headboard above
+        # faces the camera) face away from the game's camera and show the near
+        # sides' pixels mirrored.
+        def far(vertex):
+            return (abs(vertex[2] + 50.0 - 9.9) < 1e-4 or abs(vertex[0] + 50.0 - 9.75) < 1e-4) and vertex[1] <= 0.3 + 1e-4
         for vertex in vertices:
             x, y, z, s_, t = vertex[:5]
             sx, sy = px(x + 50.0, z + 50.0, y)
+            if far(vertex):
+                continue
             self.assertAlmostEqual(s_ * 100.0, 40 + sx - ax + 25, places=3)
             self.assertAlmostEqual(t * 100.0, 40 + sy - ay + 40, places=3)
             # Depth: the card's hex row plane, a hair nearer, along the game's ray.
@@ -371,11 +378,19 @@ class WallSidecarTests(unittest.TestCase):
             self.assertAlmostEqual(vertex[7] + 50.0, plane, places=4)
             self.assertAlmostEqual(dx * toward[1] - dz * toward[0], 0.0, places=4)
             self.assertAlmostEqual(dy * toward[1] - dz * toward[2], 0.0, places=4)
-        # Triangles face the game's camera: counter-clockwise on its screen, y up.
+        # The near faces face the game's camera (counter-clockwise on its screen,
+        # y up); the far sides face away, so it culls them.
+        away = 0
         for index in range(0, len(vertices), 3):
-            a, b, c = (px(v[0] + 50.0, v[2] + 50.0, v[1]) for v in vertices[index:index + 3])
+            triangle = vertices[index:index + 3]
+            a, b, c = (px(v[0] + 50.0, v[2] + 50.0, v[1]) for v in triangle)
             area = (b[0] - a[0]) * (-(c[1] - a[1])) - (c[0] - a[0]) * (-(b[1] - a[1]))
-            self.assertGreater(area, 0.0)
+            if all(far(v) for v in triangle):
+                self.assertLess(area, 0.0)
+                away += 1
+            else:
+                self.assertGreater(area, 0.0)
+        self.assertGreater(away, 0)
 
         # A drum: sixteen sides and a top (the sides away from the camera
         # repeat the facing quarter mirrored, so they are not checked here).

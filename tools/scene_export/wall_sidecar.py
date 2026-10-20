@@ -216,13 +216,15 @@ def _continuations(walls):
     return out
 
 
-def _polygon(batches, proj, page, page_size, corners):
+def _polygon(batches, proj, page, page_size, corners, away=False):
     """A convex polygon as a triangle fan, wound counter-clockwise on the
-    screen like the wall fronts (they are drawn with back faces culled)."""
+    screen like the wall fronts (they are drawn with back faces culled), or
+    clockwise when it faces `away` from the game's camera: a solid's far side,
+    culled by that camera and seen by a free one behind the thing."""
     area = screen_area(proj, corners)
     if abs(area) < 1e-6:
         return
-    if area < 0:
+    if (area < 0) != away:
         corners = corners[::-1]
     for index in range(1, len(corners) - 1):
         _quad_triangle(batches, page, page_size, (corners[0], corners[index], corners[index + 1]))
@@ -325,8 +327,8 @@ def encode_wall_sidecar(scene, skip_props=frozenset(), skip_rests=frozenset(), m
         if index in skip_props:
             continue
         batches.object = board_owner(row[3])
-        for page, corners in solid_faces(proj, sprites, scene.get("boards") or [], row):
-            _polygon(batches, proj, page, pages[page], corners)
+        for page, corners, away in solid_faces(proj, sprites, scene.get("boards") or [], row):
+            _polygon(batches, proj, page, pages[page], corners, away)
     for index, row in enumerate(scene.get("rests") or []):
         if index in skip_rests:
             continue
