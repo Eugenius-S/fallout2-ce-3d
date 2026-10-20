@@ -27,7 +27,7 @@ using namespace internal;
 namespace {
 
 struct BakedObject {
-    bool lift; // false: walls.bin draws it, skip
+    enum Mode { Skip, Lift, Flat } mode; // Skip: walls.bin draws it; Flat: the donor laid it on the floor
     float offset[3]; // GL x, y, z when lifted
 };
 
@@ -90,13 +90,19 @@ void staticWallStats(unsigned int* triangles, unsigned int* pages)
 bool staticObjectBaked(int tile, int fid)
 {
     const auto found = gBakedObjects.find(bakedObjectKey(tile, fid));
-    return found != gBakedObjects.end() && !found->second.lift;
+    return found != gBakedObjects.end() && found->second.mode == BakedObject::Skip;
+}
+
+bool staticObjectFlat(int tile, int fid)
+{
+    const auto found = gBakedObjects.find(bakedObjectKey(tile, fid));
+    return found != gBakedObjects.end() && found->second.mode == BakedObject::Flat;
 }
 
 bool staticObjectLift(int tile, int fid, float lift[3])
 {
     const auto found = gBakedObjects.find(bakedObjectKey(tile, fid));
-    if (found == gBakedObjects.end() || !found->second.lift) return false;
+    if (found == gBakedObjects.end() || found->second.mode != BakedObject::Lift) return false;
     for (int axis = 0; axis < 3; axis++) lift[axis] = found->second.offset[axis];
     return true;
 }
@@ -295,9 +301,11 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
         return fail("baked.bin is missing or unreadable; re-run the scene exporter");
     }
     if (baked.size() < kBakedHeaderSize || baked[0] != 'F' || baked[1] != '2' || baked[2] != 'B' || baked[3] != 'K'
-        || readU16(baked.data() + 4) != 2 || readU16(baked.data() + 6) != kBakedHeaderSize) {
+        || (readU16(baked.data() + 4) != 2 && readU16(baked.data() + 4) != 3)
+        || readU16(baked.data() + 6) != kBakedHeaderSize) {
         return fail("baked.bin has an invalid header");
     }
+    const unsigned int bakedVersion = readU16(baked.data() + 4); // 3 adds Flat
     const unsigned int bakedCount = readU32(baked.data() + 8);
     if (bakedCount > kMaxBakedEntries || baked.size() != kBakedHeaderSize + bakedCount * kBakedEntrySize) {
         return fail("baked.bin has a bad length");
@@ -311,12 +319,13 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
         const float dv = readF32(entry + 16);
         const float dz = readF32(entry + 20);
         if (tile < 0 || tile >= HEX_GRID_SIZE) return fail("baked.bin names a tile outside the hex grid");
-        if (mode > 1 || !std::isfinite(du) || !std::isfinite(dv) || !std::isfinite(dz)
+        if (mode > (bakedVersion == 3 ? 2u : 1u) || !std::isfinite(du) || !std::isfinite(dv) || !std::isfinite(dz)
             || std::abs(du) > 10.0f || std::abs(dv) > 10.0f || std::abs(dz) > 10.0f) {
             return fail("baked.bin has an unknown mode or a bad lift");
         }
         // Lifts are donor (u, v, z); GL is (u, z, v).
-        bakedObjects[bakedObjectKey(tile, static_cast<int>(readU32(entry + 4)))] = { mode == 1, { du, dz, dv } };
+        bakedObjects[bakedObjectKey(tile, static_cast<int>(readU32(entry + 4)))]
+            = { static_cast<BakedObject::Mode>(mode), { du, dz, dv } };
     }
 
     while (glGetError() != 0) {

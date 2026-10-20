@@ -43,3 +43,18 @@ lies on the floor, a heap of crates has its depth, as in the donor's viewer.
 Walls (034). Real 3D models (M2).
 
 ## Log
+
+### 2026-10-20 claude (part 1)
+Done: what the donor lays on the floor (`things.stand` -> "flat",
+`scene.decals`: hay, trash, goo, planks, mattresses) is now drawn flat when it
+is an item or scenery (critters live and die, they stay standing): `baked.bin`
+version 3 gives such objects the mode FLAT, and the engine (which still reads
+version 2) draws their live cards flat, as it draws the game's FLAT objects.
+In the game's view a pile no longer pokes through the wall the game paints
+over it: the regression's `entrance` changes at one fence post, reference
+retaken (`runs/035-donor-things/regression-entrance-before-after.png`); the
+other 15 cases are unchanged. Exporter tests 40/40, unit tests 10/10.
+Left: the notice board and the bed's corner from the owner's screenshots need
+their spots found; heaps of crates are cards, turned to the fly camera by 033.
+Next: PR (part 1), then find the owner's spots.
+Check: `py -m unittest discover -s tools/scene_export`, `tools/regression.ps1`.

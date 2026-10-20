@@ -179,7 +179,8 @@ void addObjectCard(Object* object, void* context)
     }
     scene_renderer::StaticObjectFrame frame = {
         object->tile, object->fid, object->frame, static_cast<int>(object->rotation), object->x, object->y,
-        image.getXOffset(), image.getYOffset(), width, height, (object->flags & OBJECT_FLAT) != OBJECT_NONE,
+        image.getXOffset(), image.getYOffset(), width, height,
+        (object->flags & OBJECT_FLAT) != OBJECT_NONE || scene_renderer::staticObjectFlat(object->tile, object->fid),
         cached ? nullptr : pass.rgba.data(), cached ? 0 : pass.rgba.size(),
     };
     frame.stack = stack;
