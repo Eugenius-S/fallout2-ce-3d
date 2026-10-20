@@ -298,6 +298,8 @@ set(FALLOUT_PLATFORM_SOURCES
     "src/devtools/snapshot_rows.cc"
     "src/scene/preview_policy.cc"
     "src/scene/preview_policy.h"
+    "src/scene/scene_lights.cc"
+    "src/scene/scene_lights.h"
     "src/scene/scene_objects.cc"
     "src/scene/scene_objects.h"
     "src/scene/scene_overlay.cc"

@@ -41,7 +41,6 @@ std::unordered_map<unsigned long long, unsigned int> gWallObjectRows;
 std::vector<unsigned char> gWallSeeThrough;
 // Rows the engine paints at full light, whatever their hex (OBJECT_TRANS_WALL).
 std::vector<unsigned char> gWallFullLight;
-std::vector<int> gWallObjectTiles;
 std::vector<unsigned char> gWallObjectTable; // as uploaded: R, G per row
 
 struct WallVertex {
@@ -77,7 +76,6 @@ void destroyStaticWalls()
     gWallObjectRows.clear();
     gWallSeeThrough.clear();
     gWallFullLight.clear();
-    gWallObjectTiles.clear();
     gWallObjectTable.clear();
 }
 
@@ -257,11 +255,9 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
         return fail("walls.bin has a truncated object table");
     }
     std::unordered_map<unsigned long long, unsigned int> objectRows;
-    std::vector<int> objectTiles(objectCount);
     for (unsigned int row = 0; row < objectCount; row++) {
         const unsigned char* entry = sidecar.data() + offset + row * kObjectSize;
-        objectTiles[row] = static_cast<int>(readU32(entry));
-        objectRows[bakedObjectKey(objectTiles[row], static_cast<int>(readU32(entry + 4)))] = row;
+        objectRows[bakedObjectKey(static_cast<int>(readU32(entry)), static_cast<int>(readU32(entry + 4)))] = row;
     }
     offset += static_cast<size_t>(objectCount) * kObjectSize;
     if (offset != sidecar.size() || observedTriangles != totalTriangles) {
@@ -351,7 +347,6 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
         if (glGetError() != 0) return fail("OpenGL failed to upload the wall object table");
     }
     gWallObjectRows = std::move(objectRows);
-    gWallObjectTiles = std::move(objectTiles);
     gWallTriangleCount = totalTriangles;
     gBakedObjects = std::move(bakedObjects);
     gWallsLoaded = true;
@@ -390,10 +385,7 @@ void flushWallObjectTable()
     std::vector<unsigned char> table(gWallSeeThrough.size() * 2);
     for (size_t row = 0; row < gWallSeeThrough.size(); row++) {
         table[row * 2] = gWallSeeThrough[row];
-        const float light = row < gWallObjectTiles.size() && gWallFullLight[row] == 0
-            ? lightAtTile(gWallObjectTiles[row])
-            : 1.0f;
-        table[row * 2 + 1] = static_cast<unsigned char>(light * 255.0f + 0.5f);
+        table[row * 2 + 1] = gWallFullLight[row] != 0 ? 255 : 0;
     }
     if (table == gWallObjectTable) return;
     gWallObjectTable = std::move(table);

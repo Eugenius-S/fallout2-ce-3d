@@ -55,13 +55,14 @@ void drawStaticPreview(bool withWalls, bool withHero)
     // part blended over the hero and what lies behind at the end.
     const bool egg = withHero && bindEgg(x, y, width, height);
     const bool wallEgg = egg && withWalls && gWallSeeThroughAny && gWallSeeThroughTexture != 0;
-    // The game's light, as the engine paints: the floor by its hexes, walls
-    // and sprites by their own hex, roofs by the ambient level.
+    // The game's light as point lights: the floor and walls at each fragment,
+    // sprites at their own hex, roofs by the ambient level.
     const bool lit = withHero && bindLight();
     glUniform1i(gSceneLightModeLocation, 0);
     auto lightSprite = [&](int tile) {
-        glUniform1i(gSceneLightModeLocation, lit ? 3 : 0);
-        glUniform1f(gSceneLightValueLocation, lightAtTile(tile));
+        // tile -1: painted at full light (OBJECT_TRANS_WALL), or not known.
+        glUniform1i(gSceneLightModeLocation, lit && tile >= 0 ? 3 : 0);
+        if (lit && tile >= 0) setLightAnchor(tile);
     };
     if (withWalls && gWallSeeThroughTexture != 0 && (wallEgg || lit)) {
         flushWallObjectTable();
@@ -193,7 +194,7 @@ void drawStaticPreview(bool withWalls, bool withHero)
         glDepthMask(1);
         glDisable(kBlend);
     }
-    glUniform1i(gSceneLightModeLocation, lit ? 3 : 0);
+    glUniform1i(gSceneLightModeLocation, lit ? 4 : 0);
     glUniform1f(gSceneLightValueLocation, lightAmbient());
     if (withHero) drawRoofs(x, y, width, height);
     glUniform1i(gSceneLightModeLocation, 0);

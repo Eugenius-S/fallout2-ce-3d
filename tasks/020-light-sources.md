@@ -90,3 +90,24 @@ switching it neither changes the `[3d] enabled` revision nor switches the
 scene (a direct test in `settings_3d`).
 Next: merge PR #20; then step 2.
 Check: `ctest --test-dir build` (8/8); `tools/regression.ps1` (16 pass).
+
+### 2026-10-20 claude
+Done, step 2: light-carrying objects are real lights. Each frame the scene
+takes every one on the elevation; its reach is the engine's own spread
+(`objectSpreadLight`, the body of `obj_adjust_light` without touching the
+game's light map), so walls stop it as in the game. A light shines from its
+sprite's shining pixels (the engine's animated colours: fire, slime,
+monitors, alarms; else its brightest pixels), in their colour, following the
+palette's cycling; a light with no sprite of its own (the invisible lights maps
+put by fires and slime) takes the colour of the shining things in its reach.
+Maps hold hundreds of lights (Klamath 343, the toxic caves 309), most of them
+one-hex pieces of slime: the 32 big ones (3 hexes and more) nearest to the
+view are lit from their own point, smooth, without the engine's hex steps, and
+a wall takes more of one it faces; the rest come per hex as the engine adds
+them up, with their colour. The light keeps the engine's level (caves 0.95..0.99
+of step 1); a colour changes the hue, not the level.
+Evidence: `runs/020-game-light/step2-*` (Klamath at night and the rat caves,
+2D | 3D; the toxic caves in green).
+The six cave references retaken; the town spots (day) are unchanged.
+Next: the owner's check in the game.
+Check: `tools/regression.ps1` (16 pass); `ctest --test-dir build` (8/8).

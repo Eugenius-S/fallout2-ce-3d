@@ -3,6 +3,7 @@
 
 #include <filesystem>
 #include <string>
+#include <vector>
 
 namespace fallout {
 namespace scene_renderer {
@@ -25,10 +26,29 @@ void setStaticRoofVisibility(const unsigned char* visible);
 // top-left corner on screen, in game logical pixels. The mask must stay alive.
 void setStaticEgg(const unsigned char* mask, int width, int height, int left, int top);
 void clearStaticEgg();
-// The game's light: each hex's intensity (HEX_GRID_SIZE values, 65536 full)
-// and the ambient level. The scene is lit as the engine paints: the floor
-// by its hexes, walls and sprites by their own hex, roofs by the ambient.
-void setStaticLight(const int* tileIntensity, int ambient);
+// A light-carrying object of the game, lit in the scene as a point light.
+struct StaticPointLight {
+    int tile = -1;
+    int objectX = 0; // the object's pixel movement off its hex
+    int objectY = 0;
+    // Where it shines from: game pixels right of and below its anchor
+    // (negative: above); the height is how far above.
+    double right = 0.0;
+    double down = 0.0;
+    float color[3] = { 1.0f, 1.0f, 1.0f }; // the brightest channel 1
+    float intensity = 0.0f; // the object's lightIntensity / 65536
+    int distance = 0; // the object's lightDistance, hexes
+    std::vector<int> reach; // the hexes its light reaches as the engine spreads it
+};
+
+// The game's light: the ambient level (65536 full); the light of the many
+// small lights per hex (HEX_GRID_SIZE values, 65536 full, without the
+// engine's base) with their colour (rgb per hex, the brightest channel 1);
+// and the big lights, each lit from its own point. The scene adds them up as
+// the engine does, in their colours; big lights have no hex steps and walls
+// take more of one they face. Roofs keep the ambient level.
+void setStaticLight(int ambient, std::vector<int> hexLight, std::vector<float> hexColor,
+    std::vector<StaticPointLight> lights);
 void clearStaticLight();
 
 // Objects walls.bin already draws (baked.bin): the caller only picks them.
