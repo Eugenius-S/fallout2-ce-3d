@@ -8,7 +8,7 @@ suggested: gpt
 claude-only: no
 user-check: yes
 depends-on: [014]
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -126,3 +126,12 @@ Check: Runtime evidence and exact source bounds are indexed in `runs/016-clean-m
 Done: Corrected BLACK002 suppression to require the effective map clip to be active, even when the clean-edges setting is enabled. This preserves the boundary mask if authored or fallback clip setup fails. Updated all 16 regression references from the final authored-clip Release run and recorded the five pristine-main controls, before/after images, differences, and attribution in `runs/016-clean-map-edges/regression-attribution/`. All Klamath e0 maps and cave e1/e2 levels have authored EDG bounds; the visual edge set covers all seven e0 maps and both caves at e1.
 Next: Parent handles the PR review response and merge. Task 017 remains separate.
 Check: Final regression checker passed 16/16 with zero changed pixels at channel tolerance 2. Five pristine `origin/main` controls matched their clean-edges-off captures pixel-for-pixel; CTest passed 10/10, scene-export tests 39/39, regression tests 12/12, and `git diff --check` passed. Live outside-click rejection and normal exit-grid transition are verified in the evidence README.
+
+### 2026-10-20 claude (review)
+Accepted (PR #26). One clip, built from the active EDG rectangle (or the
+floor envelope, logged), is shared by the shader, the floor and object picks
+and the move-mode mouse-up guard, so a click past the edge issues no move;
+BLACK002 hides only while that clip is on. The probes show the outside click
+rejected and a real KLAMALL exit transition. One problem: the references were
+taken on a scene export from before 028, so after the merge main failed 13 of
+16 cases (the old drums); PR #35 retakes them.
