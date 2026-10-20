@@ -832,6 +832,8 @@ bool gFlying = false;
 scene_renderer::StaticFlyCamera gFly = {};
 Uint64 gFlyLast = 0;
 int gFlyCenterTile = -1; // the game's view, put back when the flight ends
+char gFlyMap[16] = {}; // on this map and elevation only
+int gFlyElevation = -1;
 
 constexpr float kFlySpeed = 6.0f; // units a second
 constexpr float kFlyTurn = 0.0025f; // radians a mouse count
@@ -845,7 +847,8 @@ void stopFlying(const char* status, bool restoreView)
     gFlying = false;
     scene_renderer::setStaticFlyCamera(nullptr);
     mouseDeviceSetCaptured(false);
-    if (restoreView && gFlyCenterTile >= 0 && gCenterTile != gFlyCenterTile) {
+    const bool sameMap = gFlyElevation == gElevation && strncmp(gFlyMap, gMapHeader.name, sizeof(gFlyMap)) == 0;
+    if (restoreView && sameMap && gFlyCenterTile >= 0 && gCenterTile != gFlyCenterTile) {
         tileSetCenter(gFlyCenterTile, TILE_SET_CENTER_REFRESH_WINDOW);
     }
     setStatus(status);
@@ -862,6 +865,8 @@ void startFlying(bool capture)
     gFlying = true;
     gFlyLast = SDL_GetPerformanceCounter();
     gFlyCenterTile = gCenterTile;
+    strncpy(gFlyMap, gMapHeader.name, sizeof(gFlyMap));
+    gFlyElevation = gElevation;
     mouseDeviceSetCaptured(capture);
     scene_renderer::setStaticFlyCamera(&gFly);
     setStatus("fly camera: WASD, mouse, Q/E down/up, Shift fast, Ctrl slow; Ctrl+F12 or Esc to land");
