@@ -8,7 +8,7 @@ suggested: claude
 claude-only: no
 user-check: yes
 depends-on: [034]
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal

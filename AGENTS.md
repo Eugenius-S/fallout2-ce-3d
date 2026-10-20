@@ -1,180 +1,113 @@
 # Working on Fallout 2 CE 3D
 
-You are one of three agents on this project: `claude`, `gpt` (GPT Sol 6.1) or
-`glm` (GLM 5.3). The owner is the critic and moderator. Read
-[the roadmap](docs/2026-10-19-roadmap-design.md) once; it says what we build
-and why.
+Three agents: `claude`, `gpt` (GPT Sol 6.1), `glm` (GLM 5.3). The owner
+accepts the visuals and changes these rules as the work goes. Goals and
+decisions: [the roadmap](docs/2026-10-19-roadmap-design.md).
 
-Agents work one at a time in this one checkout. Any agent may stop at any
-moment when its limits run out, so leave the work so that the next one can
-continue from the last commit without asking anybody.
+- One agent works at a time, whoever has limits. Any agent may stop at any
+  moment: the next one continues from the last pushed commit and the task's
+  `Log`, without asking anybody.
+- Nobody waits. Nothing waits for the owner's or Claude's approval; whatever
+  the owner rejects later becomes a new task.
+- Claude keeps the strategy: the order of the board, big tasks cut into
+  bounded ones with checks a script can run, the specs, and the reviews. The
+  board always has free work for `gpt` and `glm`.
+- The owner's finds from chat go to [tasks/inbox.md](tasks/inbox.md), not
+  into the current work, unless the owner says "now".
 
-Nobody waits. The owner looks at the visual results and changes these rules as
-the work goes; nothing waits for the owner's or Claude's approval. When a
-task's acceptance holds, finish it (`status: done`) and take the next one. A
-task with `user-check: yes` is done when its acceptance holds; whatever the
-owner rejects in it later becomes a new task. An unreviewed task never blocks
-another.
-
-Where things are:
-
-- [The roadmap](docs/2026-10-19-roadmap-design.md): goals and decisions.
-- [Shapes of things and camera rotation](docs/2026-10-20-shapes-and-rotation-design.md):
-  how things get their 3D shapes, the eval set, what an agent may and may not
-  change there.
-- [Dev tools](docs/p1-devtools.md): dev options, the fly camera, snapshots, map tours,
-  `-Solo`, `-Turn`.
-- [Regression](tools/regression/README.md): the reference views.
-- The shapes eval: `tools/shapes/eval/eval.py` (`shoot`, `sheets`, `score`),
-  labels in `tools/shapes/eval/labels.json`, exceptions by name in
-  `tools/scene_export/shapes/overrides.json`.
+Where things are: [shapes and camera rotation](docs/2026-10-20-shapes-and-rotation-design.md),
+[dev tools](docs/p1-devtools.md) (snapshots, tours, the fly camera, restarting
+the owner's game), [regression](tools/regression/README.md), the shapes eval
+in `tools/shapes/eval/` (`eval.py shoot | sheets | score`).
 
 ## Rules
 
-- Everything in the repository is in English.
-- Never write the long dash (U+2014) in any text: docs, tasks, PRs, commits,
-  comments. Use a colon, a comma, a full stop or parentheses.
-- Never commit game files, `game/`, `game-vanilla/`, `build/`, tokens or keys.
-- The owner may have the game open (`game/fallout2-ce.exe`). Never close it,
-  never kill it, never steal its focus. Check your work with the background
-  test instance (`tools/dev-snapshot.ps1`), which runs as
-  `fallout2-ce-test.exe`; that is the only process you may stop.
-- Do not run `tools/dev-launch.ps1` unless the owner asks: it starts the
-  owner's game.
-- Python is `py -3` on this machine (`python` is a Store stub).
-- Keep changes to upstream CE code (`ce/src/*.cc` outside `scene/`,
-  `scene_renderer/`, `devtools/`) small: a hook or a call, the logic lives in
-  our modules.
-- Graphics stay within OpenGL 4.1 core: no compute shaders, no SSBOs.
-- Every new player-facing feature gets a key in the `[3d]` settings, a default
-  and a line in the options menu, and switches itself off with a log line if it
+- Everything in the repository is in English. Never write the long dash
+  (U+2014): use a colon, a comma, a full stop or parentheses.
+- Never commit `game/`, `game-vanilla/`, `build/`, game files, tokens or keys.
+- The owner may have `game/fallout2-ce.exe` open: never close it, never steal
+  its focus, never run `tools/dev-launch.ps1` unless the owner asks. Check
+  your work with the background test instance (`tools/dev-snapshot.ps1`,
+  `fallout2-ce-test.exe`), the only process you may stop; one agent at a time.
+- Python is `py -3` (`python` is a Store stub).
+- Upstream CE code (`ce/src/*.cc` outside `scene/`, `scene_renderer/`,
+  `devtools/`) gets a hook or a call at most; the logic lives in our modules.
+- OpenGL 4.1 core: no compute shaders, no SSBOs.
+- The game's own view stays pixel for pixel; new 3D geometry shows only in
+  flight or a turned view, unless a task says otherwise.
+- A player-facing feature gets a `[3d]` key with its literal default on the
+  field in `Scene3dSettings`, registered in `ce/src/settings.cc`, an English
+  menu label and description, and switches itself off with a log line if it
   fails to start.
-- Add the key to `Scene3dSettings` and register it in `ce/src/settings.cc`.
-- Put its literal default on the field in `Scene3dSettings`.
-- Give it an English fallback menu label and description in the descriptor.
 
 ## Build and check
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/configure-build.ps1 Release
 ctest --test-dir build --output-on-failure
-py -3 -m unittest discover -s tools/scene_export -p 'test*.py' -v
-py -3 -m unittest discover -s tools/regression -p 'test*.py' -v
+py -3 -m unittest discover -s tools/scene_export -p 'test*.py'
+py -3 -m unittest discover -s tools/regression -p 'test*.py'
 py -3 tools/scene_export/export.py --game-root ./game
-powershell -NoProfile -ExecutionPolicy Bypass -File tools/dev-snapshot.ps1 -Map kladwtwn -Elevation 0
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/regression.ps1
 ```
 
-`dev-snapshot.ps1` prints the snapshot JSON; the PNG lies next to it in
-`game/`. `-Probe` also checks the mouse (see `docs/p1-devtools.md`).
-`tools/regression.ps1 -Spot entrance` checks one view; `-Update` explicitly
-accepts new references. See `tools/regression/README.md` for still-mode
-constraints, tolerance and difference images.
+Read a check's result before the next step; never chain a merge after it.
 
 ## Tasks
 
-One task is one file `tasks/NNN-slug.md`. Show the board:
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File tools/tasks.ps1
-```
-
-The header of a task file:
+One task is one file `tasks/NNN-slug.md` with `Goal`, `Context`,
+`Acceptance`, `Out of scope` and `Log`. Its header:
 
 ```yaml
----
 id: 003
 title: Regression snapshot test
 milestone: M0
 status: todo        # todo | doing | done
 owner: none         # claude | gpt | glm | none
-suggested: gpt      # who fits best; any agent may take it
-claude-only: no     # yes: only claude takes it
-user-check: no      # yes: the owner looks at the result after the merge
-depends-on: []      # task ids that must be done first
-reviewed: no        # claude (or the owner, for claude's tasks) sets yes
----
+suggested: gpt      # a preference: if that agent is out of limits, take it
+claude-only: no
+user-check: no      # yes: the owner looks after the merge (never blocks)
+depends-on: []
+reviewed: no        # see Review
 ```
 
-The body has `Goal`, `Context`, `Acceptance`, `Out of scope` and `Log`.
+`tools/tasks.ps1` shows the board; `-Next <you>` prints the task to take:
+your own doing task, else a stale one (no commit on its branch for three
+days), else the first free `todo` suggested for you, else any free one.
 
-### Taking a task
+1. Work in your own worktree, never switch branches in the main checkout:
+   `git worktree add --detach ../fallout2-ce-3d-<you> origin/main`. It has no
+   `game/`: the scripts use the main checkout's `game/` with the worktree's
+   build. A changed exporter writes to the worktree (`export.py --game-root
+   <main>/game --maps klamath --cache-root build/scene-cache`).
+2. Claim by pushing the branch: `git switch -c task/NNN-slug`, set `status:
+   doing` and `owner: <you>` in the task file, commit, `git push -u origin
+   task/NNN-slug`. The board reads the header from the branch; nothing goes
+   to `main` until the merge.
+3. Commit and push each meaningful step, one-line messages. Write a `Log`
+   entry only when you stop or finish, in that commit:
 
-1. `git status` must be clean. `git switch main`, `git pull`.
-2. If a task is `doing`, finish it first: read its `Log`, `git switch` to its
-   branch and continue.
-3. Otherwise ask the board: `tools/tasks.ps1 -Next <you>` prints the one
-   free task to take (its file and branch name), applying the rule: `todo`,
-   all `depends-on` are `done`, not `claude-only` (unless you are claude),
-   the ones `suggested` for you first. `suggested` is a preference: if that
-   agent is out of limits, take the task. One agent works at a time; do not
-   split a task between agents running at once.
-4. Claim it on `main`, so the board shows it taken: set `status: doing` and
-   `owner: <you>`, commit `task NNN: start`, push `main`. Then create the
-   branch `task/NNN-slug` and push it.
-5. If another agent may be working in this checkout at the same time, work in
-   your own worktree next to it and never switch branches here:
-
-   ```powershell
-   git worktree add --detach ../fallout2-ce-3d-<you> origin/main
-   # claim there: edit the task header, commit, then
-   git push origin HEAD:main
-   git switch -c task/NNN-slug
-   git push -u origin task/NNN-slug
+   ```markdown
+   ### 2026-10-19 gpt
+   Done: what now works, with paths.
+   Next: the exact next step.
+   Check: the command or snapshot that shows it.
    ```
 
-   A worktree has no `game/`: `dev-snapshot.ps1` and `regression.ps1` run there
-   use the main checkout's `game/` with the worktree's own build. Only one
-   agent runs the background test instance at a time. A changed exporter
-   writes to the worktree (`export.py --game-root <main>/game --maps klamath
-   --cache-root build/scene-cache`); test runs read scenes from there, and the
-   owner's game keeps `game/mod-cache` until the merge.
-   After the merge: `git worktree remove ../fallout2-ce-3d-<you>`.
-
-### While working
-
-- Commit every meaningful step. Each commit that ends a working session or a
-  step adds a `Log` entry in the task file, in the same commit:
-
-  ```markdown
-  ### 2026-10-19 gpt
-  Done: what now works, with paths.
-  Next: the exact next step.
-  Check: the command or snapshot that shows it.
-  ```
-
-- Push the branch after each such commit.
-- If you learn the task is wrong or too big, write it in the `Log`, split it
-  into new task files with the next free ids, and say so in the PR.
-
-### Finishing
-
-1. Every line of `Acceptance` holds; the build, the tests and the regression
-   snapshots pass. Visual changes: snapshots in `runs/<NNN-slug>/`.
-2. Set `status: done`, add the last `Log` entry, commit, push.
-3. `gh pr create` using the template, with the snapshots; then
-   `gh pr merge --squash --delete-branch`; then `git switch main`, `git pull`.
-
-## Restarting the owner's game
-
-Only when the owner asks. The game in `game/` reads `game/mod-cache`, and the
-engine and the exporter change together, so build and export together, in the
-main checkout, on `main`:
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File tools/configure-build.ps1 Release
-py -3 tools/scene_export/export.py --game-root ./game --maps klamath
-powershell -NoProfile -ExecutionPolicy Bypass -File tools/dev-launch.ps1 -Slot 1
-```
-
-`dev-launch.ps1` puts the new build in place of the running one and starts it;
-the owner closes the old window. Never export into `game/mod-cache` without
-that build: an older engine cannot read a newer export.
+4. A task that turns out wrong or too big: say so in the `Log` and split it
+   into new task files with the next free ids, in the same branch.
+5. Finish: every `Acceptance` line holds, the build, tests and regression
+   pass, visual changes have snapshots in `runs/<NNN-slug>/`. Set `status:
+   done` and `reviewed` (below) in the last commit, `gh pr create` with the
+   template, `gh pr merge --squash --delete-branch`. Docs and new task files
+   ride in the same PR; no separate commits to `main` for bookkeeping.
 
 ## Review
 
-Claude lists them with `tools/tasks.ps1 -Review` and reviews every
-`done` task with `reviewed: no` when it has limits (nobody waits for that):
-reads the PR diff, runs the checks, sets `reviewed: yes`, and turns each
-problem into a new task. Pull requests from outside contributors are merged
-only after Claude's review.
+The checks are the review. The author sets `reviewed: yes` on finishing,
+except when the PR retook regression references, changed a file format the
+engine reads (`walls.bin`, `baked.bin`, `scene.json`) or came from outside
+the three agents: then `reviewed: no`, and Claude reviews it when it has
+limits (`tools/tasks.ps1 -Review`): reads the diff, runs the checks, sets
+`reviewed: yes`, turns problems into new tasks. Outside PRs merge only after
+that review.
