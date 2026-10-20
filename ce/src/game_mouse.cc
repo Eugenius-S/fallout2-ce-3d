@@ -961,6 +961,11 @@ bool gameMouseClickOnInterfaceBar()
     return _mouse_click_in(interfaceBarWindowRectLeft, interfaceBarWindowRect.top, interfaceBarWindowRectRight, interfaceBarWindowRect.bottom);
 }
 
+bool gameMouseIsOverInterfaceBar()
+{
+    return gameMouseClickOnInterfaceBar();
+}
+
 // 0x44BFA8 gmouse_handle_event
 void _gmouse_handle_event(int mouseX, int mouseY, int mouseState)
 {

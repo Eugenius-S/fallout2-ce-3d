@@ -284,6 +284,9 @@ struct QolSettings {
 struct Scene3dSettings {
     bool enabled = true;
     bool lights = true;
+    double zoom = 1.0;
+    double zoom_min = 0.5;
+    double zoom_max = 2.0;
 };
 
 struct MapperSettings {

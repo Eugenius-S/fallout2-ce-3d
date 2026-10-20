@@ -30,6 +30,9 @@ StaticPreviewCamera staticPreviewCamera(bool withWalls);
 // is the game's own parallel projection, for comparing with 2D.
 void setStaticViewDistance(double units);
 
+// The 3D view zoom around the screen center; 1.0 is the game's own size.
+void setCameraZoom(double zoom);
+
 } // namespace scene_renderer
 } // namespace fallout
 

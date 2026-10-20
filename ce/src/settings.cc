@@ -459,6 +459,42 @@ void initSettingsRegistry(bool isMapper)
         settingsWrite("3d", "lights", onlyAdd ? lightsDefault : settings.scene3d.lights);
     };
 
+    registerSetting("3d", "zoom", settings.scene3d.zoom, clamp(0.1, 10.0));
+    SettingDescriptor& zoomDescriptor = settingDescriptors.back();
+    zoomDescriptor.category = SettingCategory::Uncategorized;
+    zoomDescriptor.applyPolicy = SettingApplyPolicy::OnClose;
+    zoomDescriptor.subsection = "3D";
+    zoomDescriptor.fallbackLabel = "Camera zoom";
+    zoomDescriptor.fallbackDescription = "How much the 3D view is zoomed. Kept between sessions.";
+    settingsRegistry.back().write = [](bool onlyAdd) {
+        if (onlyAdd && settingsKeyExists("3d", "zoom")) return;
+        settingsWrite("3d", "zoom", settings.scene3d.zoom);
+    };
+
+    registerSetting("3d", "zoom_min", settings.scene3d.zoom_min, clamp(0.1, 10.0));
+    SettingDescriptor& zoomMinDescriptor = settingDescriptors.back();
+    zoomMinDescriptor.category = SettingCategory::Uncategorized;
+    zoomMinDescriptor.applyPolicy = SettingApplyPolicy::OnClose;
+    zoomMinDescriptor.subsection = "3D";
+    zoomMinDescriptor.fallbackLabel = "Camera zoom limit (smallest)";
+    zoomMinDescriptor.fallbackDescription = "The smallest 3D view zoom the mouse wheel reaches.";
+    settingsRegistry.back().write = [](bool onlyAdd) {
+        if (onlyAdd && settingsKeyExists("3d", "zoom_min")) return;
+        settingsWrite("3d", "zoom_min", settings.scene3d.zoom_min);
+    };
+
+    registerSetting("3d", "zoom_max", settings.scene3d.zoom_max, clamp(0.1, 10.0));
+    SettingDescriptor& zoomMaxDescriptor = settingDescriptors.back();
+    zoomMaxDescriptor.category = SettingCategory::Uncategorized;
+    zoomMaxDescriptor.applyPolicy = SettingApplyPolicy::OnClose;
+    zoomMaxDescriptor.subsection = "3D";
+    zoomMaxDescriptor.fallbackLabel = "Camera zoom limit (largest)";
+    zoomMaxDescriptor.fallbackDescription = "The largest 3D view zoom the mouse wheel reaches.";
+    settingsRegistry.back().write = [](bool onlyAdd) {
+        if (onlyAdd && settingsKeyExists("3d", "zoom_max")) return;
+        settingsWrite("3d", "zoom_max", settings.scene3d.zoom_max);
+    };
+
     if (isMapper) {
 #define SECT mapper
         SETTING(override_librarian);
