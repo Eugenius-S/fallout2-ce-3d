@@ -63,3 +63,8 @@ Check: Standalone Release build passed; `ctest --test-dir build-tests-map-clip-n
 Done: Replaced the rejected floor-grid bounding box with a straight floor cut derived from occupied cell centers in the cached game projection, inset by half a projected cell. Floor-only debug metadata now identifies its grid fallback.
 Next: Retake matched authored/floor/off screenshots on both Klamath maps and ask parent to review the corrected floor cut.
 Check: Release build passed; CTest passed 9/9 including the projected diamond-mask geometry cases; no regression references were changed.
+
+### 2026-10-20 gpt
+Done: Traced KLACANYN's remaining gray staircase to RPU's opaque BLACK002 boundary-mask cards. Clean edges now omits only scenery resolving to `BLACK002.frm` before creating render and pick entries; added focused path/type behavior coverage. The matching opaque BLACK003 card is absent from the effective scenery list and both reviewed maps.
+Next: Retake KLACANYN's floor-cut snapshot at view tile 15909 for review, then capture matched A/B/off variants on both maps after the parent accepts the corrected B image.
+Check: Release build passed; CTest passed 10/10; `git diff --check` passed. BLACK002 is a 160x168 full-fill card (palette 207 / RGB 12,12,12); MOUNT02 remains classified as normal scenery.

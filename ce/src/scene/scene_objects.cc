@@ -9,9 +9,11 @@
 #include "../game_mouse.h"
 #include "../map.h"
 #include "../object.h"
+#include "clean_edges_boundary_mask.h"
 #include "../scene_renderer/live_objects.h"
 #include "../scene_renderer/picking.h"
 #include "../scene_renderer/static_scene.h"
+#include "scene_settings.h"
 #include "../svga.h"
 #include "../tile.h"
 
@@ -119,6 +121,11 @@ void addObjectCard(Object* object, void* context)
     // The mouse's cursor objects are drawn over the scene with the interface.
     if ((object->flags & OBJECT_HIDDEN) != OBJECT_NONE || !hexGridTileIsValid(object->tile)
         || object == gGameMouseHexCursor || object == gGameMouseBouncingCursor) {
+        return;
+    }
+    const FrmId objectFid(object);
+    if (scene::isCleanEdgesBoundaryMask(scene::cleanEdges(), objectFid.objectType() == OBJ_TYPE_SCENERY,
+            objectFid.filePath())) {
         return;
     }
     const int pickId = static_cast<int>(gPickObjects.size());

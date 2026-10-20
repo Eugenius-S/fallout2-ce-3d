@@ -412,6 +412,7 @@ if(BUILD_TESTING)
     add_subdirectory(tests/fixed_screen_options)
     add_subdirectory(tests/snapshot_rows)
     add_subdirectory(tests/embedded_fonts)
+    add_subdirectory(tests/clean_edges_boundary_mask)
 endif()
 
 target_sources(${EXECUTABLE_NAME} PUBLIC
