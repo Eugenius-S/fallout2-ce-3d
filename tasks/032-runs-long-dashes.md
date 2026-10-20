@@ -2,8 +2,8 @@
 id: 032
 title: Long dashes left in four run READMEs
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: glm
 suggested: glm
 claude-only: no
 user-check: no
