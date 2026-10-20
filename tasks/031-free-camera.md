@@ -2,8 +2,8 @@
 id: 031
 title: A free-flying camera for looking around maps
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: claude
 suggested: claude
 claude-only: no
 user-check: yes
