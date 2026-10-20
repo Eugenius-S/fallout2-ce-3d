@@ -23,6 +23,11 @@ how often they stand.
   this" holds for this task.
 - Exceptions go to `tools/scene_export/shapes/overrides.json`, each with a
   reason, at most 10% of Klamath's distinct static FRMs.
+- The owner's report (2026-10-20, `runs/039-shapes-klamath/owner-vic-shack.png`,
+  ours `vic-shack-turn-270.jpg`: kladwtwn, `-HeroTile 17665 -ViewTile 17467
+  -Turn 3`): at Vic's shack the roof does not meet the front, the corner left
+  of the sign is a hole into the dark inside, and the VIC'S sign hangs in the
+  air. Buildings matter more than furniture here: start with them.
 
 ## Acceptance
 
