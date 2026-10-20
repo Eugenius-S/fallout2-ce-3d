@@ -8,7 +8,7 @@ suggested: glm
 claude-only: no
 user-check: yes
 depends-on: [014]
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -76,3 +76,11 @@ test instance; a single run is green). The wheel path is code-reviewed only:
 the owner drives the in-game wheel check (user-check).
 Next: merge; the options-menu labels land with task 017's panel.
 Check: tools/regression.ps1; [3d] zoom keys in fallout2.cfg after a session.
+
+### 2026-10-20 claude (review)
+Accepted (PR #25). The zoom sits in one place, `clip()`, so the floor and
+object picks, the hex cursor and the floating text follow it; zoom 1 keeps the
+planes and the picture exactly (regression 16/16). The wheel zooms only over
+the map with the 3D view shown; `[3d] zoom`, `zoom_min`, `zoom_max` have menu
+labels and the zoom is kept between sessions. Removed `runs/dbg015/` (a debug
+capture, not evidence). The wheel's feel is the owner's check in the game.
