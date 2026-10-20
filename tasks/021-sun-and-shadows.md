@@ -7,7 +7,7 @@ owner: none
 suggested: claude
 claude-only: yes
 user-check: yes
-depends-on: [013, 020]
+depends-on: [013, 020, 034]
 reviewed: no
 ---
 
