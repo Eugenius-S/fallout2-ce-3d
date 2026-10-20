@@ -96,6 +96,8 @@ looks at: D degrees round, D degrees above the floor, U units from it.
 From the air things are seen from any side: sprite cards stand upright and
 face the camera, and solids show their far sides (the near sides' pixels
 mirrored, as the donor's first person does); the game's camera culls those.
+Walls show their backs and the strips that close their ends: `walls.bin`
+(version 4) keeps them in batches only the fly camera draws.
 
 ## Transitions
 

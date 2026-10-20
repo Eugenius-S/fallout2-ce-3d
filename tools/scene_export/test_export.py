@@ -446,13 +446,22 @@ class WallSidecarTests(unittest.TestCase):
         self.assertEqual(ends[2], (False, False))  # nor does one across it
         self.assertNotIn(3, ends)
 
-    def test_first_person_surfaces_are_left_out(self):
+    def test_first_person_surfaces_are_for_the_fly_camera_only(self):
+        # Backs and trims go into fly-only batches: what the game's camera
+        # draws stays the same.
         scene = self.sample_scene()
         scene["walls"][0].extend([1, 1])
         scene["trims"] = [[0, 1.0, 2.0, 3.0, 2.0, 0.0, 1.0, 0, 0, 1, 1]]
         decoded = decode_wall_sidecar(encode_wall_sidecar(scene))
         plain = decode_wall_sidecar(encode_wall_sidecar(self.sample_scene()))
-        self.assertEqual(decoded["triangles"], plain["triangles"])
+        def game(batches):
+            return [batch for batch in batches if not batch["fly_only"]]
+        self.assertEqual(game(decoded["batches"]), game(plain["batches"]))
+        fly = [batch for batch in decoded["batches"] if batch["fly_only"]]
+        self.assertTrue(fly)
+        # The trim: two triangles between its ground points, rows 0..1 of its sprite.
+        trim = [v for batch in fly for v in batch["vertices"] if abs(v[2] + 50.0 - 2.0) < 1e-6 and v[0] + 50.0 in (1.0, 3.0)]
+        self.assertGreaterEqual(len(trim), 6)
 
     def test_binary_corruption_is_rejected(self):
         payload = encode_wall_sidecar(self.sample_scene())
@@ -464,7 +473,7 @@ class WallSidecarTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "truncated"):
             decode_wall_sidecar(payload[:-1])
         bad_count = bytearray(payload)
-        struct.pack_into("<I", bad_count, 16, 9)
+        struct.pack_into("<I", bad_count, 16, 999)
         with self.assertRaisesRegex(ValueError, "triangle count mismatch"):
             decode_wall_sidecar(bad_count)
         bad_page = bytearray(payload)
