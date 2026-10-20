@@ -4,7 +4,7 @@
   "map": "KLAMALL.MAP",
   "elevation": 0,
   "still_snapshot": true,
-  "snapshot_run": "706fae3e203e4b35b0c2a90b871c8187",
+  "snapshot_run": "682177df63694b0b9beca82c9625f2fb",
   "view_tile": 23145,
   "preview_requested": true,
   "scene_3d_enabled": true,
@@ -44,7 +44,7 @@
     ]
   },
   "camera": "fixed eye=(71.64466,46.23085,81.46700), target=(22.45833,0.00000,7.68750), fov_y=25.0, near=0.1, far=400.0, screen_right=-cross(forward,world_up)",
-  "wall_triangles": 10459,
+  "wall_triangles": 12754,
   "wall_pages": 1,
   "hero": {
     "tile": 29089,
@@ -68,11 +68,11 @@
   "scale": 2,
   "windowed": true,
   "drawable": "1920x1080",
-  "ce_commit": "5bfbddcc",
+  "ce_commit": "c174b340",
   "tools_commit": "-",
-  "exe_sha256": "a933abe956a57ed29d393d860aff3b83422df57ec77076d2a1eeda2aad8f4e0e",
-  "taken": "20261020-145118",
-  "capture_image": "devhero-20261020-145118-000.png",
+  "exe_sha256": "56666cb851b12256092c99b5f409d772e3e6d1bed0aed59f1ee2814bcd731251",
+  "taken": "20261020-153158",
+  "capture_image": "devhero-20261020-153158-000.png",
   "spot": {
     "name": "klamall-e0",
     "map": "klamall",

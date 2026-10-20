@@ -4,7 +4,7 @@
   "map": "KLATRAP.MAP",
   "elevation": 0,
   "still_snapshot": true,
-  "snapshot_run": "4a2b4380e125488ab3035c014efa7b1f",
+  "snapshot_run": "ae9958dcd33c44e69e5d03cdbab1b733",
   "view_tile": 21913,
   "preview_requested": true,
   "scene_3d_enabled": true,
@@ -44,7 +44,7 @@
     ]
   },
   "camera": "fixed eye=(55.64466,46.23085,78.46700), target=(6.45833,0.00000,4.68750), fov_y=25.0, near=0.1, far=400.0, screen_right=-cross(forward,world_up)",
-  "wall_triangles": 502,
+  "wall_triangles": 702,
   "wall_pages": 1,
   "hero": {
     "tile": 12281,
@@ -68,11 +68,11 @@
   "scale": 2,
   "windowed": true,
   "drawable": "1920x1080",
-  "ce_commit": "5bfbddcc",
+  "ce_commit": "c174b340",
   "tools_commit": "-",
-  "exe_sha256": "a933abe956a57ed29d393d860aff3b83422df57ec77076d2a1eeda2aad8f4e0e",
-  "taken": "20261020-145237",
-  "capture_image": "devhero-20261020-145237-000.png",
+  "exe_sha256": "56666cb851b12256092c99b5f409d772e3e6d1bed0aed59f1ee2814bcd731251",
+  "taken": "20261020-153321",
+  "capture_image": "devhero-20261020-153321-000.png",
   "spot": {
     "name": "klatrap-e0",
     "map": "klatrap",
