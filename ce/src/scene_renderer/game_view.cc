@@ -32,6 +32,7 @@ struct Frame {
     double width;
     double height;
     double distance;
+    double zoom;
     double nearPlane;
     double farPlane;
 };
@@ -39,7 +40,8 @@ struct Frame {
 bool makeFrame(const GameView& view, Frame* frame)
 {
     if (view.logicalWidth <= 0 || view.logicalHeight <= 0 || !(view.distance > 20.0) || !(view.distance < 10000.0)
-        || !std::isfinite(view.centerPixel[0]) || !std::isfinite(view.centerPixel[1]) || !(view.hpx > 0.0)) {
+        || !std::isfinite(view.centerPixel[0]) || !std::isfinite(view.centerPixel[1]) || !(view.hpx > 0.0)
+        || !std::isfinite(view.zoom) || !(view.zoom > 0.01) || !(view.zoom < 100.0)) {
         return false;
     }
     const SpriteCardProjection projection = {
@@ -75,8 +77,16 @@ bool makeFrame(const GameView& view, Frame* frame)
     frame->width = view.logicalWidth;
     frame->height = view.logicalHeight;
     frame->distance = view.distance;
-    frame->nearPlane = view.distance * kNearShare;
-    frame->farPlane = view.distance * kFarShare;
+    // Zooming out shows more scene rows, so both planes grow while the zoom
+    // shrinks; zoom 1 keeps today's exact planes.
+    if (view.zoom == 1.0) {
+        frame->nearPlane = view.distance * kNearShare;
+        frame->farPlane = view.distance * kFarShare;
+    } else {
+        frame->nearPlane = view.distance * (1.0 - (1.0 - kNearShare) / view.zoom);
+        frame->farPlane = view.distance * kFarShare / view.zoom;
+    }
+    frame->zoom = view.zoom;
     return true;
 }
 
@@ -90,8 +100,8 @@ void clip(const GameView& view, const Frame& frame, double x, double y, double z
     const double groundPixelY = pixelY + view.hpx * y;
     const double near = frame.nearPerPixel * (groundPixelY - frame.centerPixel[1]) + frame.nearPerHeight * y;
     const double w = (frame.distance - near) / frame.distance;
-    out[0] = (pixelX - frame.centerPixel[0]) * 2.0 / frame.width + (2.0 * frame.screenCenter[0] / frame.width - 1.0) * w;
-    out[1] = -(pixelY - frame.centerPixel[1]) * 2.0 / frame.height + (1.0 - 2.0 * frame.screenCenter[1] / frame.height) * w;
+    out[0] = (pixelX - frame.centerPixel[0]) * 2.0 * frame.zoom / frame.width + (2.0 * frame.screenCenter[0] / frame.width - 1.0) * w;
+    out[1] = -(pixelY - frame.centerPixel[1]) * 2.0 * frame.zoom / frame.height + (1.0 - 2.0 * frame.screenCenter[1] / frame.height) * w;
     const double n = frame.nearPlane;
     const double f = frame.farPlane;
     out[2] = (f + n) / (f - n) * w - 2.0 * f * n / ((f - n) * frame.distance);

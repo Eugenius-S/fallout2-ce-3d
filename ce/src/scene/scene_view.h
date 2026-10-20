@@ -59,6 +59,11 @@ struct RefreshResult {
 // current frames.
 RefreshResult refreshForPresent();
 
+// Zooms the 3D view by `steps` wheel notches (in when positive), clamped
+// to the [3d] zoom_min/zoom_max settings; only while the full 3D view is
+// up and presenting.
+void adjustZoom(int steps);
+
 } // namespace scene
 } // namespace fallout
 

@@ -30,6 +30,9 @@ StaticPreviewCamera staticPreviewCamera(bool withWalls);
 // is the game's own parallel projection, for comparing with 2D.
 void setStaticViewDistance(double units);
 
+// The 3D view zoom around the screen center; 1.0 is the game's own size.
+void setCameraZoom(double zoom);
+
 // A free camera for looking around a map (dev tools): a GL eye and where it
 // looks, by yaw and pitch (radians). While it flies the scene is drawn from
 // it, with no egg and nothing of the game's own picture over it.

@@ -334,10 +334,27 @@ void setCameraGlide(bool glide)
     gCameraGlide = glide;
 }
 
+void adjustZoom(int steps)
+{
+    if (steps == 0) return;
+    if (activeView() != View::Full || !shouldPresent()) return;
+    double low = settings.scene3d.zoom_min;
+    double high = settings.scene3d.zoom_max;
+    if (low > high) std::swap(low, high);
+    double zoom = settings.scene3d.zoom;
+    zoom *= std::pow(1.25, static_cast<double>(steps));
+    if (zoom < low) zoom = low;
+    if (zoom > high) zoom = high;
+    settings.scene3d.zoom = zoom; // written back on save, kept between sessions
+    scene_renderer::setCameraZoom(zoom);
+}
+
 RefreshResult refreshForPresent()
 {
     if (activeView() != View::Full) return { false, 0.0 };
     const Uint64 start = SDL_GetPerformanceCounter();
+    // Follow the stored zoom every frame, so a changed setting applies live.
+    scene_renderer::setCameraZoom(settings.scene3d.zoom);
     // The game scrolls (screen edges, arrow keys, following the hero); the 3D
     // view goes with it.
     if (!gCameraGlide) scene_renderer::setStaticCameraCenterTile(-1);
