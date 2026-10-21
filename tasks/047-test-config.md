@@ -2,8 +2,8 @@
 id: 047
 title: Test runs keep their own config, apart from the owner's game
 milestone: M0
-status: todo
-owner: none
+status: doing
+owner: glm
 suggested: glm
 claude-only: no
 user-check: no
