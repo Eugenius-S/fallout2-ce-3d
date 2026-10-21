@@ -4,7 +4,7 @@ title: Buildings and big things cast sun shadows
 milestone: M1
 status: todo
 owner: none
-suggested: claude
+suggested: gpt
 claude-only: no
 user-check: yes
 depends-on: [021]
@@ -35,6 +35,10 @@ walls, and follow open doors, hidden roofs and changed objects.
 - Snapshots in `runs/045-building-shadows/`: noon, sunset and night at the
   regression spots, and an open door.
 - The frame time with shadows on and off in the `Log`.
+- A quick time of day, asked by the owner: a dev key in the panel steps the
+  game hour (for example by 3 hours) and `--dev-hour=H` sets it on start, so
+  morning, noon, sunset and night can be looked at in a minute; the sun is
+  set at once, as on a time jump (021).
 
 ## Out of scope
 
