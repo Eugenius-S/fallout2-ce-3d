@@ -15,3 +15,8 @@ that fits no task becomes a new task when the board runs dry.
   original cuts). Not now. First screenshot the exit zones of the original
   maps to learn where the game cuts a map, then fit the clean edges (016)
   to that.
+- 2026-10-21 Dev mode: teleport the hero to any spot of any map (map,
+  elevation, hex), and let an agent do it in the owner's running game on the
+  owner's word in chat (for example a command file the game watches). Start
+  options exist (`--dev-map`, `--dev-elevation`, a view hex); a jump inside a
+  running game does not. Not now.
