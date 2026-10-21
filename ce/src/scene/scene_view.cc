@@ -43,6 +43,13 @@ namespace {
 View gView = View::Off;
 bool gCameraGlide = true;
 bool gFreeScroll = false; // tileSetFreeScroll as set for the full view
+// The wheel sets a target zoom (settings.scene3d.zoom) and the shown zoom
+// eases there, so the picture glides instead of jumping a step at a time.
+constexpr double kZoomGlideSeconds = 0.2;
+double gZoomShown = 0.0; // the zoom applied last frame (0: nothing applied yet)
+bool gZoomGliding = false;
+double gZoomGlideFrom = 1.0;
+Uint64 gZoomGlideStarted = 0;
 // The map elevation whose scene the renderer holds, and the last one that
 // could not be loaded (not tried again until the game leaves it).
 std::string gLoadedMap;
@@ -564,15 +571,39 @@ void adjustZoom(int steps)
     if (zoom < low) zoom = low;
     if (zoom > high) zoom = high;
     settings.scene3d.zoom = zoom; // written back on save, kept between sessions
-    scene_renderer::setCameraZoom(zoom);
+    // Ease from what is on the screen now: a step in mid-glide re-anchors and
+    // keeps the motion continuous.
+    if (gZoomShown <= 0.0) gZoomShown = zoom;
+    gZoomGlideFrom = gZoomShown;
+    gZoomGlideStarted = SDL_GetPerformanceCounter();
+    gZoomGliding = true;
+}
+
+// The shown zoom for this frame: the stored one, or the glide toward it.
+double shownZoom()
+{
+    double zoom = settings.scene3d.zoom;
+    if (gZoomGliding) {
+        const double seconds = static_cast<double>(SDL_GetPerformanceCounter() - gZoomGlideStarted)
+            / static_cast<double>(SDL_GetPerformanceFrequency());
+        if (seconds < kZoomGlideSeconds) {
+            const double t = seconds / kZoomGlideSeconds;
+            zoom = gZoomGlideFrom + (zoom - gZoomGlideFrom) * (1.0 - std::pow(1.0 - t, 3.0));
+        } else {
+            gZoomGliding = false;
+        }
+    }
+    return zoom;
 }
 
 RefreshResult refreshForPresent()
 {
     if (activeView() != View::Full) return { false, 0.0 };
     const Uint64 start = SDL_GetPerformanceCounter();
-    // Follow the stored zoom every frame, so a changed setting applies live.
-    scene_renderer::setCameraZoom(settings.scene3d.zoom);
+    // Follow the stored zoom every frame, so a changed setting applies live;
+    // a wheel step glides there instead (see adjustZoom).
+    gZoomShown = shownZoom();
+    scene_renderer::setCameraZoom(gZoomShown);
     // The game scrolls (screen edges, arrow keys, following the hero); the 3D
     // view goes with it.
     if (!gCameraGlide) scene_renderer::setStaticCameraCenterTile(-1);

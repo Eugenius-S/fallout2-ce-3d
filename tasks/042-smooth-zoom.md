@@ -2,13 +2,13 @@
 id: 042
 title: Smooth camera zoom with easing
 milestone: M1
-status: todo
-owner: none
+status: done
+owner: glm
 suggested: glm
 claude-only: no
 user-check: yes
 depends-on: [015]
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -40,3 +40,19 @@ with easing instead of jumping a step at a time (the owner's wish,
 Zooming toward the mouse cursor.
 
 ## Log
+
+### 2026-10-21 glm
+Done: the wheel only sets the target (`settings.scene3d.zoom`, clamped to
+`zoom_min..zoom_max` as before) in `scene::adjustZoom`; the shown zoom eases
+to it in `refreshForPresent` with a cubic ease-out over 0.2 s
+(`kZoomGlideSeconds`, `shownZoom()` in ce/src/scene/scene_view.cc). A step in
+mid-glide re-anchors from the value on screen, so quick wheel steps chain
+into one continuous glide; with no glide running the shown zoom still follows
+the stored one every frame, so a changed setting or the test runs' forced
+zoom 1 applies live. Non-issue checked: `setCameraZoom` has no other callers.
+How it feels: the first notch moves most of the way at once and settles
+softly, no overshoot; a fast wheel spin glides smoothly to the last target
+with no jerk between notches. The owner judges the feel after the merge.
+Next: nothing.
+Check: build, ctest 11/11, regression 16/16 (exit 0; klatoxcv-e1's tolerated
+4 pixels as before).
