@@ -34,6 +34,7 @@
 #include "../game.h"
 #include "../game_mouse.h"
 #include "../object.h"
+#include "../preferences.h"
 #include "../mouse.h"
 #include "../movie.h"
 #include "../platform/git_version.h"
@@ -88,6 +89,8 @@ bool gStartupFloorPreviewAttempted = false;
 int gStartupFloorPreviewReturnAfter = 0;
 int gStartupFloorPreviewFramesRemaining = 0;
 bool gSnapshotOncePending = false;
+bool gPreferencesSnapshotPending = false;
+bool gPreferencesSnapshotActive = false;
 // --dev-map-tour: the map elevations to visit after the startup one; the
 // step counts snapshots taken (-1: no tour).
 struct TourStop {
@@ -694,6 +697,10 @@ bool parseOption(const char* arg)
         gSnapshotOncePending = true;
         return true;
     }
+    if (strcmp(arg, "--dev-preferences-snapshot") == 0) {
+        gPreferencesSnapshotPending = true;
+        return true;
+    }
     if (strcmp(arg, "--dev-still-snapshot") == 0) {
         gStillSnapshot = true;
         return true;
@@ -1069,6 +1076,12 @@ void update()
     if (!gEnabled) {
         return;
     }
+    if (gPreferencesSnapshotPending && sceneStartupReady() && !inBlockingGameState()) {
+        gPreferencesSnapshotPending = false;
+        gPreferencesSnapshotActive = true;
+        doPreferences(false);
+        gPreferencesSnapshotActive = false;
+    }
     fly();
     // Map scripts set the light by the hour; a dev view holds its own.
     if (gDevAmbient >= 0 && gMapHeader.name[0] != '\0' && lightGetAmbientIntensity() != gDevAmbient) {
@@ -1270,6 +1283,11 @@ void update()
             }
         }
     }
+}
+
+bool preferencesSnapshotRequested()
+{
+    return gPreferencesSnapshotActive;
 }
 
 bool suppressInitialSceneEnable()

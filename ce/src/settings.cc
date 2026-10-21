@@ -452,6 +452,7 @@ void initSettingsRegistry(bool isMapper)
     glowStrengthDescriptor.subsection = "3D";
     glowStrengthDescriptor.fallbackLabel = "Glow strength";
     glowStrengthDescriptor.fallbackDescription = "How far the glow of shining things spreads and brightens.";
+    glowStrengthDescriptor.numericRange = SettingNumericRange { 0.0, 3.0, 0.1 };
     settingsRegistry.back().descriptor = glowStrengthDescriptor;
     settingsRegistry.back().write = [](bool onlyAdd) {
         if (onlyAdd && settingsKeyExists("3d", "glow_strength")) return;

@@ -29,6 +29,7 @@ param(
     [switch]$Probe,
     [string]$Tour,
     [switch]$Classic,
+    [switch]$Preferences,
     [switch]$NoPreview,
     [switch]$Parallel,
     [ValidateRange(0, 39999)]
@@ -96,7 +97,11 @@ $arguments = @('--dev-tools', "--dev-screen=${ScreenWidth}x${ScreenHeight}", "--
     '--dev-new-game', "--dev-map=$Map", "--dev-elevation=$Elevation", "--dev-snapshot-run=$runId")
 if ($Glow) { $arguments += '--dev-glow' }
 if ($Zoom -gt 0) { $arguments += "--dev-zoom=$Zoom" }
-if ($Classic) { $arguments += '--dev-classic' }
+if ($Preferences) {
+    if ($Probe -or $Tour -or $Still) { throw '-Preferences cannot be combined with -Probe, -Tour, or -Still.' }
+    $arguments += '--dev-classic'
+    $arguments += '--dev-preferences-snapshot'
+} elseif ($Classic) { $arguments += '--dev-classic' }
 elseif (-not $NoPreview) { $arguments += '--dev-hero-preview' }
 if ($PSBoundParameters.ContainsKey('ViewTile')) { $arguments += "--dev-view-tile=$ViewTile" }
 if ($PSBoundParameters.ContainsKey('HeroTile')) { $arguments += "--dev-hero-tile=$HeroTile" }
@@ -119,7 +124,9 @@ if ($Still) {
     if ($Probe) { throw '-Still cannot be combined with the interactive -Probe.' }
     $arguments += '--dev-still-snapshot'
 }
-if ($Probe) {
+if ($Preferences) {
+    $shots = 1
+} elseif ($Probe) {
     if ($Tour) { throw '-Tour cannot be combined with -Probe.' }
     $shots = 2
     $arguments += '--dev-pick-probe'

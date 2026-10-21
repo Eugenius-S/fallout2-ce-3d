@@ -304,6 +304,8 @@ set(FALLOUT_PLATFORM_SOURCES
     "src/scene/sun.cc"
     "src/scene/sun.h"
     "src/scene/scene_lights.h"
+    "src/scene/options_panel.cc"
+    "src/scene/options_panel.h"
     "src/scene/scene_objects.cc"
     "src/scene/scene_objects.h"
     "src/scene/scene_overlay.cc"
