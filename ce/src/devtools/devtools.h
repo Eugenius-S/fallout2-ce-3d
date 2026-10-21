@@ -38,6 +38,9 @@ bool initializeFixedScreenOptions(int argc, char** argv);
 bool fixedScreenOptionsEnabled();
 bool backgroundCaptureActive();
 void applyFixedScreenOptions();
+// The command line is parsed after the fixed options apply (main.cc), so a
+// background run re-applies the glow switch once the flags are known.
+void applyBackgroundGlow();
 
 bool isEnabled();
 bool wantsListMaps();

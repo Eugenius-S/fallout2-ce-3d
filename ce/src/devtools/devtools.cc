@@ -107,6 +107,7 @@ std::vector<TourStop> gTour;
 int gTourStep = -1;
 int gTourFrames = 0;
 bool gStillSnapshot = false;
+bool gBackgroundGlow = false;
 int gDevAmbient = -1; // --dev-ambient: the map's ambient light held there (night views)
 bool gDevFly = false; // --dev-fly: the fly camera takes off at the first 3D frame (snapshots)
 // --dev-fly-turn=D, --dev-fly-pitch=D, --dev-fly-distance=U: then it circles
@@ -696,6 +697,13 @@ bool parseOption(const char* arg)
         gStillSnapshot = true;
         return true;
     }
+    // --dev-glow: keep the glow on in a background run (a snapshot of the
+    // glowing view); off is the default there, so captures stay byte-stable.
+    if (strcmp(arg, "--dev-glow") == 0) {
+        gBackgroundGlow = true;
+        debugPrint("DEVTOOLS: the glow stays on in this background run\n");
+        return true;
+    }
     if (strcmp(arg, "--dev-fly") == 0) {
         gDevFly = true;
         return true;
@@ -872,9 +880,16 @@ void applyFixedScreenOptions()
     if (backgroundCaptureActive()) {
         settings.scene3d.zoom = 1.0;
         settings.scene3d.camera_rotation = false;
+        settings.scene3d.glow = gBackgroundGlow;
     }
-    debugPrint("DEVTOOLS: fixed screen %dx%d scale %d, windowed\n",
-        gFixedScreenOptions.width, gFixedScreenOptions.height, gFixedScreenOptions.scale);
+    debugPrint("DEVTOOLS: fixed screen %dx%d scale %d, windowed, glow %d%s\n",
+        gFixedScreenOptions.width, gFixedScreenOptions.height, gFixedScreenOptions.scale,
+        settings.scene3d.glow ? 1 : 0, gBackgroundGlow ? " (kept on)" : "");
+}
+
+void applyBackgroundGlow()
+{
+    if (backgroundCaptureActive()) settings.scene3d.glow = gBackgroundGlow;
 }
 
 bool isEnabled()

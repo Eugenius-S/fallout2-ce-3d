@@ -3,6 +3,7 @@
 #include <stdio.h>
 
 #include "gl_api.h"
+#include "post.h"
 #include "scene_internal.h"
 
 namespace fallout {
@@ -305,6 +306,7 @@ void shutdown()
             glDeleteProgram(gProgram);
             gProgram = 0;
         }
+        shutdownGlow();
         SDL_GL_DeleteContext(gContext);
         gContext = nullptr;
     }

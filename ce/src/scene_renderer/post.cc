@@ -13,8 +13,10 @@ namespace scene_renderer {
 
 namespace {
 
+// The framebuffer entry points and the constants the shared list has none of.
 constexpr unsigned int kFramebuffer = 0x8D40;
 constexpr unsigned int kColorAttachment0 = 0x8CE0;
+constexpr unsigned int kColorAttachment1 = 0x8CE1;
 constexpr unsigned int kDepthAttachment = 0x8D00;
 constexpr unsigned int kRenderbuffer = 0x8D41;
 constexpr unsigned int kDepthComponent24 = 0x81A6;
@@ -22,12 +24,27 @@ constexpr unsigned int kFragShader = 0x8B30;
 constexpr unsigned int kVertexShader = 0x8B31;
 constexpr unsigned int kCompileStatus = 0x8B81;
 constexpr unsigned int kLinkStatus = 0x8B82;
-constexpr unsigned int kRgba8 = 0x8058;
-constexpr unsigned int kLinear = 0x2601;
-constexpr unsigned int kTriangles = 0x0004;
-constexpr unsigned int kArrayBuffer = 0x8892;
-constexpr unsigned int kStaticDraw = 0x88E4;
 constexpr unsigned int kFloat = 0x1406;
+
+using internal::kArrayBuffer;
+using internal::kBlend;
+using internal::kClampToEdge;
+using internal::kDepthTest;
+using internal::kLinear;
+using internal::kOne;
+using internal::kOneMinusSrcAlpha;
+using internal::kRGBA;
+using internal::kRgba8;
+using internal::kSrcAlpha;
+using internal::kStaticDraw;
+using internal::kTexture0;
+using internal::kTexture2D;
+using internal::kTextureMagFilter;
+using internal::kTextureMinFilter;
+using internal::kTextureWrapS;
+using internal::kTextureWrapT;
+using internal::kTriangles;
+using internal::kUnsignedByte;
 
 constexpr const char* kPostVertexShader = R"(#version 330 core
 layout(location = 0) in vec2 aPosition;
@@ -36,18 +53,6 @@ out vec2 vTexcoord;
 void main() {
     gl_Position = vec4(aPosition, 0.0, 1.0);
     vTexcoord = aTexcoord;
-}
-)";
-
-constexpr const char* kBrightFragmentShader = R"(#version 330 core
-in vec2 vTexcoord;
-uniform sampler2D uTexture;
-out vec4 outColor;
-void main() {
-    vec3 c = texture(uTexture, vTexcoord).rgb;
-    float luma = dot(c, vec3(0.299, 0.587, 0.114));
-    float k = smoothstep(0.55, 0.85, luma);
-    outColor = vec4(c * k, 1.0);
 }
 )";
 
@@ -78,20 +83,20 @@ void main() {
 
 bool gInitialized = false;
 bool gDisabled = false;
-unsigned int gProgramBright = 0;
 unsigned int gProgramBlur = 0;
 unsigned int gProgramAdd = 0;
 unsigned int gQuadVao = 0;
 unsigned int gQuadVbo = 0;
 unsigned int gSceneFbo = 0;
 unsigned int gSceneTexture = 0;
+unsigned int gEmissiveTexture = 0;
 unsigned int gSceneDepth = 0;
 unsigned int gGlowA = 0;
 unsigned int gGlowB = 0;
 unsigned int gGlowFboA = 0;
 unsigned int gGlowFboB = 0;
-int gGlowWidth = 0;
-int gGlowHeight = 0;
+int gTargetsWidth = 0;
+int gTargetsHeight = 0;
 
 unsigned int compile(unsigned int type, const char* source)
 {
@@ -154,25 +159,27 @@ unsigned int colorTexture(int width, int height)
 void destroyTargets()
 {
     if (gSceneTexture != 0) { glDeleteTextures(1, &gSceneTexture); gSceneTexture = 0; }
+    if (gEmissiveTexture != 0) { glDeleteTextures(1, &gEmissiveTexture); gEmissiveTexture = 0; }
     if (gSceneDepth != 0) { glDeleteRenderbuffers(1, &gSceneDepth); gSceneDepth = 0; }
     if (gSceneFbo != 0) { glDeleteFramebuffers(1, &gSceneFbo); gSceneFbo = 0; }
     if (gGlowA != 0) { glDeleteTextures(1, &gGlowA); gGlowA = 0; }
     if (gGlowB != 0) { glDeleteTextures(1, &gGlowB); gGlowB = 0; }
     if (gGlowFboA != 0) { glDeleteFramebuffers(1, &gGlowFboA); gGlowFboA = 0; }
     if (gGlowFboB != 0) { glDeleteFramebuffers(1, &gGlowFboB); gGlowFboB = 0; }
-    gGlowWidth = 0;
-    gGlowHeight = 0;
+    gTargetsWidth = 0;
+    gTargetsHeight = 0;
 }
 
 // Draws a fullscreen quad sampling `texture` with the given program; dx/dy
 // are the blur direction in texels.
-void drawPostQuad(unsigned int texture, unsigned int program, float dx, float dy)
+void drawPostQuad(unsigned int texture, unsigned int program, float dx, float dy, float strength)
 {
     glUseProgram(program);
     glActiveTexture(kTexture0);
     glBindTexture(kTexture2D, texture);
     glUniform1i(glGetUniformLocation(program, "uTexture"), 0);
     glUniform2f(glGetUniformLocation(program, "uDirection"), dx, dy);
+    glUniform1f(glGetUniformLocation(program, "uStrength"), strength);
     glBindVertexArray(gQuadVao);
     glDrawArrays(kTriangles, 0, 6);
 }
@@ -186,10 +193,9 @@ bool initGlow(std::string* error)
         return true;
     }
 
-    gProgramBright = makeProgram(kBrightFragmentShader);
     gProgramBlur = makeProgram(kBlurFragmentShader);
     gProgramAdd = makeProgram(kAddFragmentShader);
-    if (gProgramBright == 0 || gProgramBlur == 0 || gProgramAdd == 0) {
+    if (gProgramBlur == 0 || gProgramAdd == 0) {
         if (error != nullptr) *error = "the glow programs failed to build";
         return false;
     }
@@ -212,9 +218,10 @@ bool initGlow(std::string* error)
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 2, kFloat, 0, 4 * sizeof(float),
         reinterpret_cast<const void*>(2 * sizeof(float)));
+    glBindVertexArray(0);
 
-    resizeGlow();
     gInitialized = true;
+    resizeGlow();
     if (error != nullptr) error->clear();
     return true;
 }
@@ -229,63 +236,120 @@ void setGlowDisabled()
     gDisabled = true;
 }
 
+void shutdownGlow()
+{
+    destroyTargets();
+    if (gProgramBlur != 0) { glDeleteProgram(gProgramBlur); gProgramBlur = 0; }
+    if (gProgramAdd != 0) { glDeleteProgram(gProgramAdd); gProgramAdd = 0; }
+    if (gQuadVbo != 0) { glDeleteBuffers(1, &gQuadVbo); gQuadVbo = 0; }
+    if (gQuadVao != 0) { glDeleteVertexArrays(1, &gQuadVao); gQuadVao = 0; }
+    gInitialized = false;
+}
+
 void resizeGlow()
 {
     if (!gInitialized) return;
-    SDL_GL_GetDrawableSize(gWindow, &gDrawableWidth, &gDrawableHeight);
+    int width = 0;
+    int height = 0;
+    SDL_GL_GetDrawableSize(internal::gWindow, &width, &height);
+    if (width == gTargetsWidth && height == gTargetsHeight) return;
     destroyTargets();
-    gSceneTexture = colorTexture(gDrawableWidth, gDrawableHeight);
+    // The scene renders here in full size: colour for the picture, a second
+    // attachment for what its texels shine by themselves.
+    gSceneTexture = colorTexture(width, height);
+    gEmissiveTexture = colorTexture(width, height);
     glGenRenderbuffers(1, &gSceneDepth);
     glBindRenderbuffer(kRenderbuffer, gSceneDepth);
-    glRenderbufferStorage(kRenderbuffer, kDepthComponent24, gDrawableWidth, gDrawableHeight);
+    glRenderbufferStorage(kRenderbuffer, kDepthComponent24, width, height);
     glGenFramebuffers(1, &gSceneFbo);
     glBindFramebuffer(kFramebuffer, gSceneFbo);
     glFramebufferTexture2D(kFramebuffer, kColorAttachment0, kTexture2D, gSceneTexture, 0);
+    glFramebufferTexture2D(kFramebuffer, kColorAttachment1, kTexture2D, gEmissiveTexture, 0);
     glFramebufferRenderbuffer(kFramebuffer, kDepthAttachment, kRenderbuffer, gSceneDepth);
-    gGlowWidth = std::max(gDrawableWidth / 4, 1);
-    gGlowHeight = std::max(gDrawableHeight / 4, 1);
-    gGlowA = colorTexture(gGlowWidth, gGlowHeight);
-    gGlowB = colorTexture(gGlowWidth, gGlowHeight);
+    const unsigned int attachments[2] = { kColorAttachment0, kColorAttachment1 };
+    glDrawBuffers(2, attachments);
+    // The bleed is blurred at a quarter of the window, wide enough at this size.
+    int glowWidth = std::max(width / 4, 1);
+    int glowHeight = std::max(height / 4, 1);
+    gGlowA = colorTexture(glowWidth, glowHeight);
+    gGlowB = colorTexture(glowWidth, glowHeight);
+    glGenFramebuffers(1, &gGlowFboA);
+    glBindFramebuffer(kFramebuffer, gGlowFboA);
+    glFramebufferTexture2D(kFramebuffer, kColorAttachment0, kTexture2D, gGlowA, 0);
+    glDrawBuffers(1, &kColorAttachment0);
+    glGenFramebuffers(1, &gGlowFboB);
+    glBindFramebuffer(kFramebuffer, gGlowFboB);
+    glFramebufferTexture2D(kFramebuffer, kColorAttachment0, kTexture2D, gGlowB, 0);
+    glDrawBuffers(1, &kColorAttachment0);
     glBindFramebuffer(kFramebuffer, 0);
+    gTargetsWidth = width;
+    gTargetsHeight = height;
 }
 
 bool beginSceneCapture()
 {
-    if (!gInitialized) return false;
-    SDL_GL_GetDrawableSize(gWindow, &gDrawableWidth, &gDrawableHeight);
+    if (gDisabled || !settings.scene3d.glow) return false;
+    if (!gInitialized) {
+        std::string error;
+        if (!initGlow(&error)) {
+            fprintf(stderr, "post: glow off: %s\n", error.c_str());
+            fflush(stderr);
+            if (FILE* log = fopen("scene.log", "a")) {
+                fprintf(log, "post: glow off: %s\n", error.c_str());
+                fclose(log);
+            }
+            setGlowDisabled();
+            return false;
+        }
+    }
     resizeGlow();
+    if (gSceneFbo == 0) return false;
     glBindFramebuffer(kFramebuffer, gSceneFbo);
-    glViewport(0, 0, gDrawableWidth, gDrawableHeight);
+    glViewport(0, 0, gTargetsWidth, gTargetsHeight);
     return true;
 }
 
 void compositeGlow()
 {
-    if (!gInitialized) return;
+    if (!gInitialized || gSceneFbo == 0) return;
 
-    // The bright pass downsamples the scene into glow A.
-    glBindFramebuffer(kFramebuffer, gGlowFboA);
-    glViewport(0, 0, gGlowWidth, gGlowHeight);
-    drawPostQuad(gSceneTexture, gProgramBright, 0.0f, 0.0f);
-    // Two blur passes: horizontal into B, vertical back into A.
+    // The emissive buffer is the glow's source: blur it wide, horizontal into
+    // B, vertical back into A.
+    int glowWidth = std::max(gTargetsWidth / 4, 1);
+    int glowHeight = std::max(gTargetsHeight / 4, 1);
     glBindFramebuffer(kFramebuffer, gGlowFboB);
-    glViewport(0, 0, gGlowWidth, gGlowHeight);
-    drawPostQuad(gGlowA, gProgramBlur, 1.0f / gGlowWidth, 0.0f);
+    glViewport(0, 0, glowWidth, glowHeight);
+    drawPostQuad(gEmissiveTexture, gProgramBlur, 1.0f / glowWidth, 0.0f, 1.0f);
     glBindFramebuffer(kFramebuffer, gGlowFboA);
-    glViewport(0, 0, gGlowWidth, gGlowHeight);
-    drawPostQuad(gGlowB, gProgramBlur, 0.0f, 1.0f / gGlowHeight);
+    glViewport(0, 0, glowWidth, glowHeight);
+    drawPostQuad(gGlowB, gProgramBlur, 0.0f, 1.0f / glowHeight, 1.0f);
 
-    // Composite the scene and the glow over the window.
+    // The picture, then its bleed added over it, over the window.
     glBindFramebuffer(kFramebuffer, 0);
-    SDL_GL_GetDrawableSize(gWindow, &gDrawableWidth, &gDrawableHeight);
-    glViewport(0, 0, gDrawableWidth, gDrawableHeight);
+    glViewport(0, 0, gTargetsWidth, gTargetsHeight);
     glDisable(kDepthTest);
+    glDepthMask(1);
     glEnable(kBlend);
     glBlendFunc(kOne, kOneMinusSrcAlpha);
-    drawPostQuad(gSceneTexture, gProgramAdd, 0.0f, 0.0f);
+    drawPostQuad(gSceneTexture, gProgramAdd, 0.0f, 0.0f, 1.0f);
+    const double strength = std::max(settings.scene3d.glow_strength, 0.0);
     glBlendFunc(kOne, kOne);
-    drawPostQuad(gGlowA, gProgramAdd, 0.0f, 0.0f);
+    drawPostQuad(gGlowA, gProgramAdd, 0.0f, 0.0f, static_cast<float>(strength));
     glDisable(kBlend);
+    glBindVertexArray(0);
+    glUseProgram(0);
+}
+
+// A temporary probe: the emissive buffer alone as the whole picture.
+void compositeGlowProbe()
+{
+    glBindFramebuffer(kFramebuffer, 0);
+    glViewport(0, 0, gTargetsWidth, gTargetsHeight);
+    glDisable(kDepthTest);
+    glDisable(kBlend);
+    drawPostQuad(gEmissiveTexture, gProgramAdd, 0.0f, 0.0f, 4.0f);
+    glBindVertexArray(0);
+    glUseProgram(0);
 }
 
 } // namespace scene_renderer

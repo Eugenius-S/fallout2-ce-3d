@@ -93,6 +93,11 @@ uniform vec2 uLightSqu; // ground (u, v) to game pixels
 uniform vec2 uLightSqv;
 uniform vec2 uLightOrigin;
 out vec4 outColor;
+// What a texel shines by itself for the glow (task 022): the colour a
+// full-bright texel keeps, premultiplied by its shown coverage; black
+// elsewhere. Only read when the glow renders the scene into its own
+// framebuffer; with none bound the value is dropped.
+layout(location = 1) out vec4 outEmissive;
 // The hex (column, row) under GL point w, between hex centers. The hex grid's
 // odd columns sit half a step lower; their average place is close enough for light.
 vec2 hexAt(vec3 w) {
@@ -165,11 +170,13 @@ void main() {
     }
     if (uTextured == 0) {
         outColor = uColor;
+        outEmissive = vec4(0.0);
     } else {
         vec4 texel = texture(uTexture, vTexcoord);
         if (texel.a < uCutoff) discard;
         if (uPick != 0) {
             outColor = uColor;
+            outEmissive = vec4(0.0);
         } else if (uTranslucent != 0) {
             // _dark_translucent_trans_buf_to_buf: a texel's gray level (0..7,
             // from its RGB555 colour) mixes the tint over what lies behind, in
@@ -183,6 +190,7 @@ void main() {
             float a = min(gray, 7.0) / 7.0;
             float light = min(floor(sceneLighting().a * 128.0 + 0.0001), 128.0) / 128.0;
             outColor = vec4(uTint * a * light, 1.0 - light * (1.0 - a));
+            outEmissive = vec4(0.0);
         } else {
             outColor = texel;
             // A sprite's animated colours (alpha 254) stay at full light.
@@ -207,6 +215,7 @@ void main() {
                     outColor.a *= m / 128.0;
                 }
             }
+            outEmissive = fullBright ? vec4(texel.rgb * outColor.a, 1.0) : vec4(0.0);
         }
     }
 }

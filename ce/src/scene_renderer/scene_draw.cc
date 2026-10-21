@@ -6,6 +6,7 @@
 
 #include "context.h"
 #include "gl_api.h"
+#include "post.h"
 #include "scene_internal.h"
 #include "static_scene.h"
 
@@ -317,7 +318,9 @@ bool captureStaticPreviewPng(const std::filesystem::path& path, bool withWalls, 
     // Read only our preview render. Do not swap or touch game/map state.
     while (glGetError() != 0) {
     }
+    const bool glow = beginSceneCapture();
     drawStaticPreview(withWalls, withHero);
+    if (glow) compositeGlow();
     if (withHero && gSceneOverlayReady && !staticFlyCameraActive()) {
         // With what the game draws over it, as presented.
         glViewport(0, 0, drawableWidth, drawableHeight);

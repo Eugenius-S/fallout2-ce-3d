@@ -6,10 +6,11 @@
 namespace fallout {
 namespace scene_renderer {
 
-// The glow (bloom) pass: the scene is rendered into an offscreen framebuffer,
-// its bright parts are extracted, blurred and composited back over the
-// window. Within OpenGL 4.1 core. Driven by [3d] glow and [3d]
-// glow_strength; switches itself off and logs when it cannot start.
+// The glow (bloom) pass: the scene renders into an offscreen framebuffer with
+// a second attachment for what its texels shine by themselves (a sprite's
+// palette-cycling colours, marked alpha 254); that buffer blurs wide and adds
+// back over the picture. Within OpenGL 4.1 core. Driven by [3d] glow and
+// [3d] glow_strength; switches itself off and logs when it cannot start.
 
 bool initGlow(std::string* error);
 // Recreates the offscreen targets when the window size changes; no-op when
@@ -17,12 +18,17 @@ bool initGlow(std::string* error);
 void resizeGlow();
 bool glowActive();
 void setGlowDisabled();
+// Frees everything the glow holds; a later beginSceneCapture starts it anew.
+void shutdownGlow();
 
-// Binds the offscreen framebuffer for the scene draw.
+// Binds the offscreen framebuffer for the scene draw; false when the glow is
+// off (the scene draws straight to the window, byte for byte as before).
 bool beginSceneCapture();
-// Extracts and blurs the bright parts of the scene framebuffer, then
-// composites the scene and the glow over the window.
+// Blurs the emissive buffer and composites the scene and the glow over the
+// window.
 void compositeGlow();
+// Temporary probe: the emissive blur alone as the whole picture.
+void compositeGlowProbe();
 
 } // namespace scene_renderer
 } // namespace fallout
