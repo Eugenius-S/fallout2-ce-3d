@@ -3,6 +3,7 @@
     py -3 tools/shapes/eval/eval.py shoot [--only a.frm,b.frm]   # turned views, test instance
     py -3 tools/shapes/eval/eval.py sheets                       # contact sheets
     py -3 tools/shapes/eval/eval.py score [--scenes DIR]         # the score
+    py -3 tools/shapes/eval/eval.py check [--threshold T]        # things that vanish from the side
 
 Shots and sheets go to build/shapes-eval/. Each FRM's instance is seen alone
 (dev-snapshot -Solo) from 0, 45, 90, 180 and 270 degrees round it at the game
@@ -14,6 +15,12 @@ sheets keeps the previous run's sheets in build/shapes-eval/previous/, writes
 build/shapes-eval/changed.png with only the sheets that changed (each as
 previous over new) and marks those FRMs' verdicts "stale" until someone
 judges them again; score counts a stale verdict as not judged.
+
+check shoots every view twice (solo radius 1, then radius 0, which keeps
+nothing but the tile itself) into shots/ and empties/, counts the pixels of
+the thing seen from each angle and flags an FRM whose side views fall under
+the threshold share of its game view. Flats baked into the floor measure
+nothing and are skipped.
 """
 from __future__ import annotations
 
@@ -87,7 +94,8 @@ def mark_stale(frms):
 def shoot(only):
     """All views of one map elevation in one run of the test instance: a map
     tour (dev-snapshot -Tour) whose stops each show one thing alone from one
-    angle. Its first snapshot is the start, before the tour."""
+    angle, each followed by its empty twin (solo radius 0). Its first
+    snapshot is the start, before the tour."""
     groups = {}
     for label in labels():
         if not only or label["frm"] in only:
@@ -97,8 +105,11 @@ def shoot(only):
         for label in group:
             distance = 6 if label["big"] else 3.5
             for angle in ANGLES:
-                stops.append(f"{name}:{elevation}:{label['instance'][2]}:1:{angle}:{distance}")
-                order.append((label["frm"], angle))
+                tile = label["instance"][2]
+                stops.append(f"{name}:{elevation}:{tile}:1:{angle}:{distance}")
+                order.append((label["frm"], angle, False))
+                stops.append(f"{name}:{elevation}:{tile}:0:{angle}:{distance}")
+                order.append((label["frm"], angle, True))
         folder = OUT / "batch" / f"{name}-{elevation}"
         if folder.exists():
             shutil.rmtree(folder)
@@ -108,19 +119,19 @@ def shoot(only):
                    f"-Tour '{','.join(stops)}' -Ambient 65536 -OutputDirectory '{folder}' "
                    f"-TimeoutSeconds {60 + 3 * len(stops)}")
         run = subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", command],
-                             capture_output=True, text=True)
+                             capture_output=True, text=True, errors="replace")
         if run.returncode != 0:
             raise SystemExit(f"{name} e{elevation}: dev-snapshot failed: {run.stderr[-600:]}")
         shots = sorted(folder.glob("*.png"))[1:]
         if len(shots) != len(order):
             raise SystemExit(f"{name} e{elevation}: {len(shots)} views for {len(order)} stops")
-        for (frm, angle), shot in zip(order, shots):
-            target = OUT / "shots" / frm / str(angle)
-            if target.exists():
-                shutil.rmtree(target)
-            target.mkdir(parents=True)
-            shutil.copy(shot, target / shot.name)
-        print(name, elevation, len(shots), "views", flush=True)
+        for (frm, angle, empty), shot in zip(order, shots):
+            tree = OUT / ("empties" if empty else "shots") / frm / str(angle)
+            if tree.exists():
+                shutil.rmtree(tree)
+            tree.mkdir(parents=True)
+            shutil.copy(shot, tree / shot.name)
+        print(name, elevation, len(shots) // 2, "views", flush=True)
 
 
 def sheets():
@@ -223,10 +234,75 @@ def score(scenes):
           f"weighted by how often they stand {100 * weighted / total:.0f}%{stale_note}")
 
 
+# A pixel belongs to the thing when its strongest channel differs by this
+# much; with fewer thing pixels than this from the game view the FRM is not
+# measurable (a flat baked into the floor survives the empty solo).
+THING_CHANNEL = 8
+THING_PIXELS = 200
+
+
+def thing_pixels(thing_path, empty_path):
+    """The pixels of the thing: what its solo shot shows over the empty one."""
+    from PIL import Image, ImageChops
+    thing = Image.open(thing_path).convert("RGB")
+    empty = Image.open(empty_path).convert("RGB")
+    if thing.size != empty.size:
+        raise SystemExit(f"{thing_path} and {empty_path} differ in size")
+    red, green, blue = ImageChops.difference(thing, empty).split()
+    strongest = ImageChops.lighter(ImageChops.lighter(red, green), blue)
+    return sum(strongest.histogram()[THING_CHANNEL:])
+
+
+def check(threshold):
+    """How much of the thing each turned view still shows against the game's
+    own view (angle 0): the solo shots counted over their empty twins. Flags
+    a thing that shrinks to a sliver or disappears from a side."""
+    print(f"threshold {threshold}: flagged when some side view shows under "
+          f"{threshold:.0%} of what the game view shows")
+    flagged = []
+    measurable = 0
+    for label in labels():
+        counts = []
+        for angle in ANGLES:
+            shots = sorted((OUT / "shots" / label["frm"] / str(angle)).glob("*.png"))
+            empties = sorted((OUT / "empties" / label["frm"] / str(angle)).glob("*.png"))
+            if not shots or not empties:
+                counts = None
+                break
+            counts.append(thing_pixels(shots[-1], empties[-1]))
+        if counts is None:
+            print(f"????  {label['frm']:13} no shots, run shoot")
+            continue
+        base = counts[0]
+        if base < THING_PIXELS:
+            print(f"skip  {label['frm']:13} flat in the floor, {base} px from the game view")
+            continue
+        measurable += 1
+        shares = " ".join(f"{count / base:.2f}" for count in counts[1:])
+        worst = min(counts[1:]) / base
+        hit = worst < threshold
+        flagged.append((label["frm"], hit))
+        eye = verdicts().get(label["frm"], {}).get("verdict", "-")
+        print(f"{'FLAG' if hit else 'ok  '} {label['frm']:13} game view {base:6} px, "
+              f"45/90/180/270: {shares}   eye {eye}")
+    hits = [frm for frm, hit in flagged if hit]
+    print(f"{len(hits)} flagged of {measurable} measurable"
+          + (f": {', '.join(hits)}" if hits else ""))
+    judged = verdicts()
+    seen_wrong = [frm for frm, hit in flagged if hit and judged.get(frm, {}).get("verdict") == "pass"]
+    missed = [frm for frm, hit in flagged if not hit and judged.get(frm, {}).get("verdict") == "fail"]
+    if seen_wrong:
+        print(f"flagged but the eye passed them: {', '.join(seen_wrong)}")
+    if missed:
+        print(f"not flagged but the eye failed them: {', '.join(missed)}")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("command", choices=("shoot", "sheets", "score"))
+    parser.add_argument("command", choices=("shoot", "sheets", "score", "check"))
     parser.add_argument("--only", help="comma-separated FRMs (shoot)")
+    parser.add_argument("--threshold", type=float, default=0.3,
+                        help="the share under which check flags an FRM (default 0.3)")
     # A worktree's own export (AGENTS.md), else the game's mod cache.
     parser.add_argument("--scenes", type=Path, default=next(
         path for path in (ROOT / "build" / "scene-cache", ROOT / "game" / "mod-cache" / "scene",
@@ -236,6 +312,8 @@ def main():
         shoot(set(args.only.split(",")) if args.only else None)
     elif args.command == "sheets":
         sheets()
+    elif args.command == "check":
+        check(args.threshold)
     else:
         score(args.scenes)
 
