@@ -2,6 +2,8 @@
 
 #include <algorithm>
 #include <array>
+#include <chrono>
+#include <cstdlib>
 #include <map>
 #include <tuple>
 #include <vector>
@@ -10,6 +12,7 @@
 #include "../light.h"
 #include "../map.h"
 #include "../object.h"
+#include "../scripts.h"
 #include "../scene_renderer/static_scene.h"
 #include "../settings.h"
 #include "../svga.h"
@@ -55,6 +58,22 @@ struct Candidate {
 };
 
 std::map<std::tuple<int, int, int>, Emitter> gEmitters;
+
+// The engine's spreads cost the most (it checks walls hex by hex, for some
+// three hundred lights on a Klamath map): they are kept while the lights and
+// the engine's light map stay the same. Colours follow the palette's cycling
+// and are added up again every frame.
+struct SpreadCache {
+    std::vector<int> key; // what the spreads depend on
+    std::vector<int> hexLight; // the engine's light less its base and the big lights' share
+    std::vector<std::vector<int>> reach; // each big light's hexes, in the order lit
+    std::vector<std::vector<std::pair<int, int>>> spreads; // each candidate lit per hex: (tile, light)
+};
+
+SpreadCache gSpreads;
+
+bool gDaylight = false;
+SunTracker gSun;
 
 // The palette indices the engine cycles and paints at full light (cycle.cc):
 // slime, monitors, slow and fast fire, the alarm; not the shoreline.
@@ -161,6 +180,26 @@ void collectLight(Object* object, void* context)
     candidates->push_back(std::move(candidate));
 }
 
+// Hexes between two tiles, as tileDistanceBetween counts them, at once: the
+// engine's walks there step by step, an arctangent a step, which for every
+// pair of three hundred lights took most of a frame. Columns with an even x
+// sit half a hex lower (cube coordinates of an "even-q" grid).
+int hexDistance(int tile1, int tile2)
+{
+    if (!tileIsValid(tile1) || !tileIsValid(tile2)) return TILE_MAX_DISTANCE;
+    const auto cube = [](int tile, int* x, int* z) {
+        const int column = tile % HEX_GRID_WIDTH;
+        *x = column;
+        *z = tile / HEX_GRID_WIDTH - (column + (column & 1)) / 2;
+    };
+    int x1, z1, x2, z2;
+    cube(tile1, &x1, &z1);
+    cube(tile2, &x2, &z2);
+    const int dx = x1 - x2;
+    const int dz = z1 - z2;
+    return std::max({ std::abs(dx), std::abs(dz), std::abs(dx + dz) });
+}
+
 // A light without a shining sprite takes the colour of the shining lights
 // within its reach, by their intensity.
 void borrowColor(Candidate* candidate, const std::vector<Candidate>& candidates)
@@ -170,30 +209,12 @@ void borrowColor(Candidate* candidate, const std::vector<Candidate>& candidates)
     const int within = std::max(kBorrowDistance, light.distance);
     double sum[3] = { 0.0, 0.0, 0.0 };
     for (const Candidate& other : candidates) {
-        if (!other.shines || tileDistanceBetween(light.tile, other.light.tile) > within) continue;
+        if (!other.shines || hexDistance(light.tile, other.light.tile) > within) continue;
         for (int channel = 0; channel < 3; channel++) sum[channel] += other.light.intensity * other.light.color[channel];
     }
     const double top = std::max({ sum[0], sum[1], sum[2] });
     if (top <= 0.0) return;
     for (int channel = 0; channel < 3; channel++) light.color[channel] = static_cast<float>(sum[channel] / top);
-}
-
-// Adds a light's colour to the hexes its light reaches, by the light each
-// gets, as the engine spreads it (walls stop it).
-void addColor(Candidate* candidate, std::vector<float>* color)
-{
-    struct Paint {
-        const float* rgb;
-        std::vector<float>* color;
-    };
-    Paint paint = { candidate->light.color, color };
-    objectSpreadLight(candidate->object, [](int tile, int intensity, void* context) {
-        auto* paint = static_cast<Paint*>(context);
-        if (intensity <= 0) return;
-        for (int channel = 0; channel < 3; channel++) {
-            (*paint->color)[tile * 3 + channel] += static_cast<float>(intensity) * paint->rgb[channel];
-        }
-    }, &paint);
 }
 
 } // namespace
@@ -202,51 +223,87 @@ void updateLightsFromGame()
 {
     if (!settings.scene3d.lights) {
         scene_renderer::clearStaticLight();
+        gSpreads = {};
         return;
     }
     std::vector<Candidate> candidates;
     objectForEachAtElevation(gElevation, collectLight, &candidates);
 
     // The big lights nearest to the view are lit from their own point.
-    std::vector<Candidate*> smooth;
-    for (Candidate& candidate : candidates) {
-        if (candidate.light.distance >= kSmoothDistance) smooth.push_back(&candidate);
+    std::vector<int> smooth;
+    std::vector<bool> isSmooth(candidates.size(), false);
+    for (int index = 0; index < static_cast<int>(candidates.size()); index++) {
+        if (candidates[index].light.distance >= kSmoothDistance) smooth.push_back(index);
     }
-    std::sort(smooth.begin(), smooth.end(), [](const Candidate* a, const Candidate* b) {
-        return tileDistanceBetween(gCenterTile, a->light.tile) < tileDistanceBetween(gCenterTile, b->light.tile);
+    std::stable_sort(smooth.begin(), smooth.end(), [&candidates](int a, int b) {
+        return hexDistance(gCenterTile, candidates[a].light.tile) < hexDistance(gCenterTile, candidates[b].light.tile);
     });
     if (static_cast<int>(smooth.size()) > kMaxSmoothLights) smooth.resize(kMaxSmoothLights);
+    for (int index : smooth) isSmooth[index] = true;
 
-    // The engine's light per hex, less its base and the big lights' share.
-    std::vector<int> hexLight(HEX_GRID_SIZE);
-    for (int tile = 0; tile < HEX_GRID_SIZE; tile++) {
-        hexLight[tile] = lightGetTrueTileIntensity(gElevation, tile) - kBaseLight;
+    // What the spreads depend on: the map, the lights, which of them are big,
+    // and the engine's light map (a light moved, a door changed it).
+    std::vector<int> key = { gMapHeader.index, gElevation, static_cast<int>(candidates.size()) };
+    for (const Candidate& candidate : candidates) {
+        const Object* object = candidate.object;
+        key.insert(key.end(), { object->tile, object->lightIntensity, object->lightDistance });
     }
-    struct Spread {
-        std::vector<int>* hexLight;
-        std::vector<int>* reach;
-    };
+    key.insert(key.end(), smooth.begin(), smooth.end());
+    for (int tile = 0; tile < HEX_GRID_SIZE; tile++) key.push_back(lightGetTrueTileIntensity(gElevation, tile));
+
+    if (key != gSpreads.key) {
+        // The engine's light per hex, less its base and the big lights' share.
+        SpreadCache cache;
+        cache.hexLight.resize(HEX_GRID_SIZE);
+        for (int tile = 0; tile < HEX_GRID_SIZE; tile++) {
+            cache.hexLight[tile] = lightGetTrueTileIntensity(gElevation, tile) - kBaseLight;
+        }
+        struct Spread {
+            std::vector<int>* hexLight;
+            std::vector<int>* reach;
+        };
+        for (int index : smooth) {
+            cache.reach.emplace_back();
+            Spread spread = { &cache.hexLight, &cache.reach.back() };
+            objectSpreadLight(candidates[index].object, [](int tile, int intensity, void* context) {
+                auto* spread = static_cast<Spread*>(context);
+                (*spread->hexLight)[tile] -= intensity;
+                if (intensity > 0) spread->reach->push_back(tile);
+            }, &spread);
+        }
+        cache.spreads.resize(candidates.size());
+        for (int index = 0; index < static_cast<int>(candidates.size()); index++) {
+            if (isSmooth[index]) continue;
+            objectSpreadLight(candidates[index].object, [](int tile, int intensity, void* context) {
+                if (intensity > 0) static_cast<std::vector<std::pair<int, int>>*>(context)->emplace_back(tile, intensity);
+            }, &cache.spreads[index]);
+        }
+        cache.key = std::move(key);
+        gSpreads = std::move(cache);
+    }
+
     std::vector<scene_renderer::StaticPointLight> lights;
-    for (Candidate* candidate : smooth) {
-        borrowColor(candidate, candidates);
-        scene_renderer::StaticPointLight light = candidate->light;
-        Spread spread = { &hexLight, &light.reach };
-        objectSpreadLight(candidate->object, [](int tile, int intensity, void* context) {
-            auto* spread = static_cast<Spread*>(context);
-            (*spread->hexLight)[tile] -= intensity;
-            if (intensity > 0) spread->reach->push_back(tile);
-        }, &spread);
-        lights.push_back(std::move(light));
-        candidate->object = nullptr; // lit from its own point
+    for (int order = 0; order < static_cast<int>(smooth.size()); order++) {
+        Candidate& candidate = candidates[smooth[order]];
+        borrowColor(&candidate, candidates);
+        lights.push_back(candidate.light);
+        lights.back().reach = gSpreads.reach[order];
     }
 
-    // The colour of the rest, per hex.
+    // The colour of the rest, per hex: each light's colour by the light it
+    // gives each hex, as the engine spreads it (walls stop it).
     std::vector<float> color(HEX_GRID_SIZE * 3, 0.0f);
-    for (Candidate& candidate : candidates) {
-        if (candidate.object == nullptr) continue;
-        borrowColor(&candidate, candidates);
-        addColor(&candidate, &color);
+    for (int index = 0; index < static_cast<int>(candidates.size()); index++) {
+        if (isSmooth[index]) continue;
+        borrowColor(&candidates[index], candidates);
+        const float* rgb = candidates[index].light.color;
+        for (const auto& [tile, intensity] : gSpreads.spreads[index]) {
+            for (int channel = 0; channel < 3; channel++) {
+                color[tile * 3 + channel] += static_cast<float>(intensity) * rgb[channel];
+            }
+        }
     }
+    std::vector<int> hexLight = gSpreads.hexLight;
     for (int tile = 0; tile < HEX_GRID_SIZE; tile++) {
         hexLight[tile] = std::max(hexLight[tile], 0);
         const float top = std::max({ color[tile * 3], color[tile * 3 + 1], color[tile * 3 + 2] });
@@ -255,6 +312,33 @@ void updateLightsFromGame()
         }
     }
     scene_renderer::setStaticLight(lightGetAmbientIntensity(), std::move(hexLight), std::move(color), std::move(lights));
+}
+
+void setSceneDaylight(bool daylight)
+{
+    gDaylight = daylight;
+    gSun.reset();
+}
+
+bool sceneDaylight()
+{
+    return gDaylight;
+}
+
+void updateSunFromGame()
+{
+    using Clock = std::chrono::steady_clock;
+    static Clock::time_point last = Clock::now();
+    const Clock::time_point now = Clock::now();
+    const double seconds = std::chrono::duration<double>(now - last).count();
+    last = now;
+    gSun.update(gameTimeGetTime(), static_cast<double>(lightGetAmbientIntensity()) / LIGHT_INTENSITY_MAX,
+        settings.scene3d.sun && gDaylight, seconds);
+}
+
+const Sun& currentSun()
+{
+    return gSun.sun();
 }
 
 } // namespace scene

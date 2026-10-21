@@ -9,9 +9,11 @@
 #include "../game_mouse.h"
 #include "../map.h"
 #include "../object.h"
+#include "clean_edges_boundary_mask.h"
 #include "../scene_renderer/live_objects.h"
 #include "../scene_renderer/picking.h"
 #include "../scene_renderer/static_scene.h"
+#include "scene_settings.h"
 #include "../svga.h"
 #include "../tile.h"
 
@@ -121,6 +123,11 @@ void addObjectCard(Object* object, void* context)
         || object == gGameMouseHexCursor || object == gGameMouseBouncingCursor) {
         return;
     }
+    const FrmId objectFid(object);
+    if (scene::isCleanEdgesBoundaryMask(scene::cleanEdges(), scene_renderer::staticMapClip().enabled,
+            objectFid.objectType() == OBJ_TYPE_SCENERY, objectFid.filePath())) {
+        return;
+    }
     const int pickId = static_cast<int>(gPickObjects.size());
     gPickObjects.push_back({ object, object->tile });
     // walls.bin draws it: its card is only picked, and the game's count of
@@ -172,7 +179,8 @@ void addObjectCard(Object* object, void* context)
     }
     scene_renderer::StaticObjectFrame frame = {
         object->tile, object->fid, object->frame, static_cast<int>(object->rotation), object->x, object->y,
-        image.getXOffset(), image.getYOffset(), width, height, (object->flags & OBJECT_FLAT) != OBJECT_NONE,
+        image.getXOffset(), image.getYOffset(), width, height,
+        (object->flags & OBJECT_FLAT) != OBJECT_NONE || scene_renderer::staticObjectFlat(object->tile, object->fid),
         cached ? nullptr : pass.rgba.data(), cached ? 0 : pass.rgba.size(),
     };
     frame.stack = stack;

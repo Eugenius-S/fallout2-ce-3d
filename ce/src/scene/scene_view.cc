@@ -1,8 +1,11 @@
 #include "scene_view.h"
 
+#include <algorithm>
 #include <ctype.h>
 #include <cmath>
 #include <filesystem>
+#include <fstream>
+#include <sstream>
 #include <vector>
 #include <stdio.h>
 #include <string.h>
@@ -16,6 +19,7 @@
 #include "../art.h"
 #include "../devtools/devtools.h"
 #include "../dialog.h"
+#include "../map_edge.h"
 #include "../object.h"
 #include "../scene_renderer/game_view.h"
 #include "../scene_renderer/picking.h"
@@ -27,6 +31,7 @@
 #include "../scene_renderer/camera.h"
 #include "../scene_renderer/live_objects.h"
 #include "../scene_renderer/static_scene.h"
+#include "../scene_renderer/sprite_card.h"
 #include "../settings.h"
 #include "../tile.h"
 
@@ -38,6 +43,13 @@ namespace {
 View gView = View::Off;
 bool gCameraGlide = true;
 bool gFreeScroll = false; // tileSetFreeScroll as set for the full view
+// The wheel sets a target zoom (settings.scene3d.zoom) and the shown zoom
+// eases there, so the picture glides instead of jumping a step at a time.
+constexpr double kZoomGlideSeconds = 0.2;
+double gZoomShown = 0.0; // the zoom applied last frame (0: nothing applied yet)
+bool gZoomGliding = false;
+double gZoomGlideFrom = 1.0;
+Uint64 gZoomGlideStarted = 0;
 // The map elevation whose scene the renderer holds, and the last one that
 // could not be loaded (not tried again until the game leaves it).
 std::string gLoadedMap;
@@ -48,6 +60,12 @@ int gFailedElevation = -1;
 std::string gFailure;
 PreviewBlockReason gLastBlockReason = PreviewBlockReason::None;
 bool gPolicyLogged = false;
+std::uint64_t gCleanEdgesRevision = static_cast<std::uint64_t>(-1);
+std::string gClipMap;
+int gClipElevation = -1;
+std::string gClipFailureMap;
+int gClipFailureElevation = -1;
+std::uint64_t gClipFailureRevision = static_cast<std::uint64_t>(-1);
 
 void stripMapExtension(const char* name, char* out, size_t size)
 {
@@ -90,6 +108,130 @@ std::string currentMapName()
     return name;
 }
 
+scene_renderer::MapClip authoredMapClip()
+{
+    using namespace scene_renderer;
+    const MapClip floorClip = staticFloorMapClip();
+    if (!mapEdgeIsLoaded()) return floorClip;
+    const MapElevation elevation = static_cast<MapElevation>(gElevation);
+
+    if (mapEdgeHasSquareRect(elevation)) {
+        Rect square;
+        mapEdgeGetSquareRect(elevation, &square);
+        if (square.left < 0 || square.left > 99 || square.right < 0 || square.right > 99
+            || square.top < 0 || square.top > 99 || square.bottom < 0 || square.bottom > 99) return floorClip;
+        const double left = std::min(square.left, square.right) - 50.0;
+        const double right = std::max(square.left, square.right) + 1.0 - 50.0;
+        const double top = std::min(square.top, square.bottom) - 50.0;
+        const double bottom = std::max(square.top, square.bottom) + 1.0 - 50.0;
+        return makeMapClipRect(left, top, right, bottom, MapClipSource::Authored);
+    }
+
+    const EdgeElevationData& data = mapEdgeGetElevationData(elevation);
+    if (data.zones.empty()) return floorClip;
+    int minX = 0, maxX = 0, minY = 0, maxY = 0;
+    bool haveZone = false;
+    for (const EdgeZone& zone : data.zones) {
+        const int left = std::min(zone.pixelRect.left, zone.pixelRect.right);
+        const int right = std::max(zone.pixelRect.left, zone.pixelRect.right);
+        const int top = std::min(zone.pixelRect.top, zone.pixelRect.bottom);
+        const int bottom = std::max(zone.pixelRect.top, zone.pixelRect.bottom);
+        if (left == right || top == bottom) continue;
+        if (!haveZone) {
+            minX = left; maxX = right; minY = top; maxY = bottom;
+            haveZone = true;
+        } else {
+            minX = std::min(minX, left); maxX = std::max(maxX, right);
+            minY = std::min(minY, top); maxY = std::max(maxY, bottom);
+        }
+    }
+    if (!haveZone) return floorClip;
+
+    // EDG v1 offsets are a different map coordinate origin and have opposite X
+    // handedness from game pixels. Anchor at the same known hex, then apply the
+    // game's own projection inverse to ground. Envelope zones before conversion
+    // so walking across a zone never changes the cut.
+    int anchorEdgeX = 0, anchorEdgeY = 0;
+    tileToPixelOffset(0, anchorEdgeX, anchorEdgeY);
+    double anchorGame[2];
+    gameViewTilePixel(0, anchorGame);
+    const double edgeCorners[4][2] = {
+        { static_cast<double>(minX), static_cast<double>(minY) },
+        { static_cast<double>(maxX), static_cast<double>(minY) },
+        { static_cast<double>(maxX), static_cast<double>(maxY) },
+        { static_cast<double>(minX), static_cast<double>(maxY) },
+    };
+    SpriteCardProjection projection;
+    if (!scene_renderer::currentGameProjection(&projection)) return floorClip;
+    MapClipPoint points[4];
+    for (int index = 0; index < 4; index++) {
+        double gameX = 0.0, gameY = 0.0;
+        edgeOffsetToGamePixel(edgeCorners[index][0], edgeCorners[index][1], anchorEdgeX, anchorEdgeY,
+            anchorGame[0], anchorGame[1], &gameX, &gameY);
+        if (!spritePixelToGround(projection, gameX, gameY, &points[index].x, &points[index].z)) return floorClip;
+    }
+    const MapClip authored = makeMapClip(points, MapClipSource::Authored);
+    return authored.enabled ? authored : floorClip;
+}
+
+void updateMapClip()
+{
+    if (gLoadedMap.empty() || gLoadedMap != currentMapName() || gLoadedElevation != static_cast<int>(gElevation)) {
+        scene_renderer::setStaticMapClip({});
+        gClipMap.clear();
+        gClipElevation = -1;
+        return;
+    }
+    const std::uint64_t revision = cleanEdgesRevision();
+    if (gClipMap == gLoadedMap && gClipElevation == gLoadedElevation && gCleanEdgesRevision == revision) return;
+    scene_renderer::MapClip clip;
+    if (cleanEdges()) {
+        const char* requested = devtools::isEnabled() ? SDL_getenv("F2CE_DEV_CLEAN_EDGES") : nullptr;
+        if (requested != nullptr && compat_stricmp(requested, "floor") == 0) {
+            clip = scene_renderer::staticFloorMapClip();
+        } else {
+            clip = authoredMapClip();
+        }
+    }
+    scene_renderer::setStaticMapClip(clip);
+    if (cleanEdges() && !clip.enabled
+        && (gClipFailureMap != gLoadedMap || gClipFailureElevation != gLoadedElevation
+            || gClipFailureRevision != revision)) {
+        const char* reason = "no valid authored edge rectangle or floor envelope";
+        printf("scene: %s elevation %d clean map edges disabled: %s\n",
+            gLoadedMap.c_str(), gLoadedElevation, reason);
+        fflush(stdout);
+        if (FILE* log = fopen("scene.log", "a")) {
+            fprintf(log, "scene: %s elevation %d clean map edges disabled: %s\n",
+                gLoadedMap.c_str(), gLoadedElevation, reason);
+            fclose(log);
+        }
+        gClipFailureMap = gLoadedMap;
+        gClipFailureElevation = gLoadedElevation;
+        gClipFailureRevision = revision;
+    }
+    gClipMap = gLoadedMap;
+    gClipElevation = gLoadedElevation;
+    gCleanEdgesRevision = revision;
+}
+
+// scene.json's `"daylight": true`: the map elevation is under the sky. An
+// export without the key (or without the file) has no sun.
+bool readDaylight(const std::filesystem::path& cacheDirectory)
+{
+    std::ifstream file(cacheDirectory / "scene.json", std::ios::binary);
+    if (!file) return false;
+    std::ostringstream text;
+    text << file.rdbuf();
+    const std::string json = text.str();
+    const size_t key = json.find("\"daylight\"");
+    if (key == std::string::npos) return false;
+    size_t value = json.find(':', key);
+    if (value == std::string::npos) return false;
+    value = json.find_first_not_of(" \t\r\n", value + 1);
+    return value != std::string::npos && json.compare(value, 4, "true") == 0;
+}
+
 // Loads what `view` needs of the current map's scene.
 bool loadScene(View view, const std::string& map, int elevation, std::string* message)
 {
@@ -105,6 +247,7 @@ bool loadScene(View view, const std::string& map, int elevation, std::string* me
         *message = "floor preview unavailable: " + error;
         return false;
     }
+    setSceneDaylight(readDaylight(cacheDirectory));
     if (view != View::Floor && !scene_renderer::loadStaticWalls(cacheDirectory, &error)) {
         *message = "wall preview unavailable: " + error;
         return false;
@@ -113,6 +256,15 @@ bool loadScene(View view, const std::string& map, int elevation, std::string* me
         *message = "hero projection unavailable: " + error;
         return false;
     }
+    if (view == View::Full) {
+        scene_renderer::SpriteCardProjection projection;
+        if (scene_renderer::currentGameProjection(&projection)) {
+            scene_renderer::setStaticFloorMapProjection(projection);
+        }
+    }
+    gClipMap.clear(); // Full loads add the projection needed to convert legacy EDG pixels.
+    gClipElevation = -1;
+    gCleanEdgesRevision = static_cast<std::uint64_t>(-1);
     return true;
 }
 
@@ -253,6 +405,7 @@ void syncToMap()
         gFreeScroll = active;
         resetHeroLog();
     }
+    updateMapClip();
 }
 
 void syncSettings(bool suppressInitialEnable)
@@ -334,6 +487,78 @@ void setCameraGlide(bool glide)
     gCameraGlide = glide;
 }
 
+namespace {
+
+double gTurnAt = 0.0; // degrees round, where the camera is
+double gTurnTo = 0.0; // and where it goes
+bool gTurnOwnsCamera = false;
+Uint64 gTurnLast = 0;
+scene_renderer::StaticFlyCamera gTurnPose = {};
+constexpr double kTurnSpeed = 360.0; // degrees a second: a quarter turn in a quarter of a second
+
+void landCameraTurn()
+{
+    gTurnAt = gTurnTo = 0.0;
+    if (gTurnOwnsCamera) scene_renderer::setStaticFlyCamera(nullptr);
+    gTurnOwnsCamera = false;
+}
+
+} // namespace
+
+bool turnCamera(int steps)
+{
+    if (!settings.scene3d.camera_rotation || steps == 0) return false;
+    if (activeView() != View::Full || !shouldPresent()) return false;
+    if (scene_renderer::staticFlyCameraActive() && !gTurnOwnsCamera) return false; // the dev fly camera
+    gTurnTo += 90.0 * steps;
+    return true;
+}
+
+void setCameraTurnNow(int steps)
+{
+    gTurnAt = gTurnTo = 90.0 * steps;
+    gTurnLast = 0;
+}
+
+bool cameraTurned()
+{
+    return gTurnOwnsCamera;
+}
+
+void updateCameraTurn()
+{
+    if (!gTurnOwnsCamera && gTurnAt == 0.0 && gTurnTo == 0.0) return;
+    if (activeView() != View::Full || !shouldPresent()
+        || (scene_renderer::staticFlyCameraActive() && !gTurnOwnsCamera)) {
+        landCameraTurn();
+        return;
+    }
+    const Uint64 now = SDL_GetPerformanceCounter();
+    const double seconds = gTurnLast == 0 ? 0.0
+        : static_cast<double>(now - gTurnLast) / static_cast<double>(SDL_GetPerformanceFrequency());
+    gTurnLast = now;
+    const double step = std::min(kTurnSpeed * seconds, std::abs(gTurnTo - gTurnAt));
+    gTurnAt += gTurnTo > gTurnAt ? step : -step;
+    if (gTurnAt == gTurnTo && std::fmod(gTurnTo, 360.0) == 0.0) {
+        landCameraTurn();
+        return;
+    }
+    // The game's view, circled round the floor point it looks at.
+    scene_renderer::StaticFlyCamera pose;
+    if (!scene_renderer::staticGameViewCamera(&pose)) return;
+    float forward[3], right[3];
+    scene_renderer::staticFlyCameraAxes(pose, forward, right);
+    if (!(forward[1] < -0.01f)) return;
+    const float reach = -pose.eye[1] / forward[1];
+    const float target[3] = { pose.eye[0] + forward[0] * reach, 0.0f, pose.eye[2] + forward[2] * reach };
+    pose.yaw += static_cast<float>(gTurnAt * 3.14159265358979323846 / 180.0);
+    scene_renderer::staticFlyCameraAxes(pose, forward, right);
+    for (int i = 0; i < 3; i++) pose.eye[i] = target[i] - forward[i] * reach;
+    gTurnPose = pose;
+    scene_renderer::setStaticFlyCamera(&gTurnPose);
+    gTurnOwnsCamera = true;
+}
+
 void adjustZoom(int steps)
 {
     if (steps == 0) return;
@@ -346,15 +571,39 @@ void adjustZoom(int steps)
     if (zoom < low) zoom = low;
     if (zoom > high) zoom = high;
     settings.scene3d.zoom = zoom; // written back on save, kept between sessions
-    scene_renderer::setCameraZoom(zoom);
+    // Ease from what is on the screen now: a step in mid-glide re-anchors and
+    // keeps the motion continuous.
+    if (gZoomShown <= 0.0) gZoomShown = zoom;
+    gZoomGlideFrom = gZoomShown;
+    gZoomGlideStarted = SDL_GetPerformanceCounter();
+    gZoomGliding = true;
+}
+
+// The shown zoom for this frame: the stored one, or the glide toward it.
+double shownZoom()
+{
+    double zoom = settings.scene3d.zoom;
+    if (gZoomGliding) {
+        const double seconds = static_cast<double>(SDL_GetPerformanceCounter() - gZoomGlideStarted)
+            / static_cast<double>(SDL_GetPerformanceFrequency());
+        if (seconds < kZoomGlideSeconds) {
+            const double t = seconds / kZoomGlideSeconds;
+            zoom = gZoomGlideFrom + (zoom - gZoomGlideFrom) * (1.0 - std::pow(1.0 - t, 3.0));
+        } else {
+            gZoomGliding = false;
+        }
+    }
+    return zoom;
 }
 
 RefreshResult refreshForPresent()
 {
     if (activeView() != View::Full) return { false, 0.0 };
     const Uint64 start = SDL_GetPerformanceCounter();
-    // Follow the stored zoom every frame, so a changed setting applies live.
-    scene_renderer::setCameraZoom(settings.scene3d.zoom);
+    // Follow the stored zoom every frame, so a changed setting applies live;
+    // a wheel step glides there instead (see adjustZoom).
+    gZoomShown = shownZoom();
+    scene_renderer::setCameraZoom(gZoomShown);
     // The game scrolls (screen edges, arrow keys, following the hero); the 3D
     // view goes with it.
     if (!gCameraGlide) scene_renderer::setStaticCameraCenterTile(-1);
@@ -362,6 +611,7 @@ RefreshResult refreshForPresent()
     const bool heroUpdated = updateObjectsFromGame();
     updateRoofsFromGame();
     updateLightsFromGame();
+    updateSunFromGame();
     const double seconds = static_cast<double>(SDL_GetPerformanceCounter() - start) / SDL_GetPerformanceFrequency();
     return { heroUpdated, seconds };
 }

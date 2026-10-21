@@ -2,13 +2,13 @@
 id: 018
 title: See-through walls around the hero
 milestone: M1
-status: doing
+status: done
 owner: claude
 suggested: claude
-claude-only: yes
+claude-only: no
 user-check: yes
 depends-on: [013]
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -60,3 +60,8 @@ hole and 3D the floor or walls behind, the difference is the game's light
 Next: the owner checks it in the game.
 Check: `tools/regression.ps1` (16 pass); `ctest --test-dir build` (8/8);
 exporter tests 38 OK.
+
+### 2026-10-20 claude
+Done: its acceptance held at the merge; it stayed open only for the owner's
+look, which blocks nothing (AGENTS.md, "Nobody waits"). What the owner
+rejects in the game becomes a new task.

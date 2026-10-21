@@ -4,8 +4,9 @@ The exporter (vendor fp/props.py) gives deep scenery a box or a drum in place
 of its sprite card. A point of the solid shows the pixel it lands on in the
 sprite from the game's camera, so the game's view still sees the sprite and
 the 3D view sees a thing with depth: a bed lies on the floor, a shelf stands
-square to the walls. These are the faces the game's camera sees; the far sides
-(mirror images) are first person only in the donor and hidden here anyway.
+square to the walls. The faces the game's camera sees show what they land on; the far
+sides face away from it (it culls them) and show their near sides' pixels
+mirrored, as the donor's first person does, for a free camera behind a thing.
 
 As in the donor's game view, a solid's faces take the depth of its card: the
 upright plane of its hex row (a hair nearer), reached along the game's view
@@ -118,11 +119,22 @@ def depth_home(proj, corner, plane):
     return [proj.toward[0] * t, proj.toward[1] * t, proj.toward[2] * t]
 
 
+def _forced(row, faces):
+    """A solid made by name (overrides.json, props row[14]) is not the game's
+    view pixel for pixel: the fly camera alone draws it, and the game's camera
+    keeps the card."""
+    if len(row) < 15 or not row[14]:
+        return faces
+    return [(page, polygon, away, "fly") for page, polygon, away, camera in faces if camera != "game"]
+
+
 def solid_faces(proj, sprites, boards, row):
-    """(page, polygon) of each face the game's camera sees of one scene.props row;
-    polygon corners are [u, v, z, atlas x, atlas y, home u, home v, home z],
-    clipped to the sprite. A solid that stands for several cards (board -1)
-    keeps its own depth."""
+    """(page, polygon, away, camera) of each face of one scene.props row; polygon
+    corners are [u, v, z, atlas x, atlas y, home u, home v, home z], clipped to
+    the sprite; `away`: a far side, to be wound facing away from the game's
+    camera; camera: "both", "game" (the game's camera only) or "fly" (the fly
+    camera only). A solid that stands for several cards (board -1) keeps its
+    own depth."""
     s, u, v, board, round_, cu, cv, a, b, z0, z1, wall_u, wall_v = row[:13]
     plane = None
     if board >= 0:
@@ -137,22 +149,25 @@ def solid_faces(proj, sprites, boards, row):
 
     faces = []
 
-    def face(points, from_points=None):
+    def face(points, from_points=None, away=False, camera="both"):
         shows = from_points or points
         corners = clip([[*point, *texel_at(shows[i])] for i, point in enumerate(points)], x, y, w, h)
         if len(corners) >= 3:
             faces.append((page, [corner + (depth_home(proj, corner, plane) if plane is not None else [0.0, 0.0, 0.0])
-                                 for corner in corners]))
+                                 for corner in corners], away, camera))
 
     if round_:
         # The cylinder over the floor ellipse a x b px on the game's screen. Taking
         # its card's depth, a drum is drawn as the game's view sees it: the near
         # half (angles 0 to 180, down the screen), each side showing what it lands
         # on, and the top. The rim then sits on a body as wide as itself (a burning
-        # barrel's rim stood out over its front quarter alone).
-        # A drum with its own depth is seen from anywhere (the donor's first
-        # person): only the quarter facing the camera shows what it lands on; the
-        # others repeat it mirrored at every seam.
+        # barrel's rim stood out over its front quarter alone). The far half faces
+        # away from the game's camera. The near half's sides by the outline show
+        # the sprite's edge, a few columns stretched round a quarter of the drum:
+        # from the side the drum looked hollow. So the fly camera gets a drum of
+        # its own, as the donor's first person draws one with its own depth: only
+        # the quarter facing the game's camera shows what it lands on; the others
+        # repeat it mirrored at every seam.
         quarter = DRUM_SIDES // 4
 
         def rim(i, z):
@@ -170,12 +185,15 @@ def solid_faces(proj, sprites, boards, row):
             def source(n):
                 return quarter / 2 + (quarter - n if turn % 2 else n)
 
+            around = side(source(within), source(within + 1))
             if plane is None:
-                face(side(i, i + 1), side(source(within), source(within + 1)))
-            elif i < DRUM_SIDES // 2:
-                face(side(i, i + 1))
+                face(side(i, i + 1), around, away=i >= DRUM_SIDES // 2)
+                continue
+            if i < DRUM_SIDES // 2:
+                face(side(i, i + 1), camera="game")
+            face(side(i, i + 1), around, away=i >= DRUM_SIDES // 2, camera="fly")
         face([rim(i, z1) for i in range(DRUM_SIDES)])
-        return faces
+        return _forced(row, faces)
 
     u0, u1, v0, v1 = cu - a / 2, cu + a / 2, cv - b / 2, cv + b / 2
 
@@ -188,12 +206,14 @@ def solid_faces(proj, sprites, boards, row):
     face([[u0, v0, z1], [u1, v0, z1], [u1, v1, z1], [u0, v1, z1]])
     face(along_u(v1, z0, z1))
     face(along_v(u1, z0, z1))
+    face(along_u(v0, z0, z1), along_u(v1, z0, z1), away=True)
+    face(along_v(u0, z0, z1), along_v(u1, z0, z1), away=True)
     # What rises behind the top (a headboard): on the far sides, seen from inside.
     if wall_u > z1:
         face(along_u(v0, z1, wall_u))
     if wall_v > z1:
         face(along_v(u0, z1, wall_v))
-    return faces
+    return _forced(row, faces)
 
 
 def rest_card(proj, sprites, row):
@@ -224,6 +244,33 @@ def rest_card(proj, sprites, row):
         cz = z_bottom if j else z_top
         corners.append([cu, cv, cz, x + i * w, y + j * h, *depth_home(proj, [cu, cv, cz], plane)])
     return page, corners
+
+
+def rest_cross(proj, sprites, row):
+    """(page, corners) of the two upright sheets the fly camera sees one
+    scene.rests row as (a table's stem, a barrel's flames): crossed through
+    the card's middle, one along the game's screen and one across it, each
+    showing the whole picture. Corners as rest_card's, home = the corner."""
+    s, u, v = row[:3]
+    page, x, y, w, h, ox, oy = sprites[s]
+    z_bottom, z_top = max(0.0, -(oy + h) / proj.hpx), -oy / proj.hpx
+    if z_top <= z_bottom:
+        return []
+    shift = max(0.0, oy + h) / 2
+    du, dv = proj.delta_to_ground(0, shift)
+    right_u, right_v = proj.ground_dir(1, 0)
+    middle = (ox + w / 2) / proj.bbpx
+    cu, cv = u + du + right_u * middle, v + dv + right_v * middle
+    half = w / 2 / proj.bbpx
+    sheets = []
+    for along_u, along_v in ((right_u, right_v), (-right_v, right_u)):
+        corners = []
+        for i, j in ((0, 1), (1, 1), (1, 0), (0, 0)):
+            side = half if i else -half
+            point = [cu + along_u * side, cv + along_v * side, z_bottom if j else z_top]
+            corners.append([*point, x + i * w, y + j * h, *point])
+        sheets.append((page, corners))
+    return sheets
 
 
 def screen_area(proj, corners):

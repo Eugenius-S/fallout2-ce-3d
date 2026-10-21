@@ -1,0 +1,602 @@
+[
+ {
+  "frm": "eggs7.frm",
+  "name": "Small rocks",
+  "shape": "flat",
+  "big": false,
+  "note": "small rocks",
+  "count": 2387,
+  "instance": [
+   "kladwtwn",
+   0,
+   8103,
+   49,
+   33555326
+  ]
+ },
+ {
+  "frm": "weed01.frm",
+  "name": "Scrub",
+  "shape": "card",
+  "big": false,
+  "note": "",
+  "count": 2191,
+  "instance": [
+   "kladwtwn",
+   0,
+   8486,
+   69,
+   33554740
+  ]
+ },
+ {
+  "frm": "tree8.frm",
+  "name": "Tree",
+  "shape": "card",
+  "big": true,
+  "note": "",
+  "count": 404,
+  "instance": [
+   "kladwtwn",
+   0,
+   14639,
+   1048,
+   33555389
+  ]
+ },
+ {
+  "frm": "tree7.frm",
+  "name": "Tree",
+  "shape": "card",
+  "big": true,
+  "note": "",
+  "count": 293,
+  "instance": [
+   "kladwtwn",
+   0,
+   14441,
+   1012,
+   33555388
+  ]
+ },
+ {
+  "frm": "tree9.frm",
+  "name": "Tree",
+  "shape": "card",
+  "big": true,
+  "note": "",
+  "count": 280,
+  "instance": [
+   "kladwtwn",
+   0,
+   14841,
+   1120,
+   33555390
+  ]
+ },
+ {
+  "frm": "roks2.frm",
+  "name": "Rocks",
+  "shape": "flat",
+  "big": false,
+  "note": "",
+  "count": 279,
+  "instance": [
+   "kladwtwn",
+   0,
+   8880,
+   88,
+   33554614
+  ]
+ },
+ {
+  "frm": "bush3.frm",
+  "name": "Bush",
+  "shape": "card",
+  "big": false,
+  "note": "",
+  "count": 241,
+  "instance": [
+   "kladwtwn",
+   0,
+   8705,
+   84,
+   33555017
+  ]
+ },
+ {
+  "frm": "weed02.frm",
+  "name": "Scrub",
+  "shape": "card",
+  "big": false,
+  "note": "",
+  "count": 203,
+  "instance": [
+   "kladwtwn",
+   0,
+   8684,
+   80,
+   33554741
+  ]
+ },
+ {
+  "frm": "weed04.frm",
+  "name": "Scrub",
+  "shape": "card",
+  "big": false,
+  "note": "",
+  "count": 182,
+  "instance": [
+   "kladwtwn",
+   0,
+   8304,
+   57,
+   33554743
+  ]
+ },
+ {
+  "frm": "maryj02.frm",
+  "name": "Plant",
+  "shape": "card",
+  "big": false,
+  "note": "a low bush",
+  "count": 176,
+  "instance": [
+   "kladwtwn",
+   0,
+   11922,
+   569,
+   33555387
+  ]
+ },
+ {
+  "frm": "maryj01.frm",
+  "name": "Plant",
+  "shape": "card",
+  "big": false,
+  "note": "a low bush",
+  "count": 147,
+  "instance": [
+   "kladwtwn",
+   0,
+   8704,
+   82,
+   33555386
+  ]
+ },
+ {
+  "frm": "corn5.frm",
+  "name": "Plant",
+  "shape": "card",
+  "big": false,
+  "note": "",
+  "count": 45,
+  "instance": [
+   "kladwtwn",
+   0,
+   10471,
+   300,
+   33555407
+  ]
+ },
+ {
+  "frm": "rock09.frm",
+  "name": "Rocks",
+  "shape": "card",
+  "big": false,
+  "note": "a low heap of rocks",
+  "count": 54,
+  "instance": [
+   "kladwtwn",
+   0,
+   11118,
+   381,
+   33554611
+  ]
+ },
+ {
+  "frm": "roks3.frm",
+  "name": "Rocks",
+  "shape": "flat",
+  "big": false,
+  "note": "",
+  "count": 112,
+  "instance": [
+   "kladwtwn",
+   0,
+   8883,
+   93,
+   33554615
+  ]
+ },
+ {
+  "frm": "weed07.frm",
+  "name": "Weeds",
+  "shape": "card",
+  "big": false,
+  "note": "a low mound with weeds",
+  "count": 96,
+  "instance": [
+   "kladwtwn",
+   0,
+   9709,
+   221,
+   33554746
+  ]
+ },
+ {
+  "frm": "roks.frm",
+  "name": "Rocks",
+  "shape": "flat",
+  "big": false,
+  "note": "",
+  "count": 89,
+  "instance": [
+   "kladwtwn",
+   0,
+   9303,
+   148,
+   33554613
+  ]
+ },
+ {
+  "frm": "rock10.frm",
+  "name": "Rocks",
+  "shape": "card",
+  "big": false,
+  "note": "a low heap of rocks",
+  "count": 87,
+  "instance": [
+   "kladwtwn",
+   0,
+   10922,
+   345,
+   33554612
+  ]
+ },
+ {
+  "frm": "drock7.frm",
+  "name": "Rocks",
+  "shape": "flat",
+  "big": false,
+  "note": "",
+  "count": 86,
+  "instance": [
+   "kladwtwn",
+   0,
+   11510,
+   479,
+   33554877
+  ]
+ },
+ {
+  "frm": "weed03.frm",
+  "name": "Scrub",
+  "shape": "card",
+  "big": false,
+  "note": "",
+  "count": 63,
+  "instance": [
+   "kladwtwn",
+   0,
+   9082,
+   113,
+   33554742
+  ]
+ },
+ {
+  "frm": "drock4.frm",
+  "name": "Rocks",
+  "shape": "flat",
+  "big": false,
+  "note": "",
+  "count": 31,
+  "instance": [
+   "kladwtwn",
+   0,
+   11110,
+   377,
+   33554874
+  ]
+ },
+ {
+  "frm": "posts.frm",
+  "name": "Bulletin Board",
+  "shape": "sheet",
+  "big": false,
+  "note": "the notice board (owner: crumpled from the air)",
+  "count": 1,
+  "instance": [
+   "kladwtwn",
+   0,
+   25086,
+   3425,
+   33555038
+  ]
+ },
+ {
+  "frm": "firehy.frm",
+  "name": "Fire Hydrant",
+  "shape": "drum",
+  "big": false,
+  "note": "the hydrant (owner: a hole)",
+  "count": 9,
+  "instance": [
+   "kladwtwn",
+   0,
+   19276,
+   2293,
+   33554548
+  ]
+ },
+ {
+  "frm": "tbl2000.frm",
+  "name": "Wooden Table",
+  "shape": "drum",
+  "big": false,
+  "note": "a cable spool",
+  "count": 11,
+  "instance": [
+   "kladwtwn",
+   0,
+   7509,
+   35,
+   33554677
+  ]
+ },
+ {
+  "frm": "tbl1000.frm",
+  "name": "Wooden Table",
+  "shape": "drum",
+  "big": false,
+  "note": "the round table (owner: its stem is a card)",
+  "count": 10,
+  "instance": [
+   "kladwtwn",
+   0,
+   15127,
+   1234,
+   33554676
+  ]
+ },
+ {
+  "frm": "doorb06.frm",
+  "name": "Door",
+  "shape": "plane",
+  "big": true,
+  "note": "a door (owner: stays on its wall, never turns)",
+  "count": 7,
+  "instance": [
+   "kladwtwn",
+   0,
+   15272,
+   1268,
+   33555402
+  ]
+ },
+ {
+  "frm": "gate.frm",
+  "name": "Gate",
+  "shape": "plane",
+  "big": false,
+  "note": "a fence gate (owner: as doors)",
+  "count": 2,
+  "instance": [
+   "kladwtwn",
+   0,
+   13484,
+   788,
+   33554557
+  ]
+ },
+ {
+  "frm": "sstove2.frm",
+  "name": "Stove",
+  "shape": "drum",
+  "big": false,
+  "note": "the stove (owner: its top flickers)",
+  "count": 2,
+  "instance": [
+   "kladwtwn",
+   0,
+   20937,
+   2569,
+   33555125
+  ]
+ },
+ {
+  "frm": "ss122.frm",
+  "name": "Bed",
+  "shape": "box+back",
+  "big": true,
+  "note": "the bed (owner: an extra face; the headboard on its plane)",
+  "count": 10,
+  "instance": [
+   "kladwtwn",
+   0,
+   15123,
+   1231,
+   33555122
+  ]
+ },
+ {
+  "frm": "bed3.frm",
+  "name": "Bed",
+  "shape": "flat",
+  "big": false,
+  "note": "a sleeping bag",
+  "count": 10,
+  "instance": [
+   "kladwtwn",
+   0,
+   18857,
+   2125,
+   33554447
+  ]
+ },
+ {
+  "frm": "ss108.frm",
+  "name": "Chair",
+  "shape": "box+back",
+  "big": false,
+  "note": "a chair (owner: a box and a back)",
+  "count": 12,
+  "instance": [
+   "kladwtwn",
+   0,
+   14914,
+   1164,
+   33555108
+  ]
+ },
+ {
+  "frm": "char03.frm",
+  "name": "Chair",
+  "shape": "box",
+  "big": false,
+  "note": "a low seat",
+  "count": 5,
+  "instance": [
+   "kladwtwn",
+   0,
+   7911,
+   44,
+   33554499
+  ]
+ },
+ {
+  "frm": "crate1.frm",
+  "name": "Crate",
+  "shape": "box",
+  "big": false,
+  "note": "a crate",
+  "count": 21,
+  "instance": [
+   "kladwtwn",
+   0,
+   9711,
+   223,
+   33554835
+  ]
+ },
+ {
+  "frm": "boxes2.frm",
+  "name": "Boxes",
+  "shape": "boxes",
+  "big": false,
+  "note": "a heap of crates (owner: a stray piece)",
+  "count": 20,
+  "instance": [
+   "kladwtwn",
+   0,
+   7309,
+   29,
+   33554474
+  ]
+ },
+ {
+  "frm": "desk1.frm",
+  "name": "Desk",
+  "shape": "box",
+  "big": false,
+  "note": "a desk",
+  "count": 1,
+  "instance": [
+   "kladwtwn",
+   0,
+   22669,
+   2968,
+   18
+  ]
+ },
+ {
+  "frm": "locker6.frm",
+  "name": "Locker",
+  "shape": "box",
+  "big": true,
+  "note": "a locker",
+  "count": 6,
+  "instance": [
+   "klamall",
+   0,
+   15283,
+   1271,
+   104
+  ]
+ },
+ {
+  "frm": "barrel4.frm",
+  "name": "Metal Barrels",
+  "shape": "drum",
+  "big": false,
+  "note": "",
+  "count": 42,
+  "instance": [
+   "kladwtwn",
+   0,
+   14684,
+   1076,
+   33554832
+  ]
+ },
+ {
+  "frm": "car5.frm",
+  "name": "Car",
+  "shape": "box",
+  "big": true,
+  "note": "a wrecked car",
+  "count": 4,
+  "instance": [
+   "kladwtwn",
+   0,
+   18041,
+   1915,
+   33554487
+  ]
+ },
+ {
+  "frm": "cab1.frm",
+  "name": "Plant",
+  "shape": "flat",
+  "big": false,
+  "note": "a small flat thing on the floor",
+  "count": 19,
+  "instance": [
+   "kladwtwn",
+   0,
+   23309,
+   3103,
+   33554799
+  ]
+ },
+ {
+  "frm": "bigshlf1.frm",
+  "name": "Shelves",
+  "shape": "box",
+  "big": true,
+  "note": "a big shelf",
+  "count": 6,
+  "instance": [
+   "klamall",
+   0,
+   13085,
+   812,
+   33555011
+  ]
+ },
+ {
+  "frm": "cavbrac1.frm",
+  "name": "Wood Support",
+  "shape": "sheet",
+  "big": true,
+  "note": "a cave brace: a beam on posts",
+  "count": 23,
+  "instance": [
+   "klaratcv",
+   0,
+   18675,
+   747,
+   33555412
+  ]
+ }
+]

@@ -2,13 +2,16 @@
 
 import unittest
 import base64
+import gzip
 import json
 import struct
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from baked_sidecar import (ENTRY as BAKED_ENTRY, HEADER as BAKED_HEADER, LIFT as BAKED_LIFT, MAGIC as BAKED_MAGIC,
-                           SKIP as BAKED_SKIP, baked_objects, decode_baked_sidecar, encode_baked_sidecar)
+                           SKIP as BAKED_SKIP, FLAT as BAKED_FLAT, FLY_FLAT as BAKED_FLY_FLAT, FLY_SKIP as BAKED_FLY_SKIP,
+                           PLANE as BAKED_PLANE,
+                           baked_objects, decode_baked_sidecar, encode_baked_sidecar)
 from export import ReadOnlyGameFiles, choose_source, main, parse_args, patch_paths, scene_directory, validate_output_contents
 from floor_sidecar import HEADER, MAGIC, VERSION, cell_content_rect, decode_floor_sidecar, encode_floor_sidecar
 from projection_sidecar import (HEADER as PROJECTION_HEADER, MAGIC as PROJECTION_MAGIC,
@@ -64,6 +67,24 @@ class SourcePriorityTests(unittest.TestCase):
                     [name for _, name, _ in files.sources],
                     ["mods/rpu_russian.dat", "mods/rpu.dat", "critter_dat", "master_dat", "cwd_fallback"],
                 )
+            finally:
+                files.close()
+
+    def test_a_loose_file_the_game_wrote_gzipped_reads_as_plain(self):
+        with TemporaryDirectory() as temp:
+            game = Path(temp)
+            (game / "fallout2.cfg").write_text(
+                "[system]\nmaster_dat=master.dat\nmaster_patches=data\ncritter_dat=critter.dat\n",
+                encoding="cp1252",
+            )
+            write_dat2({"maps/kladwtwn.map": b"master"}, game / "master.dat")
+            write_dat2({"maps/kladwtwn.map": b"critter"}, game / "critter.dat")
+            (game / "data" / "proto" / "critters").mkdir(parents=True)
+            (game / "data" / "proto" / "critters" / "00000097.pro").write_bytes(gzip.compress(b"proto"))
+
+            files = ReadOnlyGameFiles(game)
+            try:
+                self.assertEqual(files.read("proto/critters/00000097.pro"), b"proto")
             finally:
                 files.close()
 
@@ -361,9 +382,16 @@ class WallSidecarTests(unittest.TestCase):
         proj = Projection(p)
         toward = proj.toward
         plane = row_plane(proj, 10.0, 10.0, 1) + 2e-5
+        # The far sides (v = 9.9, u = 9.75, up to the top; the headboard above
+        # faces the camera) face away from the game's camera and show the near
+        # sides' pixels mirrored.
+        def far(vertex):
+            return (abs(vertex[2] + 50.0 - 9.9) < 1e-4 or abs(vertex[0] + 50.0 - 9.75) < 1e-4) and vertex[1] <= 0.3 + 1e-4
         for vertex in vertices:
             x, y, z, s_, t = vertex[:5]
             sx, sy = px(x + 50.0, z + 50.0, y)
+            if far(vertex):
+                continue
             self.assertAlmostEqual(s_ * 100.0, 40 + sx - ax + 25, places=3)
             self.assertAlmostEqual(t * 100.0, 40 + sy - ay + 40, places=3)
             # Depth: the card's hex row plane, a hair nearer, along the game's ray.
@@ -371,11 +399,19 @@ class WallSidecarTests(unittest.TestCase):
             self.assertAlmostEqual(vertex[7] + 50.0, plane, places=4)
             self.assertAlmostEqual(dx * toward[1] - dz * toward[0], 0.0, places=4)
             self.assertAlmostEqual(dy * toward[1] - dz * toward[2], 0.0, places=4)
-        # Triangles face the game's camera: counter-clockwise on its screen, y up.
+        # The near faces face the game's camera (counter-clockwise on its screen,
+        # y up); the far sides face away, so it culls them.
+        away = 0
         for index in range(0, len(vertices), 3):
-            a, b, c = (px(v[0] + 50.0, v[2] + 50.0, v[1]) for v in vertices[index:index + 3])
+            triangle = vertices[index:index + 3]
+            a, b, c = (px(v[0] + 50.0, v[2] + 50.0, v[1]) for v in triangle)
             area = (b[0] - a[0]) * (-(c[1] - a[1])) - (c[0] - a[0]) * (-(b[1] - a[1]))
-            self.assertGreater(area, 0.0)
+            if all(far(v) for v in triangle):
+                self.assertLess(area, 0.0)
+                away += 1
+            else:
+                self.assertGreater(area, 0.0)
+        self.assertGreater(away, 0)
 
         # A drum: sixteen sides and a top (the sides away from the camera
         # repeat the facing quarter mirrored, so they are not checked here).
@@ -385,6 +421,22 @@ class WallSidecarTests(unittest.TestCase):
         self.assertGreater(drum["triangles"], 16)
         for vertex in drum["batches"][0]["vertices"]:
             self.assertEqual(vertex[5:8], vertex[:3])
+
+    def test_the_fly_camera_gets_a_whole_drum_of_its_own(self):
+        # Its near half, for the game's camera alone, shows the sprite's outline
+        # stretched round the sides; the fly camera's drum repeats the front.
+        scene = self.sample_scene()
+        scene["walls"] = []
+        scene["pages"][0]["size"] = [400, 400]
+        scene["sprites"].append([0, 100, 100, 200, 200, -100, -150])
+        scene["props"] = [[2, 10.0, 10.0, 0, 1, 10.0, 10.0, 18.0, 8.0, 0.0, 0.5, 0.0, 0.0]]
+        scene["boards"] = [[2, 10.0, 10.0, 0, 0, 0]]
+        batches = decode_wall_sidecar(encode_wall_sidecar(scene))["batches"]
+        self.assertEqual(sorted((b["fly_only"], b["game_only"]) for b in batches),
+                         [(False, False), (False, True), (True, False)])
+        game = next(b for b in batches if b["game_only"])["triangles"]
+        fly = next(b for b in batches if b["fly_only"])["triangles"]
+        self.assertEqual(fly, 2 * game)
 
     def test_drum_body_is_as_wide_as_its_rim(self):
         # A drum on its card's depth shows the near half of its body: on the game's
@@ -399,7 +451,9 @@ class WallSidecarTests(unittest.TestCase):
         def screen_x(vertex):
             u, v = vertex[0] + 50.0, vertex[2] + 50.0
             return p["origin"][0] + u * p["squ"][0] + v * p["sqv"][0]
-        vertices = decode_wall_sidecar(encode_wall_sidecar(scene))["batches"][0]["vertices"]
+        # What the game's camera draws: every batch but the fly camera's own.
+        vertices = [vertex for batch in decode_wall_sidecar(encode_wall_sidecar(scene))["batches"]
+                    if not batch["fly_only"] for vertex in batch["vertices"]]
         body = [screen_x(v) for v in vertices if v[1] < 0.25]
         rim = [screen_x(v) for v in vertices]
         self.assertAlmostEqual(min(body), min(rim), places=3)
@@ -431,13 +485,22 @@ class WallSidecarTests(unittest.TestCase):
         self.assertEqual(ends[2], (False, False))  # nor does one across it
         self.assertNotIn(3, ends)
 
-    def test_first_person_surfaces_are_left_out(self):
+    def test_first_person_surfaces_are_for_the_fly_camera_only(self):
+        # Backs and trims go into fly-only batches: what the game's camera
+        # draws stays the same.
         scene = self.sample_scene()
         scene["walls"][0].extend([1, 1])
         scene["trims"] = [[0, 1.0, 2.0, 3.0, 2.0, 0.0, 1.0, 0, 0, 1, 1]]
         decoded = decode_wall_sidecar(encode_wall_sidecar(scene))
         plain = decode_wall_sidecar(encode_wall_sidecar(self.sample_scene()))
-        self.assertEqual(decoded["triangles"], plain["triangles"])
+        def game(batches):
+            return [batch for batch in batches if not batch["fly_only"]]
+        self.assertEqual(game(decoded["batches"]), game(plain["batches"]))
+        fly = [batch for batch in decoded["batches"] if batch["fly_only"]]
+        self.assertTrue(fly)
+        # The trim: two triangles between its ground points, rows 0..1 of its sprite.
+        trim = [v for batch in fly for v in batch["vertices"] if abs(v[2] + 50.0 - 2.0) < 1e-6 and v[0] + 50.0 in (1.0, 3.0)]
+        self.assertGreaterEqual(len(trim), 6)
 
     def test_binary_corruption_is_rejected(self):
         payload = encode_wall_sidecar(self.sample_scene())
@@ -449,7 +512,7 @@ class WallSidecarTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "truncated"):
             decode_wall_sidecar(payload[:-1])
         bad_count = bytearray(payload)
-        struct.pack_into("<I", bad_count, 16, 9)
+        struct.pack_into("<I", bad_count, 16, 999)
         with self.assertRaisesRegex(ValueError, "triangle count mismatch"):
             decode_wall_sidecar(bad_count)
         bad_page = bytearray(payload)
@@ -511,6 +574,43 @@ class BakedSidecarTests(unittest.TestCase):
         self.assertEqual(payload[:4], BAKED_MAGIC)
         self.assertEqual(len(payload), BAKED_HEADER.size + 5 * BAKED_ENTRY.size)
         self.assertEqual(decode_baked_sidecar(payload), entries)
+
+    def test_things_the_donor_lays_flat_are_flat_but_not_critters(self):
+        scene, objects = self.sample()
+        objects += [self.MapObject(600, 0x02000020), self.MapObject(700, 0x01000030), self.MapObject(800, 0x00000040)]
+        # decals: [sprite, u, v, name, object]; a wall's object stays skipped.
+        scene["decals"] = [[0, 1, 1, 0, 5], [0, 1, 1, 0, 6], [0, 1, 1, 0, 7], [0, 1, 1, 0, 0]]
+        entries = baked_objects(scene, objects)
+        self.assertIn((600, 0x02000020, BAKED_FLAT, 0.0, 0.0, 0.0), entries)
+        self.assertIn((800, 0x00000040, BAKED_FLAT, 0.0, 0.0, 0.0), entries)
+        self.assertNotIn(700, [entry[0] for entry in entries])
+        self.assertIn((100, 0x03000010, BAKED_SKIP, 0.0, 0.0, 0.0), entries)
+        self.assertEqual(decode_baked_sidecar(encode_baked_sidecar(entries)), entries)
+
+    def test_doors_lie_on_their_wall_and_low_cards_lie_flat_in_flight(self):
+        scene, objects = self.sample()
+        objects += [self.MapObject(600, 0x02000020), self.MapObject(700, 0x02000030), self.MapObject(800, 0x02000040)]
+        scene["sprites"] = [[0, 0, 0, 30, 15], [0, 0, 0, 20, 40]]  # page, x, y, w, h: low, tall
+        scene["boards"] += [[0, 1, 1, 0, 0, 5], [1, 1, 1, 0, 0, 6]]
+        # doors: [sprite, ua, va, ub, vb, z0, z1, name, object]; GL x, z = u, v less 50
+        scene["doors"] = [[0, 51.0, 52.0, 51.0, 54.0, 0.0, 1.0, 0, 7]]
+        entries = baked_objects(scene, objects)
+        self.assertIn((600, 0x02000020, BAKED_FLY_FLAT, 0.0, 0.0, 0.0), entries)
+        self.assertNotIn(700, [entry[0] for entry in entries])
+        door = next(entry for entry in entries if entry[0] == 800)
+        self.assertEqual(door[2:5], (BAKED_PLANE, 1.0, 2.0))
+        self.assertAlmostEqual(door[5], 1.5707963, places=6)
+        self.assertIn((500, 0x00000011, BAKED_LIFT, 0.25, -0.5, 0.75), entries)
+        decoded = decode_baked_sidecar(encode_baked_sidecar(entries))
+        self.assertEqual([entry[:3] for entry in decoded], [entry[:3] for entry in entries])
+
+    def test_a_solid_by_name_hides_its_card_only_in_flight(self):
+        scene, objects = self.sample()
+        scene["props"][0] = [0, 1, 1, 0] + [0.0] * 10 + [1]  # row[14]: made by name (overrides.json)
+        entries = baked_objects(scene, objects)
+        self.assertIn((300, 0x02000099, BAKED_FLY_SKIP, 0.0, 0.0, 0.0), entries)
+        self.assertIn((400, 0x00000036, BAKED_SKIP, 0.0, 0.0, 0.0), entries)
+        self.assertEqual(decode_baked_sidecar(encode_baked_sidecar(entries)), entries)
 
     def test_an_animated_solid_stays_live(self):
         scene, objects = self.sample()

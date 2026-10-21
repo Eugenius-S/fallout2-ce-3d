@@ -1,8 +1,10 @@
 # Background test run: starts the freshly built game in the 3D scene, off
 # screen and without taking focus, takes one metadata snapshot and closes only
-# that process. The build runs as game/fallout2-ce-test.exe (the game reads
-# fallout2.cfg next to its exe), so a game the user has open is left alone, and
-# so is game/fallout2-ce.exe (dev-launch.ps1 installs new builds).
+# that process. The build runs as build/test-run/fallout2-ce-test.exe with the
+# fixed config from tools/test-config/ (the game reads and saves fallout2.cfg
+# next to its exe), so the owner's game/fallout2.cfg and game/fallout2-ce.exe
+# (dev-launch.ps1 installs new builds) are never read or written; the game's
+# resources stay in game/, which remains the working directory.
 #
 # -Probe: the mouse is put on the scene's critters and what the game finds
 # under it goes to game/devprobe.log; two snapshots show the hex cursor and
@@ -17,8 +19,6 @@
 # Scenes come from build/scene-cache when that folder exists (a worktree
 # exports there with export.py --cache-root build/scene-cache), so a game
 # running from game/ keeps its own mod-cache.
-# -ConfigDirectory: read fallout2.cfg and ddraw.ini beside the test executable
-# in an isolated build/task009-* folder, while game resources remain in game/.
 param(
     [string]$Map = "kladwtwn",
     [int]$Elevation = 0,
@@ -36,6 +36,13 @@ param(
     [ValidateRange(0, 65536)]
     [int]$Ambient = -1,
     [switch]$Fly,
+    [double]$FlyTurn = 0,
+    [double]$FlyPitch = -1,
+    [double]$FlyDistance = -1,
+    # -Turn N: the 3D camera N quarter turns round ([3d] camera_rotation).
+    [int]$Turn = 0,
+    # -Solo R: only the things within R hexes of -ViewTile, no walls or roofs.
+    [int]$Solo = -1,
     [string]$OutputDirectory,
     [switch]$CaptureConsole,
     [ValidateRange(640, 7680)]
@@ -43,8 +50,7 @@ param(
     [ValidateRange(480, 4320)]
     [int]$ScreenHeight = 1080,
     [ValidateRange(1, 4)]
-    [int]$Scale = 2,
-    [string]$ConfigDirectory
+    [int]$Scale = 2
 )
 $ErrorActionPreference = 'Stop'
 $Root = Split-Path -Parent $PSScriptRoot
@@ -56,23 +62,13 @@ if (-not (Test-Path -LiteralPath $GameDir)) {
 }
 $built = Join-Path $Root 'build\fallout2-ce.exe'
 if (-not (Test-Path $built)) { throw "No build at $built; run tools/configure-build.ps1 first." }
-$configRoot = $null
-if ($ConfigDirectory) {
-    if (-not (Test-Path -LiteralPath $ConfigDirectory -PathType Container)) {
-        throw "Config directory does not exist: $ConfigDirectory"
-    }
-    $configRoot = (Resolve-Path -LiteralPath $ConfigDirectory).Path
-    $buildRoot = (Resolve-Path -LiteralPath (Join-Path $Root 'build')).Path
-    $configLeaf = Split-Path -Leaf $configRoot
-    if ((Split-Path -Parent $configRoot) -ne $buildRoot -or
-        -not $configLeaf.StartsWith('task009-', [System.StringComparison]::OrdinalIgnoreCase)) {
-        throw 'ConfigDirectory must be an isolated build/task009-* folder.'
-    }
-    if (-not (Test-Path -LiteralPath (Join-Path $configRoot 'fallout2.cfg') -PathType Leaf)) {
-        throw "Isolated config is missing fallout2.cfg: $configRoot"
-    }
-}
-$exeDirectory = if ($configRoot) { $configRoot } else { $GameDir }
+# The exe's own folder holds the config: build it fresh from the fixed one, so
+# a saved setting can never leak into the next run.
+$fixedConfig = Join-Path $PSScriptRoot 'test-config\fallout2.cfg'
+if (-not (Test-Path -LiteralPath $fixedConfig)) { throw "Missing the fixed test config: $fixedConfig" }
+$exeDirectory = Join-Path $Root 'build\test-run'
+New-Item -ItemType Directory -Path $exeDirectory -Force | Out-Null
+Copy-Item $fixedConfig (Join-Path $exeDirectory 'fallout2.cfg') -Force
 $exe = Join-Path $exeDirectory 'fallout2-ce-test.exe'
 if (Get-Process fallout2-ce-test -ErrorAction SilentlyContinue) {
     throw 'Another fallout2-ce-test.exe instance is already running.'
@@ -100,6 +96,14 @@ if ($Parallel) { $arguments += '--dev-parallel' }
 if ($Ambient -ge 0) { $arguments += "--dev-ambient=$Ambient" }
 # -Fly: the snapshot is taken from the fly camera's start (Ctrl+F12 in the game).
 if ($Fly) { $arguments += '--dev-fly' }
+# -FlyTurn D, -FlyPitch D, -FlyDistance U: from there the camera circles the
+# point it looks at, D degrees round, D degrees above the floor, U units from
+# it (each implies -Fly).
+if ($FlyTurn -ne 0) { $arguments += "--dev-fly-turn=$FlyTurn" }
+if ($FlyPitch -gt 0) { $arguments += "--dev-fly-pitch=$FlyPitch" }
+if ($FlyDistance -gt 0) { $arguments += "--dev-fly-distance=$FlyDistance" }
+if ($Turn -ne 0) { $arguments += "--dev-camera-turn=$Turn" }
+if ($Solo -ge 0 -and $PSBoundParameters.ContainsKey('ViewTile')) { $arguments += "--dev-solo=$ViewTile,$Solo" }
 if ($Still) {
     if ($Probe) { throw '-Still cannot be combined with the interactive -Probe.' }
     $arguments += '--dev-still-snapshot'
@@ -120,6 +124,9 @@ if ($Probe) {
 $started = Get-Date
 $previousBackground = $env:F2CE_DEV_BACKGROUND
 $env:F2CE_DEV_BACKGROUND = '1'
+# No sound device at all: a background run must not hiss or play.
+$previousAudio = $env:SDL_AUDIODRIVER
+$env:SDL_AUDIODRIVER = 'dummy'
 $previousSceneCache = $env:F2CE_SCENE_CACHE
 $sceneCache = Join-Path $Root 'build\scene-cache'
 if (Test-Path -LiteralPath $sceneCache -PathType Container) { $env:F2CE_SCENE_CACHE = $sceneCache }
@@ -155,6 +162,7 @@ try {
     Start-Sleep -Milliseconds 500
 } finally {
     $env:F2CE_DEV_BACKGROUND = $previousBackground
+    $env:SDL_AUDIODRIVER = $previousAudio
     $env:F2CE_SCENE_CACHE = $previousSceneCache
     if ($null -ne $process) {
         if (-not $process.HasExited) { Stop-Process -Id $process.Id -Force }

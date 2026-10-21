@@ -299,6 +299,8 @@ set(FALLOUT_PLATFORM_SOURCES
     "src/scene/preview_policy.cc"
     "src/scene/preview_policy.h"
     "src/scene/scene_lights.cc"
+    "src/scene/sun.cc"
+    "src/scene/sun.h"
     "src/scene/scene_lights.h"
     "src/scene/scene_objects.cc"
     "src/scene/scene_objects.h"
@@ -334,6 +336,8 @@ set(FALLOUT_PLATFORM_SOURCES
     "src/scene_renderer/walls.cc"
     "src/scene_renderer/ground_pick.cc"
     "src/scene_renderer/ground_pick.h"
+    "src/scene_renderer/map_clip.cc"
+    "src/scene_renderer/map_clip.h"
     "src/scene_renderer/sprite_card.cc"
     "src/scene_renderer/sprite_card.h"
     "src/scene_renderer/game_view.cc"
@@ -406,9 +410,12 @@ if(BUILD_TESTING)
     target_include_directories(game_view_tests PRIVATE "src/scene_renderer")
     add_test(NAME game_view_tests COMMAND game_view_tests)
 
+    add_subdirectory(tests/map_clip)
     add_subdirectory(tests/fixed_screen_options)
     add_subdirectory(tests/snapshot_rows)
     add_subdirectory(tests/embedded_fonts)
+    add_subdirectory(tests/clean_edges_boundary_mask)
+    add_subdirectory(tests/sun)
 endif()
 
 target_sources(${EXECUTABLE_NAME} PUBLIC

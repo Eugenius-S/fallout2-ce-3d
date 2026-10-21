@@ -1,0 +1,10 @@
+{
+ "about": "Exceptions to the shapes algorithm by FRM name (docs/2026-10-20-shapes-and-rotation-design.md), at most a tenth of Klamath's distinct static FRMs. box, drum: the donor's fit of that solid whatever its thresholds say.",
+ "box": {
+  "ss108.frm": "a chair: on legs and as ragged as a plant, so the fit turns it down",
+  "crate1.frm": "a small slatted crate: as ragged as a plant"
+ },
+ "drum": {
+  "sstove2.frm": "a round stove: its feet and door take the outline 4 px off a drum"
+ }
+}

@@ -23,12 +23,14 @@ uniform sampler2D uSeeThroughObjects; // per object row: R see-through, G full l
 uniform int uLightMode;
 out vec2 vTexcoord;
 out vec3 vWorld;
+out vec2 vWorldXZ;
 flat out int vSeeThrough;
 flat out float vFullLight;
 void main() {
     gl_Position = uMvp * vec4(aPosition, 1.0);
     vTexcoord = aTexcoord;
     vWorld = aPosition;
+    vWorldXZ = aPosition.xz;
     vSeeThrough = uSeeThrough == 2 ? 1 : 0;
     vFullLight = 0.0;
     if ((uSeeThrough == 1 || uLightMode == 2) && aObject >= 0.0) {
@@ -47,6 +49,7 @@ void main() {
 constexpr const char* kSceneFragmentShader = R"(#version 330 core
 in vec2 vTexcoord;
 in vec3 vWorld;
+in vec2 vWorldXZ;
 flat in int vSeeThrough;
 flat in float vFullLight;
 uniform sampler2D uTexture;
@@ -57,6 +60,11 @@ uniform int uTranslucent; // the engine's translucent blend: steam, glass, energ
 uniform vec3 uTint;
 uniform int uGlassGray;
 uniform int uPick; // the pick pass: every texel shown is the object's id colour
+uniform int uClipEnabled;
+uniform vec3 uClipPlane0;
+uniform vec3 uClipPlane1;
+uniform vec3 uClipPlane2;
+uniform vec3 uClipPlane3;
 uniform int uEgg; // the see-through circle around the hero
 uniform sampler2D uEggMask;
 uniform vec4 uEggRect; // game logical pixels: left, top, width, height
@@ -149,6 +157,12 @@ float eggShare() {
     return min(floor(texture(uEggMask, e).r * 255.0 + 0.5), 128.0);
 }
 void main() {
+    if (uClipEnabled != 0) {
+        if (dot(uClipPlane0.xy, vWorldXZ) + uClipPlane0.z < -0.00001
+            || dot(uClipPlane1.xy, vWorldXZ) + uClipPlane1.z < -0.00001
+            || dot(uClipPlane2.xy, vWorldXZ) + uClipPlane2.z < -0.00001
+            || dot(uClipPlane3.xy, vWorldXZ) + uClipPlane3.z < -0.00001) discard;
+    }
     if (uTextured == 0) {
         outColor = uColor;
     } else {
@@ -211,6 +225,8 @@ int gSceneTranslucentLocation = -1;
 int gSceneTintLocation = -1;
 int gSceneGlassGrayLocation = -1;
 int gScenePickLocation = -1;
+int gSceneClipEnabledLocation = -1;
+int gSceneClipPlaneLocations[4] = { -1, -1, -1, -1 };
 int gSceneEggLocation = -1;
 int gSceneEggMaskLocation = -1;
 int gSceneEggRectLocation = -1;
@@ -272,6 +288,11 @@ bool createSceneShader(std::string* error)
     gSceneTintLocation = glGetUniformLocation(gSceneProgram, "uTint");
     gSceneGlassGrayLocation = glGetUniformLocation(gSceneProgram, "uGlassGray");
     gScenePickLocation = glGetUniformLocation(gSceneProgram, "uPick");
+    gSceneClipEnabledLocation = glGetUniformLocation(gSceneProgram, "uClipEnabled");
+    gSceneClipPlaneLocations[0] = glGetUniformLocation(gSceneProgram, "uClipPlane0");
+    gSceneClipPlaneLocations[1] = glGetUniformLocation(gSceneProgram, "uClipPlane1");
+    gSceneClipPlaneLocations[2] = glGetUniformLocation(gSceneProgram, "uClipPlane2");
+    gSceneClipPlaneLocations[3] = glGetUniformLocation(gSceneProgram, "uClipPlane3");
     gSceneEggLocation = glGetUniformLocation(gSceneProgram, "uEgg");
     gSceneEggMaskLocation = glGetUniformLocation(gSceneProgram, "uEggMask");
     gSceneEggRectLocation = glGetUniformLocation(gSceneProgram, "uEggRect");
@@ -306,7 +327,10 @@ bool createSceneShader(std::string* error)
         || gSceneLightValueLocation < 0 || gSceneLightSquLocation < 0 || gSceneLightSqvLocation < 0
         || gSceneLightOriginLocation < 0 || gSceneLightAnchorLocation < 0 || gSceneAmbientLocation < 0
         || gSceneHexUnitLocation < 0 || gSceneTowardCameraLocation < 0 || gSceneLightCountLocation < 0
-        || gSceneLightPosLocation < 0 || gSceneLightColorLocation < 0 || gSceneLightWindowLocation < 0) {
+        || gSceneLightPosLocation < 0 || gSceneLightColorLocation < 0 || gSceneLightWindowLocation < 0
+        || gSceneClipEnabledLocation < 0
+        || gSceneClipPlaneLocations[0] < 0 || gSceneClipPlaneLocations[1] < 0
+        || gSceneClipPlaneLocations[2] < 0 || gSceneClipPlaneLocations[3] < 0) {
         *error = "static floor shader uniforms are missing";
         return false;
     }
@@ -322,6 +346,14 @@ void destroySceneShader()
     gSceneTexturedLocation = -1;
     gSceneColorLocation = -1;
     gSceneCutoffLocation = -1;
+    gSceneLightModeLocation = -1;
+    gSceneLightMapLocation = -1;
+    gSceneLightValueLocation = -1;
+    gSceneLightSquLocation = -1;
+    gSceneLightSqvLocation = -1;
+    gSceneLightOriginLocation = -1;
+    gSceneClipEnabledLocation = -1;
+    for (int index = 0; index < 4; index++) gSceneClipPlaneLocations[index] = -1;
 }
 
 } // namespace internal

@@ -2,13 +2,13 @@
 id: 020
 title: Game light sources as real lights
 milestone: M1
-status: doing
+status: done
 owner: claude
 suggested: claude
-claude-only: yes
+claude-only: no
 user-check: yes
 depends-on: [012, 014]
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -111,3 +111,19 @@ Evidence: `runs/020-game-light/step2-*` (Klamath at night and the rat caves,
 The six cave references retaken; the town spots (day) are unchanged.
 Next: the owner's check in the game.
 Check: `tools/regression.ps1` (16 pass); `ctest --test-dir build` (8/8).
+
+### 2026-10-20 claude (frame rate)
+The owner saw the game below 60 fps: Klamath ran at about 33 fps, the scene
+update taking 25 ms a frame, 20 of them in the lights. Most of it was
+`tileDistanceBetween` (it walks hex by hex, an arctangent a step) in the colour
+borrowing, for every pair of some 340 lights, every frame. Now a closed-form
+hex distance (the same numbers, checked on 200000 pairs; the engine's 9999 off
+the valid tiles is kept), and the engine's spreads are kept while the lights
+and the engine's light map stay the same; colours, which follow the palette's
+cycling, are still added up every frame. Lights now take about 1 ms a frame.
+Regression 16/16, pixel for pixel.
+
+### 2026-10-20 claude
+Done: its acceptance held at the merge; it stayed open only for the owner's
+look, which blocks nothing (AGENTS.md, "Nobody waits"). What the owner
+rejects in the game becomes a new task.

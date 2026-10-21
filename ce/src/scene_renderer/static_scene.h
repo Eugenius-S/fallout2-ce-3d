@@ -5,8 +5,12 @@
 #include <string>
 #include <vector>
 
+#include "map_clip.h"
+
 namespace fallout {
 namespace scene_renderer {
+
+struct SpriteCardProjection;
 
 // The exported scene of one map elevation, from one cache directory: the
 // versioned floor.bin sidecar with tiles.png, and walls.bin with its atlas
@@ -17,6 +21,11 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
 // so another map's can be loaded.
 void unloadStaticScene();
 void staticWallStats(unsigned int* triangles, unsigned int* pages);
+MapClip staticFloorMapClip();
+bool setStaticFloorMapProjection(const SpriteCardProjection& projection);
+void setStaticMapClip(const MapClip& clip);
+MapClip staticMapClip();
+void bindStaticMapClipUniforms();
 
 // Which roof squares the game shows now: 100 x 100 bytes in the engine's
 // square order (y * 100 + x), nonzero shown.
@@ -56,6 +65,20 @@ bool staticObjectBaked(int tile, int fid);
 // Things standing on a solid (an item on a table) are moved onto it, along the
 // game's view ray: GL offset (x, y up, z). False when the object stays put.
 bool staticObjectLift(int tile, int fid, float lift[3]);
+// Items and scenery the donor lays on the floor (low piles): drawn flat, as
+// the game's FLAT objects are.
+bool staticObjectFlat(int tile, int fid);
+// Doors and gates: GL x and z of a point of their wall's plane and its
+// direction (radians); under the fly camera they lie on it.
+bool staticObjectPlane(int tile, int fid, float plane[3]);
+// Low cards (a cabbage, a tin): flat under the fly camera.
+bool staticObjectFlyFlat(int tile, int fid);
+// Dev (--dev-solo): draw only the things within radius hexes of tile, without
+// walls and roofs, to look at one thing from every side. Set before a map loads.
+void setStaticSolo(int tile, int radius);
+// The same on a loaded map: walls.bin is read again (dev batch snapshots).
+bool resoloStaticWalls(int tile, int radius);
+bool staticSoloKeeps(int tile);
 // The walls and scenery walls.bin draws that the hero stands behind, so the egg
 // cuts them as the game does: begin, mark each, end (uploads on a change).
 void beginStaticWallSeeThrough();

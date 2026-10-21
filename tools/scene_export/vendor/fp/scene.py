@@ -26,6 +26,7 @@ import json
 import math
 import os
 from collections import Counter
+from pathlib import Path
 
 import numpy as np
 
@@ -49,6 +50,10 @@ GLOW_FIRE, GLOW_LAMP = (1.0, 0.5, 0.18), (1.0, 0.86, 0.6)
 SMALL_AREA, TALL = 0.2, 0.9     # a solid with a smaller footprint (units^2) that is also lower (units) is stepped over
 SMALL_CARD = (48, 64)           # px: a card narrower and lower than this does not stop the player either (chairs)
 WALK_THROUGH = 160  # px: a thing that stops no one is a solid all the same if it is this wide (a gateway)
+# FRMs whose solid is set by name, whatever the fit says (the shapes design allows such
+# exceptions, at most a tenth of a map group's distinct FRMs).
+_OVERRIDES = json.loads((Path(__file__).resolve().parents[2] / "shapes" / "overrides.json").read_text(encoding="utf-8"))
+FORCED = {name: kind for kind in ("box", "drum") for name in _OVERRIDES.get(kind, {})}
 MIN_BOX = 0.1       # units: what is left of a box that is cut back at a wall, at least
 ON_TOP = 0.05       # units outside a solid's footprint that still count as on it
 AT_SOLID = 0.3      # an invisible blocker this close to a solid is part of it (units)
@@ -494,15 +499,15 @@ class SceneBuilder:
                     high[axis] = min(high[axis], max(slab[0], low[axis] + MIN_BOX))
         return ((low[0] + high[0]) / 2, (low[1] + high[1]) / 2), high[0] - low[0], high[1] - low[1]
 
-    def solid_of(self, index, left, top):
+    def solid_of(self, index, left, top, force=False):
         """-> (the floor's shade in a sprite, props.fit of the rest); cached, sprites repeat."""
-        key = (index.shape, index.tobytes(), left, top)
+        key = (index.shape, index.tobytes(), left, top, force)
         if key not in self._solids:
             shade = light.outer_dark(index)
             painted = light.painted_shadow(index, top)
             if painted is not None:
                 shade |= painted
-            self._solids[key] = shade, props.fit((index != 0) & ~shade, left, top)
+            self._solids[key] = shade, props.fit((index != 0) & ~shade, left, top, force)
         return self._solids[key]
 
     def build_props(self):
@@ -518,6 +523,7 @@ class SceneBuilder:
         self.props, self.rests, self.lifts, self.casts = [], [], [], []
         self.hidden, self.hidden_sheets = [], []        # boards / walls that first person does not draw
         self.blocks, self.posts, self.prop_blobs = [], [], []
+        self.forced_boards = set()                      # boards of solids by name: their cards shade the light
         self.propped = set()                            # objects that stop the player as solids, or not at all
         pieces = [self.piece(obj, frm, order, board=n) for n, (obj, frm, order) in enumerate(self.card_info) if n not in self.set_boards]
         formed = set(self.hidden_walls)                 # ... nor of the sheets that a form stands for
@@ -528,12 +534,15 @@ class SceneBuilder:
         for group in props.groups([piece for piece in pieces if piece.stands]):
             first = group[0]
             blocking = any(not piece.obj.flags & mapfile.OBJECT_NO_BLOCK for piece in group)
-            if len(group) == 1 and not blocking and first.index.shape[1] < WALK_THROUGH:
+            # A box by name (tools/scene_export/shapes/overrides.json): chairs and
+            # crates the fit takes for plants.
+            forced = FORCED.get((self.gf.art.name(first.obj.fid) or "").lower()) if len(group) == 1 else None
+            if len(group) == 1 and not blocking and first.index.shape[1] < WALK_THROUGH and not forced:
                 continue                                # loose things: cards
             index, rgba, x, y = props.compose(group) if len(group) > 1 else (first.index, first.rgba, first.x, first.y)
             ax, ay = (int(round(c)) for c in proj.hex_px(first.obj.tile))       # the anchor: the first piece's hex
             left, top = x - ax, y - ay
-            shade, found = self.solid_of(index, left, top)
+            shade, found = self.solid_of(index, left, top, forced)
             if not found:
                 continue
             shape, fit = found
@@ -545,7 +554,7 @@ class SceneBuilder:
             cu, cv = u + du, v + dv
             body = rgba * ~shade[..., None]
             sprite = self.cropped(body, left, top)
-            if shade.any():
+            if shade.any() and not forced:             # a solid by name: its card keeps the shade
                 self.casts.append([self.cropped(rgba * shade[..., None], left, top)] + _round((u, v)))
             above, below = fit.rest(shape)
             window = body[shape.top - top:shape.top - top + shape.h, shape.left - left:shape.left - left + shape.w]
@@ -572,11 +581,16 @@ class SceneBuilder:
                     (pu, pv), a, b = self.out_of_walls(u + pu, v + pv, a, b)
                     pu, pv = pu - u, pv - v
                 self.props.append([sprite] + _round((u, v)) + [board, int(round_)]
-                                  + _round((u + pu, v + pv, a, b, z0, z1, wall_u, wall_v)) + [self.name_id(first.obj.pid)])
+                                  + _round((u + pu, v + pv, a, b, z0, z1, wall_u, wall_v)) + [self.name_id(first.obj.pid)]
+                                  + [int(bool(forced))])
                 half = (radius, radius) if round_ else (a / 2, b / 2)
                 area = math.pi * radius ** 2 if round_ else a * b
-                solids.append((round_, u + pu, v + pv, half, z1))
-                self.prop_blobs.append((u + pu, v + pv, 1.15 * max(half), 1.15 * min(half)))
+                if not forced:                          # a solid by name lifts nothing: the game's view keeps its cards
+                    solids.append((round_, u + pu, v + pv, half, z1))
+                if forced:
+                    self.forced_boards.add(first.board)
+                else:
+                    self.prop_blobs.append((u + pu, v + pv, 1.15 * max(half), 1.15 * min(half)))
                 if blocking and (area >= SMALL_AREA or z1 >= TALL):
                     if round_:
                         self.posts.append(_round((u + pu, v + pv, radius)))
@@ -806,7 +820,7 @@ class SceneBuilder:
         for board, body, _ in self.shadows:             # what stands there is the sprite without its painted shadow
             cards[board] = (body,) + cards[board][1:]
         cards += [(self.sets[row[0]]["dirs"][row[3]][0], row[1], row[2], row[-1]) for row in self.critters]
-        solid = set(self.hidden)                        # these throw the shade of their solid
+        solid = set(self.hidden) - self.forced_boards  # these throw the shade of their solid
         blobs = [light.blob(*self.sprite_pixels(sprite), u, v) for n, (sprite, u, v, _) in enumerate(cards) if n not in solid]
         blobs += self.prop_blobs
         stops = self.colliders + [door[1:5] for door in self.door_quads]
@@ -893,7 +907,7 @@ class SceneBuilder:
             # units along u and v around (cu, cv), a drum (round 1) the cylinder over the floor
             # ellipse that is a x b px on screen. Both reach from height z0 to z1; a box's far
             # sides go on up: the one along u to wallU, the one along v to wallV.
-            "props": self.props,                            # [sprite, u, v, board, round, cu, cv, a, b, z0, z1, wallU, wallV, name]
+            "props": self.props,                            # [sprite, u, v, board, round, cu, cv, a, b, z0, z1, wallU, wallV, name, forced]
             "rests": self.rests,                            # [sprite, u, v, z, top]: upright cards standing at height z
             "lifts": self.lifts,                            # [board, du, dv, z]: boards that stand on a solid: moved, and z up
             "crossed": self.crossed,                        # boards that stand as two crossed sheets (plants)

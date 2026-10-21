@@ -27,12 +27,35 @@ using namespace internal;
 namespace {
 
 struct BakedObject {
-    bool lift; // false: walls.bin draws it, skip
-    float offset[3]; // GL x, y, z when lifted
+    // Skip: walls.bin draws it; Flat: the donor laid it on the floor; Plane: a
+    // door, on its wall's plane under the fly camera.
+    // FlyFlat: a low card, laid flat under the fly camera; FlySkip: a card a
+    // solid made by name stands for in flight only.
+    enum Mode { Skip, Lift, Flat, Plane, FlyFlat, FlySkip } mode;
+    float offset[3]; // GL x, y, z when lifted; a plane's point x, its direction, z
 };
 
 unsigned int gWallTriangleCount = 0;
 std::unordered_map<unsigned long long, BakedObject> gBakedObjects;
+int gSoloTile = -1;
+int gSoloRadius = 0;
+std::filesystem::path gWallsDirectory; // what loadStaticWalls last loaded, for a new solo
+
+int soloHexDistance(int tile1, int tile2)
+{
+    // Even-q cube coordinates, as scene_lights.cc counts hexes.
+    const auto cube = [](int tile, int* x, int* z) {
+        const int column = tile % 200;
+        *x = column;
+        *z = tile / 200 - (column + (column & 1)) / 2;
+    };
+    int x1, z1, x2, z2;
+    cube(tile1, &x1, &z1);
+    cube(tile2, &x2, &z2);
+    const int dx = x1 - x2;
+    const int dz = z1 - z2;
+    return std::max({ std::abs(dx), std::abs(dz), std::abs(dx + dz) });
+}
 
 // walls.bin's object table: (tile, fid) -> row, and per row whether the hero
 // stands behind it (this frame and as uploaded).
@@ -61,7 +84,7 @@ void destroyStaticWalls()
 {
     if (gContext != nullptr) {
         for (WallBatch& batch : gWallBatches) {
-            if (batch.texture != 0) glDeleteTextures(1, &batch.texture);
+            if (batch.texture != 0 && batch.ownsTexture) glDeleteTextures(1, &batch.texture);
             if (batch.vbo != 0) glDeleteBuffers(1, &batch.vbo);
             if (batch.vao != 0) glDeleteVertexArrays(1, &batch.vao);
         }
@@ -90,13 +113,57 @@ void staticWallStats(unsigned int* triangles, unsigned int* pages)
 bool staticObjectBaked(int tile, int fid)
 {
     const auto found = gBakedObjects.find(bakedObjectKey(tile, fid));
-    return found != gBakedObjects.end() && !found->second.lift;
+    if (found == gBakedObjects.end()) return false;
+    double rightX, rightZ;
+    return found->second.mode == BakedObject::Skip
+        || (found->second.mode == BakedObject::FlySkip && flyCameraRight(&rightX, &rightZ));
+}
+
+void setStaticSolo(int tile, int radius)
+{
+    gSoloTile = tile;
+    gSoloRadius = radius;
+}
+
+bool resoloStaticWalls(int tile, int radius)
+{
+    setStaticSolo(tile, radius);
+    if (gWallsDirectory.empty()) return false;
+    const std::filesystem::path directory = gWallsDirectory;
+    destroyStaticWalls();
+    std::string error;
+    return loadStaticWalls(directory, &error);
+}
+
+bool staticSoloKeeps(int tile)
+{
+    return gSoloTile < 0 || (tile >= 0 && soloHexDistance(tile, gSoloTile) <= gSoloRadius);
+}
+
+bool staticObjectPlane(int tile, int fid, float plane[3])
+{
+    const auto found = gBakedObjects.find(bakedObjectKey(tile, fid));
+    if (found == gBakedObjects.end() || found->second.mode != BakedObject::Plane) return false;
+    for (int index = 0; index < 3; index++) plane[index] = found->second.offset[index];
+    return true;
+}
+
+bool staticObjectFlyFlat(int tile, int fid)
+{
+    const auto found = gBakedObjects.find(bakedObjectKey(tile, fid));
+    return found != gBakedObjects.end() && found->second.mode == BakedObject::FlyFlat;
+}
+
+bool staticObjectFlat(int tile, int fid)
+{
+    const auto found = gBakedObjects.find(bakedObjectKey(tile, fid));
+    return found != gBakedObjects.end() && found->second.mode == BakedObject::Flat;
 }
 
 bool staticObjectLift(int tile, int fid, float lift[3])
 {
     const auto found = gBakedObjects.find(bakedObjectKey(tile, fid));
-    if (found == gBakedObjects.end() || !found->second.lift) return false;
+    if (found == gBakedObjects.end() || found->second.mode != BakedObject::Lift) return false;
     for (int axis = 0; axis < 3; axis++) lift[axis] = found->second.offset[axis];
     return true;
 }
@@ -113,7 +180,10 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
     if (!gInitialized || !gFloorLoaded) return fail("static floor renderer is unavailable");
 
     constexpr size_t kHeaderSize = 24;
-    constexpr size_t kBatchSize = 16;
+    constexpr size_t kBatchSizeV3 = 16;
+    constexpr size_t kBatchSizeV4 = 20; // and flags
+    constexpr unsigned int kFlyOnly = 1;
+    constexpr unsigned int kGameOnly = 2; // version 5
     constexpr size_t kVertexSize = 36;
     constexpr size_t kObjectSize = 8;
     constexpr unsigned int kMaxObjects = 1000000;
@@ -136,13 +206,20 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
     const unsigned int totalTriangles = readU32(sidecar.data() + 16);
     const unsigned int objectCount = readU32(sidecar.data() + 20);
     // A map elevation without walls has no batches and no triangles.
-    if (version != 3 || headerSize != kHeaderSize || objectCount > kMaxObjects || pageCount == 0 || pageCount > kMaxPages
-        || batchCount > pageCount || totalTriangles > kMaxTriangles || (batchCount == 0) != (totalTriangles == 0)) {
+    // Version 4 adds batch flags: a page has up to two batches, the second
+    // for the fly camera only.
+    // Version 5 adds a third, for the game's camera only.
+    if (version < 3 || version > 5 || headerSize != kHeaderSize || objectCount > kMaxObjects || pageCount == 0
+        || pageCount > kMaxPages || batchCount > pageCount * (version - 2) || totalTriangles > kMaxTriangles
+        || (batchCount == 0) != (totalTriangles == 0)) {
         return fail("walls.bin header counts or version are unsupported");
     }
+    const size_t kBatchSize = version >= 4 ? kBatchSizeV4 : kBatchSizeV3;
 
     struct WallBatchData {
         unsigned int page;
+        bool flyOnly;
+        bool gameOnly;
         unsigned int triangleCount;
         unsigned int width;
         unsigned int height;
@@ -151,7 +228,8 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
     };
     std::vector<WallBatchData> batches;
     batches.reserve(batchCount);
-    std::vector<bool> seenPages(pageCount, false);
+    std::vector<bool> seenPages(static_cast<size_t>(pageCount) * 3, false); // by page and flags
+    std::vector<bool> decodedPages(pageCount, false);
     size_t offset = kHeaderSize;
     unsigned long long observedTriangles = 0;
     unsigned long long totalDecodedBytes = 0;
@@ -163,13 +241,14 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
         const unsigned int width = readU32(sidecar.data() + offset + 4);
         const unsigned int height = readU32(sidecar.data() + offset + 8);
         const unsigned int triangleCount = readU32(sidecar.data() + offset + 12);
+        const unsigned int flags = version >= 4 ? readU32(sidecar.data() + offset + 16) : 0;
         offset += kBatchSize;
-        if (page >= pageCount || seenPages[page] || width == 0 || height == 0
+        if (page >= pageCount || flags > (version == 5 ? kGameOnly : kFlyOnly) || seenPages[page * 3 + flags] || width == 0 || height == 0
             || width > kMaxImageDimension || height > kMaxImageDimension
             || triangleCount == 0 || triangleCount > kMaxTriangles) {
             return fail("walls.bin contains an invalid page batch");
         }
-        seenPages[page] = true;
+        seenPages[page * 3 + flags] = true;
         const unsigned long long vertexCount = static_cast<unsigned long long>(triangleCount) * 3;
         const unsigned long long vertexBytes = vertexCount * kVertexSize;
         if (vertexBytes > sidecar.size() - offset) {
@@ -181,6 +260,8 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
         }
         WallBatchData batch;
         batch.page = page;
+        batch.flyOnly = flags == kFlyOnly;
+        batch.gameOnly = flags == kGameOnly;
         batch.triangleCount = triangleCount;
         batch.width = width;
         batch.height = height;
@@ -210,6 +291,18 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
             }
         }
         offset += static_cast<size_t>(vertexBytes);
+
+        // A page's second batch draws with the first one's texture.
+        if (decodedPages[page]) {
+            for (const WallBatchData& other : batches) {
+                if (other.page == page && (other.width != width || other.height != height)) {
+                    return fail("walls.bin batches of one page disagree on its size");
+                }
+            }
+            batches.push_back(std::move(batch));
+            continue;
+        }
+        decodedPages[page] = true;
 
         char textureName[32];
         snprintf(textureName, sizeof(textureName), "sprites%u.png", page);
@@ -255,9 +348,25 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
         return fail("walls.bin has a truncated object table");
     }
     std::unordered_map<unsigned long long, unsigned int> objectRows;
+    std::vector<bool> soloRows(objectCount, false);
     for (unsigned int row = 0; row < objectCount; row++) {
         const unsigned char* entry = sidecar.data() + offset + row * kObjectSize;
-        objectRows[bakedObjectKey(static_cast<int>(readU32(entry)), static_cast<int>(readU32(entry + 4)))] = row;
+        const int tile = static_cast<int>(readU32(entry));
+        const int fid = static_cast<int>(readU32(entry + 4));
+        objectRows[bakedObjectKey(tile, fid)] = row;
+        soloRows[row] = ((fid >> 24) & 0xF) != 3 && staticSoloKeeps(tile); // 3: walls
+    }
+    if (gSoloTile >= 0) {
+        for (WallBatchData& batch : batches) {
+            std::vector<WallVertex> kept;
+            for (size_t index = 0; index + 2 < batch.vertices.size(); index += 3) {
+                const float object = batch.vertices[index].object;
+                if (object < 0.0f || !soloRows[static_cast<size_t>(object)]) continue;
+                kept.insert(kept.end(), batch.vertices.begin() + index, batch.vertices.begin() + index + 3);
+            }
+            batch.triangleCount = static_cast<unsigned int>(kept.size() / 3);
+            batch.vertices = std::move(kept);
+        }
     }
     offset += static_cast<size_t>(objectCount) * kObjectSize;
     if (offset != sidecar.size() || observedTriangles != totalTriangles) {
@@ -273,9 +382,11 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
         return fail("baked.bin is missing or unreadable; re-run the scene exporter");
     }
     if (baked.size() < kBakedHeaderSize || baked[0] != 'F' || baked[1] != '2' || baked[2] != 'B' || baked[3] != 'K'
-        || readU16(baked.data() + 4) != 2 || readU16(baked.data() + 6) != kBakedHeaderSize) {
+        || readU16(baked.data() + 4) < 2 || readU16(baked.data() + 4) > 5
+        || readU16(baked.data() + 6) != kBakedHeaderSize) {
         return fail("baked.bin has an invalid header");
     }
+    const unsigned int bakedVersion = readU16(baked.data() + 4); // 3 adds Flat, 4 Plane and FlyFlat, 5 FlySkip
     const unsigned int bakedCount = readU32(baked.data() + 8);
     if (bakedCount > kMaxBakedEntries || baked.size() != kBakedHeaderSize + bakedCount * kBakedEntrySize) {
         return fail("baked.bin has a bad length");
@@ -289,12 +400,14 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
         const float dv = readF32(entry + 16);
         const float dz = readF32(entry + 20);
         if (tile < 0 || tile >= HEX_GRID_SIZE) return fail("baked.bin names a tile outside the hex grid");
-        if (mode > 1 || !std::isfinite(du) || !std::isfinite(dv) || !std::isfinite(dz)
-            || std::abs(du) > 10.0f || std::abs(dv) > 10.0f || std::abs(dz) > 10.0f) {
+        const float reach = mode == 3 ? 1000.0f : 10.0f; // a plane's point is on the map, a lift is small
+        if (mode > (bakedVersion >= 4 ? bakedVersion : bakedVersion - 1) || !std::isfinite(du) || !std::isfinite(dv) || !std::isfinite(dz)
+            || std::abs(du) > reach || std::abs(dv) > reach || std::abs(dz) > 10.0f) {
             return fail("baked.bin has an unknown mode or a bad lift");
         }
         // Lifts are donor (u, v, z); GL is (u, z, v).
-        bakedObjects[bakedObjectKey(tile, static_cast<int>(readU32(entry + 4)))] = { mode == 1, { du, dz, dv } };
+        bakedObjects[bakedObjectKey(tile, static_cast<int>(readU32(entry + 4)))]
+            = { static_cast<BakedObject::Mode>(mode), { du, dz, dv } };
     }
 
     while (glGetError() != 0) {
@@ -304,6 +417,8 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
         gWallBatches.emplace_back();
         WallBatch& batch = gWallBatches.back();
         batch.page = source.page;
+        batch.flyOnly = source.flyOnly;
+        batch.gameOnly = source.gameOnly;
         batch.triangleCount = source.triangleCount;
         glGenVertexArrays(1, &batch.vao);
         glBindVertexArray(batch.vao);
@@ -319,7 +434,15 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
         glVertexAttribPointer(2, 3, 0x1406, 0, sizeof(WallVertex), reinterpret_cast<const void*>(5 * sizeof(float)));
         glEnableVertexAttribArray(3);
         glVertexAttribPointer(3, 1, 0x1406, 0, sizeof(WallVertex), reinterpret_cast<const void*>(8 * sizeof(float)));
+        if (source.rgba.empty()) {
+            for (const WallBatch& other : gWallBatches) {
+                if (other.ownsTexture && other.page == source.page) batch.texture = other.texture;
+            }
+            if (batch.texture == 0) return fail("walls.bin page batch has no texture");
+            continue;
+        }
         glGenTextures(1, &batch.texture);
+        batch.ownsTexture = true;
         glBindTexture(kTexture2D, batch.texture);
         glTexImage2D(kTexture2D, 0, kRgba8, source.width, source.height, 0, kRGBA, kUnsignedByte, source.rgba.data());
         glTexParameteri(kTexture2D, kTextureMinFilter, kNearest);
@@ -351,6 +474,7 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
     gBakedObjects = std::move(bakedObjects);
     gWallsLoaded = true;
     if (error != nullptr) error->clear();
+    gWallsDirectory = cacheDirectory;
     return true;
 }
 

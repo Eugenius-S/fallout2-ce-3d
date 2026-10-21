@@ -29,6 +29,7 @@
 #include "../kb.h"
 #include "../dinput.h"
 #include "../map.h"
+#include "../map_edge.h"
 #include "../map_defs.h"
 #include "../game.h"
 #include "../game_mouse.h"
@@ -36,8 +37,11 @@
 #include "../mouse.h"
 #include "../movie.h"
 #include "../platform/git_version.h"
+#include "../proto.h"
 #include "../platform_compat.h"
 #include "../random.h"
+#include "../scene/scene_lights.h"
+#include "../scripts.h"
 #include "../scene/scene_objects.h"
 #include "../scene/scene_settings.h"
 #include "../scene/scene_view.h"
@@ -90,6 +94,12 @@ struct TourStop {
     std::string map;
     int elevation;
     int viewTile; // -1: where the game puts the view
+    // Batch views of one thing (the shapes eval): only what stands within
+    // `solo` hexes of the view tile, from the fly camera `turn` degrees round
+    // and `distance` units away. solo -1: everything; turn NaN: no flight.
+    int solo = -1;
+    double turn = std::nan("");
+    double distance = -1.0;
 };
 // --dev-classic: the same startup and snapshots without the 3D scene.
 bool gClassic = false;
@@ -99,6 +109,13 @@ int gTourFrames = 0;
 bool gStillSnapshot = false;
 int gDevAmbient = -1; // --dev-ambient: the map's ambient light held there (night views)
 bool gDevFly = false; // --dev-fly: the fly camera takes off at the first 3D frame (snapshots)
+// --dev-fly-turn=D, --dev-fly-pitch=D, --dev-fly-distance=U: then it circles
+// the point it looks at, D degrees round, D degrees above the floor, U units
+// from it (a side view of a thing).
+double gDevFlyTurn = 0.0;
+int gDevCameraTurn = 0; // --dev-camera-turn=N: the 3D camera N quarter turns round before the snapshot
+double gDevFlyPitch = -1.0;
+double gDevFlyDistance = -1.0;
 int gViewTile = -1;
 bool gViewTileApplied = false;
 int gHeroTile = -1; // --dev-hero-tile: the hero is put there before the scene starts
@@ -108,6 +125,14 @@ char gSnapshotRun[33] = {};
 // cursor, then the hover icon over a critter. 0: off, then frames counted.
 int gPickProbeStage = 0;
 int gPickProbeClick[2] = { -1, -1 }; // a left click the game loop is to take
+int gPickProbeStartTile = -1;
+int gPickProbeEdgeTarget = -1;
+int gPickProbeOutsideX = -1;
+int gPickProbeOutsideY = -1;
+int gPickProbeOutsideHeroTile = -1;
+bool gPickProbeOutsideClick = false;
+bool gPickProbeExitPending = false;
+int gPickProbeExitWaitFrames = 0;
 char gToolsCommit[32] = "-";
 
 bool gPanelOpen = false;
@@ -675,6 +700,29 @@ bool parseOption(const char* arg)
         gDevFly = true;
         return true;
     }
+    const char* flyTurnPrefix = "--dev-fly-turn=";
+    if (strncmp(arg, flyTurnPrefix, strlen(flyTurnPrefix)) == 0) {
+        gDevFly = true;
+        gDevFlyTurn = strtod(arg + strlen(flyTurnPrefix), nullptr);
+        return true;
+    }
+    const char* cameraTurnPrefix = "--dev-camera-turn=";
+    if (strncmp(arg, cameraTurnPrefix, strlen(cameraTurnPrefix)) == 0) {
+        gDevCameraTurn = static_cast<int>(strtol(arg + strlen(cameraTurnPrefix), nullptr, 10)) % 4;
+        return true;
+    }
+    const char* flyDistancePrefix = "--dev-fly-distance=";
+    if (strncmp(arg, flyDistancePrefix, strlen(flyDistancePrefix)) == 0) {
+        gDevFly = true;
+        gDevFlyDistance = std::clamp(strtod(arg + strlen(flyDistancePrefix), nullptr), 1.0, 200.0);
+        return true;
+    }
+    const char* flyPitchPrefix = "--dev-fly-pitch=";
+    if (strncmp(arg, flyPitchPrefix, strlen(flyPitchPrefix)) == 0) {
+        gDevFly = true;
+        gDevFlyPitch = std::clamp(strtod(arg + strlen(flyPitchPrefix), nullptr), 1.0, 85.0);
+        return true;
+    }
     const char* ambientPrefix = "--dev-ambient=";
     if (strncmp(arg, ambientPrefix, strlen(ambientPrefix)) == 0) {
         gDevAmbient = static_cast<int>(std::clamp(strtol(arg + strlen(ambientPrefix), nullptr, 10), 0L, 65536L));
@@ -707,6 +755,20 @@ bool parseOption(const char* arg)
         }
         return true;
     }
+    // --dev-solo=TILE,R: only the things within R hexes of TILE are drawn (no
+    // walls, no roofs), to look at one thing from every side.
+    const char* soloPrefix = "--dev-solo=";
+    if (strncmp(arg, soloPrefix, strlen(soloPrefix)) == 0) {
+        int tile = -1;
+        int radius = -1;
+        if (sscanf(arg + strlen(soloPrefix), "%d,%d", &tile, &radius) == 2 && tile >= 0 && tile < HEX_GRID_SIZE
+            && radius >= 0) {
+            scene_renderer::setStaticSolo(tile, radius);
+        } else {
+            fprintf(stderr, "devtools: invalid --dev-solo (expected TILE,R)\n");
+        }
+        return true;
+    }
     if (strcmp(arg, "--dev-parallel") == 0) {
         scene_renderer::setStaticViewDistance(9000.0);
         return true;
@@ -721,7 +783,7 @@ bool parseOption(const char* arg)
     }
     const char* tourPrefix = "--dev-map-tour=";
     if (strncmp(arg, tourPrefix, strlen(tourPrefix)) == 0) {
-        // map:elevation[:view hex],map:elevation[:view hex],...
+        // map:elevation[:view hex[:solo hexes:turn degrees:distance]],...
         std::string list = arg + strlen(tourPrefix);
         size_t start = 0;
         while (start <= list.size()) {
@@ -732,8 +794,20 @@ bool parseOption(const char* arg)
             const size_t second = colon == std::string::npos ? std::string::npos : entry.find(':', colon + 1);
             const int viewTile = second == std::string::npos ? -1 : atoi(entry.c_str() + second + 1);
             if (!entry.empty()) {
-                gTour.push_back({ entry.substr(0, colon), std::clamp(elevation, 0, static_cast<int>(ELEVATION_COUNT) - 1),
-                    viewTile >= 0 && viewTile < HEX_GRID_SIZE ? viewTile : -1 });
+                TourStop stop = { entry.substr(0, colon), std::clamp(elevation, 0, static_cast<int>(ELEVATION_COUNT) - 1),
+                    viewTile >= 0 && viewTile < HEX_GRID_SIZE ? viewTile : -1 };
+                const size_t third = second == std::string::npos ? std::string::npos : entry.find(':', second + 1);
+                if (third != std::string::npos) {
+                    int solo = -1;
+                    double turn = 0.0;
+                    double distance = -1.0;
+                    if (sscanf(entry.c_str() + third + 1, "%d:%lf:%lf", &solo, &turn, &distance) == 3) {
+                        stop.solo = solo;
+                        stop.turn = turn;
+                        stop.distance = distance;
+                    }
+                }
+                gTour.push_back(stop);
             }
             start = comma + 1;
         }
@@ -793,6 +867,12 @@ void applyFixedScreenOptions()
     settings.screen.resolution_y = gFixedScreenOptions.height;
     settings.screen.scale = gFixedScreenOptions.scale;
     settings.screen.windowed = WindowMode::Windowed;
+    // A background test run shares game/fallout2.cfg with the owner's game:
+    // the owner's zoom and camera rotation must not move its views.
+    if (backgroundCaptureActive()) {
+        settings.scene3d.zoom = 1.0;
+        settings.scene3d.camera_rotation = false;
+    }
     debugPrint("DEVTOOLS: fixed screen %dx%d scale %d, windowed\n",
         gFixedScreenOptions.width, gFixedScreenOptions.height, gFixedScreenOptions.scale);
 }
@@ -882,6 +962,25 @@ void startFlying(bool capture)
     setStatus("fly camera: WASD, mouse, Q/E down/up, Shift fast, Ctrl slow; Ctrl+F12 or Esc to land");
 }
 
+// The fly camera circles the floor point it looks at: `turn` degrees round,
+// `pitch` degrees above the floor and `distance` units from it, each when
+// above 0.
+void circleFlight(double turn, double pitch, double distance)
+{
+    float forward[3], right[3];
+    scene_renderer::staticFlyCameraAxes(gFly, forward, right);
+    if (!(forward[1] < -0.01f)) return;
+    const float reach = -gFly.eye[1] / forward[1];
+    const float target[3] = { gFly.eye[0] + forward[0] * reach, 0.0f, gFly.eye[2] + forward[2] * reach };
+    constexpr double kRadians = 3.14159265358979323846 / 180.0;
+    gFly.yaw += static_cast<float>(turn * kRadians);
+    if (pitch > 0.0) gFly.pitch = static_cast<float>(-pitch * kRadians);
+    scene_renderer::staticFlyCameraAxes(gFly, forward, right);
+    const float away = distance > 0.0 ? static_cast<float>(distance) : reach;
+    for (int i = 0; i < 3; i++) gFly.eye[i] = target[i] - forward[i] * away;
+    scene_renderer::setStaticFlyCamera(&gFly);
+}
+
 // One step of the flight: the mouse turns, the keys move, by the time since
 // the last step.
 void fly()
@@ -919,6 +1018,8 @@ void fly()
 
 } // namespace
 
+void finishPickProbe();
+
 void listMaps()
 {
     rebuildMapList();
@@ -945,11 +1046,67 @@ void update()
         lightSetAmbientIntensity(gDevAmbient, true);
     }
     if (gPickProbeClick[0] >= 0) {
+        const bool edgeClick = gPickProbeOutsideClick;
+        const int heroTileBefore = gDude->tile;
+        const bool busyBefore = animationIsBusy(gDude) == -1;
         _gmouse_handle_event(gPickProbeClick[0], gPickProbeClick[1], MOUSE_EVENT_LEFT_BUTTON_UP);
+        if (gPickProbeExitPending) {
+            if (FILE* log = fopen("devprobe.log", "a")) {
+                fprintf(log, "exit click dispatched: map=%s hero=%d->%d busy=%d->%d at (%d,%d)\n",
+                    gMapHeader.name, heroTileBefore, gDude->tile, busyBefore, animationIsBusy(gDude) == -1,
+                    gPickProbeClick[0], gPickProbeClick[1]);
+                fclose(log);
+            }
+        }
+        if (edgeClick) {
+            if (FILE* log = fopen("devprobe.log", "a")) {
+                fprintf(log, "outside click: fresh=%d cursor=%d hero=%d->%d busy=%d->%d\n",
+                    tileUnderMouse(gPickProbeClick[0], gPickProbeClick[1]),
+                    gGameMouseHexCursor != nullptr ? gGameMouseHexCursor->tile : -1, heroTileBefore, gDude->tile,
+                    busyBefore, animationIsBusy(gDude) == -1);
+                fclose(log);
+            }
+            gPickProbeOutsideClick = false;
+        }
         gPickProbeClick[0] = gPickProbeClick[1] = -1;
         if (FILE* log = fopen("devprobe.log", "a")) {
             fprintf(log, "probe click: hero busy=%d tile=%d\n", animationIsBusy(gDude) == -1 ? 1 : 0, gDude->tile);
             fclose(log);
+        }
+    }
+    if (gPickProbeExitPending) {
+        gPickProbeExitWaitFrames++;
+        if (strncmp(gMapHeader.name, "KLADWTWN.MAP", sizeof(gMapHeader.name)) == 0
+            && gMapHeader.index == 9 && gDude->tile == 25142
+            && gDude->elevation == ELEVATION_FIRST) {
+            if (FILE* log = fopen("devprobe.log", "a")) {
+                fprintf(log, "exit transition passed: map=%s index=%d elevation=%d tile=%d after=%d frames\n",
+                    gMapHeader.name, gMapHeader.index, gDude->elevation, gDude->tile, gPickProbeExitWaitFrames);
+                fclose(log);
+            }
+            finishPickProbe();
+        } else if (strcmp(gMapHeader.name, "KLADWTWN.MAP") == 0) {
+            if (FILE* log = fopen("devprobe.log", "a")) {
+                fprintf(log, "outside probe failed: wrong exit arrival map=%s index=%d elevation=%d tile=%d\n",
+                    gMapHeader.name, gMapHeader.index, gDude->elevation, gDude->tile);
+                fclose(log);
+            }
+            finishPickProbe();
+        } else if (gPickProbeExitWaitFrames % 60 == 0) {
+            if (FILE* log = fopen("devprobe.log", "a")) {
+                fprintf(log, "exit transition waiting: map=%s elevation=%d hero=%d busy=%d frames=%d\n",
+                    gMapHeader.name, gDude->elevation, gDude->tile, animationIsBusy(gDude) == -1,
+                    gPickProbeExitWaitFrames);
+                fclose(log);
+            }
+        }
+        if (gPickProbeExitPending && gPickProbeExitWaitFrames >= 1800) {
+            if (FILE* log = fopen("devprobe.log", "a")) {
+                fprintf(log, "outside probe failed: exit transition timed out at map=%s elevation=%d hero=%d\n",
+                    gMapHeader.name, gDude->elevation, gDude->tile);
+                fclose(log);
+            }
+            finishPickProbe();
         }
     }
     if (scene::requestedView() != scene::View::Off && gStartupFloorPreviewFramesRemaining > 0) {
@@ -1040,9 +1197,18 @@ void update()
         // snapshotted where the game is, and the tour goes on.
         gTourFrames++;
         if (arrived && gTourFrames == 1 && gTourStep > 0 && gTour[gTourStep - 1].viewTile >= 0) {
-            tileSetCenter(gTour[gTourStep - 1].viewTile, TILE_SET_CENTER_FLAG_IGNORE_SCROLL_RESTRICTIONS
+            const TourStop& stop = gTour[gTourStep - 1];
+            if (gFlying) stopFlying("", true);
+            tileSetCenter(stop.viewTile, TILE_SET_CENTER_FLAG_IGNORE_SCROLL_RESTRICTIONS
                 | TILE_SET_CENTER_FLAG_IGNORE_BOUNDS | TILE_SET_CENTER_REFRESH_WINDOW);
             scene_renderer::setStaticCameraCenterTile(-1);
+            if (stop.solo >= 0) scene_renderer::resoloStaticWalls(stop.viewTile, stop.solo);
+        }
+        // A batch view: the fly camera takes off once the view has settled.
+        if (arrived && gTourFrames == 15 && gTourStep > 0 && !std::isnan(gTour[gTourStep - 1].turn)) {
+            const TourStop& stop = gTour[gTourStep - 1];
+            startFlying(false);
+            if (gFlying) circleFlight(stop.turn == 0.0 ? 0.01 : stop.turn, -1.0, stop.distance);
         }
         const bool ready = arrived && gTourFrames >= 30;
         const bool stuck = !arrived && gTourFrames >= 600;
@@ -1206,6 +1372,7 @@ void finishPickProbe()
             scene::availability());
         fclose(log);
     }
+    gPickProbeExitPending = false;
     gPickProbeStage = 0;
 }
 
@@ -1222,6 +1389,7 @@ void runPickProbe()
         if (log != nullptr) fprintf(log, format, values...);
     };
     if (stage == 30) {
+        gPickProbeStartTile = gDude->tile;
         // The pointer a little above each critter's hex, as the scene shows it.
         int hits = 0, hidden = 0, misses = 0;
         const std::vector<scene::PickEntry> entries = scene::pickEntries();
@@ -1288,6 +1456,131 @@ void runPickProbe()
         note("probe after click (frame %d): hero busy=%d tile=%d\n", stage, animationIsBusy(gDude) == -1 ? 1 : 0, gDude->tile);
     } else if (stage == 400) {
         note("probe after click (frame %d): hero busy=%d tile=%d\n", stage, animationIsBusy(gDude) == -1 ? 1 : 0, gDude->tile);
+        if (animationIsBusy(gDude) == -1) {
+            gPickProbeStage = 400;
+            if (log != nullptr) fclose(log);
+            return;
+        }
+        if (gDude->tile == gPickProbeStartTile) {
+            note("outside probe failed: inside move did not move hero\n");
+            finishPickProbe();
+            if (log != nullptr) fclose(log);
+            return;
+        }
+        note("inside movement control passed: hero=%d->%d\n", gPickProbeStartTile, gDude->tile);
+        gameMouseSetMode(GAME_MOUSE_MODE_MOVE);
+        for (int direction = ROTATION_FIRST; direction <= ROTATION_LAST; direction++) {
+            const int target = tileGetTileInDirection(gDude->tile, static_cast<Rotation>(direction), 1);
+            if (target < 0 || _make_path(gDude, gDude->tile, target, nullptr, 1) <= 0) continue;
+            double pixel[2], x, y;
+            scene_renderer::gameViewTilePixel(target, pixel);
+            if (!scene_renderer::staticScreenFromGamePixel(pixel[0], pixel[1], &x, &y)) continue;
+            probeX = static_cast<int>(x);
+            probeY = static_cast<int>(y);
+            if (tileUnderMouse(probeX, probeY) == target) {
+                gPickProbeEdgeTarget = target;
+                break;
+            }
+        }
+        _mouse_set_position(probeX, probeY);
+        note("outside probe target=%d hero=%d\n", gPickProbeEdgeTarget, gDude->tile);
+        if (gPickProbeEdgeTarget < 0) {
+            finishPickProbe();
+            if (log != nullptr) fclose(log);
+            return;
+        }
+    } else if (stage == 401) {
+        if (tileUnderMouse(probeX, probeY) != gPickProbeEdgeTarget || gGameMouseHexCursor == nullptr
+            || gGameMouseHexCursor->tile != gPickProbeEdgeTarget) {
+            note("outside probe failed: valid target not primed\n");
+            finishPickProbe();
+        } else {
+            Rect area = {}, viewport = {};
+            const int hasArea = mapEdgeComputeVisibleArea(gElevation, &area) && windowGetRect(gIsoWindow, &viewport) == 0;
+            if (hasArea) {
+                const int minX = viewport.left + 2, maxX = viewport.right - 3;
+                const int minY = viewport.top + 2, maxY = viewport.bottom - 3;
+                const int mx = std::clamp((area.left + area.right) / 2, minX, maxX);
+                const int my = std::clamp((area.top + area.bottom) / 2, minY, maxY);
+                const int xs[] = { std::clamp(area.left - 2, minX, maxX), std::clamp(area.right + 2, minX, maxX), mx, mx };
+                const int ys[] = { my, my, std::clamp(area.top - 2, minY, maxY), std::clamp(area.bottom + 2, minY, maxY) };
+                for (int i = 0; i < 4 && gPickProbeOutsideX < 0; i++) {
+                    if (windowGetAtPoint(xs[i], ys[i]) == gIsoWindow && tileUnderMouse(xs[i], ys[i]) < 0) {
+                        gPickProbeOutsideX = xs[i];
+                        gPickProbeOutsideY = ys[i];
+                    }
+                }
+            }
+            if (gPickProbeOutsideX < 0) {
+                note("outside probe failed: no candidate pick=-1\n");
+                finishPickProbe();
+            } else {
+                gPickProbeOutsideHeroTile = gDude->tile;
+                _mouse_set_position(gPickProbeOutsideX, gPickProbeOutsideY);
+            }
+        }
+    } else if (stage == 402) {
+        const int freshTile = tileUnderMouse(gPickProbeOutsideX, gPickProbeOutsideY);
+        const int cursorTile = gGameMouseHexCursor != nullptr ? gGameMouseHexCursor->tile : -1;
+        note("outside candidate pick=%d stale=%d hero=%d at (%d,%d)\n", freshTile, cursorTile, gDude->tile,
+            gPickProbeOutsideX, gPickProbeOutsideY);
+        if (freshTile < 0 && cursorTile == gPickProbeEdgeTarget && gDude->tile == gPickProbeOutsideHeroTile) {
+            gPickProbeClick[0] = gPickProbeOutsideX;
+            gPickProbeClick[1] = gPickProbeOutsideY;
+            gPickProbeOutsideClick = true;
+        } else {
+            note("outside probe failed: stale target state changed\n");
+            finishPickProbe();
+        }
+    } else if (stage == 430) {
+        note("outside probe result: hero=%d expected=%d busy=%d\n", gDude->tile, gPickProbeOutsideHeroTile,
+            animationIsBusy(gDude) == -1 ? 1 : 0);
+        if (gDude->tile == gPickProbeOutsideHeroTile && animationIsBusy(gDude) != -1) {
+            note("outside movement rejected\n");
+        } else {
+            note("outside probe failed: movement state changed\n");
+            finishPickProbe();
+        }
+    } else if (stage == 500) {
+        if (strcmp(gMapHeader.name, "KLAMALL.MAP") == 0) {
+            constexpr int exitTile = 28078;
+            Object* exitGrid = nullptr;
+            for (Object* object = objectFindFirstAtLocation(gElevation, exitTile); object != nullptr;
+                 object = objectFindNextAtLocation()) {
+                if (isExitGridProtoId(ProtoId(object->pid))) {
+                    exitGrid = object;
+                    break;
+                }
+            }
+            double pixel[2], x, y;
+            const bool reachable = _make_path(gDude, gDude->tile, exitTile, nullptr, 1) > 0;
+            scene_renderer::gameViewTilePixel(exitTile, pixel);
+            const bool projected = scene_renderer::staticScreenFromGamePixel(pixel[0], pixel[1], &x, &y);
+            const int mx = projected ? static_cast<int>(x) : -1;
+            const int my = projected ? static_cast<int>(y) : -1;
+            const bool picked = projected && windowGetAtPoint(mx, my) == gIsoWindow
+                && tileUnderMouse(mx, my) == exitTile;
+            if (exitGrid == nullptr || exitGrid->data.misc.map != 9 || exitGrid->data.misc.tile != 25142
+                || exitGrid->data.misc.elevation != ELEVATION_FIRST || !reachable || !picked) {
+                note("outside probe failed: exit not ready hero=%d target=%d grid=%d dest=%d/%d reachable=%d picked=%d\n",
+                    gDude->tile, exitTile, exitGrid != nullptr, exitGrid != nullptr ? exitGrid->data.misc.map : -1,
+                    exitGrid != nullptr ? exitGrid->data.misc.tile : -1, reachable, picked);
+                finishPickProbe();
+                if (log != nullptr) fclose(log);
+                return;
+            }
+            gameMouseSetMode(GAME_MOUSE_MODE_MOVE);
+            _mouse_set_position(mx, my);
+            gPickProbeClick[0] = mx;
+            gPickProbeClick[1] = my;
+            gPickProbeExitPending = true;
+            gPickProbeExitWaitFrames = 0;
+            note("exit probe queued: map=%s elevation=%d hero=%d exit=%d dest=%d/%d/%d reachable=%d picked=%d at (%d,%d)\n",
+                gMapHeader.name, gElevation, gDude->tile, exitTile, exitGrid->data.misc.map,
+                exitGrid->data.misc.tile, exitGrid->data.misc.elevation, reachable, picked, mx, my);
+            if (log != nullptr) fclose(log);
+            return;
+        }
         // Then talk: the pointer on the nearest critter the hero can talk to.
         Object* talker = nullptr;
         int talkerX = -1, talkerY = -1, nearest = 1 << 30;
@@ -1316,7 +1609,7 @@ void runPickProbe()
             gPickProbeClick[0] = talkerX;
             gPickProbeClick[1] = talkerY;
         }
-    } else if (stage >= 1200) {
+    } else if (stage >= 1200 && !gPickProbeExitPending) {
         finishPickProbe(); // the click led nowhere the scene leaves for
     }
     if (log != nullptr) fclose(log);
@@ -1352,9 +1645,17 @@ void scenePresented(const scene::RefreshResult& refreshed)
         runPickProbe();
         return;
     }
+    if (refreshed.heroUpdated && gDevCameraTurn != 0) {
+        scene::setCameraTurnNow(gDevCameraTurn);
+        gDevCameraTurn = 0;
+        return; // the snapshot comes with a later frame, turned
+    }
     if (refreshed.heroUpdated && gDevFly && !gFlying) {
         gDevFly = false;
         startFlying(false);
+        if (gFlying && (gDevFlyTurn != 0.0 || gDevFlyPitch > 0.0 || gDevFlyDistance > 0.0)) {
+            circleFlight(gDevFlyTurn, gDevFlyPitch, gDevFlyDistance);
+        }
         return; // the snapshot comes with the next frame, from the air
     }
     if (refreshed.heroUpdated && gSnapshotOncePending) {
@@ -1381,7 +1682,7 @@ void vanillaPresented()
 void sceneOverlaySynced(bool on)
 {
     // --dev-pick-probe: the click took the game out of the scene (a dialog).
-    if (!on && gPickProbeStage > 115) finishPickProbe();
+    if (!on && gPickProbeStage > 115 && !gPickProbeExitPending) finishPickProbe();
 }
 
 // Ctrl+F11: the window between 16:9 and 21:9. The engine sizes its screen once
@@ -1884,9 +2185,45 @@ bool takeSnapshot()
     } else {
         snprintf(heroMetadata, sizeof(heroMetadata), "null");
     }
+    const scene_renderer::MapClip mapClip = scene_renderer::staticMapClip();
+    const char* clipSource = mapClip.source == scene_renderer::MapClipSource::Authored ? "authored"
+        : mapClip.source == scene_renderer::MapClipSource::Floor ? "floor"
+        : mapClip.source == scene_renderer::MapClipSource::FloorGridFallback ? "floor-grid-fallback" : "disabled";
+    const char* clipVariant = "off";
+    if (scene::cleanEdges()) {
+        const char* requested = isEnabled() ? SDL_getenv("F2CE_DEV_CLEAN_EDGES") : nullptr;
+        clipVariant = requested != nullptr && strcmp(requested, "floor") == 0 ? "floor" : "authored";
+    }
+    char clipMetadata[768];
+    if (mapClip.enabled) {
+        snprintf(clipMetadata, sizeof(clipMetadata),
+            "{\"enabled\":true,\"setting_enabled\":%s,\"variant\":\"%s\",\"source\":\"%s\","
+            "\"world_bounds\":[%.6f,%.6f,%.6f,%.6f],\"planes\":[[%.7f,%.7f,%.7f],[%.7f,%.7f,%.7f],"
+            "[%.7f,%.7f,%.7f],[%.7f,%.7f,%.7f]]}",
+            scene::cleanEdges() ? "true" : "false", clipVariant, clipSource,
+            mapClip.left, mapClip.top, mapClip.right, mapClip.bottom,
+            mapClip.planes[0].x, mapClip.planes[0].z, mapClip.planes[0].offset,
+            mapClip.planes[1].x, mapClip.planes[1].z, mapClip.planes[1].offset,
+            mapClip.planes[2].x, mapClip.planes[2].z, mapClip.planes[2].offset,
+            mapClip.planes[3].x, mapClip.planes[3].z, mapClip.planes[3].offset);
+    } else {
+        snprintf(clipMetadata, sizeof(clipMetadata),
+            "{\"enabled\":false,\"setting_enabled\":%s,\"variant\":\"%s\",\"source\":\"disabled\"}",
+            scene::cleanEdges() ? "true" : "false", clipVariant);
+    }
     if (!preview && gSdlWindow != nullptr) {
         SDL_GL_GetDrawableSize(gSdlWindow, &drawableW, &drawableH);
     }
+    // Preview snapshots come before the first frame that would update it.
+    scene::updateSunFromGame();
+    const scene::Sun& sun = scene::currentSun();
+    char sunMetadata[384];
+    snprintf(sunMetadata, sizeof(sunMetadata),
+        "{\"setting\":%s,\"daylight\":%s,\"game_time\":%u,\"up\":%s,\"height\":%.3f,\"azimuth\":%.3f,"
+        "\"direction\":[%.5f,%.5f,%.5f],\"color\":[%.4f,%.4f,%.4f],\"strength\":%.4f}",
+        settings.scene3d.sun ? "true" : "false", scene::sceneDaylight() ? "true" : "false", gameTimeGetTime(),
+        sun.up ? "true" : "false", sun.height, sun.azimuth, sun.direction[0], sun.direction[1], sun.direction[2],
+        sun.color[0], sun.color[1], sun.color[2], sun.strength);
 
     FILE* f = fopen(sidecarPath.string().c_str(), "w");
     if (f == nullptr) {
@@ -1909,6 +2246,7 @@ bool takeSnapshot()
         "  \"preview_requested\": %s,\n"
         "  \"scene_3d_enabled\": %s,\n"
         "  \"scene_view\": \"%s\",\n"
+        "  \"map_clip\": %s,\n"
         "  \"camera\": \"%s\",\n"
         "  \"wall_triangles\": %u,\n"
         "  \"wall_pages\": %u,\n"
@@ -1917,6 +2255,7 @@ bool takeSnapshot()
         "  \"preview_availability\": \"%s\",\n"
         "  \"renderer\": \"%s\",\n"
         "  \"light\": \"off\",\n"
+        "  \"sun\": %s,\n"
         "  \"resolution\": \"%dx%d\",\n"
         "  \"logical_resolution\": \"%dx%d\",\n"
         "  \"scale\": %d,\n"
@@ -1940,6 +2279,7 @@ bool takeSnapshot()
         scene::activeView() == scene::View::Full ? "full"
             : scene::activeView() == scene::View::Walls ? "walls"
             : scene::activeView() == scene::View::Floor ? "floor" : "off",
+        clipMetadata,
         camera,
         wallTriangles,
         wallPages,
@@ -1948,6 +2288,7 @@ bool takeSnapshot()
         heroPreview ? scene::objectCardsSkipped() : 0u,
         previewRequested ? (scene_renderer::isActive() ? scene::availability() : "renderer-inactive") : "not-requested",
         activeRendererName(),
+        sunMetadata,
         capturedWidth,
         capturedHeight,
         screenGetWidth(),

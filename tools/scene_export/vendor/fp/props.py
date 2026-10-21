@@ -270,8 +270,9 @@ def _slices(shape, box):
     return blocks if len(blocks) > 1 else [box]
 
 
-def _from_floor(shape):
-    """Solids standing on the floor: [(outline error, Fit)] for a box and a drum, where they exist."""
+def _from_floor(shape, force=False):
+    """Solids standing on the floor: [(outline error, Fit)] for a box and a drum, where they exist.
+    force: "box" or "drum", that solid wherever one stands at all (an exception by name, overrides.json)."""
     out = []
     steps = shape.x[shape.some], shape.lower[shape.some]
     cv, cu = walls._kth(steps[1] - V * steps[0], True), walls._kth(steps[1] - U * steps[0], True)
@@ -290,6 +291,9 @@ def _from_floor(shape):
         # one, a box that leaves a good part of the sprite above its "top" is the foot of a heap.
         bulk = box.side_fill >= BULK
         furniture = found and box.legs and (box.top_fill >= FLAT_TOP or not bulk)
+        if force == "box" and lift >= MIN_HEIGHT:
+            box.blocks = [flat]
+            return [(shape.off(shape.lower, flat.near), box)]
         if lift >= MIN_HEIGHT and (furniture or bulk) and box.cover >= (MIN_COVER if furniture else BULK_COVER):
             box.blocks = _slices(shape, flat) if bulk else [flat]       # what stands on a table is not the table
             out.append((shape.off(shape.lower, flat.near), box))
@@ -298,9 +302,12 @@ def _from_floor(shape):
         foot = walls._kth((shape.lower - half)[shape.some], True)
         lift = _raise(shape, foot - half, foot + half)
         error = shape.off(shape.lower, foot + half)
-        if lift >= MIN_HEIGHT and error <= OUTLINE_PX:
+        if lift >= MIN_HEIGHT and (error <= OUTLINE_PX or force == "drum"):
             centre = (shape.left + radius, foot - lift)
-            out.append((error, Fit("drum", shape, centre, radius, radius, foot - half - lift, foot + half - lift, 0.0, lift / proj.HPX)))
+            drum = Fit("drum", shape, centre, radius, radius, foot - half - lift, foot + half - lift, 0.0, lift / proj.HPX)
+            if force == "drum":
+                return [(error, drum)]
+            out.append((error, drum))
     # A top with holes will do where the solid is the whole sprite (frames, open boxes, a stove).
     return [(error, fit) for error, fit in out if fit.cover >= MIN_COVER
             and fit.top_fill >= (OPEN_TOP_FILL if fit.cover >= WHOLE and fit.side_fill < BULK else TOP_FILL)]
@@ -345,13 +352,16 @@ def _from_top(shape):
     return out
 
 
-def fit(alpha, left, top):
+def fit(alpha, left, top, force=False):
     """The solid for a sprite (its opaque pixels without the floor's shade, light.outer_dark;
     left / top: px of its first pixel from the anchor), or None if it had better stay a card.
-    -> (Shape, Fit)"""
+    force: "box" or "drum" whenever one stands (chairs and crates are as ragged as plants). -> (Shape, Fit)"""
     if not alpha.any():
         return None
     shape = Shape(alpha, left, top)
+    if force:
+        found = _from_floor(shape, force=force)
+        return (shape, found[0][1]) if found else None
     if shape.ragged > RAGGED:
         return None
     hung = _from_top(shape)

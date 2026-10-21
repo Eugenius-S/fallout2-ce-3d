@@ -10,6 +10,7 @@ namespace fallout {
 
 Config gGameConfig = {};
 static const char* gConfiguredThreeDValue = nullptr;
+static const char* gConfiguredCleanEdgesValue = nullptr;
 static bool gInterruptWalkConfigPresent = true;
 static bool gInterruptWalkConfigValue = false;
 
@@ -25,6 +26,10 @@ bool configGetString(Config*, const char* section, const char* key, char** value
 {
     if (std::strcmp(section, "3d") == 0 && std::strcmp(key, "enabled") == 0 && gConfiguredThreeDValue != nullptr) {
         *value = const_cast<char*>(gConfiguredThreeDValue);
+        return true;
+    }
+    if (std::strcmp(section, "3d") == 0 && std::strcmp(key, "clean_edges") == 0 && gConfiguredCleanEdgesValue != nullptr) {
+        *value = const_cast<char*>(gConfiguredCleanEdgesValue);
         return true;
     }
     if (std::strcmp(section, "system") == 0 && std::strcmp(key, "interrupt_walk") == 0
@@ -53,6 +58,9 @@ bool configSetString(Config*, const char* section, const char* key, const char* 
     if (std::strcmp(section, "3d") == 0 && std::strcmp(key, "enabled") == 0) {
         gConfiguredThreeDValue = value;
     }
+    if (std::strcmp(section, "3d") == 0 && std::strcmp(key, "clean_edges") == 0) {
+        gConfiguredCleanEdgesValue = value;
+    }
     return true;
 }
 bool configSetInt(Config*, const char*, const char*, int) { return true; }
@@ -60,6 +68,9 @@ bool configSetBool(Config*, const char* section, const char* key, bool value)
 {
     if (std::strcmp(section, "3d") == 0 && std::strcmp(key, "enabled") == 0) {
         gConfiguredThreeDValue = value ? "1" : "0";
+    }
+    if (std::strcmp(section, "3d") == 0 && std::strcmp(key, "clean_edges") == 0) {
+        gConfiguredCleanEdgesValue = value ? "1" : "0";
     }
     if (std::strcmp(section, "system") == 0 && std::strcmp(key, "interrupt_walk") == 0) {
         gInterruptWalkConfigPresent = true;
@@ -108,6 +119,14 @@ const fallout::SettingDescriptor* findThreeDDescriptor()
     return nullptr;
 }
 
+const fallout::SettingDescriptor* findCleanEdgesDescriptor()
+{
+    for (const auto& descriptor : fallout::settingsGetDescriptors()) {
+        if (descriptor.section == "3d" && descriptor.key == "clean_edges") return &descriptor;
+    }
+    return nullptr;
+}
+
 const fallout::SettingDescriptor* findDescriptor(const char* id)
 {
     for (const auto& descriptor : fallout::settingsGetDescriptors()) {
@@ -123,7 +142,16 @@ int main()
     using namespace fallout;
     if (!check(initializeWith(nullptr), "settings initialize with missing key")) return 1;
     const SettingDescriptor* descriptor = findThreeDDescriptor();
+    const SettingDescriptor* cleanEdgesDescriptor = findCleanEdgesDescriptor();
     if (!check(descriptor != nullptr, "real [3d].enabled descriptor is registered")) return 1;
+    if (!check(cleanEdgesDescriptor != nullptr, "real [3d].clean_edges descriptor is registered")) return 1;
+    if (!check(cleanEdgesDescriptor->id == "3d.clean_edges"
+            && cleanEdgesDescriptor->valueType == SettingValueType::Boolean
+            && std::get<bool>(cleanEdgesDescriptor->defaultValue), "clean_edges is a default-on boolean")) return 1;
+    if (!check(cleanEdgesDescriptor->fallbackLabel == "Clean map edges"
+            && !cleanEdgesDescriptor->fallbackDescription.empty(), "clean_edges has English fallback menu metadata")) return 1;
+    if (!check(scene::cleanEdges() && scene::cleanEdgesRevision() == 0,
+            "missing clean_edges key uses its literal true default")) return 1;
     if (!check(descriptor->id == "3d.enabled" && descriptor->valueType == SettingValueType::Boolean,
             "descriptor id and type")) return 1;
     if (!check(std::get<bool>(descriptor->defaultValue), "schema default is true")) return 1;
@@ -173,6 +201,32 @@ int main()
     if (!check(firstReaderRevision == 1 && secondReaderRevision == 1, "reading revision does not consume it")) return 1;
     if (!check(settingsSetValue(*descriptor, SettingValue(false), &error)
             && scene::settingsRevision() == 1, "setting the same value does not increment revision")) return 1;
+
+    scene::SettingsLifecycle cleanEdgesIsolation;
+    if (!check(cleanEdgesIsolation.update(scene::enabled(), scene::settingsRevision(), false) == scene::SettingsAction::Disable,
+            "enabled lifecycle observes the current enabled key")) return 1;
+    const auto enabledRevisionBeforeCleanEdges = scene::settingsRevision();
+    const auto cleanEdgesRevisionBefore = scene::cleanEdgesRevision();
+    if (!check(settingsSetValue(*cleanEdgesDescriptor, SettingValue(false), &error)
+            && !scene::cleanEdges(), "registered clean_edges setting can be changed")) return 1;
+    if (!check(scene::cleanEdgesRevision() == cleanEdgesRevisionBefore + 1
+            && scene::settingsRevision() == enabledRevisionBeforeCleanEdges,
+            "clean_edges change advances only its own per-key revision")) return 1;
+    if (!check(cleanEdgesIsolation.update(scene::enabled(), scene::settingsRevision(), false) == scene::SettingsAction::NoChange,
+            "clean_edges change does not activate or disable the 3D scene")) return 1;
+    if (!check(settingsSetValue(*cleanEdgesDescriptor, SettingValue(true), &error)
+            && scene::cleanEdgesRevision() == cleanEdgesRevisionBefore + 2,
+            "clean_edges can be restored through the same setting descriptor")) return 1;
+    if (!check(settingsSetValue(*cleanEdgesDescriptor, SettingValue(false), &error),
+            "clean_edges can be disabled before testing missing fallback")) return 1;
+    gConfiguredCleanEdgesValue = nullptr;
+    if (!check(initializeWith(nullptr) && scene::cleanEdges(),
+            "missing clean_edges is inserted with its schema default before registry read")) return 1;
+    if (!check(settingsSetValue(*cleanEdgesDescriptor, SettingValue(false), &error),
+            "clean_edges can be disabled before testing invalid fallback")) return 1;
+    gConfiguredCleanEdgesValue = "2";
+    if (!check(initializeWith(nullptr) && scene::cleanEdges(),
+            "invalid numeric clean_edges restores its schema default")) return 1;
 
     if (!check(initializeWith("not-a-bool") && scene::enabled(), "invalid value restores literal true default after false")) return 1;
     if (!check(scene::settingsRevision() == 2, "invalid fallback transition increments revision")) return 1;

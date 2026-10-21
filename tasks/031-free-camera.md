@@ -2,13 +2,13 @@
 id: 031
 title: A free-flying camera for looking around maps
 milestone: M1
-status: doing
+status: done
 owner: claude
 suggested: claude
 claude-only: no
 user-check: yes
 depends-on: []
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -57,3 +57,8 @@ taking the mouse. Documented in `docs/p1-devtools.md`.
 Evidence: `runs/031-free-camera/klamath-from-the-air.png`.
 Next: the owner flies it in the game (mouse and keys can only be checked by hand).
 Check: `tools/regression.ps1` (16 pass); `ctest --test-dir build` (8/8).
+
+### 2026-10-20 claude
+Done: its acceptance held at the merge; it stayed open only for the owner's
+look, which blocks nothing (AGENTS.md, "Nobody waits"). What the owner
+rejects in the game becomes a new task.

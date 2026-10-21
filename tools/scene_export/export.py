@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import gzip
 import hashlib
 import json
 import os
@@ -143,7 +144,12 @@ class ResourceSource:
         return self.archive.has(key) if self.archive is not None else self._resolve(key) is not None
 
     def read(self, key: str) -> bytes:
-        return self.archive.read(key) if self.archive is not None else self._resolve(key).read_bytes()
+        if self.archive is not None:
+            return self.archive.read(key)
+        # The game writes some loose files gzipped (critter protos while it is
+        # played) and reads them back as plain ones.
+        data = self._resolve(key).read_bytes()
+        return gzip.decompress(data) if data[:2] == b"\x1f\x8b" else data
 
     def find(self, key: str) -> str:
         return f"dat://{self.name}/{key}" if self.archive is not None else os.fspath(self._resolve(key))

@@ -24,6 +24,25 @@ std::uint64_t settingsRevision()
     return enabledDescriptor != nullptr ? settingsGetRevision(*enabledDescriptor) : 0;
 }
 
+bool cleanEdges()
+{
+    return settings.scene3d.clean_edges;
+}
+
+std::uint64_t cleanEdgesRevision()
+{
+    static const SettingDescriptor* descriptor = nullptr;
+    if (descriptor == nullptr) {
+        for (const auto& candidate : settingsGetDescriptors()) {
+            if (candidate.id == "3d.clean_edges") {
+                descriptor = &candidate;
+                break;
+            }
+        }
+    }
+    return descriptor != nullptr ? settingsGetRevision(*descriptor) : 0;
+}
+
 SettingsAction SettingsLifecycle::update(bool value, std::uint64_t revision, bool suppressInitialEnable)
 {
     if (!initialized_) {

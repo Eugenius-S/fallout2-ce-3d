@@ -155,6 +155,16 @@ void resetCamera()
     gCameraMoved = 0;
 }
 
+bool flyCameraRight(double* x, double* z)
+{
+    if (!gFlying) return false;
+    float forward[3], right[3];
+    staticFlyCameraAxes(gFly, forward, right);
+    *x = right[0];
+    *z = right[2];
+    return true;
+}
+
 bool flyCameraMvp(float aspect, float* out)
 {
     if (!gFlying) return false;
@@ -163,7 +173,7 @@ bool flyCameraMvp(float aspect, float* out)
     const StaticPreviewCamera camera = {
         { gFly.eye[0], gFly.eye[1], gFly.eye[2] },
         { gFly.eye[0] + forward[0], gFly.eye[1] + forward[1], gFly.eye[2] + forward[2] },
-        kFlyFovY, 0.05f, 400.0f, kFlyScreenRight,
+        gFly.fovY > 0.0f ? gFly.fovY : kFlyFovY, 0.05f, 400.0f, kFlyScreenRight,
     };
     makeFloorMvp(aspect, camera, out);
     return true;
@@ -175,6 +185,13 @@ void setCameraZoom(double zoom)
 {
     if (!std::isfinite(zoom) || zoom < 0.1 || zoom > 10.0) return;
     gZoom = zoom;
+}
+
+bool currentGameProjection(SpriteCardProjection* projection)
+{
+    if (!internal::gHeroProjectionLoaded || projection == nullptr) return false;
+    *projection = internal::cardProjection();
+    return true;
 }
 
 void setStaticViewDistance(double units)
@@ -218,6 +235,32 @@ bool staticGameViewPose(StaticFlyCamera* camera)
     for (int i = 0; i < 3; i++) camera->eye[i] = static_cast<float>(eye[i] + to[i] * start);
     camera->yaw = static_cast<float>(std::atan2(to[2], to[0]));
     camera->pitch = static_cast<float>(std::asin(to[1] / length));
+    return true;
+}
+
+bool staticGameViewCamera(StaticFlyCamera* camera)
+{
+    // The game's view is no plain perspective (world to game pixels to the
+    // screen), so the camera is put where a plain one, looking the same way at
+    // the same point, shows the same width of floor across the screen's middle.
+    GameView view;
+    if (!currentGameView(&view) || !staticGameViewPose(camera) || view.logicalHeight <= 0) return false;
+    const double middleX = view.screenCenterSet ? view.screenCenter[0] : view.logicalWidth / 2.0;
+    const double middleY = view.screenCenterSet ? view.screenCenter[1] : view.logicalHeight / 2.0;
+    double leftX, leftZ, rightX, rightZ, centerX, centerZ;
+    if (!gameViewPickGround(view, 0.0, middleY, &leftX, &leftZ)
+        || !gameViewPickGround(view, view.logicalWidth, middleY, &rightX, &rightZ)
+        || !gameViewPickGround(view, middleX, middleY, &centerX, &centerZ)) {
+        return false;
+    }
+    const double width = std::hypot(rightX - leftX, rightZ - leftZ);
+    camera->fovY = staticPreviewCamera(true).fovY;
+    const double aspect = static_cast<double>(view.logicalWidth) / view.logicalHeight;
+    const double distance = width / (2.0 * aspect * std::tan(camera->fovY * 3.14159265358979323846 / 360.0));
+    float forward[3], right[3];
+    staticFlyCameraAxes(*camera, forward, right);
+    const float center[3] = { static_cast<float>(centerX), 0.0f, static_cast<float>(centerZ) };
+    for (int i = 0; i < 3; i++) camera->eye[i] = center[i] - forward[i] * static_cast<float>(distance);
     return true;
 }
 

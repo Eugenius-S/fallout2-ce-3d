@@ -1,5 +1,7 @@
 #include "live_objects.h"
 
+#include <cmath>
+
 #include "gl_api.h"
 #include "scene_internal.h"
 #include "static_scene.h"
@@ -52,6 +54,48 @@ void destroyStaticObjectTextures()
 } // namespace
 
 namespace internal {
+
+void faceFlyCamera(SpriteCardVertex corners[4])
+{
+    double rightX, rightZ;
+    if (!flyCameraRight(&rightX, &rightZ)) return;
+    // The card's lean cancels out between its top and bottom corners: their
+    // middle is the footprint's, and the left edge's middle is half the
+    // card's width from it.
+    const double middleX = (corners[0].x + corners[1].x + corners[2].x + corners[3].x) / 4.0;
+    const double middleZ = (corners[0].z + corners[1].z + corners[2].z + corners[3].z) / 4.0;
+    const double leftX = (corners[0].x + corners[1].x) / 2.0 - middleX;
+    const double leftZ = (corners[0].z + corners[1].z) / 2.0 - middleZ;
+    const double half = std::sqrt(leftX * leftX + leftZ * leftZ);
+    for (int index = 0; index < 4; index++) {
+        const double side = index < 2 ? -half : half;
+        corners[index].x = middleX + rightX * side;
+        corners[index].z = middleZ + rightZ * side;
+    }
+}
+
+// Under the fly camera a door lies on its wall's plane: each corner slides
+// along the game camera's ray to it, so that camera would still see it on the
+// same pixels.
+void onFlyPlane(SpriteCardVertex corners[4], const float plane[3], const float eye[3])
+{
+    double rightX, rightZ;
+    if (!flyCameraRight(&rightX, &rightZ)) return;
+    const double normalX = -std::sin(plane[1]);
+    const double normalZ = std::cos(plane[1]);
+    const double toPlane = normalX * (plane[0] - eye[0]) + normalZ * (plane[2] - eye[2]);
+    for (int index = 0; index < 4; index++) {
+        const double rayX = corners[index].x - eye[0];
+        const double rayY = corners[index].y - eye[1];
+        const double rayZ = corners[index].z - eye[2];
+        const double along = normalX * rayX + normalZ * rayZ;
+        if (std::abs(along) < 1e-9) return;
+        const double scale = toPlane / along;
+        corners[index].x = eye[0] + rayX * scale;
+        corners[index].y = eye[1] + rayY * scale;
+        corners[index].z = eye[2] + rayZ * scale;
+    }
+}
 
 void destroyStaticHero()
 {
@@ -116,6 +160,7 @@ bool updateStaticHero(const StaticHeroFrame& frame, std::string* error)
     if (!standingSpriteCard(cardProjection(), art, corners, &worldU, &worldV)) {
         return fail("hero card anchor or height is not finite");
     }
+    faceFlyCamera(corners);
     const double row = spriteRowPlane(cardProjection(), frame.tile, frame.stack);
     const StaticPreviewCamera camera = staticPreviewCamera(true);
     const DepthVertex topLeft = cardVertex(corners[0], row, camera.eye);
@@ -184,16 +229,29 @@ bool addStaticObject(const StaticObjectFrame& frame, std::string* error)
     };
     if (!gInitialized || !gWallsLoaded || !gHeroProjectionLoaded) return fail("static scene is unavailable");
     if (frame.rotation < 0 || frame.rotation >= 6) return fail("object rotation is invalid");
+    if (!staticSoloKeeps(frame.tile)) return true;
     const SpriteCardArt art = { frame.tile, frame.objectX, frame.objectY, frame.artXOffset, frame.artYOffset,
         frame.width, frame.height };
+    // Low things lie flat under the fly camera; the game's camera sees them as
+    // cards, on their own pixels.
+    double flyRightX, flyRightZ;
+    const bool flat = frame.flat
+        || (staticObjectFlyFlat(frame.tile, frame.fid) && flyCameraRight(&flyRightX, &flyRightZ));
     SpriteCardVertex corners[4];
-    if (frame.flat) {
+    if (flat) {
         if (!flatSpriteCard(cardProjection(), art, kFlatObjectHeight, corners)) return fail("flat object card is invalid");
     } else if (!standingSpriteCard(cardProjection(), art, corners, nullptr, nullptr)) {
         return fail("object card is invalid");
     }
-    const double row = frame.flat ? 0.0 : spriteRowPlane(cardProjection(), frame.tile, frame.stack);
     const StaticPreviewCamera camera = staticPreviewCamera(true);
+    float plane[3];
+    if (flat) {
+    } else if (staticObjectPlane(frame.tile, frame.fid, plane)) {
+        onFlyPlane(corners, plane, camera.eye);
+    } else {
+        faceFlyCamera(corners);
+    }
+    const double row = flat ? 0.0 : spriteRowPlane(cardProjection(), frame.tile, frame.stack);
 
     const unsigned long long key = objectArtKey(frame.fid, frame.frame, frame.rotation);
     auto cached = gObjectTextures.find(key);
@@ -223,7 +281,7 @@ bool addStaticObject(const StaticObjectFrame& frame, std::string* error)
         gObjectTextures.emplace(key, texture);
     }
 
-    gObjectDraws.push_back({ texture, static_cast<int>(gObjectVertices.size()), frame.flat,
+    gObjectDraws.push_back({ texture, static_cast<int>(gObjectVertices.size()), flat,
         { frame.tint[0], frame.tint[1], frame.tint[2] }, frame.glassGray, frame.pickId, frame.pickOnly,
         frame.seeThrough, frame.fullLight ? -1 : frame.tile });
     // A thing standing on a solid moves onto it, and so does its row plane.
@@ -238,7 +296,7 @@ bool addStaticObject(const StaticObjectFrame& frame, std::string* error)
             corner.y += lift[1];
             corner.z += lift[2];
         }
-        gObjectVertices.push_back(frame.flat
+        gObjectVertices.push_back(flat
                 ? DepthVertex { static_cast<float>(corner.x), static_cast<float>(corner.y), static_cast<float>(corner.z),
                       static_cast<float>(corner.u), static_cast<float>(corner.v), static_cast<float>(corner.x),
                       static_cast<float>(corner.y), static_cast<float>(corner.z) }

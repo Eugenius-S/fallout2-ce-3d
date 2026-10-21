@@ -4,6 +4,7 @@
 
 #include "gl_api.h"
 #include "scene_internal.h"
+#include "sprite_card.h"
 
 namespace fallout {
 namespace scene_renderer {
@@ -18,6 +19,9 @@ bool gFloorLoaded = false;
 namespace {
 
 unsigned int gFloorVbo = 0;
+MapClip gFloorMapClip;
+MapClip gActiveMapClip;
+std::vector<unsigned char> gFloorOccupancy;
 
 } // namespace
 
@@ -36,6 +40,9 @@ void destroyStaticFloor()
     gFloorTexture = 0;
     gFloorVertexCount = 0;
     gFloorLoaded = false;
+    gFloorMapClip = {};
+    gActiveMapClip = {};
+    gFloorOccupancy.clear();
 }
 
 } // namespace internal
@@ -106,6 +113,8 @@ bool loadStaticFloor(const std::filesystem::path& cacheDirectory, std::string* e
 
     std::vector<FloorVertex> vertices;
     vertices.reserve(6 + 10000 * 6);
+    std::vector<unsigned char> floorOccupancy(10000, 0);
+    int minCol = 100, minRow = 100, maxCol = -1, maxRow = -1;
     auto quad = [&](float x0, float y, float z0, float x1, float z1,
                     float u0, float v0, float u1, float v1) {
         vertices.push_back({ x0, y, z0, u0, v0 });
@@ -124,6 +133,11 @@ bool loadStaticFloor(const std::filesystem::path& cacheDirectory, std::string* e
         for (int col = 0; col < 100; col++) {
             const unsigned short cellIndex = readU16(floorData + (row * 100 + col) * 2);
             if (cellIndex == 0) continue;
+            floorOccupancy[row * 100 + col] = 1;
+            if (col < minCol) minCol = col;
+            if (col > maxCol) maxCol = col;
+            if (row < minRow) minRow = row;
+            if (row > maxRow) maxRow = row;
             if (cellIndex > tileCount) return fail("floor.bin contains an out-of-range cell index");
             const unsigned char* cell = cellData + (cellIndex - 1) * 4;
             const unsigned short cellX = readU16(cell);
@@ -193,10 +207,50 @@ bool loadStaticFloor(const std::filesystem::path& cacheDirectory, std::string* e
     glBindVertexArray(0);
 
     gFloorVertexCount = static_cast<int>(vertices.size());
+    if (maxCol >= minCol && maxRow >= minRow) {
+        gFloorMapClip = makeMapClipRect(minCol - 50.0, minRow - 50.0,
+            maxCol + 1.0 - 50.0, maxRow + 1.0 - 50.0, MapClipSource::FloorGridFallback);
+    }
+    gFloorOccupancy = std::move(floorOccupancy);
     setRoofSquares(std::move(roofs));
     gFloorLoaded = true;
     if (error != nullptr) error->clear();
     return true;
+}
+
+MapClip staticFloorMapClip()
+{
+    return gFloorMapClip;
+}
+
+bool setStaticFloorMapProjection(const SpriteCardProjection& projection)
+{
+    if (gFloorOccupancy.size() != 10000) {
+        gFloorMapClip = {};
+        return false;
+    }
+    gFloorMapClip = makeProjectedFloorMapClip(gFloorOccupancy.data(), 100, 100,
+        projection.squ, projection.sqv, projection.origin);
+    return gFloorMapClip.enabled;
+}
+
+void setStaticMapClip(const MapClip& clip)
+{
+    gActiveMapClip = clip;
+}
+
+MapClip staticMapClip()
+{
+    return gActiveMapClip;
+}
+
+void bindStaticMapClipUniforms()
+{
+    glUniform1i(gSceneClipEnabledLocation, gActiveMapClip.enabled ? 1 : 0);
+    for (int index = 0; index < 4; index++) {
+        const MapClipPlane& plane = gActiveMapClip.planes[index];
+        glUniform3f(gSceneClipPlaneLocations[index], plane.x, plane.z, plane.offset);
+    }
 }
 
 } // namespace scene_renderer

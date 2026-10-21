@@ -411,29 +411,41 @@ void initSettingsRegistry(bool isMapper)
     SETTING(fast_ammo_load);
 #undef SECT
 
-    registerSetting("3d", "enabled", settings.scene3d.enabled);
-    SettingDescriptor& scene3dDescriptor = settingDescriptors.back();
-    scene3dDescriptor.category = SettingCategory::Uncategorized;
-    scene3dDescriptor.applyPolicy = SettingApplyPolicy::OnClose;
-    scene3dDescriptor.subsection = "3D";
-    scene3dDescriptor.fallbackLabel = "Enable 3D scene";
-    scene3dDescriptor.fallbackDescription = "Show the 3D world view where a scene is available.";
-    settingsRegistry.back().descriptor = scene3dDescriptor;
-    const bool scene3dDefault = std::get<bool>(scene3dDescriptor.defaultValue);
-    settingsRegistry.back().read = [scene3dDefault]() {
-        bool enabled = scene3dDefault;
-        char* configuredValue = nullptr;
-        if (configGetString(&gGameConfig, "3d", "enabled", &configuredValue)) {
-            parseThreeDEnabled(configuredValue, &enabled);
-        }
-        if (settings.scene3d.enabled != enabled) {
-            settings.scene3d.enabled = enabled;
-        }
+    auto registerThreeDBoolean = [](const char* key, bool& value, const char* label, const char* description,
+                                     SettingApplyPolicy applyPolicy) {
+        registerSetting("3d", key, value);
+        SettingDescriptor& descriptor = settingDescriptors.back();
+        descriptor.category = SettingCategory::Uncategorized;
+        descriptor.applyPolicy = applyPolicy;
+        descriptor.subsection = "3D";
+        descriptor.fallbackLabel = label;
+        descriptor.fallbackDescription = description;
+        settingsRegistry.back().descriptor = descriptor;
+        const bool defaultValue = std::get<bool>(descriptor.defaultValue);
+        bool* target = &value;
+        settingsRegistry.back().read = [key, target, defaultValue]() {
+            bool configured = defaultValue;
+            char* text = nullptr;
+            if (configGetString(&gGameConfig, "3d", key, &text)) parseThreeDEnabled(text, &configured);
+            *target = configured;
+        };
+        settingsRegistry.back().write = [key, target, defaultValue](bool onlyAdd) {
+            if (onlyAdd && settingsKeyExists("3d", key)) return;
+            settingsWrite("3d", key, onlyAdd ? defaultValue : *target);
+        };
     };
-    settingsRegistry.back().write = [scene3dDefault](bool onlyAdd) {
-        if (onlyAdd && settingsKeyExists("3d", "enabled")) return;
-        settingsWrite("3d", "enabled", onlyAdd ? scene3dDefault : settings.scene3d.enabled);
-    };
+    registerThreeDBoolean("enabled", settings.scene3d.enabled, "Enable 3D scene",
+        "Show the 3D world view where a scene is available.", SettingApplyPolicy::OnClose);
+    registerThreeDBoolean("clean_edges", settings.scene3d.clean_edges, "Clean map edges",
+        "Cut the 3D scene to the map boundary, leaving black beyond it.", SettingApplyPolicy::OnClose);
+    registerThreeDBoolean("sun", settings.scene3d.sun, "Sun",
+        "A sun that follows game time on maps under the sky: low and warm in the morning and evening, "
+        "none at night or underground.",
+        SettingApplyPolicy::OnClose);
+    registerThreeDBoolean("camera_rotation", settings.scene3d.camera_rotation, "Camera rotation (experimental)",
+        "[ and ] turn the 3D camera round the view in steps of 90 degrees, at your own risk. "
+        "A turned view is for looking only: the game takes no clicks until the camera is back.",
+        SettingApplyPolicy::OnClose);
 
     registerSetting("3d", "lights", settings.scene3d.lights);
     SettingDescriptor& lightsDescriptor = settingDescriptors.back();

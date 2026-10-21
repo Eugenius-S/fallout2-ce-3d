@@ -7,6 +7,7 @@
 #include "context.h"
 #include "gl_api.h"
 #include "scene_internal.h"
+#include "static_scene.h"
 
 namespace fallout {
 namespace scene_renderer {
@@ -45,6 +46,7 @@ void drawStaticPreview(bool withWalls, bool withHero)
         glBlendFunc(kSrcAlpha, kOneMinusSrcAlpha);
     }
     glUseProgram(gSceneProgram);
+    bindStaticMapClipUniforms();
     glUniformMatrix4fv(gSceneMvpLocation, 1, 0, mvp);
     glUniform1i(gSceneDepthAtLocation, 0);
     glUniform1i(gSceneTranslucentLocation, 0);
@@ -117,6 +119,7 @@ void drawStaticPreview(bool withWalls, bool withHero)
         glUniform1i(gSceneEggPassLocation, wallEgg ? 1 : 0);
         glUniform1i(gSceneLightModeLocation, lit ? 2 : 0);
         for (const WallBatch& batch : gWallBatches) {
+            if (batch.flyOnly ? !flying : batch.gameOnly && flying) continue;
             glBindVertexArray(batch.vao);
             glBindTexture(kTexture2D, batch.texture);
             glDrawArrays(kTriangles, 0, static_cast<int>(batch.triangleCount * 3));
@@ -156,6 +159,7 @@ void drawStaticPreview(bool withWalls, bool withHero)
             glUniform1i(gSceneSeeThroughLocation, 1);
             glUniform1i(gSceneLightModeLocation, lit ? 2 : 0);
             for (const WallBatch& batch : gWallBatches) {
+                if (batch.flyOnly ? !flying : batch.gameOnly && flying) continue;
                 glBindVertexArray(batch.vao);
                 glBindTexture(kTexture2D, batch.texture);
                 glDrawArrays(kTriangles, 0, static_cast<int>(batch.triangleCount * 3));
@@ -199,7 +203,7 @@ void drawStaticPreview(bool withWalls, bool withHero)
     }
     glUniform1i(gSceneLightModeLocation, lit ? 4 : 0);
     glUniform1f(gSceneLightValueLocation, lightAmbient());
-    if (withHero) drawRoofs(x, y, width, height);
+    if (withHero && staticSoloKeeps(-1)) drawRoofs(x, y, width, height); // solo: no roofs
     glUniform1i(gSceneLightModeLocation, 0);
     glUniform1i(gSceneDepthAtLocation, 0);
 

@@ -4,6 +4,7 @@
 
 #include "gl_api.h"
 #include "scene_internal.h"
+#include "static_scene.h"
 
 namespace fallout {
 namespace scene_renderer {
@@ -29,7 +30,10 @@ bool pickStaticGroundTile(int logicalX, int logicalY, GroundPickResult* result)
     };
     const GroundPickViewport viewport = { gLogicalWidth, gLogicalHeight, gWindowWidth, gWindowHeight, windowWidth, windowHeight };
     GameView view;
-    if (!currentGameView(&view)) return pickGroundTile(projection, camera, viewport, logicalX, logicalY, result);
+    if (!currentGameView(&view)) {
+        return pickGroundTile(projection, camera, viewport, logicalX, logicalY, result)
+            && mapClipContains(staticMapClip(), result->worldX, result->worldZ);
+    }
 
     double worldX, worldZ;
     if (logicalX < 0 || logicalY < 0 || logicalX >= gLogicalWidth || logicalY >= gLogicalHeight
@@ -39,7 +43,8 @@ bool pickStaticGroundTile(int logicalX, int logicalY, GroundPickResult* result)
     const double u = worldX + 50.0;
     const double v = worldZ + 50.0;
     // The exported scene covers the map's 100x100 squares.
-    if (u < 0.0 || u >= 100.0 || v < 0.0 || v >= 100.0) return false;
+    if (u < 0.0 || u >= 100.0 || v < 0.0 || v >= 100.0
+        || !mapClipContains(staticMapClip(), worldX, worldZ)) return false;
     const double artX = projection.origin[0] + u * projection.squ[0] + v * projection.sqv[0];
     const double artY = projection.origin[1] + u * projection.squ[1] + v * projection.sqv[1];
     const int tile = donorHexFromPixel(artX, artY);
@@ -83,6 +88,7 @@ int pickStaticObjects(int logicalX, int logicalY, bool (*wanted)(int pickId, voi
     glEnable(kDepthTest);
     glDepthFunc(kLess);
     glUseProgram(gSceneProgram);
+    bindStaticMapClipUniforms();
     glUniformMatrix4fv(gSceneMvpLocation, 1, 0, mvp);
     glUniform1i(gSceneTexturedLocation, 1);
     glUniform1i(gSceneTranslucentLocation, 0);

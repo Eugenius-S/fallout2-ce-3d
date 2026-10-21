@@ -160,6 +160,8 @@ extern int gSceneTranslucentLocation;
 extern int gSceneTintLocation;
 extern int gSceneGlassGrayLocation;
 extern int gScenePickLocation;
+extern int gSceneClipEnabledLocation;
+extern int gSceneClipPlaneLocations[4];
 // The see-through circle (roofs.cc): on/off, its mask (texture unit 1), its
 // rect in game logical pixels, and the GL viewport and logical size to find
 // a fragment's game pixel.
@@ -242,6 +244,9 @@ struct WallBatch {
     unsigned int vao = 0;
     unsigned int vbo = 0;
     unsigned int texture = 0;
+    bool ownsTexture = false; // a page's second batch draws with its first one's texture
+    bool flyOnly = false; // what the game's camera never sees (walls' backs and ends)
+    bool gameOnly = false; // what the fly camera draws its own way (a drum's near half)
 };
 
 extern std::vector<WallBatch> gWallBatches;
@@ -279,6 +284,13 @@ bool currentGameView(GameView* view);
 void makeFloorMvp(float aspect, const StaticPreviewCamera& camera, float* out);
 // The fly camera's matrix; false when it does not fly.
 bool flyCameraMvp(float aspect, float* out);
+// The fly camera's screen right along the floor (GL x, z); false when it does
+// not fly.
+bool flyCameraRight(double* x, double* z);
+// While the fly camera flies a standing card is seen from anywhere: it stands
+// upright on the middle of its footprint and turns to face the camera, as in
+// the donor's first person. The game's camera keeps the card it sees.
+void faceFlyCamera(SpriteCardVertex corners[4]);
 void resetCamera();
 
 // --- live_objects.cc: live map objects and the hero, as cards ----------------

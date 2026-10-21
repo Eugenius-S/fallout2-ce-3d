@@ -27,8 +27,10 @@ Before the launch the launcher puts a fresh build from `build\` into
 `game\`; if the game is open, its exe is renamed and it keeps running.
 
 A background check without a window on screen: `tools\dev-snapshot.ps1`
-runs the build as `game\fallout2-ce-test.exe` off screen, without taking
-focus, takes one snapshot and closes only its own process. With `-Probe`
+runs the build as `build\test-run\fallout2-ce-test.exe` with the fixed
+config from `tools\test-config\fallout2.cfg` (the owner's `game\fallout2.cfg`
+is never read or written), off screen, without taking focus, takes one
+snapshot and closes only its own process. With `-Probe`
 (`--dev-pick-probe`) the game cursor is put on the scene residents, and
 `game\devprobe.log` records what the game finds under it; then a click on
 the floor (the hero walks) and a click on the nearest person (a dialog).
@@ -89,7 +91,26 @@ and the mouse and shows the world alone (no interface, no egg); the game keeps
 running. Ctrl+F12 or Esc lands it and puts the game's view back; it lands by
 itself when the 3D scene stops showing (combat, dialog). F9 takes a snapshot
 from the air. `dev-snapshot.ps1 -Fly` (`--dev-fly`) takes one from where the
-camera takes off.
+camera takes off; `-FlyTurn D -FlyPitch D -FlyDistance U` (`--dev-fly-turn=`,
+`--dev-fly-pitch=`, `--dev-fly-distance=`) first circle it round the point it
+looks at: D degrees round, D degrees above the floor, U units from it.
+A map tour stop may end in `:solo:turn:distance`
+(`kladwtwn:0:15123:1:90:3.5`): the things within `solo` hexes of the view
+tile alone, from the fly camera `turn` degrees round and `distance` units
+away; the shapes eval shoots a whole map in one run this way.
+`-Turn N` (`--dev-camera-turn=N`) takes the snapshot with the 3D camera N
+quarter turns round, as `[3d] camera_rotation` turns it with [ and ].
+`-Solo R` (`--dev-solo=TILE,R`, TILE is `-ViewTile`) draws only the things
+within R hexes of it, without walls or roofs (the hero stays: the fly camera needs it): one thing seen alone
+from every side (the shapes eval, `tools/shapes/eval/eval.py`).
+
+From the air things are seen from any side: sprite cards stand upright and
+face the camera, and solids show their far sides (the near sides' pixels
+mirrored, as the donor's first person does); the game's camera culls those.
+Doors and gates do not turn: they lie on their wall's plane. Cards no more
+than 20 pixels tall lie flat on the floor.
+Walls show their backs and the strips that close their ends: `walls.bin`
+(version 4) keeps them in batches only the fly camera draws.
 
 ## Transitions
 
@@ -221,3 +242,20 @@ check.
 `runs/p1-devtools-map-header-regression.ps1`: a forensic check of the
 offsets and fields of a real `KLADWTWN.SAV`; it is not a unit test of the
 probe and not a game acceptance.
+
+## Restarting the owner's game
+
+Only when the owner asks. The game in `game/` reads `game/mod-cache`, and the
+engine and the exporter change together, so build and export together, in the
+main checkout, on `main`:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/configure-build.ps1 Release
+py -3 tools/scene_export/export.py --game-root ./game --maps klamath
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/dev-launch.ps1 -Slot 1
+```
+
+`dev-launch.ps1` puts the new build in place of the running one and starts it
+from save slot 1; the owner closes the old window. Never export into
+`game/mod-cache` without that build: an older engine cannot read a newer
+export.

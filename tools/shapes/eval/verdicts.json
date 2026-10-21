@@ -1,0 +1,163 @@
+{
+ "judged": "2026-10-20 claude; sstove2 again after 040 part 4",
+ "barrel4.frm": {
+  "verdict": "pass",
+  "why": "barrels from every side"
+ },
+ "bed3.frm": {
+  "verdict": "pass",
+  "why": ""
+ },
+ "bigshlf1.frm": {
+  "verdict": "pass",
+  "why": ""
+ },
+ "boxes2.frm": {
+  "verdict": "fail",
+  "why": "stray pieces stick out"
+ },
+ "bush3.frm": {
+  "verdict": "pass",
+  "why": ""
+ },
+ "cab1.frm": {
+  "verdict": "pass",
+  "why": ""
+ },
+ "car5.frm": {
+  "verdict": "fail",
+  "why": "a card: from the side a thin sliver"
+ },
+ "cavbrac1.frm": {
+  "verdict": "fail",
+  "why": "a plane along the cave wall: edge-on it vanishes"
+ },
+ "char03.frm": {
+  "verdict": "pass",
+  "why": ""
+ },
+ "corn5.frm": {
+  "verdict": "pass",
+  "why": ""
+ },
+ "crate1.frm": {
+  "verdict": "pass",
+  "why": ""
+ },
+ "desk1.frm": {
+  "verdict": "pass",
+  "why": ""
+ },
+ "doorb06.frm": {
+  "verdict": "pass",
+  "why": "stays on its plane"
+ },
+ "drock4.frm": {
+  "verdict": "pass",
+  "why": ""
+ },
+ "drock7.frm": {
+  "verdict": "pass",
+  "why": ""
+ },
+ "eggs7.frm": {
+  "verdict": "pass",
+  "why": ""
+ },
+ "firehy.frm": {
+  "verdict": "pass",
+  "why": "whole from every side"
+ },
+ "gate.frm": {
+  "verdict": "pass",
+  "why": "stays on its plane"
+ },
+ "locker6.frm": {
+  "verdict": "pass",
+  "why": ""
+ },
+ "maryj01.frm": {
+  "verdict": "pass",
+  "why": ""
+ },
+ "maryj02.frm": {
+  "verdict": "pass",
+  "why": ""
+ },
+ "posts.frm": {
+  "verdict": "fail",
+  "why": "fanned planes at 45 and 90"
+ },
+ "rock09.frm": {
+  "verdict": "pass",
+  "why": ""
+ },
+ "rock10.frm": {
+  "verdict": "pass",
+  "why": ""
+ },
+ "roks.frm": {
+  "verdict": "pass",
+  "why": ""
+ },
+ "roks2.frm": {
+  "verdict": "pass",
+  "why": ""
+ },
+ "roks3.frm": {
+  "verdict": "pass",
+  "why": ""
+ },
+ "ss108.frm": {
+  "verdict": "pass",
+  "why": ""
+ },
+ "ss122.frm": {
+  "verdict": "pass",
+  "why": ""
+ },
+ "sstove2.frm": {
+  "verdict": "pass",
+  "why": "a round stove from every side (a drum by name)"
+ },
+ "tbl1000.frm": {
+  "verdict": "pass",
+  "why": "the stem crossed under the top"
+ },
+ "tbl2000.frm": {
+  "verdict": "pass",
+  "why": ""
+ },
+ "tree7.frm": {
+  "verdict": "pass",
+  "why": ""
+ },
+ "tree8.frm": {
+  "verdict": "pass",
+  "why": ""
+ },
+ "tree9.frm": {
+  "verdict": "pass",
+  "why": ""
+ },
+ "weed01.frm": {
+  "verdict": "pass",
+  "why": ""
+ },
+ "weed02.frm": {
+  "verdict": "pass",
+  "why": ""
+ },
+ "weed03.frm": {
+  "verdict": "pass",
+  "why": ""
+ },
+ "weed04.frm": {
+  "verdict": "pass",
+  "why": ""
+ },
+ "weed07.frm": {
+  "verdict": "pass",
+  "why": ""
+ }
+}
