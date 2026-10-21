@@ -2,8 +2,8 @@
 id: 049
 title: The see-through circle around the hero follows the zoom
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: glm
 suggested: glm
 claude-only: no
 user-check: yes
