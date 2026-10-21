@@ -93,3 +93,16 @@ captures stay byte-stable, (5) snapshots 2D classic vs 3D glow in
 runs/022-glow/ (fires + a monitor), laser FRM palette-index evidence, PR.
 Check: build + ctest; regression with glow off unchanged; fires glow in the
 snapshot.
+
+### 2026-10-21 glm (paused, taking 047 first)
+Done: the bloom (glow) module draft, not yet in the build:
+ce/src/scene_renderer/post.h + post.cc (offscreen FBO, bright pass, two-pass
+blur, additive composite; GL 4.1 core, self-off on failure), framebuffer
+entries in gl_procs.h, drawTextureQuad() in context.cc for compositing a GPU
+texture. Nothing references it yet: CMakeLists, svga.cc and the [3d] glow
+keys are next.
+Next: back from 047: wire post.cc into the build, beginSceneCapture before
+drawStaticHeroPreview and compositeGlow in its place, [3d] glow and
+glow_strength in settings, then the plan's steps (4) and (5).
+Check: git show task/022-glow; the draft compiles standalone once added to
+CMakeLists (not verified yet).

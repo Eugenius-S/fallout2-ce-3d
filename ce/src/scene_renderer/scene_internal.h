@@ -144,6 +144,8 @@ unsigned int compileShader(unsigned int type, const char* source);
 bool fitRect(int imageWidth, int imageHeight, int windowWidth, int windowHeight, int* outX, int* outY, int* outW, int* outH);
 // `pixels` null: draw the texture the last call uploaded.
 void drawQuad(int srcWidth, int srcHeight, int srcPitch, const void* pixels, int dstX, int dstY, int dstW, int dstH);
+// Draws an existing GL texture over the window's framebuffer.
+void drawTextureQuad(unsigned int texture, int dstX, int dstY, int dstW, int dstH);
 
 // --- scene_shader.cc: the program every scene pass draws with -------------
 
