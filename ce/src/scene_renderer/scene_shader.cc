@@ -217,7 +217,9 @@ void main() {
                     outColor.a *= m / 128.0;
                 }
             }
-            outEmissive = texel.a * 255.0 > 251.5 ? vec4(texel.rgb * outColor.a, 1.0) : vec4(0.0);
+            // Only the marks glow (252, 254); opaque 255 is everything else.
+            float mark = texel.a * 255.0;
+            outEmissive = mark > 251.5 && mark < 254.5 ? vec4(texel.rgb * outColor.a, 1.0) : vec4(0.0);
         }
     }
 }

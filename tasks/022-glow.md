@@ -131,3 +131,22 @@ Check: build, ctest 11/11, regression 16/16 with 0 changed pixels (klatoxcv-e1
 after the retake). The reference retake and the walls.bin alpha semantics
 (0/255 plus the 252 and 254 markers) are mine not being able to review:
 reviewed stays no.
+
+### 2026-10-21 claude (review of PR #55: not merged)
+Found: the shader's emission test `texel.a * 255 > 251.5` let every opaque
+texel (255) glow, so a daylit town bloomed all over (kladwtwn e0: 920 000 of
+2 073 600 pixels changed by more than 8 with the glow on). Fixed in this
+branch: only 252 and 254 emit (`scene_shader.cc`). With the fix the town
+changes 75 pixels with the glow on (the same as with `glow_strength=0`, so
+the offscreen path itself is fine), but the toxic cave changes only 42: the
+slime's glow came from the bug too. The exported textures carry no marks:
+`tiles.png` and `sprites0.png` of kladwtwn/0 and klatoxcv/1 (exported by this
+branch into `build/scene-cache`) have 0 texels at alpha 252 or 254, and the
+atlas pages in walls.bin need the same check.
+Next: make the marks reach the exported textures (`vendor/fp/atlas.py`,
+`vendor/f2lib/pal.py`, `vendor/fp/scene.py`), check with a histogram of the
+alpha of every exported texture, then compare glow on and off in the town and
+the cave (`dev-snapshot -Glow`); the town should barely change, the slime
+should bloom. Re-check the klatoxcv-e1 reference retake after that.
+Check: `tools/dev-snapshot.ps1 -Map klatoxcv -Elevation 1 -ViewTile 19091
+-Still` with and without `-Glow`.
