@@ -12,11 +12,10 @@ The runner takes 16 independent background snapshots through
 game or sends input to a window. Only its own `fallout2-ce-test.exe` PID is
 stopped; the script waits for that process to exit before the next capture.
 The test process receives a fixed 1920x1080 screen size and scale 2 from
-`spots.json`. It forces windowed mode and does not save `fallout2.cfg`, so its
-result is independent of the owner's screen settings.
-For isolated config checks, `dev-snapshot.ps1 -ConfigDirectory` can read a
-separate `fallout2.cfg` and `ddraw.ini` from a `build/task009-*` folder while
-keeping the game's resource directory as its working directory.
+`spots.json`. It runs as `build/test-run/fallout2-ce-test.exe` with the fixed
+config from `tools/test-config/fallout2.cfg` (sound off, zoom 1, no rotation),
+so it never reads or writes the owner's `game/fallout2.cfg`; the game's
+resource directory stays its working directory.
 
 `spots.json` names each map, elevation and exact view hex. The player remains
 at the map entrance. `--dev-view-tile=N` bypasses camera bounds and starts the

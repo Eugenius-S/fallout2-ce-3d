@@ -27,8 +27,10 @@ Before the launch the launcher puts a fresh build from `build\` into
 `game\`; if the game is open, its exe is renamed and it keeps running.
 
 A background check without a window on screen: `tools\dev-snapshot.ps1`
-runs the build as `game\fallout2-ce-test.exe` off screen, without taking
-focus, takes one snapshot and closes only its own process. With `-Probe`
+runs the build as `build\test-run\fallout2-ce-test.exe` with the fixed
+config from `tools\test-config\fallout2.cfg` (the owner's `game\fallout2.cfg`
+is never read or written), off screen, without taking focus, takes one
+snapshot and closes only its own process. With `-Probe`
 (`--dev-pick-probe`) the game cursor is put on the scene residents, and
 `game\devprobe.log` records what the game finds under it; then a click on
 the floor (the hero walks) and a click on the nearest person (a dialog).
