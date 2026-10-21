@@ -30,8 +30,11 @@ classic look with almost no halo (`owner-slime-now.png`, `owner-cave-now.png`).
 - Fire and the engine's light sources (020) should glow as well: barrels with
   fire, campfires, lamps.
 - Screens and monitors: the owner's Vault screenshot is a map that has no 3D
-  export yet (only Klamath has one), so it showed the classic 2D; check
-  monitors on a Klamath map that has them, or note that none has.
+  export yet (only Klamath has one), so it showed the classic 2D. Klamath's
+  screens are all in the toxic caves: `klatoxcv` elevation 1, hexes 16449
+  (bvs30, monitors) and 19246 (bvs44, a computer); elevation 2, hexes 13696,
+  13700, 13702 (glcomp02, computers), 14493 (bvs32, a monitor), 14691 and
+  14695 (bvs35, bvs47, computers), 14872 (robcomp2, the robot receptacle).
 - The daylit town must stay clean: no haze over sand and bright walls.
 
 ## Acceptance
