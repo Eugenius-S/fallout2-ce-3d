@@ -20,3 +20,10 @@ that fits no task becomes a new task when the board runs dry.
   owner's word in chat (for example a command file the game watches). Start
   options exist (`--dev-map`, `--dev-elevation`, a view hex); a jump inside a
   running game does not. Not now.
+- 2026-10-21 The dev panel's floor change put the hero inside the rock on
+  the lowest floor of the toxic caves (klatoxcv elevation 2). The hex check
+  (`docs/p1-devtools.md`, "Tile choice on a floor change") looks at the floor
+  tile and blockers within 4 hexes, not at whether the hero can walk out.
+  Belongs with the teleport line above: pick a hex the hero can walk from (a
+  path to the map's entrance or to a few hexes around), or let the owner name
+  the hex.
