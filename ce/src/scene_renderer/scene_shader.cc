@@ -217,9 +217,13 @@ void main() {
                     outColor.a *= m / 128.0;
                 }
             }
-            // Only the marks glow (252, 254); opaque 255 is everything else.
+            // What shines by itself: the marked texels (252, 254) always, plus
+            // whatever the lit picture shows bright (a fire, a slime pool
+            // under its own light); the glow blurs this buffer.
             float mark = texel.a * 255.0;
-            outEmissive = mark > 251.5 && mark < 254.5 ? vec4(texel.rgb * outColor.a, 1.0) : vec4(0.0);
+            vec3 emission = mark > 251.5 && mark < 254.5 ? texel.rgb * outColor.a : vec3(0.0);
+            vec3 bright = outColor.rgb * smoothstep(0.85, 0.97, max(max(outColor.r, outColor.g), outColor.b));
+            outEmissive = vec4(max(emission, bright), 1.0);
         }
     }
 }

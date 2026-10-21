@@ -38,6 +38,7 @@ using internal::kRgba8;
 using internal::kSrcAlpha;
 using internal::kStaticDraw;
 using internal::kTexture0;
+constexpr unsigned int kTexture1 = 0x84C1;
 using internal::kTexture2D;
 using internal::kTextureMagFilter;
 using internal::kTextureMinFilter;
@@ -53,17 +54,6 @@ out vec2 vTexcoord;
 void main() {
     gl_Position = vec4(aPosition, 0.0, 1.0);
     vTexcoord = aTexcoord;
-}
-)";
-
-constexpr const char* kBrightPassFragmentShader = R"(#version 330 core
-in vec2 vTexcoord;
-uniform sampler2D uTexture;
-out vec4 outColor;
-void main() {
-    vec3 c = texture(uTexture, vTexcoord).rgb;
-    float k = smoothstep(0.25, 0.55, max(max(c.r, c.g), c.b));
-    outColor = vec4(c * k, 1.0);
 }
 )";
 
@@ -95,7 +85,6 @@ void main() {
 
 bool gInitialized = false;
 bool gDisabled = false;
-unsigned int gProgramBrightPass = 0;
 unsigned int gProgramBlur = 0;
 unsigned int gProgramAdd = 0;
 unsigned int gQuadVao = 0;
@@ -207,10 +196,9 @@ bool initGlow(std::string* error)
         return true;
     }
 
-    gProgramBrightPass = makeProgram(kBrightPassFragmentShader);
     gProgramBlur = makeProgram(kBlurFragmentShader);
     gProgramAdd = makeProgram(kAddFragmentShader);
-    if (gProgramBrightPass == 0 || gProgramBlur == 0 || gProgramAdd == 0) {
+    if (gProgramBlur == 0 || gProgramAdd == 0) {
         if (error != nullptr) *error = "the glow programs failed to build";
         return false;
     }
@@ -254,7 +242,6 @@ void setGlowDisabled()
 void shutdownGlow()
 {
     destroyTargets();
-    if (gProgramBrightPass != 0) { glDeleteProgram(gProgramBrightPass); gProgramBrightPass = 0; }
     if (gProgramBlur != 0) { glDeleteProgram(gProgramBlur); gProgramBlur = 0; }
     if (gProgramAdd != 0) { glDeleteProgram(gProgramAdd); gProgramAdd = 0; }
     if (gQuadVbo != 0) { glDeleteBuffers(1, &gQuadVbo); gQuadVbo = 0; }
@@ -321,6 +308,10 @@ bool beginSceneCapture()
     resizeGlow();
     if (gSceneFbo == 0) return false;
     glBindFramebuffer(kFramebuffer, gSceneFbo);
+    // Re-assert both attachments: a lost draw-buffer state would silently
+    // drop every emissive write and the glow would stay off.
+    const unsigned int attachments[2] = { kColorAttachment0, kColorAttachment1 };
+    glDrawBuffers(2, attachments);
     glViewport(0, 0, gTargetsWidth, gTargetsHeight);
     return true;
 }
@@ -333,11 +324,9 @@ void compositeGlow()
     // B, vertical back into A, twice for a soft spread.
     int glowWidth = std::max(gTargetsWidth / 4, 1);
     int glowHeight = std::max(gTargetsHeight / 4, 1);
-    // The bright pass keeps only the genuinely bright emission, then two blur
-    // rounds spread it wide.
     glBindFramebuffer(kFramebuffer, gGlowFboB);
     glViewport(0, 0, glowWidth, glowHeight);
-    drawPostQuad(gEmissiveTexture, gProgramBrightPass, 0.0f, 0.0f, 1.0f);
+    drawPostQuad(gEmissiveTexture, gProgramBlur, 1.0f / glowWidth, 0.0f, 1.0f);
     glBindFramebuffer(kFramebuffer, gGlowFboA);
     glViewport(0, 0, glowWidth, glowHeight);
     drawPostQuad(gGlowB, gProgramBlur, 0.0f, 1.0f / glowHeight, 1.0f);

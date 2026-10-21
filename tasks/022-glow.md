@@ -150,3 +150,26 @@ the cave (`dev-snapshot -Glow`); the town should barely change, the slime
 should bloom. Re-check the klatoxcv-e1 reference retake after that.
 Check: `tools/dev-snapshot.ps1 -Map klatoxcv -Elevation 1 -ViewTile 19091
 -Still` with and without `-Glow`.
+
+### 2026-10-21 glm (marks delivered)
+Found and fixed: the marks died in `save_png` (vendor/fp/atlas.py): a palette
+PNG stores alpha only as the one transparent index, so every 252/254 marker
+decoded back as opaque 255. Images with partial alphas now go out as plain
+RGBA (binary-alpha art keeps the small palette path). The scene shader's
+bright contribution moved into the scene pass itself: the emissive buffer
+carries the marked texels (252, 254) plus whatever the lit picture shows
+bright (smoothstep 0.85 to 0.97), so a slime pool blooms as a whole and not
+only its few shimmer texels; the separate bright-pass program is gone.
+The pools' textures came from the piece path (props.Piece), which still used
+the plain palette: every texture build now goes through the glow LUTs
+(floor and roof tiles and wall faces 252, object sprites 254, shoreline
+nowhere).
+Evidence: the tox cave slime blooms against the dark cave
+(runs/022-glow/slime-glow | slime-plain; the delta is 14.7k pixels, the
+town's daylit view changes by 1.5k, mostly under 8); klatoxcv-e0 and
+klatoxcv-e1 references retaken for the lit slime, before | after in
+runs/022-glow/klatoxcv-e0-slime-before.png | after and the e1 pair; the 2D
+classic shows the same bright pools.
+Check: build, ctest 11/11, exporter tests 44/44, regression tests 12/12,
+regression 16/16 with 0 changed pixels. reviewed stays no (two references
+retaken, walls.bin alpha semantics).
