@@ -9,11 +9,17 @@ Shots and sheets go to build/shapes-eval/. Each FRM's instance is seen alone
 camera's pitch, in full daylight. An FRM passes when the engine gives it its labelled shape and
 its by-eye verdict (verdicts.json, written after looking at its sheet) is
 "pass". labels.json is frozen: no change without the owner.
+
+sheets keeps the previous run's sheets in build/shapes-eval/previous/, writes
+build/shapes-eval/changed.png with only the sheets that changed (each as
+previous over new) and marks those FRMs' verdicts "stale" until someone
+judges them again; score counts a stale verdict as not judged.
 """
 from __future__ import annotations
 
 import argparse
 import json
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -43,11 +49,45 @@ def verdicts():
     return json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {}
 
 
+def save_verdicts(data):
+    (HERE / "verdicts.json").write_text(json.dumps(data, indent=1, ensure_ascii=False) + "\n",
+                                        encoding="utf-8")
+
+
+# The test instance is deterministic, so a real change is many pixels; this
+# much slack keeps trivial jitter from re-marking a sheet changed.
+DIFF_CHANNEL = 8
+DIFF_PIXELS = 32
+
+
+def sheets_differ(previous, new):
+    """Whether two sheet images differ beyond the tolerance."""
+    from PIL import ImageChops
+    if previous.size != new.size:
+        return True
+    red, green, blue = ImageChops.difference(previous, new).split()
+    strongest = ImageChops.lighter(ImageChops.lighter(red, green), blue)
+    return sum(strongest.histogram()[DIFF_CHANNEL:]) > DIFF_PIXELS
+
+
+def mark_stale(frms):
+    """A changed sheet invalidates its FRM's verdict until it is judged again."""
+    data = verdicts()
+    marked = []
+    for frm in frms:
+        entry = data.get(frm)
+        if isinstance(entry, dict) and entry.get("verdict"):
+            entry["stale"] = True
+            marked.append(frm)
+    if marked:
+        save_verdicts(data)
+    return marked
+
+
 def shoot(only):
     """All views of one map elevation in one run of the test instance: a map
     tour (dev-snapshot -Tour) whose stops each show one thing alone from one
     angle. Its first snapshot is the start, before the tour."""
-    import shutil
     groups = {}
     for label in labels():
         if not only or label["frm"] in only:
@@ -87,6 +127,8 @@ def sheets():
     from PIL import Image, ImageDraw
     cell_w, cell_h, head = 300, 240, 18
     pages = []
+    changed = []
+    fresh = []
     for label in labels():
         row = Image.new("RGB", (cell_w * len(ANGLES), cell_h + head), (24, 24, 24))
         draw = ImageDraw.Draw(row)
@@ -105,6 +147,12 @@ def sheets():
             draw.text((column * cell_w + 4, head + 4), f"{angle}", fill=(255, 255, 255))
         (OUT / "sheets").mkdir(parents=True, exist_ok=True)
         row.save(OUT / "sheets" / f"{label['frm']}.png")
+        previous = OUT / "previous" / f"{label['frm']}.png"
+        if previous.is_file():
+            if sheets_differ(Image.open(previous).convert("RGB"), row):
+                changed.append(label["frm"])
+        else:
+            fresh.append(label["frm"])
         pages.append(row)
     for start in range(0, len(pages), 8):
         part = pages[start:start + 8]
@@ -114,6 +162,31 @@ def sheets():
             page.paste(p, (0, y))
             y += p.height
         page.save(OUT / f"page{start // 8 + 1}.png")
+    # The next run compares against these sheets.
+    (OUT / "previous").mkdir(parents=True, exist_ok=True)
+    for label in labels():
+        shutil.copyfile(OUT / "sheets" / f"{label['frm']}.png", OUT / "previous" / f"{label['frm']}.png")
+    if changed:
+        gap, divider = 2, 4
+        height = len(changed) * (2 * pages[0].height + gap + divider) - divider
+        sheet = Image.new("RGB", (pages[0].width, height), (120, 30, 30))
+        y = 0
+        for frm in changed:
+            sheet.paste(Image.open(OUT / "previous" / f"{frm}.png").convert("RGB"), (0, y))
+            y += pages[0].height + gap
+            sheet.paste(Image.open(OUT / "sheets" / f"{frm}.png").convert("RGB"), (0, y))
+            y += pages[0].height + gap + divider
+        sheet.save(OUT / "changed.png")
+        stale = mark_stale(changed)
+        print(f"changed sheets: {', '.join(changed)}")
+        if stale:
+            print(f"verdicts marked stale until judged again: {', '.join(stale)}")
+    else:
+        changed_png = OUT / "changed.png"
+        if changed_png.exists():
+            changed_png.unlink()
+        note = f"; first baseline for {len(fresh)} FRMs" if fresh else ""
+        print(f"sheets unchanged since the previous run{note}")
     print(OUT / "sheets")
 
 
@@ -121,8 +194,11 @@ def score(scenes):
     judged = verdicts()
     cache = {}
     baked = {}
-    passed = weighted = total = 0
+    passed = weighted = total = stale = 0
     for label in labels():
+        entry = judged.get(label["frm"], {})
+        if entry.get("stale"):
+            stale += 1
         name, elevation, tile, serial, fid = label["instance"]
         key = (name, elevation)
         if key not in cache:
@@ -130,20 +206,21 @@ def score(scenes):
                                                   .read_text(encoding="utf-8")))
         shape = TODAY.get(cache[key].get(serial, "not drawn"), "none")
         if shape == "card":  # the engine may lay a card flat or on a plane (baked.bin)
-            modes = baked.setdefault(key, {(entry[0], entry[1]): entry[2] for entry in decode_baked_sidecar(
+            modes = baked.setdefault(key, {(record[0], record[1]): record[2] for record in decode_baked_sidecar(
                 (scenes / name / str(elevation) / "baked.bin").read_bytes())})
             shape = {FLAT: "flat", FLY_FLAT: "flat", PLANE: "plane"}.get(modes.get((tile, fid)), shape)
         # A box with a back is still a box; a plain box is no box with a back.
         kind = shape == label["shape"] or (label["shape"], shape) == ("box", "box+back")
-        eye = judged.get(label["frm"], {}).get("verdict") == "pass"
+        eye = entry.get("verdict") == "pass" and not entry.get("stale")
         ok = kind and eye
         passed += ok
         weighted += label["count"] * ok
         total += label["count"]
         print(f"{'PASS' if ok else 'fail'}  {label['frm']:13} label {label['shape']:8} engine {shape:7} "
-              f"eye {judged.get(label['frm'], {}).get('verdict', '-')}")
+              f"eye {'stale' if entry.get('stale') else entry.get('verdict', '-')}")
+    stale_note = f"; {stale} stale, not judged" if stale else ""
     print(f"score {passed}/{len(labels())} = {100 * passed / len(labels()):.0f}%, "
-          f"weighted by how often they stand {100 * weighted / total:.0f}%")
+          f"weighted by how often they stand {100 * weighted / total:.0f}%{stale_note}")
 
 
 def main():
