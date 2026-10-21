@@ -119,7 +119,7 @@ class SceneBuilder:
     def frame_sprite(self, frm, rotation, frame, dx=0, dy=0):
         """Sprite of one FRM frame, offset so that the anchor is the hex centre (+ object x / y)."""
         left, top, _, _ = frm.placement(rotation, frame, dx, dy)
-        return self.sprite(frm.rgba(self.gf.palette, rotation, frame), left, top)
+        return self.sprite(frm.rgba(self.gf.palette.glow_sprite, rotation, frame), left, top)
 
     def load_art(self, obj):
         try:
@@ -159,7 +159,7 @@ class SceneBuilder:
         self.clipped_tiles = []
         for n, tile_id in enumerate(used):
             frm = self.gf.art.load(ids.make_fid(ids.OBJ_TYPE_TILE, tile_id))
-            rgba = frm.rgba(self.gf.palette)
+            rgba = frm.rgba(self.gf.palette.glow_tile)
             h, w = rgba.shape[:2]
             inside = (src_x >= 0) & (src_x < w) & (src_y >= 0) & (src_y < h)
             texture = np.zeros((cell, cell, 4), np.uint8)
@@ -333,7 +333,7 @@ class SceneBuilder:
         left, top, _, _ = frm.placement(obj.rotation, frame, obj.x, obj.y)
         shadow = light.painted_shadow(frm.frame(obj.rotation, frame).array(), top)
         if shadow is not None:
-            rgba = frm.rgba(self.gf.palette, obj.rotation, frame)
+            rgba = frm.rgba(self.gf.palette.glow_sprite, obj.rotation, frame)
             parts = [self.cropped(rgba * keep[..., None], left, top) for keep in (~shadow, shadow)]
             if None not in parts:
                 self.shadows.append([len(self.boards) - 1] + parts)
@@ -376,7 +376,7 @@ class SceneBuilder:
             key = face.art + (face.slope, face.x_from, face.x_to, shown)
             if key not in textures:
                 frm = self.gf.art.load(fid)
-                cut = walls.unshear(frm.rgba(self.gf.palette, rotation, frame), face.left, face.top,
+                cut = walls.unshear(frm.rgba(self.gf.palette.glow_tile, rotation, frame), face.left, face.top,
                                     face.slope, face.x_from, face.x_to, face.mask)
                 textures[key] = cut and (self.sprite(cut[0]),) + cut[1:]
             if textures[key] is not None:
@@ -420,7 +420,7 @@ class SceneBuilder:
             for u in range(max(0, int(min(c[0] for c in corners)) - 1), min(100, int(max(c[0] for c in corners)) + 2)):
                 if self.floor_ids[v * 100 + u] == NO_TILE:
                     continue
-                rgba = self.gf.art.load(ids.make_fid(ids.OBJ_TYPE_TILE, int(self.floor_ids[v * 100 + u]))).rgba(self.gf.palette)
+                rgba = self.gf.art.load(ids.make_fid(ids.OBJ_TYPE_TILE, int(self.floor_ids[v * 100 + u]))).rgba(self.gf.palette.glow_tile)
                 x, y = (int(c) for c in proj.ground_to_px(u, v))        # the top corner of the square: the tile's pixel (48, 0)
                 ax, ay, bx, by = max(x - 48, x0), max(y, y0), min(x - 48 + rgba.shape[1], x1), min(y + rgba.shape[0], y1)
                 if ax < bx and ay < by:
@@ -446,7 +446,7 @@ class SceneBuilder:
                     frame = min(max(part.frame, 0), art.frame_count - 1)
                     left, top, _, _ = art.placement(part.rotation, frame, part.x, part.y)
                     x, y = (int(round(c)) for c in proj.hex_px(part.tile))
-                    sprites.append((art.rgba(self.gf.palette, part.rotation, frame), x + left, y + top))
+                    sprites.append((art.rgba(self.gf.palette.glow_sprite, part.rotation, frame), x + left, y + top))
                 form = sets.build(name, proj.hex_px(first[1].tile), self.floor_picture, sprites)
                 if form:
                     self.add_form(*form)
@@ -460,8 +460,8 @@ class SceneBuilder:
         tents (tents.py) and set pieces (sets.py). The game's views keep the map's own pieces."""
         self.forms, self.hidden_walls, self.hidden_roof = [], [], []
         self.build_sets()
-        rgba_of = lambda face: self.gf.art.load(face.art[0]).rgba(self.gf.palette, *face.art[1:])
-        tile_rgba = lambda square: self.gf.art.load(ids.make_fid(ids.OBJ_TYPE_TILE, int(self.roof_ids[square]))).rgba(self.gf.palette)
+        rgba_of = lambda face: self.gf.art.load(face.art[0]).rgba(self.gf.palette.glow_tile, *face.art[1:])
+        tile_rgba = lambda square: self.gf.art.load(ids.make_fid(ids.OBJ_TYPE_TILE, int(self.roof_ids[square]))).rgba(self.gf.palette.glow_tile)
         for squares, far, near, foot in tents.find(cuts, self.roof.reshape(100, 100) != 0, self.is_hide):
             pictures = tents.build(squares, far, near, foot, rgba_of, tile_rgba)
             if pictures:
@@ -477,7 +477,7 @@ class SceneBuilder:
         frame = min(max(obj.frame, 0), frm.frame_count - 1)
         left, top, _, height = frm.placement(obj.rotation, frame, obj.x, obj.y)
         x, y = (int(round(c)) for c in proj.hex_px(obj.tile))
-        piece = props.Piece(obj, frm.frame(obj.rotation, frame).array(), frm.rgba(self.gf.palette, obj.rotation, frame),
+        piece = props.Piece(obj, frm.frame(obj.rotation, frame).array(), frm.rgba(self.gf.palette.glow_sprite, obj.rotation, frame),
                             x + left, y + top, order, self.gf.protos.name(obj.pid), board, sheet)
         piece.stands = top + height > 0                 # else it hangs over its hex: on a wall
         return piece

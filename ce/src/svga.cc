@@ -24,6 +24,7 @@
 #include "scene_renderer/context.h"
 #include "scene_renderer/live_objects.h"
 #include "scene_renderer/picking.h"
+#include "scene_renderer/post.h"
 #include "scene_renderer/scene_draw.h"
 #include "scene_renderer/static_scene.h"
 #include "text_font.h"
@@ -536,7 +537,11 @@ void renderPresent()
             devtools::scenePresented(scene::refreshForPresent());
             const scene::View view = scene::activeView();
             if (view == scene::View::Full) {
+                // With the glow on, the scene renders into its own
+                // framebuffer, which comes back with its bleed added.
+                const bool glow = scene_renderer::beginSceneCapture();
                 scene_renderer::drawStaticHeroPreview();
+                if (glow) scene_renderer::compositeGlow();
                 // A fly camera shows the world alone.
                 if (scene_renderer::staticFlyCameraActive()) {
                     scene_renderer::swap();

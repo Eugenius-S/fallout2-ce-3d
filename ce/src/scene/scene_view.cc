@@ -242,6 +242,8 @@ bool loadScene(View view, const std::string& map, int elevation, std::string* me
         ? std::filesystem::path(devCache)
         : gameRootPath() / "mod-cache" / "scene";
     const std::filesystem::path cacheDirectory = scenes / map / std::to_string(elevation);
+    printf("scene: cache %s\n", cacheDirectory.string().c_str());
+    fflush(stdout);
     std::string error;
     if (!scene_renderer::loadStaticFloor(cacheDirectory, &error)) {
         *message = "floor preview unavailable: " + error;

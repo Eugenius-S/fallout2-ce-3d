@@ -338,7 +338,10 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
             return fail(std::string(textureName) + " decoded byte count is inconsistent");
         }
         for (size_t alphaOffset = 3; alphaOffset < batch.rgba.size(); alphaOffset += 4) {
-            if (batch.rgba[alphaOffset] != 0 && batch.rgba[alphaOffset] != 255) {
+            // The exporter marks the engine's animated colours 254 (they glow)
+            // or 252 (they only glow: tiles and walls); the shader reads it.
+            const unsigned char alpha = batch.rgba[alphaOffset];
+            if (alpha != 0 && alpha != 255 && alpha < 252) {
                 return fail(std::string(textureName) + " alpha is not binary cutout data");
             }
         }

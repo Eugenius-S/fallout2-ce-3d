@@ -45,6 +45,9 @@ param(
     [int]$Solo = -1,
     [string]$OutputDirectory,
     [switch]$CaptureConsole,
+    # -Glow: keep the glow on in this background run (it is forced off by
+    # default, so captures stay byte-stable).
+    [switch]$Glow,
     [ValidateRange(640, 7680)]
     [int]$ScreenWidth = 1920,
     [ValidateRange(480, 4320)]
@@ -85,6 +88,7 @@ $shots = 1
 $runId = [guid]::NewGuid().ToString('N')
 $arguments = @('--dev-tools', "--dev-screen=${ScreenWidth}x${ScreenHeight}", "--dev-scale=$Scale",
     '--dev-new-game', "--dev-map=$Map", "--dev-elevation=$Elevation", "--dev-snapshot-run=$runId")
+if ($Glow) { $arguments += '--dev-glow' }
 if ($Classic) { $arguments += '--dev-classic' }
 elseif (-not $NoPreview) { $arguments += '--dev-hero-preview' }
 if ($PSBoundParameters.ContainsKey('ViewTile')) { $arguments += "--dev-view-tile=$ViewTile" }

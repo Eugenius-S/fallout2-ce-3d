@@ -285,6 +285,8 @@ struct Scene3dSettings {
     bool enabled = true;
     bool lights = true;
     bool sun = true;
+    bool glow = true;
+    double glow_strength = 1.0;
     bool camera_rotation = false;
     double zoom = 1.0;
     double zoom_min = 0.5;

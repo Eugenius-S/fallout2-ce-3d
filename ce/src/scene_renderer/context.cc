@@ -3,6 +3,7 @@
 #include <stdio.h>
 
 #include "gl_api.h"
+#include "post.h"
 #include "scene_internal.h"
 
 namespace fallout {
@@ -88,6 +89,37 @@ void drawQuad(int srcWidth, int srcHeight, int srcPitch, const void* pixels, int
         glTexSubImage2D(kTexture2D, 0, 0, 0, srcWidth, srcHeight, kRGBA, kUnsignedByte, pixels);
         glPixelStorei(kUnpackRowLength, 0);
     }
+
+    float nx = static_cast<float>(windowX + dstX * windowW / gLogicalWidth);
+    float ny = static_cast<float>(windowY + dstY * windowH / gLogicalHeight);
+    float nw = static_cast<float>(dstW * windowW / gLogicalWidth);
+    float nh = static_cast<float>(dstH * windowH / gLogicalHeight);
+
+    float rect[4] = {
+        2.0f * nx / gWindowWidth - 1.0f,
+        2.0f * ny / gWindowHeight - 1.0f,
+        2.0f * nw / gWindowWidth,
+        2.0f * nh / gWindowHeight,
+    };
+    glUseProgram(gProgram);
+    glActiveTexture(kTexture0);
+    glUniform1i(gTextureUniformLocation, 0);
+    glUniform4f(gRectUniformLocation, rect[0], rect[1], rect[2], rect[3]);
+    glBindVertexArray(gVao);
+    glDrawArrays(kTriangles, 0, 6);
+}
+
+void drawTextureQuad(unsigned int texture, int dstX, int dstY, int dstW, int dstH)
+{
+    int windowX;
+    int windowY;
+    int windowW;
+    int windowH;
+    if (!fitRect(gLogicalWidth, gLogicalHeight, gWindowWidth, gWindowHeight, &windowX, &windowY, &windowW, &windowH)) {
+        return;
+    }
+
+    glBindTexture(kTexture2D, texture);
 
     float nx = static_cast<float>(windowX + dstX * windowW / gLogicalWidth);
     float ny = static_cast<float>(windowY + dstY * windowH / gLogicalHeight);
@@ -274,6 +306,7 @@ void shutdown()
             glDeleteProgram(gProgram);
             gProgram = 0;
         }
+        shutdownGlow();
         SDL_GL_DeleteContext(gContext);
         gContext = nullptr;
     }

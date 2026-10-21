@@ -332,6 +332,8 @@ set(FALLOUT_PLATFORM_SOURCES
     "src/scene_renderer/scene_internal.cc"
     "src/scene_renderer/scene_internal.h"
     "src/scene_renderer/scene_shader.cc"
+    "src/scene_renderer/post.cc"
+    "src/scene_renderer/post.h"
     "src/scene_renderer/static_scene.h"
     "src/scene_renderer/walls.cc"
     "src/scene_renderer/ground_pick.cc"

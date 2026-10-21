@@ -93,6 +93,11 @@ uniform vec2 uLightSqu; // ground (u, v) to game pixels
 uniform vec2 uLightSqv;
 uniform vec2 uLightOrigin;
 out vec4 outColor;
+// What a texel shines by itself for the glow (task 022): the colour a
+// full-bright texel keeps, premultiplied by its shown coverage; black
+// elsewhere. Only read when the glow renders the scene into its own
+// framebuffer; with none bound the value is dropped.
+layout(location = 1) out vec4 outEmissive;
 // The hex (column, row) under GL point w, between hex centers. The hex grid's
 // odd columns sit half a step lower; their average place is close enough for light.
 vec2 hexAt(vec3 w) {
@@ -165,11 +170,13 @@ void main() {
     }
     if (uTextured == 0) {
         outColor = uColor;
+        outEmissive = vec4(0.0);
     } else {
         vec4 texel = texture(uTexture, vTexcoord);
         if (texel.a < uCutoff) discard;
         if (uPick != 0) {
             outColor = uColor;
+            outEmissive = vec4(0.0);
         } else if (uTranslucent != 0) {
             // _dark_translucent_trans_buf_to_buf: a texel's gray level (0..7,
             // from its RGB555 colour) mixes the tint over what lies behind, in
@@ -183,11 +190,14 @@ void main() {
             float a = min(gray, 7.0) / 7.0;
             float light = min(floor(sceneLighting().a * 128.0 + 0.0001), 128.0) / 128.0;
             outColor = vec4(uTint * a * light, 1.0 - light * (1.0 - a));
+            outEmissive = vec4(0.0);
         } else {
             outColor = texel;
-            // A sprite's animated colours (alpha 254) stay at full light.
+            // A sprite's animated colours (alpha 254, the exporter's sprite
+            // marker) stay at full light; alpha 252 only glows, the tiles and
+            // walls darken as everything does.
             bool fullBright = abs(texel.a * 255.0 - 254.0) < 0.5;
-            if (fullBright) outColor.a = 1.0;
+            outColor.a = 1.0;
             // _dark_trans_buf_to_buf: the engine darkens a texel by its light in
             // 128 steps, on its 5-bit colour rounded down (setIntensityTableColor).
             vec4 lit = fullBright ? vec4(1.0) : sceneLighting();
@@ -207,6 +217,13 @@ void main() {
                     outColor.a *= m / 128.0;
                 }
             }
+            // What shines by itself: the marked texels (252, 254) always, plus
+            // whatever the lit picture shows bright (a fire, a slime pool
+            // under its own light); the glow blurs this buffer.
+            float mark = texel.a * 255.0;
+            vec3 emission = mark > 251.5 && mark < 254.5 ? texel.rgb * outColor.a : vec3(0.0);
+            vec3 bright = outColor.rgb * smoothstep(0.85, 0.97, max(max(outColor.r, outColor.g), outColor.b));
+            outEmissive = vec4(max(emission, bright), 1.0);
         }
     }
 }

@@ -27,6 +27,10 @@ The eval FRMs that 037 left failing look right from turned views.
   planes; label sheet), car5 (a card), cavbrac1 (a plane edge-on). The drum
   ones come from the far halves 033 added (`tools/scene_export/solids.py`).
 - Wrong kind only: ss122 and ss108 (box with a back), crate1 (a box).
+- 2026-10-21, the owner over 044's check: sstove2 passed the eval as a drum
+  but from behind (180 degrees) shows 12% of what the game view shows
+  (`eval.py check`), so it almost vanishes from the side. Fix it with the
+  rest here.
 
 ## Acceptance
 
