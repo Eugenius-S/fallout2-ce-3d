@@ -110,6 +110,12 @@ void staticWallStats(unsigned int* triangles, unsigned int* pages)
     if (pages != nullptr) *pages = static_cast<unsigned int>(gWallBatches.size());
 }
 
+void staticWallSeeThroughStats(int* markedRows, bool* any)
+{
+    *markedRows = static_cast<int>(std::count(gWallSeeThrough.begin(), gWallSeeThrough.end(), 255));
+    *any = gWallSeeThroughAny;
+}
+
 bool staticObjectBaked(int tile, int fid)
 {
     const auto found = gBakedObjects.find(bakedObjectKey(tile, fid));

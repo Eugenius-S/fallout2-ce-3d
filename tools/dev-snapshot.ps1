@@ -19,6 +19,9 @@
 # Scenes come from build/scene-cache when that folder exists (a worktree
 # exports there with export.py --cache-root build/scene-cache), so a game
 # running from game/ keeps its own mod-cache.
+#
+# F2CE_NO_EGG=1 in the environment hides the hero's see-through circle, so an
+# egg on/off capture pair shows exactly what the circle cuts.
 param(
     [string]$Map = "kladwtwn",
     [int]$Elevation = 0,
@@ -48,6 +51,9 @@ param(
     # -Glow: keep the glow on in this background run (it is forced off by
     # default, so captures stay byte-stable).
     [switch]$Glow,
+    # -Zoom D: the 3D zoom of the snapshots (1 is the game's own size).
+    [ValidateRange(0.25, 4)]
+    [double]$Zoom = -1,
     [ValidateRange(640, 7680)]
     [int]$ScreenWidth = 1920,
     [ValidateRange(480, 4320)]
@@ -89,6 +95,7 @@ $runId = [guid]::NewGuid().ToString('N')
 $arguments = @('--dev-tools', "--dev-screen=${ScreenWidth}x${ScreenHeight}", "--dev-scale=$Scale",
     '--dev-new-game', "--dev-map=$Map", "--dev-elevation=$Elevation", "--dev-snapshot-run=$runId")
 if ($Glow) { $arguments += '--dev-glow' }
+if ($Zoom -gt 0) { $arguments += "--dev-zoom=$Zoom" }
 if ($Classic) { $arguments += '--dev-classic' }
 elseif (-not $NoPreview) { $arguments += '--dev-hero-preview' }
 if ($PSBoundParameters.ContainsKey('ViewTile')) { $arguments += "--dev-view-tile=$ViewTile" }

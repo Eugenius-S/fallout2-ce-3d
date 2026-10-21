@@ -35,6 +35,12 @@ void setStaticRoofVisibility(const unsigned char* visible);
 // top-left corner on screen, in game logical pixels. The mask must stay alive.
 void setStaticEgg(const unsigned char* mask, int width, int height, int left, int top);
 void clearStaticEgg();
+// The egg as the scene shows it now, for the snapshot metadata: false when no
+// egg is shown; else its rect and the shown zoom it is sampled through.
+bool staticEggInfo(int* left, int* top, int* width, int* height, double* zoom);
+// How many walls.bin object rows the game marked see-through this frame, and
+// whether the scene has the see-through wall data at all.
+void staticWallSeeThroughStats(int* markedRows, bool* any);
 // A light-carrying object of the game, lit in the scene as a point light.
 struct StaticPointLight {
     int tile = -1;
