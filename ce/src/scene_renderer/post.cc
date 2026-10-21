@@ -56,10 +56,22 @@ void main() {
 }
 )";
 
+constexpr const char* kBrightPassFragmentShader = R"(#version 330 core
+in vec2 vTexcoord;
+uniform sampler2D uTexture;
+out vec4 outColor;
+void main() {
+    vec3 c = texture(uTexture, vTexcoord).rgb;
+    float k = smoothstep(0.25, 0.55, max(max(c.r, c.g), c.b));
+    outColor = vec4(c * k, 1.0);
+}
+)";
+
 constexpr const char* kBlurFragmentShader = R"(#version 330 core
 in vec2 vTexcoord;
 uniform sampler2D uTexture;
 uniform vec2 uDirection;
+uniform float uBright; // unused by the blur, kept for one shared quad draw
 out vec4 outColor;
 void main() {
     vec3 sum = texture(uTexture, vTexcoord).rgb * 0.227027;
@@ -83,6 +95,7 @@ void main() {
 
 bool gInitialized = false;
 bool gDisabled = false;
+unsigned int gProgramBrightPass = 0;
 unsigned int gProgramBlur = 0;
 unsigned int gProgramAdd = 0;
 unsigned int gQuadVao = 0;
@@ -171,8 +184,8 @@ void destroyTargets()
 }
 
 // Draws a fullscreen quad sampling `texture` with the given program; dx/dy
-// are the blur direction in texels.
-void drawPostQuad(unsigned int texture, unsigned int program, float dx, float dy, float strength)
+// are the blur direction in texels, bright 1.0 or the bright-pass threshold.
+void drawPostQuad(unsigned int texture, unsigned int program, float dx, float dy, float strength, float bright = 1.0f)
 {
     glUseProgram(program);
     glActiveTexture(kTexture0);
@@ -180,6 +193,7 @@ void drawPostQuad(unsigned int texture, unsigned int program, float dx, float dy
     glUniform1i(glGetUniformLocation(program, "uTexture"), 0);
     glUniform2f(glGetUniformLocation(program, "uDirection"), dx, dy);
     glUniform1f(glGetUniformLocation(program, "uStrength"), strength);
+    glUniform1f(glGetUniformLocation(program, "uBright"), bright);
     glBindVertexArray(gQuadVao);
     glDrawArrays(kTriangles, 0, 6);
 }
@@ -193,9 +207,10 @@ bool initGlow(std::string* error)
         return true;
     }
 
+    gProgramBrightPass = makeProgram(kBrightPassFragmentShader);
     gProgramBlur = makeProgram(kBlurFragmentShader);
     gProgramAdd = makeProgram(kAddFragmentShader);
-    if (gProgramBlur == 0 || gProgramAdd == 0) {
+    if (gProgramBrightPass == 0 || gProgramBlur == 0 || gProgramAdd == 0) {
         if (error != nullptr) *error = "the glow programs failed to build";
         return false;
     }
@@ -239,6 +254,7 @@ void setGlowDisabled()
 void shutdownGlow()
 {
     destroyTargets();
+    if (gProgramBrightPass != 0) { glDeleteProgram(gProgramBrightPass); gProgramBrightPass = 0; }
     if (gProgramBlur != 0) { glDeleteProgram(gProgramBlur); gProgramBlur = 0; }
     if (gProgramAdd != 0) { glDeleteProgram(gProgramAdd); gProgramAdd = 0; }
     if (gQuadVbo != 0) { glDeleteBuffers(1, &gQuadVbo); gQuadVbo = 0; }
@@ -314,15 +330,25 @@ void compositeGlow()
     if (!gInitialized || gSceneFbo == 0) return;
 
     // The emissive buffer is the glow's source: blur it wide, horizontal into
-    // B, vertical back into A.
+    // B, vertical back into A, twice for a soft spread.
     int glowWidth = std::max(gTargetsWidth / 4, 1);
     int glowHeight = std::max(gTargetsHeight / 4, 1);
+    // The bright pass keeps only the genuinely bright emission, then two blur
+    // rounds spread it wide.
     glBindFramebuffer(kFramebuffer, gGlowFboB);
     glViewport(0, 0, glowWidth, glowHeight);
-    drawPostQuad(gEmissiveTexture, gProgramBlur, 1.0f / glowWidth, 0.0f, 1.0f);
+    drawPostQuad(gEmissiveTexture, gProgramBrightPass, 0.0f, 0.0f, 1.0f);
     glBindFramebuffer(kFramebuffer, gGlowFboA);
     glViewport(0, 0, glowWidth, glowHeight);
     drawPostQuad(gGlowB, gProgramBlur, 0.0f, 1.0f / glowHeight, 1.0f);
+    for (int pass = 0; pass < 2; pass++) {
+        glBindFramebuffer(kFramebuffer, gGlowFboB);
+        glViewport(0, 0, glowWidth, glowHeight);
+        drawPostQuad(gGlowA, gProgramBlur, 1.0f / glowWidth, 0.0f, 1.0f);
+        glBindFramebuffer(kFramebuffer, gGlowFboA);
+        glViewport(0, 0, glowWidth, glowHeight);
+        drawPostQuad(gGlowB, gProgramBlur, 0.0f, 1.0f / glowHeight, 1.0f);
+    }
 
     // The picture, then its bleed added over it, over the window.
     glBindFramebuffer(kFramebuffer, 0);
@@ -336,18 +362,6 @@ void compositeGlow()
     glBlendFunc(kOne, kOne);
     drawPostQuad(gGlowA, gProgramAdd, 0.0f, 0.0f, static_cast<float>(strength));
     glDisable(kBlend);
-    glBindVertexArray(0);
-    glUseProgram(0);
-}
-
-// A temporary probe: the emissive buffer alone as the whole picture.
-void compositeGlowProbe()
-{
-    glBindFramebuffer(kFramebuffer, 0);
-    glViewport(0, 0, gTargetsWidth, gTargetsHeight);
-    glDisable(kDepthTest);
-    glDisable(kBlend);
-    drawPostQuad(gEmissiveTexture, gProgramAdd, 0.0f, 0.0f, 4.0f);
     glBindVertexArray(0);
     glUseProgram(0);
 }

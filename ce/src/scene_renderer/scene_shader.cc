@@ -193,9 +193,11 @@ void main() {
             outEmissive = vec4(0.0);
         } else {
             outColor = texel;
-            // A sprite's animated colours (alpha 254) stay at full light.
+            // A sprite's animated colours (alpha 254, the exporter's sprite
+            // marker) stay at full light; alpha 252 only glows, the tiles and
+            // walls darken as everything does.
             bool fullBright = abs(texel.a * 255.0 - 254.0) < 0.5;
-            if (fullBright) outColor.a = 1.0;
+            outColor.a = 1.0;
             // _dark_trans_buf_to_buf: the engine darkens a texel by its light in
             // 128 steps, on its 5-bit colour rounded down (setIntensityTableColor).
             vec4 lit = fullBright ? vec4(1.0) : sceneLighting();
@@ -215,7 +217,7 @@ void main() {
                     outColor.a *= m / 128.0;
                 }
             }
-            outEmissive = fullBright ? vec4(texel.rgb * outColor.a, 1.0) : vec4(0.0);
+            outEmissive = texel.a * 255.0 > 251.5 ? vec4(texel.rgb * outColor.a, 1.0) : vec4(0.0);
         }
     }
 }

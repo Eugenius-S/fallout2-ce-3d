@@ -119,7 +119,7 @@ class SceneBuilder:
     def frame_sprite(self, frm, rotation, frame, dx=0, dy=0):
         """Sprite of one FRM frame, offset so that the anchor is the hex centre (+ object x / y)."""
         left, top, _, _ = frm.placement(rotation, frame, dx, dy)
-        return self.sprite(frm.rgba(self.gf.palette, rotation, frame), left, top)
+        return self.sprite(frm.rgba(self.gf.palette.glow_sprite, rotation, frame), left, top)
 
     def load_art(self, obj):
         try:
@@ -159,7 +159,7 @@ class SceneBuilder:
         self.clipped_tiles = []
         for n, tile_id in enumerate(used):
             frm = self.gf.art.load(ids.make_fid(ids.OBJ_TYPE_TILE, tile_id))
-            rgba = frm.rgba(self.gf.palette)
+            rgba = frm.rgba(self.gf.palette.glow_tile)
             h, w = rgba.shape[:2]
             inside = (src_x >= 0) & (src_x < w) & (src_y >= 0) & (src_y < h)
             texture = np.zeros((cell, cell, 4), np.uint8)
@@ -333,7 +333,7 @@ class SceneBuilder:
         left, top, _, _ = frm.placement(obj.rotation, frame, obj.x, obj.y)
         shadow = light.painted_shadow(frm.frame(obj.rotation, frame).array(), top)
         if shadow is not None:
-            rgba = frm.rgba(self.gf.palette, obj.rotation, frame)
+            rgba = frm.rgba(self.gf.palette.glow_sprite, obj.rotation, frame)
             parts = [self.cropped(rgba * keep[..., None], left, top) for keep in (~shadow, shadow)]
             if None not in parts:
                 self.shadows.append([len(self.boards) - 1] + parts)
@@ -376,7 +376,7 @@ class SceneBuilder:
             key = face.art + (face.slope, face.x_from, face.x_to, shown)
             if key not in textures:
                 frm = self.gf.art.load(fid)
-                cut = walls.unshear(frm.rgba(self.gf.palette, rotation, frame), face.left, face.top,
+                cut = walls.unshear(frm.rgba(self.gf.palette.glow_tile, rotation, frame), face.left, face.top,
                                     face.slope, face.x_from, face.x_to, face.mask)
                 textures[key] = cut and (self.sprite(cut[0]),) + cut[1:]
             if textures[key] is not None:

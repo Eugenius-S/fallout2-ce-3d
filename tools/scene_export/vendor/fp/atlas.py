@@ -14,19 +14,18 @@ MAX_HEIGHT = 4096       # phones: no page larger than 4096 in either direction
 
 
 def save_png(path, rgba):
-    """Write an RGBA image premultiplied and as small as PNG gets; returns the file size.
+    """Write an RGBA image with black transparent texels, as small as PNG gets; returns the file size.
 
     The game's art has at most 255 colours and on / off alpha, so the file is a
     palette image with one transparent entry, a third of the size of 32-bit
-    RGBA. Premultiplied means for such art: transparent pixels are black. The
-    viewer filters these textures as premultiplied colour (render.js), so
-    nothing has to be grown into the transparent surroundings of a sprite to
-    keep its edges clean.
+    RGBA. Transparent pixels are black, which keeps the sprite edges clean;
+    partial alphas (the glow markers 252 and 254) keep their colour: the
+    renderer reads these textures as straight alpha.
     """
     rgba = np.ascontiguousarray(rgba, dtype=np.uint8).copy()
-    rgba[..., :3] = (rgba[..., :3].astype(np.uint16) * rgba[..., 3:] + 127) // 255
+    rgba[..., :3] = np.where(rgba[..., 3:] == 0, 0, rgba[..., :3])
     colours, index = np.unique(rgba.view(np.uint32), return_inverse=True)    # alpha is the top byte: transparent = 0 sorts first
-    if len(colours) <= 256 and np.isin(colours >> 24, (0, 255)).all():
+    if len(colours) <= 256 and np.isin(colours >> 24, (0, 255, 252, 254)).all():
         image = Image.fromarray(index.reshape(rgba.shape[:2]).astype(np.uint8))
         image.putpalette(colours.view(np.uint8).reshape(-1, 4)[:, :3].tobytes())
         image.save(path, optimize=True, **({"transparency": 0} if colours[0] == 0 else {}))

@@ -27,8 +27,6 @@ bool beginSceneCapture();
 // Blurs the emissive buffer and composites the scene and the glow over the
 // window.
 void compositeGlow();
-// Temporary probe: the emissive blur alone as the whole picture.
-void compositeGlowProbe();
 
 } // namespace scene_renderer
 } // namespace fallout

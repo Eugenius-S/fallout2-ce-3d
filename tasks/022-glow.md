@@ -106,3 +106,28 @@ drawStaticHeroPreview and compositeGlow in its place, [3d] glow and
 glow_strength in settings, then the plan's steps (4) and (5).
 Check: git show task/022-glow; the draft compiles standalone once added to
 CMakeLists (not verified yet).
+
+### 2026-10-21 glm
+Done: the glow. The scene renders into an offscreen framebuffer with a second
+attachment for what its texels shine by themselves; the bright parts of that
+buffer (a threshold at the strongest channel 0.25 to 0.55, chosen so dim wall
+tint stays out) blur wide at a quarter of the window and add back over the
+picture (ce/src/scene_renderer/post.cc, scene_shader.cc writes the emissive
+output). `[3d] glow` (default on) and `[3d] glow_strength` (1.0) with menu
+labels; on any failure it logs and renders without glow; background test runs
+force it off, `dev-snapshot -Glow` (`--dev-glow`) keeps it on for a shot.
+What marks the emission: the engine's animated palette colours. Live sprites
+already carried alpha 254 (task 020); the exporter now marks baked textures
+too, and the 2D game decided where the engine's own rule draws the line:
+object sprites (fire, slime decals, the sofa's plaid) stay at full light in
+the dark (alpha 254: lit and glowing), floor and wall texels darken as
+everything does (alpha 252: glowing only), the shoreline does not glow at
+all. Evidence: the tox cave's slime pools now shine as the 2D picture does
+(runs/022-glow/klatoxcv-e1-slime-before.png | after, slime-glow | slime-plain
+for the bleed); klatoxcv-e1's reference was retaken for it. Energy bolts need
+no new mask entries: plasmab.frm draws with palette indices 232-239, inside
+the marked ranges (the game data has no laser beam FRM at all).
+Check: build, ctest 11/11, regression 16/16 with 0 changed pixels (klatoxcv-e1
+after the retake). The reference retake and the walls.bin alpha semantics
+(0/255 plus the 252 and 254 markers) are mine not being able to review:
+reviewed stays no.

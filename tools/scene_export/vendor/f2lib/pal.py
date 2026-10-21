@@ -22,6 +22,13 @@ ALARM_INDEX = 254                 # red ramps 0..240, shown here at full brightn
 FIRST_ANIMATED = 229
 
 
+class _RgbaView:
+    """A palette variant: only `.rgba` differs, `frm.rgba(view)` reads it."""
+
+    def __init__(self, rgba):
+        self.rgba = rgba
+
+
 class Palette:
     """Palette with numpy views.
 
@@ -45,6 +52,22 @@ class Palette:
             self.rgb[ALARM_INDEX] = (240, 0, 0)
         self.rgba = np.concatenate([self.rgb, np.full((256, 1), 255, np.uint8)], axis=1)
         self.rgba[0] = 0
+        # Task 022: the animated colours mark themselves for the scene shader
+        # in the baked textures too. Floor and wall texels only glow (alpha
+        # 252): the engine darkens tiles and walls whatever their colour. The
+        # object sprites keep the sprites' own rule (scene_objects.cc
+        # spriteAlpha): alpha 254, full light plus glow. The shoreline glows
+        # nowhere, and only a sprite stays lit there.
+        glow = np.arange(256, dtype=np.uint8)
+        glow_indices = (glow >= FIRST_ANIMATED) & (glow <= 247) | (glow == ALARM_INDEX)
+        tile_alpha = np.full(256, 255, np.uint8)
+        tile_alpha[0] = 0
+        tile_alpha[glow_indices] = 252
+        sprite_alpha = np.full(256, 255, np.uint8)
+        sprite_alpha[FIRST_ANIMATED:] = 254
+        sprite_alpha[0] = 0
+        self.glow_tile = _RgbaView(np.concatenate([self.rgb, tile_alpha[:, None]], axis=1))
+        self.glow_sprite = _RgbaView(np.concatenate([self.rgb, sprite_alpha[:, None]], axis=1))
         self.static = mapped.copy()
         self.static[0] = False
         self.static[FIRST_ANIMATED:] = False
