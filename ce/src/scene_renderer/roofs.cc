@@ -126,11 +126,22 @@ bool bindEgg(int viewportX, int viewportY, int viewportWidth, int viewportHeight
 {
     // The egg is a place on the game's screen: a fly camera has none.
     if (!gEggShown || gEggTexture == 0 || staticFlyCameraActive()) return false;
+    // The zoom shows the game's own picture scaled around the screen center,
+    // and the egg belongs to that picture: its rect scales with the shown
+    // zoom around the mask's sprite anchor (half across, one pixel up from
+    // the bottom, the point updateRoofsFromGame projected), so the circle
+    // keeps the hero's on-screen size at any zoom.
+    double zoom = 1.0;
+    GameView view;
+    if (currentGameView(&view) && view.zoom > 0.01) zoom = view.zoom;
+    const float zx = static_cast<float>(static_cast<double>(gEggWidth) * zoom);
+    const float zy = static_cast<float>(static_cast<double>(gEggHeight) * zoom);
+    const float anchorX = static_cast<float>(gEggLeft) + static_cast<float>(gEggWidth) * 0.5f;
+    const float anchorY = static_cast<float>(gEggTop) + static_cast<float>(gEggHeight) - 1.0f;
     glActiveTexture(kTexture0 + 1);
     glBindTexture(kTexture2D, gEggTexture);
     glUniform1i(gSceneEggMaskLocation, 1);
-    glUniform4f(gSceneEggRectLocation, static_cast<float>(gEggLeft), static_cast<float>(gEggTop),
-        static_cast<float>(gEggWidth), static_cast<float>(gEggHeight));
+    glUniform4f(gSceneEggRectLocation, anchorX - zx * 0.5f, anchorY - (zy - 1.0f), zx, zy);
     glUniform4f(gSceneViewportLocation, static_cast<float>(viewportX), static_cast<float>(viewportY),
         static_cast<float>(viewportWidth), static_cast<float>(viewportHeight));
     glUniform2f(gSceneLogicalLocation, static_cast<float>(gLogicalWidth), static_cast<float>(gLogicalHeight));
@@ -150,7 +161,9 @@ void setStaticRoofVisibility(const unsigned char* visible)
 
 void setStaticEgg(const unsigned char* mask, int width, int height, int left, int top)
 {
-    if (!gInitialized || mask == nullptr || width <= 0 || height <= 0) {
+    // F2CE_NO_EGG: a test switch, the egg off for an egg on/off capture pair.
+    if (!gInitialized || mask == nullptr || width <= 0 || height <= 0
+        || SDL_getenv("F2CE_NO_EGG") != nullptr) {
         gEggShown = false;
         return;
     }
@@ -177,6 +190,18 @@ void setStaticEgg(const unsigned char* mask, int width, int height, int left, in
 void clearStaticEgg()
 {
     gEggShown = false;
+}
+
+bool staticEggInfo(int* left, int* top, int* width, int* height, double* zoom)
+{
+    if (!gEggShown) return false;
+    *left = gEggLeft;
+    *top = gEggTop;
+    *width = gEggWidth;
+    *height = gEggHeight;
+    GameView view;
+    *zoom = currentGameView(&view) && view.zoom > 0.01 ? view.zoom : 1.0;
+    return true;
 }
 
 } // namespace scene_renderer

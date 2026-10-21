@@ -108,6 +108,7 @@ int gTourStep = -1;
 int gTourFrames = 0;
 bool gStillSnapshot = false;
 bool gBackgroundGlow = false;
+double gDevZoom = -1.0; // --dev-zoom=D: the background run's 3D zoom (default 1)
 int gDevAmbient = -1; // --dev-ambient: the map's ambient light held there (night views)
 bool gDevFly = false; // --dev-fly: the fly camera takes off at the first 3D frame (snapshots)
 // --dev-fly-turn=D, --dev-fly-pitch=D, --dev-fly-distance=U: then it circles
@@ -736,6 +737,11 @@ bool parseOption(const char* arg)
         gDevAmbient = static_cast<int>(std::clamp(strtol(arg + strlen(ambientPrefix), nullptr, 10), 0L, 65536L));
         return true;
     }
+    const char* zoomPrefix = "--dev-zoom=";
+    if (strncmp(arg, zoomPrefix, strlen(zoomPrefix)) == 0) {
+        gDevZoom = std::clamp(strtod(arg + strlen(zoomPrefix), nullptr), 0.25, 4.0);
+        return true;
+    }
     const char* heroPrefix = "--dev-hero-tile=";
     if (strncmp(arg, heroPrefix, strlen(heroPrefix)) == 0) {
         const long tile = strtol(arg + strlen(heroPrefix), nullptr, 10);
@@ -890,6 +896,14 @@ void applyFixedScreenOptions()
 void applyBackgroundGlow()
 {
     if (backgroundCaptureActive()) settings.scene3d.glow = gBackgroundGlow;
+}
+
+// Runs after the command line is parsed (applyFixedScreenOptions is earlier),
+// so --dev-zoom reaches the scene: a background run is pinned to zoom 1
+// unless the dev argument names another one.
+void applyBackgroundZoom()
+{
+    if (backgroundCaptureActive() && gDevZoom > 0.0) settings.scene3d.zoom = gDevZoom;
 }
 
 bool isEnabled()
@@ -1171,6 +1185,11 @@ void update()
         if (gHeroTile >= 0) {
             // The engine's own move: roofs over the hero hide as when walking in.
             objectSetLocation(gDude, gHeroTile, gElevation, nullptr);
+            // The move is instant: the egg carries no leftover scroll shift,
+            // its mask stays glued to the hero's hex (as after a settled
+            // scroll; the shift would displace it by the old scroll delta).
+            gEgg->x = 0;
+            gEgg->y = 0;
             gHeroTile = -1;
         }
         if (gViewTile >= 0 && !gViewTileApplied) {
@@ -2200,6 +2219,22 @@ bool takeSnapshot()
     } else {
         snprintf(heroMetadata, sizeof(heroMetadata), "null");
     }
+    int eggLeft = 0, eggTop = 0, eggWidth = 0, eggHeight = 0;
+    double eggZoom = 1.0;
+    const bool haveEgg = scene_renderer::staticEggInfo(&eggLeft, &eggTop, &eggWidth, &eggHeight, &eggZoom);
+    int wallSeeThroughRows = 0;
+    bool wallSeeThroughAny = false;
+    scene_renderer::staticWallSeeThroughStats(&wallSeeThroughRows, &wallSeeThroughAny);
+    char eggMetadata[256];
+    if (haveEgg) {
+        snprintf(eggMetadata, sizeof(eggMetadata),
+            "{\"shown\":true,\"rect\":[%d,%d,%d,%d],\"zoom\":%.4f,\"wall_rows_marked\":%d,\"wall_rows_any\":%s}",
+            eggLeft, eggTop, eggWidth, eggHeight, eggZoom, wallSeeThroughRows, wallSeeThroughAny ? "true" : "false");
+    } else {
+        snprintf(eggMetadata, sizeof(eggMetadata),
+            "{\"shown\":false,\"wall_rows_marked\":%d,\"wall_rows_any\":%s}",
+            wallSeeThroughRows, wallSeeThroughAny ? "true" : "false");
+    }
     const scene_renderer::MapClip mapClip = scene_renderer::staticMapClip();
     const char* clipSource = mapClip.source == scene_renderer::MapClipSource::Authored ? "authored"
         : mapClip.source == scene_renderer::MapClipSource::Floor ? "floor"
@@ -2266,6 +2301,7 @@ bool takeSnapshot()
         "  \"wall_triangles\": %u,\n"
         "  \"wall_pages\": %u,\n"
         "  \"hero\": %s,\n"
+        "  \"egg\": %s,\n"
         "  \"objects\": {\"drawn\":%u,\"skipped\":%u},\n"
         "  \"preview_availability\": \"%s\",\n"
         "  \"renderer\": \"%s\",\n"
@@ -2299,6 +2335,7 @@ bool takeSnapshot()
         wallTriangles,
         wallPages,
         heroMetadata,
+        eggMetadata,
         heroPreview ? scene_renderer::staticObjectCount() : 0u,
         heroPreview ? scene::objectCardsSkipped() : 0u,
         previewRequested ? (scene_renderer::isActive() ? scene::availability() : "renderer-inactive") : "not-requested",

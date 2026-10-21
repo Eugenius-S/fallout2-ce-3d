@@ -39,8 +39,10 @@ bool fixedScreenOptionsEnabled();
 bool backgroundCaptureActive();
 void applyFixedScreenOptions();
 // The command line is parsed after the fixed options apply (main.cc), so a
-// background run re-applies the glow switch once the flags are known.
+// background run re-applies the glow switch and the zoom once the flags are
+// known.
 void applyBackgroundGlow();
+void applyBackgroundZoom();
 
 bool isEnabled();
 bool wantsListMaps();
