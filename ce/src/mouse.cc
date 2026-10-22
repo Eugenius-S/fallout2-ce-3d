@@ -14,6 +14,7 @@
 #include "svga.h"
 #include "touch.h"
 #include "window_manager.h"
+#include "scene/text_capture.h"
 
 namespace fallout {
 
@@ -790,6 +791,21 @@ int mouseGetEvent()
 bool cursorIsHidden()
 {
     return gCursorIsHidden;
+}
+
+bool textCaptureGetCursorSnapshot(TextCursorSnapshot* snapshot)
+{
+    if (snapshot == nullptr) return false;
+    snapshot->pixels = _mouse_shape;
+    snapshot->width = gMouseCursorWidth;
+    snapshot->height = gMouseCursorHeight;
+    snapshot->pitch = gMouseCursorPitch;
+    snapshot->x = gMouseCursorX;
+    snapshot->y = gMouseCursorY;
+    snapshot->transparentIndex = static_cast<unsigned char>(_mouse_trans);
+    snapshot->visible = gMouseInitialized && !gCursorIsHidden && _mouse_shape != nullptr
+        && gMouseCursorWidth > 0 && gMouseCursorHeight > 0 && gMouseCursorPitch >= gMouseCursorWidth;
+    return true;
 }
 
 // 0x4CAB5C

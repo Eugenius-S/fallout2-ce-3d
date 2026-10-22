@@ -58,9 +58,22 @@ struct TextPixelCoverage {
     unsigned char expected = 0;
 };
 
+struct TextVisibilityMask {
+    TextRect bounds;
+    std::vector<unsigned char> pixels;
+
+    bool visibleAt(int x, int y) const
+    {
+        if (x < bounds.x || y < bounds.y || x >= bounds.x + bounds.width || y >= bounds.y + bounds.height) return false;
+        return pixels[static_cast<std::size_t>(y - bounds.y) * bounds.width + (x - bounds.x)] != 0;
+    }
+};
+
 struct TextRecord {
     TextBufferId buffer = 0;
     bool orphan = false;
+    int ownerWindow = -1;
+    TextBufferId ownerGeneration = 0;
     TextRunInfo run;
     TextRect bounds;
     // Per-game-pixel clip for the modern glyph. It covers the captured text
@@ -73,6 +86,8 @@ struct TextRestorePixel {
     int x = 0;
     int y = 0;
     unsigned char paletteIndex = 0;
+    int ownerWindow = -1;
+    TextBufferId ownerGeneration = 0;
 };
 
 // CPU-only capture, copy tracking, invalidation, and restoration bookkeeping.
@@ -82,7 +97,8 @@ public:
     explicit TextLayer(std::size_t recordLimit = 4096);
 
     bool capture(TextBufferId buffer, bool orphan, const TextRunInfo& run,
-        TextRect bounds, TextPixels before, TextPixels after);
+        TextRect bounds, TextPixels before, TextPixels after,
+        int ownerWindow = -1, TextBufferId ownerGeneration = 0);
 
     // Call after a blit with a snapshot of the source at blit time and the
     // destination values just before and after it. The rectangle maps
@@ -91,10 +107,12 @@ public:
     void copy(TextBufferId source, TextBufferId destination, bool destinationOrphan,
         TextRect sourceRect, int destinationX, int destinationY,
         bool transparent, unsigned char transparentIndex,
-        TextPixels sourceSnapshot, TextPixels destinationBefore, TextPixels destinationAfter);
+        TextPixels sourceSnapshot, TextPixels destinationBefore, TextPixels destinationAfter,
+        int destinationOwnerWindow = -1, TextBufferId destinationOwnerGeneration = 0);
 
     // Drop every record for a dead buffer generation.
     void eraseBuffer(TextBufferId buffer);
+    void eraseOwner(int window, TextBufferId generation);
 
     // Validate records against the live buffer and return only pixels which
     // still contain their recorded text. Orphan records are never presented.

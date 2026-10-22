@@ -1,5 +1,7 @@
 #include "stb_truetype.h"
 #include "embedded_fonts.h"
+#include "scene_renderer/text_draw.h"
+#include "color.h"
 
 #include <algorithm>
 #include <cstddef>
@@ -38,6 +40,152 @@ int main()
     if (semiBold.data == bold.data || unknown.data != nullptr || unknown.size != 0
         || !checkFont(semiBold.data, semiBold.size) || !checkFont(bold.data, bold.size)) {
         std::fprintf(stderr, "Embedded font initialization, glyph lookup or rasterization failed\n");
+        return 1;
+    }
+    fallout::scene::TextRecord record;
+    record.run.text = std::string("\xA8 \xC6", 3); // CP1251: Yo, space, Zhe.
+    record.run.font = 103;
+    record.run.colorAndFlags = 255;
+    record.run.x = 2;
+    record.run.y = 2;
+    record.run.lineHeight = 18;
+    stbtt_fontinfo boldInfo = {};
+    stbtt_InitFont(&boldInfo, bold.data, 0);
+    int capMinY = 0, capTop = 0, descBottom = 0, descMaxY = 0;
+    stbtt_GetCodepointBox(&boldInfo, 'H', nullptr, &capMinY, nullptr, &capTop);
+    stbtt_GetCodepointBox(&boldInfo, 'g', nullptr, &descBottom, nullptr, &descMaxY);
+    const double scale = 18.0 / (capTop - descBottom);
+    int firstAdvance = 0, spaceAdvance = 0, lastAdvance = 0, bearing = 0;
+    stbtt_GetCodepointHMetrics(&boldInfo, 0x0401, &firstAdvance, &bearing);
+    stbtt_GetCodepointHMetrics(&boldInfo, ' ', &spaceAdvance, &bearing);
+    stbtt_GetCodepointHMetrics(&boldInfo, 0x0416, &lastAdvance, &bearing);
+    record.run.width = static_cast<int>(std::ceil((firstAdvance + spaceAdvance + lastAdvance) * scale)) + 8;
+    record.run.characterX = { 2, 15, 28 };
+    std::vector<fallout::scene::TextVisibilityMask> visibility(1);
+    visibility[0].bounds = { 0, 0, 256, 32 };
+    visibility[0].pixels.assign(256 * 32, 1);
+    unsigned char palette[256 * 3] = {};
+    palette[255 * 3] = 255;
+    palette[255 * 3 + 1] = 255;
+    palette[255 * 3 + 2] = 255;
+    SharpTextSurface surface;
+    if (!renderSharpText({ record }, 256, 32, 512, 64, palette, 256, visibility, &surface)
+        || std::none_of(surface.pixels.begin(), surface.pixels.end(), [](unsigned char value) { return value != 0; })) {
+        std::fprintf(stderr, "CP1251 sharp text did not rasterize\n");
+        return 1;
+    }
+    bool adjacentCoverage = false;
+    int rightmost = -1;
+    for (int y = 0; y < surface.height; ++y) {
+        for (int x = 0; x < surface.width; ++x) {
+            const unsigned char* pixel = surface.pixels.data() + (static_cast<size_t>(y) * surface.width + x) * 4;
+            if (pixel[3] != 0) {
+                rightmost = std::max(rightmost, x);
+                if ((x + 1 < surface.width && pixel[3] != 0 && pixel[7] != 0)
+                    || (y + 1 < surface.height && pixel[3] != 0
+                        && surface.pixels[(static_cast<size_t>(y + 1) * surface.width + x) * 4 + 3] != 0)) {
+                    adjacentCoverage = true;
+                }
+            }
+        }
+    }
+    if (!adjacentCoverage) {
+        std::fprintf(stderr, "Physical glyph bitmap has no adjacent covered pixels\n");
+        return 1;
+    }
+    fallout::scene::TextRecord noSpace = record;
+    noSpace.run.text = std::string("\xA8\xC6", 2);
+    noSpace.run.characterX = { 2, 15 };
+    if (!renderSharpText({ noSpace }, 256, 32, 512, 64, palette, 256, visibility, &surface)) return 1;
+    int noSpaceRightmost = -1;
+    for (int x = 0; x < surface.width; ++x) {
+        for (int y = 0; y < surface.height; ++y) {
+            if (surface.pixels[(static_cast<size_t>(y) * surface.width + x) * 4 + 3] != 0) noSpaceRightmost = x;
+        }
+    }
+    if (rightmost <= noSpaceRightmost) {
+        std::fprintf(stderr, "Space did not advance the next glyph (%d <= %d)\n", rightmost, noSpaceRightmost);
+        return 1;
+    }
+    for (size_t index = 0; index < surface.pixels.size(); index += 4) {
+        if (surface.pixels[index + 3] != 0) {
+            const size_t pixel = index / 4;
+            const int px = static_cast<int>(pixel % surface.width);
+            const int py = static_cast<int>(pixel / surface.width);
+            std::fill(visibility[0].pixels.begin(), visibility[0].pixels.end(), 1);
+            visibility[0].pixels[static_cast<size_t>(py / 2) * 256 + px / 2] = 0;
+            if (!renderSharpText({ record }, 256, 32, 512, 64, palette, 256, visibility, &surface)
+                || surface.pixels[index + 3] != 0) {
+                std::fprintf(stderr, "Per-record mask failed to clip a physical glyph pixel\n");
+                return 1;
+            }
+            break;
+        }
+    }
+    record.run.font = 103;
+    std::fill(visibility[0].pixels.begin(), visibility[0].pixels.end(), 1);
+    if (!renderSharpText({ record }, 256, 32, 512, 64, palette, 256, visibility, &surface)) {
+        std::fprintf(stderr, "Font 103 did not rasterize\n");
+        return 1;
+    }
+    const std::vector<unsigned char> font103Pixels = surface.pixels;
+    record.run.font = 104;
+    if (!renderSharpText({ record }, 256, 32, 512, 64, palette, 256, visibility, &surface)
+        || surface.pixels != font103Pixels) {
+        std::fprintf(stderr, "Fonts 103 and 104 do not share the bold face\n");
+        return 1;
+    }
+    record.run.font = 101;
+    if (!renderSharpText({ record }, 256, 32, 512, 64, palette, 256, visibility, &surface)
+        || surface.pixels == font103Pixels) {
+        std::fprintf(stderr, "Regular font unexpectedly uses the bold face\n");
+        return 1;
+    }
+
+    fallout::scene::TextRecord fitRecord = record;
+    fitRecord.run.text = "Hg";
+    fitRecord.run.x = 4;
+    fitRecord.run.y = 2;
+    fitRecord.run.width = 40;
+    fitRecord.run.lineHeight = 18;
+    fitRecord.run.colorAndFlags = 255;
+    if (!renderSharpText({ fitRecord }, 256, 32, 512, 64, palette, 256, visibility, &surface)) return 1;
+    int top = surface.height;
+    int bottom = -1;
+    for (int y = 0; y < surface.height; ++y) {
+        for (int x = 0; x < surface.width; ++x) {
+            if (surface.pixels[(static_cast<size_t>(y) * surface.width + x) * 4 + 3] != 0) {
+                top = std::min(top, y);
+                bottom = std::max(bottom, y);
+            }
+        }
+    }
+    if (top < 3 || top > 7 || bottom < 36 || bottom > 41) {
+        std::fprintf(stderr, "Cap-to-descender fit is outside the logical line: %d..%d\n", top, bottom);
+        return 1;
+    }
+
+    const std::vector<unsigned char> foregroundPixels = surface.pixels;
+    fitRecord.run.colorAndFlags = static_cast<unsigned int>(255 | fallout::DRAW_TEXT_FLAG_SHADOWED);
+    if (!renderSharpText({ fitRecord }, 256, 32, 512, 64, palette, 256, visibility, &surface)) return 1;
+    bool checkedOpaqueForeground = false;
+    for (size_t index = 0; index < surface.pixels.size(); index += 4) {
+        if (foregroundPixels[index + 3] == 255) {
+            checkedOpaqueForeground = true;
+            if (surface.pixels[index] != 255 || surface.pixels[index + 1] != 255 || surface.pixels[index + 2] != 255) {
+                std::fprintf(stderr, "Shadow pass darkened a fully covered foreground pixel\n");
+                return 1;
+            }
+        }
+    }
+    if (!checkedOpaqueForeground) {
+        std::fprintf(stderr, "Shadow test found no fully covered foreground pixel\n");
+        return 1;
+    }
+    std::fill(visibility[0].pixels.begin(), visibility[0].pixels.end(), 0);
+    if (!renderSharpText({ record }, 256, 32, 512, 64, palette, 256, visibility, &surface)
+        || std::any_of(surface.pixels.begin(), surface.pixels.end(), [](unsigned char value) { return value != 0; })) {
+        std::fprintf(stderr, "Sharp text escaped the visibility mask\n");
         return 1;
     }
     std::printf("Both embedded fonts load; all 30 required glyphs rasterize\n");

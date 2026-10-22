@@ -13,12 +13,41 @@ namespace fallout {
 using TextPixelCopyProc = void(unsigned char* destination, int destinationPitch,
     const unsigned char* source, int sourcePitch, int width, int height);
 
+struct TextWindowSnapshot {
+    int id = -1;
+    int x = 0;
+    int y = 0;
+    int width = 0;
+    int height = 0;
+    int pitch = 0;
+    bool hidden = false;
+    bool transparent = false;
+    const unsigned char* pixels = nullptr;
+    scene::TextBufferId generation = 0;
+};
+
+struct TextCursorSnapshot {
+    int x = 0;
+    int y = 0;
+    int width = 0;
+    int height = 0;
+    int pitch = 0;
+    bool visible = false;
+    unsigned char transparentIndex = 0;
+    const unsigned char* pixels = nullptr;
+};
+
+bool textCaptureGetWindowSnapshot(int index, TextWindowSnapshot* snapshot, int* count);
+bool textCaptureGetCursorSnapshot(TextCursorSnapshot* snapshot);
+
 void textCaptureAllocationCreated(void* buffer, std::size_t size);
 void textCaptureAllocationDestroyed(void* buffer);
 void textCaptureAllocationResized(void* oldBuffer, void* newBuffer, std::size_t newSize);
 void textCaptureRegisterExternalBuffer(void* buffer, std::size_t size, int width, int height, int pitch, bool orphan);
 void textCaptureUnregisterExternalBuffer(void* buffer);
 void textCaptureMarkBufferOwned(void* buffer);
+void textCaptureMarkWindowBuffer(void* buffer, int window);
+void textCaptureForgetWindow(int window, void* buffer);
 scene::TextBufferId textCaptureBufferId(const void* buffer);
 void textCaptureDrawText(unsigned char* buffer, const char* string, int length, int pitch, ColorWithFlags color);
 void textCaptureCopy(const unsigned char* source, int width, int height, int sourcePitch,
@@ -27,6 +56,7 @@ void textCaptureCopy(const unsigned char* source, int width, int height, int sou
 namespace scene {
 const std::vector<TextRecord> textCaptureRecords(TextBufferId buffer);
 std::vector<TextRestorePixel> textCaptureRestoration(TextBufferId buffer);
+bool textCaptureVisibilityMask(const TextRecord& record, int width, int height, TextVisibilityMask* mask);
 }
 
 } // namespace fallout

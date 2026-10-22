@@ -10,6 +10,13 @@
 
 #include "../text_font.h"
 
+#ifdef min
+#undef min
+#endif
+#ifdef max
+#undef max
+#endif
+
 namespace fallout {
 namespace {
 
@@ -23,6 +30,7 @@ struct BufferRange {
     bool orphan = true;
     bool allocated = false;
     int externalReferences = 0;
+    int ownerWindow = -1;
 };
 
 struct PixelSnapshot {
@@ -232,8 +240,13 @@ void textCaptureAllocationResized(void* oldBuffer, void* newBuffer, std::size_t 
     } else if (newSize == 0) {
         textCaptureAllocationDestroyed(oldBuffer);
     } else if (newBuffer != nullptr) {
+        int ownerWindow = -1;
+        const auto old = ranges().find(reinterpret_cast<std::uintptr_t>(oldBuffer));
+        if (old != ranges().end()) ownerWindow = old->second.ownerWindow;
         textCaptureAllocationDestroyed(oldBuffer);
         textCaptureAllocationCreated(newBuffer, newSize);
+        const auto replacement = ranges().find(reinterpret_cast<std::uintptr_t>(newBuffer));
+        if (replacement != ranges().end()) replacement->second.ownerWindow = ownerWindow;
     }
 }
 
@@ -293,6 +306,24 @@ void textCaptureMarkBufferOwned(void* buffer)
 {
     std::lock_guard<std::recursive_mutex> lock(captureMutex());
     if (BufferRange* range = findRange(buffer)) range->orphan = false;
+}
+
+void textCaptureMarkWindowBuffer(void* buffer, int window)
+{
+    std::lock_guard<std::recursive_mutex> lock(captureMutex());
+    if (BufferRange* range = findRange(buffer)) {
+        range->orphan = false;
+        range->ownerWindow = window;
+    }
+}
+
+void textCaptureForgetWindow(int window, void* buffer)
+{
+    std::lock_guard<std::recursive_mutex> lock(captureMutex());
+    if (BufferRange* range = findRange(buffer)) {
+        layer().eraseOwner(window, range->id);
+        range->ownerWindow = -1;
+    }
 }
 
 scene::TextBufferId textCaptureBufferId(const void* buffer)
@@ -357,7 +388,8 @@ void textCaptureDrawText(unsigned char* buffer, const char* string, int length, 
     for (int offset : characterOffsets) run.characterX.push_back(x + offset);
     run.characterCellX.reserve(cellOffsets.size());
     for (int offset : cellOffsets) run.characterCellX.push_back(x + offset);
-    layer().capture(range->id, range->orphan, run, clipped, before.view, after.view);
+    layer().capture(range->id, range->orphan, run, clipped, before.view, after.view,
+        range->ownerWindow, range->ownerWindow >= 0 ? range->id : 0);
 }
 
 void textCaptureCopy(const unsigned char* source, int width, int height, int sourcePitch,
@@ -400,7 +432,9 @@ void textCaptureCopy(const unsigned char* source, int width, int height, int sou
     PixelSnapshot destinationAfter = snapshot(*destinationRange, destinationRect);
     layer().copy(sourceRange->id, destinationRange->id, destinationRange->orphan,
         sourceRect, destinationX, destinationY, transparent, 0,
-        sourceSnapshot.view, destinationBefore.view, destinationAfter.view);
+        sourceSnapshot.view, destinationBefore.view, destinationAfter.view,
+        destinationRange->ownerWindow,
+        destinationRange->ownerWindow >= 0 ? destinationRange->id : 0);
 }
 
 namespace scene {
@@ -425,6 +459,119 @@ std::vector<TextRestorePixel> textCaptureRestoration(TextBufferId buffer)
         return layer().restorationPixels(buffer, { pixels, range.width, range.height, range.pitch });
     }
     return {};
+}
+
+bool textCaptureVisibilityMask(const TextRecord& record, int width, int height, TextVisibilityMask* mask)
+{
+    if (mask == nullptr || width <= 0 || height <= 0) return false;
+    mask->bounds = {};
+    mask->pixels.clear();
+    std::lock_guard<std::recursive_mutex> lock(captureMutex());
+    BufferRange* recordRange = nullptr;
+    for (auto& item : ranges()) {
+        if (item.second.id == record.buffer) {
+            recordRange = &item.second;
+            break;
+        }
+    }
+    if (recordRange == nullptr || recordRange->orphan || recordRange->pitch <= 0) return true;
+
+    const std::int64_t left = std::max<std::int64_t>(0, record.bounds.x);
+    const std::int64_t top = std::max<std::int64_t>(0, record.bounds.y);
+    const std::int64_t right = std::min<std::int64_t>({ width, recordRange->width,
+        static_cast<std::int64_t>(record.bounds.x) + record.bounds.width });
+    const std::int64_t bottom = std::min<std::int64_t>({ height, recordRange->height,
+        static_cast<std::int64_t>(record.bounds.y) + record.bounds.height });
+    if (record.bounds.width <= 0 || record.bounds.height <= 0 || right <= left || bottom <= top) return true;
+    mask->bounds = { static_cast<int>(left), static_cast<int>(top),
+        static_cast<int>(right - left), static_cast<int>(bottom - top) };
+    mask->pixels.assign(static_cast<std::size_t>(mask->bounds.width) * mask->bounds.height, 0);
+    auto clearMask = [&]() { std::fill(mask->pixels.begin(), mask->pixels.end(), 0); };
+
+    const unsigned char* current = reinterpret_cast<const unsigned char*>(recordRange->base);
+    for (const TextPixelCoverage& pixel : record.coverage) {
+        if (pixel.x < left || pixel.y < top || pixel.x >= right || pixel.y >= bottom) continue;
+        if (current[static_cast<std::size_t>(pixel.y) * recordRange->pitch + pixel.x] == pixel.expected) {
+            mask->pixels[static_cast<std::size_t>(pixel.y - mask->bounds.y) * mask->bounds.width
+                + pixel.x - mask->bounds.x] = 1;
+        }
+    }
+    if (record.ownerWindow >= 0) {
+        int windowCount = 0;
+        int ownerIndex = -1;
+        TextWindowSnapshot owner;
+        for (int index = 0; ; ++index) {
+            TextWindowSnapshot candidate;
+            if (!textCaptureGetWindowSnapshot(index, &candidate, &windowCount)) break;
+            if (candidate.id == record.ownerWindow) {
+                ownerIndex = index;
+                owner = candidate;
+                break;
+            }
+        }
+        if (ownerIndex < 0 || owner.generation != record.ownerGeneration || owner.hidden) {
+            clearMask();
+            return true;
+        }
+
+        for (const TextPixelCoverage& pixel : record.coverage) {
+            if (pixel.x < owner.x || pixel.x >= owner.x + owner.width
+                || pixel.y < owner.y || pixel.y >= owner.y + owner.height) {
+                if (pixel.x >= mask->bounds.x && pixel.y >= mask->bounds.y
+                    && pixel.x < mask->bounds.x + mask->bounds.width
+                    && pixel.y < mask->bounds.y + mask->bounds.height) {
+                    mask->pixels[static_cast<std::size_t>(pixel.y - mask->bounds.y) * mask->bounds.width
+                        + pixel.x - mask->bounds.x] = 0;
+                }
+            }
+        }
+        for (int index = ownerIndex + 1; index < windowCount; ++index) {
+            TextWindowSnapshot above;
+            if (!textCaptureGetWindowSnapshot(index, &above, nullptr) || above.hidden) continue;
+            const int coverLeft = std::max(above.x, mask->bounds.x);
+            const int coverTop = std::max(above.y, mask->bounds.y);
+            const int coverRight = std::min(above.x + above.width - 1, mask->bounds.x + mask->bounds.width - 1);
+            const int coverBottom = std::min(above.y + above.height - 1, mask->bounds.y + mask->bounds.height - 1);
+            if (coverLeft > coverRight || coverTop > coverBottom) continue;
+            BufferRange* aboveRange = findRange(above.pixels);
+            const bool safeTransparent = above.transparent && aboveRange != nullptr
+                && above.generation != 0 && aboveRange->id == above.generation
+                && !aboveRange->orphan && aboveRange->pitch >= above.pitch && above.pitch >= above.width
+                && above.width > 0 && above.height > 0;
+            for (int y = coverTop; y <= coverBottom; ++y) {
+                unsigned char* visible = mask->pixels.data()
+                    + static_cast<std::size_t>(y - mask->bounds.y) * mask->bounds.width + coverLeft - mask->bounds.x;
+                if (!above.transparent || !safeTransparent) {
+                    std::fill(visible, visible + coverRight - coverLeft + 1, 0);
+                    continue;
+                }
+                const unsigned char* pixels = above.pixels
+                    + static_cast<std::size_t>(y - above.y) * above.pitch + coverLeft - above.x;
+                for (int x = coverLeft; x <= coverRight; ++x, ++pixels, ++visible) {
+                    if (*pixels != COLOR_FIRST) *visible = 0;
+                }
+            }
+        }
+    }
+
+    TextCursorSnapshot cursor = {};
+    if (!textCaptureGetCursorSnapshot(&cursor) || !cursor.visible || cursor.pixels == nullptr
+        || cursor.width <= 0 || cursor.height <= 0 || cursor.pitch < cursor.width) return true;
+    const int cursorLeft = std::max(cursor.x, mask->bounds.x);
+    const int cursorTop = std::max(cursor.y, mask->bounds.y);
+    const int cursorRight = std::min(cursor.x + cursor.width, mask->bounds.x + mask->bounds.width);
+    const int cursorBottom = std::min(cursor.y + cursor.height, mask->bounds.y + mask->bounds.height);
+    if (cursorLeft >= cursorRight || cursorTop >= cursorBottom) return true;
+    for (int y = cursorTop; y < cursorBottom; ++y) {
+        const unsigned char* source = cursor.pixels + static_cast<std::size_t>(y - cursor.y) * cursor.pitch
+            + cursorLeft - cursor.x;
+        unsigned char* visible = mask->pixels.data()
+            + static_cast<std::size_t>(y - mask->bounds.y) * mask->bounds.width + cursorLeft - mask->bounds.x;
+        for (int x = cursorLeft; x < cursorRight; ++x, ++source, ++visible) {
+            if (*source != cursor.transparentIndex) *visible = 0;
+        }
+    }
+    return true;
 }
 
 } // namespace scene

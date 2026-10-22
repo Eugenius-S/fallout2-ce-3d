@@ -74,7 +74,7 @@ TextLayer::TextLayer(std::size_t recordLimit)
 }
 
 bool TextLayer::capture(TextBufferId buffer, bool orphan, const TextRunInfo& run,
-    TextRect bounds, TextPixels before, TextPixels after)
+    TextRect bounds, TextPixels before, TextPixels after, int ownerWindow, TextBufferId ownerGeneration)
 {
     if (buffer == 0 || !validPixels(before) || !validPixels(after)
         || before.width != after.width || before.height != after.height
@@ -88,6 +88,8 @@ bool TextLayer::capture(TextBufferId buffer, bool orphan, const TextRunInfo& run
     TextRecord record;
     record.buffer = buffer;
     record.orphan = orphan;
+    record.ownerWindow = ownerWindow;
+    record.ownerGeneration = ownerGeneration;
     record.run = run;
     record.bounds = clipped;
     std::unordered_map<std::uint64_t, std::pair<unsigned char, unsigned char>> previous;
@@ -128,7 +130,8 @@ bool TextLayer::capture(TextBufferId buffer, bool orphan, const TextRunInfo& run
 void TextLayer::copy(TextBufferId source, TextBufferId destination, bool destinationOrphan,
     TextRect sourceRect, int destinationX, int destinationY,
     bool transparent, unsigned char transparentIndex,
-    TextPixels sourceSnapshot, TextPixels destinationBefore, TextPixels destinationAfter)
+    TextPixels sourceSnapshot, TextPixels destinationBefore, TextPixels destinationAfter,
+    int destinationOwnerWindow, TextBufferId destinationOwnerGeneration)
 {
     if (source == 0 || destination == 0 || !validPixels(sourceSnapshot) || !validPixels(destinationBefore)
         || !validPixels(destinationAfter) || destinationBefore.width != destinationAfter.width
@@ -162,6 +165,8 @@ void TextLayer::copy(TextBufferId source, TextBufferId destination, bool destina
         TextRecord clone;
         clone.buffer = destination;
         clone.orphan = destinationOrphan;
+        clone.ownerWindow = destinationOwnerWindow >= 0 ? destinationOwnerWindow : sourceRecord.ownerWindow;
+        clone.ownerGeneration = destinationOwnerWindow >= 0 ? destinationOwnerGeneration : sourceRecord.ownerGeneration;
         clone.run = sourceRecord.run;
         const std::int64_t shiftX = static_cast<std::int64_t>(destinationX) - sourceRect.x;
         const std::int64_t shiftY = static_cast<std::int64_t>(destinationY) - sourceRect.y;
@@ -247,6 +252,13 @@ void TextLayer::eraseBuffer(TextBufferId buffer)
     }), records_.end());
 }
 
+void TextLayer::eraseOwner(int window, TextBufferId generation)
+{
+    records_.erase(std::remove_if(records_.begin(), records_.end(), [window, generation](const TextRecord& record) {
+        return record.ownerWindow == window && record.ownerGeneration == generation;
+    }), records_.end());
+}
+
 std::vector<TextRestorePixel> TextLayer::restorationPixels(TextBufferId buffer,
     TextPixels current, bool includeOrphans)
 {
@@ -264,7 +276,7 @@ std::vector<TextRestorePixel> TextLayer::restorationPixels(TextBufferId buffer,
         auto& pixels = recordIt->pixels;
         pixels.erase(std::remove_if(pixels.begin(), pixels.end(), [&](const TextPixelRecord& pixel) {
             if (!contains(current, pixel.x, pixel.y) || pixelAt(current, pixel.x, pixel.y) != pixel.after) return true;
-            result.push_back({ pixel.x, pixel.y, pixel.before });
+            result.push_back({ pixel.x, pixel.y, pixel.before, recordIt->ownerWindow, recordIt->ownerGeneration });
             return false;
         }), pixels.end());
         // Valid coverage remains as the glyph clip for later frames.

@@ -16,6 +16,7 @@ FontManagerGetCharacterWidthProc* fontGetCharacterWidth = nullptr;
 FontManagerGetLetterSpacingProc* fontGetLetterSpacing = nullptr;
 FontManagerGetMonospacedCharacterWidth* fontGetMonospacedCharacterWidth = nullptr;
 int gCurrentFont = 101;
+TextWindowSnapshot gTestWindow = {};
 
 int fakeLineHeight() { return 2; }
 int fakeCharacterWidth(int) { return 1; }
@@ -32,6 +33,21 @@ int fontGetCurrent()
 int fontGetCurrentGlyphCount()
 {
     return 256;
+}
+
+bool textCaptureGetWindowSnapshot(int index, TextWindowSnapshot* snapshot, int* count)
+{
+    if (count != nullptr) *count = 1;
+    if (index != 0 || snapshot == nullptr) return false;
+    *snapshot = gTestWindow;
+    return true;
+}
+
+bool textCaptureGetCursorSnapshot(TextCursorSnapshot* state)
+{
+    if (state == nullptr) return false;
+    *state = {};
+    return true;
 }
 
 } // namespace fallout
@@ -214,6 +230,48 @@ void testMonospacedClippedRunMetadata()
     fontGetMonospacedCharacterWidth = fakeMonospacedWidth;
 }
 
+void testVisibilityClearsHiddenAndStaleOwners()
+{
+    using namespace fallout;
+    std::vector<unsigned char> pixels(4, 2);
+    std::vector<unsigned char> replacement(4, 2);
+    textCaptureRegisterExternalBuffer(pixels.data(), pixels.size(), 2, 2, 2, false);
+    textCaptureMarkWindowBuffer(pixels.data(), 7);
+    gTestWindow = {};
+    gTestWindow.id = 7;
+    gTestWindow.pixels = pixels.data();
+    gTestWindow.generation = textCaptureBufferId(pixels.data());
+    gTestWindow.width = 2;
+    gTestWindow.height = 2;
+    gTestWindow.pitch = 2;
+    fontDrawTextPtr = fakeFontDraw;
+    fontDrawText(pixels.data(), "x", 2, 2, static_cast<ColorWithFlags>(5));
+    const auto records = scene::textCaptureRecords(textCaptureBufferId(pixels.data()));
+    check(records.size() == 1 && records.front().ownerWindow == 7,
+        "window-backed font capture stores its owner generation");
+    if (records.size() == 1) {
+        scene::TextVisibilityMask mask;
+        const bool visible = scene::textCaptureVisibilityMask(records.front(), 2, 2, &mask);
+        check(visible && mask.bounds.width == 1 && mask.bounds.height == 2
+                && mask.pixels.size() == 2 && mask.visibleAt(0, 0),
+            "visible owner retains compact per-record text coverage");
+        gTestWindow.hidden = true;
+        mask.pixels.assign(4, 1);
+        check(scene::textCaptureVisibilityMask(records.front(), 2, 2, &mask)
+                && std::none_of(mask.pixels.begin(), mask.pixels.end(), [](unsigned char value) { return value != 0; }),
+            "hidden owner clears previously valid coverage");
+        gTestWindow.hidden = false;
+        gTestWindow.pixels = replacement.data();
+        gTestWindow.generation = 0;
+        mask.pixels.assign(4, 1);
+        check(scene::textCaptureVisibilityMask(records.front(), 2, 2, &mask)
+                && std::none_of(mask.pixels.begin(), mask.pixels.end(), [](unsigned char value) { return value != 0; }),
+            "stale owner generation clears previously valid coverage");
+    }
+    textCaptureUnregisterExternalBuffer(pixels.data());
+    gTestWindow = {};
+}
+
 } // namespace
 
 int main()
@@ -227,6 +285,7 @@ int main()
     testAllocationEdgeBounds();
     testMonospacedClippedRunMetadata();
     testUnknownBuffersKeepPixelBehavior();
+    testVisibilityClearsHiddenAndStaleOwners();
     if (failures == 0) std::printf("text_capture_tests: all passed\n");
     return failures == 0 ? 0 : 1;
 }

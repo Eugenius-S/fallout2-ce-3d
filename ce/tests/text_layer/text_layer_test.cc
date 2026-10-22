@@ -56,11 +56,13 @@ TextRunInfo run(const char* text, int x, int y)
 
 bool capture(TextLayer& layer, TextBufferId id, bool orphan,
     const std::vector<unsigned char>& before, const std::vector<unsigned char>& after,
-    int width, int height, TextRect bounds, const char* text = "AB")
+    int width, int height, TextRect bounds, const char* text = "AB",
+    int ownerWindow = -1, TextBufferId ownerGeneration = 0)
 {
     const auto beforeView = view(before, width, height, width);
     const auto afterView = view(after, width, height, width);
-    return layer.capture(id, orphan, run(text, bounds.x, bounds.y), bounds, beforeView, afterView);
+    return layer.capture(id, orphan, run(text, bounds.x, bounds.y), bounds, beforeView, afterView,
+        ownerWindow, ownerGeneration);
 }
 
 } // namespace
@@ -77,7 +79,7 @@ int main()
         std::vector<unsigned char> sourceAfter = sourceBefore;
         sourceAfter[5] = 20;
         sourceAfter[6] = 21;
-        failures += !check(capture(layer, 1, true, sourceBefore, sourceAfter, 4, 3, { 0, 0, 4, 3 }),
+        failures += !check(capture(layer, 1, true, sourceBefore, sourceAfter, 4, 3, { 0, 0, 4, 3 }, "AB", 4, 12),
             "capture creates an orphan record");
 
         std::vector<unsigned char> destBefore(20, 77);
@@ -92,6 +94,8 @@ int main()
             "opaque copy carries source underlying pixels");
         failures += !check(layer.records().size() == 2 && layer.records().back().run.characterX[0] == 1,
             "copy translates run geometry");
+        failures += !check(layer.records().back().ownerWindow == 4 && layer.records().back().ownerGeneration == 12,
+            "copy preserves owner provenance until a destination owner is assigned");
     }
 
     // Transparent source background leaves the destination's own background

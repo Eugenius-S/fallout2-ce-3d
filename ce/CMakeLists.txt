@@ -339,6 +339,8 @@ set(FALLOUT_PLATFORM_SOURCES
     "src/scene_renderer/roofs.cc"
     "src/scene_renderer/scene_draw.cc"
     "src/scene_renderer/scene_draw.h"
+    "src/scene_renderer/text_draw.cc"
+    "src/scene_renderer/text_draw.h"
     "src/scene_renderer/scene_internal.cc"
     "src/scene_renderer/scene_internal.h"
     "src/scene_renderer/scene_shader.cc"
