@@ -302,9 +302,11 @@ set(FALLOUT_PLATFORM_SOURCES
     "src/scene/preview_policy.cc"
     "src/scene/preview_policy.h"
     "src/scene/scene_lights.cc"
+    "src/scene/text_layer.cc"
     "src/scene/sun.cc"
     "src/scene/sun.h"
     "src/scene/scene_lights.h"
+    "src/scene/text_layer.h"
     "src/scene/options_panel.cc"
     "src/scene/options_panel.h"
     "src/scene/scene_objects.cc"
@@ -424,6 +426,7 @@ if(BUILD_TESTING)
     add_subdirectory(tests/embedded_fonts)
     add_subdirectory(tests/clean_edges_boundary_mask)
     add_subdirectory(tests/sun)
+    add_subdirectory(tests/text_layer)
 endif()
 
 target_sources(${EXECUTABLE_NAME} PUBLIC

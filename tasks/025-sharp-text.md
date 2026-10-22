@@ -104,3 +104,8 @@ outside `fontDrawText`): it stays pixel text unless it is trivial to add.
 
 ### 2026-10-22 gpt
 Claim: starting the bounded CPU capture and copy layer in `ce/src/scene/text_layer.{h,cc}`.
+
+### 2026-10-22 gpt (paused by owner)
+Done: CPU-only text record draft and focused tests in ce/src/scene/text_layer.{h,cc} and ce/tests/text_layer/, registered in ce/CMakeLists.txt. The parent independently ran text_layer_tests successfully before the pause. No live game hooks or GL text pass are connected. Main checkout was restored to its original main branch after an initial worker cwd mistake; implementation is now in the gpt worktree.
+Next: resolve review of transparent-copy coverage (modern glyphs need blank source cells too), add a same-buffer overlapping scroll-copy test, remove unused helpers, add the suite to CI, and rerun tests. Then review the CPU stage before live capture and rendering. Task remains doing and is not accepted.
+Check: cmake --build build --target text_layer_tests; ctest --test-dir build -R '^text_layer_tests$' --output-on-failure. Full build, regression and visual acceptance have not run for task 025.

@@ -1,0 +1,265 @@
+#include "text_layer.h"
+
+#include <cstdio>
+#include <vector>
+
+using fallout::scene::TextBufferId;
+using fallout::scene::TextLayer;
+using fallout::scene::TextPixels;
+using fallout::scene::TextRect;
+using fallout::scene::TextRunInfo;
+
+namespace {
+
+bool check(bool condition, const char* what)
+{
+    if (!condition) std::fprintf(stderr, "FAIL: %s\n", what);
+    return condition;
+}
+
+TextPixels view(const std::vector<unsigned char>& pixels, int width, int height, int pitch)
+{
+    return { pixels.data(), width, height, pitch };
+}
+
+std::vector<unsigned char> blit(const std::vector<unsigned char>& source, int sourceWidth, int sourceHeight,
+    const std::vector<unsigned char>& destinationBefore, int destinationWidth, int destinationHeight,
+    TextRect sourceRect, int destinationX, int destinationY, bool transparent, unsigned char transparentIndex)
+{
+    std::vector<unsigned char> destinationAfter = destinationBefore;
+    for (int sy = sourceRect.y; sy < sourceRect.y + sourceRect.height; sy++) {
+        for (int sx = sourceRect.x; sx < sourceRect.x + sourceRect.width; sx++) {
+            const int dx = destinationX + sx - sourceRect.x;
+            const int dy = destinationY + sy - sourceRect.y;
+            if (sx < 0 || sy < 0 || sx >= sourceWidth || sy >= sourceHeight
+                || dx < 0 || dy < 0 || dx >= destinationWidth || dy >= destinationHeight) continue;
+            const unsigned char value = source[sy * sourceWidth + sx];
+            if (transparent && value == transparentIndex) continue;
+            destinationAfter[dy * destinationWidth + dx] = value;
+        }
+    }
+    return destinationAfter;
+}
+
+TextRunInfo run(const char* text, int x, int y)
+{
+    TextRunInfo value;
+    value.text = text;
+    value.font = 101;
+    value.colorAndFlags = 7;
+    value.x = x;
+    value.y = y;
+    value.lineHeight = 8;
+    value.characterX = { x, x + 2 };
+    return value;
+}
+
+bool capture(TextLayer& layer, TextBufferId id, bool orphan,
+    const std::vector<unsigned char>& before, const std::vector<unsigned char>& after,
+    int width, int height, TextRect bounds, const char* text = "AB")
+{
+    const auto beforeView = view(before, width, height, width);
+    const auto afterView = view(after, width, height, width);
+    return layer.capture(id, orphan, run(text, bounds.x, bounds.y), bounds, beforeView, afterView);
+}
+
+} // namespace
+
+int main()
+{
+    int failures = 0;
+
+    // An opaque button-image copy restores the source background, not whatever
+    // happened to be under the destination before the blit.
+    {
+        TextLayer layer;
+        std::vector<unsigned char> sourceBefore(12, 10);
+        std::vector<unsigned char> sourceAfter = sourceBefore;
+        sourceAfter[5] = 20;
+        sourceAfter[6] = 21;
+        failures += !check(capture(layer, 1, true, sourceBefore, sourceAfter, 4, 3, { 0, 0, 4, 3 }),
+            "capture creates an orphan record");
+
+        std::vector<unsigned char> destBefore(20, 77);
+        const auto destAfter = blit(sourceAfter, 4, 3, destBefore, 5, 4,
+            { 0, 0, 4, 3 }, 1, 0, false, 0);
+        layer.copy(1, 2, false, { 0, 0, 4, 3 }, 1, 0, false, 0,
+            view(sourceAfter, 4, 3, 4),
+            view(destBefore, 5, 4, 5), view(destAfter, 5, 4, 5));
+        const auto restored = layer.restorationPixels(2, view(destAfter, 5, 4, 5));
+        failures += !check(restored.size() == 2, "opaque copy keeps both glyph pixels");
+        failures += !check(restored.size() == 2 && restored[0].paletteIndex == 10 && restored[1].paletteIndex == 10,
+            "opaque copy carries source underlying pixels");
+        failures += !check(layer.records().size() == 2 && layer.records().back().run.characterX[0] == 1,
+            "copy translates run geometry");
+    }
+
+    // Transparent source background leaves the destination's own background
+    // under a copied glyph.
+    {
+        TextLayer layer;
+        std::vector<unsigned char> sourceBefore(4, 0);
+        std::vector<unsigned char> sourceAfter = sourceBefore;
+        sourceAfter[1] = 6;
+        capture(layer, 3, true, sourceBefore, sourceAfter, 2, 2, { 0, 0, 2, 2 }, "A");
+        std::vector<unsigned char> destBefore(4, 55);
+        const auto destAfter = blit(sourceAfter, 2, 2, destBefore, 2, 2,
+            { 0, 0, 2, 2 }, 0, 0, true, 0);
+        layer.copy(3, 4, false, { 0, 0, 2, 2 }, 0, 0, true, 0,
+            view(sourceAfter, 2, 2, 2),
+            view(destBefore, 2, 2, 2), view(destAfter, 2, 2, 2));
+        const auto restored = layer.restorationPixels(4, view(destAfter, 2, 2, 2));
+        failures += !check(restored.size() == 1 && restored[0].paletteIndex == 55,
+            "transparent copy retains destination underlying pixel");
+        failures += !check(layer.records().back().coverage.size() == 4,
+            "transparent copy keeps blank source cells in the modern glyph mask");
+    }
+
+    // A rightward overlapping scroll uses a source snapshot from before the
+    // blit and preserves both the old visible fragment and the translated one.
+    {
+        TextLayer layer;
+        std::vector<unsigned char> before = { 1, 1, 1, 1 };
+        std::vector<unsigned char> after = { 9, 8, 1, 1 };
+        capture(layer, 12, false, before, after, 4, 1, { 0, 0, 4, 1 }, "AB");
+        const std::vector<unsigned char> sourceSnapshot = after;
+        const std::vector<unsigned char> destinationBefore = after;
+        const auto destinationAfter = blit(sourceSnapshot, 4, 1, destinationBefore, 4, 1,
+            { 0, 0, 3, 1 }, 1, 0, false, 0);
+        layer.copy(12, 12, false, { 0, 0, 3, 1 }, 1, 0, false, 0,
+            view(sourceSnapshot, 4, 1, 4), view(destinationBefore, 4, 1, 4), view(destinationAfter, 4, 1, 4));
+        failures += !check(layer.records().size() == 2 && layer.records()[0].coverage.size() == 1
+                && layer.records()[1].pixels.size() == 2,
+            "overlapping blit snapshots source records before replacing target coverage");
+        const auto restored = layer.restorationPixels(12, view(destinationAfter, 4, 1, 4));
+        failures += !check(restored.size() == 3,
+            "overlapping scroll keeps the unclipped and translated glyph pixels");
+    }
+
+    // Clipping a scrolling copy retains only the visible part of the line.
+    {
+        TextLayer layer;
+        std::vector<unsigned char> before(15, 3);
+        std::vector<unsigned char> after = before;
+        after[6] = 9;
+        after[7] = 10;
+        after[8] = 11;
+        capture(layer, 5, false, before, after, 5, 3, { 0, 0, 5, 3 });
+        std::vector<unsigned char> destBefore(6, 4);
+        const auto destAfter = blit(after, 5, 3, destBefore, 3, 2,
+            { 1, 1, 3, 1 }, -1, 0, false, 0);
+        layer.copy(5, 6, false, { 1, 1, 3, 1 }, -1, 0, false, 0,
+            view(after, 5, 3, 5),
+            view(destBefore, 3, 2, 3), view(destAfter, 3, 2, 3));
+        failures += !check(layer.records().size() == 2 && layer.records().back().pixels.size() == 2,
+            "clipped copy keeps the visible pixel fragment");
+        failures += !check(layer.records().back().bounds.x == 0 && layer.records().back().bounds.width == 2,
+            "clipped fragment has clipped bounds");
+    }
+
+    // Repeated redraws normalize through older text, while partial overwrites
+    // invalidate only the pixels that no longer match.
+    {
+        TextLayer layer;
+        std::vector<unsigned char> base(4, 12);
+        std::vector<unsigned char> first = base;
+        first[0] = 30;
+        first[1] = 31;
+        capture(layer, 7, false, base, first, 2, 2, { 0, 0, 2, 2 }, "AB");
+        std::vector<unsigned char> second = first;
+        second[0] = 40;
+        capture(layer, 7, false, first, second, 2, 2, { 0, 0, 1, 1 }, "A");
+        failures += !check(layer.records().size() == 2 && layer.records()[0].pixels.size() == 1,
+            "overlap removes only superseded glyph pixels");
+        failures += !check(layer.records()[1].pixels[0].before == 12,
+            "redraw inherits the original underlying value");
+        std::vector<unsigned char> overwritten = second;
+        overwritten[1] = 99;
+        const auto restored = layer.restorationPixels(7, view(overwritten, 2, 2, 2));
+        failures += !check(restored.size() == 1 && restored[0].x == 0 && restored[0].paletteIndex == 12,
+            "overwrite drops stale pixels but keeps still-valid text");
+        failures += !check(layer.records().size() == 2 && layer.records()[0].coverage.size() == 2,
+            "modern glyph clip loses overwritten game pixels only");
+    }
+
+    // Orphan records are skipped without reading their former memory, but can
+    // be copied while a live blit supplies destination snapshots.
+    {
+        TextLayer layer;
+        std::vector<unsigned char> before(4, 2);
+        std::vector<unsigned char> after = before;
+        after[0] = 8;
+        capture(layer, 8, true, before, after, 2, 2, { 0, 0, 1, 1 }, "A");
+        failures += !check(layer.restorationPixels(8, {}).empty() && layer.size() == 1,
+            "orphan is not touched at presentation");
+        std::vector<unsigned char> destBefore(4, 5);
+        const auto destAfter = blit(after, 2, 2, destBefore, 2, 2,
+            { 0, 0, 1, 1 }, 0, 0, false, 0);
+        layer.copy(8, 9, false, { 0, 0, 1, 1 }, 0, 0, false, 0,
+            view(after, 2, 2, 2),
+            view(destBefore, 2, 2, 2), view(destAfter, 2, 2, 2));
+        failures += !check(layer.restorationPixels(9, view(destAfter, 2, 2, 2)).size() == 1,
+            "orphan record can be cloned during a live copy");
+        std::vector<unsigned char> secondBefore(4, 6);
+        const auto secondAfter = blit(destAfter, 2, 2, secondBefore, 2, 2,
+            { 0, 0, 1, 1 }, 0, 0, false, 0);
+        layer.copy(9, 10, true, { 0, 0, 1, 1 }, 0, 0, false, 0,
+            view(destAfter, 2, 2, 2), view(secondBefore, 2, 2, 2), view(secondAfter, 2, 2, 2));
+        failures += !check(layer.restorationPixels(10, {}).empty(),
+            "a copied off-screen destination remains an orphan");
+        layer.eraseBuffer(8);
+        failures += !check(layer.records().size() == 2 && layer.records()[0].buffer == 9 && layer.records()[1].buffer == 10,
+            "destroyed owner generation is removed");
+    }
+
+    // Copying into previously tracked text retains the source's own
+    // background. A stale source record is ignored, and identical destination
+    // before/after values still permit the tracked run to be established.
+    {
+        TextLayer layer;
+        std::vector<unsigned char> sourceBefore(1, 5);
+        std::vector<unsigned char> sourceAfter(1, 20);
+        capture(layer, 14, false, sourceBefore, sourceAfter, 1, 1, { 0, 0, 1, 1 }, "S");
+        std::vector<unsigned char> targetBase(1, 1);
+        std::vector<unsigned char> targetText(1, 2);
+        capture(layer, 15, false, targetBase, targetText, 1, 1, { 0, 0, 1, 1 }, "T");
+        const auto targetAfter = blit(sourceAfter, 1, 1, targetText, 1, 1,
+            { 0, 0, 1, 1 }, 0, 0, false, 0);
+        layer.copy(14, 15, false, { 0, 0, 1, 1 }, 0, 0, false, 0,
+            view(sourceAfter, 1, 1, 1), view(targetText, 1, 1, 1), view(targetAfter, 1, 1, 1));
+        failures += !check(layer.records().size() == 2 && layer.records().back().pixels[0].before == 5,
+            "opaque source restoration value survives overlapping destination text");
+
+        std::vector<unsigned char> unchangedBefore(1, 20);
+        const auto unchangedAfter = blit(sourceAfter, 1, 1, unchangedBefore, 1, 1,
+            { 0, 0, 1, 1 }, 0, 0, false, 0);
+        layer.copy(14, 16, false, { 0, 0, 1, 1 }, 0, 0, false, 0,
+            view(sourceAfter, 1, 1, 1), view(unchangedBefore, 1, 1, 1), view(unchangedAfter, 1, 1, 1));
+        failures += !check(layer.records().size() == 3 && layer.records().back().pixels[0].before == 5,
+            "unchanged destination value still receives a text record");
+
+        std::vector<unsigned char> staleSource(1, 99);
+        std::vector<unsigned char> staleDestination(1, 5);
+        const auto staleAfter = blit(staleSource, 1, 1, staleDestination, 1, 1,
+            { 0, 0, 1, 1 }, 0, 0, false, 0);
+        layer.copy(14, 17, false, { 0, 0, 1, 1 }, 0, 0, false, 0,
+            view(staleSource, 1, 1, 1), view(staleDestination, 1, 1, 1), view(staleAfter, 1, 1, 1));
+        failures += !check(layer.records().size() == 3,
+            "overwritten source pixels are not copied from stale records");
+    }
+
+    // The oldest record is discarded at the configured cap.
+    {
+        TextLayer layer(1);
+        std::vector<unsigned char> before(1, 1);
+        std::vector<unsigned char> a(1, 2);
+        capture(layer, 10, false, before, a, 1, 1, { 0, 0, 1, 1 }, "A");
+        std::vector<unsigned char> b(1, 3);
+        capture(layer, 11, false, before, b, 1, 1, { 0, 0, 1, 1 }, "B");
+        failures += !check(layer.size() == 1 && layer.records()[0].buffer == 11,
+            "record cap evicts the oldest record");
+    }
+
+    if (failures == 0) std::printf("text_layer_tests: all passed\n");
+    return failures == 0 ? 0 : 1;
+}
