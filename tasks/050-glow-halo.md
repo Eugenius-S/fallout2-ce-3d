@@ -2,8 +2,8 @@
 id: 050
 title: Slime, fire and lights get a visible glow halo
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: glm
 suggested: gpt
 claude-only: no
 user-check: yes
