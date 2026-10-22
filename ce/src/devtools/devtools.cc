@@ -91,6 +91,7 @@ int gStartupFloorPreviewFramesRemaining = 0;
 bool gSnapshotOncePending = false;
 bool gPreferencesSnapshotPending = false;
 bool gPreferencesSnapshotActive = false;
+bool gPreferencesSnapshotBottom = false;
 // --dev-map-tour: the map elevations to visit after the startup one; the
 // step counts snapshots taken (-1: no tour).
 struct TourStop {
@@ -701,6 +702,10 @@ bool parseOption(const char* arg)
         gPreferencesSnapshotPending = true;
         return true;
     }
+    if (strcmp(arg, "--dev-preferences-bottom") == 0) {
+        gPreferencesSnapshotBottom = true;
+        return true;
+    }
     if (strcmp(arg, "--dev-still-snapshot") == 0) {
         gStillSnapshot = true;
         return true;
@@ -1288,6 +1293,11 @@ void update()
 bool preferencesSnapshotRequested()
 {
     return gPreferencesSnapshotActive;
+}
+
+bool preferencesSnapshotAtBottom()
+{
+    return gPreferencesSnapshotBottom;
 }
 
 bool suppressInitialSceneEnable()

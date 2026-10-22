@@ -100,3 +100,8 @@ Check: Clean Release build completed, CTest passes 12/12, and the isolated 1920x
 Done: Superseded the previous fixed-footer and flat green panel appearance with the owner's full-screen metal backdrop, scrolling original block, FRM-based 9-slice, and original-style scrollbar brief. Preserved the completed descriptor and model layer, copied the owner brief and images 54 through 58 into the task run folder, and marked image 58 as rejected.
 Next: Inspect the candidate runtime FRMs and report the planned cuts, full-page geometry, and affected preference hooks before changing implementation.
 Check: Read `runs/017-options-menu-3d-panel/owner-brief.md` and inspect `owner-reference-*`; task context and acceptance now capture the new brief.
+
+### 2026-10-22 gpt
+Done: Replaced the fixed footer and flat panel with a full-screen scrolling preferences page, a 9-sliced Pip-Boy monitor, and the original FRM scrollbar. Added top and bottom Russian x2 captures for root review.
+Next: Root review, then verify input, save and cancel behavior, and the full display matrix.
+Check: Release build and CTest pass (12/12). Captures: `scr00154.png` and `scr00155.png` in `runs/017-options-menu-3d-panel/`.

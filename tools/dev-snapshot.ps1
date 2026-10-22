@@ -30,6 +30,8 @@ param(
     [string]$Tour,
     [switch]$Classic,
     [switch]$Preferences,
+    [ValidateSet('Top', 'Bottom')]
+    [string]$PreferencesPosition = 'Top',
     [switch]$NoPreview,
     [switch]$Parallel,
     [ValidateRange(0, 39999)]
@@ -99,8 +101,9 @@ if ($Glow) { $arguments += '--dev-glow' }
 if ($Zoom -gt 0) { $arguments += "--dev-zoom=$Zoom" }
 if ($Preferences) {
     if ($Probe -or $Tour -or $Still) { throw '-Preferences cannot be combined with -Probe, -Tour, or -Still.' }
-    $arguments += '--dev-classic'
+    if ($Classic) { $arguments += '--dev-classic' }
     $arguments += '--dev-preferences-snapshot'
+    if ($PreferencesPosition -eq 'Bottom') { $arguments += '--dev-preferences-bottom' }
 } elseif ($Classic) { $arguments += '--dev-classic' }
 elseif (-not $NoPreview) { $arguments += '--dev-hero-preview' }
 if ($PSBoundParameters.ContainsKey('ViewTile')) { $arguments += "--dev-view-tile=$ViewTile" }

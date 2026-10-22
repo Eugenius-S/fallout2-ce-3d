@@ -273,6 +273,11 @@ static MessageList gPreferencesMessageList;
 // 0x663840 optnmesg
 static MessageListItem gPreferencesMessageListItem;
 
+static const char* preferencesResolveOptionLabel(int messageId)
+{
+    return getmsg(&gPreferencesMessageList, &gPreferencesMessageListItem, messageId);
+}
+
 static void preferencesMessageListReset()
 {
     messageListRepositorySetStandardMessageList(STANDARD_MESSAGE_LIST_OPTIONS, nullptr);
@@ -1067,14 +1072,16 @@ static int preferencesWindowInit()
 
     _changed = false;
 
-    int preferencesWindowX = (screenGetWidth() - PREFERENCES_WINDOW_WIDTH) / 2;
-    int preferencesWindowY = (screenGetHeight() - PREFERENCES_WINDOW_HEIGHT) / 2;
+    int preferencesScreenWidth = screenGetWidth();
+    int preferencesScreenHeight = screenGetHeight();
+    int preferencesPageX = (preferencesScreenWidth - PREFERENCES_WINDOW_WIDTH) / 2;
+    int preferencesPageY = 0;
     int preferencesWindowFlags = mainMenuSubscreenWindowFlags(WINDOW_MODAL | WINDOW_DONT_MOVE_TOP, WINDOW_MODAL | WINDOW_MOVE_ON_TOP);
 
-    gPreferencesWindow = windowCreate(preferencesWindowX,
-        preferencesWindowY,
-        PREFERENCES_WINDOW_WIDTH,
-        PREFERENCES_WINDOW_HEIGHT,
+    gPreferencesWindow = windowCreate(0,
+        0,
+        preferencesScreenWidth,
+        preferencesScreenHeight,
         static_cast<ColorWithFlags>(256),
         preferencesWindowFlags);
     if (gPreferencesWindow == -1) {
@@ -1086,8 +1093,10 @@ static int preferencesWindowInit()
     }
 
     gOptionsPanel = std::make_unique<scene::OptionsPanel>();
+    gOptionsPanel->setLabelResolver(preferencesResolveOptionLabel);
     if (!gOptionsPanel->initialize(gPreferencesWindow, windowGetBuffer(gPreferencesWindow),
-            _preferencesFrmImages[PREFERENCES_WINDOW_FRM_BACKGROUND].getData(), PREFERENCES_WINDOW_HEIGHT)) {
+            _preferencesFrmImages[PREFERENCES_WINDOW_FRM_BACKGROUND].getData(), PREFERENCES_WINDOW_HEIGHT,
+            preferencesScreenWidth, preferencesScreenHeight, preferencesPageX, preferencesPageY)) {
         gOptionsPanel.reset();
         windowDestroy(gPreferencesWindow);
         gPreferencesWindow = -1;
@@ -1222,6 +1231,7 @@ static int preferencesWindowInit()
         BUTTON_FLAG_TRANSPARENT);
     if (btn != -1) {
         buttonSetCallbacks(btn, _gsound_red_butt_press, _gsound_red_butt_release);
+        legacyButtons.push_back({ btn, 450 });
     }
 
     // DONE
@@ -1240,6 +1250,7 @@ static int preferencesWindowInit()
         BUTTON_FLAG_TRANSPARENT);
     if (btn != -1) {
         buttonSetCallbacks(btn, _gsound_red_butt_press, _gsound_red_butt_release);
+        legacyButtons.push_back({ btn, 450 });
     }
 
     // CANCEL
@@ -1258,14 +1269,16 @@ static int preferencesWindowInit()
         BUTTON_FLAG_TRANSPARENT);
     if (btn != -1) {
         buttonSetCallbacks(btn, _gsound_red_butt_press, _gsound_red_butt_release);
+        legacyButtons.push_back({ btn, 450 });
     }
 
     std::vector<int> panelButtons;
     for (int index = 0; index < gOptionsPanel->rowCount(); index++) {
-        panelButtons.push_back(buttonCreate(gPreferencesWindow, 18, gOptionsPanel->rowTop(index), 574, 40,
-            -1, -1, -1, 600 + index, nullptr, nullptr, nullptr, 0));
+        panelButtons.push_back(buttonCreate(gPreferencesWindow, 42, gOptionsPanel->rowTop(index), 556, 40,
+            -1, -1, 600 + index, -1, nullptr, nullptr, nullptr, 0));
     }
-    buttonCreate(gPreferencesWindow, 628, 36, 10, 384, -1, -1, 599, -1, nullptr, nullptr, nullptr, 0);
+    int scrollbarX = preferencesPageX <= 8 ? 8 : std::min(preferencesScreenWidth - 12, preferencesPageX + PREFERENCES_WINDOW_WIDTH + 4);
+    buttonCreate(gPreferencesWindow, scrollbarX, preferencesPageY + 36, 12, 384, -1, -1, 599, -1, nullptr, nullptr, nullptr, 0);
 
     gOptionsPanel->setButtonLayout(legacyButtons, _plyrspdbid, 68, panelButtons);
 
@@ -1323,7 +1336,7 @@ int doPreferences(bool animated)
 
     int rc = -1;
     if (devtools::preferencesSnapshotRequested()) {
-        if (gOptionsPanel != nullptr) gOptionsPanel->showPanelForSnapshot();
+        if (gOptionsPanel != nullptr) gOptionsPanel->showPanelForSnapshot(devtools::preferencesSnapshotAtBottom());
         renderPresent();
         devtools::takeSnapshot();
         rc = 1;
@@ -1437,7 +1450,7 @@ static void _DoThing(int eventCode)
     int x;
     int y;
     mouseGetPositionInWindow(gPreferencesWindow, &x, &y);
-    if (gOptionsPanel != nullptr) y += gOptionsPanel->scroll();
+    if (gOptionsPanel != nullptr) gOptionsPanel->mouseToPageCoordinates(x, y);
 
     // This preference index also contains out-of-bounds value 19,
     // which is the only preference expressed as checkbox.
@@ -1587,7 +1600,7 @@ static void _DoThing(int eventCode)
             int tick = getTicks();
 
             mouseGetPositionInWindow(gPreferencesWindow, &x, &y);
-            if (gOptionsPanel != nullptr) y += gOptionsPanel->scroll();
+            if (gOptionsPanel != nullptr) gOptionsPanel->mouseToPageCoordinates(x, y);
 
             if (mouseGetEvent() & 0x10) {
                 soundPlayFile("ib1lu1x1");
