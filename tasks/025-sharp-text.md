@@ -2,8 +2,8 @@
 id: 025
 title: Sharp text layer
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: gpt
 suggested: gpt
 claude-only: no
 user-check: yes
@@ -101,3 +101,6 @@ The main menu's scaled title text (`interfaceFontDrawTextScaled2D`, drawn
 outside `fontDrawText`): it stays pixel text unless it is trivial to add.
 
 ## Log
+
+### 2026-10-22 gpt
+Claim: starting the bounded CPU capture and copy layer in `ce/src/scene/text_layer.{h,cc}`.
