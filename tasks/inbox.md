@@ -33,3 +33,7 @@ that fits no task becomes a new task when the board runs dry.
   these tiles were already made nearly clean. First find out whether an
   earlier fix (texture filtering, mip or upscale of tiles and shapes) was
   lost, is off in the owner's config, or never covered this case. Not now.
+- 2026-10-22 Some walls have no back side again: seen from behind in the
+  fly camera they vanish. The owner remembers every wall had one before.
+  Same visit as the close-up noise above; look for a lost back face or
+  culling change in the walls since then. Not now.
