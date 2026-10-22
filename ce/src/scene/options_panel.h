@@ -30,6 +30,8 @@ public:
     int scroll() const;
     int maxScroll() const;
     int scrollbarX() const;
+    int scrollbarTop() const;
+    int scrollbarHeight() const;
     void mouseToPageCoordinates(int& x, int& y) const;
     void setLabelResolver(LabelResolver resolver);
     void setButtonLayout(const std::vector<std::pair<int, int>>& legacyButtons, int speedButton, int speedTop, const std::vector<int>& rowButtons);
@@ -47,6 +49,8 @@ public:
 private:
     void drawRows();
     void compose();
+    void buildBackgroundTexture();
+    unsigned char backgroundTexturePixel(int x, int y) const;
     void updateButtons();
     void showError(const std::string& message);
     bool setRowValue(int index, const SettingValue& value);
@@ -65,6 +69,7 @@ private:
     int scroll_ = 0;
     std::vector<unsigned char> content_;
     std::vector<unsigned char> background_;
+    std::vector<unsigned char> backgroundTexture_;
     std::unique_ptr<FrmImage> frameImage_;
     std::unique_ptr<FrmImage> scrollbarKnob_;
     std::vector<unsigned char> rowFrameBackground_;

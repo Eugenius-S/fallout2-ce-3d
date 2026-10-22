@@ -1,6 +1,7 @@
 #include "options_panel.h"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstdio>
 #include <cstring>
@@ -30,18 +31,41 @@ constexpr int kRowHeight = 44;
 constexpr int kPanelBottomPadding = 50;
 constexpr int kRowEvent = 600;
 constexpr int kScrollEvent = 599;
-constexpr int kTrackTop = 40;
-constexpr int kTrackHeight = 382;
-constexpr int kBackgroundSampleX = 68;
-constexpr int kBackgroundSampleY = 212;
-constexpr int kBackgroundSampleWidth = 32;
-constexpr int kBackgroundSampleHeight = 16;
+constexpr int kTrackMargin = 8;
+constexpr int kBackgroundTileWidth = 328;
+constexpr int kBackgroundTileHeight = 408;
+constexpr int kBackgroundSourceX = 24;
+constexpr int kBackgroundPatchWidth = 88;
+constexpr int kBackgroundPatchHeight = 48;
+constexpr int kBackgroundPatchOverlap = 8;
+constexpr int kBackgroundPatchStepX = kBackgroundPatchWidth - kBackgroundPatchOverlap;
+constexpr int kBackgroundPatchStepY = kBackgroundPatchHeight - kBackgroundPatchOverlap;
+constexpr int kBackgroundPatchY[] = { 50, 126, 205, 287, 367 };
+constexpr int kBackgroundPatchColumns = 4;
+constexpr int kBackgroundPatchRows = 10;
+constexpr int kPanelSideCap = 32;
+constexpr int kPanelTopCap = 32;
+constexpr int kPanelBottomCap = 32;
+constexpr int kPanelRightCapX = 608;
 
-unsigned char backgroundTexturePixel(const std::vector<unsigned char>& background, int x, int y)
+struct RgbColor {
+    float red;
+    float green;
+    float blue;
+};
+
+RgbColor paletteRgb(unsigned char index)
 {
-    const int textureX = ((x % kBackgroundSampleWidth) + kBackgroundSampleWidth) % kBackgroundSampleWidth;
-    const int textureY = ((y % kBackgroundSampleHeight) + kBackgroundSampleHeight) % kBackgroundSampleHeight;
-    return background[static_cast<size_t>(kWidth) * (kBackgroundSampleY + textureY) + kBackgroundSampleX + textureX];
+    return { _cmap[3 * index] * 4.0f, _cmap[3 * index + 1] * 4.0f, _cmap[3 * index + 2] * 4.0f };
+}
+
+RgbColor mixRgb(const RgbColor& first, const RgbColor& second, float weight)
+{
+    return {
+        first.red + (second.red - first.red) * weight,
+        first.green + (second.green - first.green) * weight,
+        first.blue + (second.blue - first.blue) * weight,
+    };
 }
 
 double editNumber(const SettingValue& value)
@@ -69,8 +93,50 @@ bool OptionsPanel::initialize(int windowId, unsigned char* surface, const unsign
     rows_ = optionsPanelRows(model_->edits(), "3d");
     contentHeight_ = std::max(kHeight, kPanelTop + kHeaderHeight + static_cast<int>(rows_.size()) * kRowHeight + kPanelBottomPadding);
     if (background == nullptr || surface_ == nullptr || backgroundHeight < kHeight || screenWidth_ < kWidth || screenHeight_ < kHeight) return false;
-    content_.assign(static_cast<size_t>(kWidth) * contentHeight_, 0);
     background_.assign(background, background + static_cast<size_t>(kWidth) * kHeight);
+    buildBackgroundTexture();
+    content_.resize(static_cast<size_t>(kWidth) * contentHeight_);
+    for (int y = 0; y < contentHeight_; y++) {
+        for (int x = 0; x < kWidth; x++) {
+            content_[static_cast<size_t>(kWidth) * y + x] = backgroundTexturePixel(pageX_ + x, pageY_ + y);
+        }
+    }
+    struct Rect { int x; int y; int width; int height; int feather = 0; };
+    constexpr Rect legacyBlocks[] = {
+        { 7, 4, 44, 31 }, { 301, 4, 44, 31 },
+        { 6, 40, 190, 74 }, { 6, 116, 190, 80 }, { 6, 197, 190, 82 },
+        { 6, 279, 190, 81 }, { 6, 359, 190, 80 },
+        { 200, 39, 165, 70 }, { 200, 109, 165, 66 }, { 200, 175, 165, 66 },
+        { 200, 241, 165, 66 }, { 200, 307, 165, 66 }, { 200, 373, 165, 66 },
+        { 367, 5, 271, 73, 6 }, { 367, 78, 271, 73, 6 },
+        { 367, 151, 271, 65, 6 }, { 367, 216, 271, 65, 6 },
+        { 367, 281, 271, 65, 6 }, { 367, 346, 271, 65, 6 },
+        { 367, 411, 271, 67, 6 },
+        { 12, 443, 112, 31 }, { 135, 443, 104, 31 }, { 248, 443, 112, 31 },
+    };
+    for (const Rect& rect : legacyBlocks) {
+        const int left = std::max(0, rect.x);
+        const int right = std::min(kWidth, rect.x + rect.width);
+        const int top = std::max(0, rect.y);
+        const int bottom = std::min(kHeight, rect.y + rect.height);
+        for (int y = top; y < bottom; y++) {
+            for (int x = left; x < right; x++) {
+                const unsigned char source = background_[static_cast<size_t>(kWidth) * y + x];
+                if (rect.feather == 0) {
+                    content_[static_cast<size_t>(kWidth) * y + x] = source;
+                    continue;
+                }
+                const int edgeDistance = std::min({ x - rect.x, rect.x + rect.width - 1 - x, y - rect.y, rect.y + rect.height - 1 - y });
+                const float opacity = std::clamp(static_cast<float>(edgeDistance + 1) / rect.feather, 0.0f, 1.0f);
+                const RgbColor base = paletteRgb(backgroundTexturePixel(pageX_ + x, pageY_ + y));
+                const RgbColor blended = mixRgb(base, paletteRgb(source), opacity);
+                const int red = static_cast<int>(std::lround(std::clamp(blended.red, 0.0f, 255.0f)));
+                const int green = static_cast<int>(std::lround(std::clamp(blended.green, 0.0f, 255.0f)));
+                const int blue = static_cast<int>(std::lround(std::clamp(blended.blue, 0.0f, 255.0f)));
+                content_[static_cast<size_t>(kWidth) * y + x] = _colorTable[rgb555((red << 16) | (green << 8) | blue)];
+            }
+        }
+    }
     scrollbarGroove_.resize(static_cast<size_t>(12) * 240);
     for (int y = 0; y < 240; y++) {
         for (int x = 0; x < 12; x++) {
@@ -85,10 +151,133 @@ bool OptionsPanel::initialize(int windowId, unsigned char* surface, const unsign
     scrollbarKnob_ = std::make_unique<FrmImage>();
     if (!scrollbarKnob_->lock(InterfaceFrameId::PreferencesSliderOff)) scrollbarKnob_.reset();
 
-    std::copy(background_.begin(), background_.end(), content_.begin());
     scroll_ = 0;
     selectedRow_ = 0;
     return true;
+}
+
+void OptionsPanel::buildBackgroundTexture()
+{
+    using Texture = std::vector<RgbColor>;
+    Texture assembled(static_cast<size_t>(kBackgroundTileWidth) * kBackgroundTileHeight);
+
+    RgbColor commonMean = {};
+    int commonCount = 0;
+    for (int row = 0; row < kBackgroundPatchRows; row++) {
+        for (int column = 0; column < kBackgroundPatchColumns; column++) {
+            const int sourceX = kBackgroundSourceX + ((row * 17 + column * 29) % 73);
+            const int sourceY = kBackgroundPatchY[(row * 3 + column * 2) % 5];
+            for (int y = 0; y < kBackgroundPatchHeight; y++) {
+                for (int x = 0; x < kBackgroundPatchWidth; x++) {
+                    const RgbColor sample = paletteRgb(background_[static_cast<size_t>(kWidth) * (sourceY + y) + sourceX + x]);
+                    commonMean.red += sample.red;
+                    commonMean.green += sample.green;
+                    commonMean.blue += sample.blue;
+                    commonCount++;
+                }
+            }
+        }
+    }
+    commonMean.red /= commonCount;
+    commonMean.green /= commonCount;
+    commonMean.blue /= commonCount;
+
+    constexpr int kLocalMeanRadius = 8;
+    constexpr float kGrainContrast = 0.6f;
+    for (int row = 0; row < kBackgroundPatchRows; row++) {
+        for (int column = 0; column < kBackgroundPatchColumns; column++) {
+            const int sourceX = kBackgroundSourceX + ((row * 17 + column * 29) % 73);
+            const int sourceY = kBackgroundPatchY[(row * 3 + column * 2) % 5];
+            Texture source(static_cast<size_t>(kBackgroundPatchWidth) * kBackgroundPatchHeight);
+            for (int y = 0; y < kBackgroundPatchHeight; y++) {
+                for (int x = 0; x < kBackgroundPatchWidth; x++) {
+                    source[static_cast<size_t>(kBackgroundPatchWidth) * y + x] = paletteRgb(
+                        background_[static_cast<size_t>(kWidth) * (sourceY + y) + sourceX + x]);
+                }
+            }
+
+            const int destinationX = column * kBackgroundPatchStepX;
+            const int destinationY = row * kBackgroundPatchStepY;
+            for (int y = 0; y < kBackgroundPatchHeight; y++) {
+                for (int x = 0; x < kBackgroundPatchWidth; x++) {
+                    RgbColor localMean = {};
+                    int count = 0;
+                    for (int localY = std::max(0, y - kLocalMeanRadius); localY <= std::min(kBackgroundPatchHeight - 1, y + kLocalMeanRadius); localY++) {
+                        for (int localX = std::max(0, x - kLocalMeanRadius); localX <= std::min(kBackgroundPatchWidth - 1, x + kLocalMeanRadius); localX++) {
+                            const RgbColor& sample = source[static_cast<size_t>(kBackgroundPatchWidth) * localY + localX];
+                            localMean.red += sample.red;
+                            localMean.green += sample.green;
+                            localMean.blue += sample.blue;
+                            count++;
+                        }
+                    }
+                    localMean.red /= count;
+                    localMean.green /= count;
+                    localMean.blue /= count;
+                    const RgbColor& sample = source[static_cast<size_t>(kBackgroundPatchWidth) * y + x];
+                    RgbColor normalized = {
+                        std::clamp(commonMean.red + (sample.red - localMean.red) * kGrainContrast, 0.0f, 255.0f),
+                        std::clamp(commonMean.green + (sample.green - localMean.green) * kGrainContrast, 0.0f, 255.0f),
+                        std::clamp(commonMean.blue + (sample.blue - localMean.blue) * kGrainContrast, 0.0f, 255.0f),
+                    };
+                    const size_t destination = static_cast<size_t>(kBackgroundTileWidth) * (destinationY + y) + destinationX + x;
+                    float weight = 1.0f;
+                    if (column > 0 && x < kBackgroundPatchOverlap) weight *= static_cast<float>(x + 1) / (kBackgroundPatchOverlap + 1);
+                    if (row > 0 && y < kBackgroundPatchOverlap) weight *= static_cast<float>(y + 1) / (kBackgroundPatchOverlap + 1);
+                    if (weight < 1.0f) {
+                        assembled[destination] = mixRgb(assembled[destination], normalized, weight);
+                    } else {
+                        assembled[destination] = normalized;
+                    }
+                }
+            }
+        }
+    }
+
+    constexpr int kHorizontalBlendWidth = 24;
+    constexpr int kVerticalBlendHeight = 28;
+    const Texture horizontalInput = assembled;
+    for (int y = 0; y < kBackgroundTileHeight; y++) {
+        for (int distance = 0; distance < kHorizontalBlendWidth; distance++) {
+            const float blend = 0.5f * static_cast<float>(kHorizontalBlendWidth - distance) / kHorizontalBlendWidth;
+            const int left = distance;
+            const int right = kBackgroundTileWidth - 1 - distance;
+            const size_t leftIndex = static_cast<size_t>(kBackgroundTileWidth) * y + left;
+            const size_t rightIndex = static_cast<size_t>(kBackgroundTileWidth) * y + right;
+            assembled[leftIndex] = mixRgb(horizontalInput[leftIndex], horizontalInput[rightIndex], blend);
+            assembled[rightIndex] = mixRgb(horizontalInput[rightIndex], horizontalInput[leftIndex], blend);
+        }
+    }
+
+    const Texture verticalInput = assembled;
+    for (int x = 0; x < kBackgroundTileWidth; x++) {
+        for (int distance = 0; distance < kVerticalBlendHeight; distance++) {
+            const float blend = 0.5f * static_cast<float>(kVerticalBlendHeight - distance) / kVerticalBlendHeight;
+            const int top = distance;
+            const int bottom = kBackgroundTileHeight - 1 - distance;
+            const size_t topIndex = static_cast<size_t>(kBackgroundTileWidth) * top + x;
+            const size_t bottomIndex = static_cast<size_t>(kBackgroundTileWidth) * bottom + x;
+            assembled[topIndex] = mixRgb(verticalInput[topIndex], verticalInput[bottomIndex], blend);
+            assembled[bottomIndex] = mixRgb(verticalInput[bottomIndex], verticalInput[topIndex], blend);
+        }
+    }
+
+    backgroundTexture_.resize(assembled.size());
+    for (size_t index = 0; index < assembled.size(); index++) {
+        const RgbColor& color = assembled[index];
+        const int red = static_cast<int>(std::lround(std::clamp(color.red, 0.0f, 255.0f)));
+        const int green = static_cast<int>(std::lround(std::clamp(color.green, 0.0f, 255.0f)));
+        const int blue = static_cast<int>(std::lround(std::clamp(color.blue, 0.0f, 255.0f)));
+        const int rgb = (red << 16) | (green << 8) | blue;
+        backgroundTexture_[index] = _colorTable[rgb555(rgb)];
+    }
+}
+
+unsigned char OptionsPanel::backgroundTexturePixel(int x, int y) const
+{
+    const int textureX = ((x % kBackgroundTileWidth) + kBackgroundTileWidth) % kBackgroundTileWidth;
+    const int textureY = ((y % kBackgroundTileHeight) + kBackgroundTileHeight) % kBackgroundTileHeight;
+    return backgroundTexture_[static_cast<size_t>(kBackgroundTileWidth) * textureY + textureX];
 }
 
 unsigned char* OptionsPanel::contentBuffer() { return content_.data(); }
@@ -106,6 +295,8 @@ int OptionsPanel::scrollbarX() const
     if (screenWidth_ - pageRight >= kScrollbarWidth + kOutsideGap) return pageRight + kOutsideGap;
     return pageRight - kScrollbarWidth;
 }
+int OptionsPanel::scrollbarTop() const { return kTrackMargin; }
+int OptionsPanel::scrollbarHeight() const { return std::max(1, screenHeight_ - 2 * kTrackMargin); }
 void OptionsPanel::mouseToPageCoordinates(int& x, int& y) const { x -= pageX_; y = y - pageY_ + scroll_; }
 void OptionsPanel::setLabelResolver(LabelResolver resolver) { labelResolver_ = resolver; }
 
@@ -168,48 +359,71 @@ void OptionsPanel::draw()
     if (content_.empty()) return;
     for (int y = kHeight; y < kPanelTop; y++) {
         for (int x = 0; x < kWidth; x++) {
-            content_[static_cast<size_t>(kWidth) * y + x] = backgroundTexturePixel(background_, x, y - kHeight);
+            content_[static_cast<size_t>(kWidth) * y + x] = backgroundTexturePixel(pageX_ + x, pageY_ + y);
         }
     }
     unsigned char* panel = content_.data() + static_cast<size_t>(kWidth) * kPanelTop;
     int panelHeight = contentHeight_ - kPanelTop;
-    bufferFill(panel, kWidth, panelHeight, kWidth, COLOR_BLACK);
+    for (int y = 0; y < panelHeight; y++) {
+        for (int x = 0; x < kWidth; x++) {
+            panel[static_cast<size_t>(kWidth) * y + x] = backgroundTexturePixel(pageX_ + x, pageY_ + kPanelTop + y);
+        }
+    }
     if (frame_ != nullptr && frameWidth_ >= 640 && frameHeight_ >= 480) {
-        constexpr int sideCap = 38;
-        constexpr int topCap = 48;
-        constexpr int bottomCap = 42;
-        constexpr int bezelLeft = 608;
         constexpr int glassX = 340;
         constexpr int glassY = 200;
         for (int y = 0; y < panelHeight; y++) {
             for (int x = 0; x < kWidth; x++) {
-                const bool left = x < sideCap;
-                const bool right = x >= kWidth - sideCap;
-                const bool top = y < topCap;
-                const bool bottom = y >= panelHeight - bottomCap;
-                const int tileX = ((x - sideCap) / 32) % 2 == 0 ? (x - sideCap) % 32 : 31 - (x - sideCap) % 32;
-                const int tileY = ((y - topCap) / 32) % 2 == 0 ? (y - topCap) % 32 : 31 - (y - topCap) % 32;
+                const bool left = x < kPanelSideCap;
+                const bool right = x >= kWidth - kPanelSideCap;
+                const bool top = y < kPanelTopCap;
+                const bool bottom = y >= panelHeight - kPanelBottomCap;
+                const int tileX = (x - kPanelSideCap) % 32;
+                const int tileY = (y - kPanelTopCap) % 32;
                 int sx = glassX + tileX;
                 int sy = glassY + tileY;
                 if (left || right) {
-                    const int edgeX = std::min(sideCap - 1, (left ? x : x - (kWidth - sideCap)) * 32 / sideCap);
-                    sx = left ? frameWidth_ - 1 - edgeX : bezelLeft + edgeX;
+                    const int edgeX = left ? x : x - (kWidth - kPanelSideCap);
+                    sx = left ? frameWidth_ - 1 - edgeX : kPanelRightCapX + edgeX;
                     if (top || bottom) {
-                        const int cornerY = top ? y * 50 / topCap : frameHeight_ - 50 + (y - (panelHeight - bottomCap)) * 50 / bottomCap;
-                        sy = cornerY;
+                        sy = top ? 16 + y : 47 - (y - (panelHeight - kPanelBottomCap));
                     } else {
-                        const int edgeY = y - topCap;
-                        sy = 50 + (edgeY / 380 % 2 == 0 ? edgeY % 380 : 379 - edgeY % 380);
+                        sy = 80 + (y - kPanelTopCap) % 320;
                     }
                 } else if (top) {
-                    sx = 260 + ((x - sideCap) / 135 % 2 == 0 ? (x - sideCap) % 135 : 134 - (x - sideCap) % 135);
-                    sy = 10 + y;
+                    constexpr int edgeLeft = 520;
+                    constexpr int edgeWidth = kPanelRightCapX - edgeLeft;
+                    sx = edgeLeft + (x - kPanelSideCap) % edgeWidth;
+                    sy = 16 + y;
                 } else if (bottom) {
-                    const int offset = x - sideCap;
-                    sx = 260 + (offset / 135 % 2 == 0 ? offset % 135 : 134 - offset % 135);
-                    sy = frameHeight_ - bottomCap + y - (panelHeight - bottomCap);
+                    constexpr int edgeLeft = 520;
+                    constexpr int edgeWidth = kPanelRightCapX - edgeLeft;
+                    sx = edgeLeft + (x - kPanelSideCap) % edgeWidth;
+                    sy = 47 - (y - (panelHeight - kPanelBottomCap));
                 }
+                const int cornerX = x < kPanelSideCap ? kPanelSideCap - 1 - x : x - (kWidth - kPanelSideCap);
+                const int cornerY = y < kPanelTopCap ? kPanelTopCap - 1 - y : y - (panelHeight - kPanelBottomCap);
+                if ((left || right) && (top || bottom) && cornerX * cornerX + cornerY * cornerY > 31 * 31) continue;
                 panel[static_cast<size_t>(kWidth) * y + x] = frame_[static_cast<size_t>(frameWidth_) * sy + sx];
+            }
+        }
+        const unsigned char black = COLOR_BLACK;
+        for (int y = 16; y < panelHeight - 16; y++) {
+            for (int x = 16; x < kWidth - 16; x++) {
+                const int cornerX = x < 32 ? 31 - x : (x >= kWidth - 32 ? x - (kWidth - 32) : -1);
+                const int cornerY = y < 32 ? 31 - y : (y >= panelHeight - 32 ? y - (panelHeight - 32) : -1);
+                if (cornerX >= 0 && cornerY >= 0 && cornerX * cornerX + cornerY * cornerY > 16 * 16) continue;
+                panel[static_cast<size_t>(kWidth) * y + x] = black;
+            }
+        }
+        for (int y = kPanelTopCap; y < panelHeight - kPanelBottomCap; y++) {
+            for (int x = kPanelSideCap; x < kWidth - kPanelSideCap; x++) {
+                const int cornerX = x < 48 ? 48 - x : (x >= kWidth - 48 ? x - (kWidth - 48) + 1 : -1);
+                const int cornerY = y < 48 ? 48 - y : (y >= panelHeight - 48 ? y - (panelHeight - 48) + 1 : -1);
+                if (cornerX >= 0 && cornerY >= 0 && cornerX * cornerX + cornerY * cornerY > 16 * 16) continue;
+                const int sourceX = glassX + (x - kPanelSideCap) % 32;
+                const int sourceY = glassY + (y - kPanelTopCap) % 32;
+                panel[static_cast<size_t>(kWidth) * y + x] = frame_[static_cast<size_t>(frameWidth_) * sourceY + sourceX];
             }
         }
     }
@@ -293,7 +507,7 @@ void OptionsPanel::compose()
     for (int y = 0; y < screenHeight_; y++) {
         unsigned char* destination = surface_ + static_cast<size_t>(screenWidth_) * y;
         for (int x = 0; x < screenWidth_; x++) {
-            destination[x] = backgroundTexturePixel(background_, x, y);
+            destination[x] = backgroundTexturePixel(x, y + scroll_);
         }
     }
     for (int y = 0; y < screenHeight_; y++) {
@@ -307,11 +521,12 @@ void OptionsPanel::compose()
     }
     if (maxScroll() > 0) {
         const int barX = scrollbarX();
+        const int trackTop = scrollbarTop();
+        const int trackHeight = scrollbarHeight();
         int thumbHeight = 21;
-        int travel = kTrackHeight - thumbHeight;
-        int trackTop = std::max(0, pageY_ + kTrackTop);
+        int travel = trackHeight - thumbHeight;
         int thumbTop = trackTop + travel * scroll_ / maxScroll();
-        for (int y = 0; y < kTrackHeight; y++) {
+        for (int y = 0; y < trackHeight; y++) {
             const int tileY = y % 240;
             const int sampleY = (y / 240) % 2 == 0 ? tileY : (239 - tileY);
             if (trackTop + y < 0 || trackTop + y >= screenHeight_) continue;
@@ -430,8 +645,8 @@ void OptionsPanel::dragSlider(int index)
 void OptionsPanel::dragScrollbar(int y)
 {
     int thumbHeight = 21;
-    int travel = kTrackHeight - thumbHeight;
-    const int trackTop = pageY_ + kTrackTop;
+    const int trackTop = scrollbarTop();
+    const int travel = scrollbarHeight() - thumbHeight;
     const int thumbTop = trackTop + travel * scroll_ / std::max(1, maxScroll());
     const int grabOffset = y >= thumbTop && y < thumbTop + thumbHeight ? y - thumbTop : thumbHeight / 2;
     while (true) {

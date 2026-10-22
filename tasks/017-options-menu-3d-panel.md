@@ -27,20 +27,35 @@ Every new setting is in the game's own options menu.
   stays intact. Image 55 shows the desired scrollbar. Images 56 and 57 show
   possible FRM screen frames. Image 58 is the rejected flat green panel over
   the map and must not be used as the target.
+- `runs/017-options-menu-3d-panel/owner-reference-scrollbar-full-height.png`
+  shows the owner's latest requirement: the original-style scrollbar spans
+  nearly the full window height with consistent small end margins.
 - `runs/017-options-menu-3d-panel/owner-reference-background-repeat.png`
   records the rejected mirrored-tile result. The new metal texture must not
   create visible repeated spots, symmetric rosettes, or obvious tile seams.
+- The latest references are `owner-reference-crt-corner-stair.png`,
+  `owner-reference-legacy-background-edge.png`, and
+  `owner-reference-small-tile-repeat.png`. They reject the stepped monitor
+  corner, the visible edge of the original rectangular background, and the
+  still-obvious repeat from the small grain patch.
 - Replace the earlier fixed-footer and flat-panel appearance. Cover the whole
   game view at any resolution with an opaque, seamless metal texture tiled
   from the preferences art. The map must not show through.
+- Use a larger, low-contrast source tile or a runtime-assembled tile from the
+  same game art. Do not use mirrored repetition, a tiny repeated grain, or
+  visible seams. Use the same texture in page gaps, around original controls,
+  and across the rest of the screen.
 - Keep the original preferences block at the top, including its controls and
   three buttons. Scroll the complete page as one unit, including that block
   and the new panel; do not pin the footer.
+- Preserve original control art and text, but crop away its large rectangular
+  background between individual control blocks. Blend the cutouts into the
+  same full-screen metal texture without changing their hit regions.
 - Below the original block, build a resizable screen using a 9-slice from the
   game's FRMs. Prefer the large Pip-Boy screen; if its frame cannot be cut
   cleanly, use the message window or dialog screen. Keep the four corners
   fixed and tile the edges and interior so the frame grows with the setting
-  count.
+  count. The corner and edge cuts must meet without a stepped join.
   Draw the dynamic settings inside in green Pip-Boy text.
 - Cut frame pieces at runtime using rectangle constants in code. Do not commit
   extracted or modified game art. A plain temporary frame is acceptable only
@@ -54,11 +69,14 @@ Every new setting is in the game's own options menu.
 
 - The complete screen is covered by a seamless tiled metal backdrop, with no
   map visible through the menu. Its texture has no obvious repeated spots,
-  symmetric rosettes, or tile seams.
+  symmetric rosettes, small-grain repetition, or tile seams. The original
+  rectangular background has no visible outer edge around the preserved
+  control blocks.
 - The original preferences block and all its controls remain intact and
   functional at the top. The three original buttons scroll with the page.
 - The new panel uses the preferred game FRM frame, or the message/dialog
-  fallback, assembled as a tiled 9-slice. It grows with the number of settings.
+  fallback, assembled as a tiled 9-slice. Its corners and edges join cleanly,
+  and it grows with the number of settings.
 - The panel lists every `[3d]` descriptor in registry order with its label and
   current value. It uses a switch, numeric slider, or choice control by type;
   unsupported value types remain visible. Use descriptor label message IDs
@@ -72,7 +90,9 @@ Every new setting is in the game's own options menu.
   specified, and save to `fallout2.cfg`.
 - The scrollbar uses the original slider groove and red knob style. It scrolls
   the whole page by wheel, knob drag, groove click, and Up/Down, Page Up/Down,
-  Home, and End. The original control art and hit regions are never clipped by
+  Home, and End. Its groove, knob travel, drag mapping, and hit region share a
+  track spanning the window height with small equal end margins. The original
+  control art and hit regions are never clipped by
   the bar.
 - Works in 2D and 3D, at x2 and x3 scale, in Russian and English. Capture the
   window at the top and bottom for each combination of 2D/3D, x2/x3, and
@@ -123,3 +143,8 @@ Check: Full clean Release build and CTest pass 12/12. New x3 captures `scr00174.
 Done: Replaced the mirrored 152x38 backdrop sample with a non-mirrored 32x16 game-metal grain patch from the original preferences art, shared by the gap and full-screen fill. Added the owner's repeated-pattern reference and the controlled main-branch comparison evidence.
 Next: Continue the isolated interaction and persistence probe.
 Check: Official Release build passes. Root approved the fresh Russian x3 top and bottom frames at logical 960x600 in `runs/017-options-menu-3d-panel/background-fix-v2/`. The root's 16 gameplay captures match clean origin/main pixel-for-pixel; see `runs/017-options-menu-3d-panel/regression-attribution/README.md`.
+
+### 2026-10-22 gpt
+Done: Rebuilt the seamless metal tile from varied safe source crops and cleaned the Pip-Boy bezel joins. The black inset now follows rounded corners, and the bottom bezel reuses a vertically flipped native top cut for consistent thickness. Extended the original-style scrollbar to the full window height with shared 8 px top and bottom margins for its groove, thumb travel, drag mapping, and hit target.
+Next: Continue the separately paused interaction and persistence probe; task 017 remains in progress.
+Check: Root accepted the visual review. Release build and CTest pass 12/12. Russian x3 captures: `runs/017-options-menu-3d-panel/visual-fix-20261022/final-top-v4/scr00018.png` and `runs/017-options-menu-3d-panel/visual-fix-20261022/final-bottom-v8/scr00023.png`. The 30 logical top and bottom bezel rows match exactly after vertical flip across x=32..607 (155,520 pixels); the full-height scrollbar spans pixel rows 24..1775 at 3x, leaving 8 logical pixels at each end.
