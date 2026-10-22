@@ -9,7 +9,6 @@ include_instructions = false
 [features]
 plugins = false
 apps = false
-multi_agent = false
 image_generation = false
 
 [mcp_servers.node_repl]
