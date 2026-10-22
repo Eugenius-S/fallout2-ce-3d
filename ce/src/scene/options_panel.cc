@@ -43,7 +43,6 @@ constexpr int kSliderValueX = 500;
 constexpr int kSliderValueWidth = 85;
 constexpr int kSliderTrackOffset = 22;
 constexpr int kSliderHitTolerance = 7;
-constexpr int kFocusPadding = 3;
 constexpr int kRowButtonX = 42;
 constexpr int kRowButtonWidth = 556;
 constexpr int kRowEvent = 600;
@@ -575,19 +574,6 @@ void OptionsPanel::drawRows()
             else if (const auto* value = std::get_if<std::string>(&row.edit->value)) std::snprintf(valueText, sizeof(valueText), "%s", value->c_str());
             drawRightAlignedControlText(panel, rowY, kValueX, kValueX + kValueWidth, valueText, color);
             break;
-        }
-        if (index == selectedRow_) {
-            int left = kValueX - kFocusPadding;
-            int right = kValueX + kValueWidth + kFocusPadding;
-            if (row.control == OptionsPanelControl::Toggle) {
-                left = kToggleX - kFocusPadding;
-                right = kToggleX + kToggleWidth + kFocusPadding;
-            } else if (row.control == OptionsPanelControl::Slider) {
-                left = kSliderX - kFocusPadding;
-                right = kSliderValueX + kSliderValueWidth + kFocusPadding;
-            }
-            const Color focusColor = COLOR_GREEN;
-            bufferDrawRect(panel, kWidth, left, rowY + 1, right, rowY + height - 2, focusColor);
         }
     }
 }

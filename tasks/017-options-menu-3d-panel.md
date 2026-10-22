@@ -42,7 +42,7 @@ Every new setting is in the game's own options menu.
   `owner-reference-refinement-49f41cbe.png`,
   `owner-reference-refinement-20619958.png`, and
   `owner-reference-refinement-2724fe26.png`. They guide the native bezel,
-  aligned control grid, compact focus state, and grouped 3D settings.
+  aligned control grid, and grouped 3D settings.
 - Replace the earlier fixed-footer and flat-panel appearance. Cover the whole
   game view at any resolution with an opaque, seamless metal texture tiled
   from the preferences art. The map must not show through.
@@ -90,7 +90,8 @@ Every new setting is in the game's own options menu.
   numeric slider, or choice control by type; unsupported value types remain
   visible. Use descriptor label message IDs when available and the English
   fallback label otherwise. New keys appear without menu code changes.
-- The selected row has a compact outline around its control; disabled and
+- Keyboard selection remains internal; the selected control has no extra
+  decoration. Toggle state remains visible in its checkbox. Disabled and
   command-line-overridden settings keep a distinct muted yellow color.
 - The existing `OptionsSettingsModel` keeps edits staged. Done commits them
   before the classic preferences save; a failed commit stays open and shows an
@@ -164,5 +165,10 @@ Check: Root accepted the visual review. Release build and CTest pass 12/12. Russ
 
 ### 2026-10-22 gpt
 Done: Replaced noisy vertical bezel sampling with a clean native 5-row strip. Centered the inner label/control grid on the existing 640-pixel legacy/frame axis, grouped every registered 3D row into General, Lighting, Camera, or automatic Other, and used compact 28-pixel toggle/value rows and 40-pixel slider rows. Replaced the left selection bar with a compact control outline and kept disabled text muted yellow. Copied four new owner references into `runs/017-options-menu-3d-panel/`.
-Next: Continue the separately paused interaction and persistence probe, then resolve the scrollbar overlap with the right bezel at the 640-pixel logical minimum; task 017 remains in progress.
-Check: Root approved the layout and bezel treatment. Release build and CTest pass 12/12. Final-code captures: minimum logical 640x480 bottom at `runs/017-options-menu-3d-panel/ui-refinement-20261022/minimum-bottom/scr00028.png` and wide logical 960x540 bottom at `runs/017-options-menu-3d-panel/ui-refinement-20261022/wide-bottom-final/scr00027.png`. Earlier top captures preceded the final color/slider-spacing adjustment and are not final review evidence. Group headings and enabled focus/control ink measure RGB(60,248,0) against RGB(40,40,40) at 10.26:1. All 10 current descriptors are covered once in stable registration order within groups; row spans are disjoint, end at y=1002 inside the frame ending at y=1034, with 32 pixels of bottom clearance. Both side strips repeat every five logical rows with zero pixel mismatches across 25,600 comparisons per side; the 640-pixel viewport center x=320 maps to screen center x=480 at logical width 960. At 640x480 logical, the track spans x=628..639 and y=8..471, overlaying the rightmost 12 pixels of the 32-pixel outer bezel because no outside margin exists; controls and row hitboxes end at x=588 and x=598 respectively, so they remain clear. At wide logical 960, track x=804..815 stays outside the 640-pixel frame. Physical widths below 640 and Tab navigation were not tested; the capture helper enforces a 640x480 logical minimum, and this UI exposes arrow-key editing/scrolling without Tab navigation. The disabled style was not present in these captures; code keeps its muted-yellow text.
+Next: Continue the interaction and persistence probe, then resolve the scrollbar overlap with the right bezel at the 640-pixel logical minimum; task 017 remains in progress.
+Check: Root approved the layout and bezel treatment. Release build and CTest pass 12/12. Final-code captures: minimum logical 640x480 bottom at `runs/017-options-menu-3d-panel/ui-refinement-20261022/minimum-bottom/scr00028.png` and wide logical 960x540 bottom at `runs/017-options-menu-3d-panel/ui-refinement-20261022/wide-bottom-final/scr00027.png`. Earlier top captures preceded the final color/slider-spacing adjustment and are not final review evidence. Group headings and enabled control ink measure RGB(60,248,0) against RGB(40,40,40) at 10.26:1. All 10 current descriptors are covered once in stable registration order within groups; row spans are disjoint, end at y=1002 inside the frame ending at y=1034, with 32 pixels of bottom clearance. Both side strips repeat every five logical rows with zero pixel mismatches across 25,600 comparisons per side; the 640-pixel viewport center x=320 maps to screen center x=480 at logical width 960. At 640x480 logical, the track spans x=628..639 and y=8..471, overlaying the rightmost 12 pixels of the 32-pixel outer bezel because no outside margin exists; controls and row hitboxes end at x=588 and x=598 respectively, so they remain clear. At wide logical 960, track x=804..815 stays outside the 640-pixel frame. Physical widths below 640 and Tab navigation were not tested; the capture helper enforces a 640x480 logical minimum, and this UI exposes arrow-key editing/scrolling without Tab navigation. The disabled style was not present in these captures; code keeps its muted-yellow text.
+
+### 2026-10-22 gpt
+Done: Removed the selected-control outline at the owner's request; kept the internal keyboard selection and checkbox state. Captured the wide Russian bottom view.
+Next: Continue the interaction and persistence probe, then resolve the scrollbar overlap with the right bezel at the 640-pixel logical minimum; task 017 remains in progress.
+Check: Release build and CTest pass 12/12. Capture: `runs/017-options-menu-3d-panel/outline-removal-20261022/wide-bottom/scr00029.png` with sidecar JSON. At 640 logical pixels, the 12-pixel track cannot fit outside the full-width preferences frame; moving it inside would cover frame art or the row hit area, so the existing overlap remains unresolved.
