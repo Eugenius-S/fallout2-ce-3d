@@ -9,6 +9,7 @@
 #include "combat.h"
 #include "combat_ai.h"
 #include "devtools/devtools.h"
+#include "devtools/preferences_probe.h"
 #include "debug.h"
 #include "delay.h"
 #include "draw.h"
@@ -1333,7 +1334,7 @@ int doPreferences(bool animated)
     mainMenuShowSubscreen(animated);
 
     int rc = -1;
-    if (devtools::preferencesSnapshotRequested()) {
+    if (devtools::preferencesSnapshotRequested() && !devtools::preferencesProbeRequested()) {
         if (gOptionsPanel != nullptr) gOptionsPanel->showPanelForSnapshot(devtools::preferencesSnapshotAtBottom());
         renderPresent();
         devtools::takeSnapshot();
@@ -1343,6 +1344,8 @@ int doPreferences(bool animated)
         sharedFpsLimiter.mark();
 
         int eventCode = inputGetInput();
+        eventCode = devtools::preferencesProbeNextEvent(eventCode, gOptionsPanel.get(), gPreferencesWindow,
+            static_cast<int>(gPreferencesCombatDifficulty1));
 
         if (gOptionsPanel != nullptr && eventCode == -1 && (mouseGetEvent() & MOUSE_EVENT_WHEEL) != 0) {
             gOptionsPanel->handleWheel();
@@ -1381,6 +1384,7 @@ int doPreferences(bool animated)
             if (eventCode == KEY_ESCAPE || eventCode == 528 || _game_user_wants_to_quit != GAME_QUIT_REQUEST_NONE) {
                 if (gOptionsPanel != nullptr) gOptionsPanel->rollback();
                 _RestoreSettings();
+                _changed = false;
                 rc = 0;
             } else if (eventCode >= 505 && eventCode <= 524) {
                 _DoThing(eventCode);
@@ -1388,6 +1392,10 @@ int doPreferences(bool animated)
                 gOptionsPanel->handleEvent(eventCode);
             }
             break;
+        }
+
+        if (devtools::preferencesProbeActive()) {
+            devtools::preferencesProbeComplete(rc != -1, gOptionsPanel.get(), static_cast<int>(gPreferencesCombatDifficulty1));
         }
 
         renderPresent();

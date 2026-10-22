@@ -7,6 +7,7 @@
 #include <cstring>
 
 #include "../color.h"
+#include "../devtools/preferences_probe.h"
 #include "../art.h"
 #include "../draw.h"
 #include "../game.h"
@@ -48,6 +49,7 @@ constexpr int kRowButtonWidth = 556;
 constexpr int kRowEvent = 600;
 constexpr int kScrollEvent = 599;
 constexpr int kTrackMargin = 8;
+constexpr int kScrollbarThumbHeight = 21;
 constexpr int kBackgroundTileWidth = 328;
 constexpr int kBackgroundTileHeight = 408;
 constexpr int kBackgroundSourceX = 24;
@@ -316,6 +318,7 @@ int OptionsPanel::rowHeight(int index) const
 }
 int OptionsPanel::rowButtonX() const { return kRowButtonX; }
 int OptionsPanel::rowButtonWidth() const { return kRowButtonWidth; }
+int OptionsPanel::sliderTrackY(int index) const { return rowTop(index) + kSliderTrackOffset; }
 
 void OptionsPanel::buildRowLayout()
 {
@@ -359,6 +362,24 @@ void OptionsPanel::buildRowLayout()
     }
     contentHeight_ = std::max(kHeight, cursor + kPanelBottomPadding);
 }
+int OptionsPanel::findRowBySettingId(const std::string& id) const
+{
+    for (int index = 0; index < rowCount(); index++) {
+        if (rows_[index].edit->descriptor->id == id) return index;
+    }
+    return -1;
+}
+std::string OptionsPanel::settingValueForProbe(const std::string& id) const
+{
+    const int index = findRowBySettingId(id);
+    if (index < 0) return {};
+    const SettingValue& value = rows_[index].edit->value;
+    if (const auto* boolean = std::get_if<bool>(&value)) return *boolean ? "true" : "false";
+    if (const auto* integer = std::get_if<int>(&value)) return std::to_string(*integer);
+    if (const auto* real = std::get_if<double>(&value)) return std::to_string(*real);
+    if (const auto* text = std::get_if<std::string>(&value)) return *text;
+    return {};
+}
 int OptionsPanel::scroll() const { return scroll_; }
 int OptionsPanel::maxScroll() const { return std::max(0, contentHeight_ - screenHeight_); }
 int OptionsPanel::scrollbarX() const
@@ -371,6 +392,12 @@ int OptionsPanel::scrollbarX() const
 }
 int OptionsPanel::scrollbarTop() const { return kTrackMargin; }
 int OptionsPanel::scrollbarHeight() const { return std::max(1, screenHeight_ - 2 * kTrackMargin); }
+int OptionsPanel::scrollbarThumbHeight() const { return kScrollbarThumbHeight; }
+int OptionsPanel::scrollbarThumbTop() const
+{
+    const int travel = std::max(0, scrollbarHeight() - scrollbarThumbHeight());
+    return scrollbarTop() + travel * scroll_ / std::max(1, maxScroll());
+}
 void OptionsPanel::mouseToPageCoordinates(int& x, int& y) const { x -= pageX_; y = y - pageY_ + scroll_; }
 void OptionsPanel::setLabelResolver(LabelResolver resolver) { labelResolver_ = resolver; }
 
@@ -551,7 +578,7 @@ void OptionsPanel::drawRows()
             double ratio = std::clamp((value - range.minimum) / (range.maximum - range.minimum), 0.0, 1.0);
             std::snprintf(valueText, sizeof(valueText), "%.2f", value);
             drawRightAlignedControlText(panel, rowY, kSliderValueX, kSliderValueX + kSliderValueWidth, valueText, color);
-            int trackY = rowY + kSliderTrackOffset;
+            const int trackY = sliderTrackY(index) - kPanelTop;
             bufferDrawLine(panel, kWidth, kSliderX, trackY, kSliderRight, trackY, color);
             int knobX = kSliderX + static_cast<int>(std::round(ratio * (kSliderRight - kSliderX)));
             bufferDrawRect(panel, kWidth, knobX - 3, trackY - 5, knobX + 3, trackY + 5, COLOR_LIGHT_GREEN);
@@ -600,9 +627,8 @@ void OptionsPanel::compose()
         const int barX = scrollbarX();
         const int trackTop = scrollbarTop();
         const int trackHeight = scrollbarHeight();
-        int thumbHeight = 21;
-        int travel = trackHeight - thumbHeight;
-        int thumbTop = trackTop + travel * scroll_ / maxScroll();
+        const int thumbHeight = scrollbarThumbHeight();
+        const int thumbTop = scrollbarThumbTop();
         for (int y = 0; y < trackHeight; y++) {
             const int tileY = y % 240;
             const int sampleY = (y / 240) % 2 == 0 ? tileY : (239 - tileY);
@@ -613,9 +639,9 @@ void OptionsPanel::compose()
         const unsigned char* knob = scrollbarKnob_ != nullptr ? scrollbarKnob_->getData() : nullptr;
         if (knob != nullptr) {
             const int knobY = thumbTop + thumbHeight / 2 - 10;
-            for (int y = 0; y < 21; y++) {
+            for (int y = 0; y < kScrollbarThumbHeight; y++) {
                 for (int x = 0; x < 12; x++) {
-                    unsigned char pixel = knob[x * 21 + (20 - y)];
+                    unsigned char pixel = knob[x * kScrollbarThumbHeight + (kScrollbarThumbHeight - 1 - y)];
                     if (pixel != 0 && knobY + y >= 0 && knobY + y < screenHeight_ && barX + x >= 0 && barX + x < screenWidth_) {
                         surface_[static_cast<size_t>(screenWidth_) * (knobY + y) + barX + x] = pixel;
                     }
@@ -694,10 +720,9 @@ void OptionsPanel::dragSlider(int index)
         int x = 0, y = 0;
         mouseGetPositionInWindow(windowId_, &x, &y);
         mouseToPageCoordinates(x, y);
-        const int rowY = rowTop(index);
+        const int trackY = sliderTrackY(index);
         if (x < kSliderX || x > kSliderRight
-            || y < rowY + kSliderTrackOffset - kSliderHitTolerance
-            || y > rowY + kSliderTrackOffset + kSliderHitTolerance) return;
+            || y < trackY - kSliderHitTolerance || y > trackY + kSliderHitTolerance) return;
         double ratio = std::clamp((x - static_cast<double>(kSliderX)) / (kSliderRight - kSliderX), 0.0, 1.0);
         double value = range.minimum + ratio * (range.maximum - range.minimum);
         if (range.step.has_value()) value = range.minimum + std::round((value - range.minimum) / *range.step) * *range.step;
@@ -708,14 +733,17 @@ void OptionsPanel::dragSlider(int index)
     updateFromMouse();
     while (true) {
         int rawX = 0, rawY = 0, buttons = 0;
-        _mouse_get_raw_state(&rawX, &rawY, &buttons);
+        if (devtools::preferencesProbeUsesSimulatedMouse()) buttons = mouse_get_last_buttons();
+        else _mouse_get_raw_state(&rawX, &rawY, &buttons);
         if ((buttons & MOUSE_STATE_LEFT_BUTTON_DOWN) == 0) break;
         const int event = inputGetInput();
+        devtools::preferencesProbePump();
         updateFromMouse();
         renderPresent();
         sharedFpsLimiter.mark();
         sharedFpsLimiter.throttle();
-        _mouse_get_raw_state(&rawX, &rawY, &buttons);
+        if (devtools::preferencesProbeUsesSimulatedMouse()) buttons = mouse_get_last_buttons();
+        else _mouse_get_raw_state(&rawX, &rawY, &buttons);
         if (event == KEY_ESCAPE || _game_user_wants_to_quit != GAME_QUIT_REQUEST_NONE
             || (mouseGetEvent() & MOUSE_EVENT_LEFT_BUTTON_UP) != 0 || (buttons & MOUSE_STATE_LEFT_BUTTON_DOWN) == 0) break;
     }
@@ -723,10 +751,10 @@ void OptionsPanel::dragSlider(int index)
 
 void OptionsPanel::dragScrollbar(int y)
 {
-    int thumbHeight = 21;
+    const int thumbHeight = scrollbarThumbHeight();
     const int trackTop = scrollbarTop();
     const int travel = scrollbarHeight() - thumbHeight;
-    const int thumbTop = trackTop + travel * scroll_ / std::max(1, maxScroll());
+    const int thumbTop = scrollbarThumbTop();
     const int grabOffset = y >= thumbTop && y < thumbTop + thumbHeight ? y - thumbTop : thumbHeight / 2;
     while (true) {
         int position = std::clamp(y - trackTop - grabOffset, 0, travel);
@@ -734,11 +762,13 @@ void OptionsPanel::dragScrollbar(int y)
         renderPresent();
         sharedFpsLimiter.mark();
         const int event = inputGetInput();
+        devtools::preferencesProbePump();
         if (event == KEY_ESCAPE || _game_user_wants_to_quit != GAME_QUIT_REQUEST_NONE) break;
         int x = 0;
         mouseGetPositionInWindow(windowId_, &x, &y);
         int rawX = 0, rawY = 0, buttons = 0;
-        _mouse_get_raw_state(&rawX, &rawY, &buttons);
+        if (devtools::preferencesProbeUsesSimulatedMouse()) buttons = mouse_get_last_buttons();
+        else _mouse_get_raw_state(&rawX, &rawY, &buttons);
         sharedFpsLimiter.throttle();
         if ((mouseGetEvent() & MOUSE_EVENT_LEFT_BUTTON_UP) != 0 || (buttons & MOUSE_STATE_LEFT_BUTTON_DOWN) == 0) break;
     }
@@ -763,9 +793,9 @@ bool OptionsPanel::handleEvent(int eventCode)
     const OptionsPanelRow& row = rows_[index];
     const SettingDescriptor& descriptor = *row.edit->descriptor;
     if (descriptor.readOnly || descriptor.commandLineOverride) return true;
+    const int trackY = sliderTrackY(index);
     if (row.control == OptionsPanelControl::Slider && mouseX >= kSliderX && mouseX <= kSliderRight
-        && mouseY >= rowTop(index) + kSliderTrackOffset - kSliderHitTolerance
-        && mouseY <= rowTop(index) + kSliderTrackOffset + kSliderHitTolerance) {
+        && mouseY >= trackY - kSliderHitTolerance && mouseY <= trackY + kSliderHitTolerance) {
         dragSlider(index);
         return true;
     }

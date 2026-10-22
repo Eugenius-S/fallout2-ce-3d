@@ -30,11 +30,16 @@ public:
     int rowHeight(int index) const;
     int rowButtonX() const;
     int rowButtonWidth() const;
+    int sliderTrackY(int index) const;
+    int findRowBySettingId(const std::string& id) const;
+    std::string settingValueForProbe(const std::string& id) const;
     int scroll() const;
     int maxScroll() const;
     int scrollbarX() const;
     int scrollbarTop() const;
     int scrollbarHeight() const;
+    int scrollbarThumbHeight() const;
+    int scrollbarThumbTop() const;
     void mouseToPageCoordinates(int& x, int& y) const;
     void setLabelResolver(LabelResolver resolver);
     void setButtonLayout(const std::vector<std::pair<int, int>>& legacyButtons, int speedButton, int speedTop, const std::vector<int>& rowButtons);

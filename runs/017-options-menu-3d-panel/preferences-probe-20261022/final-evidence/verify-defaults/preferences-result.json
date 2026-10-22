@@ -1,0 +1,21 @@
+﻿{
+    "mode":  "verify",
+    "config_sha256_before":  "AED130BAA8289B4B5AE8F758AFB9A947D95BBE1DC6C9C50177A17800D1EA9B13",
+    "config_sha256_after":  "AED130BAA8289B4B5AE8F758AFB9A947D95BBE1DC6C9C50177A17800D1EA9B13",
+    "initial":  {
+                    "zoom":  "1.000000",
+                    "enabled":  "1",
+                    "combat_difficulty":  "1"
+                },
+    "final":  {
+                  "zoom":  "1.000000",
+                  "enabled":  "1",
+                  "combat_difficulty":  "1"
+              },
+    "executable_sha256":  "A98B3F7C042097EF190AEDE572F7AF36ED5F5A26718AE22F9284442C6B94B4C4",
+    "completion":  {
+                       "method":  "C++ finish marker observed before deadline; isolated helper stopped by harness",
+                       "marker_observed_before_deadline":  true,
+                       "harness_stopped_process":  true
+                   }
+}

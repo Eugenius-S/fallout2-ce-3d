@@ -1,5 +1,6 @@
 #include "devtools.h"
 #include "snapshot_rows.h"
+#include "preferences_probe.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -664,6 +665,15 @@ bool parseOption(const char* arg)
         gEnabled = true;
         return true;
     }
+    if (parsePreferencesProbeOption(arg)) {
+        if (!gEnabled) {
+            printf("PREFERENCES_PROBE FAIL: --dev-tools must precede the probe option\n");
+            fflush(stdout);
+            return true;
+        }
+        gPreferencesSnapshotPending = true;
+        return true;
+    }
     if (strcmp(arg, "--dev-floor-preview") == 0) {
         gStartupFloorPreviewRequested = true;
         return true;
@@ -1086,6 +1096,11 @@ void update()
         gPreferencesSnapshotActive = true;
         doPreferences(false);
         gPreferencesSnapshotActive = false;
+        if (preferencesProbeFinished()) {
+            printf("PREFERENCES_PROBE finished; requesting isolated helper exit\n");
+            fflush(stdout);
+            _game_user_wants_to_quit = GAME_QUIT_REQUEST_EXIT;
+        }
     }
     fly();
     // Map scripts set the light by the hour; a dev view holds its own.
