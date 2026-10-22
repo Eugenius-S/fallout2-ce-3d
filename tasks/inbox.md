@@ -27,3 +27,9 @@ that fits no task becomes a new task when the board runs dry.
   Belongs with the teleport line above: pick a hex the hero can walk from (a
   path to the map's entrance or to a few hexes around), or let the owner name
   the hex.
+- 2026-10-22 Up close in the fly camera the tiles look like raw pixel noise
+  again (`runs/inbox/2026-10-22-fly-closeup-tiles.png`: a round tank with
+  its cap, the carpet floor and the wall beside it). The owner remembers
+  these tiles were already made nearly clean. First find out whether an
+  earlier fix (texture filtering, mip or upscale of tiles and shapes) was
+  lost, is off in the owner's config, or never covered this case. Not now.
