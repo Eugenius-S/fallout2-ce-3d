@@ -27,3 +27,13 @@ that fits no task becomes a new task when the board runs dry.
   Belongs with the teleport line above: pick a hex the hero can walk from (a
   path to the map's entrance or to a few hexes around), or let the owner name
   the hex.
+- 2026-10-22 The game folder is littered next to the exe: 6,783 dev shot
+  files (`devhero-`, `devwall-`, `devfloor-`, `devwalk-` PNGs and
+  `devshot-*.json`, written to the working directory in `devtools.cc`), the
+  game's own `scrNNNNN.png`, our logs (`scene.log`, `scene-context.log`,
+  `devperf.log`, `devprobe.log`, `lightdebug.log`, `dev-stdout.log`),
+  `emissive-dump.png`, `_eggrect-z1.png`, `runtime-review-20261018/`. Only
+  the game's own files belong beside the exe: shots go to subfolders (for
+  example `shots/<date>/`), logs to `logs/`, and the existing ones move there
+  once. Tools that read these files (eval, regression, dev-snapshot) follow
+  the new paths. Not now.
