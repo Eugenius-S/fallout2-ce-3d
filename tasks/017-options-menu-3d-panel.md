@@ -27,6 +27,9 @@ Every new setting is in the game's own options menu.
   stays intact. Image 55 shows the desired scrollbar. Images 56 and 57 show
   possible FRM screen frames. Image 58 is the rejected flat green panel over
   the map and must not be used as the target.
+- `runs/017-options-menu-3d-panel/owner-reference-background-repeat.png`
+  records the rejected mirrored-tile result. The new metal texture must not
+  create visible repeated spots, symmetric rosettes, or obvious tile seams.
 - Replace the earlier fixed-footer and flat-panel appearance. Cover the whole
   game view at any resolution with an opaque, seamless metal texture tiled
   from the preferences art. The map must not show through.
@@ -50,7 +53,8 @@ Every new setting is in the game's own options menu.
 ## Acceptance
 
 - The complete screen is covered by a seamless tiled metal backdrop, with no
-  map visible through the menu.
+  map visible through the menu. Its texture has no obvious repeated spots,
+  symmetric rosettes, or tile seams.
 - The original preferences block and all its controls remain intact and
   functional at the top. The three original buttons scroll with the page.
 - The new panel uses the preferred game FRM frame, or the message/dialog
@@ -114,3 +118,8 @@ Check: Release build and CTest pass 12/12. The 16 PNG and JSON pairs are indexed
 Done: Moved the minimum-width scrollbar to the unused right metal margin and reused the same x geometry for the visible groove and hit target. Retook all eight x3 captures and updated the matrix index; prior captures remain as history.
 Next: Add a narrow isolated interaction and persistence probe through the preferences event loop.
 Check: Full clean Release build and CTest pass 12/12. New x3 captures `scr00174.png` through `scr00181.png` use the 1920x1440 drawable.
+
+### 2026-10-22 gpt
+Done: Replaced the mirrored 152x38 backdrop sample with a non-mirrored 32x16 game-metal grain patch from the original preferences art, shared by the gap and full-screen fill. Added the owner's repeated-pattern reference and the controlled main-branch comparison evidence.
+Next: Continue the isolated interaction and persistence probe.
+Check: Official Release build passes. Root approved the fresh Russian x3 top and bottom frames at logical 960x600 in `runs/017-options-menu-3d-panel/background-fix-v2/`. The root's 16 gameplay captures match clean origin/main pixel-for-pixel; see `runs/017-options-menu-3d-panel/regression-attribution/README.md`.

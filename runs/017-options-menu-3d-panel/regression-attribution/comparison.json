@@ -1,0 +1,146 @@
+[
+  {
+    "spot": "central-doors",
+    "identical": true,
+    "task_rgb_sha256": "5a633f02aa9aa0b06fe29dd6a094e9b496cabcf30257f3a2a7d0ef6dd7c66492",
+    "main_rgb_sha256": "5a633f02aa9aa0b06fe29dd6a094e9b496cabcf30257f3a2a7d0ef6dd7c66492",
+    "task_exe_sha256": "990bcee50faa9f4bffec46f80685d19bb0e504ca0b332d2cd9dbbaab00bc8fc5",
+    "main_exe_sha256": "ddc03416aa937b3bff789b7fb92ea636760523efd0da660f9dbbd9f5880636f4",
+    "main_commit": "32f0fe2b"
+  },
+  {
+    "spot": "corrals",
+    "identical": true,
+    "task_rgb_sha256": "ffa064db3dea64f2f25a68583cbe74b196b208f68aec195aacab9fdea6e117a0",
+    "main_rgb_sha256": "ffa064db3dea64f2f25a68583cbe74b196b208f68aec195aacab9fdea6e117a0",
+    "task_exe_sha256": "990bcee50faa9f4bffec46f80685d19bb0e504ca0b332d2cd9dbbaab00bc8fc5",
+    "main_exe_sha256": "ddc03416aa937b3bff789b7fb92ea636760523efd0da660f9dbbd9f5880636f4",
+    "main_commit": "32f0fe2b"
+  },
+  {
+    "spot": "entrance",
+    "identical": true,
+    "task_rgb_sha256": "9e8c22b4695dd80fb29a62010dfd264266abc08cc2aa20a264e95b8e872facc9",
+    "main_rgb_sha256": "9e8c22b4695dd80fb29a62010dfd264266abc08cc2aa20a264e95b8e872facc9",
+    "task_exe_sha256": "990bcee50faa9f4bffec46f80685d19bb0e504ca0b332d2cd9dbbaab00bc8fc5",
+    "main_exe_sha256": "ddc03416aa937b3bff789b7fb92ea636760523efd0da660f9dbbd9f5880636f4",
+    "main_commit": "32f0fe2b"
+  },
+  {
+    "spot": "klacanyn-e0",
+    "identical": true,
+    "task_rgb_sha256": "6bec1afbf2c615e72632b491fa68a03bea2a5c7cd40e1bc3f2b5f1a174fa9051",
+    "main_rgb_sha256": "6bec1afbf2c615e72632b491fa68a03bea2a5c7cd40e1bc3f2b5f1a174fa9051",
+    "task_exe_sha256": "990bcee50faa9f4bffec46f80685d19bb0e504ca0b332d2cd9dbbaab00bc8fc5",
+    "main_exe_sha256": "ddc03416aa937b3bff789b7fb92ea636760523efd0da660f9dbbd9f5880636f4",
+    "main_commit": "32f0fe2b"
+  },
+  {
+    "spot": "klagraz-e0",
+    "identical": true,
+    "task_rgb_sha256": "e4a0fccb995d03762ea05ed9972622a6fb9069440859bcf5e400412424fa9af9",
+    "main_rgb_sha256": "e4a0fccb995d03762ea05ed9972622a6fb9069440859bcf5e400412424fa9af9",
+    "task_exe_sha256": "990bcee50faa9f4bffec46f80685d19bb0e504ca0b332d2cd9dbbaab00bc8fc5",
+    "main_exe_sha256": "ddc03416aa937b3bff789b7fb92ea636760523efd0da660f9dbbd9f5880636f4",
+    "main_commit": "32f0fe2b"
+  },
+  {
+    "spot": "klamall-e0",
+    "identical": true,
+    "task_rgb_sha256": "f4bc2071218b79596ac364f19572400870bedbb88a8625df273c314ce4fa7315",
+    "main_rgb_sha256": "f4bc2071218b79596ac364f19572400870bedbb88a8625df273c314ce4fa7315",
+    "task_exe_sha256": "990bcee50faa9f4bffec46f80685d19bb0e504ca0b332d2cd9dbbaab00bc8fc5",
+    "main_exe_sha256": "ddc03416aa937b3bff789b7fb92ea636760523efd0da660f9dbbd9f5880636f4",
+    "main_commit": "32f0fe2b"
+  },
+  {
+    "spot": "klaratcv-e0",
+    "identical": true,
+    "task_rgb_sha256": "6938c01be94df257ef3c4cda308512b8d3d51a3a28ccde88a9b65a8ecab97020",
+    "main_rgb_sha256": "6938c01be94df257ef3c4cda308512b8d3d51a3a28ccde88a9b65a8ecab97020",
+    "task_exe_sha256": "990bcee50faa9f4bffec46f80685d19bb0e504ca0b332d2cd9dbbaab00bc8fc5",
+    "main_exe_sha256": "ddc03416aa937b3bff789b7fb92ea636760523efd0da660f9dbbd9f5880636f4",
+    "main_commit": "32f0fe2b"
+  },
+  {
+    "spot": "klaratcv-e1",
+    "identical": true,
+    "task_rgb_sha256": "42f8a48a1df0c33b8a0bcbf721157f808d0b779a8156c3269409dd4b477ee79d",
+    "main_rgb_sha256": "42f8a48a1df0c33b8a0bcbf721157f808d0b779a8156c3269409dd4b477ee79d",
+    "task_exe_sha256": "990bcee50faa9f4bffec46f80685d19bb0e504ca0b332d2cd9dbbaab00bc8fc5",
+    "main_exe_sha256": "ddc03416aa937b3bff789b7fb92ea636760523efd0da660f9dbbd9f5880636f4",
+    "main_commit": "32f0fe2b"
+  },
+  {
+    "spot": "klaratcv-e2",
+    "identical": true,
+    "task_rgb_sha256": "85c8199f15408d7d4209b46ea1bdd1ffd5c2fed5db9d3fed7658d1d4178d5b1b",
+    "main_rgb_sha256": "85c8199f15408d7d4209b46ea1bdd1ffd5c2fed5db9d3fed7658d1d4178d5b1b",
+    "task_exe_sha256": "990bcee50faa9f4bffec46f80685d19bb0e504ca0b332d2cd9dbbaab00bc8fc5",
+    "main_exe_sha256": "ddc03416aa937b3bff789b7fb92ea636760523efd0da660f9dbbd9f5880636f4",
+    "main_commit": "32f0fe2b"
+  },
+  {
+    "spot": "klatoxcv-e0",
+    "identical": true,
+    "task_rgb_sha256": "73354b8d0f089dc69dd0a590e88adad3fef6f1499536514835dd09266cfb9f67",
+    "main_rgb_sha256": "73354b8d0f089dc69dd0a590e88adad3fef6f1499536514835dd09266cfb9f67",
+    "task_exe_sha256": "990bcee50faa9f4bffec46f80685d19bb0e504ca0b332d2cd9dbbaab00bc8fc5",
+    "main_exe_sha256": "ddc03416aa937b3bff789b7fb92ea636760523efd0da660f9dbbd9f5880636f4",
+    "main_commit": "32f0fe2b"
+  },
+  {
+    "spot": "klatoxcv-e1",
+    "identical": true,
+    "task_rgb_sha256": "724faa13b18907e19a269114de579ada2960d2760a001f2e981f7c04c24a3cbb",
+    "main_rgb_sha256": "724faa13b18907e19a269114de579ada2960d2760a001f2e981f7c04c24a3cbb",
+    "task_exe_sha256": "990bcee50faa9f4bffec46f80685d19bb0e504ca0b332d2cd9dbbaab00bc8fc5",
+    "main_exe_sha256": "ddc03416aa937b3bff789b7fb92ea636760523efd0da660f9dbbd9f5880636f4",
+    "main_commit": "32f0fe2b"
+  },
+  {
+    "spot": "klatoxcv-e2",
+    "identical": true,
+    "task_rgb_sha256": "8538e668e5f6f32bdd6395dd93dc09af01652f0512cd6a9cd2ba786512b365df",
+    "main_rgb_sha256": "8538e668e5f6f32bdd6395dd93dc09af01652f0512cd6a9cd2ba786512b365df",
+    "task_exe_sha256": "990bcee50faa9f4bffec46f80685d19bb0e504ca0b332d2cd9dbbaab00bc8fc5",
+    "main_exe_sha256": "ddc03416aa937b3bff789b7fb92ea636760523efd0da660f9dbbd9f5880636f4",
+    "main_commit": "32f0fe2b"
+  },
+  {
+    "spot": "klatrap-e0",
+    "identical": true,
+    "task_rgb_sha256": "a5e35b0fa559bf49d2dcee9729d07513072acd1ca63b128f070f2483bfce9b31",
+    "main_rgb_sha256": "a5e35b0fa559bf49d2dcee9729d07513072acd1ca63b128f070f2483bfce9b31",
+    "task_exe_sha256": "990bcee50faa9f4bffec46f80685d19bb0e504ca0b332d2cd9dbbaab00bc8fc5",
+    "main_exe_sha256": "ddc03416aa937b3bff789b7fb92ea636760523efd0da660f9dbbd9f5880636f4",
+    "main_commit": "32f0fe2b"
+  },
+  {
+    "spot": "map-edge",
+    "identical": true,
+    "task_rgb_sha256": "10b5e95c9851d82e4dfe2721241fcf454523a6bcd4b7d43918ff3a94827ccf8d",
+    "main_rgb_sha256": "10b5e95c9851d82e4dfe2721241fcf454523a6bcd4b7d43918ff3a94827ccf8d",
+    "task_exe_sha256": "990bcee50faa9f4bffec46f80685d19bb0e504ca0b332d2cd9dbbaab00bc8fc5",
+    "main_exe_sha256": "ddc03416aa937b3bff789b7fb92ea636760523efd0da660f9dbbd9f5880636f4",
+    "main_commit": "32f0fe2b"
+  },
+  {
+    "spot": "north-rooms",
+    "identical": true,
+    "task_rgb_sha256": "4ce669dbdc3a143ad1e0f6bf3d3bc66909789d71239bc62679b8b1803bd98328",
+    "main_rgb_sha256": "4ce669dbdc3a143ad1e0f6bf3d3bc66909789d71239bc62679b8b1803bd98328",
+    "task_exe_sha256": "990bcee50faa9f4bffec46f80685d19bb0e504ca0b332d2cd9dbbaab00bc8fc5",
+    "main_exe_sha256": "ddc03416aa937b3bff789b7fb92ea636760523efd0da660f9dbbd9f5880636f4",
+    "main_commit": "32f0fe2b"
+  },
+  {
+    "spot": "residents",
+    "identical": true,
+    "task_rgb_sha256": "0e7aa1e1f39bac035b685eab9764494d22e803dd2c667ee3ca3d4c555756ac5e",
+    "main_rgb_sha256": "0e7aa1e1f39bac035b685eab9764494d22e803dd2c667ee3ca3d4c555756ac5e",
+    "task_exe_sha256": "990bcee50faa9f4bffec46f80685d19bb0e504ca0b332d2cd9dbbaab00bc8fc5",
+    "main_exe_sha256": "ddc03416aa937b3bff789b7fb92ea636760523efd0da660f9dbbd9f5880636f4",
+    "main_commit": "32f0fe2b"
+  }
+]

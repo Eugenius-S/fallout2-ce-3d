@@ -32,6 +32,17 @@ constexpr int kRowEvent = 600;
 constexpr int kScrollEvent = 599;
 constexpr int kTrackTop = 40;
 constexpr int kTrackHeight = 382;
+constexpr int kBackgroundSampleX = 68;
+constexpr int kBackgroundSampleY = 212;
+constexpr int kBackgroundSampleWidth = 32;
+constexpr int kBackgroundSampleHeight = 16;
+
+unsigned char backgroundTexturePixel(const std::vector<unsigned char>& background, int x, int y)
+{
+    const int textureX = ((x % kBackgroundSampleWidth) + kBackgroundSampleWidth) % kBackgroundSampleWidth;
+    const int textureY = ((y % kBackgroundSampleHeight) + kBackgroundSampleHeight) % kBackgroundSampleHeight;
+    return background[static_cast<size_t>(kWidth) * (kBackgroundSampleY + textureY) + kBackgroundSampleX + textureX];
+}
 
 double editNumber(const SettingValue& value)
 {
@@ -156,10 +167,8 @@ void OptionsPanel::draw()
 {
     if (content_.empty()) return;
     for (int y = kHeight; y < kPanelTop; y++) {
-        const int tileY = (y - kHeight) % 38;
         for (int x = 0; x < kWidth; x++) {
-            const int tileX = (x / 152) % 2 == 0 ? x % 152 : 151 - x % 152;
-            content_[static_cast<size_t>(kWidth) * y + x] = background_[static_cast<size_t>(385 + tileY) * kWidth + 24 + tileX];
+            content_[static_cast<size_t>(kWidth) * y + x] = backgroundTexturePixel(background_, x, y - kHeight);
         }
     }
     unsigned char* panel = content_.data() + static_cast<size_t>(kWidth) * kPanelTop;
@@ -281,18 +290,10 @@ void OptionsPanel::drawRows()
 void OptionsPanel::compose()
 {
     if (surface_ == nullptr || content_.empty()) return;
-    const unsigned char* texture = background_.data();
-    constexpr int sampleX = 24;
-    constexpr int sampleY = 385;
-    constexpr int sampleWidth = 152;
-    constexpr int sampleHeight = 38;
     for (int y = 0; y < screenHeight_; y++) {
         unsigned char* destination = surface_ + static_cast<size_t>(screenWidth_) * y;
-        const int tileY = (y / sampleHeight) % 2 == 0 ? (y % sampleHeight) : (sampleHeight - 1 - y % sampleHeight);
-        const int sourceY = sampleY + tileY;
         for (int x = 0; x < screenWidth_; x++) {
-            const int mirroredX = (x / sampleWidth) % 2 == 0 ? (x % sampleWidth) : (sampleWidth - 1 - x % sampleWidth);
-            destination[x] = texture[static_cast<size_t>(sourceY) * kWidth + sampleX + mirroredX];
+            destination[x] = backgroundTexturePixel(background_, x, y);
         }
     }
     for (int y = 0; y < screenHeight_; y++) {
