@@ -2,13 +2,13 @@
 id: 053
 title: Gameplay video at the top of the README
 milestone: M1
-status: doing
+status: done
 owner: gpt
 suggested: gpt
 claude-only: no
 user-check: yes
 depends-on: []
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -44,3 +44,13 @@ Next: Upload the MP4 as a PR attachment, add its hosted URL below the README
 title, verify GitHub rendering, and merge the documentation change.
 Check: FFmpeg full-file decode completed with exit code 0. Encoded media is
 local in build/media/fallout2-ce-3d-demo.mp4 and is excluded from Git.
+
+### 2026-10-22 gpt
+Done: Uploaded the compressed recording as a persistent GitHub attachment in
+PR #68 and placed its stable URL directly below the README title. GitHub's
+Markdown renderer returns a video player with playback controls for this URL.
+Next: Merge the documentation change and verify the default-branch README.
+Check: Full-file FFmpeg decode passed. GitHub Markdown API renders a video
+element; only README.md and this task file are committed. No engine changes
+or game resources are included, so engine and image regression runs are not
+needed for this documentation-only publication.
