@@ -52,3 +52,26 @@ classic look with almost no halo (`owner-slime-now.png`, `owner-cave-now.png`).
 - With the glow off the regression passes as it is.
 
 ## Log
+
+### 2026-10-22 glm
+Done: the halo (post.cc): the bleed now has two scales, the quarter keeps a
+single tight round for the near glow, and a new eighth-size chain carries the
+wide spill (threshold + two blur rounds); the composite adds both, 0.55 and
+1.5 times glow_strength, so the default 1.0 clearly shows. The wide chain
+feeds only from the marked texels: the scene shader writes the mark into the
+emissive buffer's alpha (scene_shader.cc), and a new marks pass multiplies by
+it, so the daylit town cannot haze (checked: the town pair reads equal, mean
+lift 0.06/255). Fire and lights glow through the marks they already carry:
+the mall's fire barrel, the town campfire, the vault torches; lamps light
+their pools as engine lights (020) and bleed through the near chain. New
+export group vault15 (export.py): its screens carry live cycling colours
+(monitr7 316 cycling px, monitr1/3/8, comp9, bvs44/45) unlike Klamath's dead
+ones; screens on/off in runs/050-glow-halo/vault-screens/. Pairs (off/on)
+in runs/050-glow-halo/: cave, vault-screens, torch (the mall fire barrel at
+night), night-fire (the town campfire at night), town (daylit, clean);
+README there.
+Next: the owner judges the look (user-check).
+Check: build + ctest 12/12 + the exporter and regression unit tests; the
+glow-off path is byte-neutral against the reverted build (0 px on the
+klatoxcv-e1 spot); see tasks/054 for the pre-existing reference mismatch
+that hits the suite with 050's code stashed the same way.
