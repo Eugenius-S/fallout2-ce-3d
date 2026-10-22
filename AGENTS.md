@@ -30,6 +30,10 @@ in `tools/shapes/eval/` (`eval.py shoot | sheets | score`).
   your work with the background test instance (`tools/dev-snapshot.ps1`,
   `fallout2-ce-test.exe`), the only process you may stop; one agent at a time.
 - Python is `py -3` (`python` is a Store stub).
+- One task per thread: after its PR, start a new thread for the next task.
+  Open a snapshot image only when numbers or JSON cannot answer the question,
+  one at a time; every image stays in the context and is paid for on each
+  later request.
 - Upstream CE code (`ce/src/*.cc` outside `scene/`, `scene_renderer/`,
   `devtools/`) gets a hook or a call at most; the logic lives in our modules.
 - OpenGL 4.1 core: no compute shaders, no SSBOs.
