@@ -109,3 +109,8 @@ Check: Release build and CTest pass (12/12). Captures: `scr00154.png` and `scr00
 Done: Added bottom clearance so the last slider stays inside the 9-slice frame. Added an isolated language override to the official snapshot helper and captured the full 16-frame 2D/3D, x2/x3, Russian/English matrix.
 Next: Add a narrowly scoped background interaction and persistence probe, then verify wheel, scrollbar, keyboard, slider, legacy controls, Done, Cancel, and Defaults.
 Check: Release build and CTest pass 12/12. The 16 PNG and JSON pairs are indexed in `runs/017-options-menu-3d-panel/matrix.md`; x3 captures use 1920x1440.
+
+### 2026-10-22 gpt
+Done: Moved the minimum-width scrollbar to the unused right metal margin and reused the same x geometry for the visible groove and hit target. Retook all eight x3 captures and updated the matrix index; prior captures remain as history.
+Next: Add a narrow isolated interaction and persistence probe through the preferences event loop.
+Check: Full clean Release build and CTest pass 12/12. New x3 captures `scr00174.png` through `scr00181.png` use the 1920x1440 drawable.

@@ -87,6 +87,14 @@ int OptionsPanel::rowCount() const { return static_cast<int>(rows_.size()); }
 int OptionsPanel::rowTop(int index) const { return kPanelTop + kHeaderHeight + index * kRowHeight; }
 int OptionsPanel::scroll() const { return scroll_; }
 int OptionsPanel::maxScroll() const { return std::max(0, contentHeight_ - screenHeight_); }
+int OptionsPanel::scrollbarX() const
+{
+    constexpr int kScrollbarWidth = 12;
+    constexpr int kOutsideGap = 4;
+    const int pageRight = pageX_ + kWidth;
+    if (screenWidth_ - pageRight >= kScrollbarWidth + kOutsideGap) return pageRight + kOutsideGap;
+    return pageRight - kScrollbarWidth;
+}
 void OptionsPanel::mouseToPageCoordinates(int& x, int& y) const { x -= pageX_; y = y - pageY_ + scroll_; }
 void OptionsPanel::setLabelResolver(LabelResolver resolver) { labelResolver_ = resolver; }
 
@@ -297,7 +305,7 @@ void OptionsPanel::compose()
             content_.data() + static_cast<size_t>(kWidth) * sourceY + left - pageX_, right - left);
     }
     if (maxScroll() > 0) {
-        int barX = pageX_ <= 8 ? 8 : std::min(screenWidth_ - 12, pageX_ + kWidth + 4);
+        const int barX = scrollbarX();
         int thumbHeight = 21;
         int travel = kTrackHeight - thumbHeight;
         int trackTop = std::max(0, pageY_ + kTrackTop);

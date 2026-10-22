@@ -29,6 +29,7 @@ public:
     int rowTop(int index) const;
     int scroll() const;
     int maxScroll() const;
+    int scrollbarX() const;
     void mouseToPageCoordinates(int& x, int& y) const;
     void setLabelResolver(LabelResolver resolver);
     void setButtonLayout(const std::vector<std::pair<int, int>>& legacyButtons, int speedButton, int speedTop, const std::vector<int>& rowButtons);

@@ -1277,7 +1277,7 @@ static int preferencesWindowInit()
         panelButtons.push_back(buttonCreate(gPreferencesWindow, 42, gOptionsPanel->rowTop(index), 556, 40,
             -1, -1, 600 + index, -1, nullptr, nullptr, nullptr, 0));
     }
-    int scrollbarX = preferencesPageX <= 8 ? 8 : std::min(preferencesScreenWidth - 12, preferencesPageX + PREFERENCES_WINDOW_WIDTH + 4);
+    int scrollbarX = gOptionsPanel->scrollbarX();
     buttonCreate(gPreferencesWindow, scrollbarX, preferencesPageY + 36, 12, 384, -1, -1, 599, -1, nullptr, nullptr, nullptr, 0);
 
     gOptionsPanel->setButtonLayout(legacyButtons, _plyrspdbid, 68, panelButtons);
