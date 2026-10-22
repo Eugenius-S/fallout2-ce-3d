@@ -17,13 +17,14 @@ bool validPixels(TextPixels pixels)
 
 bool contains(TextPixels pixels, int x, int y)
 {
-    return validPixels(pixels) && x >= 0 && y >= 0
-        && x < pixels.width && y < pixels.height;
+    return validPixels(pixels) && x >= pixels.originX && y >= pixels.originY
+        && static_cast<std::int64_t>(x) < static_cast<std::int64_t>(pixels.originX) + pixels.width
+        && static_cast<std::int64_t>(y) < static_cast<std::int64_t>(pixels.originY) + pixels.height;
 }
 
 unsigned char pixelAt(TextPixels pixels, int x, int y)
 {
-    return pixels.data[static_cast<std::size_t>(y) * pixels.pitch + x];
+    return pixels.data[static_cast<std::size_t>(y - pixels.originY) * pixels.pitch + (x - pixels.originX)];
 }
 
 TextRect intersection(TextRect a, TextRect b)
@@ -77,11 +78,11 @@ bool TextLayer::capture(TextBufferId buffer, bool orphan, const TextRunInfo& run
 {
     if (buffer == 0 || !validPixels(before) || !validPixels(after)
         || before.width != after.width || before.height != after.height
-        || before.pitch != after.pitch) {
+        || before.pitch != after.pitch || before.originX != after.originX || before.originY != after.originY) {
         return false;
     }
 
-    const TextRect clipped = intersection(bounds, { 0, 0, before.width, before.height });
+    const TextRect clipped = intersection(bounds, { before.originX, before.originY, before.width, before.height });
     if (clipped.width <= 0 || clipped.height <= 0) return false;
 
     TextRecord record;
@@ -137,14 +138,18 @@ void TextLayer::copy(TextBufferId source, TextBufferId destination, bool destina
     }
 
     // Restrict source coordinates to the destination's valid area after translation.
+    const std::int64_t destinationLeft = destinationBefore.originX;
+    const std::int64_t destinationTop = destinationBefore.originY;
+    const std::int64_t destinationRight = destinationLeft + destinationBefore.width;
+    const std::int64_t destinationBottom = destinationTop + destinationBefore.height;
     const std::int64_t sourceLeft = static_cast<std::int64_t>(sourceRect.x)
-        + std::max<std::int64_t>(0, -static_cast<std::int64_t>(destinationX));
+        + std::max<std::int64_t>(0, destinationLeft - destinationX);
     const std::int64_t sourceTop = static_cast<std::int64_t>(sourceRect.y)
-        + std::max<std::int64_t>(0, -static_cast<std::int64_t>(destinationY));
+        + std::max<std::int64_t>(0, destinationTop - destinationY);
     const std::int64_t sourceRight = static_cast<std::int64_t>(sourceRect.x)
-        + std::min<std::int64_t>(sourceRect.width, static_cast<std::int64_t>(destinationBefore.width) - destinationX);
+        + std::min<std::int64_t>(sourceRect.width, destinationRight - destinationX);
     const std::int64_t sourceBottom = static_cast<std::int64_t>(sourceRect.y)
-        + std::min<std::int64_t>(sourceRect.height, static_cast<std::int64_t>(destinationBefore.height) - destinationY);
+        + std::min<std::int64_t>(sourceRect.height, destinationBottom - destinationY);
     if (sourceRight <= sourceLeft || sourceBottom <= sourceTop
         || sourceLeft < INT32_MIN || sourceTop < INT32_MIN
         || sourceRight > INT32_MAX || sourceBottom > INT32_MAX) {
@@ -163,11 +168,13 @@ void TextLayer::copy(TextBufferId source, TextBufferId destination, bool destina
         clone.run.x = static_cast<int>(static_cast<std::int64_t>(clone.run.x) + shiftX);
         clone.run.y = static_cast<int>(static_cast<std::int64_t>(clone.run.y) + shiftY);
         for (int& characterX : clone.run.characterX) characterX = static_cast<int>(static_cast<std::int64_t>(characterX) + shiftX);
+        for (int& characterCellX : clone.run.characterCellX) characterCellX = static_cast<int>(static_cast<std::int64_t>(characterCellX) + shiftX);
         for (const auto& maskPixel : sourceRecord.coverage) {
             if (maskPixel.x < sourceLeft || maskPixel.x >= sourceRight || maskPixel.y < sourceTop || maskPixel.y >= sourceBottom) continue;
             const std::int64_t translatedX = static_cast<std::int64_t>(destinationX) + (maskPixel.x - sourceRect.x);
             const std::int64_t translatedY = static_cast<std::int64_t>(destinationY) + (maskPixel.y - sourceRect.y);
-            if (translatedX < 0 || translatedY < 0 || translatedX >= destinationBefore.width || translatedY >= destinationBefore.height) continue;
+            if (translatedX < INT32_MIN || translatedX > INT32_MAX || translatedY < INT32_MIN || translatedY > INT32_MAX
+                || !contains(destinationBefore, static_cast<int>(translatedX), static_cast<int>(translatedY))) continue;
             const int destX = static_cast<int>(translatedX);
             const int destY = static_cast<int>(translatedY);
             if (!contains(sourceSnapshot, maskPixel.x, maskPixel.y)
@@ -186,7 +193,8 @@ void TextLayer::copy(TextBufferId source, TextBufferId destination, bool destina
             if (pixel.x < sourceLeft || pixel.x >= sourceRight || pixel.y < sourceTop || pixel.y >= sourceBottom) continue;
             const std::int64_t translatedX = static_cast<std::int64_t>(destinationX) + (pixel.x - sourceRect.x);
             const std::int64_t translatedY = static_cast<std::int64_t>(destinationY) + (pixel.y - sourceRect.y);
-            if (translatedX < 0 || translatedY < 0 || translatedX >= destinationBefore.width || translatedY >= destinationBefore.height) continue;
+            if (translatedX < INT32_MIN || translatedX > INT32_MAX || translatedY < INT32_MIN || translatedY > INT32_MAX
+                || !contains(destinationBefore, static_cast<int>(translatedX), static_cast<int>(translatedY))) continue;
             const int destX = static_cast<int>(translatedX);
             const int destY = static_cast<int>(translatedY);
             if (!contains(destinationBefore, destX, destY) || !contains(destinationAfter, destX, destY)) continue;

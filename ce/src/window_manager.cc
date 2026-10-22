@@ -16,6 +16,7 @@
 #include "mouse.h"
 #include "palette.h"
 #include "svga.h"
+#include "scene/text_capture.h"
 #include "text_font.h"
 #include "win32.h"
 #include "window_manager_private.h"
@@ -339,6 +340,7 @@ int windowCreate(int x, int y, int width, int height, ColorWithFlags color, int 
         internal_free(window);
         return -1;
     }
+    textCaptureMarkBufferOwned(window->buffer);
 
     int id = 1;
     while (windowGetWindow(id) != nullptr) {

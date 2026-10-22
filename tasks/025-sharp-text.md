@@ -114,3 +114,8 @@ Check: cmake --build build --target text_layer_tests; ctest --test-dir build -R 
 Done: CPU text records now retain per-pixel glyph clipping, changed-pixel restoration, safe buffer generations, clipped copies, and transparent source coverage. Added fake-buffer tests and the suite to the CI matrix.
 Next: parent review this CPU stage; only then start live capture and GL rendering integration. Snapshot helpers must share the live sharp-text pass during that later stage.
 Check: cmake --build build; ctest --test-dir build --output-on-failure (13/13 passed). No game process, visual regression, or sharp-text runtime integration was tested.
+
+### 2026-10-22 gpt
+Done: added the live capture bridge around fontDrawText, tracked blits, allocator generations, SDL screen storage, window buffers, and OptionsPanel's external content buffer. Captures retain accepted font metrics and mono cell origins; clipped copies keep original logical width. OptionsPanel now submits its visible content as one tracked rectangular blit.
+Next: parent review this capture stage. Rendering remains disconnected: GL glyph drawing, erase-at-present, shared snapshot rendering, cursor masking, and window ownership/occlusion provenance still need implementation. Unknown external buffers remain pixel text; no acceptance coverage is claimed. The parent will validate captured options pixels with an official snapshot before the next stage.
+Check: Release build via tools/configure-build.ps1; ctest --test-dir build --output-on-failure (14/14 passed). No game process or visual runtime test was run.

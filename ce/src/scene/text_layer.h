@@ -26,6 +26,8 @@ struct TextPixels {
     int width = 0;
     int height = 0;
     int pitch = 0;
+    int originX = 0;
+    int originY = 0;
 };
 
 struct TextRunInfo {
@@ -34,8 +36,13 @@ struct TextRunInfo {
     unsigned int colorAndFlags = 0;
     int x = 0;
     int y = 0;
+    // Accepted logical advance and mono cell grid remain unchanged when a
+    // copied run is clipped to a smaller destination rectangle.
+    int width = 0;
+    int cellWidth = 0;
     int lineHeight = 0;
     std::vector<int> characterX;
+    std::vector<int> characterCellX;
 };
 
 struct TextPixelRecord {

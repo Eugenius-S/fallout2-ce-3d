@@ -1,4 +1,5 @@
 #include "options_panel.h"
+#include "text_capture.h"
 
 #include <algorithm>
 #include <array>
@@ -105,11 +106,15 @@ void drawRightAlignedControlText(unsigned char* panel, int rowY, int left, int r
 } // namespace
 
 OptionsPanel::OptionsPanel() = default;
-OptionsPanel::~OptionsPanel() = default;
+OptionsPanel::~OptionsPanel()
+{
+    if (!content_.empty()) textCaptureUnregisterExternalBuffer(content_.data());
+}
 
 bool OptionsPanel::initialize(int windowId, unsigned char* surface, const unsigned char* background, int backgroundHeight,
     int screenWidth, int screenHeight, int pageX, int pageY)
 {
+    if (!content_.empty()) textCaptureUnregisterExternalBuffer(content_.data());
     windowId_ = windowId;
     surface_ = surface;
     screenWidth_ = screenWidth;
@@ -123,6 +128,7 @@ bool OptionsPanel::initialize(int windowId, unsigned char* surface, const unsign
     background_.assign(background, background + static_cast<size_t>(kWidth) * kHeight);
     buildBackgroundTexture();
     content_.resize(static_cast<size_t>(kWidth) * contentHeight_);
+    textCaptureRegisterExternalBuffer(content_.data(), content_.size(), kWidth, contentHeight_, kWidth, true);
     for (int y = 0; y < contentHeight_; y++) {
         for (int x = 0; x < kWidth; x++) {
             content_[static_cast<size_t>(kWidth) * y + x] = backgroundTexturePixel(pageX_ + x, pageY_ + y);
@@ -634,14 +640,16 @@ void OptionsPanel::compose()
             destination[x] = backgroundTexturePixel(x, y + scroll_);
         }
     }
-    for (int y = 0; y < screenHeight_; y++) {
-        const int sourceY = scroll_ + y - pageY_;
-        if (sourceY < 0 || sourceY >= contentHeight_) continue;
-        const int left = std::max(0, pageX_);
-        const int right = std::min(screenWidth_, pageX_ + kWidth);
-        if (left >= right) continue;
-        std::memcpy(surface_ + static_cast<size_t>(screenWidth_) * y + left,
-            content_.data() + static_cast<size_t>(kWidth) * sourceY + left - pageX_, right - left);
+    const int sourceTop = scroll_ - pageY_;
+    const int firstVisibleRow = std::max(0, -sourceTop);
+    const int pastVisibleRow = std::min(screenHeight_, contentHeight_ - sourceTop);
+    const int left = std::max(0, pageX_);
+    const int right = std::min(screenWidth_, pageX_ + kWidth);
+    if (firstVisibleRow < pastVisibleRow && left < right) {
+        const int sourceY = sourceTop + firstVisibleRow;
+        blitBufferToBuffer(content_.data() + static_cast<size_t>(kWidth) * sourceY + left - pageX_,
+            right - left, pastVisibleRow - firstVisibleRow, kWidth,
+            surface_ + static_cast<size_t>(screenWidth_) * firstVisibleRow + left, screenWidth_);
     }
     if (maxScroll() > 0) {
         const int barX = scrollbarX();

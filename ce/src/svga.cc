@@ -17,6 +17,7 @@
 #include "movie.h"
 #include "scan_unimplemented.h"
 #include "settings.h"
+#include "scene/text_capture.h"
 #include "devtools/devtools.h"
 #include "scene/scene_overlay.h"
 #include "scene/scene_view.h"
@@ -246,6 +247,9 @@ int directDrawInit(int width, int height, int bpp)
         directDrawFree();
         return -1;
     }
+    textCaptureRegisterExternalBuffer(gSdlSurface->pixels,
+        static_cast<size_t>(gSdlSurface->pitch) * gSdlSurface->h,
+        gSdlSurface->w, gSdlSurface->h, gSdlSurface->pitch, false);
 
     SDL_Color colors[256];
     for (int index = 0; index < 256; index++) {
@@ -264,6 +268,7 @@ int directDrawInit(int width, int height, int bpp)
 void directDrawFree()
 {
     if (gSdlSurface != nullptr) {
+        textCaptureUnregisterExternalBuffer(gSdlSurface->pixels);
         SDL_FreeSurface(gSdlSurface);
         gSdlSurface = nullptr;
     }

@@ -250,6 +250,29 @@ int main()
 
     // The oldest record is discarded at the configured cap.
     {
+        TextLayer layer;
+        std::vector<unsigned char> before = { 4 };
+        std::vector<unsigned char> after = { 7 };
+        TextPixels beforeRegion { before.data(), 1, 1, 1, 3, 2 };
+        TextPixels afterRegion { after.data(), 1, 1, 1, 3, 2 };
+        failures += !check(layer.capture(20, true, run("O", 3, 2), { 3, 2, 1, 1 }, beforeRegion, afterRegion),
+            "compact capture snapshots retain allocation coordinates");
+        std::vector<unsigned char> destinationBefore(24, 9);
+        std::vector<unsigned char> destinationAfter = destinationBefore;
+        destinationAfter[1 * 6 + 4] = 7;
+        TextPixels sourceSnapshot { after.data(), 1, 1, 1, 3, 2 };
+        TextPixels destBeforeRegion { destinationBefore.data() + 1 * 6 + 4, 1, 1, 1, 4, 1 };
+        TextPixels destAfterRegion { destinationAfter.data() + 1 * 6 + 4, 1, 1, 1, 4, 1 };
+        layer.copy(20, 21, false, { 3, 2, 1, 1 }, 4, 1, false, 0,
+            sourceSnapshot, destBeforeRegion, destAfterRegion);
+        const auto restored = layer.restorationPixels(21, view(destinationAfter, 6, 4, 6));
+        failures += !check(restored.size() == 1 && restored[0].x == 4 && restored[0].y == 1
+                && restored[0].paletteIndex == 4,
+            "compact blit snapshots preserve source and destination origins");
+    }
+
+    // The oldest record is discarded at the configured cap.
+    {
         TextLayer layer(1);
         std::vector<unsigned char> before(1, 1);
         std::vector<unsigned char> a(1, 2);
