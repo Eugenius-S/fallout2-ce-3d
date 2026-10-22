@@ -38,6 +38,11 @@ Every new setting is in the game's own options menu.
   `owner-reference-small-tile-repeat.png`. They reject the stepped monitor
   corner, the visible edge of the original rectangular background, and the
   still-obvious repeat from the small grain patch.
+- The latest UI references are `owner-reference-refinement-a55f0ffd.png`,
+  `owner-reference-refinement-49f41cbe.png`,
+  `owner-reference-refinement-20619958.png`, and
+  `owner-reference-refinement-2724fe26.png`. They guide the native bezel,
+  aligned control grid, compact focus state, and grouped 3D settings.
 - Replace the earlier fixed-footer and flat-panel appearance. Cover the whole
   game view at any resolution with an opaque, seamless metal texture tiled
   from the preferences art. The map must not show through.
@@ -77,11 +82,16 @@ Every new setting is in the game's own options menu.
 - The new panel uses the preferred game FRM frame, or the message/dialog
   fallback, assembled as a tiled 9-slice. Its corners and edges join cleanly,
   and it grows with the number of settings.
-- The panel lists every `[3d]` descriptor in registry order with its label and
-  current value. It uses a switch, numeric slider, or choice control by type;
-  unsupported value types remain visible. Use descriptor label message IDs
-  when available and the English fallback label otherwise. New keys appear
-  without menu code changes.
+- The panel lists every `[3d]` descriptor in stable registration order within
+  General, Lighting, Camera, and Other groups. Unknown registered keys appear
+  in Other. Rows use a 28-pixel height for toggles/values and 40 pixels for
+  sliders, with shared positions for drawing, hit regions, and scrolling.
+  Labels share a left edge and controls share a right edge. It uses a switch,
+  numeric slider, or choice control by type; unsupported value types remain
+  visible. Use descriptor label message IDs when available and the English
+  fallback label otherwise. New keys appear without menu code changes.
+- The selected row has a compact outline around its control; disabled and
+  command-line-overridden settings keep a distinct muted yellow color.
 - The existing `OptionsSettingsModel` keeps edits staged. Done commits them
   before the classic preferences save; a failed commit stays open and shows an
   error. Cancel or Escape restores legacy preferences and discards staged
@@ -93,7 +103,10 @@ Every new setting is in the game's own options menu.
   Home, and End. Its groove, knob travel, drag mapping, and hit region share a
   track spanning the window height with small equal end margins. The original
   control art and hit regions are never clipped by
-  the bar.
+  the bar. At the 640-pixel logical minimum, the current fallback track covers
+  the rightmost 12 pixels of the outer frame bezel because there is no outside
+  margin; it stays clear of the row hitboxes. Resolve this medium issue before
+  final task acceptance.
 - Works in 2D and 3D, at x2 and x3 scale, in Russian and English. Capture the
   window at the top and bottom for each combination of 2D/3D, x2/x3, and
   Russian/English: 16 snapshots in the PR, with the game frame at the requested
@@ -148,3 +161,8 @@ Check: Official Release build passes. Root approved the fresh Russian x3 top and
 Done: Rebuilt the seamless metal tile from varied safe source crops and cleaned the Pip-Boy bezel joins. The black inset now follows rounded corners, and the bottom bezel reuses a vertically flipped native top cut for consistent thickness. Extended the original-style scrollbar to the full window height with shared 8 px top and bottom margins for its groove, thumb travel, drag mapping, and hit target.
 Next: Continue the separately paused interaction and persistence probe; task 017 remains in progress.
 Check: Root accepted the visual review. Release build and CTest pass 12/12. Russian x3 captures: `runs/017-options-menu-3d-panel/visual-fix-20261022/final-top-v4/scr00018.png` and `runs/017-options-menu-3d-panel/visual-fix-20261022/final-bottom-v8/scr00023.png`. The 30 logical top and bottom bezel rows match exactly after vertical flip across x=32..607 (155,520 pixels); the full-height scrollbar spans pixel rows 24..1775 at 3x, leaving 8 logical pixels at each end.
+
+### 2026-10-22 gpt
+Done: Replaced noisy vertical bezel sampling with a clean native 5-row strip. Centered the inner label/control grid on the existing 640-pixel legacy/frame axis, grouped every registered 3D row into General, Lighting, Camera, or automatic Other, and used compact 28-pixel toggle/value rows and 40-pixel slider rows. Replaced the left selection bar with a compact control outline and kept disabled text muted yellow. Copied four new owner references into `runs/017-options-menu-3d-panel/`.
+Next: Continue the separately paused interaction and persistence probe, then resolve the scrollbar overlap with the right bezel at the 640-pixel logical minimum; task 017 remains in progress.
+Check: Root approved the layout and bezel treatment. Release build and CTest pass 12/12. Final-code captures: minimum logical 640x480 bottom at `runs/017-options-menu-3d-panel/ui-refinement-20261022/minimum-bottom/scr00028.png` and wide logical 960x540 bottom at `runs/017-options-menu-3d-panel/ui-refinement-20261022/wide-bottom-final/scr00027.png`. Earlier top captures preceded the final color/slider-spacing adjustment and are not final review evidence. Group headings and enabled focus/control ink measure RGB(60,248,0) against RGB(40,40,40) at 10.26:1. All 10 current descriptors are covered once in stable registration order within groups; row spans are disjoint, end at y=1002 inside the frame ending at y=1034, with 32 pixels of bottom clearance. Both side strips repeat every five logical rows with zero pixel mismatches across 25,600 comparisons per side; the 640-pixel viewport center x=320 maps to screen center x=480 at logical width 960. At 640x480 logical, the track spans x=628..639 and y=8..471, overlaying the rightmost 12 pixels of the 32-pixel outer bezel because no outside margin exists; controls and row hitboxes end at x=588 and x=598 respectively, so they remain clear. At wide logical 960, track x=804..815 stays outside the 640-pixel frame. Physical widths below 640 and Tab navigation were not tested; the capture helper enforces a 640x480 logical minimum, and this UI exposes arrow-key editing/scrolling without Tab navigation. The disabled style was not present in these captures; code keeps its muted-yellow text.

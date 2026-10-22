@@ -1271,7 +1271,8 @@ static int preferencesWindowInit()
 
     std::vector<int> panelButtons;
     for (int index = 0; index < gOptionsPanel->rowCount(); index++) {
-        panelButtons.push_back(buttonCreate(gPreferencesWindow, 42, gOptionsPanel->rowTop(index), 556, 40,
+        panelButtons.push_back(buttonCreate(gPreferencesWindow, gOptionsPanel->rowButtonX(), gOptionsPanel->rowTop(index),
+            gOptionsPanel->rowButtonWidth(), gOptionsPanel->rowHeight(index),
             -1, -1, 600 + index, -1, nullptr, nullptr, nullptr, 0));
     }
     int scrollbarX = gOptionsPanel->scrollbarX();

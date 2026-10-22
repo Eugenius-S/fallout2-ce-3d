@@ -27,6 +27,9 @@ public:
     int contentHeight() const;
     int rowCount() const;
     int rowTop(int index) const;
+    int rowHeight(int index) const;
+    int rowButtonX() const;
+    int rowButtonWidth() const;
     int scroll() const;
     int maxScroll() const;
     int scrollbarX() const;
@@ -47,7 +50,16 @@ public:
     void resetToDefaults();
 
 private:
+    struct RowLayout {
+        int top = 0;
+        int height = 0;
+    };
+    struct GroupLayout {
+        std::string title;
+        int top = 0;
+    };
     void drawRows();
+    void buildRowLayout();
     void compose();
     void buildBackgroundTexture();
     unsigned char backgroundTexturePixel(int x, int y) const;
@@ -78,6 +90,9 @@ private:
     int frameWidth_ = 0;
     int frameHeight_ = 0;
     std::vector<OptionsPanelRow> rows_;
+    std::vector<int> displayOrder_;
+    std::vector<RowLayout> rowLayouts_;
+    std::vector<GroupLayout> groupLayouts_;
     std::unique_ptr<OptionsSettingsModel> model_;
     std::string error_;
     int selectedRow_ = 0;

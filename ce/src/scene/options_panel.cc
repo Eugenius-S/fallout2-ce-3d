@@ -27,8 +27,25 @@ constexpr int kWidth = 640;
 constexpr int kHeight = 480;
 constexpr int kPanelTop = 494;
 constexpr int kHeaderHeight = 90;
-constexpr int kRowHeight = 44;
-constexpr int kPanelBottomPadding = 50;
+constexpr int kToggleRowHeight = 28;
+constexpr int kSliderRowHeight = 40;
+constexpr int kGroupHeadingHeight = 14;
+constexpr int kGroupGap = 24;
+constexpr int kPanelBottomPadding = 32;
+constexpr int kLabelX = 55;
+constexpr int kValueX = 405;
+constexpr int kValueWidth = 180;
+constexpr int kToggleX = 485;
+constexpr int kToggleWidth = 100;
+constexpr int kSliderX = 355;
+constexpr int kSliderRight = 540;
+constexpr int kSliderValueX = 500;
+constexpr int kSliderValueWidth = 85;
+constexpr int kSliderTrackOffset = 22;
+constexpr int kSliderHitTolerance = 7;
+constexpr int kFocusPadding = 3;
+constexpr int kRowButtonX = 42;
+constexpr int kRowButtonWidth = 556;
 constexpr int kRowEvent = 600;
 constexpr int kScrollEvent = 599;
 constexpr int kTrackMargin = 8;
@@ -75,6 +92,12 @@ double editNumber(const SettingValue& value)
     return 0.0;
 }
 
+void drawRightAlignedControlText(unsigned char* panel, int rowY, int left, int right, const char* text, Color color)
+{
+    const int width = std::min(fontGetStringWidth(text), right - left);
+    fontDrawText(panel + kWidth * (rowY + 4) + right - width, text, width, kWidth, color);
+}
+
 } // namespace
 
 OptionsPanel::OptionsPanel() = default;
@@ -91,7 +114,7 @@ bool OptionsPanel::initialize(int windowId, unsigned char* surface, const unsign
     pageY_ = pageY;
     model_ = std::make_unique<OptionsSettingsModel>();
     rows_ = optionsPanelRows(model_->edits(), "3d");
-    contentHeight_ = std::max(kHeight, kPanelTop + kHeaderHeight + static_cast<int>(rows_.size()) * kRowHeight + kPanelBottomPadding);
+    buildRowLayout();
     if (background == nullptr || surface_ == nullptr || backgroundHeight < kHeight || screenWidth_ < kWidth || screenHeight_ < kHeight) return false;
     background_.assign(background, background + static_cast<size_t>(kWidth) * kHeight);
     buildBackgroundTexture();
@@ -284,7 +307,59 @@ unsigned char* OptionsPanel::contentBuffer() { return content_.data(); }
 unsigned char* OptionsPanel::footerBuffer() { return content_.data() + static_cast<size_t>(kWidth) * 430; }
 int OptionsPanel::contentHeight() const { return contentHeight_; }
 int OptionsPanel::rowCount() const { return static_cast<int>(rows_.size()); }
-int OptionsPanel::rowTop(int index) const { return kPanelTop + kHeaderHeight + index * kRowHeight; }
+int OptionsPanel::rowTop(int index) const
+{
+    return index >= 0 && index < static_cast<int>(rowLayouts_.size()) ? rowLayouts_[index].top : kPanelTop + kHeaderHeight;
+}
+int OptionsPanel::rowHeight(int index) const
+{
+    return index >= 0 && index < static_cast<int>(rowLayouts_.size()) ? rowLayouts_[index].height : kToggleRowHeight;
+}
+int OptionsPanel::rowButtonX() const { return kRowButtonX; }
+int OptionsPanel::rowButtonWidth() const { return kRowButtonWidth; }
+
+void OptionsPanel::buildRowLayout()
+{
+    constexpr const char* kGroupTitles[] = { "General", "Lighting", "Camera", "Other" };
+    std::vector<std::vector<int>> groupedRows(4);
+    for (int index = 0; index < rowCount(); index++) {
+        const std::string& id = rows_[index].edit->descriptor->id;
+        const size_t separator = id.rfind('.');
+        const std::string key = separator == std::string::npos ? id : id.substr(separator + 1);
+        int group = 3;
+        if (key == "enabled" || key == "clean_edges") group = 0;
+        else if (key == "sun" || key == "lights" || key == "glow" || key == "glow_strength") group = 1;
+        else if (key == "camera_rotation" || key == "zoom" || key == "zoom_min" || key == "zoom_max") group = 2;
+        groupedRows[group].push_back(index);
+    }
+
+    displayOrder_.clear();
+    rowLayouts_.assign(rows_.size(), {});
+    groupLayouts_.clear();
+    int cursor = kPanelTop + kHeaderHeight;
+    for (size_t group = 0; group < groupedRows.size(); group++) {
+        if (groupedRows[group].empty()) continue;
+        GroupLayout layout;
+        layout.title = kGroupTitles[group];
+        layout.top = cursor;
+        cursor += kGroupHeadingHeight;
+        for (int index : groupedRows[group]) {
+            const int height = rows_[index].control == OptionsPanelControl::Slider ? kSliderRowHeight : kToggleRowHeight;
+            rowLayouts_[index] = { cursor, height };
+            displayOrder_.push_back(index);
+            cursor += height;
+        }
+        groupLayouts_.push_back(std::move(layout));
+        if (group + 1 < groupedRows.size()) {
+            bool hasFollowingGroup = false;
+            for (size_t next = group + 1; next < groupedRows.size(); next++) {
+                if (!groupedRows[next].empty()) { hasFollowingGroup = true; break; }
+            }
+            if (hasFollowingGroup) cursor += kGroupGap;
+        }
+    }
+    contentHeight_ = std::max(kHeight, cursor + kPanelBottomPadding);
+}
 int OptionsPanel::scroll() const { return scroll_; }
 int OptionsPanel::maxScroll() const { return std::max(0, contentHeight_ - screenHeight_); }
 int OptionsPanel::scrollbarX() const
@@ -388,7 +463,7 @@ void OptionsPanel::draw()
                     if (top || bottom) {
                         sy = top ? 16 + y : 47 - (y - (panelHeight - kPanelBottomCap));
                     } else {
-                        sy = 80 + (y - kPanelTopCap) % 320;
+                        sy = 48 + (y - kPanelTopCap) % 5;
                     }
                 } else if (top) {
                     constexpr int edgeLeft = 520;
@@ -438,19 +513,22 @@ void OptionsPanel::draw()
 void OptionsPanel::drawRows()
 {
     if (model_ == nullptr) return;
-    for (size_t index = 0; index < rows_.size(); index++) {
+    unsigned char* panel = content_.data() + static_cast<size_t>(kWidth) * kPanelTop;
+    for (const GroupLayout& group : groupLayouts_) {
+        const int groupY = group.top - kPanelTop;
+        fontSetCurrent(101);
+        fontDrawText(panel + kWidth * (groupY + 1) + kLabelX, group.title.c_str(), 270, kWidth, COLOR_GREEN);
+    }
+    for (int index : displayOrder_) {
         const OptionsPanelRow& row = rows_[index];
         const SettingDescriptor& descriptor = *row.edit->descriptor;
-        const int rowY = kHeaderHeight + static_cast<int>(index) * kRowHeight;
-        unsigned char* panel = content_.data() + static_cast<size_t>(kWidth) * kPanelTop;
+        const int rowY = rowTop(index) - kPanelTop;
+        const int height = rowHeight(index);
         const bool disabled = descriptor.readOnly || descriptor.commandLineOverride;
         const Color color = disabled ? COLOR_DARK_YELLOW : COLOR_GREEN;
-        for (int fillY = rowY; fillY < rowY + kRowHeight - 5; fillY++) {
-            std::memcpy(panel + kWidth * fillY + 42,
-                rowFrameBackground_.data() + kWidth * fillY + 42, 542);
-        }
-        if (static_cast<int>(index) == selectedRow_) {
-            bufferFill(panel + kWidth * rowY + 42, 4, kRowHeight - 5, kWidth, COLOR_GREEN);
+        for (int fillY = rowY; fillY < rowY + height; fillY++) {
+            std::memcpy(panel + kWidth * fillY + kRowButtonX,
+                rowFrameBackground_.data() + kWidth * fillY + kRowButtonX, kRowButtonWidth);
         }
         const char* localizedLabel = descriptor.labelMessageId > 0 && labelResolver_ != nullptr
             ? labelResolver_(descriptor.labelMessageId)
@@ -458,14 +536,14 @@ void OptionsPanel::drawRows()
         const std::string displayLabel = localizedLabel != nullptr && localizedLabel[0] != '\0'
             ? localizedLabel
             : (descriptor.fallbackLabel.empty() ? descriptor.id : descriptor.fallbackLabel);
-        fontDrawText(panel + kWidth * (rowY + 4) + 50, displayLabel.c_str(), 270, kWidth, color);
+        fontDrawText(panel + kWidth * (rowY + 4) + kLabelX, displayLabel.c_str(), 270, kWidth, color);
 
         char valueText[128] = {};
         switch (row.control) {
         case OptionsPanelControl::Toggle: {
             bool value = std::get<bool>(row.edit->value);
             std::snprintf(valueText, sizeof(valueText), "[%c] %s", value ? 'X' : ' ', value ? "On" : "Off");
-            fontDrawText(panel + kWidth * (rowY + 4) + 480, valueText, 100, kWidth, color);
+            drawRightAlignedControlText(panel, rowY, kToggleX, kToggleX + kToggleWidth, valueText, color);
             break;
         }
         case OptionsPanelControl::Slider: {
@@ -473,10 +551,10 @@ void OptionsPanel::drawRows()
             const SettingNumericRange& range = *descriptor.numericRange;
             double ratio = std::clamp((value - range.minimum) / (range.maximum - range.minimum), 0.0, 1.0);
             std::snprintf(valueText, sizeof(valueText), "%.2f", value);
-            fontDrawText(panel + kWidth * (rowY + 4) + 490, valueText, 85, kWidth, color);
-            int trackY = rowY + 31;
-            bufferDrawLine(panel, kWidth, 350, trackY, 535, trackY, color);
-            int knobX = 350 + static_cast<int>(std::round(ratio * 185.0));
+            drawRightAlignedControlText(panel, rowY, kSliderValueX, kSliderValueX + kSliderValueWidth, valueText, color);
+            int trackY = rowY + kSliderTrackOffset;
+            bufferDrawLine(panel, kWidth, kSliderX, trackY, kSliderRight, trackY, color);
+            int knobX = kSliderX + static_cast<int>(std::round(ratio * (kSliderRight - kSliderX)));
             bufferDrawRect(panel, kWidth, knobX - 3, trackY - 5, knobX + 3, trackY + 5, COLOR_LIGHT_GREEN);
             break;
         }
@@ -487,7 +565,7 @@ void OptionsPanel::drawRows()
                 if (choice.value == selected) { label = choice.fallbackLabel.c_str(); break; }
             }
             std::snprintf(valueText, sizeof(valueText), "< %s >", label);
-            fontDrawText(panel + kWidth * (rowY + 4) + 400, valueText, 180, kWidth, color);
+            drawRightAlignedControlText(panel, rowY, kValueX, kValueX + kValueWidth, valueText, color);
             break;
         }
         case OptionsPanelControl::Value:
@@ -495,8 +573,21 @@ void OptionsPanel::drawRows()
             else if (const auto* value = std::get_if<int>(&row.edit->value)) std::snprintf(valueText, sizeof(valueText), "%d", *value);
             else if (const auto* value = std::get_if<double>(&row.edit->value)) std::snprintf(valueText, sizeof(valueText), "%.2f", *value);
             else if (const auto* value = std::get_if<std::string>(&row.edit->value)) std::snprintf(valueText, sizeof(valueText), "%s", value->c_str());
-            fontDrawText(panel + kWidth * (rowY + 4) + 400, valueText, 180, kWidth, color);
+            drawRightAlignedControlText(panel, rowY, kValueX, kValueX + kValueWidth, valueText, color);
             break;
+        }
+        if (index == selectedRow_) {
+            int left = kValueX - kFocusPadding;
+            int right = kValueX + kValueWidth + kFocusPadding;
+            if (row.control == OptionsPanelControl::Toggle) {
+                left = kToggleX - kFocusPadding;
+                right = kToggleX + kToggleWidth + kFocusPadding;
+            } else if (row.control == OptionsPanelControl::Slider) {
+                left = kSliderX - kFocusPadding;
+                right = kSliderValueX + kSliderValueWidth + kFocusPadding;
+            }
+            const Color focusColor = COLOR_GREEN;
+            bufferDrawRect(panel, kWidth, left, rowY + 1, right, rowY + height - 2, focusColor);
         }
     }
 }
@@ -618,8 +709,10 @@ void OptionsPanel::dragSlider(int index)
         mouseGetPositionInWindow(windowId_, &x, &y);
         mouseToPageCoordinates(x, y);
         const int rowY = rowTop(index);
-        if (x < 350 || x > 535 || y < rowY + 25 || y > rowY + 38) return;
-        double ratio = std::clamp((x - 350.0) / 185.0, 0.0, 1.0);
+        if (x < kSliderX || x > kSliderRight
+            || y < rowY + kSliderTrackOffset - kSliderHitTolerance
+            || y > rowY + kSliderTrackOffset + kSliderHitTolerance) return;
+        double ratio = std::clamp((x - static_cast<double>(kSliderX)) / (kSliderRight - kSliderX), 0.0, 1.0);
         double value = range.minimum + ratio * (range.maximum - range.minimum);
         if (range.step.has_value()) value = range.minimum + std::round((value - range.minimum) / *range.step) * *range.step;
         value = std::clamp(value, range.minimum, range.maximum);
@@ -684,8 +777,9 @@ bool OptionsPanel::handleEvent(int eventCode)
     const OptionsPanelRow& row = rows_[index];
     const SettingDescriptor& descriptor = *row.edit->descriptor;
     if (descriptor.readOnly || descriptor.commandLineOverride) return true;
-    if (row.control == OptionsPanelControl::Slider && mouseX >= 350 && mouseX <= 535
-        && mouseY >= rowTop(index) + 25 && mouseY <= rowTop(index) + 38) {
+    if (row.control == OptionsPanelControl::Slider && mouseX >= kSliderX && mouseX <= kSliderRight
+        && mouseY >= rowTop(index) + kSliderTrackOffset - kSliderHitTolerance
+        && mouseY <= rowTop(index) + kSliderTrackOffset + kSliderHitTolerance) {
         dragSlider(index);
         return true;
     }
@@ -697,15 +791,15 @@ bool OptionsPanel::handleKey(int keyCode)
 {
     if (rowCount() == 0) return false;
     switch (keyCode) {
-    case KEY_ARROW_UP: setScroll(scroll_ - kRowHeight); return true;
-    case KEY_ARROW_DOWN: setScroll(scroll_ + kRowHeight); return true;
+    case KEY_ARROW_UP: setScroll(scroll_ - rowHeight(selectedRow_)); return true;
+    case KEY_ARROW_DOWN: setScroll(scroll_ + rowHeight(selectedRow_)); return true;
     case KEY_PAGE_UP: setScroll(scroll_ - 360); return true;
     case KEY_PAGE_DOWN: setScroll(scroll_ + 360); return true;
     case KEY_HOME: setScroll(0); return true;
     case KEY_END: setScroll(maxScroll()); return true;
-    case KEY_ARROW_LEFT: setScroll(std::clamp(rowTop(selectedRow_) - screenHeight_ / 2, 0, maxScroll())); return stepRow(selectedRow_, -1);
+    case KEY_ARROW_LEFT: setScroll(std::clamp(rowTop(selectedRow_) + rowHeight(selectedRow_) / 2 - screenHeight_ / 2, 0, maxScroll())); return stepRow(selectedRow_, -1);
     case KEY_ARROW_RIGHT:
-    case KEY_SPACE: setScroll(std::clamp(rowTop(selectedRow_) - screenHeight_ / 2, 0, maxScroll())); return stepRow(selectedRow_, 1);
+    case KEY_SPACE: setScroll(std::clamp(rowTop(selectedRow_) + rowHeight(selectedRow_) / 2 - screenHeight_ / 2, 0, maxScroll())); return stepRow(selectedRow_, 1);
     default: return false;
     }
 }
