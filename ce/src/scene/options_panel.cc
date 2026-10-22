@@ -27,6 +27,7 @@ constexpr int kHeight = 480;
 constexpr int kPanelTop = 494;
 constexpr int kHeaderHeight = 90;
 constexpr int kRowHeight = 44;
+constexpr int kPanelBottomPadding = 50;
 constexpr int kRowEvent = 600;
 constexpr int kScrollEvent = 599;
 constexpr int kTrackTop = 40;
@@ -55,7 +56,7 @@ bool OptionsPanel::initialize(int windowId, unsigned char* surface, const unsign
     pageY_ = pageY;
     model_ = std::make_unique<OptionsSettingsModel>();
     rows_ = optionsPanelRows(model_->edits(), "3d");
-    contentHeight_ = std::max(kHeight, kPanelTop + kHeaderHeight + static_cast<int>(rows_.size()) * kRowHeight + 18);
+    contentHeight_ = std::max(kHeight, kPanelTop + kHeaderHeight + static_cast<int>(rows_.size()) * kRowHeight + kPanelBottomPadding);
     if (background == nullptr || surface_ == nullptr || backgroundHeight < kHeight || screenWidth_ < kWidth || screenHeight_ < kHeight) return false;
     content_.assign(static_cast<size_t>(kWidth) * contentHeight_, 0);
     background_.assign(background, background + static_cast<size_t>(kWidth) * kHeight);

@@ -105,3 +105,7 @@ Check: Read `runs/017-options-menu-3d-panel/owner-brief.md` and inspect `owner-r
 Done: Replaced the fixed footer and flat panel with a full-screen scrolling preferences page, a 9-sliced Pip-Boy monitor, and the original FRM scrollbar. Added top and bottom Russian x2 captures for root review.
 Next: Root review, then verify input, save and cancel behavior, and the full display matrix.
 Check: Release build and CTest pass (12/12). Captures: `scr00154.png` and `scr00155.png` in `runs/017-options-menu-3d-panel/`.
+### 2026-10-22 gpt
+Done: Added bottom clearance so the last slider stays inside the 9-slice frame. Added an isolated language override to the official snapshot helper and captured the full 16-frame 2D/3D, x2/x3, Russian/English matrix.
+Next: Add a narrowly scoped background interaction and persistence probe, then verify wheel, scrollbar, keyboard, slider, legacy controls, Done, Cancel, and Defaults.
+Check: Release build and CTest pass 12/12. The 16 PNG and JSON pairs are indexed in `runs/017-options-menu-3d-panel/matrix.md`; x3 captures use 1920x1440.

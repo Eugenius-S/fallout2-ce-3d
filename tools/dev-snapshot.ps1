@@ -50,6 +50,8 @@ param(
     # -Solo R: only the things within R hexes of -ViewTile, no walls or roofs.
     [int]$Solo = -1,
     [string]$OutputDirectory,
+    [ValidateSet('english', 'russian')]
+    [string]$Language,
     [switch]$CaptureConsole,
     # -Glow: keep the glow on in this background run (it is forced off by
     # default, so captures stay byte-stable).
@@ -80,10 +82,27 @@ $fixedConfig = Join-Path $PSScriptRoot 'test-config\fallout2.cfg'
 if (-not (Test-Path -LiteralPath $fixedConfig)) { throw "Missing the fixed test config: $fixedConfig" }
 $exeDirectory = Join-Path $Root 'build\test-run'
 New-Item -ItemType Directory -Path $exeDirectory -Force | Out-Null
-Copy-Item $fixedConfig (Join-Path $exeDirectory 'fallout2.cfg') -Force
 $exe = Join-Path $exeDirectory 'fallout2-ce-test.exe'
 if (Get-Process fallout2-ce-test -ErrorAction SilentlyContinue) {
     throw 'Another fallout2-ce-test.exe instance is already running.'
+}
+Copy-Item $fixedConfig (Join-Path $exeDirectory 'fallout2.cfg') -Force
+$configPath = Join-Path $exeDirectory 'fallout2.cfg'
+if ($Language) {
+    $configLines = [System.Collections.Generic.List[string]]::new()
+    $inSystemSection = $false
+    $languageFound = $false
+    foreach ($line in [System.IO.File]::ReadAllLines($configPath)) {
+        if ($line -match '^\s*\[') { $inSystemSection = $line.Trim() -eq '[system]' }
+        if ($inSystemSection -and $line -match '^\s*language=') {
+            $configLines.Add("language=$Language")
+            $languageFound = $true
+        } else {
+            $configLines.Add($line)
+        }
+    }
+    if (-not $languageFound) { throw 'Could not find [system].language in the isolated test config.' }
+    [System.IO.File]::WriteAllLines($configPath, $configLines, [System.Text.UTF8Encoding]::new($false))
 }
 if (($ScreenWidth % $Scale) -ne 0 -or ($ScreenHeight % $Scale) -ne 0 -or
     ($ScreenWidth / $Scale) -lt 640 -or ($ScreenHeight / $Scale) -lt 480) {
