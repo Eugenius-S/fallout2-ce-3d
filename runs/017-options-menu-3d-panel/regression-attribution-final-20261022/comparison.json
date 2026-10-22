@@ -3,31 +3,30 @@
   "clean_control_source_commit": "32f0fe2b",
   "candidate_run": "runs/regression/20261022-191516-761-50648",
   "clean_control_run": "build/task017-baseline-source/runs/regression/20261022-093020-641-44416",
-  "gameplay_regression_exit_code": 1,
+  "gameplay_regression_exit_code": 0,
   "legacy_reference_result": {
-    "failed": 13,
-    "passed": 3,
-    "failed_spots": [
+    "failed": 0,
+    "passed": 16,
+    "failed_spots": [],
+    "passed_spots": [
       "entrance",
       "corrals",
       "residents",
       "central-doors",
       "north-rooms",
       "map-edge",
+      "klacanyn-e0",
       "klagraz-e0",
       "klamall-e0",
+      "klaratcv-e0",
       "klaratcv-e1",
       "klaratcv-e2",
       "klatoxcv-e0",
       "klatoxcv-e1",
+      "klatoxcv-e2",
       "klatrap-e0"
     ],
-    "passed_spots": [
-      "klacanyn-e0",
-      "klaratcv-e0",
-      "klatoxcv-e2"
-    ],
-    "references_refreshed": false
+    "references_refreshed": true
   },
   "clean_control_rgba_result": {
     "matched": 16,
@@ -435,5 +434,224 @@
       },
       "current_matches_clean_control": true
     }
-  ]
+  ],
+  "reference_refresh": {
+    "owner_approval": "Explicitly approved: update references and finish task 017.",
+    "source_run": "build/task017-baseline-source/runs/regression/20261022-093020-641-44416",
+    "source_commit": "32f0fe2b",
+    "source_exe_sha256": "ddc03416aa937b3bff789b7fb92ea636760523efd0da660f9dbbd9f5880636f4",
+    "source_equivalence": "git diff --exit-code 32f0fe2b origin/main -- ce tools/regression tools/test-config returned 0.",
+    "checker_command": "py -3 tools/regression/check.py --run build/task017-baseline-source/runs/regression/20261022-093020-641-44416 --reference tools/regression/reference --update",
+    "checker_success": true,
+    "updated_spots": 16,
+    "candidate_run": "runs/regression/20261022-192743-346-44732",
+    "candidate_checker_success": true,
+    "candidate_passed": 16,
+    "candidate_failed": 0,
+    "candidate_spots": [
+      {
+        "spot": "entrance",
+        "reference_rgba_sha256": "754a2d440bbdd8368f213bc4ee05fe9c5113b1e4a04e6ba3f990bae552e0dbf4",
+        "control_rgba_sha256": "754a2d440bbdd8368f213bc4ee05fe9c5113b1e4a04e6ba3f990bae552e0dbf4",
+        "candidate_rgba_sha256": "754a2d440bbdd8368f213bc4ee05fe9c5113b1e4a04e6ba3f990bae552e0dbf4",
+        "size": [
+          1920,
+          1080
+        ],
+        "candidate_status": "pass"
+      },
+      {
+        "spot": "corrals",
+        "reference_rgba_sha256": "5daa91b7f731fec79624813b1220fb17454e259bf169a82d54dc30b2b15689f9",
+        "control_rgba_sha256": "5daa91b7f731fec79624813b1220fb17454e259bf169a82d54dc30b2b15689f9",
+        "candidate_rgba_sha256": "5daa91b7f731fec79624813b1220fb17454e259bf169a82d54dc30b2b15689f9",
+        "size": [
+          1920,
+          1080
+        ],
+        "candidate_status": "pass"
+      },
+      {
+        "spot": "residents",
+        "reference_rgba_sha256": "9cb8d15e66c8fa1930ded9267aeef3ed247eedc0f9452bb9c8712a341b19cdf7",
+        "control_rgba_sha256": "9cb8d15e66c8fa1930ded9267aeef3ed247eedc0f9452bb9c8712a341b19cdf7",
+        "candidate_rgba_sha256": "9cb8d15e66c8fa1930ded9267aeef3ed247eedc0f9452bb9c8712a341b19cdf7",
+        "size": [
+          1920,
+          1080
+        ],
+        "candidate_status": "pass"
+      },
+      {
+        "spot": "central-doors",
+        "reference_rgba_sha256": "0e21140ee8c57552d8806b5aa04ef43c812489c82631924523a74fe2382d004d",
+        "control_rgba_sha256": "0e21140ee8c57552d8806b5aa04ef43c812489c82631924523a74fe2382d004d",
+        "candidate_rgba_sha256": "0e21140ee8c57552d8806b5aa04ef43c812489c82631924523a74fe2382d004d",
+        "size": [
+          1920,
+          1080
+        ],
+        "candidate_status": "pass"
+      },
+      {
+        "spot": "north-rooms",
+        "reference_rgba_sha256": "8732f89455884e16265564748697e8b448383a040accca4c34872a526fd512bf",
+        "control_rgba_sha256": "8732f89455884e16265564748697e8b448383a040accca4c34872a526fd512bf",
+        "candidate_rgba_sha256": "8732f89455884e16265564748697e8b448383a040accca4c34872a526fd512bf",
+        "size": [
+          1920,
+          1080
+        ],
+        "candidate_status": "pass"
+      },
+      {
+        "spot": "map-edge",
+        "reference_rgba_sha256": "6c83c64389ee721a52810b5f1aa1a94a51f7946d0c8c03a8b2ee79d43e92a72a",
+        "control_rgba_sha256": "6c83c64389ee721a52810b5f1aa1a94a51f7946d0c8c03a8b2ee79d43e92a72a",
+        "candidate_rgba_sha256": "6c83c64389ee721a52810b5f1aa1a94a51f7946d0c8c03a8b2ee79d43e92a72a",
+        "size": [
+          1920,
+          1080
+        ],
+        "candidate_status": "pass"
+      },
+      {
+        "spot": "klacanyn-e0",
+        "reference_rgba_sha256": "649e927bf417cb1a7f7de3a1044a3f0cbe9de35b4239d2ceb72da52fbb255bd3",
+        "control_rgba_sha256": "649e927bf417cb1a7f7de3a1044a3f0cbe9de35b4239d2ceb72da52fbb255bd3",
+        "candidate_rgba_sha256": "649e927bf417cb1a7f7de3a1044a3f0cbe9de35b4239d2ceb72da52fbb255bd3",
+        "size": [
+          1920,
+          1080
+        ],
+        "candidate_status": "pass"
+      },
+      {
+        "spot": "klagraz-e0",
+        "reference_rgba_sha256": "ce910e604e42d57e04cf69aa8fcb67308cf984fb75ff86c10e5c946b072237be",
+        "control_rgba_sha256": "ce910e604e42d57e04cf69aa8fcb67308cf984fb75ff86c10e5c946b072237be",
+        "candidate_rgba_sha256": "ce910e604e42d57e04cf69aa8fcb67308cf984fb75ff86c10e5c946b072237be",
+        "size": [
+          1920,
+          1080
+        ],
+        "candidate_status": "pass"
+      },
+      {
+        "spot": "klamall-e0",
+        "reference_rgba_sha256": "eeb073386777d325469cb6f4373d3104d39b9445912fd8efc9734b3170c85cac",
+        "control_rgba_sha256": "eeb073386777d325469cb6f4373d3104d39b9445912fd8efc9734b3170c85cac",
+        "candidate_rgba_sha256": "eeb073386777d325469cb6f4373d3104d39b9445912fd8efc9734b3170c85cac",
+        "size": [
+          1920,
+          1080
+        ],
+        "candidate_status": "pass"
+      },
+      {
+        "spot": "klaratcv-e0",
+        "reference_rgba_sha256": "a33b911ba2e2c12302c5936236b564b6b594018c580e0f2df62710cccbc640b9",
+        "control_rgba_sha256": "a33b911ba2e2c12302c5936236b564b6b594018c580e0f2df62710cccbc640b9",
+        "candidate_rgba_sha256": "a33b911ba2e2c12302c5936236b564b6b594018c580e0f2df62710cccbc640b9",
+        "size": [
+          1920,
+          1080
+        ],
+        "candidate_status": "pass"
+      },
+      {
+        "spot": "klaratcv-e1",
+        "reference_rgba_sha256": "824fec6f5185b0ee301422abd81116aa0f8cf982b2b8c5ac3794561aa7247c87",
+        "control_rgba_sha256": "824fec6f5185b0ee301422abd81116aa0f8cf982b2b8c5ac3794561aa7247c87",
+        "candidate_rgba_sha256": "824fec6f5185b0ee301422abd81116aa0f8cf982b2b8c5ac3794561aa7247c87",
+        "size": [
+          1920,
+          1080
+        ],
+        "candidate_status": "pass"
+      },
+      {
+        "spot": "klaratcv-e2",
+        "reference_rgba_sha256": "f00f1381c83a28e4e12d8c4136126dd2e90f1c5fa6edaaacf430d4b47ad21d5a",
+        "control_rgba_sha256": "f00f1381c83a28e4e12d8c4136126dd2e90f1c5fa6edaaacf430d4b47ad21d5a",
+        "candidate_rgba_sha256": "f00f1381c83a28e4e12d8c4136126dd2e90f1c5fa6edaaacf430d4b47ad21d5a",
+        "size": [
+          1920,
+          1080
+        ],
+        "candidate_status": "pass"
+      },
+      {
+        "spot": "klatoxcv-e0",
+        "reference_rgba_sha256": "a7f2c4f81b94c8a508b078252ae3fa6969651b6ca4fc931060729716d1e72109",
+        "control_rgba_sha256": "a7f2c4f81b94c8a508b078252ae3fa6969651b6ca4fc931060729716d1e72109",
+        "candidate_rgba_sha256": "a7f2c4f81b94c8a508b078252ae3fa6969651b6ca4fc931060729716d1e72109",
+        "size": [
+          1920,
+          1080
+        ],
+        "candidate_status": "pass"
+      },
+      {
+        "spot": "klatoxcv-e1",
+        "reference_rgba_sha256": "198b66e3410bfae4235e4b2523b01eb7382f975890aa5c352cdf5e6fe94c3eac",
+        "control_rgba_sha256": "198b66e3410bfae4235e4b2523b01eb7382f975890aa5c352cdf5e6fe94c3eac",
+        "candidate_rgba_sha256": "198b66e3410bfae4235e4b2523b01eb7382f975890aa5c352cdf5e6fe94c3eac",
+        "size": [
+          1920,
+          1080
+        ],
+        "candidate_status": "pass"
+      },
+      {
+        "spot": "klatoxcv-e2",
+        "reference_rgba_sha256": "3b51d6c150fff77928972b00844fac926e4ba3461b2562597175147f80599db6",
+        "control_rgba_sha256": "3b51d6c150fff77928972b00844fac926e4ba3461b2562597175147f80599db6",
+        "candidate_rgba_sha256": "3b51d6c150fff77928972b00844fac926e4ba3461b2562597175147f80599db6",
+        "size": [
+          1920,
+          1080
+        ],
+        "candidate_status": "pass"
+      },
+      {
+        "spot": "klatrap-e0",
+        "reference_rgba_sha256": "e7730811b8c4b82d629a6777e4293d298b7e4ea22b98c9eeab1a8a22805ca40a",
+        "control_rgba_sha256": "e7730811b8c4b82d629a6777e4293d298b7e4ea22b98c9eeab1a8a22805ca40a",
+        "candidate_rgba_sha256": "e7730811b8c4b82d629a6777e4293d298b7e4ea22b98c9eeab1a8a22805ca40a",
+        "size": [
+          1920,
+          1080
+        ],
+        "candidate_status": "pass"
+      }
+    ]
+  },
+  "initial_gameplay_regression_exit_code": 1,
+  "initial_legacy_reference_result": {
+    "run": "runs/regression/20261022-191516-761-50648",
+    "failed": 13,
+    "passed": 3,
+    "failed_spots": [
+      "entrance",
+      "corrals",
+      "residents",
+      "central-doors",
+      "north-rooms",
+      "map-edge",
+      "klagraz-e0",
+      "klamall-e0",
+      "klaratcv-e1",
+      "klaratcv-e2",
+      "klatoxcv-e0",
+      "klatoxcv-e1",
+      "klatrap-e0"
+    ],
+    "passed_spots": [
+      "klacanyn-e0",
+      "klaratcv-e0",
+      "klatoxcv-e2"
+    ],
+    "references_refreshed": false
+  }
 }

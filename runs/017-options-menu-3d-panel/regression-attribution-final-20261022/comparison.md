@@ -1,7 +1,14 @@
 # Gameplay regression attribution
 
-Candidate run `runs/regression/20261022-191516-761-50648` (source `e29ef058`) exited 1: 13 legacy-reference failures and 3 passes.
-Clean control `build/task017-baseline-source/runs/regression/20261022-093020-641-44416` (source `32f0fe2b`) matches the candidate in RGBA for 16/16 spots. No references were refreshed.
+## Final result
+
+The owner explicitly approved replacing the outdated references from the pristine control. The official checker updated all 16 references from `build/task017-baseline-source/runs/regression/20261022-093020-641-44416` (source `32f0fe2b`, executable SHA-256 `ddc03416aa937b3bff789b7fb92ea636760523efd0da660f9dbbd9f5880636f4`). The control's relevant source paths match `origin/main` at `5d3056c8`: `git diff --exit-code 32f0fe2b origin/main -- ce tools/regression tools/test-config` returned 0.
+
+Command: `py -3 tools/regression/check.py --run build/task017-baseline-source/runs/regression/20261022-093020-641-44416 --reference tools/regression/reference --update`. All 16 captures validated and were updated. A fresh official candidate run at `runs/regression/20261022-192743-346-44732` then passed 16/16 with 0 changed pixels and exit code 0. Decoded RGBA SHA-256 hashes for every refreshed reference, control capture, and candidate capture match; details are in `comparison.json`. No thresholds were changed.
+
+## Initial attribution (before the approved refresh)
+
+The first candidate run `runs/regression/20261022-191516-761-50648` (source `e29ef058`) exited 1: 13 old-reference failures and 3 passes. At that point, the clean control `build/task017-baseline-source/runs/regression/20261022-093020-641-44416` (source `32f0fe2b`) matched the candidate in RGBA for all 16 spots; the owner had not yet authorized a reference refresh.
 
 | Spot | Legacy reference | Changed pixels | Candidate / control RGBA | Exact match |
 | --- | --- | ---: | --- | --- |

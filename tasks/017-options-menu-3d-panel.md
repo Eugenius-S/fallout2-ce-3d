@@ -2,7 +2,7 @@
 id: 017
 title: Options menu with a 3D panel
 milestone: M1
-status: doing
+status: done
 owner: gpt
 suggested: gpt
 claude-only: no
@@ -184,6 +184,11 @@ Check: Release build and CTest pass 12/12. Seven successful scenario runs, inclu
 ### 2026-10-22 gpt
 Done: Resolved the minimum-width scrollbar overlap by insetting only the decorative frame at logical width 640. Kept the content and legacy axes centered at x=320, placed the frame at x=16..623, and retained the original controls and hit regions; the scrollbar remains at x=628..639 with a 4-pixel gap. Aligned the title to the inset grid and feathered legacy artwork against its clipped edge.
 ### 2026-10-22 gpt
-Done: Captured and validated the final 16-frame 2D/3D, English/Russian, x2/x3 Top/Bottom matrix after rebase. Post-rebase Release build, CTest, exporter tests, and regression unit tests pass. Gameplay regression finished with 13 failures and 3 passes against existing references; per-spot attribution confirms all 16 candidate frames are byte-identical in decoded RGBA to the clean `32f0fe2b` control.
-Next: Owner decides whether to replace the 13 outdated gameplay references; task 017 remains in progress and `reviewed: no`.
-Check: The matrix and its official sidecars are indexed in `runs/017-options-menu-3d-panel/matrix.md`. All PNG headers and JSON resolutions/scales agree; `preview_requested`/`scene_view` distinguish Classic from 3D, and all 16 sidecars match current EXE SHA-256 `4c3933c595323a981b0008add8d94ef47b397c77ef709011ab16a49e349aae28`. The gameplay regression exited 1: `runs/regression/20261022-191516-761-50648/summary.txt`. No references were refreshed. The candidate/control RGBA paths and hashes are in `runs/017-options-menu-3d-panel/regression-attribution-final-20261022/comparison.json` and `.md`.
+Done: Captured and validated the final 16-frame 2D/3D, English/Russian, x2/x3 Top/Bottom matrix after rebase. Post-rebase Release build, CTest, exporter tests, and regression unit tests pass. Initial gameplay attribution found 13 stale-reference failures and 3 passes, with all 16 candidate frames identical in decoded RGBA to the clean `32f0fe2b` control.
+Next: Owner decision on reference refresh.
+Check: The matrix and sidecars are indexed in `runs/017-options-menu-3d-panel/matrix.md`; all 16 PNG dimensions, scales, modes, and executable hashes were validated. Initial attribution is preserved in `runs/017-options-menu-3d-panel/regression-attribution-final-20261022/comparison.json`.
+
+### 2026-10-22 gpt
+Done: With explicit owner approval, refreshed all 16 gameplay references using the official checker and only the pristine `32f0fe2b` control run. Confirmed `ce`, regression tools, and test config are unchanged between that control and `origin/main` `5d3056c8`; no thresholds changed. The fresh candidate regression now passes all 16 spots. Set task status to done while keeping `reviewed: no` because references were retaken.
+Next: Await root review and final merge approval.
+Check: Control update passed 16/16 at `build/task017-baseline-source/runs/regression/20261022-093020-641-44416`; candidate passed 16/16 with 0 changed pixels at `runs/regression/20261022-192743-346-44732`. All refreshed reference, control, and candidate decoded RGBA hashes match spot-by-spot. Evidence: `runs/017-options-menu-3d-panel/regression-attribution-final-20261022/comparison.json` and `.md`.
