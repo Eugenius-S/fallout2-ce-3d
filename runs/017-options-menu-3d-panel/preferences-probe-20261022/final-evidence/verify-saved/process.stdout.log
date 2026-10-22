@@ -1,0 +1,4 @@
+PREFERENCES_PROBE rows=10 initialScroll=0 zoom=7.900000 enabled=false combat_difficulty=2
+PREFERENCES_PROBE READBACK zoom=7.900000 enabled=false combat_difficulty=2
+PREFERENCES_PROBE PASS readback zoom=7.900000 enabled=false combat_difficulty=2
+PREFERENCES_PROBE finished; requesting isolated helper exit

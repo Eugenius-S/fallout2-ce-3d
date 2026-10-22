@@ -452,6 +452,7 @@ void initSettingsRegistry(bool isMapper)
     glowStrengthDescriptor.subsection = "3D";
     glowStrengthDescriptor.fallbackLabel = "Glow strength";
     glowStrengthDescriptor.fallbackDescription = "How far the glow of shining things spreads and brightens.";
+    glowStrengthDescriptor.numericRange = SettingNumericRange { 0.0, 3.0, 0.1 };
     settingsRegistry.back().descriptor = glowStrengthDescriptor;
     settingsRegistry.back().write = [](bool onlyAdd) {
         if (onlyAdd && settingsKeyExists("3d", "glow_strength")) return;
@@ -493,6 +494,8 @@ void initSettingsRegistry(bool isMapper)
     zoomDescriptor.subsection = "3D";
     zoomDescriptor.fallbackLabel = "Camera zoom";
     zoomDescriptor.fallbackDescription = "How much the 3D view is zoomed. Kept between sessions.";
+    zoomDescriptor.numericRange = SettingNumericRange { 0.1, 10.0, 0.1 };
+    settingsRegistry.back().descriptor = zoomDescriptor;
     settingsRegistry.back().write = [](bool onlyAdd) {
         if (onlyAdd && settingsKeyExists("3d", "zoom")) return;
         settingsWrite("3d", "zoom", settings.scene3d.zoom);
@@ -505,6 +508,8 @@ void initSettingsRegistry(bool isMapper)
     zoomMinDescriptor.subsection = "3D";
     zoomMinDescriptor.fallbackLabel = "Camera zoom limit (smallest)";
     zoomMinDescriptor.fallbackDescription = "The smallest 3D view zoom the mouse wheel reaches.";
+    zoomMinDescriptor.numericRange = SettingNumericRange { 0.1, 10.0, 0.1 };
+    settingsRegistry.back().descriptor = zoomMinDescriptor;
     settingsRegistry.back().write = [](bool onlyAdd) {
         if (onlyAdd && settingsKeyExists("3d", "zoom_min")) return;
         settingsWrite("3d", "zoom_min", settings.scene3d.zoom_min);
@@ -517,6 +522,8 @@ void initSettingsRegistry(bool isMapper)
     zoomMaxDescriptor.subsection = "3D";
     zoomMaxDescriptor.fallbackLabel = "Camera zoom limit (largest)";
     zoomMaxDescriptor.fallbackDescription = "The largest 3D view zoom the mouse wheel reaches.";
+    zoomMaxDescriptor.numericRange = SettingNumericRange { 0.1, 10.0, 0.1 };
+    settingsRegistry.back().descriptor = zoomMaxDescriptor;
     settingsRegistry.back().write = [](bool onlyAdd) {
         if (onlyAdd && settingsKeyExists("3d", "zoom_max")) return;
         settingsWrite("3d", "zoom_max", settings.scene3d.zoom_max);

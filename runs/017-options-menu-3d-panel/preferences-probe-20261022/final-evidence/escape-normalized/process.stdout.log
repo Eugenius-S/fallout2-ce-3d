@@ -1,0 +1,16 @@
+scene: cache E:\Projects\fallout2-ce-3d-gpt\build\scene-cache\kladwtwn\0
+scene: preview policy=available gameState=0 gameMode=0x0 uiDisabled=0 isoDisabled=0 combat=0 dialog=0 movie=0
+PREFERENCES_PROBE rows=10 initialScroll=0 zoom=1.000000 enabled=true combat_difficulty=1
+scene: preview policy=game-mode gameState=0 gameMode=0x80 uiDisabled=0 isoDisabled=0 combat=0 dialog=0 movie=0
+PREFERENCES_PROBE PASS keyboard toggle true -> false
+PREFERENCES_PROBE PASS wheel scroll 360 -> 312
+PREFERENCES_PROBE scrollbar groove engine state armed
+PREFERENCES_PROBE scrollbar thumb engine state armed scroll=71
+PREFERENCES_PROBE legacy preference event 506 dispatched at scroll=81 localY=89
+PREFERENCES_PROBE PASS legacy combat difficulty changed 1 -> 2 at scroll=81
+PREFERENCES_PROBE numeric slider engine state armed id=3d.zoom row=7
+PREFERENCES_PROBE PASS 3d.zoom 1.000000 -> 7.900000
+PREFERENCES_PROBE Escape rollback requested
+PREFERENCES_PROBE PASS rollback zoom=1.000000 enabled=true combat_difficulty=1 staged_combat_difficulty=1
+PREFERENCES_PROBE finished; requesting isolated helper exit
+scene: preview policy=available gameState=0 gameMode=0x0 uiDisabled=0 isoDisabled=0 combat=0 dialog=0 movie=0

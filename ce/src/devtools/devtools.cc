@@ -1,5 +1,6 @@
 #include "devtools.h"
 #include "snapshot_rows.h"
+#include "preferences_probe.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -34,6 +35,7 @@
 #include "../game.h"
 #include "../game_mouse.h"
 #include "../object.h"
+#include "../preferences.h"
 #include "../mouse.h"
 #include "../movie.h"
 #include "../platform/git_version.h"
@@ -88,6 +90,9 @@ bool gStartupFloorPreviewAttempted = false;
 int gStartupFloorPreviewReturnAfter = 0;
 int gStartupFloorPreviewFramesRemaining = 0;
 bool gSnapshotOncePending = false;
+bool gPreferencesSnapshotPending = false;
+bool gPreferencesSnapshotActive = false;
+bool gPreferencesSnapshotBottom = false;
 // --dev-map-tour: the map elevations to visit after the startup one; the
 // step counts snapshots taken (-1: no tour).
 struct TourStop {
@@ -660,6 +665,15 @@ bool parseOption(const char* arg)
         gEnabled = true;
         return true;
     }
+    if (parsePreferencesProbeOption(arg)) {
+        if (!gEnabled) {
+            printf("PREFERENCES_PROBE FAIL: --dev-tools must precede the probe option\n");
+            fflush(stdout);
+            return true;
+        }
+        gPreferencesSnapshotPending = true;
+        return true;
+    }
     if (strcmp(arg, "--dev-floor-preview") == 0) {
         gStartupFloorPreviewRequested = true;
         return true;
@@ -692,6 +706,14 @@ bool parseOption(const char* arg)
     }
     if (strcmp(arg, "--dev-snapshot-once") == 0) {
         gSnapshotOncePending = true;
+        return true;
+    }
+    if (strcmp(arg, "--dev-preferences-snapshot") == 0) {
+        gPreferencesSnapshotPending = true;
+        return true;
+    }
+    if (strcmp(arg, "--dev-preferences-bottom") == 0) {
+        gPreferencesSnapshotBottom = true;
         return true;
     }
     if (strcmp(arg, "--dev-still-snapshot") == 0) {
@@ -1069,6 +1091,17 @@ void update()
     if (!gEnabled) {
         return;
     }
+    if (gPreferencesSnapshotPending && sceneStartupReady() && !inBlockingGameState()) {
+        gPreferencesSnapshotPending = false;
+        gPreferencesSnapshotActive = true;
+        doPreferences(false);
+        gPreferencesSnapshotActive = false;
+        if (preferencesProbeFinished()) {
+            printf("PREFERENCES_PROBE finished; requesting isolated helper exit\n");
+            fflush(stdout);
+            _game_user_wants_to_quit = GAME_QUIT_REQUEST_EXIT;
+        }
+    }
     fly();
     // Map scripts set the light by the hour; a dev view holds its own.
     if (gDevAmbient >= 0 && gMapHeader.name[0] != '\0' && lightGetAmbientIntensity() != gDevAmbient) {
@@ -1270,6 +1303,16 @@ void update()
             }
         }
     }
+}
+
+bool preferencesSnapshotRequested()
+{
+    return gPreferencesSnapshotActive;
+}
+
+bool preferencesSnapshotAtBottom()
+{
+    return gPreferencesSnapshotBottom;
 }
 
 bool suppressInitialSceneEnable()

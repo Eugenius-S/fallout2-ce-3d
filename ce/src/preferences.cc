@@ -1,11 +1,15 @@
 #include "options.h"
 
 #include <algorithm>
+#include <memory>
+#include <vector>
 
 #include "art.h"
 #include "color.h"
 #include "combat.h"
 #include "combat_ai.h"
+#include "devtools/devtools.h"
+#include "devtools/preferences_probe.h"
 #include "debug.h"
 #include "delay.h"
 #include "draw.h"
@@ -22,6 +26,7 @@
 #include "palette.h"
 #include "scripts.h"
 #include "settings.h"
+#include "scene/options_panel.h"
 #include "svga.h"
 #include "text_font.h"
 #include "text_object.h"
@@ -152,6 +157,7 @@ static void _SetPrefrencesValue(int preference, const PreferenceDescription& des
 static void _DoThing(int eventCode);
 static int preferencesGetRangeOptionLabelX(int optionIndex, int valuesCount, const char* text);
 static void preferencesMessageListReset();
+static void preferencesWindowRefresh();
 
 // 0x48FBD0 row1Ytab
 static const int _row1Ytab[PRIMARY_PREF_COUNT] = {
@@ -268,6 +274,11 @@ static MessageList gPreferencesMessageList;
 // 0x663840 optnmesg
 static MessageListItem gPreferencesMessageListItem;
 
+static const char* preferencesResolveOptionLabel(int messageId)
+{
+    return getmsg(&gPreferencesMessageList, &gPreferencesMessageListItem, messageId);
+}
+
 static void preferencesMessageListReset()
 {
     messageListRepositorySetStandardMessageList(STANDARD_MESSAGE_LIST_OPTIONS, nullptr);
@@ -294,6 +305,7 @@ static double gPreferencesMouseSensitivity2;
 
 // 0x6638F8 prefbuf
 static unsigned char* gPreferencesWindowBuffer;
+static std::unique_ptr<scene::OptionsPanel> gOptionsPanel;
 
 // 0x663904 prfwin
 static int gPreferencesWindow = -1;
@@ -391,7 +403,7 @@ static bool _changed;
 static void preferencesRefreshBrightnessSlider()
 {
     _UpdateThing(PREF_BRIGHTNESS);
-    windowRefresh(gPreferencesWindow);
+    preferencesWindowRefresh();
 }
 
 // 0x6639AC combat_messages
@@ -559,7 +571,8 @@ static void preferencesSetDefaults(bool updateUi)
             _UpdateThing(index);
         }
         _win_set_button_rest_state(_plyrspdbid, gPreferencesPlayerSpeedup1, 0);
-        windowRefresh(gPreferencesWindow);
+        if (gOptionsPanel != nullptr) gOptionsPanel->resetToDefaults();
+        preferencesWindowRefresh();
         _changed = true;
     }
 }
@@ -603,6 +616,15 @@ static void _JustUpdate_()
     speechSetVolume(gPreferencesSpeechVolume1);
     mouseSetSensitivity(gPreferencesMouseSensitivity1);
     colorSetBrightness(gPreferencesBrightness1);
+}
+
+static void preferencesWindowRefresh()
+{
+    if (gOptionsPanel != nullptr) {
+        gOptionsPanel->refresh();
+    } else if (gPreferencesWindow != -1) {
+        windowRefresh(gPreferencesWindow);
+    }
 }
 
 // 0x491A68 UpdateThing
@@ -1051,14 +1073,16 @@ static int preferencesWindowInit()
 
     _changed = false;
 
-    int preferencesWindowX = (screenGetWidth() - PREFERENCES_WINDOW_WIDTH) / 2;
-    int preferencesWindowY = (screenGetHeight() - PREFERENCES_WINDOW_HEIGHT) / 2;
+    int preferencesScreenWidth = screenGetWidth();
+    int preferencesScreenHeight = screenGetHeight();
+    int preferencesPageX = (preferencesScreenWidth - PREFERENCES_WINDOW_WIDTH) / 2;
+    int preferencesPageY = 0;
     int preferencesWindowFlags = mainMenuSubscreenWindowFlags(WINDOW_MODAL | WINDOW_DONT_MOVE_TOP, WINDOW_MODAL | WINDOW_MOVE_ON_TOP);
 
-    gPreferencesWindow = windowCreate(preferencesWindowX,
-        preferencesWindowY,
-        PREFERENCES_WINDOW_WIDTH,
-        PREFERENCES_WINDOW_HEIGHT,
+    gPreferencesWindow = windowCreate(0,
+        0,
+        preferencesScreenWidth,
+        preferencesScreenHeight,
         static_cast<ColorWithFlags>(256),
         preferencesWindowFlags);
     if (gPreferencesWindow == -1) {
@@ -1069,10 +1093,19 @@ static int preferencesWindowInit()
         return -1;
     }
 
-    gPreferencesWindowBuffer = windowGetBuffer(gPreferencesWindow);
-    memcpy(gPreferencesWindowBuffer,
-        _preferencesFrmImages[PREFERENCES_WINDOW_FRM_BACKGROUND].getData(),
-        static_cast<size_t>(_preferencesFrmImages[PREFERENCES_WINDOW_FRM_BACKGROUND].getWidth()) * _preferencesFrmImages[PREFERENCES_WINDOW_FRM_BACKGROUND].getHeight());
+    gOptionsPanel = std::make_unique<scene::OptionsPanel>();
+    gOptionsPanel->setLabelResolver(preferencesResolveOptionLabel);
+    if (!gOptionsPanel->initialize(gPreferencesWindow, windowGetBuffer(gPreferencesWindow),
+            _preferencesFrmImages[PREFERENCES_WINDOW_FRM_BACKGROUND].getData(), PREFERENCES_WINDOW_HEIGHT,
+            preferencesScreenWidth, preferencesScreenHeight, preferencesPageX, preferencesPageY)) {
+        gOptionsPanel.reset();
+        windowDestroy(gPreferencesWindow);
+        gPreferencesWindow = -1;
+        for (i = 0; i < PREFERENCES_WINDOW_FRM_COUNT; i++) _preferencesFrmImages[i].unlock();
+        preferencesMessageListReset();
+        return -1;
+    }
+    gPreferencesWindowBuffer = gOptionsPanel->contentBuffer();
 
     fontSetCurrent(104);
 
@@ -1100,21 +1133,23 @@ static int preferencesWindowInit()
 
     // DEFAULT
     messageItemText = getmsg(&gPreferencesMessageList, &gPreferencesMessageListItem, 120);
-    fontDrawText(gPreferencesWindowBuffer + PREFERENCES_WINDOW_WIDTH * 449 + 43, messageItemText, PREFERENCES_WINDOW_WIDTH, PREFERENCES_WINDOW_WIDTH, COLOR_DARK_YELLOW);
+    fontDrawText(gOptionsPanel->footerBuffer() + PREFERENCES_WINDOW_WIDTH * 19 + 43, messageItemText, PREFERENCES_WINDOW_WIDTH, PREFERENCES_WINDOW_WIDTH, COLOR_DARK_YELLOW);
 
     // DONE
     messageItemText = getmsg(&gPreferencesMessageList, &gPreferencesMessageListItem, 4);
-    fontDrawText(gPreferencesWindowBuffer + PREFERENCES_WINDOW_WIDTH * 449 + 169, messageItemText, PREFERENCES_WINDOW_WIDTH, PREFERENCES_WINDOW_WIDTH, COLOR_DARK_YELLOW);
+    fontDrawText(gOptionsPanel->footerBuffer() + PREFERENCES_WINDOW_WIDTH * 19 + 169, messageItemText, PREFERENCES_WINDOW_WIDTH, PREFERENCES_WINDOW_WIDTH, COLOR_DARK_YELLOW);
 
     // CANCEL
     messageItemText = getmsg(&gPreferencesMessageList, &gPreferencesMessageListItem, 121);
-    fontDrawText(gPreferencesWindowBuffer + PREFERENCES_WINDOW_WIDTH * 449 + 283, messageItemText, PREFERENCES_WINDOW_WIDTH, PREFERENCES_WINDOW_WIDTH, COLOR_DARK_YELLOW);
+    fontDrawText(gOptionsPanel->footerBuffer() + PREFERENCES_WINDOW_WIDTH * 19 + 283, messageItemText, PREFERENCES_WINDOW_WIDTH, PREFERENCES_WINDOW_WIDTH, COLOR_DARK_YELLOW);
 
     // Affect player speed
     fontSetCurrent(101);
     messageItemText = getmsg(&gPreferencesMessageList, &gPreferencesMessageListItem, 122);
     fontDrawText(gPreferencesWindowBuffer + PREFERENCES_WINDOW_WIDTH * 72 + 405, messageItemText, PREFERENCES_WINDOW_WIDTH, PREFERENCES_WINDOW_WIDTH, COLOR_DARK_YELLOW);
 
+    std::vector<std::pair<int, int>> legacyButtons;
+    legacyButtons.reserve(PREF_COUNT);
     for (i = 0; i < PREF_COUNT; i++) {
         _UpdateThing(i);
     }
@@ -1156,6 +1191,7 @@ static int preferencesWindowInit()
         }
 
         gPreferenceDescriptions[i].btn = buttonCreate(gPreferencesWindow, x, y, width, height, mouseEnterEventCode, mouseExitEventCode, mouseDownEventCode, mouseUpEventCode, nullptr, nullptr, nullptr, 32);
+        legacyButtons.push_back({ gPreferenceDescriptions[i].btn, y });
     }
 
     _plyrspdbid = buttonCreate(gPreferencesWindow,
@@ -1193,6 +1229,7 @@ static int preferencesWindowInit()
         BUTTON_FLAG_TRANSPARENT);
     if (btn != -1) {
         buttonSetCallbacks(btn, _gsound_red_butt_press, _gsound_red_butt_release);
+        legacyButtons.push_back({ btn, 450 });
     }
 
     // DONE
@@ -1211,6 +1248,7 @@ static int preferencesWindowInit()
         BUTTON_FLAG_TRANSPARENT);
     if (btn != -1) {
         buttonSetCallbacks(btn, _gsound_red_butt_press, _gsound_red_butt_release);
+        legacyButtons.push_back({ btn, 450 });
     }
 
     // CANCEL
@@ -1229,11 +1267,23 @@ static int preferencesWindowInit()
         BUTTON_FLAG_TRANSPARENT);
     if (btn != -1) {
         buttonSetCallbacks(btn, _gsound_red_butt_press, _gsound_red_butt_release);
+        legacyButtons.push_back({ btn, 450 });
     }
 
-    fontSetCurrent(101);
+    std::vector<int> panelButtons;
+    for (int index = 0; index < gOptionsPanel->rowCount(); index++) {
+        panelButtons.push_back(buttonCreate(gPreferencesWindow, gOptionsPanel->rowButtonX(), gOptionsPanel->rowTop(index),
+            gOptionsPanel->rowButtonWidth(), gOptionsPanel->rowHeight(index),
+            -1, -1, 600 + index, -1, nullptr, nullptr, nullptr, 0));
+    }
+    int scrollbarX = gOptionsPanel->scrollbarX();
+    buttonCreate(gPreferencesWindow, scrollbarX, gOptionsPanel->scrollbarTop(), 12, gOptionsPanel->scrollbarHeight(), -1, -1, 599, -1, nullptr, nullptr, nullptr, 0);
 
-    windowRefresh(gPreferencesWindow);
+    gOptionsPanel->setButtonLayout(legacyButtons, _plyrspdbid, 68, panelButtons);
+
+    fontSetCurrent(101);
+    gOptionsPanel->draw();
+    preferencesWindowRefresh();
 
     return 0;
 }
@@ -1250,6 +1300,7 @@ static int preferencesWindowFree()
     windowDestroy(gPreferencesWindow);
     gPreferencesWindow = -1;
     gPreferencesWindowBuffer = nullptr;
+    gOptionsPanel.reset();
 
     for (int index = 0; index < PREFERENCES_WINDOW_FRM_COUNT; index++) {
         _preferencesFrmImages[index].unlock();
@@ -1283,19 +1334,32 @@ int doPreferences(bool animated)
     mainMenuShowSubscreen(animated);
 
     int rc = -1;
+    if (devtools::preferencesSnapshotRequested() && !devtools::preferencesProbeRequested()) {
+        if (gOptionsPanel != nullptr) gOptionsPanel->showPanelForSnapshot(devtools::preferencesSnapshotAtBottom());
+        renderPresent();
+        devtools::takeSnapshot();
+        rc = 1;
+    }
     while (rc == -1) {
         sharedFpsLimiter.mark();
 
         int eventCode = inputGetInput();
+        eventCode = devtools::preferencesProbeNextEvent(eventCode, gOptionsPanel.get(), gPreferencesWindow,
+            static_cast<int>(gPreferencesCombatDifficulty1));
 
-        switch (eventCode) {
+        if (gOptionsPanel != nullptr && eventCode == -1 && (mouseGetEvent() & MOUSE_EVENT_WHEEL) != 0) {
+            gOptionsPanel->handleWheel();
+        } else if (gOptionsPanel != nullptr && gOptionsPanel->handleKey(eventCode)) {
+            // The options panel consumed a navigation or value key.
+        } else switch (eventCode) {
         case KEY_RETURN:
         case KEY_UPPERCASE_P:
         case KEY_LOWERCASE_P:
-            soundPlayFile("ib1p1xx1");
-            // FALLTHROUGH
         case 504:
-            rc = 1;
+            if (gOptionsPanel == nullptr || gOptionsPanel->commit()) {
+                soundPlayFile("ib1p1xx1");
+                rc = 1;
+            }
             break;
         case KEY_CTRL_Q:
         case KEY_CTRL_X:
@@ -1318,12 +1382,20 @@ int doPreferences(bool animated)
             break;
         default:
             if (eventCode == KEY_ESCAPE || eventCode == 528 || _game_user_wants_to_quit != GAME_QUIT_REQUEST_NONE) {
+                if (gOptionsPanel != nullptr) gOptionsPanel->rollback();
                 _RestoreSettings();
+                _changed = false;
                 rc = 0;
             } else if (eventCode >= 505 && eventCode <= 524) {
                 _DoThing(eventCode);
+            } else if (gOptionsPanel != nullptr) {
+                gOptionsPanel->handleEvent(eventCode);
             }
             break;
+        }
+
+        if (devtools::preferencesProbeActive()) {
+            devtools::preferencesProbeComplete(rc != -1, gOptionsPanel.get(), static_cast<int>(gPreferencesCombatDifficulty1));
         }
 
         renderPresent();
@@ -1384,6 +1456,7 @@ static void _DoThing(int eventCode)
     int x;
     int y;
     mouseGetPositionInWindow(gPreferencesWindow, &x, &y);
+    if (gOptionsPanel != nullptr) gOptionsPanel->mouseToPageCoordinates(x, y);
 
     // This preference index also contains out-of-bounds value 19,
     // which is the only preference expressed as checkbox.
@@ -1458,7 +1531,7 @@ static void _DoThing(int eventCode)
             inputBlockForTocks(70);
             soundPlayFile("ib3lu1x1");
             _UpdateThing(preferenceIndex);
-            windowRefresh(gPreferencesWindow);
+            preferencesWindowRefresh();
             _changed = true;
             return;
         }
@@ -1491,7 +1564,7 @@ static void _DoThing(int eventCode)
             inputBlockForTocks(70);
             soundPlayFile("ib2lu1x1");
             _UpdateThing(preferenceIndex);
-            windowRefresh(gPreferencesWindow);
+            preferencesWindowRefresh();
             _changed = true;
             return;
         }
@@ -1521,7 +1594,7 @@ static void _DoThing(int eventCode)
         blitBufferToBuffer(_preferencesFrmImages[PREFERENCES_WINDOW_FRM_BACKGROUND].getData() + PREFERENCES_WINDOW_WIDTH * meta->knobY + 384, 240, 12, PREFERENCES_WINDOW_WIDTH, gPreferencesWindowBuffer + PREFERENCES_WINDOW_WIDTH * meta->knobY + 384, PREFERENCES_WINDOW_WIDTH);
         blitBufferToBufferTrans(_preferencesFrmImages[PREFERENCES_WINDOW_FRM_KNOB_ON].getData(), 21, 12, 21, gPreferencesWindowBuffer + PREFERENCES_WINDOW_WIDTH * meta->knobY + knobTrackX, PREFERENCES_WINDOW_WIDTH);
 
-        windowRefresh(gPreferencesWindow);
+        preferencesWindowRefresh();
 
         int sfxVolumeExample = 0;
         int speechVolumeExample = 0;
@@ -1533,11 +1606,12 @@ static void _DoThing(int eventCode)
             int tick = getTicks();
 
             mouseGetPositionInWindow(gPreferencesWindow, &x, &y);
+            if (gOptionsPanel != nullptr) gOptionsPanel->mouseToPageCoordinates(x, y);
 
             if (mouseGetEvent() & 0x10) {
                 soundPlayFile("ib1lu1x1");
                 _UpdateThing(preferenceIndex);
-                windowRefresh(gPreferencesWindow);
+                preferencesWindowRefresh();
                 renderPresent();
                 _changed = true;
                 return;
@@ -1625,7 +1699,7 @@ static void _DoThing(int eventCode)
             }
 
             blitBufferToBufferTrans(_preferencesFrmImages[PREFERENCES_WINDOW_FRM_KNOB_ON].getData(), 21, 12, 21, gPreferencesWindowBuffer + PREFERENCES_WINDOW_WIDTH * meta->knobY + knobTrackX, PREFERENCES_WINDOW_WIDTH);
-            windowRefresh(gPreferencesWindow);
+            preferencesWindowRefresh();
 
             delay_ms(35 - (getTicks() - tick));
 

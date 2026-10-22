@@ -4,7 +4,7 @@
   "map": "KLAMALL.MAP",
   "elevation": 0,
   "still_snapshot": true,
-  "snapshot_run": "7fced04953bc4a9bb155973d04ca0e90",
+  "snapshot_run": "029da6ff235443b9a70a6fb2271e835e",
   "view_tile": 23145,
   "preview_requested": true,
   "scene_3d_enabled": true,
@@ -44,8 +44,8 @@
     ]
   },
   "camera": "fixed eye=(71.64466,46.23085,81.46700), target=(22.45833,0.00000,7.68750), fov_y=25.0, near=0.1, far=400.0, screen_right=-cross(forward,world_up)",
-  "wall_triangles": 17580,
-  "wall_pages": 3,
+  "wall_triangles": 10459,
+  "wall_pages": 1,
   "hero": {
     "tile": 29089,
     "fid": 16777278,
@@ -56,6 +56,18 @@
       22.6875
     ]
   },
+  "egg": {
+    "shown": true,
+    "rect": [
+      2270,
+      173,
+      129,
+      98
+    ],
+    "zoom": 1.0,
+    "wall_rows_marked": 324,
+    "wall_rows_any": true
+  },
   "objects": {
     "drawn": 4685,
     "skipped": 0
@@ -63,16 +75,35 @@
   "preview_availability": "available",
   "renderer": "scene-gl",
   "light": "off",
+  "sun": {
+    "setting": true,
+    "daylight": true,
+    "game_time": 302400,
+    "up": true,
+    "height": 35.267,
+    "azimuth": 171.0,
+    "direction": [
+      -0.80642,
+      0.57739,
+      0.12772
+    ],
+    "color": [
+      1.0,
+      0.96,
+      0.88
+    ],
+    "strength": 1.0
+  },
   "resolution": "1920x1080",
   "logical_resolution": "960x540",
   "scale": 2,
   "windowed": true,
   "drawable": "1920x1080",
-  "ce_commit": "c7f808cc",
+  "ce_commit": "32f0fe2b",
   "tools_commit": "-",
-  "exe_sha256": "fd86d652304f301f7a07fe0e76f35c14c2f80af9f17101ebce1fcc8c494802b9",
-  "taken": "20261020-215040",
-  "capture_image": "devhero-20261020-215040-000.png",
+  "exe_sha256": "ddc03416aa937b3bff789b7fb92ea636760523efd0da660f9dbbd9f5880636f4",
+  "taken": "20261022-093157",
+  "capture_image": "devhero-20261022-093157-000.png",
   "spot": {
     "name": "klamall-e0",
     "map": "klamall",

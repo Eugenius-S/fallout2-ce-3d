@@ -25,7 +25,7 @@ namespace devtools {
 
 // Consumes --dev-tools / --dev-screen / --dev-scale / --dev-map / --dev-elevation / --dev-list-maps /
 // --dev-floor-preview / --dev-wall-preview / --dev-hero-preview / --dev-walk-preview /
-// --dev-view-tile / --dev-still-snapshot / --dev-snapshot-run /
+// --dev-view-tile / --dev-still-snapshot / --dev-preferences-snapshot / --dev-snapshot-run /
 // --dev-map-tour=<map:elevation[:view hex],...> (a snapshot on arrival, then on
 // each) / --dev-classic (the same without the 3D scene) / --dev-hero-tile /
 // --dev-ambient=<0..65536> (the map's ambient light held there).
@@ -37,6 +37,8 @@ bool parseOption(const char* arg);
 bool initializeFixedScreenOptions(int argc, char** argv);
 bool fixedScreenOptionsEnabled();
 bool backgroundCaptureActive();
+bool preferencesSnapshotRequested();
+bool preferencesSnapshotAtBottom();
 void applyFixedScreenOptions();
 // The command line is parsed after the fixed options apply (main.cc), so a
 // background run re-applies the glow switch and the zoom once the flags are

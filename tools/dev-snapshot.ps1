@@ -29,6 +29,9 @@ param(
     [switch]$Probe,
     [string]$Tour,
     [switch]$Classic,
+    [switch]$Preferences,
+    [ValidateSet('Top', 'Bottom')]
+    [string]$PreferencesPosition = 'Top',
     [switch]$NoPreview,
     [switch]$Parallel,
     [ValidateRange(0, 39999)]
@@ -47,6 +50,11 @@ param(
     # -Solo R: only the things within R hexes of -ViewTile, no walls or roofs.
     [int]$Solo = -1,
     [string]$OutputDirectory,
+    [ValidateSet('english', 'russian')]
+    [string]$Language,
+    [ValidateSet('save', 'cancel', 'escape', 'defaults', 'verify')]
+    [string]$PreferencesProbe,
+    [switch]$ReuseTestConfig,
     [switch]$CaptureConsole,
     # -Glow: keep the glow on in this background run (it is forced off by
     # default, so captures stay byte-stable).
@@ -62,6 +70,15 @@ param(
     [int]$Scale = 2
 )
 $ErrorActionPreference = 'Stop'
+function Get-TestConfigValue([string]$Path, [string]$Section, [string]$Key) {
+    $currentSection = ''
+    $keyPattern = '^\s*' + [regex]::Escape($Key) + '\s*=\s*(.*?)\s*$'
+    foreach ($line in [System.IO.File]::ReadAllLines($Path)) {
+        if ($line -match '^\s*\[([^\]]+)\]') { $currentSection = $Matches[1] }
+        elseif ($currentSection -eq $Section -and $line -match $keyPattern) { return $Matches[1] }
+    }
+    throw "Missing [$Section].$Key in $Path"
+}
 $Root = Split-Path -Parent $PSScriptRoot
 $GameDir = Join-Path $Root 'game'
 if (-not (Test-Path -LiteralPath $GameDir)) {
@@ -77,11 +94,42 @@ $fixedConfig = Join-Path $PSScriptRoot 'test-config\fallout2.cfg'
 if (-not (Test-Path -LiteralPath $fixedConfig)) { throw "Missing the fixed test config: $fixedConfig" }
 $exeDirectory = Join-Path $Root 'build\test-run'
 New-Item -ItemType Directory -Path $exeDirectory -Force | Out-Null
-Copy-Item $fixedConfig (Join-Path $exeDirectory 'fallout2.cfg') -Force
 $exe = Join-Path $exeDirectory 'fallout2-ce-test.exe'
 if (Get-Process fallout2-ce-test -ErrorAction SilentlyContinue) {
     throw 'Another fallout2-ce-test.exe instance is already running.'
 }
+$configPath = Join-Path $exeDirectory 'fallout2.cfg'
+if ($PreferencesProbe) {
+    if (-not $OutputDirectory -or -not $CaptureConsole) { throw '-PreferencesProbe requires -CaptureConsole and -OutputDirectory.' }
+    if ($PreferencesProbe -eq 'verify' -and -not $ReuseTestConfig) { throw 'Use -ReuseTestConfig with the read-only verify probe.' }
+} elseif ($ReuseTestConfig) {
+    throw '-ReuseTestConfig requires -PreferencesProbe.'
+}
+if ($ReuseTestConfig) {
+    if (-not (Test-Path -LiteralPath $configPath -PathType Leaf)) { throw "No isolated config to reuse: $configPath" }
+} else {
+    Copy-Item $fixedConfig $configPath -Force
+}
+if ($Language) {
+    $configLines = [System.Collections.Generic.List[string]]::new()
+    $inSystemSection = $false
+    $languageFound = $false
+    foreach ($line in [System.IO.File]::ReadAllLines($configPath)) {
+        if ($line -match '^\s*\[') { $inSystemSection = $line.Trim() -eq '[system]' }
+        if ($inSystemSection -and $line -match '^\s*language=') {
+            $configLines.Add("language=$Language")
+            $languageFound = $true
+        } else {
+            $configLines.Add($line)
+        }
+    }
+    if (-not $languageFound) { throw 'Could not find [system].language in the isolated test config.' }
+    [System.IO.File]::WriteAllLines($configPath, $configLines, [System.Text.UTF8Encoding]::new($false))
+}
+$configHashBefore = (Get-FileHash -LiteralPath $configPath -Algorithm SHA256).Hash
+$initialZoom = Get-TestConfigValue $configPath '3d' 'zoom'
+$initialEnabled = Get-TestConfigValue $configPath '3d' 'enabled'
+$initialDifficulty = Get-TestConfigValue $configPath 'preferences' 'combat_difficulty'
 if (($ScreenWidth % $Scale) -ne 0 -or ($ScreenHeight % $Scale) -ne 0 -or
     ($ScreenWidth / $Scale) -lt 640 -or ($ScreenHeight / $Scale) -lt 480) {
     throw 'The requested scale must divide the screen and leave at least a 640x480 logical framebuffer.'
@@ -92,11 +140,23 @@ if (-not (Test-Path -LiteralPath $exe) -or
 }
 $shots = 1
 $runId = [guid]::NewGuid().ToString('N')
-$arguments = @('--dev-tools', "--dev-screen=${ScreenWidth}x${ScreenHeight}", "--dev-scale=$Scale",
-    '--dev-new-game', "--dev-map=$Map", "--dev-elevation=$Elevation", "--dev-snapshot-run=$runId")
+$arguments = @('--dev-tools')
+if ($PreferencesProbe) {
+    $arguments += @('--dev-new-game', "--dev-map=$Map", "--dev-elevation=$Elevation", "--dev-preferences-probe=$PreferencesProbe")
+} else {
+    $arguments += @("--dev-screen=${ScreenWidth}x${ScreenHeight}", "--dev-scale=$Scale",
+        '--dev-new-game', "--dev-map=$Map", "--dev-elevation=$Elevation", "--dev-snapshot-run=$runId")
+}
 if ($Glow) { $arguments += '--dev-glow' }
 if ($Zoom -gt 0) { $arguments += "--dev-zoom=$Zoom" }
-if ($Classic) { $arguments += '--dev-classic' }
+if ($PreferencesProbe) {
+    if ($Preferences -or $Classic -or $Probe -or $Tour -or $Still) { throw '-PreferencesProbe cannot be combined with another capture mode.' }
+} elseif ($Preferences) {
+    if ($Probe -or $Tour -or $Still) { throw '-Preferences cannot be combined with -Probe, -Tour, or -Still.' }
+    if ($Classic) { $arguments += '--dev-classic' }
+    $arguments += '--dev-preferences-snapshot'
+    if ($PreferencesPosition -eq 'Bottom') { $arguments += '--dev-preferences-bottom' }
+} elseif ($Classic) { $arguments += '--dev-classic' }
 elseif (-not $NoPreview) { $arguments += '--dev-hero-preview' }
 if ($PSBoundParameters.ContainsKey('ViewTile')) { $arguments += "--dev-view-tile=$ViewTile" }
 if ($PSBoundParameters.ContainsKey('HeroTile')) { $arguments += "--dev-hero-tile=$HeroTile" }
@@ -119,7 +179,11 @@ if ($Still) {
     if ($Probe) { throw '-Still cannot be combined with the interactive -Probe.' }
     $arguments += '--dev-still-snapshot'
 }
-if ($Probe) {
+if ($PreferencesProbe) {
+    $shots = 0
+} elseif ($Preferences) {
+    $shots = 1
+} elseif ($Probe) {
     if ($Tour) { throw '-Tour cannot be combined with -Probe.' }
     $shots = 2
     $arguments += '--dev-pick-probe'
@@ -142,6 +206,7 @@ $previousSceneCache = $env:F2CE_SCENE_CACHE
 $sceneCache = Join-Path $Root 'build\scene-cache'
 if (Test-Path -LiteralPath $sceneCache -PathType Container) { $env:F2CE_SCENE_CACHE = $sceneCache }
 $process = $null
+$probeHarnessStoppedProcess = $false
 $snapshots = @()
 try {
     $startParameters = @{
@@ -159,16 +224,29 @@ try {
     }
     $process = Start-Process @startParameters
     $deadline = $started.AddSeconds($TimeoutSeconds)
-    while ((Get-Date) -lt $deadline -and -not $process.HasExited) {
-        $snapshots = @(Get-ChildItem $GameDir -Filter 'devshot-*.json' | Where-Object {
-            if ($_.LastWriteTime -le $started) { return $false }
-            try { (Get-Content -Raw -LiteralPath $_.FullName | ConvertFrom-Json).snapshot_run -eq $runId }
-            catch { $false } # The writer may still be completing this file.
-        })
-        $log = Join-Path $GameDir 'devprobe.log'
-        $probed = -not $Probe -or ((Test-Path $log) -and (Select-String -Path $log -Pattern 'probe done' -Quiet))
-        if ($snapshots.Count -ge $shots -and $probed) { break }
-        Start-Sleep -Milliseconds 500
+    $probeCompletedBeforeDeadline = $false
+    if ($PreferencesProbe) {
+        $probeStdoutPath = Join-Path $OutputDirectory 'process.stdout.log'
+        while ((Get-Date) -lt $deadline -and -not $process.HasExited) {
+            if ((Test-Path -LiteralPath $probeStdoutPath) -and
+                (Select-String -LiteralPath $probeStdoutPath -Pattern 'PREFERENCES_PROBE finished; requesting isolated helper exit' -Quiet)) {
+                $probeCompletedBeforeDeadline = $true
+                break
+            }
+            Start-Sleep -Milliseconds 250
+        }
+    } else {
+        while ((Get-Date) -lt $deadline -and -not $process.HasExited) {
+            $snapshots = @(Get-ChildItem $GameDir -Filter 'devshot-*.json' | Where-Object {
+                if ($_.LastWriteTime -le $started) { return $false }
+                try { (Get-Content -Raw -LiteralPath $_.FullName | ConvertFrom-Json).snapshot_run -eq $runId }
+                catch { $false } # The writer may still be completing this file.
+            })
+            $log = Join-Path $GameDir 'devprobe.log'
+            $probed = -not $Probe -or ((Test-Path $log) -and (Select-String -Path $log -Pattern 'probe done' -Quiet))
+            if ($snapshots.Count -ge $shots -and $probed) { break }
+            Start-Sleep -Milliseconds 500
+        }
     }
     Start-Sleep -Milliseconds 500
 } finally {
@@ -176,9 +254,83 @@ try {
     $env:SDL_AUDIODRIVER = $previousAudio
     $env:F2CE_SCENE_CACHE = $previousSceneCache
     if ($null -ne $process) {
-        if (-not $process.HasExited) { Stop-Process -Id $process.Id -Force }
+        if (-not $process.HasExited) {
+            Stop-Process -Id $process.Id -Force
+            $probeHarnessStoppedProcess = $true
+        }
         if (-not $process.WaitForExit(10000)) { throw 'The background test process did not exit.' }
     }
+}
+if ($PreferencesProbe) {
+    $probeLog = Get-Content -Raw -LiteralPath (Join-Path $OutputDirectory 'process.stdout.log')
+    if (-not $probeCompletedBeforeDeadline) { throw "Preferences probe did not finish within $TimeoutSeconds s." }
+    if (($probeLog -match 'PREFERENCES_PROBE FAIL') -or
+        ($probeLog -notmatch 'PREFERENCES_PROBE PASS') -or
+        ($probeLog -notmatch 'PREFERENCES_PROBE finished; requesting isolated helper exit')) {
+        throw 'Preferences probe did not report a successful production-path assertion.'
+    }
+    if (-not $probeHarnessStoppedProcess) { throw 'Preferences probe did not stop through the isolated helper harness.' }
+    $configHashAfter = (Get-FileHash -LiteralPath $configPath -Algorithm SHA256).Hash
+    $zoomAfter = Get-TestConfigValue $configPath '3d' 'zoom'
+    $enabledAfter = Get-TestConfigValue $configPath '3d' 'enabled'
+    $difficultyAfter = Get-TestConfigValue $configPath 'preferences' 'combat_difficulty'
+    switch ($PreferencesProbe) {
+        { $_ -in 'cancel', 'escape', 'verify' } {
+            if ($configHashAfter -ne $configHashBefore) { throw "$PreferencesProbe changed the isolated config hash." }
+        }
+        'save' {
+            $zoomMatch = [regex]::Match($probeLog, 'PREFERENCES_PROBE PASS committed zoom=([0-9.]+) enabled=(true|false) combat_difficulty=(-?\d+)')
+            if (-not $zoomMatch.Success) { throw 'Done commit values were not reported.' }
+            $expectedEnabled = if ($zoomMatch.Groups[2].Value -eq 'true') { '1' } else { '0' }
+            if ([math]::Abs(([double]$zoomAfter) - ([double]$zoomMatch.Groups[1].Value)) -gt 0.00001 -or
+                $enabledAfter -ne $expectedEnabled -or $difficultyAfter -ne $zoomMatch.Groups[3].Value -or
+                $difficultyAfter -eq $initialDifficulty) {
+                throw 'Saved config does not contain the committed 3D and legacy values.'
+            }
+        }
+        'defaults' {
+            if ([math]::Abs(([double]$zoomAfter) - 1.0) -gt 0.00001 -or
+                $enabledAfter -ne '1' -or $difficultyAfter -ne '1') {
+                throw 'Defaults did not write the expected 3D and legacy defaults.'
+            }
+        }
+        'verify' {
+            $readback = [regex]::Match($probeLog, 'PREFERENCES_PROBE READBACK zoom=([0-9.]+) enabled=(true|false) combat_difficulty=(-?\d+)')
+            if (-not $readback.Success) { throw 'Fresh-process readback values were not reported.' }
+            $expectedEnabled = if ($readback.Groups[2].Value -eq 'true') { '1' } else { '0' }
+            if ([math]::Abs(([double]$zoomAfter) - ([double]$readback.Groups[1].Value)) -gt 0.00001 -or
+                $enabledAfter -ne $expectedEnabled -or $difficultyAfter -ne $readback.Groups[3].Value) {
+                throw 'Fresh process did not load the saved values from the isolated config.'
+            }
+        }
+    }
+    Write-Output $probeLog
+    Write-Output "PREFERENCES_PROBE CONFIG $PreferencesProbe hash_before=$configHashBefore hash_after=$configHashAfter zoom=$zoomAfter enabled=$enabledAfter combat_difficulty=$difficultyAfter"
+    $probeResult = [ordered]@{
+        mode = $PreferencesProbe
+        config_sha256_before = $configHashBefore
+        config_sha256_after = $configHashAfter
+        initial = [ordered]@{
+            zoom = $initialZoom
+            enabled = $initialEnabled
+            combat_difficulty = $initialDifficulty
+        }
+        final = [ordered]@{
+            zoom = $zoomAfter
+            enabled = $enabledAfter
+            combat_difficulty = $difficultyAfter
+        }
+        executable_sha256 = (Get-FileHash -LiteralPath $exe -Algorithm SHA256).Hash
+        completion = [ordered]@{
+            method = 'C++ finish marker observed before deadline; isolated helper stopped by harness'
+            marker_observed_before_deadline = $probeCompletedBeforeDeadline
+            harness_stopped_process = $probeHarnessStoppedProcess
+        }
+    }
+    $resultPath = Join-Path $OutputDirectory 'preferences-result.json'
+    $probeResult | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $resultPath -Encoding utf8
+    Write-Output "PREFERENCES_PROBE RESULT $resultPath"
+    return
 }
 if ($snapshots.Count -lt $shots) { throw "No snapshot within $TimeoutSeconds s." }
 foreach ($snapshot in $snapshots) {

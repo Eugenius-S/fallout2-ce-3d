@@ -4,7 +4,7 @@
   "map": "KLATOXCV.MAP",
   "elevation": 1,
   "still_snapshot": true,
-  "snapshot_run": "a5b6c4b220c642b9aec3c276632d0e71",
+  "snapshot_run": "c96dfdef42a846f9a3659598b5d4340c",
   "view_tile": 19091,
   "preview_requested": true,
   "scene_3d_enabled": true,
@@ -44,8 +44,8 @@
     ]
   },
   "camera": "fixed eye=(44.64466,46.23085,71.46700), target=(-4.54167,0.00000,-2.31250), fov_y=25.0, near=0.1, far=400.0, screen_right=-cross(forward,world_up)",
-  "wall_triangles": 13438,
-  "wall_pages": 3,
+  "wall_triangles": 6936,
+  "wall_pages": 1,
   "hero": {
     "tile": 18531,
     "fid": 16777278,
@@ -55,6 +55,18 @@
       15.458333333,
       -3.8125
     ]
+  },
+  "egg": {
+    "shown": true,
+    "rect": [
+      -675,
+      371,
+      129,
+      98
+    ],
+    "zoom": 1.0,
+    "wall_rows_marked": 326,
+    "wall_rows_any": true
   },
   "objects": {
     "drawn": 1997,
@@ -87,11 +99,11 @@
   "scale": 2,
   "windowed": true,
   "drawable": "1920x1080",
-  "ce_commit": "a589e321",
+  "ce_commit": "32f0fe2b",
   "tools_commit": "-",
-  "exe_sha256": "2702fae28c94d9d63bdf4de2d703d3f5a6a4c9629f890e509eea2c0ca7c4c9b2",
-  "taken": "20261021-184327",
-  "capture_image": "devhero-20261021-184327-000.png",
+  "exe_sha256": "ddc03416aa937b3bff789b7fb92ea636760523efd0da660f9dbbd9f5880636f4",
+  "taken": "20261022-093250",
+  "capture_image": "devhero-20261022-093250-000.png",
   "spot": {
     "name": "klatoxcv-e1",
     "map": "klatoxcv",
