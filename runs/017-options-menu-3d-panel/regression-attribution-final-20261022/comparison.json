@@ -1,0 +1,439 @@
+{
+  "candidate_source_commit": "e29ef058",
+  "clean_control_source_commit": "32f0fe2b",
+  "candidate_run": "runs/regression/20261022-191516-761-50648",
+  "clean_control_run": "build/task017-baseline-source/runs/regression/20261022-093020-641-44416",
+  "gameplay_regression_exit_code": 1,
+  "legacy_reference_result": {
+    "failed": 13,
+    "passed": 3,
+    "failed_spots": [
+      "entrance",
+      "corrals",
+      "residents",
+      "central-doors",
+      "north-rooms",
+      "map-edge",
+      "klagraz-e0",
+      "klamall-e0",
+      "klaratcv-e1",
+      "klaratcv-e2",
+      "klatoxcv-e0",
+      "klatoxcv-e1",
+      "klatrap-e0"
+    ],
+    "passed_spots": [
+      "klacanyn-e0",
+      "klaratcv-e0",
+      "klatoxcv-e2"
+    ],
+    "references_refreshed": false
+  },
+  "clean_control_rgba_result": {
+    "matched": 16,
+    "total": 16,
+    "mismatched_spots": []
+  },
+  "spots": [
+    {
+      "spot": "entrance",
+      "legacy_reference_status": "fail",
+      "legacy_changed_pixels": 501,
+      "legacy_changed_fraction": 0.0002416087962962963,
+      "legacy_max_channel_delta": 156,
+      "current_candidate": {
+        "path": "runs/regression/20261022-191516-761-50648/entrance/devhero-20261022-191526-000.png",
+        "size": [
+          1920,
+          1080
+        ],
+        "rgba_sha256": "754a2d440bbdd8368f213bc4ee05fe9c5113b1e4a04e6ba3f990bae552e0dbf4"
+      },
+      "clean_control": {
+        "path": "build/task017-baseline-source/runs/regression/20261022-093020-641-44416/entrance/devhero-20261022-093033-000.png",
+        "source_commit": "32f0fe2b",
+        "size": [
+          1920,
+          1080
+        ],
+        "rgba_sha256": "754a2d440bbdd8368f213bc4ee05fe9c5113b1e4a04e6ba3f990bae552e0dbf4"
+      },
+      "current_matches_clean_control": true
+    },
+    {
+      "spot": "corrals",
+      "legacy_reference_status": "fail",
+      "legacy_changed_pixels": 361,
+      "legacy_changed_fraction": 0.00017409336419753086,
+      "legacy_max_channel_delta": 120,
+      "current_candidate": {
+        "path": "runs/regression/20261022-191516-761-50648/corrals/devhero-20261022-191537-000.png",
+        "size": [
+          1920,
+          1080
+        ],
+        "rgba_sha256": "5daa91b7f731fec79624813b1220fb17454e259bf169a82d54dc30b2b15689f9"
+      },
+      "clean_control": {
+        "path": "build/task017-baseline-source/runs/regression/20261022-093020-641-44416/corrals/devhero-20261022-093044-000.png",
+        "source_commit": "32f0fe2b",
+        "size": [
+          1920,
+          1080
+        ],
+        "rgba_sha256": "5daa91b7f731fec79624813b1220fb17454e259bf169a82d54dc30b2b15689f9"
+      },
+      "current_matches_clean_control": true
+    },
+    {
+      "spot": "residents",
+      "legacy_reference_status": "fail",
+      "legacy_changed_pixels": 380,
+      "legacy_changed_fraction": 0.00018325617283950618,
+      "legacy_max_channel_delta": 108,
+      "current_candidate": {
+        "path": "runs/regression/20261022-191516-761-50648/residents/devhero-20261022-191549-000.png",
+        "size": [
+          1920,
+          1080
+        ],
+        "rgba_sha256": "9cb8d15e66c8fa1930ded9267aeef3ed247eedc0f9452bb9c8712a341b19cdf7"
+      },
+      "clean_control": {
+        "path": "build/task017-baseline-source/runs/regression/20261022-093020-641-44416/residents/devhero-20261022-093057-000.png",
+        "source_commit": "32f0fe2b",
+        "size": [
+          1920,
+          1080
+        ],
+        "rgba_sha256": "9cb8d15e66c8fa1930ded9267aeef3ed247eedc0f9452bb9c8712a341b19cdf7"
+      },
+      "current_matches_clean_control": true
+    },
+    {
+      "spot": "central-doors",
+      "legacy_reference_status": "fail",
+      "legacy_changed_pixels": 133,
+      "legacy_changed_fraction": 6.413966049382716e-05,
+      "legacy_max_channel_delta": 136,
+      "current_candidate": {
+        "path": "runs/regression/20261022-191516-761-50648/central-doors/devhero-20261022-191559-000.png",
+        "size": [
+          1920,
+          1080
+        ],
+        "rgba_sha256": "0e21140ee8c57552d8806b5aa04ef43c812489c82631924523a74fe2382d004d"
+      },
+      "clean_control": {
+        "path": "build/task017-baseline-source/runs/regression/20261022-093020-641-44416/central-doors/devhero-20261022-093108-000.png",
+        "source_commit": "32f0fe2b",
+        "size": [
+          1920,
+          1080
+        ],
+        "rgba_sha256": "0e21140ee8c57552d8806b5aa04ef43c812489c82631924523a74fe2382d004d"
+      },
+      "current_matches_clean_control": true
+    },
+    {
+      "spot": "north-rooms",
+      "legacy_reference_status": "fail",
+      "legacy_changed_pixels": 396,
+      "legacy_changed_fraction": 0.00019097222222222223,
+      "legacy_max_channel_delta": 144,
+      "current_candidate": {
+        "path": "runs/regression/20261022-191516-761-50648/north-rooms/devhero-20261022-191610-000.png",
+        "size": [
+          1920,
+          1080
+        ],
+        "rgba_sha256": "8732f89455884e16265564748697e8b448383a040accca4c34872a526fd512bf"
+      },
+      "clean_control": {
+        "path": "build/task017-baseline-source/runs/regression/20261022-093020-641-44416/north-rooms/devhero-20261022-093118-000.png",
+        "source_commit": "32f0fe2b",
+        "size": [
+          1920,
+          1080
+        ],
+        "rgba_sha256": "8732f89455884e16265564748697e8b448383a040accca4c34872a526fd512bf"
+      },
+      "current_matches_clean_control": true
+    },
+    {
+      "spot": "map-edge",
+      "legacy_reference_status": "fail",
+      "legacy_changed_pixels": 1085,
+      "legacy_changed_fraction": 0.0005232445987654321,
+      "legacy_max_channel_delta": 120,
+      "current_candidate": {
+        "path": "runs/regression/20261022-191516-761-50648/map-edge/devhero-20261022-191621-000.png",
+        "size": [
+          1920,
+          1080
+        ],
+        "rgba_sha256": "6c83c64389ee721a52810b5f1aa1a94a51f7946d0c8c03a8b2ee79d43e92a72a"
+      },
+      "clean_control": {
+        "path": "build/task017-baseline-source/runs/regression/20261022-093020-641-44416/map-edge/devhero-20261022-093129-000.png",
+        "source_commit": "32f0fe2b",
+        "size": [
+          1920,
+          1080
+        ],
+        "rgba_sha256": "6c83c64389ee721a52810b5f1aa1a94a51f7946d0c8c03a8b2ee79d43e92a72a"
+      },
+      "current_matches_clean_control": true
+    },
+    {
+      "spot": "klacanyn-e0",
+      "legacy_reference_status": "pass",
+      "legacy_changed_pixels": 0,
+      "legacy_changed_fraction": 0.0,
+      "legacy_max_channel_delta": 0,
+      "current_candidate": {
+        "path": "runs/regression/20261022-191516-761-50648/klacanyn-e0/devhero-20261022-191631-000.png",
+        "size": [
+          1920,
+          1080
+        ],
+        "rgba_sha256": "649e927bf417cb1a7f7de3a1044a3f0cbe9de35b4239d2ceb72da52fbb255bd3"
+      },
+      "clean_control": {
+        "path": "build/task017-baseline-source/runs/regression/20261022-093020-641-44416/klacanyn-e0/devhero-20261022-093138-000.png",
+        "source_commit": "32f0fe2b",
+        "size": [
+          1920,
+          1080
+        ],
+        "rgba_sha256": "649e927bf417cb1a7f7de3a1044a3f0cbe9de35b4239d2ceb72da52fbb255bd3"
+      },
+      "current_matches_clean_control": true
+    },
+    {
+      "spot": "klagraz-e0",
+      "legacy_reference_status": "fail",
+      "legacy_changed_pixels": 74,
+      "legacy_changed_fraction": 3.568672839506173e-05,
+      "legacy_max_channel_delta": 116,
+      "current_candidate": {
+        "path": "runs/regression/20261022-191516-761-50648/klagraz-e0/devhero-20261022-191641-000.png",
+        "size": [
+          1920,
+          1080
+        ],
+        "rgba_sha256": "ce910e604e42d57e04cf69aa8fcb67308cf984fb75ff86c10e5c946b072237be"
+      },
+      "clean_control": {
+        "path": "build/task017-baseline-source/runs/regression/20261022-093020-641-44416/klagraz-e0/devhero-20261022-093147-000.png",
+        "source_commit": "32f0fe2b",
+        "size": [
+          1920,
+          1080
+        ],
+        "rgba_sha256": "ce910e604e42d57e04cf69aa8fcb67308cf984fb75ff86c10e5c946b072237be"
+      },
+      "current_matches_clean_control": true
+    },
+    {
+      "spot": "klamall-e0",
+      "legacy_reference_status": "fail",
+      "legacy_changed_pixels": 3235,
+      "legacy_changed_fraction": 0.0015600887345679011,
+      "legacy_max_channel_delta": 164,
+      "current_candidate": {
+        "path": "runs/regression/20261022-191516-761-50648/klamall-e0/devhero-20261022-191652-000.png",
+        "size": [
+          1920,
+          1080
+        ],
+        "rgba_sha256": "eeb073386777d325469cb6f4373d3104d39b9445912fd8efc9734b3170c85cac"
+      },
+      "clean_control": {
+        "path": "build/task017-baseline-source/runs/regression/20261022-093020-641-44416/klamall-e0/devhero-20261022-093157-000.png",
+        "source_commit": "32f0fe2b",
+        "size": [
+          1920,
+          1080
+        ],
+        "rgba_sha256": "eeb073386777d325469cb6f4373d3104d39b9445912fd8efc9734b3170c85cac"
+      },
+      "current_matches_clean_control": true
+    },
+    {
+      "spot": "klaratcv-e0",
+      "legacy_reference_status": "pass",
+      "legacy_changed_pixels": 0,
+      "legacy_changed_fraction": 0.0,
+      "legacy_max_channel_delta": 0,
+      "current_candidate": {
+        "path": "runs/regression/20261022-191516-761-50648/klaratcv-e0/devhero-20261022-191702-000.png",
+        "size": [
+          1920,
+          1080
+        ],
+        "rgba_sha256": "a33b911ba2e2c12302c5936236b564b6b594018c580e0f2df62710cccbc640b9"
+      },
+      "clean_control": {
+        "path": "build/task017-baseline-source/runs/regression/20261022-093020-641-44416/klaratcv-e0/devhero-20261022-093207-000.png",
+        "source_commit": "32f0fe2b",
+        "size": [
+          1920,
+          1080
+        ],
+        "rgba_sha256": "a33b911ba2e2c12302c5936236b564b6b594018c580e0f2df62710cccbc640b9"
+      },
+      "current_matches_clean_control": true
+    },
+    {
+      "spot": "klaratcv-e1",
+      "legacy_reference_status": "fail",
+      "legacy_changed_pixels": 821,
+      "legacy_changed_fraction": 0.0003959297839506173,
+      "legacy_max_channel_delta": 74,
+      "current_candidate": {
+        "path": "runs/regression/20261022-191516-761-50648/klaratcv-e1/devhero-20261022-191713-000.png",
+        "size": [
+          1920,
+          1080
+        ],
+        "rgba_sha256": "824fec6f5185b0ee301422abd81116aa0f8cf982b2b8c5ac3794561aa7247c87"
+      },
+      "clean_control": {
+        "path": "build/task017-baseline-source/runs/regression/20261022-093020-641-44416/klaratcv-e1/devhero-20261022-093216-000.png",
+        "source_commit": "32f0fe2b",
+        "size": [
+          1920,
+          1080
+        ],
+        "rgba_sha256": "824fec6f5185b0ee301422abd81116aa0f8cf982b2b8c5ac3794561aa7247c87"
+      },
+      "current_matches_clean_control": true
+    },
+    {
+      "spot": "klaratcv-e2",
+      "legacy_reference_status": "fail",
+      "legacy_changed_pixels": 3847,
+      "legacy_changed_fraction": 0.0018552276234567902,
+      "legacy_max_channel_delta": 66,
+      "current_candidate": {
+        "path": "runs/regression/20261022-191516-761-50648/klaratcv-e2/devhero-20261022-191723-000.png",
+        "size": [
+          1920,
+          1080
+        ],
+        "rgba_sha256": "f00f1381c83a28e4e12d8c4136126dd2e90f1c5fa6edaaacf430d4b47ad21d5a"
+      },
+      "clean_control": {
+        "path": "build/task017-baseline-source/runs/regression/20261022-093020-641-44416/klaratcv-e2/devhero-20261022-093226-000.png",
+        "source_commit": "32f0fe2b",
+        "size": [
+          1920,
+          1080
+        ],
+        "rgba_sha256": "f00f1381c83a28e4e12d8c4136126dd2e90f1c5fa6edaaacf430d4b47ad21d5a"
+      },
+      "current_matches_clean_control": true
+    },
+    {
+      "spot": "klatoxcv-e0",
+      "legacy_reference_status": "fail",
+      "legacy_changed_pixels": 836,
+      "legacy_changed_fraction": 0.00040316358024691356,
+      "legacy_max_channel_delta": 68,
+      "current_candidate": {
+        "path": "runs/regression/20261022-191516-761-50648/klatoxcv-e0/devhero-20261022-191734-000.png",
+        "size": [
+          1920,
+          1080
+        ],
+        "rgba_sha256": "a7f2c4f81b94c8a508b078252ae3fa6969651b6ca4fc931060729716d1e72109"
+      },
+      "clean_control": {
+        "path": "build/task017-baseline-source/runs/regression/20261022-093020-641-44416/klatoxcv-e0/devhero-20261022-093237-000.png",
+        "source_commit": "32f0fe2b",
+        "size": [
+          1920,
+          1080
+        ],
+        "rgba_sha256": "a7f2c4f81b94c8a508b078252ae3fa6969651b6ca4fc931060729716d1e72109"
+      },
+      "current_matches_clean_control": true
+    },
+    {
+      "spot": "klatoxcv-e1",
+      "legacy_reference_status": "fail",
+      "legacy_changed_pixels": 22777,
+      "legacy_changed_fraction": 0.010984278549382716,
+      "legacy_max_channel_delta": 207,
+      "current_candidate": {
+        "path": "runs/regression/20261022-191516-761-50648/klatoxcv-e1/devhero-20261022-191744-000.png",
+        "size": [
+          1920,
+          1080
+        ],
+        "rgba_sha256": "198b66e3410bfae4235e4b2523b01eb7382f975890aa5c352cdf5e6fe94c3eac"
+      },
+      "clean_control": {
+        "path": "build/task017-baseline-source/runs/regression/20261022-093020-641-44416/klatoxcv-e1/devhero-20261022-093250-000.png",
+        "source_commit": "32f0fe2b",
+        "size": [
+          1920,
+          1080
+        ],
+        "rgba_sha256": "198b66e3410bfae4235e4b2523b01eb7382f975890aa5c352cdf5e6fe94c3eac"
+      },
+      "current_matches_clean_control": true
+    },
+    {
+      "spot": "klatoxcv-e2",
+      "legacy_reference_status": "pass",
+      "legacy_changed_pixels": 0,
+      "legacy_changed_fraction": 0.0,
+      "legacy_max_channel_delta": 0,
+      "current_candidate": {
+        "path": "runs/regression/20261022-191516-761-50648/klatoxcv-e2/devhero-20261022-191755-000.png",
+        "size": [
+          1920,
+          1080
+        ],
+        "rgba_sha256": "3b51d6c150fff77928972b00844fac926e4ba3461b2562597175147f80599db6"
+      },
+      "clean_control": {
+        "path": "build/task017-baseline-source/runs/regression/20261022-093020-641-44416/klatoxcv-e2/devhero-20261022-093326-000.png",
+        "source_commit": "32f0fe2b",
+        "size": [
+          1920,
+          1080
+        ],
+        "rgba_sha256": "3b51d6c150fff77928972b00844fac926e4ba3461b2562597175147f80599db6"
+      },
+      "current_matches_clean_control": true
+    },
+    {
+      "spot": "klatrap-e0",
+      "legacy_reference_status": "fail",
+      "legacy_changed_pixels": 2130,
+      "legacy_changed_fraction": 0.001027199074074074,
+      "legacy_max_channel_delta": 148,
+      "current_candidate": {
+        "path": "runs/regression/20261022-191516-761-50648/klatrap-e0/devhero-20261022-191805-000.png",
+        "size": [
+          1920,
+          1080
+        ],
+        "rgba_sha256": "e7730811b8c4b82d629a6777e4293d298b7e4ea22b98c9eeab1a8a22805ca40a"
+      },
+      "clean_control": {
+        "path": "build/task017-baseline-source/runs/regression/20261022-093020-641-44416/klatrap-e0/devhero-20261022-093341-000.png",
+        "source_commit": "32f0fe2b",
+        "size": [
+          1920,
+          1080
+        ],
+        "rgba_sha256": "e7730811b8c4b82d629a6777e4293d298b7e4ea22b98c9eeab1a8a22805ca40a"
+      },
+      "current_matches_clean_control": true
+    }
+  ]
+}
