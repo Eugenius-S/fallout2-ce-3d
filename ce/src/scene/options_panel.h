@@ -30,6 +30,10 @@ public:
     int rowHeight(int index) const;
     int rowButtonX() const;
     int rowButtonWidth() const;
+    int frameInset() const;
+    int sliderTrackLeft() const;
+    int sliderTrackRight() const;
+    int sliderTrackTargetX(double ratio) const;
     int sliderTrackY(int index) const;
     int findRowBySettingId(const std::string& id) const;
     std::string settingValueForProbe(const std::string& id) const;

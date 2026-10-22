@@ -48,6 +48,7 @@ bool gFailed = false;
 bool gAwaitingCompletion = false;
 int gWindowId = -1;
 int gMouseTargetX = 0;
+int gMouseDragTargetX = 0;
 int gMouseTargetY = 0;
 int gWheelScrollBefore = 0;
 int gScrollBeforeDrag = 0;
@@ -254,6 +255,11 @@ int preferencesProbeNextEvent(int eventCode, scene::OptionsPanel* panel, int win
         gEnabledBefore = panel->settingValueForProbe("3d.enabled");
         gLegacyDifficultyBefore = static_cast<int>(settings.preferences.combat_difficulty);
         gStagedLegacyDifficulty = gLegacyDifficultyBefore;
+        if (Window* window = windowGetWindow(windowId)) {
+            const int inset = panel->frameInset();
+            printf("PREFERENCES_PROBE viewport logical=%dx%d frame_x=%d..%d scrollbar_x=%d\n",
+                window->width, window->height, inset, 640 - inset - 1, panel->scrollbarX());
+        }
         printf("PREFERENCES_PROBE rows=%d initialScroll=%d zoom=%s enabled=%s combat_difficulty=%d\n",
             panel->rowCount(), panel->scroll(), gZoomBefore.c_str(), gEnabledBefore.c_str(), gLegacyDifficultyBefore);
         if (gMode == ProbeMode::Verify) {
@@ -360,7 +366,22 @@ int preferencesProbeNextEvent(int eventCode, scene::OptionsPanel* panel, int win
         return KEY_END;
     case 10: {
         Window* window = windowGetWindow(windowId);
-        const int x = mouseXForWindow(window, pageOffsetX(window) + 400);
+        const SettingDescriptor* zoomDescriptor = nullptr;
+        for (const SettingDescriptor& descriptor : settingsGetDescriptors()) {
+            if (descriptor.id == "3d.zoom" && descriptor.numericRange.has_value()) {
+                zoomDescriptor = &descriptor;
+                break;
+            }
+        }
+        if (zoomDescriptor == nullptr) {
+            failProbe("registered 3D zoom range was not found");
+            return KEY_ESCAPE;
+        }
+        const double currentZoom = std::strtod(gZoomBefore.c_str(), nullptr);
+        const double minZoom = zoomDescriptor->numericRange->minimum;
+        const double maxZoom = zoomDescriptor->numericRange->maximum;
+        const double targetRatio = std::abs(currentZoom - minZoom) > std::abs(maxZoom - currentZoom) ? 0.0 : 1.0;
+        const int x = mouseXForWindow(window, pageOffsetX(window) + panel->sliderTrackTargetX(0.5));
         const int y = mouseYForWindow(window, panel->sliderTrackY(gZoomRow) - panel->scroll());
         if (y < window->rect.top || y > window->rect.bottom) {
             failProbe("registered 3D zoom slider is outside the viewport");
@@ -368,6 +389,7 @@ int preferencesProbeNextEvent(int eventCode, scene::OptionsPanel* panel, int win
         }
         setMouseAt(x, y, MOUSE_STATE_LEFT_BUTTON_DOWN);
         gMouseTargetX = x;
+        gMouseDragTargetX = mouseXForWindow(window, pageOffsetX(window) + panel->sliderTrackTargetX(targetRatio));
         gMouseTargetY = y;
         gDrag = DragProbe::Slider;
         gPumpStep = 0;
@@ -427,7 +449,7 @@ void preferencesProbePump()
     if (gPumpStep == 0) {
         int x = gMouseTargetX;
         int y = gMouseTargetY;
-        if (gDrag == DragProbe::Slider) x += 100;
+        if (gDrag == DragProbe::Slider) x = gMouseDragTargetX;
         else y = std::min(window->rect.bottom - 1, y + 11);
         setMouseAt(x, y, MOUSE_STATE_LEFT_BUTTON_DOWN);
         gPumpStep++;

@@ -44,6 +44,9 @@ constexpr int kSliderValueX = 500;
 constexpr int kSliderValueWidth = 85;
 constexpr int kSliderTrackOffset = 22;
 constexpr int kSliderHitTolerance = 7;
+constexpr int kFrameNarrowInset = 16;
+constexpr int kScrollbarWidth = 12;
+constexpr int kScrollbarOutsideGap = 4;
 constexpr int kRowButtonX = 42;
 constexpr int kRowButtonWidth = 556;
 constexpr int kRowEvent = 600;
@@ -138,9 +141,10 @@ bool OptionsPanel::initialize(int windowId, unsigned char* surface, const unsign
         { 367, 411, 271, 67, 6 },
         { 12, 443, 112, 31 }, { 135, 443, 104, 31 }, { 248, 443, 112, 31 },
     };
+    const int legacyCropRight = kWidth - frameInset();
     for (const Rect& rect : legacyBlocks) {
         const int left = std::max(0, rect.x);
-        const int right = std::min(kWidth, rect.x + rect.width);
+        const int right = std::min({ kWidth, legacyCropRight, rect.x + rect.width });
         const int top = std::max(0, rect.y);
         const int bottom = std::min(kHeight, rect.y + rect.height);
         for (int y = top; y < bottom; y++) {
@@ -150,7 +154,7 @@ bool OptionsPanel::initialize(int windowId, unsigned char* surface, const unsign
                     content_[static_cast<size_t>(kWidth) * y + x] = source;
                     continue;
                 }
-                const int edgeDistance = std::min({ x - rect.x, rect.x + rect.width - 1 - x, y - rect.y, rect.y + rect.height - 1 - y });
+                const int edgeDistance = std::min({ x - rect.x, right - 1 - x, y - rect.y, rect.y + rect.height - 1 - y });
                 const float opacity = std::clamp(static_cast<float>(edgeDistance + 1) / rect.feather, 0.0f, 1.0f);
                 const RgbColor base = paletteRgb(backgroundTexturePixel(pageX_ + x, pageY_ + y));
                 const RgbColor blended = mixRgb(base, paletteRgb(source), opacity);
@@ -318,6 +322,18 @@ int OptionsPanel::rowHeight(int index) const
 }
 int OptionsPanel::rowButtonX() const { return kRowButtonX; }
 int OptionsPanel::rowButtonWidth() const { return kRowButtonWidth; }
+int OptionsPanel::frameInset() const
+{
+    const int pageRight = pageX_ + kWidth;
+    return screenWidth_ - pageRight >= kScrollbarWidth + kScrollbarOutsideGap ? 0 : kFrameNarrowInset;
+}
+int OptionsPanel::sliderTrackLeft() const { return kSliderX + frameInset(); }
+int OptionsPanel::sliderTrackRight() const { return kSliderRight - frameInset(); }
+int OptionsPanel::sliderTrackTargetX(double ratio) const
+{
+    const double clampedRatio = std::clamp(ratio, 0.0, 1.0);
+    return sliderTrackLeft() + static_cast<int>(std::round(clampedRatio * (sliderTrackRight() - sliderTrackLeft())));
+}
 int OptionsPanel::sliderTrackY(int index) const { return rowTop(index) + kSliderTrackOffset; }
 
 void OptionsPanel::buildRowLayout()
@@ -384,10 +400,8 @@ int OptionsPanel::scroll() const { return scroll_; }
 int OptionsPanel::maxScroll() const { return std::max(0, contentHeight_ - screenHeight_); }
 int OptionsPanel::scrollbarX() const
 {
-    constexpr int kScrollbarWidth = 12;
-    constexpr int kOutsideGap = 4;
     const int pageRight = pageX_ + kWidth;
-    if (screenWidth_ - pageRight >= kScrollbarWidth + kOutsideGap) return pageRight + kOutsideGap;
+    if (screenWidth_ - pageRight >= kScrollbarWidth + kScrollbarOutsideGap) return pageRight + kScrollbarOutsideGap;
     return pageRight - kScrollbarWidth;
 }
 int OptionsPanel::scrollbarTop() const { return kTrackMargin; }
@@ -473,18 +487,21 @@ void OptionsPanel::draw()
     if (frame_ != nullptr && frameWidth_ >= 640 && frameHeight_ >= 480) {
         constexpr int glassX = 340;
         constexpr int glassY = 200;
+        const int inset = frameInset();
+        const int localFrameWidth = kWidth - 2 * inset;
         for (int y = 0; y < panelHeight; y++) {
-            for (int x = 0; x < kWidth; x++) {
-                const bool left = x < kPanelSideCap;
-                const bool right = x >= kWidth - kPanelSideCap;
+            for (int x = inset; x < kWidth - inset; x++) {
+                const int frameX = x - inset;
+                const bool left = frameX < kPanelSideCap;
+                const bool right = frameX >= localFrameWidth - kPanelSideCap;
                 const bool top = y < kPanelTopCap;
                 const bool bottom = y >= panelHeight - kPanelBottomCap;
-                const int tileX = (x - kPanelSideCap) % 32;
+                const int tileX = (frameX - kPanelSideCap) % 32;
                 const int tileY = (y - kPanelTopCap) % 32;
                 int sx = glassX + tileX;
                 int sy = glassY + tileY;
                 if (left || right) {
-                    const int edgeX = left ? x : x - (kWidth - kPanelSideCap);
+                    const int edgeX = left ? frameX : frameX - (localFrameWidth - kPanelSideCap);
                     sx = left ? frameWidth_ - 1 - edgeX : kPanelRightCapX + edgeX;
                     if (top || bottom) {
                         sy = top ? 16 + y : 47 - (y - (panelHeight - kPanelBottomCap));
@@ -494,15 +511,15 @@ void OptionsPanel::draw()
                 } else if (top) {
                     constexpr int edgeLeft = 520;
                     constexpr int edgeWidth = kPanelRightCapX - edgeLeft;
-                    sx = edgeLeft + (x - kPanelSideCap) % edgeWidth;
+                    sx = edgeLeft + (frameX - kPanelSideCap) % edgeWidth;
                     sy = 16 + y;
                 } else if (bottom) {
                     constexpr int edgeLeft = 520;
                     constexpr int edgeWidth = kPanelRightCapX - edgeLeft;
-                    sx = edgeLeft + (x - kPanelSideCap) % edgeWidth;
+                    sx = edgeLeft + (frameX - kPanelSideCap) % edgeWidth;
                     sy = 47 - (y - (panelHeight - kPanelBottomCap));
                 }
-                const int cornerX = x < kPanelSideCap ? kPanelSideCap - 1 - x : x - (kWidth - kPanelSideCap);
+                const int cornerX = frameX < kPanelSideCap ? kPanelSideCap - 1 - frameX : frameX - (localFrameWidth - kPanelSideCap);
                 const int cornerY = y < kPanelTopCap ? kPanelTopCap - 1 - y : y - (panelHeight - kPanelBottomCap);
                 if ((left || right) && (top || bottom) && cornerX * cornerX + cornerY * cornerY > 31 * 31) continue;
                 panel[static_cast<size_t>(kWidth) * y + x] = frame_[static_cast<size_t>(frameWidth_) * sy + sx];
@@ -510,19 +527,21 @@ void OptionsPanel::draw()
         }
         const unsigned char black = COLOR_BLACK;
         for (int y = 16; y < panelHeight - 16; y++) {
-            for (int x = 16; x < kWidth - 16; x++) {
-                const int cornerX = x < 32 ? 31 - x : (x >= kWidth - 32 ? x - (kWidth - 32) : -1);
+            for (int x = inset + 16; x < kWidth - inset - 16; x++) {
+                const int frameX = x - inset;
+                const int cornerX = frameX < 32 ? 31 - frameX : (frameX >= localFrameWidth - 32 ? frameX - (localFrameWidth - 32) : -1);
                 const int cornerY = y < 32 ? 31 - y : (y >= panelHeight - 32 ? y - (panelHeight - 32) : -1);
                 if (cornerX >= 0 && cornerY >= 0 && cornerX * cornerX + cornerY * cornerY > 16 * 16) continue;
                 panel[static_cast<size_t>(kWidth) * y + x] = black;
             }
         }
         for (int y = kPanelTopCap; y < panelHeight - kPanelBottomCap; y++) {
-            for (int x = kPanelSideCap; x < kWidth - kPanelSideCap; x++) {
-                const int cornerX = x < 48 ? 48 - x : (x >= kWidth - 48 ? x - (kWidth - 48) + 1 : -1);
+            for (int x = inset + kPanelSideCap; x < kWidth - inset - kPanelSideCap; x++) {
+                const int frameX = x - inset;
+                const int cornerX = frameX < 48 ? 48 - frameX : (frameX >= localFrameWidth - 48 ? frameX - (localFrameWidth - 48) + 1 : -1);
                 const int cornerY = y < 48 ? 48 - y : (y >= panelHeight - 48 ? y - (panelHeight - 48) + 1 : -1);
                 if (cornerX >= 0 && cornerY >= 0 && cornerX * cornerX + cornerY * cornerY > 16 * 16) continue;
-                const int sourceX = glassX + (x - kPanelSideCap) % 32;
+                const int sourceX = glassX + (frameX - kPanelSideCap) % 32;
                 const int sourceY = glassY + (y - kPanelTopCap) % 32;
                 panel[static_cast<size_t>(kWidth) * y + x] = frame_[static_cast<size_t>(frameWidth_) * sourceY + sourceX];
             }
@@ -530,7 +549,7 @@ void OptionsPanel::draw()
     }
     rowFrameBackground_.assign(panel, panel + static_cast<size_t>(kWidth) * panelHeight);
     fontSetCurrent(104);
-    fontDrawText(panel + kWidth * 62 + 52, "3D OPTIONS", 520, kWidth, COLOR_GREEN);
+    fontDrawText(panel + kWidth * 62 + 52 + frameInset(), "3D OPTIONS", 520, kWidth, COLOR_GREEN);
     fontSetCurrent(101);
     drawRows();
     refresh();
@@ -539,11 +558,12 @@ void OptionsPanel::draw()
 void OptionsPanel::drawRows()
 {
     if (model_ == nullptr) return;
+    const int inset = frameInset();
     unsigned char* panel = content_.data() + static_cast<size_t>(kWidth) * kPanelTop;
     for (const GroupLayout& group : groupLayouts_) {
         const int groupY = group.top - kPanelTop;
         fontSetCurrent(101);
-        fontDrawText(panel + kWidth * (groupY + 1) + kLabelX, group.title.c_str(), 270, kWidth, COLOR_GREEN);
+        fontDrawText(panel + kWidth * (groupY + 1) + kLabelX + inset, group.title.c_str(), 270, kWidth, COLOR_GREEN);
     }
     for (int index : displayOrder_) {
         const OptionsPanelRow& row = rows_[index];
@@ -562,14 +582,14 @@ void OptionsPanel::drawRows()
         const std::string displayLabel = localizedLabel != nullptr && localizedLabel[0] != '\0'
             ? localizedLabel
             : (descriptor.fallbackLabel.empty() ? descriptor.id : descriptor.fallbackLabel);
-        fontDrawText(panel + kWidth * (rowY + 4) + kLabelX, displayLabel.c_str(), 270, kWidth, color);
+        fontDrawText(panel + kWidth * (rowY + 4) + kLabelX + inset, displayLabel.c_str(), 270, kWidth, color);
 
         char valueText[128] = {};
         switch (row.control) {
         case OptionsPanelControl::Toggle: {
             bool value = std::get<bool>(row.edit->value);
             std::snprintf(valueText, sizeof(valueText), "[%c] %s", value ? 'X' : ' ', value ? "On" : "Off");
-            drawRightAlignedControlText(panel, rowY, kToggleX, kToggleX + kToggleWidth, valueText, color);
+            drawRightAlignedControlText(panel, rowY, kToggleX - inset, kToggleX + kToggleWidth - inset, valueText, color);
             break;
         }
         case OptionsPanelControl::Slider: {
@@ -577,10 +597,10 @@ void OptionsPanel::drawRows()
             const SettingNumericRange& range = *descriptor.numericRange;
             double ratio = std::clamp((value - range.minimum) / (range.maximum - range.minimum), 0.0, 1.0);
             std::snprintf(valueText, sizeof(valueText), "%.2f", value);
-            drawRightAlignedControlText(panel, rowY, kSliderValueX, kSliderValueX + kSliderValueWidth, valueText, color);
+            drawRightAlignedControlText(panel, rowY, kSliderValueX - inset, kSliderValueX + kSliderValueWidth - inset, valueText, color);
             const int trackY = sliderTrackY(index) - kPanelTop;
-            bufferDrawLine(panel, kWidth, kSliderX, trackY, kSliderRight, trackY, color);
-            int knobX = kSliderX + static_cast<int>(std::round(ratio * (kSliderRight - kSliderX)));
+            bufferDrawLine(panel, kWidth, sliderTrackLeft(), trackY, sliderTrackRight(), trackY, color);
+            int knobX = sliderTrackTargetX(ratio);
             bufferDrawRect(panel, kWidth, knobX - 3, trackY - 5, knobX + 3, trackY + 5, COLOR_LIGHT_GREEN);
             break;
         }
@@ -591,7 +611,7 @@ void OptionsPanel::drawRows()
                 if (choice.value == selected) { label = choice.fallbackLabel.c_str(); break; }
             }
             std::snprintf(valueText, sizeof(valueText), "< %s >", label);
-            drawRightAlignedControlText(panel, rowY, kValueX, kValueX + kValueWidth, valueText, color);
+            drawRightAlignedControlText(panel, rowY, kValueX - inset, kValueX + kValueWidth - inset, valueText, color);
             break;
         }
         case OptionsPanelControl::Value:
@@ -599,7 +619,7 @@ void OptionsPanel::drawRows()
             else if (const auto* value = std::get_if<int>(&row.edit->value)) std::snprintf(valueText, sizeof(valueText), "%d", *value);
             else if (const auto* value = std::get_if<double>(&row.edit->value)) std::snprintf(valueText, sizeof(valueText), "%.2f", *value);
             else if (const auto* value = std::get_if<std::string>(&row.edit->value)) std::snprintf(valueText, sizeof(valueText), "%s", value->c_str());
-            drawRightAlignedControlText(panel, rowY, kValueX, kValueX + kValueWidth, valueText, color);
+            drawRightAlignedControlText(panel, rowY, kValueX - inset, kValueX + kValueWidth - inset, valueText, color);
             break;
         }
     }
@@ -721,9 +741,9 @@ void OptionsPanel::dragSlider(int index)
         mouseGetPositionInWindow(windowId_, &x, &y);
         mouseToPageCoordinates(x, y);
         const int trackY = sliderTrackY(index);
-        if (x < kSliderX || x > kSliderRight
+        if (x < sliderTrackLeft() || x > sliderTrackRight()
             || y < trackY - kSliderHitTolerance || y > trackY + kSliderHitTolerance) return;
-        double ratio = std::clamp((x - static_cast<double>(kSliderX)) / (kSliderRight - kSliderX), 0.0, 1.0);
+        double ratio = std::clamp((x - static_cast<double>(sliderTrackLeft())) / (sliderTrackRight() - sliderTrackLeft()), 0.0, 1.0);
         double value = range.minimum + ratio * (range.maximum - range.minimum);
         if (range.step.has_value()) value = range.minimum + std::round((value - range.minimum) / *range.step) * *range.step;
         value = std::clamp(value, range.minimum, range.maximum);
@@ -794,7 +814,7 @@ bool OptionsPanel::handleEvent(int eventCode)
     const SettingDescriptor& descriptor = *row.edit->descriptor;
     if (descriptor.readOnly || descriptor.commandLineOverride) return true;
     const int trackY = sliderTrackY(index);
-    if (row.control == OptionsPanelControl::Slider && mouseX >= kSliderX && mouseX <= kSliderRight
+    if (row.control == OptionsPanelControl::Slider && mouseX >= sliderTrackLeft() && mouseX <= sliderTrackRight()
         && mouseY >= trackY - kSliderHitTolerance && mouseY <= trackY + kSliderHitTolerance) {
         dragSlider(index);
         return true;

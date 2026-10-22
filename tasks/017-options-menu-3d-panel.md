@@ -69,6 +69,10 @@ Every new setting is in the game's own options menu.
   controls and their hit regions. Place the scrollbar in a verified metal
   margin; when extra width is available, keep it outside the original 640-pixel
   block.
+- When the 640-pixel block leaves no outside margin, inset only the decorative
+  frame to x=16..623. Keep the 640-pixel content axis centered at x=320 and the
+  scrollbar at x=628..639 with a 4-pixel gap; preserve the original controls
+  and their hit regions.
 
 ## Acceptance
 
@@ -104,10 +108,9 @@ Every new setting is in the game's own options menu.
   Home, and End. Its groove, knob travel, drag mapping, and hit region share a
   track spanning the window height with small equal end margins. The original
   control art and hit regions are never clipped by
-  the bar. At the 640-pixel logical minimum, the current fallback track covers
-  the rightmost 12 pixels of the outer frame bezel because there is no outside
-  margin; it stays clear of the row hitboxes. Resolve this medium issue before
-  final task acceptance.
+  the bar. At the 640-pixel logical minimum, the decorative frame is inset to
+  x=16..623, leaving a 4-pixel gap before the full-height track at x=628..639.
+  The centered content grid and original control hit regions remain unchanged.
 - Works in 2D and 3D, at x2 and x3 scale, in Russian and English. Capture the
   window at the top and bottom for each combination of 2D/3D, x2/x3, and
   Russian/English: 16 snapshots in the PR, with the game frame at the requested
@@ -177,3 +180,8 @@ Check: Release build and CTest pass 12/12. Capture: `runs/017-options-menu-3d-pa
 Done: Added an isolated probe through the real preferences event loop for keyboard toggling, wheel and scrollbar input, slider dragging, a legacy preference control, Done, Cancel, Escape, Defaults, and read-only Verify. Cancel/Escape now clear the legacy dirty flag after restoring staged values, preventing an unintended preferences save. Defaults checks every editable registered 3D descriptor.
 Next: Resolve the 640-pixel logical scrollbar/bezel overlap by insetting only the decorative frame, then verify narrow Save and Cancel; task 017 remains in progress.
 Check: Release build and CTest pass 12/12. Seven successful scenario runs, including raw config SHA checks and a fresh-process readback, are in `runs/017-options-menu-3d-panel/preferences-probe-20261022/final-evidence/`. Each run has stdout and a `preferences-result.json` with initial/final values, config SHA-256, executable SHA-256, and marker-plus-harness-stop completion evidence. Save persisted zoom 7.9, enabled=false, combat difficulty=2; Defaults persisted zoom=1, enabled=true, combat difficulty=1 and checked all 10 editable registered 3D descriptors. Fresh Verify read both saved states. Cancel and Escape restored 3D/runtime and staged legacy values with unchanged config SHA.
+
+### 2026-10-22 gpt
+Done: Resolved the minimum-width scrollbar overlap by insetting only the decorative frame at logical width 640. Kept the content and legacy axes centered at x=320, placed the frame at x=16..623, and retained the original controls and hit regions; the scrollbar remains at x=628..639 with a 4-pixel gap. Aligned the title to the inset grid and feathered legacy artwork against its clipped edge.
+Next: Complete the language/scale and 2D/3D capture matrix, then continue final task acceptance; task 017 remains in progress.
+Check: Release build and CTest pass 12/12. Official minimum captures are `runs/017-options-menu-3d-panel/narrow-frame-20261022/minimum-top-final/scr00030.png` and `minimum-bottom-final/scr00031.png` (640x480 logical, scale 2). Narrow Save and Cancel evidence is in `runs/017-options-menu-3d-panel/narrow-frame-20261022/save-1280x960/` and `cancel-1280x960/`; Cancel restored staged settings with unchanged config SHA. See `runs/017-options-menu-3d-panel/narrow-frame-20261022/review.md`.
