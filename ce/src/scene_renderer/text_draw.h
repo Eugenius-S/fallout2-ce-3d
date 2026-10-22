@@ -15,6 +15,19 @@ struct SharpTextSurface {
     int pitch = 0;
 };
 
+struct PreparedSharpTextFrame {
+    std::vector<unsigned char> originalIndices;
+    std::vector<unsigned char> originalRgba;
+    std::vector<unsigned char> restoredIndices;
+    std::vector<unsigned char> restoredRgba;
+    SharpTextSurface overlay;
+    int indexPitch = 0;
+    int rgbaPitch = 0;
+    int width = 0;
+    int height = 0;
+    bool active = false;
+};
+
 bool renderSharpText(const std::vector<scene::TextRecord>& records,
     int logicalWidth, int logicalHeight, int physicalWidth, int physicalHeight,
     const unsigned char* paletteRgb, int paletteEntries,

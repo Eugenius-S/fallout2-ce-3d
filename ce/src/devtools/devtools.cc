@@ -712,6 +712,17 @@ bool parseOption(const char* arg)
         gPreferencesSnapshotPending = true;
         return true;
     }
+    const char* sharpTextPrefix = "--dev-sharp-text=";
+    if (strncmp(arg, sharpTextPrefix, strlen(sharpTextPrefix)) == 0) {
+        const char* value = arg + strlen(sharpTextPrefix);
+        if (strcmp(value, "0") == 0 || strcmp(value, "1") == 0) {
+            settings.scene3d.sharp_text = value[0] == '1';
+        } else {
+            fprintf(stderr, "devtools: invalid --dev-sharp-text value (expected 0 or 1)\n");
+            fflush(stderr);
+        }
+        return true;
+    }
     if (strcmp(arg, "--dev-preferences-bottom") == 0) {
         gPreferencesSnapshotBottom = true;
         return true;

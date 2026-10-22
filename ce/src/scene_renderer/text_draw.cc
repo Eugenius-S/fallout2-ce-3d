@@ -61,6 +61,7 @@ bool& glyphCacheResetPending()
     return value;
 }
 
+
 void beginGlyphFrame()
 {
     // Clear only before any positioned glyph pointers are taken. The caps

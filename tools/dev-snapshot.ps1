@@ -59,6 +59,8 @@ param(
     # -Glow: keep the glow on in this background run (it is forced off by
     # default, so captures stay byte-stable).
     [switch]$Glow,
+    # -SharpText: opt in to the experimental high-resolution interface text pass.
+    [switch]$SharpText,
     # -Zoom D: the 3D zoom of the snapshots (1 is the game's own size).
     [ValidateRange(0.25, 4)]
     [double]$Zoom = -1,
@@ -141,6 +143,7 @@ if (-not (Test-Path -LiteralPath $exe) -or
 $shots = 1
 $runId = [guid]::NewGuid().ToString('N')
 $arguments = @('--dev-tools')
+if ($SharpText) { $arguments += '--dev-sharp-text=1' } else { $arguments += '--dev-sharp-text=0' }
 if ($PreferencesProbe) {
     $arguments += @('--dev-new-game', "--dev-map=$Map", "--dev-elevation=$Elevation", "--dev-preferences-probe=$PreferencesProbe")
 } else {

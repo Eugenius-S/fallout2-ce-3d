@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <vector>
+
 #include <SDL.h>
 
 #include "color.h"
@@ -17,7 +19,6 @@
 #include "movie.h"
 #include "scan_unimplemented.h"
 #include "settings.h"
-#include "scene/text_capture.h"
 #include "devtools/devtools.h"
 #include "scene/scene_overlay.h"
 #include "scene/scene_view.h"
@@ -28,6 +29,7 @@
 #include "scene_renderer/post.h"
 #include "scene_renderer/scene_draw.h"
 #include "scene_renderer/static_scene.h"
+#include "scene_renderer/text_present.h"
 #include "text_font.h"
 #include "tile.h"
 #include "win32.h"
@@ -52,6 +54,10 @@ SDL_Surface* gSdlSurface = nullptr;
 SDL_Renderer* gSdlRenderer = nullptr;
 SDL_Texture* gSdlTexture = nullptr;
 SDL_Surface* gSdlTextureSurface = nullptr;
+
+namespace {
+
+} // namespace
 
 // TODO: Remove once migration to update-render cycle is completed.
 FpsLimiter sharedFpsLimiter;
@@ -529,6 +535,9 @@ void renderPresent()
     // Sprite-lighting mod: the dev panel is drawn into the framebuffer after
     // the game (so it shows in both presentation paths).
     devtools::draw(static_cast<unsigned char*>(gSdlSurface->pixels), gSdlSurface->w, gSdlSurface->h, gSdlSurface->pitch);
+    const bool uiVisible = scene_renderer::isActive() && !scene_renderer::staticFlyCameraActive()
+        && (!scene::shouldPresent() || scene::activeView() == scene::View::Full);
+    const bool sharpTextReady = scene_renderer::prepareSharpTextForPresent(gSdlSurface, gSdlTextureSurface, uiVisible);
     // A frame without the 3D scene (combat, dialog, ...) lands the fly camera
     // before the game takes input again.
     if (scene_renderer::staticFlyCameraActive()
@@ -553,12 +562,32 @@ void renderPresent()
                     return;
                 }
                 // The game's interface, mouse cursor and floating text over it.
-                SDL_BlitSurface(gSdlSurface, nullptr, gSdlTextureSurface, nullptr);
-                scene::maskOverlay(static_cast<const unsigned char*>(gSdlSurface->pixels), gSdlSurface->pitch,
-                    static_cast<unsigned char*>(gSdlTextureSurface->pixels), gSdlTextureSurface->pitch,
-                    gSdlSurface->w, gSdlSurface->h);
-                scene_renderer::drawSceneOverlay(static_cast<const unsigned char*>(gSdlTextureSurface->pixels),
-                    gSdlTextureSurface->w, gSdlTextureSurface->h, gSdlTextureSurface->pitch);
+                if (sharpTextReady) {
+                    const scene_renderer::PreparedSharpTextFrame& frame = scene_renderer::preparedSharpTextFrame();
+                    std::vector<unsigned char> overlay = frame.restoredRgba;
+                    scene::maskOverlay(frame.restoredIndices.data(), frame.indexPitch,
+                        overlay.data(), frame.rgbaPitch, frame.width, frame.height);
+                    scene_renderer::drawSceneOverlay(overlay.data(), frame.width, frame.height, frame.rgbaPitch);
+                    if (!scene_renderer::drawSharpTextOverlay()) {
+                        scene_renderer::disableSharpText("OpenGL draw failed");
+                        const bool retryGlow = scene_renderer::beginSceneCapture();
+                        scene_renderer::drawStaticHeroPreview();
+                        if (retryGlow) scene_renderer::compositeGlow();
+                        SDL_BlitSurface(gSdlSurface, nullptr, gSdlTextureSurface, nullptr);
+                        scene::maskOverlay(static_cast<const unsigned char*>(gSdlSurface->pixels), gSdlSurface->pitch,
+                            static_cast<unsigned char*>(gSdlTextureSurface->pixels), gSdlTextureSurface->pitch,
+                            gSdlSurface->w, gSdlSurface->h);
+                        scene_renderer::drawSceneOverlay(static_cast<const unsigned char*>(gSdlTextureSurface->pixels),
+                            gSdlTextureSurface->w, gSdlTextureSurface->h, gSdlTextureSurface->pitch);
+                    }
+                } else {
+                    SDL_BlitSurface(gSdlSurface, nullptr, gSdlTextureSurface, nullptr);
+                    scene::maskOverlay(static_cast<const unsigned char*>(gSdlSurface->pixels), gSdlSurface->pitch,
+                        static_cast<unsigned char*>(gSdlTextureSurface->pixels), gSdlTextureSurface->pitch,
+                        gSdlSurface->w, gSdlSurface->h);
+                    scene_renderer::drawSceneOverlay(static_cast<const unsigned char*>(gSdlTextureSurface->pixels),
+                        gSdlTextureSurface->w, gSdlTextureSurface->h, gSdlTextureSurface->pitch);
+                }
                 scene_renderer::swap();
                 return;
             }
@@ -576,12 +605,22 @@ void renderPresent()
         // Palette -> RGBA conversion is the same SDL_BlitSurface the vanilla
         // path performs every frame, so palette fades and cycling behave
         // identically under the OpenGL presentation.
-        SDL_BlitSurface(gSdlSurface, nullptr, gSdlTextureSurface, nullptr);
-        scene_renderer::presentFrame(
-            static_cast<const unsigned char*>(gSdlTextureSurface->pixels),
-            gSdlTextureSurface->w,
-            gSdlTextureSurface->h,
-            gSdlTextureSurface->pitch);
+        if (sharpTextReady) {
+            const scene_renderer::PreparedSharpTextFrame& frame = scene_renderer::preparedSharpTextFrame();
+            scene_renderer::presentFrame(frame.restoredRgba.data(), frame.width, frame.height, frame.rgbaPitch);
+            if (!scene_renderer::drawSharpTextOverlay()) {
+                scene_renderer::disableSharpText("OpenGL draw failed");
+                scene_renderer::presentFrame(static_cast<const unsigned char*>(gSdlTextureSurface->pixels),
+                    gSdlTextureSurface->w, gSdlTextureSurface->h, gSdlTextureSurface->pitch);
+            }
+        } else {
+            SDL_BlitSurface(gSdlSurface, nullptr, gSdlTextureSurface, nullptr);
+            scene_renderer::presentFrame(
+                static_cast<const unsigned char*>(gSdlTextureSurface->pixels),
+                gSdlTextureSurface->w,
+                gSdlTextureSurface->h,
+                gSdlTextureSurface->pitch);
+        }
         // render movie frame if present
         movieRenderDirectOverlay();
         scene_renderer::swap();

@@ -436,6 +436,8 @@ void initSettingsRegistry(bool isMapper)
     };
     registerThreeDBoolean("enabled", settings.scene3d.enabled, "Enable 3D scene",
         "Show the 3D world view where a scene is available.", SettingApplyPolicy::OnClose);
+    registerThreeDBoolean("sharp_text", settings.scene3d.sharp_text, "Sharp text",
+        "Draw interface text with a high-resolution font in the game window.", SettingApplyPolicy::OnClose);
     registerThreeDBoolean("clean_edges", settings.scene3d.clean_edges, "Clean map edges",
         "Cut the 3D scene to the map boundary, leaving black beyond it.", SettingApplyPolicy::OnClose);
     registerThreeDBoolean("sun", settings.scene3d.sun, "Sun",
