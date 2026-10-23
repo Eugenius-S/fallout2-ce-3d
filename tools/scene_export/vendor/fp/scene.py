@@ -336,7 +336,7 @@ class SceneBuilder:
             rgba = frm.rgba(self.gf.palette.glow_sprite, obj.rotation, frame)
             parts = [self.cropped(rgba * keep[..., None], left, top) for keep in (~shadow, shadow)]
             if None not in parts:
-                self.shadows.append([len(self.boards) - 1] + parts)
+                self.shadows.append([len(self.boards) - 1] + parts + [frame, obj.rotation])
 
     def cropped(self, rgba, left, top):
         """Sprite of the opaque part of an image whose top-left pixel is (left, top) from the anchor, or None."""
@@ -649,7 +649,7 @@ class SceneBuilder:
         self.sheets = []                # their faces, where they are wall-like
         self.panels = []                # (face, frm, scene row) of those that are not doors
         self.door_quads = []
-        self.shadows = []               # [board, sprite without its painted shadow, the shadow]
+        self.shadows = []               # [board, sprite without its painted shadow, the shadow, frame, rotation]
         self.exits = []                 # which decals are exit grid hatching
         self.shape_use = Counter()
         self.colliders = []             # [ua, va, ub, vb]: the fronts of walls that stop the player (and light)
@@ -900,7 +900,7 @@ class SceneBuilder:
             "trims": self.trims,                            # [sprite, ua, va, ub, vb, z0, z1, tx, ty, tw, th]: ends of slabs
             "doors": self.door_quads,                       # [sprite, ua, va, ub, vb, z0, z1, name, object]; they open
             "boards": self.boards,                          # [sprite, u, v, stack, name, object]: stack = see proj.row_plane
-            "shadows": self.shadows,                        # [board, sprite without painted shadow, shadow sprite]
+            "shadows": self.shadows,                        # [board, sprite without painted shadow, shadow sprite, frame, rotation]
             # First person only (props.py). A solid shows `sprite`, whose anchor is ground point
             # (u, v), by projection from the game's camera. board: the card it replaces (several
             # boxes may share one), -1 = it replaces other or several things. A box (round 0) is a x b
