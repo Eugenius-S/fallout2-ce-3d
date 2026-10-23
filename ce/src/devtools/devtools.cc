@@ -940,6 +940,11 @@ void applyBackgroundGlow()
     if (backgroundCaptureActive()) settings.scene3d.glow = gBackgroundGlow;
 }
 
+void applyBackgroundShadows()
+{
+    if (backgroundCaptureActive()) settings.scene3d.shadows = gBackgroundShadows;
+}
+
 // Runs after the command line is parsed (applyFixedScreenOptions is earlier),
 // so --dev-zoom reaches the scene: a background run is pinned to zoom 1
 // unless the dev argument names another one.

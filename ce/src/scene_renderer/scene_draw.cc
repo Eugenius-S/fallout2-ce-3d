@@ -1,6 +1,7 @@
 #include "scene_draw.h"
 
 #include <algorithm>
+#include <stdio.h>
 
 #include <lodepng.h>
 
@@ -65,7 +66,7 @@ void drawStaticPreview(bool withWalls, bool withHero)
     const bool lit = withHero && bindLight();
     // The sun's shadow map renders before the scene; the floor and the walls
     // sample it (uShadowOn). It restores the framebuffer and the viewport.
-    const bool shadowed = withWalls && bindStaticShadows();
+    const bool shadowed = withWalls && bindStaticShadows(mvp);
     glUniform1i(gSceneShadowOnLocation, shadowed ? 1 : 0);
     glUniform1i(gSceneLightModeLocation, 0);
     auto lightSprite = [&](int tile) {

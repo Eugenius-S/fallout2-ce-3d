@@ -27,9 +27,11 @@ void setShadowRoofCasters(unsigned int vao, int vertexCount);
 void destroyStaticShadows();
 
 // Renders the depth map with the frame's sun and sets the scene shader's
-// shadow uniforms; false (with them switched off) when the setting is off,
-// the sun is down, or the casters or the depth map are missing.
-bool bindStaticShadows();
+// shadow uniforms; the casters draw with the scene program itself in its
+// pick mode, so it must be in use and sceneMvp is the game view's matrix to
+// restore. False (with them switched off) when the setting is off, the sun
+// is down, or the casters or the depth map are missing.
+bool bindStaticShadows(const float* sceneMvp);
 
 } // namespace internal
 } // namespace scene_renderer

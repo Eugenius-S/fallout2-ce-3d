@@ -1,5 +1,6 @@
 #include "shadow.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 
@@ -28,8 +29,6 @@ constexpr double kEyeDistance = 220.0;
 
 unsigned int gShadowMapTexture = 0;
 unsigned int gShadowFbo = 0;
-unsigned int gShadowProgram = 0;
-int gShadowMvpLocation = -1;
 
 unsigned int gWallCasterVao = 0;
 int gWallCasterVertices = 0;
@@ -78,18 +77,18 @@ void shadowMatrix(const float direction[3], float pad, float* out)
     const double uvScaleX = 1.0 / (2.0 * spanX);
     const double uvScaleY = 1.0 / (2.0 * spanY);
     const double depthScale = 1.0 / (far - near);
-    // Column-major 4x4: out[column * 4 + row]. The fourth row keeps w = 1, so
-    // the texture's 0.5 halves come straight into the fourth column.
+    // Column-major 4x4: out[column * 4 + row], the columns are the world
+    // x, y, z coefficients and the biases.
     out[0] = static_cast<float>(uvScaleX * xAxis[0]);
-    out[1] = static_cast<float>(uvScaleX * xAxis[1]);
-    out[2] = static_cast<float>(uvScaleX * xAxis[2]);
+    out[1] = static_cast<float>(uvScaleY * yAxis[0]);
+    out[2] = static_cast<float>(depthScale * zAxis[0]);
     out[3] = 0.0f;
-    out[4] = static_cast<float>(uvScaleY * yAxis[0]);
+    out[4] = static_cast<float>(uvScaleX * xAxis[1]);
     out[5] = static_cast<float>(uvScaleY * yAxis[1]);
-    out[6] = static_cast<float>(uvScaleY * yAxis[2]);
+    out[6] = static_cast<float>(depthScale * zAxis[1]);
     out[7] = 0.0f;
-    out[8] = static_cast<float>(depthScale * zAxis[0]);
-    out[9] = static_cast<float>(depthScale * zAxis[1]);
+    out[8] = static_cast<float>(uvScaleX * xAxis[2]);
+    out[9] = static_cast<float>(uvScaleY * yAxis[2]);
     out[10] = static_cast<float>(depthScale * zAxis[2]);
     out[11] = 0.0f;
     out[12] = static_cast<float>(0.5 - uvScaleX * toEye[0]);
@@ -100,44 +99,6 @@ void shadowMatrix(const float direction[3], float pad, float* out)
 
 void ensureResources()
 {
-    if (gShadowProgram == 0) {
-        constexpr const char* kVertex = R"(#version 330 core
-layout(location = 0) in vec3 aPosition;
-uniform mat4 uShadowMvp;
-void main() {
-    gl_Position = uShadowMvp * vec4(aPosition, 1.0);
-}
-)";
-        constexpr const char* kFragment = R"(#version 330 core
-void main() {
-}
-)";
-        const unsigned int vertexShader = compileShader(0x8B31 /* GL_VERTEX_SHADER */, kVertex);
-        const unsigned int fragmentShader = compileShader(0x8B30 /* GL_FRAGMENT_SHADER */, kFragment);
-        if (vertexShader == 0 || fragmentShader == 0) {
-            if (vertexShader != 0) glDeleteShader(vertexShader);
-            if (fragmentShader != 0) glDeleteShader(fragmentShader);
-            return;
-        }
-        gShadowProgram = glCreateProgram();
-        glAttachShader(gShadowProgram, vertexShader);
-        glAttachShader(gShadowProgram, fragmentShader);
-        glLinkProgram(gShadowProgram);
-        glDeleteShader(vertexShader);
-        glDeleteShader(fragmentShader);
-        int linked = 0;
-        glGetProgramiv(gShadowProgram, 0x8B82 /* GL_LINK_STATUS */, &linked);
-        if (!linked) {
-            char log[512];
-            glGetProgramInfoLog(gShadowProgram, sizeof(log), nullptr, log);
-            fprintf(stderr, "scene_renderer: shadow program link failed: %s\n", log);
-            fflush(stderr);
-            glDeleteProgram(gShadowProgram);
-            gShadowProgram = 0;
-            return;
-        }
-        gShadowMvpLocation = glGetUniformLocation(gShadowProgram, "uShadowMvp");
-    }
     if (gShadowMapTexture == 0) {
         glGenTextures(1, &gShadowMapTexture);
         glBindTexture(kTexture2D, gShadowMapTexture);
@@ -184,12 +145,9 @@ void destroyStaticShadows()
     if (gContext != nullptr) {
         if (gShadowMapTexture != 0) glDeleteTextures(1, &gShadowMapTexture);
         if (gShadowFbo != 0) glDeleteFramebuffers(1, &gShadowFbo);
-        if (gShadowProgram != 0) glDeleteProgram(gShadowProgram);
     }
     gShadowMapTexture = 0;
     gShadowFbo = 0;
-    gShadowProgram = 0;
-    gShadowMvpLocation = -1;
     gWallCasterVao = 0;
     gWallCasterVertices = 0;
     gRoofCasterVao = 0;
@@ -197,21 +155,30 @@ void destroyStaticShadows()
     gMaxCasterHeight = 3.2f;
 }
 
-bool bindStaticShadows()
+bool bindStaticShadows(const float* sceneMvp)
 {
     gShadowRendered = false;
-    if (!settings.scene3d.shadows) return false;
+    if (!settings.scene3d.shadows || sceneMvp == nullptr) return false;
     const scene::Sun& sun = scene::currentSun();
     if (!sun.up || sun.strength <= 0.0f) return false;
+    // The binding is saved before ensureResources: creating the shadow
+    // framebuffer binds it, and the scene must draw where it did.
+    int savedFbo = 0;
+    glGetIntegerv(0x8CA6 /* GL_DRAW_FRAMEBUFFER_BINDING */, &savedFbo);
+    int savedViewport[4] = {};
+    glGetIntegerv(0x0BA2 /* GL_VIEWPORT */, savedViewport);
     ensureResources();
     unsigned int roofVao = 0;
     int roofVertices = 0;
     roofShadowCasters(&roofVao, &roofVertices);
-    if (gShadowProgram == 0 || gShadowFbo == 0 || (gWallCasterVao == 0 && roofVao == 0)) return false;
+    if (gShadowFbo == 0 || (gWallCasterVao == 0 && roofVao == 0)) {
+        glBindFramebuffer(kFramebuffer, static_cast<unsigned int>(savedFbo));
+        glViewport(savedViewport[0], savedViewport[1], savedViewport[2], savedViewport[3]);
+        return false;
+    }
     gRoofCasterVao = roofVao;
     gRoofCasterVertices = roofVertices;
     const Uint64 started = SDL_GetPerformanceCounter();
-
     // The sun leans casters across the ground: the box grows with the shadow
     // length, held inside limits so the depth map keeps its resolution.
     const double height = std::max(static_cast<double>(sun.direction[1]), 0.05);
@@ -219,10 +186,8 @@ bool bindStaticShadows()
     float matrix[16];
     shadowMatrix(sun.direction, pad, matrix);
 
-    int savedFbo = 0;
-    glGetIntegerv(0x8CA6 /* GL_DRAW_FRAMEBUFFER_BINDING */, &savedFbo);
-    int savedViewport[4] = {};
-    glGetIntegerv(0x0BA2 /* GL_VIEWPORT */, savedViewport);
+    // The casters draw with the scene program itself, in its pick mode (a
+    // flat colour, no lighting math) with the shadow matrix as uMvp.
     glBindFramebuffer(kFramebuffer, gShadowFbo);
     glViewport(0, 0, kShadowMapSize, kShadowMapSize);
     glClear(kDepthBufferBit);
@@ -232,8 +197,8 @@ bool bindStaticShadows()
     glDepthFunc(kLess);
     glDepthMask(1);
     glColorMask(0, 0, 0, 0);
-    glUseProgram(gShadowProgram);
-    glUniformMatrix4fv(gShadowMvpLocation, 1, 0, matrix);
+    glUniformMatrix4fv(gSceneMvpLocation, 1, 0, matrix);
+    glUniform1i(gScenePickLocation, 1);
     if (gWallCasterVao != 0 && gWallCasterVertices > 0) {
         glBindVertexArray(gWallCasterVao);
         glDrawArrays(kTriangles, 0, gWallCasterVertices);
@@ -243,21 +208,26 @@ bool bindStaticShadows()
         glDrawArrays(kTriangles, 0, gRoofCasterVertices);
     }
     glBindVertexArray(0);
+    glUniformMatrix4fv(gSceneMvpLocation, 1, 0, sceneMvp);
+    glUniform1i(gScenePickLocation, 0);
     glColorMask(1, 1, 1, 1);
     glUseProgram(gSceneProgram);
     glBindFramebuffer(kFramebuffer, static_cast<unsigned int>(savedFbo));
     glViewport(savedViewport[0], savedViewport[1], savedViewport[2], savedViewport[3]);
 
     // The lookup grid: uShadowStep GL units per [3d] shadow_pixel_size game
-    // pixel (hpx is the projection's pixels per GL unit).
+    // pixel (hpx is the projection's pixels per GL unit). The compare bias
+    // covers the snap window and the depth map's slope error; it is set in
+    // the map's 0..1 depth, whose range the matrix uses.
     const double hpx = gHeroProjection.hpx > 0.0 ? gHeroProjection.hpx : 32.0;
     const float step = static_cast<float>(settings.scene3d.shadow_pixel_size / hpx);
+    const double near = 1.0;
+    const double far = 2.0 * kEyeDistance + 2.0 * gMaxCasterHeight + 20.0;
     glUniform1i(gSceneShadowOnLocation, 1);
     glUniformMatrix4fv(gSceneShadowMatrixLocation, 1, 0, matrix);
     glUniform1f(gSceneShadowStrengthLocation, sun.strength);
     glUniform1f(gSceneShadowStepLocation, step);
-    // The bias covers the snap window and the slope error of the depth map.
-    glUniform1f(gSceneShadowBiasLocation, step * 2.0f);
+    glUniform1f(gSceneShadowBiasLocation, static_cast<float>(step * 1.5 / (far - near)));
     glActiveTexture(kTexture0 + 5);
     glBindTexture(kTexture2D, gShadowMapTexture);
     glUniform1i(gSceneShadowMapLocation, 5);
