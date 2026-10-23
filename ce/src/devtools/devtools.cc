@@ -53,6 +53,7 @@
 #include "../scene_renderer/live_objects.h"
 #include "../scene_renderer/picking.h"
 #include "../scene_renderer/scene_draw.h"
+#include "../scene_renderer/shadow.h"
 #include "../scene_renderer/static_scene.h"
 #include "../settings.h"
 #include "../svga.h"
@@ -113,8 +114,11 @@ int gTourStep = -1;
 int gTourFrames = 0;
 bool gStillSnapshot = false;
 bool gBackgroundGlow = false;
+bool gBackgroundShadows = false; // --dev-shadows: shadows stay on in a background run
 double gDevZoom = -1.0; // --dev-zoom=D: the background run's 3D zoom (default 1)
 int gDevAmbient = -1; // --dev-ambient: the map's ambient light held there (night views)
+double gDevHour = -1.0; // --dev-hour: the game hour set on the map, once
+bool gDevHourSet = true;
 bool gDevFly = false; // --dev-fly: the fly camera takes off at the first 3D frame (snapshots)
 // --dev-fly-turn=D, --dev-fly-pitch=D, --dev-fly-distance=U: then it circles
 // the point it looks at, D degrees round, D degrees above the floor, U units
@@ -727,6 +731,14 @@ bool parseOption(const char* arg)
         debugPrint("DEVTOOLS: the glow stays on in this background run\n");
         return true;
     }
+    // --dev-shadows: keep the sun shadows on in a background run (a snapshot
+    // of the shadowed view); off is the default there, so captures stay
+    // byte-stable.
+    if (strcmp(arg, "--dev-shadows") == 0) {
+        gBackgroundShadows = true;
+        debugPrint("DEVTOOLS: the shadows stay on in this background run\n");
+        return true;
+    }
     if (strcmp(arg, "--dev-fly") == 0) {
         gDevFly = true;
         return true;
@@ -757,6 +769,13 @@ bool parseOption(const char* arg)
     const char* ambientPrefix = "--dev-ambient=";
     if (strncmp(arg, ambientPrefix, strlen(ambientPrefix)) == 0) {
         gDevAmbient = static_cast<int>(std::clamp(strtol(arg + strlen(ambientPrefix), nullptr, 10), 0L, 65536L));
+        return true;
+    }
+    const char* hourPrefix = "--dev-hour=";
+    if (strncmp(arg, hourPrefix, strlen(hourPrefix)) == 0) {
+        // Game hours; a fraction is allowed. Set on the map, once.
+        gDevHour = std::clamp(strtod(arg + strlen(hourPrefix), nullptr), 0.0, 24.0);
+        gDevHourSet = false;
         return true;
     }
     const char* zoomPrefix = "--dev-zoom=";
@@ -909,6 +928,7 @@ void applyFixedScreenOptions()
         settings.scene3d.zoom = 1.0;
         settings.scene3d.camera_rotation = false;
         settings.scene3d.glow = gBackgroundGlow;
+        settings.scene3d.shadows = gBackgroundShadows;
     }
     debugPrint("DEVTOOLS: fixed screen %dx%d scale %d, windowed, glow %d%s\n",
         gFixedScreenOptions.width, gFixedScreenOptions.height, gFixedScreenOptions.scale,
@@ -1106,6 +1126,12 @@ void update()
     // Map scripts set the light by the hour; a dev view holds its own.
     if (gDevAmbient >= 0 && gMapHeader.name[0] != '\0' && lightGetAmbientIntensity() != gDevAmbient) {
         lightSetAmbientIntensity(gDevAmbient, true);
+    }
+    // A dev view sets the hour once on the map; the sun snaps to it (021's
+    // time jump), so morning, noon, sunset and night follow in a minute.
+    if (gDevHour >= 0.0 && !gDevHourSet && gMapHeader.name[0] != '\0') {
+        gameTimeSetTime(static_cast<unsigned int>(gDevHour * 36000.0) % 864000u);
+        gDevHourSet = true;
     }
     if (gPickProbeClick[0] >= 0) {
         const bool edgeClick = gPickProbeOutsideClick;
@@ -1701,17 +1727,24 @@ void scenePresented(const scene::RefreshResult& refreshed)
     static Uint64 windowStart = 0;
     static unsigned int windowFrames = 0;
     static double windowUpdateSeconds = 0.0;
+    static double windowShadowSeconds = 0.0;
     const Uint64 now = SDL_GetPerformanceCounter();
     const double frequency = static_cast<double>(SDL_GetPerformanceFrequency());
     if (windowStart == 0) windowStart = now;
     windowFrames++;
     windowUpdateSeconds += refreshed.seconds;
+    bool shadowRendered = false;
+    double shadowSeconds = 0.0;
+    scene_renderer::shadowFrameStats(&shadowRendered, &shadowSeconds);
+    windowShadowSeconds += shadowSeconds;
     const double elapsed = static_cast<double>(now - windowStart) / frequency;
     if (elapsed >= 2.0) {
         // A file: the Windows build has no console to print to.
         if (FILE* log = fopen("devperf.log", "a")) {
-            fprintf(log, "3d fps=%.1f objects=%u update_ms=%.2f\n", windowFrames / elapsed,
-                scene_renderer::staticObjectCount(), windowUpdateSeconds * 1000.0 / windowFrames);
+            fprintf(log, "3d fps=%.1f objects=%u update_ms=%.2f shadow=%s shadow_ms=%.2f\n",
+                windowFrames / elapsed, scene_renderer::staticObjectCount(),
+                windowUpdateSeconds * 1000.0 / windowFrames, shadowRendered ? "on" : "off",
+                windowShadowSeconds * 1000.0 / windowFrames);
             fclose(log);
         }
         windowStart = now;

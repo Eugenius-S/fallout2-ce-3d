@@ -92,6 +92,15 @@ uniform vec3 uTowardCamera; // GL direction towards the game's camera
 uniform vec2 uLightSqu; // ground (u, v) to game pixels
 uniform vec2 uLightSqv;
 uniform vec2 uLightOrigin;
+// The sun's shadow map (shadow.cc): 1 on, the world-to-map matrix, the map
+// itself (unit 5), the sun's strength now, the lookup snap in GL units (the
+// [3d] shadow_pixel_size grid) and the compare bias in map depth.
+uniform bool uShadowOn;
+uniform mat4 uShadowMatrix;
+uniform sampler2D uShadowMap;
+uniform float uShadowStrength;
+uniform float uShadowStep;
+uniform float uShadowBias;
 out vec4 outColor;
 // What a texel shines by itself for the glow (task 022): the colour a
 // full-bright texel keeps, premultiplied by its shown coverage; black
@@ -152,6 +161,25 @@ vec4 sceneLighting() {
     if (uLightMode == 4) return vec4(vec3(1.0), uLightValue);
     return vec4(1.0);
 }
+// The sun's shadow at this fragment: true where a caster stands between it
+// and the sun. The lookup snaps to a world grid of uShadowStep units (the
+// [3d] shadow_pixel_size game pixels), so the edge stays put while the
+// camera and the sun move.
+bool sunShadow() {
+    vec2 snapped = floor(vWorld.xz / uShadowStep + 0.5) * uShadowStep;
+    vec4 s = uShadowMatrix * vec4(snapped.x, vWorld.y, snapped.y, 1.0);
+    vec3 p = s.xyz / s.w * 0.5 + 0.5;
+    if (p.x < 0.0 || p.x > 1.0 || p.y < 0.0 || p.y > 1.0 || p.z >= 1.0) return false;
+    return p.z > texture(uShadowMap, p.xy).r + uShadowBias;
+}
+// The darkening inside a shadow, over the engine's own light: the game's
+// painted shadows read about as a half.
+float shadowDarken(float light) {
+    if (uShadowOn && uShadowStrength > 0.0 && (uLightMode == 1 || uLightMode == 2) && sunShadow()) {
+        light *= 1.0 - uShadowStrength * 0.5;
+    }
+    return light;
+}
 // _intensity_mask_buf_to_buf: inside the egg a nonzero mask value is the
 // surface's share in 128ths; 0 outside it and where the surface stays whole.
 float eggShare() {
@@ -201,6 +229,7 @@ void main() {
             // _dark_trans_buf_to_buf: the engine darkens a texel by its light in
             // 128 steps, on its 5-bit colour rounded down (setIntensityTableColor).
             vec4 lit = fullBright ? vec4(1.0) : sceneLighting();
+            lit.a = shadowDarken(lit.a);
             float steps = floor(lit.a * 128.0 + 0.0001);
             if (steps < 128.0) outColor.rgb = floor(floor(outColor.rgb * 31.0 + 0.5) * steps / 128.0) / 31.0;
             outColor.rgb *= lit.rgb;
@@ -267,6 +296,12 @@ int gSceneLightWindowLocation = -1;
 int gSceneSeeThroughLocation = -1;
 int gSceneSeeThroughObjectsLocation = -1;
 int gSceneEggPassLocation = -1;
+int gSceneShadowOnLocation = -1;
+int gSceneShadowMatrixLocation = -1;
+int gSceneShadowMapLocation = -1;
+int gSceneShadowStrengthLocation = -1;
+int gSceneShadowStepLocation = -1;
+int gSceneShadowBiasLocation = -1;
 
 bool createSceneShader(std::string* error)
 {
@@ -333,6 +368,12 @@ bool createSceneShader(std::string* error)
     gSceneSeeThroughLocation = glGetUniformLocation(gSceneProgram, "uSeeThrough");
     gSceneSeeThroughObjectsLocation = glGetUniformLocation(gSceneProgram, "uSeeThroughObjects");
     gSceneEggPassLocation = glGetUniformLocation(gSceneProgram, "uEggPass");
+    gSceneShadowOnLocation = glGetUniformLocation(gSceneProgram, "uShadowOn");
+    gSceneShadowMatrixLocation = glGetUniformLocation(gSceneProgram, "uShadowMatrix");
+    gSceneShadowMapLocation = glGetUniformLocation(gSceneProgram, "uShadowMap");
+    gSceneShadowStrengthLocation = glGetUniformLocation(gSceneProgram, "uShadowStrength");
+    gSceneShadowStepLocation = glGetUniformLocation(gSceneProgram, "uShadowStep");
+    gSceneShadowBiasLocation = glGetUniformLocation(gSceneProgram, "uShadowBias");
     if (gSceneMvpLocation < 0 || gSceneTextureLocation < 0
         || gSceneTexturedLocation < 0 || gSceneColorLocation < 0 || gSceneCutoffLocation < 0
         || gSceneDepthAtLocation < 0 || gSceneTranslucentLocation < 0 || gSceneTintLocation < 0
