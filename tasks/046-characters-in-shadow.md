@@ -37,3 +37,40 @@ and the shadows painted into the art do not double the real ones.
 Cloud shadows (023).
 
 ## Log
+
+### 2026-10-23 glm
+Done: characters and cards darken in the sun's shadow; painted board shadows
+give way while the shadows are on. The exporter writes shadows.bin
+(shadow_sidecar.py): the shadow-free board sprite keyed by the map object's
+(tile, fid) and its frame and rotation, raw RGBA; scene.json's shadows rows
+grew the frame and rotation. The engine loads it next to walls.bin
+(board_shadows.cc) and the card pass draws those pixels for the board instead
+of its art when [3d] shadows is on, caching them as art variant 1
+(scene_objects.cc, live_objects.cc); an animated board keeps its art when its
+frame moves. The card's own shadow: the shadow pass grew the hex pass, 200x200
+texels over the ground, one per hex, drawn with the scene program in light
+mode 5 (the pure shadow test at the ground point, 0.05 above it) and read
+back once per rendered frame; each card chases its hex's 0 or 1 over 150 ms
+(live_objects.cc, keyed by the pick id, the hero has its own state) and the
+shader applies it at the sprite's light mode (uSpriteShadow, modes 3 and 5 in
+shadowDarken, the translucent path included). `casts` are not drawn anywhere
+today, so with the shadows off nothing dropped and the off view is the old
+one. Build Release, ctest 12/12, the exporter suite 48/48.
+Check: runs/046-characters-in-shadow/, four shots in the chat: the corrals at
+17:00 with shadows on (the fence casts, the posts' painted blobs gone), the
+hero on the sunlit sidewalk and by the wall corner in the shade (his card
+darkens), the fence posts on and off close up, the entrance wide. The
+regression with the pinned config (shadows off): the same picture as the 054
+baseline, klacanyn-e0, klaratcv-e0 and klatoxcv-e2 at 0 changed pixels; the
+off frames are byte-identical across 12:00 and 17:00, and the entrance right
+strip's black area matches the reference (it is old, not ours).
+Next: the owner judges the look (user-check: yes). The fade is by
+construction (~150 ms, exponential-free linear chase); stills cannot show it,
+so walking the hero across a border is the owner's check. A devperf.log did
+not reproduce in the snapshot runs this time, so the hex pass's cost is not
+measured; it is a 200x200 draw plus a 160 KB readback a frame.
+Note for 045's follow-ups (the owner's three notes are in 045's Log): the
+strange ground shapes at the corrals are still there (they are the 045
+matter), and the pre-existing black strip at the entrance view's right edge
+with the shadows off is in the regression reference itself, so it predates
+the shadows.
