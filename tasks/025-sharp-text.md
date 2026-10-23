@@ -171,8 +171,8 @@ Check: all four snapshots embed `2bb6cdd8` and EXE SHA-256 `7a6246f7841048ae5786
 
 ### 2026-10-23 gpt (text capture trace)
 Done: added an opt-in `F2CE_TEXT_TRACE=1` diagnostic for the exact CP1251 bytes of the centered Preferences value label. It reports capture, ink retirement, known blit intersections, copy cloning/skips, source-range misses and atomic validation drops with pixel coordinates and owner generation; it does not change drawing behavior.
-Next: build and run one explicitly verified Russian Top Preferences x3 snapshot, then inspect the trace before changing capture or blit behavior.
-Check: `git diff --check` passes. No build, test or runtime evidence exists for this diagnostic commit yet.
+Next: parent review of the confirmed transparent-blit source-range miss before any behavior change. Full UI acceptance remains untested.
+Check: configured Release build and full CTest passed (14/14). One official background Russian Top Preferences snapshot at 1920x1440 physical, 640x480 logical, scale 3 uses source `dd22715b`, EXE SHA-256 `0bc1f2f34c7cd226eaa676f318a8901dd89ba8970f8eed7e0b6fc872d1c6a015`, and reports active/drawn with 87 runs, 695 glyphs, 43,676 restored pixels and 15.303 ms. Trace evidence is `runs/025-sharp-text/text-trace-dd22715b/ru-top-x3-on/process.stderr.log`. The two centered labels at (68,67) and (68,145) were captured, then touched by transparent primary-switch blits whose source allocation had pitch 640 while the blit pitch was 46. The adapter skipped masking and later rejected each run at x=99 (expected 62, actual 207). No behavior change has been made.
 
 ### 2026-10-23 gpt (clean build include fix)
 Done: added the missing `<cmath>` include required by the embedded-font test's `std::ceil` call, found by the full clean Release build.
