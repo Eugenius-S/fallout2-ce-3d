@@ -163,3 +163,8 @@ Check: focused `text_layer_tests` and `text_capture_tests` rebuilt with the conf
 Done: added the missing `<cmath>` include required by the embedded-font test's `std::ceil` call, found by the full clean Release build.
 Next: configure from this commit, rerun the full clean Release build and CTest, then capture the revised RU x3 Top pair and EN x2 Bottom ghost check if the build passes.
 Check: configure-after-`568c5977` passed; the first clean build compiled the application but stopped at `embedded_fonts_test.cc` because `<cmath>` was missing. No runtime capture was run from that build.
+
+### 2026-10-23 gpt (blit fix verification)
+Done: source commit `568c5977` passed the complete clean Release build after the isolated `<cmath>` test fix in `36d702fd`. The revised Russian x3 Top pair and an English x2 Bottom ghost check use the official background snapshot helper.
+Next: parent visual review and the separate 16-off regression run. Full Pip-Boy, inventory, character screen, dialogue, barter and floating-text acceptance remain untested.
+Check: full CTest passed 14/14. Evidence base `runs/025-sharp-text/blit-fix-568c5977/runtime/`; all four JSON files embed `568c5977` and EXE SHA-256 `c2260362335f10648361d1c87dc4ed8223debba24609e465e38d512c5cf05de6`. RU x3 Top on: `scr00018.png`, 82 runs, 617 glyphs, 33,932 restored pixels, 13.489 ms. EN x2 Bottom on: `scr00020.png`, 29 runs, 264 glyphs, 4,921 restored pixels, 6.766 ms. Off snapshots report inactive; on snapshots report active/drawn. No game or tester process remained after capture.
