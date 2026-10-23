@@ -9,6 +9,7 @@
 #include "gl_api.h"
 #include "scene_internal.h"
 #include "shadow.h"
+#include "board_shadows.h"
 #include "../tile.h"
 
 namespace fallout {
@@ -88,6 +89,7 @@ namespace internal {
 void destroyStaticWalls()
 {
     setShadowWallCasters(0, 0, 0.0f);
+    unloadBoardShadows();
     if (gContext != nullptr) {
         if (gShadowVbo != 0) glDeleteBuffers(1, &gShadowVbo);
         if (gShadowVao != 0) glDeleteVertexArrays(1, &gShadowVao);
@@ -573,6 +575,7 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
     gWallTriangleCount = totalTriangles;
     gBakedObjects = std::move(bakedObjects);
     gWallsLoaded = true;
+    loadBoardShadows(cacheDirectory, nullptr); // optional: a cache without it keeps the painted shadows
     if (error != nullptr) error->clear();
     gWallsDirectory = cacheDirectory;
     return true;

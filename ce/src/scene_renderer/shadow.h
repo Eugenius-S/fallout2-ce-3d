@@ -7,6 +7,11 @@ namespace scene_renderer {
 // Per-frame stats of the shadow pass for the dev perf log: whether the last
 // bindStaticShadows rendered it, and the seconds it took since the last call.
 void shadowFrameStats(bool* rendered, double* seconds);
+// The hex pass (task 046): whether the last shadow frame read the ground
+// factors back, and the sun shadow at a tile's anchor hex from it. The live
+// cards chase these over ~150 ms.
+bool shadowGroundReady();
+bool shadowGroundShadowed(int tile);
 
 namespace internal {
 

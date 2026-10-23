@@ -196,13 +196,15 @@ extern int gSceneSeeThroughLocation;
 extern int gSceneSeeThroughObjectsLocation;
 extern int gSceneEggPassLocation;
 // The sun's shadow (shadow.cc): on, the world-to-map matrix, the depth map
-// (unit 5), the sun's strength, the lookup snap in GL units, the compare bias.
+// (unit 5), the sun's strength, the lookup snap in GL units, the compare bias,
+// and a sprite card's own faded share of it (uSpriteShadow, 046).
 extern int gSceneShadowOnLocation;
 extern int gSceneShadowMatrixLocation;
 extern int gSceneShadowMapLocation;
 extern int gSceneShadowStrengthLocation;
 extern int gSceneShadowStepLocation;
 extern int gSceneShadowBiasLocation;
+extern int gSceneSpriteShadowLocation;
 
 bool createSceneShader(std::string* error);
 void destroySceneShader();
@@ -241,6 +243,8 @@ bool lightShown();
 float lightAmbient();
 // Sets the hex a sprite is lit at (uLightAnchor).
 void setLightAnchor(int tile);
+// The ground point a sprite's hex is lit at; false off the grid.
+bool lightAnchorGround(int tile, double* x, double* z);
 // Places the lights, uploads their reach (unit 3) and the light per hex
 // (unit 4) if they changed and sets the light uniforms; false when the scene
 // shows no light.
@@ -316,6 +320,7 @@ struct ObjectDraw {
     bool pickOnly; // drawn by walls.bin; its card is only picked
     bool seeThrough; // the hero stands behind it: the egg cuts it
     int tile; // its hex, for its light; -1: full light
+    float shadow; // its anchor's sun shadow, faded over ~150 ms (046)
 };
 
 extern std::vector<ObjectDraw> gObjectDraws;
@@ -324,6 +329,7 @@ extern unsigned int gHeroVao;
 extern unsigned int gHeroTexture;
 extern bool gHeroLoaded;
 extern int gHeroPickId;
+extern float gHeroShadowFactor;
 
 void destroyStaticHero();
 void destroyStaticObjects();

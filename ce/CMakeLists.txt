@@ -340,6 +340,8 @@ set(FALLOUT_PLATFORM_SOURCES
     "src/scene_renderer/scene_shader.cc"
     "src/scene_renderer/shadow.cc"
     "src/scene_renderer/shadow.h"
+    "src/scene_renderer/board_shadows.cc"
+    "src/scene_renderer/board_shadows.h"
     "src/scene_renderer/post.cc"
     "src/scene_renderer/post.h"
     "src/scene_renderer/static_scene.h"

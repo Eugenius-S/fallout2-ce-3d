@@ -74,7 +74,8 @@ uniform vec2 uLogical; // the game picture's size in game logical pixels
 // through, 2 draws only that, blended over what lies behind.
 uniform int uEggPass;
 // 0 unlit, 1 the floor at the fragment, 2 walls at the fragment, by the lights
-// they face, 3 a sprite at its hex (uLightAnchor), 4 uLightValue.
+// they face, 3 a sprite at its hex (uLightAnchor), 4 uLightValue, 5 the hex
+// shadow pass (046).
 uniform int uLightMode;
 uniform float uLightValue;
 uniform vec2 uLightAnchor; // GL ground point (x, z) of a sprite's hex
@@ -101,6 +102,10 @@ uniform sampler2D uShadowMap;
 uniform float uShadowStrength;
 uniform float uShadowStep;
 uniform float uShadowBias;
+// A sprite card's own share of the shadow at its anchor, faded over ~150 ms
+// on the CPU from the hex pass (046); the floor and the walls test per
+// fragment instead.
+uniform float uSpriteShadow;
 out vec4 outColor;
 // What a texel shines by itself for the glow (task 022): the colour a
 // full-bright texel keeps, premultiplied by its shown coverage; black
@@ -173,10 +178,18 @@ bool sunShadow() {
     return p.z > texture(uShadowMap, p.xy).r + uShadowBias;
 }
 // The darkening inside a shadow, over the engine's own light: the game's
-// painted shadows read about as a half.
+// painted shadows read about as a half. The floor and the walls test the map
+// at the fragment; a sprite takes its anchor's faded share (046); mode 5 is
+// the hex pass itself, the pure factor the fade chases.
 float shadowDarken(float light) {
-    if (uShadowOn && uShadowStrength > 0.0 && (uLightMode == 1 || uLightMode == 2) && sunShadow()) {
-        light *= 1.0 - uShadowStrength * 0.5;
+    if (uShadowOn && uShadowStrength > 0.0) {
+        if ((uLightMode == 1 || uLightMode == 2) && sunShadow()) {
+            light *= 1.0 - uShadowStrength * 0.5;
+        } else if (uLightMode == 3) {
+            light *= 1.0 - uShadowStrength * 0.5 * uSpriteShadow;
+        } else if (uLightMode == 5) {
+            if (sunShadow()) light = 0.0;
+        }
     }
     return light;
 }
@@ -216,7 +229,7 @@ void main() {
             // the result by the object's light, what lies behind included:
             // L * (tint * a + behind * (1 - a)).
             float a = min(gray, 7.0) / 7.0;
-            float light = min(floor(sceneLighting().a * 128.0 + 0.0001), 128.0) / 128.0;
+            float light = min(floor(shadowDarken(sceneLighting().a) * 128.0 + 0.0001), 128.0) / 128.0;
             outColor = vec4(uTint * a * light, 1.0 - light * (1.0 - a));
             outEmissive = vec4(0.0);
         } else {
@@ -302,6 +315,7 @@ int gSceneShadowMapLocation = -1;
 int gSceneShadowStrengthLocation = -1;
 int gSceneShadowStepLocation = -1;
 int gSceneShadowBiasLocation = -1;
+int gSceneSpriteShadowLocation = -1;
 
 bool createSceneShader(std::string* error)
 {
@@ -374,6 +388,7 @@ bool createSceneShader(std::string* error)
     gSceneShadowStrengthLocation = glGetUniformLocation(gSceneProgram, "uShadowStrength");
     gSceneShadowStepLocation = glGetUniformLocation(gSceneProgram, "uShadowStep");
     gSceneShadowBiasLocation = glGetUniformLocation(gSceneProgram, "uShadowBias");
+    gSceneSpriteShadowLocation = glGetUniformLocation(gSceneProgram, "uSpriteShadow");
     if (gSceneMvpLocation < 0 || gSceneTextureLocation < 0
         || gSceneTexturedLocation < 0 || gSceneColorLocation < 0 || gSceneCutoffLocation < 0
         || gSceneDepthAtLocation < 0 || gSceneTranslucentLocation < 0 || gSceneTintLocation < 0

@@ -10,10 +10,12 @@
 #include "../map.h"
 #include "../object.h"
 #include "clean_edges_boundary_mask.h"
+#include "../scene_renderer/board_shadows.h"
 #include "../scene_renderer/live_objects.h"
 #include "../scene_renderer/picking.h"
 #include "../scene_renderer/static_scene.h"
 #include "scene_settings.h"
+#include "../settings.h"
 #include "../svga.h"
 #include "../tile.h"
 
@@ -154,14 +156,29 @@ void addObjectCard(Object* object, void* context)
         pass.skipped++;
         return;
     }
-    const int width = image.getWidth();
-    const int height = image.getHeight();
+    int width = image.getWidth();
+    int height = image.getHeight();
     if (width <= 0 || height <= 0 || width > 2048 || height > 2048) {
         pass.skipped++;
         return;
     }
-    const bool cached = scene_renderer::staticObjectArtCached(object->fid, object->frame, object->rotation);
-    if (!cached) {
+    // A board whose art carries a painted shadow draws its shadow-free sprite
+    // while the scene's sun shadows are on (046); only in the frame and
+    // rotation the sprite was built from, so an animated board keeps its art.
+    const unsigned char* body = nullptr;
+    int bodyX = 0, bodyY = 0;
+    if (settings.scene3d.shadows) {
+        int bodyWidth = 0, bodyHeight = 0;
+        body = scene_renderer::staticObjectShadowFreeArt(object->tile, static_cast<unsigned int>(object->fid),
+            object->frame, object->rotation, &bodyWidth, &bodyHeight, &bodyX, &bodyY);
+        if (body != nullptr) {
+            width = bodyWidth;
+            height = bodyHeight;
+        }
+    }
+    const int variant = body != nullptr ? 1 : 0;
+    const bool cached = scene_renderer::staticObjectArtCached(object->fid, object->frame, object->rotation, variant);
+    if (!cached && body == nullptr) {
         const unsigned char* indices = image.getData();
         if (indices == nullptr) {
             pass.skipped++;
@@ -179,10 +196,13 @@ void addObjectCard(Object* object, void* context)
     }
     scene_renderer::StaticObjectFrame frame = {
         object->tile, object->fid, object->frame, static_cast<int>(object->rotation), object->x, object->y,
-        image.getXOffset(), image.getYOffset(), width, height,
+        body != nullptr ? bodyX : image.getXOffset(), body != nullptr ? bodyY : image.getYOffset(), width, height,
         (object->flags & OBJECT_FLAT) != OBJECT_NONE || scene_renderer::staticObjectFlat(object->tile, object->fid),
-        cached ? nullptr : pass.rgba.data(), cached ? 0 : pass.rgba.size(),
+        cached ? nullptr : (body != nullptr ? body : pass.rgba.data()),
+        cached ? 0 : (body != nullptr ? static_cast<size_t>(width) * static_cast<size_t>(height) * 4
+                                      : pass.rgba.size()),
     };
+    frame.variant = variant;
     frame.stack = stack;
     frame.pickId = pickId;
     frame.pickOnly = pickOnly;
