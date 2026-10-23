@@ -2,7 +2,7 @@
 id: 045
 title: Buildings and big things cast sun shadows
 milestone: M1
-status: doing
+status: done
 owner: glm
 suggested: gpt (bailed 2026-10-23, the owner passed it to glm)
 claude-only: no
