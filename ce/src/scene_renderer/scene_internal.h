@@ -195,6 +195,14 @@ extern int gSceneLightWindowLocation;
 extern int gSceneSeeThroughLocation;
 extern int gSceneSeeThroughObjectsLocation;
 extern int gSceneEggPassLocation;
+// The sun's shadow (shadow.cc): on, the world-to-map matrix, the depth map
+// (unit 5), the sun's strength, the lookup snap in GL units, the compare bias.
+extern int gSceneShadowOnLocation;
+extern int gSceneShadowMatrixLocation;
+extern int gSceneShadowMapLocation;
+extern int gSceneShadowStrengthLocation;
+extern int gSceneShadowStepLocation;
+extern int gSceneShadowBiasLocation;
 
 bool createSceneShader(std::string* error);
 void destroySceneShader();
@@ -220,6 +228,9 @@ void setRoofSquares(std::vector<RoofSquare> squares);
 void destroyRoofs();
 // With the scene program in use and the game view's matrix set.
 void drawRoofs(int viewportX, int viewportY, int viewportWidth, int viewportHeight);
+// All roof squares (hidden ones included) as the shadow pass's casters; the
+// shadow VAO roofs.cc owns, built on demand.
+void roofShadowCasters(unsigned int* vao, int* vertexCount);
 // Binds the egg's mask (unit 1) and sets its rect and the viewport; false when
 // no egg is shown.
 bool bindEgg(int viewportX, int viewportY, int viewportWidth, int viewportHeight);
