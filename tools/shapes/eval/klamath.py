@@ -207,7 +207,8 @@ def check(threshold):
             shares[angle] = pixels
         base = shares.get(0)
         if base is None or base < THING_PIXELS:
-            flags[frm] = {"why": "not measurable", "shares": shares}
+            unshot = all(share is None for share in shares.values())
+            flags[frm] = {"why": "not shot" if unshot else "not measurable", "shares": shares}
             continue
         lost = {angle: round(shares[angle] / base, 2) for angle in ANGLES
                 if angle and shares.get(angle) is not None and shares[angle] / base < threshold}
@@ -274,9 +275,9 @@ def score():
             failures.append(f"{row['frm']} ({flagged['why']}: {flagged.get('shares_of_view0', '')})")
         elif verdict == "pass":
             passed += row["count"]
-        elif flagged:  # not measurable: things the solo cannot separate, as flats
+        elif flagged and flagged["why"] == "not measurable":  # shot, but the solo cannot separate it, as flats
             passed += row["count"]
-        else:
+        else:  # unjudged, including anything never shot (klatoxcv stalls the tour in combat)
             unjudged += 1
             unjudged_weight += row["count"]
     print(f"weighted score {100 * passed / total:.0f}% pass, {100 * failed / total:.1f}% fail, "

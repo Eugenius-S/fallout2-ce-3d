@@ -75,3 +75,22 @@ Next: eye the 55 unjudged sheets (the score then lands at 70% or the
 failures list grows), then the 055 panel fix lifts the panel class at once.
 Check: py -3 tools/shapes/eval/klamath.py score; sheets and flags in
 build/shapes-klamath/ (shots for 169 of 195 solid FRMs).
+
+### 2026-10-23 glm (session 2)
+Done: the remaining 55 unjudged FRMs are eyed and judged (105 verdicts now).
+The 70% gate is met: weighted score 98% pass, 0.8% fail, 0.9% unjudged
+(`py -3 tools/shapes/eval/klamath.py score`). Of the 55, 45 read whole from
+all four sides (barrels, crates, beds, tables, tires, newspaper machines,
+scrub and bushes); 10 fail with one shared cause: the plane-locked panel
+vanishes from behind (graf07, graf08, graf11, bath01, bokcas3, girlp017,
+klasign1, klasign3, ripsign2, wareh04), exactly the class task 055 covers.
+klamath.py now separates "not measurable" (shot, but the solo cannot
+separate the thing, counts as pass like flats) from "not shot" (counts as
+unjudged): the klatoxcv 26 unshot FRMs were silently passing before, they
+are the honest 0.9% unjudged now. The unjudged-55 sheet pages are kept in
+build/shapes-klamath/unjudged1..7.png.
+Next: the 055 panel fix should flip the 10 new panel failures and the older
+buckas1/girlp005/bilchsig/anmste14/bolcas2 at once; after that the score's
+only gap is klatoxcv (shoot --single per view, 0.9% of the weight).
+Check: `py -3 tools/shapes/eval/klamath.py score`; verdicts in
+tools/shapes/eval/klamath-verdicts.json, flags in build/shapes-klamath/flags.json.
