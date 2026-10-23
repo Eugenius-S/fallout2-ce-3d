@@ -59,8 +59,9 @@ param(
     # -Glow: keep the glow on in this background run (it is forced off by
     # default, so captures stay byte-stable).
     [switch]$Glow,
-    # -Shadows: keep the sun shadows on in this background run (they are
-    # forced off by default, so captures stay byte-stable).
+    # -Shadows: keep the sun's whole effect on in this background run (the
+    # shadows and the drifting clouds are forced off by default, so captures
+    # stay byte-stable).
     [switch]$Shadows,
     # -Hour H: set the game hour on the map (the sun snaps to it), so morning,
     # noon, sunset and night views come from one command.

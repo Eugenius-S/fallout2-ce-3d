@@ -5,6 +5,7 @@
 #include <cstdio>
 
 #include "../scene/scene_lights.h"
+#include "../scripts.h"
 #include "../settings.h"
 #include "gl_api.h"
 #include "scene_internal.h"
@@ -66,8 +67,8 @@ void shadowMatrix(const float direction[3], float pad, float* out)
     const double half = 50.0 + pad;
     const double spanX = half * (std::fabs(xAxis[0]) + std::fabs(xAxis[2]));
     const double spanY = half * (std::fabs(yAxis[0]) + std::fabs(yAxis[2]));
-    const double near = 1.0;
-    const double far = 2.0 * kEyeDistance + 2.0 * gMaxCasterHeight + 20.0;
+    const double zNear = 1.0;
+    const double zFar = 2.0 * kEyeDistance + 2.0 * gMaxCasterHeight + 20.0;
     const double eye[3] = { dir[0] * kEyeDistance, dir[1] * kEyeDistance, dir[2] * kEyeDistance };
     const double toEye[3] = {
         xAxis[0] * eye[0] + xAxis[1] * eye[1] + xAxis[2] * eye[2],
@@ -76,7 +77,7 @@ void shadowMatrix(const float direction[3], float pad, float* out)
     };
     const double uvScaleX = 1.0 / (2.0 * spanX);
     const double uvScaleY = 1.0 / (2.0 * spanY);
-    const double depthScale = 1.0 / (far - near);
+    const double depthScale = 1.0 / (zFar - zNear);
     // Column-major 4x4: out[column * 4 + row], the columns are the world
     // x, y, z coefficients and the biases.
     out[0] = static_cast<float>(uvScaleX * xAxis[0]);
@@ -93,7 +94,7 @@ void shadowMatrix(const float direction[3], float pad, float* out)
     out[11] = 0.0f;
     out[12] = static_cast<float>(0.5 - uvScaleX * toEye[0]);
     out[13] = static_cast<float>(0.5 - uvScaleY * toEye[1]);
-    out[14] = static_cast<float>(-depthScale * (toEye[2] + near));
+    out[14] = static_cast<float>(-depthScale * (toEye[2] + zNear));
     out[15] = 1.0f;
 }
 
@@ -158,9 +159,29 @@ void destroyStaticShadows()
 bool bindStaticShadows(const float* sceneMvp)
 {
     gShadowRendered = false;
-    if (!settings.scene3d.shadows || sceneMvp == nullptr) return false;
+    if (sceneMvp == nullptr || (!settings.scene3d.shadows && !settings.scene3d.cloud_shadows)) {
+        glUniform1i(gSceneCloudOnLocation, 0);
+        return false;
+    }
     const scene::Sun& sun = scene::currentSun();
-    if (!sun.up || sun.strength <= 0.0f) return false;
+    if (!sun.up || sun.strength <= 0.0f) {
+        // Night, indoors, or the sun off: no shadow map, no clouds.
+        glUniform1i(gSceneCloudOnLocation, 0);
+        return false;
+    }
+    // The clouds are procedural and need no depth map. The wind drifts with
+    // game time (about a unit a game minute) and wraps the 48-unit tile.
+    if (settings.scene3d.cloud_shadows) {
+        const double ticks = static_cast<double>(gameTimeGetTime());
+        glUniform1i(gSceneCloudOnLocation, 1);
+        glUniform2f(gSceneCloudOffsetLocation,
+            static_cast<float>(std::fmod(ticks * 0.8 / 600.0, 48.0)),
+            static_cast<float>(std::fmod(ticks * 0.6 / 600.0, 48.0)));
+    } else {
+        glUniform1i(gSceneCloudOnLocation, 0);
+    }
+    glUniform1f(gSceneShadowStrengthLocation, sun.strength);
+    if (!settings.scene3d.shadows) return false;
     // The binding is saved before ensureResources: creating the shadow
     // framebuffer binds it, and the scene must draw where it did.
     int savedFbo = 0;
@@ -221,13 +242,13 @@ bool bindStaticShadows(const float* sceneMvp)
     // the map's 0..1 depth, whose range the matrix uses.
     const double hpx = gHeroProjection.hpx > 0.0 ? gHeroProjection.hpx : 32.0;
     const float step = static_cast<float>(settings.scene3d.shadow_pixel_size / hpx);
-    const double near = 1.0;
-    const double far = 2.0 * kEyeDistance + 2.0 * gMaxCasterHeight + 20.0;
+    const double zNear = 1.0;
+    const double zFar = 2.0 * kEyeDistance + 2.0 * gMaxCasterHeight + 20.0;
     glUniform1i(gSceneShadowOnLocation, 1);
     glUniformMatrix4fv(gSceneShadowMatrixLocation, 1, 0, matrix);
     glUniform1f(gSceneShadowStrengthLocation, sun.strength);
     glUniform1f(gSceneShadowStepLocation, step);
-    glUniform1f(gSceneShadowBiasLocation, static_cast<float>(step * 1.5 / (far - near)));
+    glUniform1f(gSceneShadowBiasLocation, static_cast<float>(step * 1.5 / (zFar - zNear)));
     glActiveTexture(kTexture0 + 5);
     glBindTexture(kTexture2D, gShadowMapTexture);
     glUniform1i(gSceneShadowMapLocation, 5);

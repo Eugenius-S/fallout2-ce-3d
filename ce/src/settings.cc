@@ -459,6 +459,9 @@ void initSettingsRegistry(bool isMapper)
         if (onlyAdd && settingsKeyExists("3d", "shadow_pixel_size")) return;
         settingsWrite("3d", "shadow_pixel_size", onlyAdd ? 4.0 : settings.scene3d.shadow_pixel_size);
     };
+    registerThreeDBoolean("cloud_shadows", settings.scene3d.cloud_shadows, "Cloud shadows",
+        "Soft clouds drift over the 3D view and dim the sun's light, never the lamps.",
+        SettingApplyPolicy::OnClose);
     registerThreeDBoolean("glow", settings.scene3d.glow, "Glow",
         "Things that shine in Fallout 2 (fire, monitors, signs) bleed light softly in the 3D view.",
         SettingApplyPolicy::OnClose);

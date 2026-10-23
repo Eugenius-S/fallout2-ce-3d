@@ -203,6 +203,9 @@ extern int gSceneShadowMapLocation;
 extern int gSceneShadowStrengthLocation;
 extern int gSceneShadowStepLocation;
 extern int gSceneShadowBiasLocation;
+// The drifting clouds (shadow.cc): on, the wind's world offset.
+extern int gSceneCloudOnLocation;
+extern int gSceneCloudOffsetLocation;
 
 bool createSceneShader(std::string* error);
 void destroySceneShader();

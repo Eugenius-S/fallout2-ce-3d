@@ -942,7 +942,12 @@ void applyBackgroundGlow()
 
 void applyBackgroundShadows()
 {
-    if (backgroundCaptureActive()) settings.scene3d.shadows = gBackgroundShadows;
+    // One switch for the sun's whole effect: shadows and the drifting
+    // clouds (the pinned test config keeps both off for stable captures).
+    if (backgroundCaptureActive()) {
+        settings.scene3d.shadows = gBackgroundShadows;
+        settings.scene3d.cloud_shadows = gBackgroundShadows;
+    }
 }
 
 // Runs after the command line is parsed (applyFixedScreenOptions is earlier),
