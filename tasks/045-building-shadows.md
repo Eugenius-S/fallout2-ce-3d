@@ -87,3 +87,15 @@ Regression (shadows off, the pinned test config): the same 13 of 16 as the
 pre-existing baseline of task 054 (klacanyn-e0, klaratcv-e0 and
 klatoxcv-e2 at 0 changed pixels), so the shadows-off view is exactly as
 before wherever the references are valid.
+
+### 2026-10-23 glm
+Done: recorded the owner's review notes on the sunset shots (his screenshot
+of the brahmin pen), no code changes.
+Next: three follow-ups from the owner. 1) Strange dark shapes on the shaded
+ground (the corrals shot): find the cause, whether the painted floor shadows
+double the real ones, the sprite dimming or the bias. 2) A shadow stays
+sharp but fades out at its border, a gradient falloff instead of a hard
+step. 3) Smooth the stair-stepping along the shadow borders (a softened
+lookup, PCF or the like). Claude works out the approach.
+Check: the owner's chat screenshot; after the fix, sunset captures at the
+corrals again, on and off.
