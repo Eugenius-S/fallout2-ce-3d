@@ -16,6 +16,7 @@ FontManagerGetCharacterWidthProc* fontGetCharacterWidth = nullptr;
 FontManagerGetLetterSpacingProc* fontGetLetterSpacing = nullptr;
 FontManagerGetMonospacedCharacterWidth* fontGetMonospacedCharacterWidth = nullptr;
 int gCurrentFont = 101;
+Color _colorTable[COLOR_PALETTE_SIZE_15BIT] = {};
 TextWindowSnapshot gTestWindow = {};
 TextCursorSnapshot gTestCursor = {};
 
@@ -161,6 +162,59 @@ void testAllocatorGenerationAndShadowGuard()
     const scene::TextBufferId reused = textCaptureBufferId(pixels.data());
     check(reused != first && reused != resized, "freed address reuse creates a new generation");
     textCaptureAllocationDestroyed(pixels.data());
+}
+
+void testTaggedConversationSharpEligibility()
+{
+    using namespace fallout;
+    _colorTable[rgb555(0x00FF00)] = static_cast<Color>(43);
+    std::vector<unsigned char> source(32, 1);
+    std::vector<unsigned char> destination(32, 2);
+    textCaptureRegisterExternalBuffer(source.data(), source.size(), 8, 4, 8, false);
+    textCaptureRegisterExternalBuffer(destination.data(), destination.size(), 8, 4, 8, false);
+    textCaptureMarkBufferOwned(source.data());
+    textCaptureMarkBufferOwned(destination.data());
+    const scene::TextBufferId sourceId = textCaptureBufferId(source.data());
+    const scene::TextBufferId destinationId = textCaptureBufferId(destination.data());
+    fontDrawTextPtr = drawTwoGlyphs;
+    gCurrentFont = 101;
+    {
+        ScopedTextCaptureTag tag(TextCaptureTag::Conversation);
+        fontDrawText(source.data(), "ab", 8, 8, static_cast<ColorWithFlags>(COLOR_GREEN | DRAW_TEXT_FLAG_NO_BG));
+    }
+    fontDrawText(source.data() + 2, "ab", 8, 8, static_cast<ColorWithFlags>(COLOR_GREEN)); // Green menu text.
+    {
+        ScopedTextCaptureTag tag(TextCaptureTag::Conversation);
+        fontDrawText(source.data() + 4, "ab", 8, 8, static_cast<ColorWithFlags>(21)); // Yellow dialog.
+    }
+    gCurrentFont = 103;
+    {
+        ScopedTextCaptureTag tag(TextCaptureTag::Conversation);
+        fontDrawText(source.data() + 6, "ab", 8, 8, static_cast<ColorWithFlags>(COLOR_GREEN)); // Large title.
+    }
+
+    const auto rawRecords = scene::textCaptureRecords(sourceId);
+    const auto sharpRecords = scene::textCaptureSharpRecords(sourceId);
+    const auto sharpRestore = scene::textCaptureSharpRestoration(sourceId);
+    check(rawRecords.size() == 4, "raw diagnostics retain conversation, menu, yellow, and title records");
+    check(sharpRecords.size() == 1 && sharpRecords.front().run.font == 101
+            && sharpRecords.front().run.sharpEligible,
+        "only tagged font-101 runtime-green conversation text is eligible");
+    check(sharpRestore.size() == 2 && sharpRestore[0].x == 0 && sharpRestore[1].x == 1,
+        "off-target green menu, yellow dialog, and title pixels are not restored");
+
+    textCaptureCopy(source.data(), 8, 4, 8, destination.data(), 8, false, fakeCopy);
+    const auto copiedRaw = scene::textCaptureRecords(destinationId);
+    const auto copiedSharp = scene::textCaptureSharpRecords(destinationId);
+    const auto copiedRestore = scene::textCaptureSharpRestoration(destinationId);
+    check(copiedRaw.size() == 4 && copiedSharp.size() == 1 && copiedSharp.front().run.sharpEligible,
+        "semantic conversation tag survives image-buffer copies");
+    check(copiedRestore.size() == 2,
+        "copied off-target text cannot contribute to sharp restoration");
+
+    textCaptureUnregisterExternalBuffer(source.data());
+    textCaptureUnregisterExternalBuffer(destination.data());
+    gCurrentFont = 101;
 }
 
 void testSafeClippedCaptureAndBlit()
@@ -529,6 +583,7 @@ int main()
     fallout::fontGetLetterSpacing = fallout::fakeLetterSpacing;
     fallout::fontGetMonospacedCharacterWidth = fallout::fakeMonospacedWidth;
     testAllocatorGenerationAndShadowGuard();
+    testTaggedConversationSharpEligibility();
     testSafeClippedCaptureAndBlit();
     testAllocationEdgeBounds();
     testMonospacedClippedRunMetadata();

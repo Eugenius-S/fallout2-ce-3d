@@ -454,13 +454,14 @@ void TextLayer::eraseOwner(int window, TextBufferId generation)
 }
 
 std::vector<TextRestorePixel> TextLayer::restorationPixels(TextBufferId buffer,
-    TextPixels current, bool includeOrphans)
+    TextPixels current, bool includeOrphans, bool sharpEligibleOnly)
 {
-    return restorationPixels(buffer, current, {}, includeOrphans);
+    return restorationPixels(buffer, current, {}, includeOrphans, sharpEligibleOnly);
 }
 
 std::vector<TextRestorePixel> TextLayer::restorationPixels(TextBufferId buffer,
-    TextPixels current, const std::vector<TextValidationPixels>& ownerPixels, bool includeOrphans)
+    TextPixels current, const std::vector<TextValidationPixels>& ownerPixels,
+    bool includeOrphans, bool sharpEligibleOnly)
 {
     std::vector<TextRestorePixel> result;
     if (buffer == 0 || !validPixels(current)) return result;
@@ -515,8 +516,10 @@ std::vector<TextRestorePixel> TextLayer::restorationPixels(TextBufferId buffer,
             recordIt = records_.erase(recordIt);
             continue;
         }
-        for (const auto& pixel : pixels) {
-            result.push_back({ pixel.x, pixel.y, pixel.before, recordIt->ownerWindow, recordIt->ownerGeneration });
+        if (!sharpEligibleOnly || recordIt->run.sharpEligible) {
+            for (const auto& pixel : pixels) {
+                result.push_back({ pixel.x, pixel.y, pixel.before, recordIt->ownerWindow, recordIt->ownerGeneration });
+            }
         }
         ++recordIt;
     }

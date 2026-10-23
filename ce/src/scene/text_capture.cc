@@ -90,6 +90,12 @@ int& drawDepth()
     return value;
 }
 
+TextCaptureTag& activeTextCaptureTag()
+{
+    static thread_local TextCaptureTag value = TextCaptureTag::None;
+    return value;
+}
+
 BufferRange* findRange(const void* pointer)
 {
     if (pointer == nullptr) return nullptr;
@@ -287,6 +293,17 @@ void traceUntrackedCopySource(const BufferRange* sourceRange, const BufferRange*
 
 } // namespace
 
+ScopedTextCaptureTag::ScopedTextCaptureTag(TextCaptureTag tag)
+    : previous_(activeTextCaptureTag())
+{
+    activeTextCaptureTag() = tag;
+}
+
+ScopedTextCaptureTag::~ScopedTextCaptureTag()
+{
+    activeTextCaptureTag() = previous_;
+}
+
 void textCaptureAllocationCreated(void* buffer, std::size_t size)
 {
     std::lock_guard<std::recursive_mutex> lock(captureMutex());
@@ -472,6 +489,8 @@ void textCaptureDrawText(unsigned char* buffer, const char* string, int length, 
     run.text = std::move(acceptedText);
     run.font = fontGetCurrent();
     run.colorAndFlags = static_cast<unsigned int>(color);
+    run.sharpEligible = activeTextCaptureTag() == TextCaptureTag::Conversation
+        && run.font == 101 && static_cast<Color>(static_cast<unsigned int>(color) & 0xFF) == COLOR_GREEN;
     run.x = x;
     run.y = y;
     run.width = width;
@@ -567,7 +586,18 @@ const std::vector<TextRecord> textCaptureRecords(TextBufferId buffer)
     return result;
 }
 
-std::vector<TextRestorePixel> textCaptureRestoration(TextBufferId buffer)
+const std::vector<TextRecord> textCaptureSharpRecords(TextBufferId buffer)
+{
+    std::vector<TextRecord> result = textCaptureRecords(buffer);
+    result.erase(std::remove_if(result.begin(), result.end(), [](const TextRecord& record) {
+        return !record.run.sharpEligible;
+    }), result.end());
+    return result;
+}
+
+namespace {
+
+std::vector<TextRestorePixel> textCaptureRestorationFor(TextBufferId buffer, bool sharpEligibleOnly)
 {
     std::lock_guard<std::recursive_mutex> lock(captureMutex());
     for (const auto& item : ranges()) {
@@ -595,9 +625,22 @@ std::vector<TextRestorePixel> textCaptureRestoration(TextBufferId buffer)
             ownerPixels.push_back({ owner->id, { reinterpret_cast<const unsigned char*>(owner->base),
                 owner->width, owner->height, owner->pitch } });
         }
-        return layer().restorationPixels(buffer, { pixels, range.width, range.height, range.pitch }, ownerPixels);
+        return layer().restorationPixels(buffer, { pixels, range.width, range.height, range.pitch },
+            ownerPixels, false, sharpEligibleOnly);
     }
     return {};
+}
+
+} // namespace
+
+std::vector<TextRestorePixel> textCaptureRestoration(TextBufferId buffer)
+{
+    return textCaptureRestorationFor(buffer, false);
+}
+
+std::vector<TextRestorePixel> textCaptureSharpRestoration(TextBufferId buffer)
+{
+    return textCaptureRestorationFor(buffer, true);
 }
 
 bool textCaptureVisibilityMask(const TextRecord& record, int width, int height, TextVisibilityMask* mask)

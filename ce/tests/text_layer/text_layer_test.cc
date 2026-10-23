@@ -439,6 +439,44 @@ int main()
             "compact blit snapshots preserve source and destination origins");
     }
 
+    // Raw records stay available while sharp restoration selects tagged runs.
+    {
+        TextLayer layer;
+        std::vector<unsigned char> before(6, 1);
+        std::vector<unsigned char> after = before;
+        after[0] = 7;
+        after[2] = 8;
+        after[4] = 9;
+        for (int index = 0; index < 3; ++index) {
+            TextRunInfo tagged = run("A", index * 2, 0);
+            tagged.sharpEligible = index == 0;
+            const bool captured = layer.capture(30, false, tagged, { index * 2, 0, 1, 1 },
+                { before.data() + index * 2, 1, 1, 1, index * 2, 0 },
+                { after.data() + index * 2, 1, 1, 1, index * 2, 0 });
+            failures += !check(captured, "tagged and untagged records remain available to raw capture");
+        }
+        const auto eligibleRestore = layer.restorationPixels(30, view(after, 6, 1, 6), false, true);
+        failures += !check(layer.records().size() == 3, "eligibility does not hide raw capture records");
+        failures += !check(eligibleRestore.size() == 1 && eligibleRestore[0].x == 0,
+            "sharp restoration returns only semantically eligible text");
+
+        std::vector<unsigned char> destinationBefore(6, 2);
+        std::vector<unsigned char> destinationAfter = destinationBefore;
+        destinationAfter[3] = 7;
+        TextRunInfo eligible = run("A", 0, 0);
+        eligible.sharpEligible = true;
+        TextLayer copyLayer;
+        std::vector<unsigned char> sourceBefore(1, 1);
+        std::vector<unsigned char> sourceAfter(1, 7);
+        copyLayer.capture(31, false, eligible, { 0, 0, 1, 1 }, view(sourceBefore, 1, 1, 1), view(sourceAfter, 1, 1, 1));
+        copyLayer.copy(31, 32, false, { 0, 0, 1, 1 }, 3, 0, false, 0,
+            view(sourceAfter, 1, 1, 1), view(destinationBefore, 6, 1, 6), view(destinationAfter, 6, 1, 6));
+        const auto copiedRestore = copyLayer.restorationPixels(32, view(destinationAfter, 6, 1, 6), false, true);
+        failures += !check(copyLayer.records().back().run.sharpEligible && copiedRestore.size() == 1
+                && copiedRestore[0].x == 3,
+            "semantic eligibility survives buffer copies and remains restorable");
+    }
+
     // The oldest record is discarded at the configured cap.
     {
         TextLayer layer(1);

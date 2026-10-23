@@ -45,6 +45,7 @@ struct TextRunInfo {
     int width = 0;
     int cellWidth = 0;
     int lineHeight = 0;
+    bool sharpEligible = false;
     std::vector<int> characterX;
     std::vector<int> characterCellX;
 };
@@ -132,10 +133,10 @@ public:
     // restore pixels only when every changed value still matches.
     // Orphan records are never presented.
     std::vector<TextRestorePixel> restorationPixels(TextBufferId buffer,
-        TextPixels current, bool includeOrphans = false);
+        TextPixels current, bool includeOrphans = false, bool sharpEligibleOnly = false);
     std::vector<TextRestorePixel> restorationPixels(TextBufferId buffer,
         TextPixels current, const std::vector<TextValidationPixels>& ownerPixels,
-        bool includeOrphans = false);
+        bool includeOrphans = false, bool sharpEligibleOnly = false);
 
     const std::vector<TextRecord>& records() const;
     std::size_t size() const;

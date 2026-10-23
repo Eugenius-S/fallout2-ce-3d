@@ -13,10 +13,10 @@ reviewed: no
 
 ## Goal
 
-Interface text is drawn sharp at the window's real resolution in a modern font,
-in the same places and colors as the game's pixel text: Pip-Boy, dialogs,
-inventory, character screen, barter, options, the message log, floating text
-over critters.
+Only small green NPC conversation replies and player answer text are drawn sharp
+at the window's real resolution in a modern font. Every menu, heading, title,
+modal header, Pip-Boy, inventory, character, barter, message-log and floating
+text font stays pixel-rendered.
 
 ## Context
 
@@ -30,10 +30,12 @@ over critters.
   (`ce/src/draw.cc`). Windows reach the screen surface through the window
   manager; the mouse cursor is drawn into the screen surface too (`mouse.cc`).
 - Russian text is CP1251; the Russian fonts come from `mods/rpu_russian.dat`.
-- The font, chosen by the owner: IBM Plex Mono SemiBold, titles IBM Plex Mono
-  Bold (SIL Open Font License, <https://github.com/google/fonts/tree/main/ofl/ibmplexmono>).
-  Font sample sheets and the script that makes them:
-  `runs/024-sharp-text-design/`.
+- Owner correction, 2026-10-23: this narrow conversation-only scope supersedes
+  the broader original goal and acceptance list below. A run is eligible only
+  when a semantic conversation capture scope is active, its font is 101, and
+  its runtime palette index equals `COLOR_GREEN`. Generic color or font
+  matching outside the tagged conversation callsites is not sufficient.
+- Eligible conversation text uses IBM Plex Mono SemiBold (SIL Open Font License, <https://github.com/google/fonts/tree/main/ofl/ibmplexmono>). Other embedded font weights are unused by this feature. Font sample sheets and the script that makes them: `runs/024-sharp-text-design/`.
 
 ## Design
 
@@ -66,11 +68,9 @@ over critters.
    underline at the old underline row. The pass is masked at game resolution:
    only where the record's window is the visible top window (the rule of
    `windowShownMask`) and the mouse cursor is not opaque.
-7. **Fit.** Each game font id maps to the chosen family and a weight (titles,
-   fonts 103-104, bold). Pixel size: the largest at which the font's cap top
-   to descender fits the game's line height times the scale. A string wider
-   than its original width is condensed horizontally to it; a monospaced
-   string is drawn character by character in its original cells.
+7. **Fit.** Only tagged font-101 conversation runs are eligible. They use IBM Plex Mono SemiBold.
+   Existing generic font rendering code remains available, but other font ids and
+   weights are outside this feature.
 8. **Font file.** Embedded in the executable by task 026.
 9. **Code.** Capture, records, copies, validity and erase:
    `ce/src/scene/text_layer.{h,cc}`, pure CPU code with a unit test suite in
@@ -81,24 +81,22 @@ over critters.
 
 ## Acceptance
 
-- At x2 and x3 scale, Russian and English: Pip-Boy, a dialog with scrolling
-  replies, inventory, character screen, barter, options, the message log,
-  floating text over critters and button labels after hover and press are
-  sharp, in their places and colors.
-- No pixel text shows through under sharp text; no sharp text shows over a
-  window that covers it or over the mouse cursor.
-- A fade to black fades the text with it.
-- Text the layer does not capture stays the game's own pixel text.
-- `[3d] sharp_text` (default on) with a menu label; off gives the game's own
-  text, and the regression snapshots are unchanged.
-- Unit tests pass; the frame time of the layer with a full Pip-Boy screen is
-  in the `Log`.
-- Snapshot pairs (before / after) of every screen above in the PR.
+- Only tagged font-101 conversation replies and player answer text whose
+  runtime color is `COLOR_GREEN` are restored and redrawn. Yellow, blue, red,
+  title, menu, and other UI text remains pixel-rendered, including all 3D
+  options labels and headings.
+- English and Russian NPC conversations are captured at x2 and x3 with sharp
+  text off and on. Menus are pixel-identical with the setting off and on.
+- Sharp dialog text respects window and cursor occlusion, survives scrolling,
+  and follows palette fades. Unrelated text is never erased or redrawn.
+- The setting is labeled `Sharp dialog text`; off gives the original pixel
+  conversation text and the off regression snapshots remain unchanged.
+- Unit tests pass. Record the measured preparation time for a conversation
+  frame in the `Log`.
 
 ## Out of scope
 
-The main menu's scaled title text (`interfaceFontDrawTextScaled2D`, drawn
-outside `fontDrawText`): it stays pixel text unless it is trivial to add.
+All menus, menu titles, headings, dialog headers, and non-conversation text remain pixel-rendered.
 
 ## Log
 
@@ -188,3 +186,8 @@ Check: configure-after-`568c5977` passed; the first clean build compiled the app
 Done: source commit `568c5977` passed the complete clean Release build after the isolated `<cmath>` test fix in `36d702fd`. The revised Russian x3 Top pair and an English x2 Bottom ghost check use the official background snapshot helper.
 Next: parent visual review and the separate 16-off regression run. Full Pip-Boy, inventory, character screen, dialogue, barter and floating-text acceptance remain untested.
 Check: full CTest passed 14/14. Evidence base `runs/025-sharp-text/blit-fix-568c5977/runtime/`; all four JSON files embed `568c5977` and EXE SHA-256 `c2260362335f10648361d1c87dc4ed8223debba24609e465e38d512c5cf05de6`. RU x3 Top on: `scr00018.png`, 82 runs, 617 glyphs, 33,932 restored pixels, 13.489 ms. EN x2 Bottom on: `scr00020.png`, 29 runs, 264 glyphs, 4,921 restored pixels, 6.766 ms. Off snapshots report inactive; on snapshots report active/drawn. No game or tester process remained after capture.
+
+### 2026-10-23 gpt (conversation-only scope)
+Done: narrowed capture eligibility to four semantic NPC conversation/player-answer callsites. A run is eligible only with the active Conversation tag, font 101, and runtime COLOR_GREEN; raw capture remains available for diagnostics, while the presentation renderer selects and restores eligible runs only. The setting is labeled Sharp dialog text. Menus and other UI remain pixel-rendered.
+Next: configure after this commit, run the full clean Release build and CTest, then verify menu pixels are identical with the setting off/on before designing an actual NPC conversation snapshot fixture.
+Check: standalone Release text-layer CTest passed 2/2; git diff --check passed. Parent reviewed and accepted the focused scope/tag diff. Full build and runtime evidence for this scope are pending.

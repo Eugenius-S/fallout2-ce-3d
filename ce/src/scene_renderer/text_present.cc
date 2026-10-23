@@ -55,8 +55,8 @@ bool prepareSharpTextForPresent(SDL_Surface* indexedSurface, SDL_Surface* rgbaSu
 
     const scene::TextBufferId buffer = textCaptureBufferId(indexedSurface->pixels);
     if (buffer == 0) return false;
-    scene::textCaptureRestoration(buffer);
-    if (scene::textCaptureRecords(buffer).empty()) {
+    scene::textCaptureSharpRestoration(buffer);
+    if (scene::textCaptureSharpRecords(buffer).empty()) {
         prepareSharpTextFrame(nullptr, 0, 0, 0, nullptr, 0, 0, 0, nullptr, 0, false);
         return false;
     }
@@ -149,8 +149,8 @@ bool prepareSharpTextFrame(const unsigned char* indices, int width, int height, 
 
     const scene::TextBufferId buffer = textCaptureBufferId(indices);
     if (buffer == 0) return false;
-    scene::textCaptureRestoration(buffer); // Validate and prune overwritten records against the live indexed buffer.
-    const std::vector<scene::TextRecord> records = scene::textCaptureRecords(buffer);
+    scene::textCaptureSharpRestoration(buffer); // Validate all records, but restore only tagged green dialog runs.
+    const std::vector<scene::TextRecord> records = scene::textCaptureSharpRecords(buffer);
     if (records.empty()) return true;
     output.runCount = static_cast<unsigned int>(records.size());
     for (const scene::TextRecord& record : records) {

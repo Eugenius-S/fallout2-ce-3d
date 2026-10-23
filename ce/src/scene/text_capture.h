@@ -13,6 +13,23 @@ namespace fallout {
 using TextPixelCopyProc = void(unsigned char* destination, int destinationPitch,
     const unsigned char* source, int sourcePitch, int width, int height);
 
+enum class TextCaptureTag {
+    None,
+    Conversation,
+};
+
+class ScopedTextCaptureTag {
+public:
+    explicit ScopedTextCaptureTag(TextCaptureTag tag);
+    ~ScopedTextCaptureTag();
+
+    ScopedTextCaptureTag(const ScopedTextCaptureTag&) = delete;
+    ScopedTextCaptureTag& operator=(const ScopedTextCaptureTag&) = delete;
+
+private:
+    TextCaptureTag previous_;
+};
+
 struct TextWindowSnapshot {
     int id = -1;
     int x = 0;
@@ -56,6 +73,8 @@ void textCaptureCopy(const unsigned char* source, int width, int height, int sou
 namespace scene {
 const std::vector<TextRecord> textCaptureRecords(TextBufferId buffer);
 std::vector<TextRestorePixel> textCaptureRestoration(TextBufferId buffer);
+const std::vector<TextRecord> textCaptureSharpRecords(TextBufferId buffer);
+std::vector<TextRestorePixel> textCaptureSharpRestoration(TextBufferId buffer);
 bool textCaptureVisibilityMask(const TextRecord& record, int width, int height, TextVisibilityMask* mask);
 }
 
