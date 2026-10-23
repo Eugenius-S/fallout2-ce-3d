@@ -68,3 +68,5 @@ Check: a live dev-snapshot run left the root untouched
 Release build, ctest 11/11, regression python tests 12/12, exporter tests OK.
 Note: the full 16-spot regression run is not re-run here, it is the
 pre-existing 13/16 of task 054.
+A classic-mode run double-checks the vanilla branch: scr00191.png landed in
+shots/game/, its devshot sidecar in shots/dev/2026-10-23/, the root clean.
