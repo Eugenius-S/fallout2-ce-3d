@@ -174,6 +174,11 @@ Done: added an opt-in `F2CE_TEXT_TRACE=1` diagnostic for the exact CP1251 bytes 
 Next: parent review of the confirmed transparent-blit source-range miss before any behavior change. Full UI acceptance remains untested.
 Check: configured Release build and full CTest passed (14/14). One official background Russian Top Preferences snapshot at 1920x1440 physical, 640x480 logical, scale 3 uses source `dd22715b`, EXE SHA-256 `0bc1f2f34c7cd226eaa676f318a8901dd89ba8970f8eed7e0b6fc872d1c6a015`, and reports active/drawn with 87 runs, 695 glyphs, 43,676 restored pixels and 15.303 ms. Trace evidence is `runs/025-sharp-text/text-trace-dd22715b/ru-top-x3-on/process.stderr.log`. The two centered labels at (68,67) and (68,145) were captured, then touched by transparent primary-switch blits whose source allocation had pitch 640 while the blit pitch was 46. The adapter skipped masking and later rejected each run at x=99 (expected 62, actual 207). No behavior change has been made.
 
+### 2026-10-23 gpt (bounded transparent blit fallback)
+Done: when an untracked-pitch source view overlaps actual tracked destination coverage, the adapter now snapshots only the exact blit footprint if it fits inside the known allocation. It uses that pre-blit snapshot to mask transparent destination coverage after the original copy. Unknown or unprovable source ranges keep the conservative path.
+Next: parent review of focused tests before any runtime. No visual evidence uses source `10babc3d`.
+Check: focused Release `text_capture_tests` passed. The new fixture covers an interior source view with registered pitch 640 and blit pitch 46; same-color and changed opaque pixels are masked, zero pixels remain transparent, and the snapshot is taken before the copy proc. A second fixture extends the source footprint past its registered range and confirms conservative tracking while the pixel copy still runs. Full CTest and runtime are pending review.
+
 ### 2026-10-23 gpt (clean build include fix)
 Done: added the missing `<cmath>` include required by the embedded-font test's `std::ceil` call, found by the full clean Release build.
 Next: configure from this commit, rerun the full clean Release build and CTest, then capture the revised RU x3 Top pair and EN x2 Bottom ghost check if the build passes.
