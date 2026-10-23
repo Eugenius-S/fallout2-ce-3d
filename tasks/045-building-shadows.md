@@ -83,3 +83,7 @@ doors: the baked closed door keeps casting until a live caster path exists
 owner's to check, user-check: yes).
 Next: the owner judges the look (user-check: yes); the noon azimuth stays
 225 until then (021's note).
+Regression (shadows off, the pinned test config): the same 13 of 16 as the
+pre-existing baseline of task 054 (klacanyn-e0, klaratcv-e0 and
+klatoxcv-e2 at 0 changed pixels), so the shadows-off view is exactly as
+before wherever the references are valid.
