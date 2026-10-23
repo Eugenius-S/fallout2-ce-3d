@@ -159,6 +159,11 @@ Done: blit overlap retirement now visits only existing destination text coverage
 Next: root review this bounded change; only then run the clean build and revised Russian x3 Top pair. No runtime evidence uses this source yet.
 Check: focused `text_layer_tests` and `text_capture_tests` rebuilt with the configured MSVC environment and passed (2/2). Added tests for compact snapshots larger source rectangles (including missing glyph deltas) and the no-text fast path. `git diff --check` passes. Full build and runtime remain pending review.
 
+### 2026-10-23 gpt (font-run overlap)
+Done: a new font capture now retires an older run only when their actual changed glyph pixels overlap; overlapping advance/line-height bounds alone preserve both runs. Whole-run atomic validity remains in place, so unknown stale glyph pixels still invalidate the run.
+Next: after configure and a full test run, repeat the Russian x3 Top pair and English x2 Bottom ghost check. This source change has no runtime evidence yet; Preferences labels that remain pixel-rendered still need diagnosis.
+Check: focused Release `text_layer_tests` and `text_capture_tests` pass (2/2), with fixtures for overlapping bounds/disjoint ink and actual glyph overlap; the existing partial-overwrite atomic-validity regression still passes. `git diff --check` passes. Parent's off regression at `runs/regression/20261023-150351-765-35772/summary.json` reports success for all 16 spots with `update: false`; it used the prior production source `568c5977` and is not evidence for this change.
+
 ### 2026-10-23 gpt (clean build include fix)
 Done: added the missing `<cmath>` include required by the embedded-font test's `std::ceil` call, found by the full clean Release build.
 Next: configure from this commit, rerun the full clean Release build and CTest, then capture the revised RU x3 Top pair and EN x2 Bottom ghost check if the build passes.

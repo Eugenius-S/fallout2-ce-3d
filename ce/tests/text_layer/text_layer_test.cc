@@ -163,8 +163,26 @@ int main()
             "clipped fragment has clipped bounds");
     }
 
-    // A new overlapping draw supersedes the old run. Its restoration value is
-    // still normalized through the previous run's original background.
+    // Bounds overlap because both runs include blank advance/line-height area,
+    // but their actual changed glyph pixels are disjoint.
+    {
+        TextLayer layer;
+        std::vector<unsigned char> base(4, 12);
+        std::vector<unsigned char> first = base;
+        first[0] = 30;
+        capture(layer, 70, false, base, first, 2, 2, { 0, 0, 2, 2 }, "A");
+        std::vector<unsigned char> second = first;
+        second[1] = 40;
+        capture(layer, 70, false, first, second, 2, 2, { 1, 0, 1, 1 }, "B");
+        failures += !check(layer.records().size() == 2,
+            "overlapping draw bounds preserve older runs when glyph pixels are disjoint");
+        const auto restored = layer.restorationPixels(70, view(second, 2, 2, 2));
+        failures += !check(restored.size() == 2,
+            "both ink-disjoint runs remain available for sharp rendering");
+    }
+
+    // A new font call that touches an actual old glyph pixel replaces the
+    // entire old run, while preserving the original restoration value.
     {
         TextLayer layer;
         std::vector<unsigned char> base(4, 12);
@@ -177,7 +195,7 @@ int main()
         second[1] = 12; // The window was repainted before the shorter label.
         capture(layer, 7, false, first, second, 2, 2, { 0, 0, 1, 1 }, "A");
         failures += !check(layer.records().size() == 1 && layer.records()[0].run.text == "A",
-            "new overlapping font draw replaces the older run");
+            "actual glyph overlap replaces the entire older run");
         failures += !check(layer.records()[0].pixels[0].before == 12,
             "redraw inherits the original underlying value");
         std::vector<unsigned char> overwritten = second;

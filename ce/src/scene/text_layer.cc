@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <unordered_map>
+#include <unordered_set>
 
 namespace fallout {
 namespace scene {
@@ -116,9 +117,16 @@ bool TextLayer::capture(TextBufferId buffer, bool orphan, const TextRunInfo& run
     }
 
     if (record.pixels.empty()) return false;
-    // A new font call replaces any older run whose captured draw box overlaps.
-    records_.erase(std::remove_if(records_.begin(), records_.end(), [buffer, clipped](const TextRecord& oldRecord) {
-        return oldRecord.buffer == buffer && intersection(oldRecord.bounds, clipped).width > 0;
+    // A run's bounds include blank line-height and advance space. Replace an
+    // older run only when the new draw actually changed one of its glyph pixels.
+    std::unordered_set<std::uint64_t> changedPixels;
+    changedPixels.reserve(record.pixels.size());
+    for (const auto& pixel : record.pixels) changedPixels.insert(pixelKey(pixel.x, pixel.y));
+    records_.erase(std::remove_if(records_.begin(), records_.end(), [buffer, &changedPixels](const TextRecord& oldRecord) {
+        if (oldRecord.buffer != buffer) return false;
+        return std::any_of(oldRecord.pixels.begin(), oldRecord.pixels.end(), [&changedPixels](const TextPixelRecord& pixel) {
+            return changedPixels.find(pixelKey(pixel.x, pixel.y)) != changedPixels.end();
+        });
     }), records_.end());
     records_.push_back(std::move(record));
     trim();
