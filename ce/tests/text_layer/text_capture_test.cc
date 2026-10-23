@@ -17,6 +17,7 @@ FontManagerGetLetterSpacingProc* fontGetLetterSpacing = nullptr;
 FontManagerGetMonospacedCharacterWidth* fontGetMonospacedCharacterWidth = nullptr;
 int gCurrentFont = 101;
 TextWindowSnapshot gTestWindow = {};
+TextCursorSnapshot gTestCursor = {};
 
 int fakeLineHeight() { return 2; }
 int fakeCharacterWidth(int) { return 1; }
@@ -46,8 +47,15 @@ bool textCaptureGetWindowSnapshot(int index, TextWindowSnapshot* snapshot, int* 
 bool textCaptureGetCursorSnapshot(TextCursorSnapshot* state)
 {
     if (state == nullptr) return false;
-    *state = {};
+    *state = gTestCursor;
     return true;
+}
+
+void drawTwoGlyphs(unsigned char* buffer, const char* string, int length, int pitch, ColorWithFlags color)
+{
+    if (string == nullptr || length < 2 || pitch < 2) return;
+    buffer[0] = static_cast<unsigned char>(color & 0xFF);
+    buffer[1] = static_cast<unsigned char>((color & 0xFF) + 1);
 }
 
 } // namespace fallout
@@ -272,6 +280,71 @@ void testVisibilityClearsHiddenAndStaleOwners()
     gTestWindow = {};
 }
 
+void testCursorOcclusionPreservesOwnedText()
+{
+    using namespace fallout;
+    std::vector<unsigned char> windowPixels(4, 2);
+    std::vector<unsigned char> screenPixels(8, 1);
+    std::vector<unsigned char> cursorPixels(1, 9);
+    textCaptureRegisterExternalBuffer(windowPixels.data(), windowPixels.size(), 2, 2, 2, false);
+    textCaptureRegisterExternalBuffer(screenPixels.data(), screenPixels.size(), 4, 2, 4, false);
+    textCaptureMarkWindowBuffer(windowPixels.data(), 8);
+    const scene::TextBufferId windowId = textCaptureBufferId(windowPixels.data());
+    const scene::TextBufferId screenId = textCaptureBufferId(screenPixels.data());
+    gTestWindow = {};
+    gTestWindow.id = 8;
+    gTestWindow.x = 1;
+    gTestWindow.y = 0;
+    gTestWindow.width = 2;
+    gTestWindow.height = 2;
+    gTestWindow.pitch = 2;
+    gTestWindow.pixels = windowPixels.data();
+    gTestWindow.generation = windowId;
+    gTestCursor = { 1, 1, 1, 1, 1, true, 0, cursorPixels.data() };
+    fontDrawTextPtr = drawTwoGlyphs;
+    fontDrawText(windowPixels.data(), "ab", 2, 2, static_cast<ColorWithFlags>(5));
+    textCaptureCopy(windowPixels.data(), 2, 2, 2, screenPixels.data() + 1, 4, false, fakeCopy);
+    const auto records = scene::textCaptureRecords(screenId);
+    check(records.size() == 1 && records.front().ownerWindow == 8,
+        "screen copy retains its window provenance");
+    if (records.size() == 1) {
+        screenPixels[5] = 9; // Opaque cursor covers a blank cell in the text bounds.
+        auto restored = scene::textCaptureRestoration(screenId);
+        scene::TextVisibilityMask mask;
+        check(restored.size() == 2 && scene::textCaptureVisibilityMask(records.front(), 4, 2, &mask)
+                && !mask.visibleAt(1, 1) && mask.visibleAt(1, 0) && mask.visibleAt(2, 0),
+            "cursor over a blank cell masks only that cell and preserves sharp glyphs");
+
+        screenPixels[5] = 6;
+        screenPixels[1] = 9; // Opaque cursor now covers the first legacy glyph pixel.
+        gTestCursor.x = 1;
+        gTestCursor.y = 0;
+        restored = scene::textCaptureRestoration(screenId);
+        check(restored.size() == 2 && scene::textCaptureVisibilityMask(records.front(), 4, 2, &mask)
+                && !mask.visibleAt(1, 0) && mask.visibleAt(2, 0),
+            "cursor over a foreground glyph preserves the remaining sharp glyph pixels");
+
+        screenPixels[1] = 5;
+        gTestCursor.visible = false;
+        gTestWindow.generation = windowId + 1;
+        restored = scene::textCaptureRestoration(screenId);
+        scene::textCaptureVisibilityMask(records.front(), 4, 2, &mask);
+        check(restored.size() == 2
+                && std::none_of(mask.pixels.begin(), mask.pixels.end(), [](unsigned char value) { return value != 0; }),
+            "stale owner generation cannot display captured text");
+
+        gTestWindow.generation = windowId;
+        windowPixels[0] = 99; // Repaint the owner while the screen copy remains unchanged.
+        restored = scene::textCaptureRestoration(screenId);
+        check(restored.empty() && scene::textCaptureRecords(screenId).empty(),
+            "owner-buffer overwrite invalidates a matching screen clone");
+    }
+    textCaptureUnregisterExternalBuffer(windowPixels.data());
+    textCaptureUnregisterExternalBuffer(screenPixels.data());
+    gTestWindow = {};
+    gTestCursor = {};
+}
+
 } // namespace
 
 int main()
@@ -286,6 +359,7 @@ int main()
     testMonospacedClippedRunMetadata();
     testUnknownBuffersKeepPixelBehavior();
     testVisibilityClearsHiddenAndStaleOwners();
+    testCursorOcclusionPreservesOwnedText();
     if (failures == 0) std::printf("text_capture_tests: all passed\n");
     return failures == 0 ? 0 : 1;
 }

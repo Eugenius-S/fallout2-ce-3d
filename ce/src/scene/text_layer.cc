@@ -169,6 +169,8 @@ void TextLayer::copy(TextBufferId source, TextBufferId destination, bool destina
         clone.run = sourceRecord.run;
         const std::int64_t shiftX = static_cast<std::int64_t>(destinationX) - sourceRect.x;
         const std::int64_t shiftY = static_cast<std::int64_t>(destinationY) - sourceRect.y;
+        clone.ownerOffsetX = destinationOwnerWindow >= 0 ? 0 : sourceRecord.ownerOffsetX + static_cast<int>(shiftX);
+        clone.ownerOffsetY = destinationOwnerWindow >= 0 ? 0 : sourceRecord.ownerOffsetY + static_cast<int>(shiftY);
         clone.run.x = static_cast<int>(static_cast<std::int64_t>(clone.run.x) + shiftX);
         clone.run.y = static_cast<int>(static_cast<std::int64_t>(clone.run.y) + shiftY);
         for (int& characterX : clone.run.characterX) characterX = static_cast<int>(static_cast<std::int64_t>(characterX) + shiftX);
@@ -278,6 +280,12 @@ void TextLayer::eraseOwner(int window, TextBufferId generation)
 std::vector<TextRestorePixel> TextLayer::restorationPixels(TextBufferId buffer,
     TextPixels current, bool includeOrphans)
 {
+    return restorationPixels(buffer, current, {}, includeOrphans);
+}
+
+std::vector<TextRestorePixel> TextLayer::restorationPixels(TextBufferId buffer,
+    TextPixels current, const std::vector<TextValidationPixels>& ownerPixels, bool includeOrphans)
+{
     std::vector<TextRestorePixel> result;
     if (buffer == 0 || !validPixels(current)) return result;
     for (auto recordIt = records_.begin(); recordIt != records_.end();) {
@@ -287,9 +295,25 @@ std::vector<TextRestorePixel> TextLayer::restorationPixels(TextBufferId buffer,
         }
         const auto& pixels = recordIt->pixels;
         bool valid = !recordIt->coverage.empty() && !pixels.empty();
+        const TextPixels* validation = &current;
+        int validationOffsetX = 0;
+        int validationOffsetY = 0;
+        if (recordIt->ownerWindow >= 0 && recordIt->ownerGeneration != buffer) {
+            for (const TextValidationPixels& owner : ownerPixels) {
+                if (owner.buffer == recordIt->ownerGeneration && validPixels(owner.pixels)) {
+                    validation = &owner.pixels;
+                    validationOffsetX = recordIt->ownerOffsetX;
+                    validationOffsetY = recordIt->ownerOffsetY;
+                    break;
+                }
+            }
+        }
         if (valid) {
             for (const auto& pixel : pixels) {
-                if (!contains(current, pixel.x, pixel.y) || pixelAt(current, pixel.x, pixel.y) != pixel.after) {
+                const int validationX = pixel.x - validationOffsetX;
+                const int validationY = pixel.y - validationOffsetY;
+                if (!contains(*validation, validationX, validationY)
+                    || pixelAt(*validation, validationX, validationY) != pixel.after) {
                     valid = false;
                     break;
                 }

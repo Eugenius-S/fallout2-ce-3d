@@ -30,6 +30,11 @@ struct TextPixels {
     int originY = 0;
 };
 
+struct TextValidationPixels {
+    TextBufferId buffer = 0;
+    TextPixels pixels;
+};
+
 struct TextRunInfo {
     std::string text;
     int font = 0;
@@ -74,6 +79,9 @@ struct TextRecord {
     bool orphan = false;
     int ownerWindow = -1;
     TextBufferId ownerGeneration = 0;
+    // Current buffer coordinates minus authoritative owner-buffer coordinates.
+    int ownerOffsetX = 0;
+    int ownerOffsetY = 0;
     TextRunInfo run;
     TextRect bounds;
     // Per-game-pixel geometry for the modern glyph. It covers the captured
@@ -120,6 +128,9 @@ public:
     // Orphan records are never presented.
     std::vector<TextRestorePixel> restorationPixels(TextBufferId buffer,
         TextPixels current, bool includeOrphans = false);
+    std::vector<TextRestorePixel> restorationPixels(TextBufferId buffer,
+        TextPixels current, const std::vector<TextValidationPixels>& ownerPixels,
+        bool includeOrphans = false);
 
     const std::vector<TextRecord>& records() const;
     std::size_t size() const;

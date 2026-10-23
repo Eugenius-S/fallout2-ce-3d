@@ -456,7 +456,28 @@ std::vector<TextRestorePixel> textCaptureRestoration(TextBufferId buffer)
         const BufferRange& range = item.second;
         if (range.id != buffer || range.orphan || range.pitch <= 0) continue;
         const auto* pixels = reinterpret_cast<const unsigned char*>(range.base);
-        return layer().restorationPixels(buffer, { pixels, range.width, range.height, range.pitch });
+        std::vector<std::pair<int, scene::TextBufferId>> requiredOwners;
+        for (const scene::TextRecord& record : layer().records()) {
+            if (record.buffer != buffer || record.ownerWindow < 0 || record.ownerGeneration == 0
+                || record.ownerGeneration == buffer) continue;
+            const auto owner = std::make_pair(record.ownerWindow, record.ownerGeneration);
+            if (std::find(requiredOwners.begin(), requiredOwners.end(), owner) == requiredOwners.end()) {
+                requiredOwners.push_back(owner);
+            }
+        }
+        std::vector<scene::TextValidationPixels> ownerPixels;
+        for (int index = 0; ; ++index) {
+            TextWindowSnapshot snapshot;
+            if (!textCaptureGetWindowSnapshot(index, &snapshot, nullptr)) break;
+            const auto required = std::find(requiredOwners.begin(), requiredOwners.end(),
+                std::make_pair(snapshot.id, snapshot.generation));
+            if (required == requiredOwners.end()) continue;
+            BufferRange* owner = findRange(snapshot.pixels);
+            if (owner == nullptr || owner->id != snapshot.generation || owner->orphan || owner->pitch <= 0) continue;
+            ownerPixels.push_back({ owner->id, { reinterpret_cast<const unsigned char*>(owner->base),
+                owner->width, owner->height, owner->pitch } });
+        }
+        return layer().restorationPixels(buffer, { pixels, range.width, range.height, range.pitch }, ownerPixels);
     }
     return {};
 }
