@@ -2,8 +2,8 @@
 id: 039
 title: All of Klamath looks decent from turned views
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: glm
 suggested: claude
 claude-only: no
 user-check: yes
