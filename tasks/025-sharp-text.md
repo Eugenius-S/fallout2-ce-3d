@@ -164,6 +164,11 @@ Done: a new font capture now retires an older run only when their actual changed
 Next: after configure and a full test run, repeat the Russian x3 Top pair and English x2 Bottom ghost check. This source change has no runtime evidence yet; Preferences labels that remain pixel-rendered still need diagnosis.
 Check: focused Release `text_layer_tests` and `text_capture_tests` pass (2/2), with fixtures for overlapping bounds/disjoint ink and actual glyph overlap; the existing partial-overwrite atomic-validity regression still passes. `git diff --check` passes. Parent's off regression at `runs/regression/20261023-150351-765-35772/summary.json` reports success for all 16 spots with `update: false`; it used the prior production source `568c5977` and is not evidence for this change.
 
+### 2026-10-23 gpt (font-run overlap verification)
+Done: source `2bb6cdd8` passed the configured Release build and full CTest (14/14); Russian x3 Top Preferences and English x2 Bottom off/on pairs were captured with the official background helper. Sharp text reports active/drawn in both on snapshots.
+Next: parent visual review of these pairs. The on/off evidence covers only Preferences; full Pip-Boy, inventory, character screen, dialogue, barter and floating text still need acceptance.
+Check: all four snapshots embed `2bb6cdd8` and EXE SHA-256 `7a6246f7841048ae578624df93bc193f83b96f363c9ee9bb2bcaa41937b48ce7`. Evidence base: `runs/025-sharp-text/capture-overlap-2bb6cdd8/`. RU x3 Top on `scr00022.png`: 84 runs, 707 glyphs, 43,678 restored pixels, 10.772 ms. EN x2 Bottom on `scr00024.png`: 26 runs, 252 glyphs, 6,842 restored pixels, 4.720 ms. Off snapshots are inactive; no test process remained after capture. Parent's prior 16-off regression passed all spots with no updates, but used source `568c5977`, before this change.
+
 ### 2026-10-23 gpt (clean build include fix)
 Done: added the missing `<cmath>` include required by the embedded-font test's `std::ceil` call, found by the full clean Release build.
 Next: configure from this commit, rerun the full clean Release build and CTest, then capture the revised RU x3 Top pair and EN x2 Bottom ghost check if the build passes.
