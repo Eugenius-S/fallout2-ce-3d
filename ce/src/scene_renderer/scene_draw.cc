@@ -1,6 +1,7 @@
 #include "scene_draw.h"
 
 #include <algorithm>
+#include <vector>
 
 #include <lodepng.h>
 
@@ -288,10 +289,11 @@ bool captureFramePng(const std::filesystem::path& path, const unsigned char* rgb
     const bool sharpReady = text.active && text.width == frameWidth && text.height == frameHeight
         && uploadSharpTextOverlay(text.overlay.pixels.data(), text.overlay.width,
             text.overlay.height, text.overlay.pitch);
+    if (text.active && !sharpReady) disableSharpText("OpenGL upload failed during frame capture");
     // The next present clears and redraws the back buffer; nothing is swapped.
     presentFrame(sharpReady ? text.restoredRgba.data() : rgba,
         frameWidth, frameHeight, sharpReady ? text.rgbaPitch : pitch);
-    if (sharpReady && !drawSharpTextOverlay()) {
+    if (sharpReady && !drawPreparedSharpTextOverlay()) {
         disableSharpText("OpenGL draw failed during frame capture");
         presentFrame(rgba, frameWidth, frameHeight, pitch);
     }
@@ -341,14 +343,23 @@ bool captureStaticPreviewPng(const std::filesystem::path& path, bool withWalls, 
         drawQuad(gTextureWidth, gTextureHeight, gTextureWidth * 4, nullptr, 0, 0, gLogicalWidth, gLogicalHeight);
         glDisable(kBlend);
         const PreparedSharpTextFrame& text = preparedSharpTextFrame();
-        if (text.active && uploadSharpTextOverlay(text.overlay.pixels.data(), text.overlay.width,
-                text.overlay.height, text.overlay.pitch)) {
-            if (!drawSharpTextOverlay()) {
-                disableSharpText("OpenGL draw failed during static preview capture");
-                std::vector<unsigned char> fallback = text.originalRgba;
-                scene::maskOverlay(text.originalIndices.data(), text.indexPitch,
-                    fallback.data(), text.rgbaPitch, text.width, text.height);
-                drawSceneOverlay(fallback.data(), text.width, text.height, text.rgbaPitch);
+        if (text.active) {
+            const bool uploaded = uploadSharpTextOverlay(text.overlay.pixels.data(), text.overlay.width,
+                text.overlay.height, text.overlay.pitch);
+            if (!uploaded) disableSharpText("OpenGL upload failed during static preview capture");
+            if (uploaded && drawPreparedSharpTextOverlay()) {
+                // The sharp pass completed over the cached game overlay.
+            } else {
+                if (uploaded) disableSharpText("OpenGL draw failed during static preview capture");
+                const bool fallbackGlow = beginSceneCapture();
+                drawStaticPreview(withWalls, withHero);
+                if (fallbackGlow) compositeGlow();
+                if (withHero && gSceneOverlayReady) {
+                    std::vector<unsigned char> fallback = text.originalRgba;
+                    scene::maskOverlay(text.originalIndices.data(), text.indexPitch,
+                        fallback.data(), text.rgbaPitch, text.width, text.height);
+                    drawSceneOverlay(fallback.data(), text.width, text.height, text.rgbaPitch);
+                }
             }
         }
     }

@@ -19,6 +19,7 @@
 #include "movie.h"
 #include "scan_unimplemented.h"
 #include "settings.h"
+#include "scene/text_capture.h"
 #include "devtools/devtools.h"
 #include "scene/scene_overlay.h"
 #include "scene/scene_view.h"
@@ -568,7 +569,7 @@ void renderPresent()
                     scene::maskOverlay(frame.restoredIndices.data(), frame.indexPitch,
                         overlay.data(), frame.rgbaPitch, frame.width, frame.height);
                     scene_renderer::drawSceneOverlay(overlay.data(), frame.width, frame.height, frame.rgbaPitch);
-                    if (!scene_renderer::drawSharpTextOverlay()) {
+                    if (!scene_renderer::drawPreparedSharpTextOverlay()) {
                         scene_renderer::disableSharpText("OpenGL draw failed");
                         const bool retryGlow = scene_renderer::beginSceneCapture();
                         scene_renderer::drawStaticHeroPreview();
@@ -608,7 +609,7 @@ void renderPresent()
         if (sharpTextReady) {
             const scene_renderer::PreparedSharpTextFrame& frame = scene_renderer::preparedSharpTextFrame();
             scene_renderer::presentFrame(frame.restoredRgba.data(), frame.width, frame.height, frame.rgbaPitch);
-            if (!scene_renderer::drawSharpTextOverlay()) {
+            if (!scene_renderer::drawPreparedSharpTextOverlay()) {
                 scene_renderer::disableSharpText("OpenGL draw failed");
                 scene_renderer::presentFrame(static_cast<const unsigned char*>(gSdlTextureSurface->pixels),
                     gSdlTextureSurface->w, gSdlTextureSurface->h, gSdlTextureSurface->pitch);

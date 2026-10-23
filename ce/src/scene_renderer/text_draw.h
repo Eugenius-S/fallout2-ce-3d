@@ -25,6 +25,11 @@ struct PreparedSharpTextFrame {
     int rgbaPitch = 0;
     int width = 0;
     int height = 0;
+    unsigned int runCount = 0;
+    unsigned int glyphCount = 0;
+    unsigned int restoredPixelCount = 0;
+    double prepareMilliseconds = 0.0;
+    bool drawn = false;
     bool active = false;
 };
 

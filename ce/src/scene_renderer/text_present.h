@@ -15,6 +15,7 @@ bool prepareSharpTextFrame(const unsigned char* indices, int width, int height, 
     const unsigned char* paletteRgb, int paletteEntries, bool enabled);
 bool prepareSharpTextForPresent(SDL_Surface* indexedSurface, SDL_Surface* rgbaSurface, bool enabled);
 void disableSharpText(const char* message);
+bool drawPreparedSharpTextOverlay();
 const PreparedSharpTextFrame& preparedSharpTextFrame();
 
 } // namespace scene_renderer

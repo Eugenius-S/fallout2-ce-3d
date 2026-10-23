@@ -1,6 +1,7 @@
 #include "text_present.h"
 
 #include <algorithm>
+#include <chrono>
 #include <stdio.h>
 
 #include <SDL.h>
@@ -26,6 +27,8 @@ PreparedSharpTextFrame& preparedFrameStorage()
 void disableSharpText(const char* message)
 {
     settings.scene3d.sharp_text = false;
+    preparedFrameStorage().active = false;
+    preparedFrameStorage().drawn = false;
     if (gSharpTextFailureLogged) return;
     gSharpTextFailureLogged = true;
     fprintf(stderr, "sharp text: %s; using pixel text\n", message != nullptr ? message : "rendering failed");
@@ -34,6 +37,14 @@ void disableSharpText(const char* message)
 
 bool prepareSharpTextForPresent(SDL_Surface* indexedSurface, SDL_Surface* rgbaSurface, bool enabled)
 {
+    const auto started = std::chrono::steady_clock::now();
+    PreparedSharpTextFrame& output = preparedFrameStorage();
+    output.active = false;
+    output.drawn = false;
+    output.runCount = 0;
+    output.glyphCount = 0;
+    output.restoredPixelCount = 0;
+    output.prepareMilliseconds = 0.0;
     if (!enabled || !settings.scene3d.sharp_text || indexedSurface == nullptr || rgbaSurface == nullptr) {
         prepareSharpTextFrame(nullptr, 0, 0, 0, nullptr, 0, 0, 0, nullptr, 0, false);
         return false;
@@ -41,7 +52,7 @@ bool prepareSharpTextForPresent(SDL_Surface* indexedSurface, SDL_Surface* rgbaSu
 
     const scene::TextBufferId buffer = textCaptureBufferId(indexedSurface->pixels);
     if (buffer == 0) return false;
-    textCaptureRestoration(buffer);
+    scene::textCaptureRestoration(buffer);
     if (scene::textCaptureRecords(buffer).empty()) {
         prepareSharpTextFrame(nullptr, 0, 0, 0, nullptr, 0, 0, 0, nullptr, 0, false);
         return false;
@@ -82,6 +93,16 @@ bool prepareSharpTextForPresent(SDL_Surface* indexedSurface, SDL_Surface* rgbaSu
         disableSharpText("OpenGL texture upload failed");
         return false;
     }
+    output.prepareMilliseconds = std::chrono::duration<double, std::milli>(
+        std::chrono::steady_clock::now() - started).count();
+    return true;
+}
+
+bool drawPreparedSharpTextOverlay()
+{
+    PreparedSharpTextFrame& output = preparedFrameStorage();
+    if (!output.active || !drawSharpTextOverlay()) return false;
+    output.drawn = true;
     return true;
 }
 
@@ -91,6 +112,11 @@ bool prepareSharpTextFrame(const unsigned char* indices, int width, int height, 
 {
     PreparedSharpTextFrame& output = preparedFrameStorage();
     output.active = false;
+    output.drawn = false;
+    output.runCount = 0;
+    output.glyphCount = 0;
+    output.restoredPixelCount = 0;
+    output.prepareMilliseconds = 0.0;
     if (!enabled) return true;
     if (indices == nullptr || rgba == nullptr || width <= 0 || height <= 0
         || indexPitch < width || rgbaPitch < width * 4 || physicalWidth <= 0 || physicalHeight <= 0
@@ -120,13 +146,17 @@ bool prepareSharpTextFrame(const unsigned char* indices, int width, int height, 
 
     const scene::TextBufferId buffer = textCaptureBufferId(indices);
     if (buffer == 0) return false;
-    textCaptureRestoration(buffer); // Validate and prune overwritten records against the live indexed buffer.
-    const std::vector<scene::TextRecord> records = textCaptureRecords(buffer);
+    scene::textCaptureRestoration(buffer); // Validate and prune overwritten records against the live indexed buffer.
+    const std::vector<scene::TextRecord> records = scene::textCaptureRecords(buffer);
     if (records.empty()) return true;
+    output.runCount = static_cast<unsigned int>(records.size());
+    for (const scene::TextRecord& record : records) {
+        output.glyphCount += static_cast<unsigned int>(record.run.text.size());
+    }
 
     std::vector<scene::TextVisibilityMask> masks(records.size());
     for (std::size_t index = 0; index < records.size(); ++index) {
-        if (!textCaptureVisibilityMask(records[index], width, height, &masks[index])) return false;
+        if (!scene::textCaptureVisibilityMask(records[index], width, height, &masks[index])) return false;
     }
     if (!renderSharpText(records, width, height, physicalWidth, physicalHeight,
             paletteRgb, paletteEntries, masks, &output.overlay)) return false;
@@ -148,6 +178,7 @@ bool prepareSharpTextFrame(const unsigned char* indices, int width, int height, 
             rgbaPixel[1] = color[1];
             rgbaPixel[2] = color[2];
             rgbaPixel[3] = 255;
+            ++output.restoredPixelCount;
         }
     }
     output.active = true;

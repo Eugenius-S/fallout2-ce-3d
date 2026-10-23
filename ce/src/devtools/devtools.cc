@@ -54,6 +54,7 @@
 #include "../scene_renderer/picking.h"
 #include "../scene_renderer/scene_draw.h"
 #include "../scene_renderer/static_scene.h"
+#include "../scene_renderer/text_present.h"
 #include "../settings.h"
 #include "../svga.h"
 #include "../text_font.h"
@@ -2328,6 +2329,7 @@ bool takeSnapshot()
         settings.scene3d.sun ? "true" : "false", scene::sceneDaylight() ? "true" : "false", gameTimeGetTime(),
         sun.up ? "true" : "false", sun.height, sun.azimuth, sun.direction[0], sun.direction[1], sun.direction[2],
         sun.color[0], sun.color[1], sun.color[2], sun.strength);
+    const scene_renderer::PreparedSharpTextFrame& sharpText = scene_renderer::preparedSharpTextFrame();
 
     FILE* f = fopen(sidecarPath.string().c_str(), "w");
     if (f == nullptr) {
@@ -2350,6 +2352,7 @@ bool takeSnapshot()
         "  \"preview_requested\": %s,\n"
         "  \"scene_3d_enabled\": %s,\n"
         "  \"scene_view\": \"%s\",\n"
+        "  \"sharp_text\": {\"setting\":%s,\"active\":%s,\"drawn\":%s,\"runs\":%u,\"glyphs\":%u,\"restored_pixels\":%u,\"prepare_ms\":%.3f},\n"
         "  \"map_clip\": %s,\n"
         "  \"camera\": \"%s\",\n"
         "  \"wall_triangles\": %u,\n"
@@ -2384,6 +2387,13 @@ bool takeSnapshot()
         scene::activeView() == scene::View::Full ? "full"
             : scene::activeView() == scene::View::Walls ? "walls"
             : scene::activeView() == scene::View::Floor ? "floor" : "off",
+        settings.scene3d.sharp_text ? "true" : "false",
+        sharpText.active ? "true" : "false",
+        sharpText.drawn ? "true" : "false",
+        sharpText.runCount,
+        sharpText.glyphCount,
+        sharpText.restoredPixelCount,
+        sharpText.prepareMilliseconds,
         clipMetadata,
         camera,
         wallTriangles,
