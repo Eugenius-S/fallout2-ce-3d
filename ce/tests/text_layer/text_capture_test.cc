@@ -105,6 +105,33 @@ void fakeTransparentCopy(unsigned char* destination, int destinationPitch, const
     }
 }
 
+void countingTransparentCopy(unsigned char* destination, int destinationPitch, const unsigned char* source, int sourcePitch, int width, int height)
+{
+    copyCalls++;
+    fakeTransparentCopy(destination, destinationPitch, source, sourcePitch, width, height);
+}
+
+void transparentCopyThenZeroSource(unsigned char* destination, int destinationPitch, const unsigned char* source, int sourcePitch, int width, int height)
+{
+    countingTransparentCopy(destination, destinationPitch, source, sourcePitch, width, height);
+    auto* mutableSource = const_cast<unsigned char*>(source);
+    for (int y = 0; y < height; y++) {
+        std::fill(mutableSource, mutableSource + width, 0);
+        mutableSource += sourcePitch;
+    }
+}
+
+void zeroSourceThenTransparentCopy(unsigned char* destination, int destinationPitch, const unsigned char* source, int sourcePitch, int width, int height)
+{
+    copyCalls++;
+    auto* mutableSource = const_cast<unsigned char*>(source);
+    for (int y = 0; y < height; y++) {
+        std::fill(mutableSource, mutableSource + width, 0);
+        mutableSource += sourcePitch;
+    }
+    fakeTransparentCopy(destination, destinationPitch, source, sourcePitch, width, height);
+}
+
 void testAllocatorGenerationAndShadowGuard()
 {
     using namespace fallout;
@@ -237,6 +264,84 @@ void testTransparentImageBlitMasksOnlyOpaqueShape()
     check(records.size() == 1 && records.front().pixels.size() == 1
             && records.front().pixels.front().x == 1,
         "transparent image blit masks an unchanged opaque cell and preserves blank source cells");
+    textCaptureAllocationDestroyed(source.data());
+    textCaptureAllocationDestroyed(destination.data());
+}
+
+void testTransparentInteriorImageViewMasksTrackedText()
+{
+    using namespace fallout;
+    const std::size_t allocationSize = 640 * 8;
+    std::vector<unsigned char> source(allocationSize, 0);
+    std::vector<unsigned char> destination(16, 1);
+    textCaptureAllocationCreated(source.data(), source.size());
+    textCaptureMarkBufferOwned(source.data());
+    textCaptureAllocationCreated(destination.data(), destination.size());
+    textCaptureMarkBufferOwned(destination.data());
+    fontDrawTextPtr = fakeFontDraw;
+    fontDrawText(source.data(), "s", 640, 640, static_cast<ColorWithFlags>(5));
+    const scene::TextBufferId sourceId = textCaptureBufferId(source.data());
+    check(sourceId != 0, "large source allocation registers its inferred 640-pixel pitch");
+
+    fontDrawTextPtr = drawTwoGlyphs;
+    fontDrawText(destination.data(), "ab", 2, 4, static_cast<ColorWithFlags>(5));
+    const scene::TextBufferId destinationId = textCaptureBufferId(destination.data());
+    check(scene::textCaptureRecords(destinationId).size() == 1,
+        "destination has text coverage before an interior FRM view blit");
+
+    const std::size_t sourceOffset = 640 * 2;
+    unsigned char* const interior = source.data() + sourceOffset;
+    interior[0] = 5; // Same palette value as the first glyph, but still opaque.
+    interior[1] = 9; // Changed opaque pixel.
+    interior[46] = 0; // Transparent pixels preserve the destination text mask.
+    interior[47] = 0;
+    const int beforeCopyCalls = copyCalls;
+    textCaptureCopy(interior, 2, 2, 46, destination.data(), 4, true, transparentCopyThenZeroSource);
+
+    check(copyCalls == beforeCopyCalls + 1, "interior image view still uses the original copy proc once");
+    check(destination[0] == 5 && destination[1] == 9 && destination[4] == 1 && destination[5] == 1,
+        "bounded transparent snapshot preserves same-color, changed-color and zero pixels");
+    const auto records = scene::textCaptureRecords(destinationId);
+    check(records.size() == 1 && records.front().coverage.size() == 2
+            && records.front().coverage[0].y == 1 && records.front().coverage[1].y == 1
+            && records.front().pixels.empty(),
+        "tracked source-range fallback retires opaque coverage and preserves transparent zero coverage");
+
+    textCaptureAllocationDestroyed(source.data());
+    textCaptureAllocationDestroyed(destination.data());
+}
+
+void testTransparentInteriorImageViewRejectsOutOfRangeFootprint()
+{
+    using namespace fallout;
+    const std::size_t registeredSize = 640 * 4;
+    std::vector<unsigned char> source(registeredSize + 64, 0);
+    std::vector<unsigned char> destination(16, 1);
+    textCaptureAllocationCreated(source.data(), registeredSize);
+    textCaptureMarkBufferOwned(source.data());
+    textCaptureAllocationCreated(destination.data(), destination.size());
+    textCaptureMarkBufferOwned(destination.data());
+    fontDrawTextPtr = fakeFontDraw;
+    fontDrawText(source.data(), "s", 640, 640, static_cast<ColorWithFlags>(5));
+    fontDrawTextPtr = drawTwoGlyphs;
+    fontDrawText(destination.data(), "ab", 2, 4, static_cast<ColorWithFlags>(5));
+    const scene::TextBufferId destinationId = textCaptureBufferId(destination.data());
+
+    const std::size_t sourceOffset = registeredSize - 36;
+    unsigned char* const interior = source.data() + sourceOffset;
+    interior[0] = 9;
+    interior[1] = 10;
+    interior[46] = 11;
+    interior[47] = 12;
+    const int beforeCopyCalls = copyCalls;
+    textCaptureCopy(interior, 2, 2, 46, destination.data(), 4, true, zeroSourceThenTransparentCopy);
+
+    check(copyCalls == beforeCopyCalls + 1 && destination[0] == 5 && destination[1] == 6,
+        "unprovable image view keeps the original copy proc result without reading outside its allocation");
+    const auto records = scene::textCaptureRecords(destinationId);
+    check(records.size() == 1 && records.front().coverage.size() == 4 && records.front().pixels.size() == 2,
+        "source footprint extending past its registered allocation keeps conservative text tracking");
+
     textCaptureAllocationDestroyed(source.data());
     textCaptureAllocationDestroyed(destination.data());
 }
@@ -430,6 +535,8 @@ int main()
     testImageBlitMasksDestinationTextWithoutSourceText();
     testUntrackedImageCopyUsesPixelFastPath();
     testTransparentImageBlitMasksOnlyOpaqueShape();
+    testTransparentInteriorImageViewMasksTrackedText();
+    testTransparentInteriorImageViewRejectsOutOfRangeFootprint();
     testUnknownBuffersKeepPixelBehavior();
     testVisibilityClearsHiddenAndStaleOwners();
     testCursorOcclusionPreservesOwnedText();

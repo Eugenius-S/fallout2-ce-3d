@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <limits>
 #include <map>
 #include <mutex>
@@ -150,6 +151,47 @@ PixelSnapshot snapshot(const BufferRange& range, scene::TextRect rect)
     }
     result.view = { result.pixels.data(), rect.width, rect.height, rect.width, rect.x, rect.y };
     return result;
+}
+
+bool hasTrackedCoverage(scene::TextBufferId buffer, scene::TextRect rect)
+{
+    const std::int64_t right = static_cast<std::int64_t>(rect.x) + rect.width;
+    const std::int64_t bottom = static_cast<std::int64_t>(rect.y) + rect.height;
+    if (rect.width <= 0 || rect.height <= 0) return false;
+    for (const auto& record : layer().records()) {
+        if (record.buffer != buffer) continue;
+        for (const auto& pixel : record.coverage) {
+            if (pixel.x >= rect.x && pixel.y >= rect.y && pixel.x < right && pixel.y < bottom) return true;
+        }
+    }
+    return false;
+}
+
+bool snapshotBlitSource(const unsigned char* source, int sourcePitch, int width, int height,
+    const BufferRange* allocation, PixelSnapshot& result)
+{
+    if (source == nullptr || allocation == nullptr || width <= 0 || height <= 0 || sourcePitch < width) return false;
+    const std::uintptr_t address = reinterpret_cast<std::uintptr_t>(source);
+    if (address < allocation->base) return false;
+    const std::uint64_t offset = address - allocation->base;
+    const std::uint64_t rows = static_cast<std::uint64_t>(height - 1);
+    const std::uint64_t pitch = static_cast<std::uint64_t>(sourcePitch);
+    const std::uint64_t rowWidth = static_cast<std::uint64_t>(width);
+    const std::uint64_t max = std::numeric_limits<std::uint64_t>::max();
+    if (rows != 0 && pitch > (max - rowWidth) / rows) return false;
+    const std::uint64_t footprint = rows * pitch + rowWidth;
+    if (offset > allocation->size || footprint > allocation->size - offset) return false;
+    if (rowWidth > max / static_cast<std::uint64_t>(height)) return false;
+    const std::uint64_t pixelCount = rowWidth * static_cast<std::uint64_t>(height);
+    if (pixelCount > std::numeric_limits<std::size_t>::max()) return false;
+
+    result.pixels.resize(static_cast<std::size_t>(pixelCount));
+    for (int y = 0; y < height; y++) {
+        std::memcpy(result.pixels.data() + static_cast<std::size_t>(y) * width,
+            source + static_cast<std::size_t>(y) * sourcePitch, static_cast<std::size_t>(width));
+    }
+    result.view = { result.pixels.data(), width, height, width, 0, 0 };
+    return true;
 }
 
 BufferRange* rangeForCopy(const void* pointer, int pitch, int width, int height, int& x, int& y)
@@ -457,9 +499,16 @@ void textCaptureCopy(const unsigned char* source, int width, int height, int sou
     if (sourceRange == nullptr || destinationRange == nullptr) {
         traceUntrackedCopySource(sourceRange, destinationRange, source, sourcePitch, width, height,
             destinationX, destinationY, transparent);
+        PixelSnapshot sourceSnapshot;
+        const scene::TextRect destinationRect { destinationX, destinationY, width, height };
+        const bool trackTransparentBlit = sourceRange == nullptr && destinationRange != nullptr && transparent
+            && hasTrackedCoverage(destinationRange->id, destinationRect)
+            && snapshotBlitSource(source, sourcePitch, width, height, findRange(source), sourceSnapshot);
         copyProc(destination, destinationPitch, source, sourcePitch, width, height);
         if (destinationRange != nullptr && !transparent) {
-            layer().overwrite(destinationRange->id, { destinationX, destinationY, width, height });
+            layer().overwrite(destinationRange->id, destinationRect);
+        } else if (trackTransparentBlit) {
+            layer().overwrite(destinationRange->id, destinationRect, sourceSnapshot.view, true, 0);
         }
         return;
     }
