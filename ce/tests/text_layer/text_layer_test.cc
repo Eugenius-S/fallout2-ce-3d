@@ -161,8 +161,8 @@ int main()
             "clipped fragment has clipped bounds");
     }
 
-    // Repeated redraws normalize through older text, while partial overwrites
-    // invalidate only the pixels that no longer match.
+    // A new overlapping draw supersedes the old run. Its restoration value is
+    // still normalized through the previous run's original background.
     {
         TextLayer layer;
         std::vector<unsigned char> base(4, 12);
@@ -172,18 +172,62 @@ int main()
         capture(layer, 7, false, base, first, 2, 2, { 0, 0, 2, 2 }, "AB");
         std::vector<unsigned char> second = first;
         second[0] = 40;
+        second[1] = 12; // The window was repainted before the shorter label.
         capture(layer, 7, false, first, second, 2, 2, { 0, 0, 1, 1 }, "A");
-        failures += !check(layer.records().size() == 2 && layer.records()[0].pixels.size() == 1,
-            "overlap removes only superseded glyph pixels");
-        failures += !check(layer.records()[1].pixels[0].before == 12,
+        failures += !check(layer.records().size() == 1 && layer.records()[0].run.text == "A",
+            "new overlapping font draw replaces the older run");
+        failures += !check(layer.records()[0].pixels[0].before == 12,
             "redraw inherits the original underlying value");
         std::vector<unsigned char> overwritten = second;
         overwritten[1] = 99;
         const auto restored = layer.restorationPixels(7, view(overwritten, 2, 2, 2));
         failures += !check(restored.size() == 1 && restored[0].x == 0 && restored[0].paletteIndex == 12,
-            "overwrite drops stale pixels but keeps still-valid text");
-        failures += !check(layer.records().size() == 2 && layer.records()[0].coverage.size() == 2,
-            "modern glyph clip loses overwritten game pixels only");
+            "new run remains valid when unrelated pixels outside its box change");
+    }
+
+    // Any overwritten captured value invalidates a complete run. Matching
+    // blank coverage must not keep a stale glyph mask alive.
+    {
+        TextLayer layer;
+        std::vector<unsigned char> before(3, 12);
+        std::vector<unsigned char> after = before;
+        after[0] = 30;
+        after[1] = 31;
+        capture(layer, 18, false, before, after, 3, 1, { 0, 0, 3, 1 }, "AB");
+        std::vector<unsigned char> repainted = after;
+        repainted[0] = 99;
+        const auto restored = layer.restorationPixels(18, view(repainted, 3, 1, 3));
+        failures += !check(restored.empty() && layer.records().empty(),
+            "one overwritten glyph pixel invalidates the run despite matching glyph and blank coverage");
+
+        std::vector<unsigned char> oneGlyphBefore(2, 12);
+        std::vector<unsigned char> oneGlyphAfter = oneGlyphBefore;
+        oneGlyphAfter[0] = 40;
+        capture(layer, 181, false, oneGlyphBefore, oneGlyphAfter, 2, 1, { 0, 0, 2, 1 }, "A");
+        oneGlyphAfter[0] = 99;
+        const auto blankCoverage = layer.restorationPixels(181, view(oneGlyphAfter, 2, 1, 2));
+        failures += !check(blankCoverage.empty() && layer.records().empty(),
+            "matching blank coverage cannot keep a fully overwritten glyph run alive");
+    }
+
+    // Orphan memory is checked only during the live copy, and a single stale
+    // glyph delta rejects the whole clipped fragment.
+    {
+        TextLayer layer;
+        std::vector<unsigned char> before(2, 2);
+        std::vector<unsigned char> after = { 8, 9 };
+        capture(layer, 19, true, before, after, 2, 1, { 0, 0, 2, 1 }, "AB");
+        std::vector<unsigned char> staleSource = after;
+        staleSource[1] = 99;
+        std::vector<unsigned char> destinationBefore(2, 5);
+        const auto destinationAfter = blit(staleSource, 2, 1, destinationBefore, 2, 1,
+            { 0, 0, 2, 1 }, 0, 0, false, 0);
+        layer.copy(19, 20, false, { 0, 0, 2, 1 }, 0, 0, false, 0,
+            view(staleSource, 2, 1, 2), view(destinationBefore, 2, 1, 2), view(destinationAfter, 2, 1, 2));
+        failures += !check(layer.records().size() == 1 && layer.records().front().buffer == 19,
+            "orphan blit rejects the whole fragment when one glyph delta is stale");
+        failures += !check(layer.restorationPixels(20, view(destinationAfter, 2, 1, 2)).empty(),
+            "stale orphan fragment cannot restore destination pixels");
     }
 
     // Orphan records are skipped without reading their former memory, but can

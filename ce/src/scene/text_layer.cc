@@ -116,12 +116,11 @@ bool TextLayer::capture(TextBufferId buffer, bool orphan, const TextRunInfo& run
         }
     }
 
-    // The new draw supersedes prior glyph coverage only where it wrote pixels.
-    std::unordered_set<std::uint64_t> coverage;
-    coverage.reserve(record.pixels.size());
-    for (const auto& pixel : record.pixels) coverage.insert(pixelKey(pixel.x, pixel.y));
-    removePixels(buffer, coverage);
     if (record.pixels.empty()) return false;
+    // A new font call replaces any older run whose captured draw box overlaps.
+    records_.erase(std::remove_if(records_.begin(), records_.end(), [buffer, clipped](const TextRecord& oldRecord) {
+        return oldRecord.buffer == buffer && intersection(oldRecord.bounds, clipped).width > 0;
+    }), records_.end());
     records_.push_back(std::move(record));
     trim();
     return true;
@@ -174,6 +173,45 @@ void TextLayer::copy(TextBufferId source, TextBufferId destination, bool destina
         clone.run.y = static_cast<int>(static_cast<std::int64_t>(clone.run.y) + shiftY);
         for (int& characterX : clone.run.characterX) characterX = static_cast<int>(static_cast<std::int64_t>(characterX) + shiftX);
         for (int& characterCellX : clone.run.characterCellX) characterCellX = static_cast<int>(static_cast<std::int64_t>(characterCellX) + shiftX);
+
+        // Only clone a valid captured fragment. A stale glyph pixel anywhere
+        // inside the blit fragment invalidates the fragment as a whole; blank
+        // coverage cells must not keep an old modern run alive by themselves.
+        bool validFragment = true;
+        bool hasGlyphPixel = false;
+        for (const auto& pixel : sourceRecord.pixels) {
+            if (pixel.x < sourceLeft || pixel.x >= sourceRight || pixel.y < sourceTop || pixel.y >= sourceBottom) continue;
+            if (!contains(sourceSnapshot, pixel.x, pixel.y)
+                || pixelAt(sourceSnapshot, pixel.x, pixel.y) != pixel.after) {
+                validFragment = false;
+                break;
+            }
+            if (!(transparent && pixel.after == transparentIndex)) hasGlyphPixel = true;
+        }
+        for (const auto& maskPixel : sourceRecord.coverage) {
+            if (!validFragment || maskPixel.x < sourceLeft || maskPixel.x >= sourceRight
+                || maskPixel.y < sourceTop || maskPixel.y >= sourceBottom) continue;
+            const std::int64_t translatedX = static_cast<std::int64_t>(destinationX) + (maskPixel.x - sourceRect.x);
+            const std::int64_t translatedY = static_cast<std::int64_t>(destinationY) + (maskPixel.y - sourceRect.y);
+            if (translatedX < INT32_MIN || translatedX > INT32_MAX || translatedY < INT32_MIN || translatedY > INT32_MAX
+                || !contains(sourceSnapshot, maskPixel.x, maskPixel.y)
+                || pixelAt(sourceSnapshot, maskPixel.x, maskPixel.y) != maskPixel.expected
+                || !contains(destinationBefore, static_cast<int>(translatedX), static_cast<int>(translatedY))
+                || !contains(destinationAfter, static_cast<int>(translatedX), static_cast<int>(translatedY))) {
+                validFragment = false;
+                break;
+            }
+            const int destX = static_cast<int>(translatedX);
+            const int destY = static_cast<int>(translatedY);
+            const unsigned char expectedDestination = transparent && maskPixel.expected == transparentIndex
+                ? pixelAt(destinationBefore, destX, destY) : maskPixel.expected;
+            if (pixelAt(destinationAfter, destX, destY) != expectedDestination) {
+                validFragment = false;
+                break;
+            }
+        }
+        if (!validFragment || !hasGlyphPixel) continue;
+
         for (const auto& maskPixel : sourceRecord.coverage) {
             if (maskPixel.x < sourceLeft || maskPixel.x >= sourceRight || maskPixel.y < sourceTop || maskPixel.y >= sourceBottom) continue;
             const std::int64_t translatedX = static_cast<std::int64_t>(destinationX) + (maskPixel.x - sourceRect.x);
@@ -269,20 +307,31 @@ std::vector<TextRestorePixel> TextLayer::restorationPixels(TextBufferId buffer,
             ++recordIt;
             continue;
         }
-        auto& mask = recordIt->coverage;
-        mask.erase(std::remove_if(mask.begin(), mask.end(), [&](const TextPixelCoverage& pixel) {
-            return !contains(current, pixel.x, pixel.y) || pixelAt(current, pixel.x, pixel.y) != pixel.expected;
-        }), mask.end());
-        auto& pixels = recordIt->pixels;
-        pixels.erase(std::remove_if(pixels.begin(), pixels.end(), [&](const TextPixelRecord& pixel) {
-            if (!contains(current, pixel.x, pixel.y) || pixelAt(current, pixel.x, pixel.y) != pixel.after) return true;
+        const auto& mask = recordIt->coverage;
+        const auto& pixels = recordIt->pixels;
+        bool valid = !mask.empty() && !pixels.empty();
+        for (const auto& pixel : mask) {
+            if (!contains(current, pixel.x, pixel.y) || pixelAt(current, pixel.x, pixel.y) != pixel.expected) {
+                valid = false;
+                break;
+            }
+        }
+        if (valid) {
+            for (const auto& pixel : pixels) {
+                if (!contains(current, pixel.x, pixel.y) || pixelAt(current, pixel.x, pixel.y) != pixel.after) {
+                    valid = false;
+                    break;
+                }
+            }
+        }
+        if (!valid) {
+            recordIt = records_.erase(recordIt);
+            continue;
+        }
+        for (const auto& pixel : pixels) {
             result.push_back({ pixel.x, pixel.y, pixel.before, recordIt->ownerWindow, recordIt->ownerGeneration });
-            return false;
-        }), pixels.end());
-        // Valid coverage remains as the glyph clip for later frames.
-        recordIt->bounds = coverageBounds(mask);
-        if (mask.empty()) recordIt = records_.erase(recordIt);
-        else ++recordIt;
+        }
+        ++recordIt;
     }
     return result;
 }
