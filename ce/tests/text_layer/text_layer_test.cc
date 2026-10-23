@@ -210,6 +210,22 @@ int main()
             "matching blank coverage cannot keep a fully overwritten glyph run alive");
     }
 
+    // An occluder may touch a blank cell inside the modern glyph bounds. It
+    // must not invalidate the other unchanged legacy glyph pixels.
+    {
+        TextLayer layer;
+        std::vector<unsigned char> before(3, 12);
+        std::vector<unsigned char> after = before;
+        after[0] = 30;
+        after[1] = 31;
+        capture(layer, 182, false, before, after, 3, 1, { 0, 0, 3, 1 }, "AB");
+        std::vector<unsigned char> cursorOverBlank = after;
+        cursorOverBlank[2] = 99;
+        const auto restored = layer.restorationPixels(182, view(cursorOverBlank, 3, 1, 3));
+        failures += !check(restored.size() == 2 && layer.records().size() == 1,
+            "occlusion over blank mask cell preserves valid glyph pixels");
+    }
+
     // Orphan memory is checked only during the live copy, and a single stale
     // glyph delta rejects the whole clipped fragment.
     {

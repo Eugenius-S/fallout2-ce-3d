@@ -77,8 +77,8 @@ struct TextRecord {
     TextRunInfo run;
     TextRect bounds;
     // Per-game-pixel geometry for the modern glyph. It covers the captured
-    // text rectangle or copied fragment and is validated atomically with the
-    // record before rendering.
+    // text rectangle or copied fragment. Legacy changed pixels determine
+    // whether the record is still valid; blank mask cells may be occluded.
     std::vector<TextPixelCoverage> coverage;
     std::vector<TextPixelRecord> pixels;
 };
@@ -115,8 +115,8 @@ public:
     void eraseBuffer(TextBufferId buffer);
     void eraseOwner(int window, TextBufferId generation);
 
-    // Validate each complete captured fragment against the live buffer and
-    // return its restore pixels only when every captured value still matches.
+    // Validate actual legacy glyph pixels against the live buffer and return
+    // restore pixels only when every changed value still matches.
     // Orphan records are never presented.
     std::vector<TextRestorePixel> restorationPixels(TextBufferId buffer,
         TextPixels current, bool includeOrphans = false);

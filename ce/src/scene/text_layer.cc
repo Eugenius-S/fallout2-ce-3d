@@ -174,9 +174,9 @@ void TextLayer::copy(TextBufferId source, TextBufferId destination, bool destina
         for (int& characterX : clone.run.characterX) characterX = static_cast<int>(static_cast<std::int64_t>(characterX) + shiftX);
         for (int& characterCellX : clone.run.characterCellX) characterCellX = static_cast<int>(static_cast<std::int64_t>(characterCellX) + shiftX);
 
-        // Only clone a valid captured fragment. A stale glyph pixel anywhere
-        // inside the blit fragment invalidates the fragment as a whole; blank
-        // coverage cells must not keep an old modern run alive by themselves.
+        // Validate only actual legacy glyph deltas. Blank cells belong to the
+        // modern glyph mask but may be covered by a cursor or another layer.
+        // A stale changed pixel invalidates the whole copied fragment.
         bool validFragment = true;
         bool hasGlyphPixel = false;
         for (const auto& pixel : sourceRecord.pixels) {
@@ -187,28 +187,6 @@ void TextLayer::copy(TextBufferId source, TextBufferId destination, bool destina
                 break;
             }
             if (!(transparent && pixel.after == transparentIndex)) hasGlyphPixel = true;
-        }
-        for (const auto& maskPixel : sourceRecord.coverage) {
-            if (!validFragment || maskPixel.x < sourceLeft || maskPixel.x >= sourceRight
-                || maskPixel.y < sourceTop || maskPixel.y >= sourceBottom) continue;
-            const std::int64_t translatedX = static_cast<std::int64_t>(destinationX) + (maskPixel.x - sourceRect.x);
-            const std::int64_t translatedY = static_cast<std::int64_t>(destinationY) + (maskPixel.y - sourceRect.y);
-            if (translatedX < INT32_MIN || translatedX > INT32_MAX || translatedY < INT32_MIN || translatedY > INT32_MAX
-                || !contains(sourceSnapshot, maskPixel.x, maskPixel.y)
-                || pixelAt(sourceSnapshot, maskPixel.x, maskPixel.y) != maskPixel.expected
-                || !contains(destinationBefore, static_cast<int>(translatedX), static_cast<int>(translatedY))
-                || !contains(destinationAfter, static_cast<int>(translatedX), static_cast<int>(translatedY))) {
-                validFragment = false;
-                break;
-            }
-            const int destX = static_cast<int>(translatedX);
-            const int destY = static_cast<int>(translatedY);
-            const unsigned char expectedDestination = transparent && maskPixel.expected == transparentIndex
-                ? pixelAt(destinationBefore, destX, destY) : maskPixel.expected;
-            if (pixelAt(destinationAfter, destX, destY) != expectedDestination) {
-                validFragment = false;
-                break;
-            }
         }
         if (!validFragment || !hasGlyphPixel) continue;
 
@@ -307,15 +285,8 @@ std::vector<TextRestorePixel> TextLayer::restorationPixels(TextBufferId buffer,
             ++recordIt;
             continue;
         }
-        const auto& mask = recordIt->coverage;
         const auto& pixels = recordIt->pixels;
-        bool valid = !mask.empty() && !pixels.empty();
-        for (const auto& pixel : mask) {
-            if (!contains(current, pixel.x, pixel.y) || pixelAt(current, pixel.x, pixel.y) != pixel.expected) {
-                valid = false;
-                break;
-            }
-        }
+        bool valid = !recordIt->coverage.empty() && !pixels.empty();
         if (valid) {
             for (const auto& pixel : pixels) {
                 if (!contains(current, pixel.x, pixel.y) || pixelAt(current, pixel.x, pixel.y) != pixel.after) {
