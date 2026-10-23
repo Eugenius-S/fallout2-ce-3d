@@ -1,7 +1,10 @@
 #include "text_layer.h"
 
 #include <algorithm>
+#include <cstdarg>
 #include <cstdint>
+#include <cstdio>
+#include <cstdlib>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -66,6 +69,38 @@ std::uint64_t pixelKey(int x, int y)
         | static_cast<std::uint32_t>(x);
 }
 
+bool traceEnabled()
+{
+    static const bool enabled = []() {
+        const char* value = std::getenv("F2CE_TEXT_TRACE");
+        return value != nullptr && value[0] == '1' && value[1] == '\0';
+    }();
+    return enabled;
+}
+
+bool isTraceTarget(const TextRunInfo& run)
+{
+    static constexpr unsigned char target[] = {
+        0xCD, 0xEE, 0xF0, 0xEC, 0xE0, 0xEB, 0xFC, 0xED, 0xEE,
+    };
+    return run.text.size() == sizeof(target)
+        && std::equal(run.text.begin(), run.text.end(), reinterpret_cast<const char*>(target));
+}
+
+void traceRun(const char* stage, TextBufferId buffer, const TextRunInfo& run, const char* format, ...)
+{
+    static std::size_t eventCount = 0;
+    if (!traceEnabled() || !isTraceTarget(run) || eventCount >= 1000) return;
+    eventCount++;
+    std::fprintf(stderr, "F2CE_TEXT_TRACE stage=%s key=%llu:%d:%d:CD-EE-F0-EC-E0-EB-FC-ED-EE font=%d ",
+        stage, static_cast<unsigned long long>(buffer), run.x, run.y, run.font);
+    va_list args;
+    va_start(args, format);
+    std::vfprintf(stderr, format, args);
+    va_end(args);
+    std::fputc('\n', stderr);
+}
+
 } // namespace
 
 TextLayer::TextLayer(std::size_t recordLimit)
@@ -116,18 +151,34 @@ bool TextLayer::capture(TextBufferId buffer, bool orphan, const TextRunInfo& run
         }
     }
 
-    if (record.pixels.empty()) return false;
+    if (record.pixels.empty()) {
+        traceRun("capture_no_ink", buffer, record.run,
+            "owner=%d generation=%llu bounds=%d,%d,%d,%d coverage=%zu", record.ownerWindow,
+            static_cast<unsigned long long>(record.ownerGeneration), record.bounds.x, record.bounds.y,
+            record.bounds.width, record.bounds.height, record.coverage.size());
+        return false;
+    }
     // A run's bounds include blank line-height and advance space. Replace an
     // older run only when the new draw actually changed one of its glyph pixels.
     std::unordered_set<std::uint64_t> changedPixels;
     changedPixels.reserve(record.pixels.size());
     for (const auto& pixel : record.pixels) changedPixels.insert(pixelKey(pixel.x, pixel.y));
-    records_.erase(std::remove_if(records_.begin(), records_.end(), [buffer, &changedPixels](const TextRecord& oldRecord) {
+    records_.erase(std::remove_if(records_.begin(), records_.end(), [buffer, &changedPixels, &record](const TextRecord& oldRecord) {
         if (oldRecord.buffer != buffer) return false;
-        return std::any_of(oldRecord.pixels.begin(), oldRecord.pixels.end(), [&changedPixels](const TextPixelRecord& pixel) {
+        const bool inkOverlap = std::any_of(oldRecord.pixels.begin(), oldRecord.pixels.end(), [&changedPixels](const TextPixelRecord& pixel) {
             return changedPixels.find(pixelKey(pixel.x, pixel.y)) != changedPixels.end();
         });
+        if (inkOverlap) {
+            traceRun("retire_ink_overlap", oldRecord.buffer, oldRecord.run,
+                "replaced_by=%d:%d new_ink_pixels=%zu old_ink_pixels=%zu", record.run.x, record.run.y,
+                record.pixels.size(), oldRecord.pixels.size());
+        }
+        return inkOverlap;
     }), records_.end());
+    traceRun("capture", buffer, record.run,
+        "owner=%d generation=%llu bounds=%d,%d,%d,%d coverage=%zu ink=%zu", record.ownerWindow,
+        static_cast<unsigned long long>(record.ownerGeneration), record.bounds.x, record.bounds.y,
+        record.bounds.width, record.bounds.height, record.coverage.size(), record.pixels.size());
     records_.push_back(std::move(record));
     trim();
     return true;
@@ -188,16 +239,34 @@ void TextLayer::copy(TextBufferId source, TextBufferId destination, bool destina
         // A stale changed pixel invalidates the whole copied fragment.
         bool validFragment = true;
         bool hasGlyphPixel = false;
+        int staleX = -1;
+        int staleY = -1;
+        int staleExpected = -1;
+        int staleActual = -1;
         for (const auto& pixel : sourceRecord.pixels) {
             if (pixel.x < sourceLeft || pixel.x >= sourceRight || pixel.y < sourceTop || pixel.y >= sourceBottom) continue;
             if (!contains(sourceSnapshot, pixel.x, pixel.y)
                 || pixelAt(sourceSnapshot, pixel.x, pixel.y) != pixel.after) {
                 validFragment = false;
+                staleX = pixel.x;
+                staleY = pixel.y;
+                staleExpected = pixel.after;
+                staleActual = contains(sourceSnapshot, pixel.x, pixel.y) ? pixelAt(sourceSnapshot, pixel.x, pixel.y) : -1;
                 break;
             }
             if (!(transparent && pixel.after == transparentIndex)) hasGlyphPixel = true;
         }
-        if (!validFragment || !hasGlyphPixel) continue;
+        if (!validFragment) {
+            traceRun("copy_skip_stale", sourceRecord.buffer, sourceRecord.run,
+                "destination=%llu coord=%d,%d expected=%d actual=%d", static_cast<unsigned long long>(destination),
+                staleX, staleY, staleExpected, staleActual);
+            continue;
+        }
+        if (!hasGlyphPixel) {
+            traceRun("copy_skip_no_glyph", sourceRecord.buffer, sourceRecord.run,
+                "destination=%llu transparent=%d", static_cast<unsigned long long>(destination), transparent ? 1 : 0);
+            continue;
+        }
 
         for (const auto& maskPixel : sourceRecord.coverage) {
             if (maskPixel.x < sourceLeft || maskPixel.x >= sourceRight || maskPixel.y < sourceTop || maskPixel.y >= sourceBottom) continue;
@@ -256,7 +325,15 @@ void TextLayer::copy(TextBufferId source, TextBufferId destination, bool destina
         }
         if (!clone.coverage.empty()) {
             clone.bounds = coverageBounds(clone.coverage);
+            traceRun("copy_clone", sourceRecord.buffer, sourceRecord.run,
+                "destination=%llu new_xy=%d,%d owner=%d generation=%llu bounds=%d,%d,%d,%d coverage=%zu ink=%zu",
+                static_cast<unsigned long long>(destination), clone.run.x, clone.run.y, clone.ownerWindow,
+                static_cast<unsigned long long>(clone.ownerGeneration), clone.bounds.x, clone.bounds.y,
+                clone.bounds.width, clone.bounds.height, clone.coverage.size(), clone.pixels.size());
             copies.push_back(std::move(clone));
+        } else {
+            traceRun("copy_skip_empty_mask", sourceRecord.buffer, sourceRecord.run,
+                "destination=%llu", static_cast<unsigned long long>(destination));
         }
     }
 
@@ -281,6 +358,10 @@ void TextLayer::copy(TextBufferId source, TextBufferId destination, bool destina
             const int sy = static_cast<int>(sourcePixelY);
             return contains(sourceSnapshot, sx, sy) && pixelAt(sourceSnapshot, sx, sy) != transparentIndex;
         };
+        const bool traceRelevant = traceEnabled() && isTraceTarget(recordIt->run)
+            && intersection(recordIt->bounds, { destinationX, destinationY, sourceRect.width, sourceRect.height }).width > 0;
+        const std::size_t oldCoverageCount = recordIt->coverage.size();
+        const std::size_t oldPixelCount = recordIt->pixels.size();
         auto& mask = recordIt->coverage;
         mask.erase(std::remove_if(mask.begin(), mask.end(), [&](const TextPixelCoverage& pixel) {
             return wasWritten(pixel.x, pixel.y);
@@ -289,6 +370,13 @@ void TextLayer::copy(TextBufferId source, TextBufferId destination, bool destina
         pixels.erase(std::remove_if(pixels.begin(), pixels.end(), [&](const TextPixelRecord& pixel) {
             return wasWritten(pixel.x, pixel.y);
         }), pixels.end());
+        if (traceRelevant) {
+            traceRun("known_blit_clip", recordIt->buffer, recordIt->run,
+                "kind=copy source=%llu destination=%llu rect=%d,%d,%d,%d coverage_removed=%zu ink_removed=%zu remaining_coverage=%zu remaining_ink=%zu",
+                static_cast<unsigned long long>(source), static_cast<unsigned long long>(destination), destinationX, destinationY,
+                sourceRect.width, sourceRect.height, oldCoverageCount - mask.size(), oldPixelCount - pixels.size(),
+                mask.size(), pixels.size());
+        }
         recordIt->bounds = coverageBounds(mask);
         if (mask.empty()) recordIt = records_.erase(recordIt);
         else ++recordIt;
@@ -319,6 +407,10 @@ void TextLayer::overwrite(TextBufferId destination, TextRect destinationRect,
             if (!contains(sourceSnapshot, sx, sy)) return false;
             return pixelAt(sourceSnapshot, sx, sy) != transparentIndex;
         };
+        const bool traceRelevant = traceEnabled() && isTraceTarget(recordIt->run)
+            && intersection(recordIt->bounds, destinationRect).width > 0;
+        const std::size_t oldCoverageCount = recordIt->coverage.size();
+        const std::size_t oldPixelCount = recordIt->pixels.size();
         auto& mask = recordIt->coverage;
         mask.erase(std::remove_if(mask.begin(), mask.end(), [&](const TextPixelCoverage& pixel) {
             return wasWritten(pixel.x, pixel.y);
@@ -327,6 +419,12 @@ void TextLayer::overwrite(TextBufferId destination, TextRect destinationRect,
         pixels.erase(std::remove_if(pixels.begin(), pixels.end(), [&](const TextPixelRecord& pixel) {
             return wasWritten(pixel.x, pixel.y);
         }), pixels.end());
+        if (traceRelevant) {
+            traceRun("known_blit_clip", recordIt->buffer, recordIt->run,
+                "kind=overwrite rect=%d,%d,%d,%d transparent=%d coverage_removed=%zu ink_removed=%zu remaining_coverage=%zu remaining_ink=%zu",
+                destinationRect.x, destinationRect.y, destinationRect.width, destinationRect.height, transparent ? 1 : 0,
+                oldCoverageCount - mask.size(), oldPixelCount - pixels.size(), mask.size(), pixels.size());
+        }
         recordIt->bounds = coverageBounds(mask);
         if (mask.empty()) recordIt = records_.erase(recordIt);
         else ++recordIt;
@@ -336,6 +434,10 @@ void TextLayer::overwrite(TextBufferId destination, TextRect destinationRect,
 void TextLayer::eraseBuffer(TextBufferId buffer)
 {
     records_.erase(std::remove_if(records_.begin(), records_.end(), [buffer](const TextRecord& record) {
+        if (record.buffer == buffer) {
+            traceRun("erase_buffer", record.buffer, record.run, "owner=%d generation=%llu",
+                record.ownerWindow, static_cast<unsigned long long>(record.ownerGeneration));
+        }
         return record.buffer == buffer;
     }), records_.end());
 }
@@ -343,6 +445,10 @@ void TextLayer::eraseBuffer(TextBufferId buffer)
 void TextLayer::eraseOwner(int window, TextBufferId generation)
 {
     records_.erase(std::remove_if(records_.begin(), records_.end(), [window, generation](const TextRecord& record) {
+        if (record.ownerWindow == window && record.ownerGeneration == generation) {
+            traceRun("erase_owner", record.buffer, record.run, "owner=%d generation=%llu",
+                record.ownerWindow, static_cast<unsigned long long>(record.ownerGeneration));
+        }
         return record.ownerWindow == window && record.ownerGeneration == generation;
     }), records_.end());
 }
@@ -366,12 +472,14 @@ std::vector<TextRestorePixel> TextLayer::restorationPixels(TextBufferId buffer,
         const auto& pixels = recordIt->pixels;
         bool valid = !recordIt->coverage.empty() && !pixels.empty();
         const TextPixels* validation = &current;
+        TextBufferId validationBuffer = buffer;
         int validationOffsetX = 0;
         int validationOffsetY = 0;
         if (recordIt->ownerWindow >= 0 && recordIt->ownerGeneration != buffer) {
             for (const TextValidationPixels& owner : ownerPixels) {
                 if (owner.buffer == recordIt->ownerGeneration && validPixels(owner.pixels)) {
                     validation = &owner.pixels;
+                    validationBuffer = owner.buffer;
                     validationOffsetX = recordIt->ownerOffsetX;
                     validationOffsetY = recordIt->ownerOffsetY;
                     break;
@@ -385,11 +493,25 @@ std::vector<TextRestorePixel> TextLayer::restorationPixels(TextBufferId buffer,
                 if (!contains(*validation, validationX, validationY)
                     || pixelAt(*validation, validationX, validationY) != pixel.after) {
                     valid = false;
+                    const int actual = contains(*validation, validationX, validationY)
+                        ? pixelAt(*validation, validationX, validationY) : -1;
+                    traceRun("validity_prune", recordIt->buffer, recordIt->run,
+                        "reason=%s coord=%d,%d validation_coord=%d,%d expected=%u actual=%d validation_buffer=%llu owner=%d generation=%llu offset=%d,%d",
+                        validationBuffer == recordIt->buffer ? "screen_pixel_mismatch" : "owner_pixel_mismatch",
+                        pixel.x, pixel.y, validationX, validationY, static_cast<unsigned int>(pixel.after), actual,
+                        static_cast<unsigned long long>(validationBuffer), recordIt->ownerWindow,
+                        static_cast<unsigned long long>(recordIt->ownerGeneration), validationOffsetX, validationOffsetY);
                     break;
                 }
             }
         }
         if (!valid) {
+            if (pixels.empty() || recordIt->coverage.empty()) {
+                traceRun("validity_prune", recordIt->buffer, recordIt->run,
+                    "reason=empty_record coverage=%zu ink=%zu owner=%d generation=%llu",
+                    recordIt->coverage.size(), pixels.size(), recordIt->ownerWindow,
+                    static_cast<unsigned long long>(recordIt->ownerGeneration));
+            }
             recordIt = records_.erase(recordIt);
             continue;
         }

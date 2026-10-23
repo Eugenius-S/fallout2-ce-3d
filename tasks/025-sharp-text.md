@@ -169,6 +169,11 @@ Done: source `2bb6cdd8` passed the configured Release build and full CTest (14/1
 Next: correct the Russian capture at explicit scale 3, then parent visual review. The on/off evidence covers only Preferences; full Pip-Boy, inventory, character screen, dialogue, barter and floating text still need acceptance.
 Check: all four snapshots embed `2bb6cdd8` and EXE SHA-256 `7a6246f7841048ae578624df93bc193f83b96f363c9ee9bb2bcaa41937b48ce7`. Evidence base: `runs/025-sharp-text/capture-overlap-2bb6cdd8/`. The folder names overstated scale: RU Top `scr00022.png` is x2 at 1920x1080 physical / 960x540 logical, with 84 runs, 707 glyphs, 43,678 restored pixels and 10.772 ms. EN Bottom `scr00024.png` is x2 at 1280x960 physical, with 26 runs, 252 glyphs, 6,842 restored pixels and 4.720 ms. Off snapshots are inactive; no test process remained after capture. Parent's prior 16-off regression passed all spots with no updates, but used source `568c5977`, before this change.
 
+### 2026-10-23 gpt (text capture trace)
+Done: added an opt-in `F2CE_TEXT_TRACE=1` diagnostic for the exact CP1251 bytes of the centered Preferences value label. It reports capture, ink retirement, known blit intersections, copy cloning/skips, source-range misses and atomic validation drops with pixel coordinates and owner generation; it does not change drawing behavior.
+Next: build and run one explicitly verified Russian Top Preferences x3 snapshot, then inspect the trace before changing capture or blit behavior.
+Check: `git diff --check` passes. No build, test or runtime evidence exists for this diagnostic commit yet.
+
 ### 2026-10-23 gpt (clean build include fix)
 Done: added the missing `<cmath>` include required by the embedded-font test's `std::ceil` call, found by the full clean Release build.
 Next: configure from this commit, rerun the full clean Release build and CTest, then capture the revised RU x3 Top pair and EN x2 Bottom ghost check if the build passes.

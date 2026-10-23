@@ -2,6 +2,8 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <cstdio>
+#include <cstdlib>
 #include <limits>
 #include <map>
 #include <mutex>
@@ -190,6 +192,55 @@ bool captureMetrics(const char* string, int length, ColorWithFlags color,
         width += advance;
     }
     return true;
+}
+
+bool textTraceEnabled()
+{
+    static const bool enabled = []() {
+        const char* value = std::getenv("F2CE_TEXT_TRACE");
+        return value != nullptr && value[0] == '1' && value[1] == '\0';
+    }();
+    return enabled;
+}
+
+bool isTextTraceTarget(const std::string& text)
+{
+    static constexpr unsigned char target[] = {
+        0xCD, 0xEE, 0xF0, 0xEC, 0xE0, 0xEB, 0xFC, 0xED, 0xEE,
+    };
+    return text.size() == sizeof(target)
+        && std::equal(text.begin(), text.end(), reinterpret_cast<const char*>(target));
+}
+
+void traceUntrackedCopySource(const BufferRange* sourceRange, const BufferRange* destinationRange,
+    const unsigned char* source, int sourcePitch, int width, int height,
+    int destinationX, int destinationY, bool transparent)
+{
+    static std::size_t eventCount = 0;
+    if (!textTraceEnabled() || sourceRange != nullptr || destinationRange == nullptr || eventCount >= 1000) return;
+    const std::uintptr_t sourceAddress = reinterpret_cast<std::uintptr_t>(source);
+    const bool sourceHasRange = findRange(source) != nullptr;
+    const BufferRange* candidate = findRange(source);
+    const std::uintptr_t sourceOffset = candidate != nullptr && sourceAddress >= candidate->base
+        ? sourceAddress - candidate->base : 0;
+    const std::int64_t destinationRight = static_cast<std::int64_t>(destinationX) + width;
+    const std::int64_t destinationBottom = static_cast<std::int64_t>(destinationY) + height;
+    for (const auto& record : layer().records()) {
+        if (record.buffer != destinationRange->id || !isTextTraceTarget(record.run.text)
+            || record.bounds.x >= destinationRight || destinationX >= static_cast<std::int64_t>(record.bounds.x) + record.bounds.width
+            || record.bounds.y >= destinationBottom || destinationY >= static_cast<std::int64_t>(record.bounds.y) + record.bounds.height) continue;
+        eventCount++;
+        std::fprintf(stderr,
+            "F2CE_TEXT_TRACE stage=adapter_source_range_miss key=%llu:%d:%d:CD-EE-F0-EC-E0-EB-FC-ED-EE source=%p source_range=%d source_base=0x%llx source_size=%zu source_offset=%llu source_pitch=%d source_range_pitch=%d source_range_width=%d source_range_height=%d rect=%d,%d destination=%d,%d transparent=%d dest_buffer=%llu owner=%d generation=%llu\n",
+            static_cast<unsigned long long>(record.buffer), record.run.x, record.run.y, static_cast<const void*>(source), sourceHasRange ? 1 : 0,
+            static_cast<unsigned long long>(candidate != nullptr ? candidate->base : 0),
+            candidate != nullptr ? candidate->size : 0, static_cast<unsigned long long>(sourceOffset), sourcePitch,
+            candidate != nullptr ? candidate->pitch : 0, candidate != nullptr ? candidate->width : 0,
+            candidate != nullptr ? candidate->height : 0, width, height, destinationX, destinationY,
+            transparent ? 1 : 0, static_cast<unsigned long long>(destinationRange->id), record.ownerWindow,
+            static_cast<unsigned long long>(record.ownerGeneration));
+        if (eventCount >= 1000) break;
+    }
 }
 
 } // namespace
@@ -404,6 +455,8 @@ void textCaptureCopy(const unsigned char* source, int width, int height, int sou
     BufferRange* sourceRange = rangeForCopy(source, sourcePitch, width, height, sourceX, sourceY);
     BufferRange* destinationRange = rangeForCopy(destination, destinationPitch, width, height, destinationX, destinationY);
     if (sourceRange == nullptr || destinationRange == nullptr) {
+        traceUntrackedCopySource(sourceRange, destinationRange, source, sourcePitch, width, height,
+            destinationX, destinationY, transparent);
         copyProc(destination, destinationPitch, source, sourcePitch, width, height);
         if (destinationRange != nullptr && !transparent) {
             layer().overwrite(destinationRange->id, { destinationX, destinationY, width, height });
