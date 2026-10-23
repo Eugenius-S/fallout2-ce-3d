@@ -94,3 +94,7 @@ buckas1/girlp005/bilchsig/anmste14/bolcas2 at once; after that the score's
 only gap is klatoxcv (shoot --single per view, 0.9% of the weight).
 Check: `py -3 tools/shapes/eval/klamath.py score`; verdicts in
 tools/shapes/eval/klamath-verdicts.json, flags in build/shapes-klamath/flags.json.
+Acceptance state: the score gate (98%) and the exceptions cap (3 of 46) are
+met; the regression 16/16 item is blocked by the pre-existing 13/16
+failures documented in task 054 (proven not from this branch by the
+reverted-build rerun), so the task stays open until 054 is resolved.
