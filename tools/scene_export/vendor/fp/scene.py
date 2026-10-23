@@ -817,7 +817,7 @@ class SceneBuilder:
     def build_light(self):
         """The baked light image (light.py) and the glows of visible flames and lamps."""
         cards = [(row[0], row[1], row[2], row[-1]) for row in self.boards]
-        for board, body, _ in self.shadows:             # what stands there is the sprite without its painted shadow
+        for board, body, _, _, _ in self.shadows:       # what stands there is the sprite without its painted shadow
             cards[board] = (body,) + cards[board][1:]
         cards += [(self.sets[row[0]]["dirs"][row[3]][0], row[1], row[2], row[-1]) for row in self.critters]
         solid = set(self.hidden) - self.forced_boards  # these throw the shade of their solid
