@@ -2,12 +2,12 @@
 id: 023
 title: Cloud shadows
 milestone: M1
-status: todo
-owner: none
-suggested: glm
+status: doing
+owner: glm
+suggested: glm (045's shadows landed in PR #73, the branch stacks on it)
 claude-only: no
 user-check: yes
-depends-on: [045]
+depends-on: [045 (PR #73, stacked)]
 reviewed: no
 ---
 
