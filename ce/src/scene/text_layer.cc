@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <cstdint>
 #include <unordered_map>
-#include <unordered_set>
 
 namespace fallout {
 namespace scene {
@@ -253,14 +252,77 @@ void TextLayer::copy(TextBufferId source, TextBufferId destination, bool destina
         }
     }
 
-    // Snapshot clones before removing overlap; source and destination may be the same buffer.
-    std::unordered_set<std::uint64_t> coverage;
-    for (const auto& clone : copies) {
-        for (const auto& pixel : clone.coverage) coverage.insert(pixelKey(pixel.x, pixel.y));
+    // Retire only existing destination text cells covered by the blit. This
+    // keeps full-frame image copies proportional to tracked text, not pixels.
+    // Clones were already snapshotted above, so same-buffer scrolls are safe.
+    for (auto recordIt = records_.begin(); recordIt != records_.end();) {
+        if (recordIt->buffer != destination) {
+            ++recordIt;
+            continue;
+        }
+        auto wasWritten = [&](int x, int y) {
+            const std::int64_t offsetX = static_cast<std::int64_t>(x) - destinationX;
+            const std::int64_t offsetY = static_cast<std::int64_t>(y) - destinationY;
+            if (offsetX < 0 || offsetY < 0 || offsetX >= sourceRect.width || offsetY >= sourceRect.height
+                || !contains(destinationBefore, x, y) || !contains(destinationAfter, x, y)) return false;
+            if (!transparent) return true;
+            const std::int64_t sourcePixelX = static_cast<std::int64_t>(sourceRect.x) + offsetX;
+            const std::int64_t sourcePixelY = static_cast<std::int64_t>(sourceRect.y) + offsetY;
+            if (sourcePixelX < INT32_MIN || sourcePixelX > INT32_MAX || sourcePixelY < INT32_MIN || sourcePixelY > INT32_MAX) return false;
+            const int sx = static_cast<int>(sourcePixelX);
+            const int sy = static_cast<int>(sourcePixelY);
+            return contains(sourceSnapshot, sx, sy) && pixelAt(sourceSnapshot, sx, sy) != transparentIndex;
+        };
+        auto& mask = recordIt->coverage;
+        mask.erase(std::remove_if(mask.begin(), mask.end(), [&](const TextPixelCoverage& pixel) {
+            return wasWritten(pixel.x, pixel.y);
+        }), mask.end());
+        auto& pixels = recordIt->pixels;
+        pixels.erase(std::remove_if(pixels.begin(), pixels.end(), [&](const TextPixelRecord& pixel) {
+            return wasWritten(pixel.x, pixel.y);
+        }), pixels.end());
+        recordIt->bounds = coverageBounds(mask);
+        if (mask.empty()) recordIt = records_.erase(recordIt);
+        else ++recordIt;
     }
-    removePixels(destination, coverage);
     for (auto& clone : copies) records_.push_back(std::move(clone));
     trim();
+}
+
+void TextLayer::overwrite(TextBufferId destination, TextRect destinationRect,
+    TextPixels sourceSnapshot, bool transparent, unsigned char transparentIndex)
+{
+    if (destination == 0 || destinationRect.width <= 0 || destinationRect.height <= 0) return;
+    const std::int64_t right = static_cast<std::int64_t>(destinationRect.x) + destinationRect.width;
+    const std::int64_t bottom = static_cast<std::int64_t>(destinationRect.y) + destinationRect.height;
+    for (auto recordIt = records_.begin(); recordIt != records_.end();) {
+        if (recordIt->buffer != destination) {
+            ++recordIt;
+            continue;
+        }
+        auto wasWritten = [&](int x, int y) {
+            if (x < destinationRect.x || y < destinationRect.y || x >= right || y >= bottom) return false;
+            if (!transparent) return true;
+            const std::int64_t sourceX = static_cast<std::int64_t>(sourceSnapshot.originX) + x - destinationRect.x;
+            const std::int64_t sourceY = static_cast<std::int64_t>(sourceSnapshot.originY) + y - destinationRect.y;
+            if (sourceX < INT32_MIN || sourceX > INT32_MAX || sourceY < INT32_MIN || sourceY > INT32_MAX) return false;
+            const int sx = static_cast<int>(sourceX);
+            const int sy = static_cast<int>(sourceY);
+            if (!contains(sourceSnapshot, sx, sy)) return false;
+            return pixelAt(sourceSnapshot, sx, sy) != transparentIndex;
+        };
+        auto& mask = recordIt->coverage;
+        mask.erase(std::remove_if(mask.begin(), mask.end(), [&](const TextPixelCoverage& pixel) {
+            return wasWritten(pixel.x, pixel.y);
+        }), mask.end());
+        auto& pixels = recordIt->pixels;
+        pixels.erase(std::remove_if(pixels.begin(), pixels.end(), [&](const TextPixelRecord& pixel) {
+            return wasWritten(pixel.x, pixel.y);
+        }), pixels.end());
+        recordIt->bounds = coverageBounds(mask);
+        if (mask.empty()) recordIt = records_.erase(recordIt);
+        else ++recordIt;
+    }
 }
 
 void TextLayer::eraseBuffer(TextBufferId buffer)
@@ -345,27 +407,6 @@ void TextLayer::trim()
 {
     if (records_.size() > recordLimit_) {
         records_.erase(records_.begin(), records_.begin() + (records_.size() - recordLimit_));
-    }
-}
-
-void TextLayer::removePixels(TextBufferId buffer, const std::unordered_set<std::uint64_t>& coverage)
-{
-    for (auto recordIt = records_.begin(); recordIt != records_.end();) {
-        if (recordIt->buffer != buffer) {
-            ++recordIt;
-            continue;
-        }
-        auto& mask = recordIt->coverage;
-        mask.erase(std::remove_if(mask.begin(), mask.end(), [&coverage](const TextPixelCoverage& pixel) {
-            return coverage.find(pixelKey(pixel.x, pixel.y)) != coverage.end();
-        }), mask.end());
-        auto& pixels = recordIt->pixels;
-        pixels.erase(std::remove_if(pixels.begin(), pixels.end(), [&coverage](const TextPixelRecord& pixel) {
-            return coverage.find(pixelKey(pixel.x, pixel.y)) != coverage.end();
-        }), pixels.end());
-        recordIt->bounds = coverageBounds(mask);
-        if (mask.empty()) recordIt = records_.erase(recordIt);
-        else ++recordIt;
     }
 }
 

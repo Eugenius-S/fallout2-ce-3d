@@ -63,6 +63,7 @@ void drawTwoGlyphs(unsigned char* buffer, const char* string, int length, int pi
 namespace {
 
 int drawCalls = 0;
+int copyCalls = 0;
 int failures = 0;
 
 void check(bool condition, const char* message)
@@ -85,8 +86,20 @@ void fakeFontDraw(unsigned char* buffer, const char* string, int length, int pit
 
 void fakeCopy(unsigned char* destination, int destinationPitch, const unsigned char* source, int sourcePitch, int width, int height)
 {
+    copyCalls++;
     for (int y = 0; y < height; y++) {
         std::memmove(destination, source, width);
+        destination += destinationPitch;
+        source += sourcePitch;
+    }
+}
+
+void fakeTransparentCopy(unsigned char* destination, int destinationPitch, const unsigned char* source, int sourcePitch, int width, int height)
+{
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+            if (source[x] != 0) destination[x] = source[x];
+        }
         destination += destinationPitch;
         source += sourcePitch;
     }
@@ -169,6 +182,63 @@ void testUnknownBuffersKeepPixelBehavior()
     check(drawCalls == 1, "unknown targets still invoke the original font proc once");
     check(destination[0] == 6 && destination[1] == 4,
         "unknown buffers retain the original drawing and blit pixel result");
+}
+
+void testImageBlitMasksDestinationTextWithoutSourceText()
+{
+    using namespace fallout;
+    std::vector<unsigned char> source(4, 40);
+    std::vector<unsigned char> destination(4, 1);
+    textCaptureAllocationCreated(source.data(), source.size());
+    textCaptureAllocationCreated(destination.data(), destination.size());
+    textCaptureMarkBufferOwned(destination.data());
+    const scene::TextBufferId destinationId = textCaptureBufferId(destination.data());
+    fontDrawTextPtr = drawTwoGlyphs;
+    fontDrawText(destination.data(), "ab", 2, 2, static_cast<ColorWithFlags>(5));
+    check(scene::textCaptureRecords(destinationId).size() == 1, "destination has a captured text run before image blit");
+    textCaptureCopy(source.data(), 2, 2, 2, destination.data(), 2, false, fakeCopy);
+    check(destination == source, "opaque image blit retains original pixel output");
+    check(scene::textCaptureRecords(destinationId).empty(),
+        "opaque source without text removes only destination text pixels it covers");
+    textCaptureAllocationDestroyed(source.data());
+    textCaptureAllocationDestroyed(destination.data());
+}
+
+void testUntrackedImageCopyUsesPixelFastPath()
+{
+    using namespace fallout;
+    std::vector<unsigned char> source(4, 40);
+    std::vector<unsigned char> destination(4, 1);
+    textCaptureAllocationCreated(source.data(), source.size());
+    textCaptureAllocationCreated(destination.data(), destination.size());
+    const int before = copyCalls;
+    textCaptureCopy(source.data(), 2, 2, 2, destination.data(), 2, false, fakeCopy);
+    check(destination == source, "untracked image copy preserves its pixel output");
+    check(copyCalls == before + 1, "untracked image copy reaches the pixel blitter once without tracking work");
+    textCaptureAllocationDestroyed(source.data());
+    textCaptureAllocationDestroyed(destination.data());
+}
+
+void testTransparentImageBlitMasksOnlyOpaqueShape()
+{
+    using namespace fallout;
+    std::vector<unsigned char> source = { 5, 0, 0, 0 };
+    std::vector<unsigned char> destination(4, 1);
+    textCaptureAllocationCreated(source.data(), source.size());
+    textCaptureAllocationCreated(destination.data(), destination.size());
+    textCaptureMarkBufferOwned(destination.data());
+    const scene::TextBufferId destinationId = textCaptureBufferId(destination.data());
+    fontDrawTextPtr = drawTwoGlyphs;
+    fontDrawText(destination.data(), "ab", 2, 2, static_cast<ColorWithFlags>(5));
+    textCaptureCopy(source.data(), 2, 2, 2, destination.data(), 2, true, fakeTransparentCopy);
+    const auto records = scene::textCaptureRecords(destinationId);
+    check(destination[0] == 5 && destination[1] == 6,
+        "transparent image blit keeps its exact palette result");
+    check(records.size() == 1 && records.front().pixels.size() == 1
+            && records.front().pixels.front().x == 1,
+        "transparent image blit masks an unchanged opaque cell and preserves blank source cells");
+    textCaptureAllocationDestroyed(source.data());
+    textCaptureAllocationDestroyed(destination.data());
 }
 
 void testAllocationEdgeBounds()
@@ -357,6 +427,9 @@ int main()
     testSafeClippedCaptureAndBlit();
     testAllocationEdgeBounds();
     testMonospacedClippedRunMetadata();
+    testImageBlitMasksDestinationTextWithoutSourceText();
+    testUntrackedImageCopyUsesPixelFastPath();
+    testTransparentImageBlitMasksOnlyOpaqueShape();
     testUnknownBuffersKeepPixelBehavior();
     testVisibilityClearsHiddenAndStaleOwners();
     testCursorOcclusionPreservesOwnedText();

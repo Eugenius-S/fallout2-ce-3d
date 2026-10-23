@@ -61,7 +61,9 @@ bool capture(TextLayer& layer, TextBufferId id, bool orphan,
 {
     const auto beforeView = view(before, width, height, width);
     const auto afterView = view(after, width, height, width);
-    return layer.capture(id, orphan, run(text, bounds.x, bounds.y), bounds, beforeView, afterView,
+    TextRunInfo capturedRun = run(text, bounds.x, bounds.y);
+    capturedRun.width = bounds.width;
+    return layer.capture(id, orphan, capturedRun, bounds, beforeView, afterView,
         ownerWindow, ownerGeneration);
 }
 
@@ -224,6 +226,90 @@ int main()
         const auto restored = layer.restorationPixels(182, view(cursorOverBlank, 3, 1, 3));
         failures += !check(restored.size() == 2 && layer.records().size() == 1,
             "occlusion over blank mask cell preserves valid glyph pixels");
+    }
+
+    // A known opaque image blit removes only the covered part of an existing
+    // text run, even when one copied palette value matches the old pixel.
+    {
+        TextLayer layer;
+        std::vector<unsigned char> before(4, 3);
+        std::vector<unsigned char> after = { 20, 21, 22, 23 };
+        capture(layer, 183, false, before, after, 4, 1, { 0, 0, 4, 1 });
+        layer.overwrite(183, { 1, 0, 2, 1 });
+        const auto restored = layer.restorationPixels(183, view(after, 4, 1, 4));
+        failures += !check(layer.records().size() == 1 && layer.records().front().pixels.size() == 2
+                && layer.records().front().run.width == 4,
+            "opaque image blit clips covered cells but preserves original run geometry");
+        failures += !check(restored.size() == 2 && restored[0].x == 0 && restored[1].x == 3,
+            "opaque image block leaves only uncovered text pixels for sharp drawing");
+    }
+
+    // A transparent sprite masks every nontransparent source cell, including
+    // cells whose palette value happens to match the destination already.
+    {
+        TextLayer layer;
+        std::vector<unsigned char> before(4, 3);
+        std::vector<unsigned char> after = { 20, 21, 22, 23 };
+        capture(layer, 184, false, before, after, 4, 1, { 0, 0, 4, 1 });
+        std::vector<unsigned char> sprite = { 20, 0, 0, 22 };
+        layer.overwrite(184, { 0, 0, 4, 1 }, view(sprite, 4, 1, 4), true, 0);
+        const auto restored = layer.restorationPixels(184, view(after, 4, 1, 4));
+        failures += !check(layer.records().size() == 1 && layer.records().front().coverage.size() == 2,
+            "transparent sprite masks its shape even when an opaque pixel was unchanged");
+        failures += !check(restored.size() == 2 && restored[0].x == 1 && restored[1].x == 2,
+            "transparent sprite leaves only uncovered glyph pixels for sharp drawing");
+        std::vector<unsigned char> stale = after;
+        stale[2] = 99;
+        failures += !check(layer.restorationPixels(184, view(stale, 4, 1, 4)).empty()
+                && layer.records().empty(),
+            "an unrelated stale glyph delta still invalidates the remaining run atomically");
+    }
+
+    // A tracked blit whose source contains no text still retires overwritten
+    // destination text cells. Transparent source blanks preserve them.
+    {
+        TextLayer layer;
+        std::vector<unsigned char> before(4, 2);
+        std::vector<unsigned char> after = { 8, 9, 10, 11 };
+        capture(layer, 185, false, before, after, 4, 1, { 0, 0, 4, 1 });
+        std::vector<unsigned char> sprite = { 50, 0, 52, 0 };
+        layer.overwrite(185, { 0, 0, 4, 1 }, view(sprite, 4, 1, 4), true, 0);
+        failures += !check(layer.records().size() == 1 && layer.records().front().pixels.size() == 2
+                && layer.records().front().pixels[0].x == 1 && layer.records().front().pixels[1].x == 3,
+            "transparent blit without source text clips only opaque destination cells");
+    }
+
+    // A compact source snapshot may cover only a copied fragment. The source
+    // rectangle can be larger, but validation and cloning must stay in bounds.
+    {
+        TextLayer layer;
+        std::vector<unsigned char> before = { 3, 3, 3, 3 };
+        std::vector<unsigned char> after = { 3, 20, 21, 3 };
+        capture(layer, 186, true, before, after, 4, 1, { 0, 0, 4, 1 }, "AB", 5, 15);
+        std::vector<unsigned char> compact = { 20, 21 };
+        std::vector<unsigned char> destinationBefore(4, 9);
+        std::vector<unsigned char> destinationAfter = { 3, 20, 21, 3 };
+        TextPixels compactView { compact.data(), 2, 1, 2, 1, 0 };
+        layer.copy(186, 187, false, { 0, 0, 4, 1 }, 0, 0, false, 0,
+            compactView, view(destinationBefore, 4, 1, 4), view(destinationAfter, 4, 1, 4));
+        const auto records = layer.records();
+        failures += !check(records.size() == 2 && records.back().bounds.x == 1 && records.back().bounds.width == 2,
+            "copy with a compact source snapshot retains only safely sampled glyph geometry");
+    }
+
+    {
+        TextLayer layer;
+        std::vector<unsigned char> before(4, 3);
+        std::vector<unsigned char> after = { 20, 3, 3, 21 };
+        capture(layer, 188, true, before, after, 4, 1, { 0, 0, 4, 1 }, "AB", 5, 16);
+        std::vector<unsigned char> compact = { 3, 3 };
+        std::vector<unsigned char> destinationBefore(4, 9);
+        std::vector<unsigned char> destinationAfter = after;
+        TextPixels compactView { compact.data(), 2, 1, 2, 1, 0 };
+        layer.copy(188, 189, false, { 0, 0, 4, 1 }, 0, 0, false, 0,
+            compactView, view(destinationBefore, 4, 1, 4), view(destinationAfter, 4, 1, 4));
+        failures += !check(layer.records().size() == 1,
+            "a compact source snapshot missing changed glyph pixels cannot clone an unvalidated record");
     }
 
     // Orphan memory is checked only during the live copy, and a single stale

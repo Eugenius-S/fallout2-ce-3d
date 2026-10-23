@@ -6,9 +6,12 @@
 
 #include <SDL.h>
 
+#include "../scene/scene_overlay.h"
 #include "../scene/text_capture.h"
 #include "../settings.h"
 #include "context.h"
+#include "post.h"
+#include "scene_draw.h"
 
 namespace fallout {
 namespace scene_renderer {
@@ -188,6 +191,46 @@ bool prepareSharpTextFrame(const unsigned char* indices, int width, int height, 
 const PreparedSharpTextFrame& preparedSharpTextFrame()
 {
     return preparedFrameStorage();
+}
+
+void drawSceneOverlayWithSharpText(SDL_Surface* indexedSurface, SDL_Surface* rgbaSurface, bool ready)
+{
+    if (indexedSurface == nullptr || rgbaSurface == nullptr) return;
+    if (ready) {
+        const PreparedSharpTextFrame& frame = preparedSharpTextFrame();
+        std::vector<unsigned char> overlay = frame.restoredRgba;
+        scene::maskOverlay(frame.restoredIndices.data(), frame.indexPitch,
+            overlay.data(), frame.rgbaPitch, frame.width, frame.height);
+        drawSceneOverlay(overlay.data(), frame.width, frame.height, frame.rgbaPitch);
+        if (drawPreparedSharpTextOverlay()) return;
+
+        disableSharpText("OpenGL draw failed");
+        const bool glow = beginSceneCapture();
+        drawStaticHeroPreview();
+        if (glow) compositeGlow();
+    }
+
+    SDL_BlitSurface(indexedSurface, nullptr, rgbaSurface, nullptr);
+    scene::maskOverlay(static_cast<const unsigned char*>(indexedSurface->pixels), indexedSurface->pitch,
+        static_cast<unsigned char*>(rgbaSurface->pixels), rgbaSurface->pitch,
+        indexedSurface->w, indexedSurface->h);
+    drawSceneOverlay(static_cast<const unsigned char*>(rgbaSurface->pixels),
+        rgbaSurface->w, rgbaSurface->h, rgbaSurface->pitch);
+}
+
+void presentFrameWithSharpText(SDL_Surface* indexedSurface, SDL_Surface* rgbaSurface, bool ready)
+{
+    if (indexedSurface == nullptr || rgbaSurface == nullptr) return;
+    if (ready) {
+        const PreparedSharpTextFrame& frame = preparedSharpTextFrame();
+        presentFrame(frame.restoredRgba.data(), frame.width, frame.height, frame.rgbaPitch);
+        if (drawPreparedSharpTextOverlay()) return;
+        disableSharpText("OpenGL draw failed");
+    }
+
+    SDL_BlitSurface(indexedSurface, nullptr, rgbaSurface, nullptr);
+    presentFrame(static_cast<const unsigned char*>(rgbaSurface->pixels),
+        rgbaSurface->w, rgbaSurface->h, rgbaSurface->pitch);
 }
 
 } // namespace scene_renderer

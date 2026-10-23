@@ -14,6 +14,8 @@ bool prepareSharpTextFrame(const unsigned char* indices, int width, int height, 
     const unsigned char* rgba, int rgbaPitch, int physicalWidth, int physicalHeight,
     const unsigned char* paletteRgb, int paletteEntries, bool enabled);
 bool prepareSharpTextForPresent(SDL_Surface* indexedSurface, SDL_Surface* rgbaSurface, bool enabled);
+void drawSceneOverlayWithSharpText(SDL_Surface* indexedSurface, SDL_Surface* rgbaSurface, bool ready);
+void presentFrameWithSharpText(SDL_Surface* indexedSurface, SDL_Surface* rgbaSurface, bool ready);
 void disableSharpText(const char* message);
 bool drawPreparedSharpTextOverlay();
 const PreparedSharpTextFrame& preparedSharpTextFrame();

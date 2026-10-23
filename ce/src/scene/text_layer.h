@@ -4,7 +4,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
-#include <unordered_set>
 #include <vector>
 
 namespace fallout {
@@ -119,6 +118,12 @@ public:
         TextPixels sourceSnapshot, TextPixels destinationBefore, TextPixels destinationAfter,
         int destinationOwnerWindow = -1, TextBufferId destinationOwnerGeneration = 0);
 
+    // Retire only text coverage explicitly overwritten by a known image blit.
+    // For a transparent blit, source pixels are aligned to destinationRect and
+    // transparentIndex cells leave earlier text visible.
+    void overwrite(TextBufferId destination, TextRect destinationRect,
+        TextPixels sourceSnapshot = {}, bool transparent = false, unsigned char transparentIndex = 0);
+
     // Drop every record for a dead buffer generation.
     void eraseBuffer(TextBufferId buffer);
     void eraseOwner(int window, TextBufferId generation);
@@ -137,7 +142,6 @@ public:
 
 private:
     void trim();
-    void removePixels(TextBufferId buffer, const std::unordered_set<std::uint64_t>& coverage);
 
     std::size_t recordLimit_;
     std::vector<TextRecord> records_;

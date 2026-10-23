@@ -405,21 +405,32 @@ void textCaptureCopy(const unsigned char* source, int width, int height, int sou
     BufferRange* destinationRange = rangeForCopy(destination, destinationPitch, width, height, destinationX, destinationY);
     if (sourceRange == nullptr || destinationRange == nullptr) {
         copyProc(destination, destinationPitch, source, sourcePitch, width, height);
+        if (destinationRange != nullptr && !transparent) {
+            layer().overwrite(destinationRange->id, { destinationX, destinationY, width, height });
+        }
         return;
     }
 
     bool hasSourceText = false;
+    bool hasDestinationText = false;
     for (const auto& record : layer().records()) {
-        if (record.buffer != sourceRange->id) continue;
-        const std::int64_t right = static_cast<std::int64_t>(sourceX) + width;
-        const std::int64_t bottom = static_cast<std::int64_t>(sourceY) + height;
-        if (record.bounds.x < right && sourceX < static_cast<std::int64_t>(record.bounds.x) + record.bounds.width
-            && record.bounds.y < bottom && sourceY < static_cast<std::int64_t>(record.bounds.y) + record.bounds.height) {
+        const std::int64_t sourceRight = static_cast<std::int64_t>(sourceX) + width;
+        const std::int64_t sourceBottom = static_cast<std::int64_t>(sourceY) + height;
+        const std::int64_t destinationRight = static_cast<std::int64_t>(destinationX) + width;
+        const std::int64_t destinationBottom = static_cast<std::int64_t>(destinationY) + height;
+        if (record.buffer == sourceRange->id
+            && record.bounds.x < sourceRight && sourceX < static_cast<std::int64_t>(record.bounds.x) + record.bounds.width
+            && record.bounds.y < sourceBottom && sourceY < static_cast<std::int64_t>(record.bounds.y) + record.bounds.height) {
             hasSourceText = true;
-            break;
         }
+        if (record.buffer == destinationRange->id
+            && record.bounds.x < destinationRight && destinationX < static_cast<std::int64_t>(record.bounds.x) + record.bounds.width
+            && record.bounds.y < destinationBottom && destinationY < static_cast<std::int64_t>(record.bounds.y) + record.bounds.height) {
+            hasDestinationText = true;
+        }
+        if (hasSourceText && hasDestinationText) break;
     }
-    if (!hasSourceText) {
+    if (!hasSourceText && !hasDestinationText) {
         copyProc(destination, destinationPitch, source, sourcePitch, width, height);
         return;
     }
@@ -427,6 +438,11 @@ void textCaptureCopy(const unsigned char* source, int width, int height, int sou
     const scene::TextRect sourceRect { sourceX, sourceY, width, height };
     const scene::TextRect destinationRect { destinationX, destinationY, width, height };
     PixelSnapshot sourceSnapshot = snapshot(*sourceRange, sourceRect);
+    if (!hasSourceText) {
+        copyProc(destination, destinationPitch, source, sourcePitch, width, height);
+        layer().overwrite(destinationRange->id, destinationRect, sourceSnapshot.view, transparent, 0);
+        return;
+    }
     PixelSnapshot destinationBefore = snapshot(*destinationRange, destinationRect);
     copyProc(destination, destinationPitch, source, sourcePitch, width, height);
     PixelSnapshot destinationAfter = snapshot(*destinationRange, destinationRect);
