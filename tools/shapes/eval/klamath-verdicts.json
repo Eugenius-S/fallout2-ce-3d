@@ -1,0 +1,163 @@
+{
+ "anmlx4.frm": {
+  "verdict": "pass"
+ },
+ "anmgotn.frm": {
+  "verdict": "pass"
+ },
+ "anmradl.frm": {
+  "verdict": "pass"
+ },
+ "anmstl08.frm": {
+  "verdict": "pass"
+ },
+ "nybed7.frm": {
+  "verdict": "pass"
+ },
+ "bed1.frm": {
+  "verdict": "pass"
+ },
+ "bed2.frm": {
+  "verdict": "pass"
+ },
+ "bed3.frm": {
+  "verdict": "pass"
+ },
+ "bed6.frm": {
+  "verdict": "pass"
+ },
+ "bed8.frm": {
+  "verdict": "pass"
+ },
+ "bar01.frm": {
+  "verdict": "pass"
+ },
+ "barrel.frm": {
+  "verdict": "pass"
+ },
+ "barrel0.frm": {
+  "verdict": "pass"
+ },
+ "barrel1.frm": {
+  "verdict": "pass"
+ },
+ "barrel3.frm": {
+  "verdict": "pass"
+ },
+ "barrel4.frm": {
+  "verdict": "pass"
+ },
+ "barrel2.frm": {
+  "verdict": "pass"
+ },
+ "barst0l.frm": {
+  "verdict": "pass"
+ },
+ "bilchsig.frm": {
+  "verdict": "fail",
+  "why": "the sign shows only from its face side"
+ },
+ "bilksh18.frm": {
+  "verdict": "pass"
+ },
+ "bilksh1fr.frm": {
+  "verdict": "pass"
+ },
+ "bilksh1fr2.frm": {
+  "verdict": "pass"
+ },
+ "bilksh1fr3.frm": {
+  "verdict": "pass"
+ },
+ "bkshlf3.frm": {
+  "verdict": "pass"
+ },
+ "bkshlf5.frm": {
+  "verdict": "pass"
+ },
+ "bolcas2.frm": {
+  "verdict": "fail",
+  "why": "the box is gone from behind (its wall-part half is solo-stripped?)"
+ },
+ "bolcas3.frm": {
+  "verdict": "pass"
+ },
+ "bolcas4.frm": {
+  "verdict": "pass"
+ },
+ "bolcas5.frm": {
+  "verdict": "pass"
+ },
+ "boxes4.frm": {
+  "verdict": "pass"
+ },
+ "brl1000.frm": {
+  "verdict": "fail",
+  "why": "the crushed barrel fans into a bent sheet at 270"
+ },
+ "brl2000.frm": {
+  "verdict": "pass"
+ },
+ "bucket1.frm": {
+  "verdict": "fail",
+  "why": "the pot sinks half under the floor from the sides"
+ },
+ "buckas1.frm": {
+  "verdict": "fail",
+  "why": "the wall sign vanishes from behind"
+ },
+ "bush5.frm": {
+  "verdict": "pass"
+ },
+ "cab26.frm": {
+  "verdict": "pass"
+ },
+ "cab28.frm": {
+  "verdict": "pass"
+ },
+ "car5.frm": {
+  "verdict": "pass"
+ },
+ "char05.frm": {
+  "verdict": "pass"
+ },
+ "char06.frm": {
+  "verdict": "pass",
+  "why": "the 180 half is a solo-radius artifact"
+ },
+ "chair2.frm": {
+  "verdict": "pass"
+ },
+ "crat01.frm": {
+  "verdict": "pass"
+ },
+ "crat04.frm": {
+  "verdict": "pass"
+ },
+ "dresr3.frm": {
+  "verdict": "pass"
+ },
+ "girlp005.frm": {
+  "verdict": "fail",
+  "why": "the poster vanishes from behind"
+ },
+ "anmste14.frm": {
+  "verdict": "fail",
+  "why": "the panel keeps almost no pixels from the sides"
+ },
+ "njunk2.frm": {
+  "verdict": "fail",
+  "why": "the ragged pile fans apart at 270"
+ },
+ "njunk5.frm": {
+  "verdict": "fail",
+  "why": "a stray shard at 180, the pile reads as one box at 270"
+ },
+ "njunk6.frm": {
+  "verdict": "fail",
+  "why": "the pile vanishes at 270, a shard floats"
+ },
+ "sstove2.frm": {
+  "verdict": "pass"
+ }
+}
