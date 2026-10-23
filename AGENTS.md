@@ -35,10 +35,9 @@ in `tools/shapes/eval/` (`eval.py shoot | sheets | score`).
   one at a time; every image stays in the context and is paid for on each
   later request.
 - A task that changed what the game, a tool or a folder looks like ends with
-  1 to 4 outcome screenshots: committed under its `runs/NNN-slug/` folder and
-  shown in the PR as markdown images (the branch's raw URLs), so the owner
-  sees the result without running anything. Pure code or numbers work needs
-  none.
+  at most 4 outcome screenshots attached in the chat when the task is done
+  (and committed under its `runs/NNN-slug/` folder), so the owner sees the
+  result without running anything. Pure code or numbers work needs none.
 - Upstream CE code (`ce/src/*.cc` outside `scene/`, `scene_renderer/`,
   `devtools/`) gets a hook or a call at most; the logic lives in our modules.
 - OpenGL 4.1 core: no compute shaders, no SSBOs.
