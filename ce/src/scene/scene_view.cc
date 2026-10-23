@@ -1,5 +1,7 @@
 #include "scene_view.h"
 
+#include "../dev_output.h"
+
 #include <algorithm>
 #include <ctype.h>
 #include <cmath>
@@ -201,7 +203,7 @@ void updateMapClip()
         printf("scene: %s elevation %d clean map edges disabled: %s\n",
             gLoadedMap.c_str(), gLoadedElevation, reason);
         fflush(stdout);
-        if (FILE* log = fopen("scene.log", "a")) {
+        if (FILE* log = fopen((dev_output::outputDirectory("logs") / "scene.log").string().c_str(), "a")) {
             fprintf(log, "scene: %s elevation %d clean map edges disabled: %s\n",
                 gLoadedMap.c_str(), gLoadedElevation, reason);
             fclose(log);
@@ -395,7 +397,7 @@ void syncToMap()
             printf("scene: %s elevation %d stays 2D: %s\n", map.c_str(), elevation, message.c_str());
             fflush(stdout);
             // A file too: the Windows build has no console.
-            if (FILE* log = fopen("scene.log", "a")) {
+            if (FILE* log = fopen((dev_output::outputDirectory("logs") / "scene.log").string().c_str(), "a")) {
                 fprintf(log, "scene: %s elevation %d stays 2D: %s\n", map.c_str(), elevation, message.c_str());
                 fclose(log);
             }

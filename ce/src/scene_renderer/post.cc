@@ -1,5 +1,7 @@
 #include "post.h"
 
+#include "../dev_output.h"
+
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
@@ -297,7 +299,7 @@ bool beginSceneCapture()
         if (!initGlow(&error)) {
             fprintf(stderr, "post: glow off: %s\n", error.c_str());
             fflush(stderr);
-            if (FILE* log = fopen("scene.log", "a")) {
+            if (FILE* log = fopen((dev_output::outputDirectory("logs") / "scene.log").string().c_str(), "a")) {
                 fprintf(log, "post: glow off: %s\n", error.c_str());
                 fclose(log);
             }

@@ -3,10 +3,13 @@
 #include <SDL.h>
 #include <lodepng.h>
 
+#include <filesystem>
+
 #include "audio_engine.h"
 #include "color.h"
 #include "debug.h"
 #include "delay.h"
+#include "dev_output.h"
 #include "dinput.h"
 #include "devtools/devtools.h"
 #include "draw.h"
@@ -543,6 +546,12 @@ int screenshotHandlerDefaultImpl(int width, int height, unsigned char* data, uns
 
 int screenshotHandlerPngImpl(int width, int height, unsigned char* data, unsigned char* palette)
 {
+    // The classic screenshot lands in shots/game/, not next to the exe.
+    std::filesystem::path directory = dev_output::outputDirectory("shots/game");
+    if (directory.empty()) {
+        return -1;
+    }
+
     char fileName[16];
     FILE* stream;
     int fileIndex;
@@ -550,7 +559,7 @@ int screenshotHandlerPngImpl(int width, int height, unsigned char* data, unsigne
     for (fileIndex = 0; fileIndex < 100000; fileIndex++) {
         snprintf(fileName, sizeof(fileName), "scr%.5d.png", fileIndex);
 
-        stream = compat_fopen(fileName, "rb");
+        stream = compat_fopen((directory / fileName).string().c_str(), "rb");
         if (stream == nullptr) {
             break;
         }
@@ -562,7 +571,7 @@ int screenshotHandlerPngImpl(int width, int height, unsigned char* data, unsigne
         return -1;
     }
 
-    stream = compat_fopen(fileName, "wb");
+    stream = compat_fopen((directory / fileName).string().c_str(), "wb");
     if (stream == nullptr) {
         return -1;
     }

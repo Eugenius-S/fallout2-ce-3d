@@ -123,6 +123,7 @@ if ($Probe) {
     if ($Tour) { throw '-Tour cannot be combined with -Probe.' }
     $shots = 2
     $arguments += '--dev-pick-probe'
+    Remove-Item (Join-Path (Join-Path $GameDir 'logs') 'devprobe.log') -ErrorAction SilentlyContinue
     Remove-Item (Join-Path $GameDir 'devprobe.log') -ErrorAction SilentlyContinue
 } elseif ($Tour -or $Classic) {
     # Without the scene the one snapshot comes from a tour with no stops.
@@ -160,12 +161,19 @@ try {
     $process = Start-Process @startParameters
     $deadline = $started.AddSeconds($TimeoutSeconds)
     while ((Get-Date) -lt $deadline -and -not $process.HasExited) {
-        $snapshots = @(Get-ChildItem $GameDir -Filter 'devshot-*.json' | Where-Object {
+        # The exe writes into shots\dev\<date>\; the root scan also catches a
+        # writer that could not make the folder. Both are filtered by the run
+        # id below.
+        $snapshots = @(
+            @(Get-ChildItem $GameDir -Filter 'devshot-*.json' -File -ErrorAction SilentlyContinue) +
+            @(Get-ChildItem (Join-Path $GameDir 'shots\dev') -Recurse -Filter 'devshot-*.json' -File -ErrorAction SilentlyContinue)
+        ) | Where-Object {
             if ($_.LastWriteTime -le $started) { return $false }
             try { (Get-Content -Raw -LiteralPath $_.FullName | ConvertFrom-Json).snapshot_run -eq $runId }
             catch { $false } # The writer may still be completing this file.
-        })
-        $log = Join-Path $GameDir 'devprobe.log'
+        }
+        $log = Join-Path (Join-Path $GameDir 'logs') 'devprobe.log'
+        if (-not (Test-Path $log)) { $log = Join-Path $GameDir 'devprobe.log' }
         $probed = -not $Probe -or ((Test-Path $log) -and (Select-String -Path $log -Pattern 'probe done' -Quiet))
         if ($snapshots.Count -ge $shots -and $probed) { break }
         Start-Sleep -Milliseconds 500
@@ -186,12 +194,15 @@ foreach ($snapshot in $snapshots) {
         New-Item -ItemType Directory -Path $OutputDirectory -Force | Out-Null
         $metadata = Get-Content -Raw -LiteralPath $snapshot.FullName | ConvertFrom-Json
         Copy-Item -LiteralPath $snapshot.FullName -Destination $OutputDirectory
-        Copy-Item -LiteralPath (Join-Path $GameDir $metadata.image) -Destination $OutputDirectory
+        # The image lies next to its sidecar (the JSON keeps the bare name).
+        Copy-Item -LiteralPath (Join-Path $snapshot.Directory $metadata.image) -Destination $OutputDirectory
     }
     Write-Output ("SNAPSHOT: " + $snapshot.FullName)
     Get-Content $snapshot.FullName
 }
 if ($Probe) {
+    $probeLog = Join-Path (Join-Path $GameDir 'logs') 'devprobe.log'
+    if (-not (Test-Path $probeLog)) { $probeLog = Join-Path $GameDir 'devprobe.log' }
     Write-Output "PROBE:"
-    Get-Content (Join-Path $GameDir 'devprobe.log')
+    Get-Content $probeLog
 }
