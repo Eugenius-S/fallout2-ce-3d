@@ -92,6 +92,19 @@ uniform vec3 uTowardCamera; // GL direction towards the game's camera
 uniform vec2 uLightSqu; // ground (u, v) to game pixels
 uniform vec2 uLightSqv;
 uniform vec2 uLightOrigin;
+// The sun's shadow map (shadow.cc): 1 on, the world-to-map matrix, the map
+// itself (unit 5), the sun's strength now, the lookup snap in GL units (the
+// [3d] shadow_pixel_size grid) and the compare bias in map depth.
+uniform bool uShadowOn;
+uniform mat4 uShadowMatrix;
+uniform sampler2D uShadowMap;
+uniform float uShadowStrength;
+uniform float uShadowStep;
+uniform float uShadowBias;
+// The drifting clouds (task 023): 1 on, the wind's offset in world units
+// (wrapped by the noise tile), strength as the sun's.
+uniform bool uCloudOn;
+uniform vec2 uCloudOffset;
 out vec4 outColor;
 // What a texel shines by itself for the glow (task 022): the colour a
 // full-bright texel keeps, premultiplied by its shown coverage; black
@@ -152,6 +165,49 @@ vec4 sceneLighting() {
     if (uLightMode == 4) return vec4(vec3(1.0), uLightValue);
     return vec4(1.0);
 }
+// The sun's shadow at this fragment: true where a caster stands between it
+// and the sun. The lookup snaps to a world grid of uShadowStep units (the
+// [3d] shadow_pixel_size game pixels), so the edge stays put while the
+// camera and the sun move.
+bool sunShadow() {
+    vec2 snapped = floor(vWorld.xz / uShadowStep + 0.5) * uShadowStep;
+    vec4 s = uShadowMatrix * vec4(snapped.x, vWorld.y, snapped.y, 1.0);
+    vec3 p = s.xyz / s.w * 0.5 + 0.5;
+    if (p.x < 0.0 || p.x > 1.0 || p.y < 0.0 || p.y > 1.0 || p.z >= 1.0) return false;
+    return p.z > texture(uShadowMap, p.xy).r + uShadowBias;
+}
+// The drifting clouds: two octaves of value noise over a seamless 48-unit
+// tile, soft-edged, dimming the sun by about a third. p is a ground point.
+float cloudHash(vec2 cell) {
+    return fract(sin(dot(cell, vec2(127.1, 311.7))) * 43758.5453);
+}
+float cloudNoise(vec2 lattice, float wrap) {
+    vec2 whole = floor(lattice), part = fract(lattice);
+    part = part * part * (3.0 - 2.0 * part);
+    float a = cloudHash(mod(whole, wrap)), b = cloudHash(mod(whole + vec2(1.0, 0.0), wrap));
+    float c = cloudHash(mod(whole + vec2(0.0, 1.0), wrap)), d = cloudHash(mod(whole + vec2(1.0, 1.0), wrap));
+    return mix(mix(a, b, part.x), mix(c, d, part.x), part.y);
+}
+float cloudDim(vec3 w) {
+    vec2 t = w.xz + uCloudOffset;
+    float cover = cloudNoise(mod(t, 48.0) / 12.0, 4.0) * 0.65 + cloudNoise(mod(t + 17.0, 48.0) / 6.0, 8.0) * 0.35;
+    return 1.0 - uShadowStrength * 0.35 * smoothstep(0.52, 0.74, cover);
+}
+// The sun's and the clouds' dimming, over the engine's own light: the
+// game's painted shadows read about as a half, the clouds dim by about a
+// third. The floor and the walls take both at the fragment; a sprite takes
+// the clouds at its hex's ground point (uLightAnchor), the map's own shadow
+// shape stays the painted one (characters are 046).
+float sunDim(float light) {
+    if (uShadowOn && uShadowStrength > 0.0 && (uLightMode == 1 || uLightMode == 2) && sunShadow()) {
+        light *= 1.0 - uShadowStrength * 0.5;
+    }
+    if (uCloudOn && uShadowStrength > 0.0) {
+        if (uLightMode == 1 || uLightMode == 2) light *= cloudDim(vWorld);
+        else if (uLightMode == 3) light *= cloudDim(vec3(uLightAnchor.x, 0.0, uLightAnchor.y));
+    }
+    return light;
+}
 // _intensity_mask_buf_to_buf: inside the egg a nonzero mask value is the
 // surface's share in 128ths; 0 outside it and where the surface stays whole.
 float eggShare() {
@@ -201,6 +257,7 @@ void main() {
             // _dark_trans_buf_to_buf: the engine darkens a texel by its light in
             // 128 steps, on its 5-bit colour rounded down (setIntensityTableColor).
             vec4 lit = fullBright ? vec4(1.0) : sceneLighting();
+            lit.a = sunDim(lit.a);
             float steps = floor(lit.a * 128.0 + 0.0001);
             if (steps < 128.0) outColor.rgb = floor(floor(outColor.rgb * 31.0 + 0.5) * steps / 128.0) / 31.0;
             outColor.rgb *= lit.rgb;
@@ -267,6 +324,14 @@ int gSceneLightWindowLocation = -1;
 int gSceneSeeThroughLocation = -1;
 int gSceneSeeThroughObjectsLocation = -1;
 int gSceneEggPassLocation = -1;
+int gSceneShadowOnLocation = -1;
+int gSceneShadowMatrixLocation = -1;
+int gSceneShadowMapLocation = -1;
+int gSceneShadowStrengthLocation = -1;
+int gSceneShadowStepLocation = -1;
+int gSceneShadowBiasLocation = -1;
+int gSceneCloudOnLocation = -1;
+int gSceneCloudOffsetLocation = -1;
 
 bool createSceneShader(std::string* error)
 {
@@ -333,6 +398,14 @@ bool createSceneShader(std::string* error)
     gSceneSeeThroughLocation = glGetUniformLocation(gSceneProgram, "uSeeThrough");
     gSceneSeeThroughObjectsLocation = glGetUniformLocation(gSceneProgram, "uSeeThroughObjects");
     gSceneEggPassLocation = glGetUniformLocation(gSceneProgram, "uEggPass");
+    gSceneShadowOnLocation = glGetUniformLocation(gSceneProgram, "uShadowOn");
+    gSceneShadowMatrixLocation = glGetUniformLocation(gSceneProgram, "uShadowMatrix");
+    gSceneShadowMapLocation = glGetUniformLocation(gSceneProgram, "uShadowMap");
+    gSceneShadowStrengthLocation = glGetUniformLocation(gSceneProgram, "uShadowStrength");
+    gSceneShadowStepLocation = glGetUniformLocation(gSceneProgram, "uShadowStep");
+    gSceneShadowBiasLocation = glGetUniformLocation(gSceneProgram, "uShadowBias");
+    gSceneCloudOnLocation = glGetUniformLocation(gSceneProgram, "uCloudOn");
+    gSceneCloudOffsetLocation = glGetUniformLocation(gSceneProgram, "uCloudOffset");
     if (gSceneMvpLocation < 0 || gSceneTextureLocation < 0
         || gSceneTexturedLocation < 0 || gSceneColorLocation < 0 || gSceneCutoffLocation < 0
         || gSceneDepthAtLocation < 0 || gSceneTranslucentLocation < 0 || gSceneTintLocation < 0

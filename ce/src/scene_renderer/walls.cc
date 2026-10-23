@@ -8,6 +8,7 @@
 
 #include "gl_api.h"
 #include "scene_internal.h"
+#include "shadow.h"
 #include "../tile.h"
 
 namespace fallout {
@@ -40,6 +41,10 @@ std::unordered_map<unsigned long long, BakedObject> gBakedObjects;
 int gSoloTile = -1;
 int gSoloRadius = 0;
 std::filesystem::path gWallsDirectory; // what loadStaticWalls last loaded, for a new solo
+
+// The shadow pass's caster triangles (task 045), one buffer over all batches.
+unsigned int gShadowVao = 0;
+unsigned int gShadowVbo = 0;
 
 int soloHexDistance(int tile1, int tile2)
 {
@@ -82,7 +87,10 @@ namespace internal {
 
 void destroyStaticWalls()
 {
+    setShadowWallCasters(0, 0, 0.0f);
     if (gContext != nullptr) {
+        if (gShadowVbo != 0) glDeleteBuffers(1, &gShadowVbo);
+        if (gShadowVao != 0) glDeleteVertexArrays(1, &gShadowVao);
         for (WallBatch& batch : gWallBatches) {
             if (batch.texture != 0 && batch.ownsTexture) glDeleteTextures(1, &batch.texture);
             if (batch.vbo != 0) glDeleteBuffers(1, &batch.vbo);
@@ -91,6 +99,8 @@ void destroyStaticWalls()
     }
     gWallBatches.clear();
     gWallTriangleCount = 0;
+    gShadowVao = 0;
+    gShadowVbo = 0;
     gWallsLoaded = false;
     gBakedObjects.clear();
     if (gContext != nullptr && gWallSeeThroughTexture != 0) glDeleteTextures(1, &gWallSeeThroughTexture);
@@ -376,6 +386,87 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
             batch.triangleCount = static_cast<unsigned int>(kept.size() / 3);
             batch.vertices = std::move(kept);
         }
+    }
+
+    // The shadow casters (task 045): the walls (object type 3) always, with
+    // their backs and ends; other baked objects when they span two hexes or
+    // stand taller than half a wall. Doors are tall, so they come along.
+    // Half a wall comes from the walls themselves, so the rule needs no
+    // constant from the exporter.
+    std::vector<float> rowMinX(objectCount, 0.0f), rowMaxX(objectCount, 0.0f);
+    std::vector<float> rowMinY(objectCount, 0.0f), rowMaxY(objectCount, 0.0f);
+    std::vector<float> rowMinZ(objectCount, 0.0f), rowMaxZ(objectCount, 0.0f);
+    std::vector<unsigned char> rowType(objectCount, 0);
+    std::vector<bool> rowSeen(objectCount, false);
+    {
+        std::vector<unsigned int> rowByIndex(objectCount, 0);
+        for (const auto& [key, row] : objectRows) rowByIndex[row] = static_cast<unsigned int>(key & 0xFFFFFFFFu);
+        for (unsigned int row = 0; row < objectCount && row < rowByIndex.size(); row++) {
+            rowType[row] = static_cast<unsigned char>((rowByIndex[row] >> 24) & 0xF);
+        }
+    }
+    for (const WallBatchData& batch : batches) {
+        for (size_t index = 0; index + 2 < batch.vertices.size(); index += 3) {
+            const float object = batch.vertices[index].object;
+            if (object < 0.0f) continue;
+            const size_t row = static_cast<size_t>(object);
+            for (int corner = 0; corner < 3; corner++) {
+                const DepthVertex& vertex = batch.vertices[index + corner].vertex;
+                if (!rowSeen[row]) {
+                    rowSeen[row] = true;
+                    rowMinX[row] = rowMaxX[row] = vertex.x;
+                    rowMinY[row] = rowMaxY[row] = vertex.y;
+                    rowMinZ[row] = rowMaxZ[row] = vertex.z;
+                } else {
+                    rowMinX[row] = std::min(rowMinX[row], vertex.x);
+                    rowMaxX[row] = std::max(rowMaxX[row], vertex.x);
+                    rowMinY[row] = std::min(rowMinY[row], vertex.y);
+                    rowMaxY[row] = std::max(rowMaxY[row], vertex.y);
+                    rowMinZ[row] = std::min(rowMinZ[row], vertex.z);
+                    rowMaxZ[row] = std::max(rowMaxZ[row], vertex.z);
+                }
+            }
+        }
+    }
+    float wallHeight = 0.0f;
+    for (unsigned int row = 0; row < objectCount; row++) {
+        if (rowType[row] == 3 && rowSeen[row]) wallHeight = std::max(wallHeight, rowMaxY[row]);
+    }
+    if (wallHeight <= 0.0f) wallHeight = 3.2f; // a wall with no walls on the map
+    const float halfWall = wallHeight * 0.5f;
+    std::vector<float> casterPositions;
+    for (const WallBatchData& batch : batches) {
+        for (size_t index = 0; index + 2 < batch.vertices.size(); index += 3) {
+            const float object = batch.vertices[index].object;
+            bool casts = false;
+            if (object < 0.0f) {
+                casts = true; // walls' own unattributed triangles
+            } else {
+                const size_t row = static_cast<size_t>(object);
+                casts = rowType[row] == 3
+                    || (rowMaxX[row] - rowMinX[row]) >= 2.0f || (rowMaxZ[row] - rowMinZ[row]) >= 2.0f
+                    || (rowMaxY[row] - rowMinY[row]) >= halfWall;
+            }
+            if (!casts) continue;
+            for (int corner = 0; corner < 3; corner++) {
+                const DepthVertex& vertex = batch.vertices[index + corner].vertex;
+                casterPositions.push_back(vertex.x);
+                casterPositions.push_back(vertex.y);
+                casterPositions.push_back(vertex.z);
+            }
+        }
+    }
+    if (!casterPositions.empty()) {
+        if (gShadowVao == 0) glGenVertexArrays(1, &gShadowVao);
+        if (gShadowVbo == 0) glGenBuffers(1, &gShadowVbo);
+        glBindVertexArray(gShadowVao);
+        glBindBuffer(kArrayBuffer, gShadowVbo);
+        glBufferData(kArrayBuffer,
+            static_cast<long long>(casterPositions.size() * sizeof(float)), casterPositions.data(), kStaticDraw);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, 0x1406 /* GL_FLOAT */, 0, 3 * sizeof(float), nullptr);
+        glBindVertexArray(0);
+        setShadowWallCasters(gShadowVao, static_cast<int>(casterPositions.size() / 3), wallHeight);
     }
     offset += static_cast<size_t>(objectCount) * kObjectSize;
     if (offset != sidecar.size() || observedTriangles != totalTriangles) {

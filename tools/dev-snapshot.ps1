@@ -59,6 +59,14 @@ param(
     # -Glow: keep the glow on in this background run (it is forced off by
     # default, so captures stay byte-stable).
     [switch]$Glow,
+    # -Shadows: keep the sun's whole effect on in this background run (the
+    # shadows and the drifting clouds are forced off by default, so captures
+    # stay byte-stable).
+    [switch]$Shadows,
+    # -Hour H: set the game hour on the map (the sun snaps to it), so morning,
+    # noon, sunset and night views come from one command.
+    [ValidateRange(0, 24)]
+    [double]$Hour = -1,
     # -Zoom D: the 3D zoom of the snapshots (1 is the game's own size).
     [ValidateRange(0.25, 4)]
     [double]$Zoom = -1,
@@ -148,6 +156,8 @@ if ($PreferencesProbe) {
         '--dev-new-game', "--dev-map=$Map", "--dev-elevation=$Elevation", "--dev-snapshot-run=$runId")
 }
 if ($Glow) { $arguments += '--dev-glow' }
+if ($Shadows) { $arguments += '--dev-shadows' }
+if ($Hour -ge 0) { $arguments += "--dev-hour=$Hour" }
 if ($Zoom -gt 0) { $arguments += "--dev-zoom=$Zoom" }
 if ($PreferencesProbe) {
     if ($Preferences -or $Classic -or $Probe -or $Tour -or $Still) { throw '-PreferencesProbe cannot be combined with another capture mode.' }

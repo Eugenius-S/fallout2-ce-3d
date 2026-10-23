@@ -1,6 +1,7 @@
 #include "scene_draw.h"
 
 #include <algorithm>
+#include <stdio.h>
 
 #include <lodepng.h>
 
@@ -8,6 +9,7 @@
 #include "gl_api.h"
 #include "post.h"
 #include "scene_internal.h"
+#include "shadow.h"
 #include "static_scene.h"
 
 namespace fallout {
@@ -62,6 +64,10 @@ void drawStaticPreview(bool withWalls, bool withHero)
     // The game's light as point lights: the floor and walls at each fragment,
     // sprites at their own hex, roofs by the ambient level.
     const bool lit = withHero && bindLight();
+    // The sun's shadow map renders before the scene; the floor and the walls
+    // sample it (uShadowOn). It restores the framebuffer and the viewport.
+    const bool shadowed = withWalls && bindStaticShadows(mvp);
+    glUniform1i(gSceneShadowOnLocation, shadowed ? 1 : 0);
     glUniform1i(gSceneLightModeLocation, 0);
     auto lightSprite = [&](int tile) {
         // tile -1: painted at full light (OBJECT_TRANS_WALL), or not known.

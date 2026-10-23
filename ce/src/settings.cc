@@ -442,6 +442,26 @@ void initSettingsRegistry(bool isMapper)
         "A sun that follows game time on maps under the sky: low and warm in the morning and evening, "
         "none at night or underground.",
         SettingApplyPolicy::OnClose);
+    registerThreeDBoolean("shadows", settings.scene3d.shadows, "Sun shadows",
+        "Buildings and big things cast sharp sun shadows on the floor and the walls in the 3D view.",
+        SettingApplyPolicy::OnClose);
+    registerSetting("3d", "shadow_pixel_size", settings.scene3d.shadow_pixel_size, clamp(1.0, 16.0));
+    SettingDescriptor& shadowPixelDescriptor = settingDescriptors.back();
+    shadowPixelDescriptor.category = SettingCategory::Uncategorized;
+    shadowPixelDescriptor.applyPolicy = SettingApplyPolicy::OnClose;
+    shadowPixelDescriptor.subsection = "3D";
+    shadowPixelDescriptor.fallbackLabel = "Shadow pixel size";
+    shadowPixelDescriptor.fallbackDescription =
+        "The world grid, in game pixels, that a shadow's edge snaps to, as in the original game's shadows.";
+    shadowPixelDescriptor.numericRange = SettingNumericRange { 1.0, 16.0, 1.0 };
+    settingsRegistry.back().descriptor = shadowPixelDescriptor;
+    settingsRegistry.back().write = [](bool onlyAdd) {
+        if (onlyAdd && settingsKeyExists("3d", "shadow_pixel_size")) return;
+        settingsWrite("3d", "shadow_pixel_size", onlyAdd ? 4.0 : settings.scene3d.shadow_pixel_size);
+    };
+    registerThreeDBoolean("cloud_shadows", settings.scene3d.cloud_shadows, "Cloud shadows",
+        "Soft clouds drift over the 3D view and dim the sun's light, never the lamps.",
+        SettingApplyPolicy::OnClose);
     registerThreeDBoolean("glow", settings.scene3d.glow, "Glow",
         "Things that shine in Fallout 2 (fire, monitors, signs) bleed light softly in the 3D view.",
         SettingApplyPolicy::OnClose);
