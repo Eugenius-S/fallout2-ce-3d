@@ -112,3 +112,8 @@ then `eval.py shoot --only <frm>`, `eval.py sheets`, `eval.py score`).
 Done: Claimed task 040 on its own branch.
 Next: Audit available eval inputs and propose the smallest evidence-backed fix.
 Check: `git status --short --branch`; inspect eval score and cache availability.
+
+### 2026-10-23 gpt (audit stop)
+Done: Read the eval and geometry contracts and current verdicts. No fresh scene cache or shots exist; the legacy cache aborts on an unsupported baked sidecar, so there is no valid current score.
+Next: After review, create this worktree's export and five-angle evidence, then investigate sstove2's 12% view at 180 before changing geometry.
+Check: `py -3 tools/shapes/eval/eval.py score --scenes E:\Projects\fallout2-ce-3d-gpt\build\scene-cache` fails on the legacy baked sidecar.
