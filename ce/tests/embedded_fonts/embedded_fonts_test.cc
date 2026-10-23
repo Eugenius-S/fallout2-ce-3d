@@ -4,6 +4,7 @@
 #include "color.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstddef>
 #include <cstdio>
 

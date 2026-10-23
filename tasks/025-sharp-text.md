@@ -158,3 +158,8 @@ Check: official `tools/configure-build.ps1 Release` incremental build passed; fo
 Done: blit overlap retirement now visits only existing destination text coverage instead of allocating a set for every source pixel. Transparent copies read source pixels only after validating the compact snapshot bounds. Same-buffer clones are still prepared before destination records are clipped.
 Next: root review this bounded change; only then run the clean build and revised Russian x3 Top pair. No runtime evidence uses this source yet.
 Check: focused `text_layer_tests` and `text_capture_tests` rebuilt with the configured MSVC environment and passed (2/2). Added tests for compact snapshots larger source rectangles (including missing glyph deltas) and the no-text fast path. `git diff --check` passes. Full build and runtime remain pending review.
+
+### 2026-10-23 gpt (clean build include fix)
+Done: added the missing `<cmath>` include required by the embedded-font test's `std::ceil` call, found by the full clean Release build.
+Next: configure from this commit, rerun the full clean Release build and CTest, then capture the revised RU x3 Top pair and EN x2 Bottom ghost check if the build passes.
+Check: configure-after-`568c5977` passed; the first clean build compiled the application but stopped at `embedded_fonts_test.cc` because `<cmath>` was missing. No runtime capture was run from that build.
