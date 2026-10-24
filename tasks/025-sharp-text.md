@@ -2,13 +2,13 @@
 id: 025
 title: Sharp green dialogue text
 milestone: M1
-status: doing
+status: done
 owner: gpt
 suggested: gpt
 claude-only: no
 user-check: yes
 depends-on: [002, 017, 024, 026]
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -265,3 +265,7 @@ Check: production source `361694e0` passed the official full clean Release build
 Done: replaced H/g-only fit metrics with a per-face cached extent across printable decoded CP1251 glyphs. The same scale and baseline now include breve and diaeresis without changing by string. Added font-101 lineHeight-9 tests for И/Й and Е/Ё at x2 and x3; the glyph pairs differ and full-mask rendering matches the captured-line mask.
 Next: parent review, then source-bound Russian x3 dialog and English x2 cursor captures plus the 16-case sharp-off regression.
 Check: official Release configure/build and full CTest passed 14/14. The new tests use the production font-101 line height and verify no ink is clipped outside the captured line. Runtime evidence for this change is pending.
+### 2026-10-24 gpt (CP1251 vertical extents accepted)
+Done: sharp dialogue glyphs now fit the full supported printable CP1251 repertoire, including breve and diaeresis, within the captured line. A fixed per-face metric keeps scale and baseline stable across strings. Menus and all other UI remain pixel-rendered.
+Next: parent handles PR #77 final CI, readiness and merge.
+Check: source `d1677a9b` passed the official Release build and CTest 14/14. The Russian x3 dialogue capture reports 12 runs, 420 glyphs, 5,537 restored pixels and 4.883 ms; the English x2 cursor capture reports 8 runs, 337 glyphs, 1,887 restored pixels and 2.108 ms. Both bind to EXE SHA-256 `0f6b2d1826a007bac9aa710a1edbf37dffc569c937f10f0164f3c4c2936f8d30`. The sharp-off regression passed all 16 spots with zero changed pixels on the same source/hash. Renderer tests cover И/Й and Е/Ё at x2/x3, font-101 lineHeight 9 and line-mask bounds. Full evidence is listed in `runs/025-sharp-text/final-validation-20261024.md`.
