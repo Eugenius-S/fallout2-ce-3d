@@ -139,6 +139,18 @@ void blendPixel(unsigned char* pixel, const unsigned char* rgb, unsigned char al
     pixel[3] = static_cast<unsigned char>(alpha + (pixel[3] * inverse + 127) / 255);
 }
 
+bool equalsAsciiCaseInsensitive(const std::string& value, const char* expected)
+{
+    const std::size_t expectedSize = std::strlen(expected);
+    if (value.size() != expectedSize) return false;
+    for (std::size_t index = 0; index < expectedSize; index++) {
+        unsigned char character = static_cast<unsigned char>(value[index]);
+        if (character >= 'A' && character <= 'Z') character = static_cast<unsigned char>(character - 'A' + 'a');
+        if (character != static_cast<unsigned char>(expected[index])) return false;
+    }
+    return true;
+}
+
 void drawGlyph(SharpTextSurface& surface, const GlyphBitmap& glyph, int x, int baseline,
     int offsetX, int offsetY, const unsigned char* rgb, const scene::TextVisibilityMask& visibility,
     int logicalWidth, int logicalHeight, double sx, double sy)
@@ -160,6 +172,14 @@ void drawGlyph(SharpTextSurface& surface, const GlyphBitmap& glyph, int x, int b
 }
 
 } // namespace
+
+bool sharpTextLanguageSupported(const std::string& language)
+{
+    // This renderer decodes captured bytes as CP1251. Do not erase original
+    // text in locales that require another legacy encoding.
+    return equalsAsciiCaseInsensitive(language, "english")
+        || equalsAsciiCaseInsensitive(language, "russian");
+}
 
 bool renderSharpText(const std::vector<scene::TextRecord>& records,
     int logicalWidth, int logicalHeight, int physicalWidth, int physicalHeight,

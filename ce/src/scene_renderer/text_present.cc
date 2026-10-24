@@ -48,6 +48,11 @@ bool prepareSharpTextForPresent(SDL_Surface* indexedSurface, SDL_Surface* rgbaSu
     output.glyphCount = 0;
     output.restoredPixelCount = 0;
     output.prepareMilliseconds = 0.0;
+    if (settings.scene3d.sharp_text && !sharpTextLanguageSupported(settings.system.language)) {
+        prepareSharpTextFrame(nullptr, 0, 0, 0, nullptr, 0, 0, 0, nullptr, 0, false);
+        disableSharpText("unsupported language; using pixel text (English/Russian only)");
+        return false;
+    }
     if (!enabled || !settings.scene3d.sharp_text || indexedSurface == nullptr || rgbaSurface == nullptr) {
         prepareSharpTextFrame(nullptr, 0, 0, 0, nullptr, 0, 0, 0, nullptr, 0, false);
         return false;

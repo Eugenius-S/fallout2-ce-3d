@@ -1,6 +1,7 @@
 #ifndef FALLOUT_SCENE_RENDERER_TEXT_DRAW_H
 #define FALLOUT_SCENE_RENDERER_TEXT_DRAW_H
 
+#include <string>
 #include <vector>
 
 #include "../scene/text_layer.h"
@@ -37,6 +38,7 @@ bool renderSharpText(const std::vector<scene::TextRecord>& records,
     int logicalWidth, int logicalHeight, int physicalWidth, int physicalHeight,
     const unsigned char* paletteRgb, int paletteEntries,
     const std::vector<scene::TextVisibilityMask>& logicalVisibility, SharpTextSurface* output);
+bool sharpTextLanguageSupported(const std::string& language);
 
 } // namespace scene_renderer
 } // namespace fallout

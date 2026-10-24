@@ -35,6 +35,20 @@ bool checkFont(const unsigned char* data, std::size_t size)
 int main()
 {
     using namespace fallout::scene_renderer;
+    const char* supportedLanguages[] = { "english", "russian", "English", "RUSSIAN" };
+    const char* unsupportedLanguages[] = { "french", "german", "italian", "spanish", "unknown", "" };
+    for (const char* language : supportedLanguages) {
+        if (!sharpTextLanguageSupported(language)) {
+            std::fprintf(stderr, "Supported sharp-text language was rejected: %s\n", language);
+            return 1;
+        }
+    }
+    for (const char* language : unsupportedLanguages) {
+        if (sharpTextLanguageSupported(language)) {
+            std::fprintf(stderr, "Unsupported sharp-text language was accepted: %s\n", language);
+            return 1;
+        }
+    }
     const EmbeddedFont semiBold = embeddedFont(InterfaceFontWeight::SemiBold);
     const EmbeddedFont bold = embeddedFont(InterfaceFontWeight::Bold);
     const EmbeddedFont unknown = embeddedFont(static_cast<InterfaceFontWeight>(-1));

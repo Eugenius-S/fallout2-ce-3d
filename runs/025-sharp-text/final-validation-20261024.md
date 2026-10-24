@@ -1,4 +1,8 @@
-# Task 025 final validation, 2026-10-24
+# Task 025 validation evidence, 2026-10-24
+
+## Locale review follow-up
+
+PR review found that CP1251 decoding must not run for unsupported Latin-script locales. The task is reopened to guard the renderer to English and Russian only. Prior runtime and regression evidence below remains valid for those supported locales; unsupported-locale validation is pending the follow-up build and tests.
 
 ## Scope
 

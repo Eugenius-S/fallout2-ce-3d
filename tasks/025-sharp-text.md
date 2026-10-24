@@ -2,13 +2,13 @@
 id: 025
 title: Sharp green dialogue text
 milestone: M1
-status: done
+status: doing
 owner: gpt
 suggested: gpt
 claude-only: no
 user-check: yes
 depends-on: [002, 017, 024, 026]
-reviewed: yes
+reviewed: no
 ---
 
 ## Goal
@@ -35,6 +35,11 @@ text font stays pixel-rendered.
   when a semantic conversation capture scope is active, its font is 101, and
   its runtime palette index equals `COLOR_GREEN`. Generic color or font
   matching outside the tagged conversation callsites is not sufficient.
+- Decoder boundary, 2026-10-24: captured bytes are decoded as CP1251, so sharp
+  text supports only the canonical `english` and `russian` language settings,
+  compared case-insensitively. French, German, Italian, Spanish, empty and
+  unknown language values must keep original pixel text and disable the sharp
+  text setting with one diagnostic before any restoration or draw.
 - Eligible conversation text uses IBM Plex Mono SemiBold (SIL Open Font License, <https://github.com/google/fonts/tree/main/ofl/ibmplexmono>). Other embedded font weights are unused by this feature. Font sample sheets and the script that makes them: `runs/024-sharp-text-design/`.
 
 ## Design
@@ -94,6 +99,9 @@ text font stays pixel-rendered.
   options labels and headings.
 - English and Russian NPC conversations are captured at x2 and x3 with sharp
   text off and on. Menus are pixel-identical with the setting off and on.
+- Sharp text accepts only English and Russian. Other, empty and unknown
+  language values are rejected before text restoration or drawing; the setting
+  turns off with one diagnostic and original pixel text remains.
 - Sharp dialog text respects window and cursor occlusion, survives scrolling,
   and follows palette fades. Unrelated text is never erased or redrawn.
 - The setting is labeled `Sharp dialog text`; off gives the original pixel
@@ -233,3 +241,8 @@ Check: source commit `1c00e08b`, executable SHA-256 `fdd9ed58c09d67c9e101d525b0f
 Done: completed the conversation-only sharp text scope. English and Russian Klamath NPC reply/answer captures cover x2 and x3 with the setting off and on; the menu off/on evidence is pixel-identical. The corrected real-cursor proof is accepted. The final sharp-off regression passed all 16 spots with zero changed pixels, and the full CTest passed 14/14. The 44/44 exporter and 12/12 regression unit suites also passed.
 Next: parent updates the draft PR #77 after the latest CI result, then handles PR readiness and merge.
 Check: final regression summary is `runs/regression/20261024-103814-975-9564/summary.json` and uses source `1c00e08b`, EXE SHA-256 `fdd9ed58c09d67c9e101d525b0f3471bfa587943a7574466c32e483dfb41f8f2`. Curated evidence and the exact scope limits are in `runs/025-sharp-text/final-validation-20261024.md`. No live long-reply paging claim is made; the inspected real reply had offset 0, while scroll and palette-fade behavior are covered by focused CPU tests. The rejected `2af21dea` screenshot remains marked as rejected above.
+
+### 2026-10-24 gpt (CP1251 locale boundary)
+Done: reopened the task after PR #77 review identified that unconditional CP1251 decoding would render accented French, German, Italian and Spanish dialog bytes as Cyrillic. Added an explicit English/Russian language gate before text restoration, palette expansion and drawing; unsupported values follow the existing one-shot failure policy and retain pixel text. Added focused language-policy tests.
+Next: configure and build the committed source with the official MSVC script, run the embedded-font language tests and full CTest, then send the focused diff and no-erasure control-flow evidence to parent review.
+Check: verified `settings.system.language` is a `std::string` defaulting to canonical `ENGLISH` (`"english"`). Runtime acceptance matrix for supported English/Russian remains valid. French, German, Italian, Spanish, empty and unknown values are rejected by the pure predicate; unsupported-language runtime smoke and parent review are pending.

@@ -7,6 +7,12 @@
 - Only `tools/dev-snapshot.ps1` may start `fallout2-ce-test.exe`. Check for both the shared tester and another worker's launcher before every snapshot. Stop only the tester started by this helper.
 - Preserve untracked task017 evidence, old failed task025 captures and local build folders. Stage only explicitly selected evidence files.
 
+## Current review finding
+
+- PR #77 review found that the renderer always decodes captured bytes as CP1251. Applying it to French, German, Italian or Spanish dialog bytes can turn accented Latin characters into Cyrillic.
+- The feature is reopened pending a conservative locale guard: only canonical English and Russian are supported, case-insensitively. Empty, unknown and other language settings must keep original pixel text and turn the feature off with one diagnostic before restoration or drawing.
+- Guard and unit coverage are in progress. Task status is `doing` and `reviewed: no` until the official build, tests and parent review finish.
+
 ## Accepted implementation and evidence
 
 - `80d57da5`: semantic conversation capture tag, restricted to font 101 and runtime `COLOR_GREEN`; original menu text remains untouched.
@@ -24,10 +30,10 @@
 - Parent independently accepted the corrected fixture at `runs/025-sharp-text/cursor-runtime-20261024/1c00e08b-en-x2-validated/`. The official helper verified target (610,530) in the decoded 1920x1080 PNG as palette RGB (84,84,84); the log verifies overlay alpha 126 to 0 and same-run ink 2601 to 2408. Metadata reports 7 runs, 281 glyphs, 1,812 restored pixels and 2.049 ms preparation at scale 2. EXE SHA-256: `fdd9ed58c09d67c9e101d525b0f3471bfa587943a7574466c32e483dfb41f8f2`.
 - The Release build was configured and built through `tools/configure-build.ps1` after `1c00e08b`; `ce/src/platform/git_version.h` embeds `1c00e08b`. Full CTest: 14/14. The helper's PNG decoder is `tools/check_png_pixel.py`.
 - Final validation on source `1c00e08b`: the 16-case sharp-off regression passed with zero changed pixels at all spots, and full CTest passed 14/14. Exporter tests passed 44/44 and regression unit tests passed 12/12. The regression summary is `runs/regression/20261024-103814-975-9564/summary.json`, with executable SHA-256 `fdd9ed58c09d67c9e101d525b0f3471bfa587943a7574466c32e483dfb41f8f2`.
-- Task 025 is complete and reviewed. The concise validation record is `runs/025-sharp-text/final-validation-20261024.md`. CPU capture tests cover clipped scrolling and palette fades, but no long live NPC reply with a nonzero page offset was observed, so do not claim runtime paging acceptance. Do not synthesize text, bypass talk rules, or use OS cursor/focus APIs.
+- Prior English/Russian and pixel-regression results are summarized in `runs/025-sharp-text/final-validation-20261024.md`; they remain valid for those supported locales. CPU capture tests cover clipped scrolling and palette fades, but no long live NPC reply with a nonzero page offset was observed, so do not claim runtime paging acceptance. Do not synthesize text, bypass talk rules, or use OS cursor/focus APIs.
 
 ## Build and delivery state
 
 - Local Ninja header dependency tracking is unreliable. Use the official configure/build script for MSVC. Rebuild affected source objects after code changes; do not run `ninja -t clean` or remove broad build outputs.
-- Draft PR #77 contains the curated matrix, accepted corrected cursor proof and final validation record. Parent owns updating the PR after the latest CI result, marking it ready and merging it.
+- Draft PR #77 contains the curated matrix, accepted corrected cursor proof and prior validation record. The PR remains blocked on the locale guard, its tests and parent review; do not mark task 025 done or the PR ready before then.
 - Final task scope is the conversation-only Acceptance in `tasks/025-sharp-text.md`; the earlier full-interface plan in old notes is superseded.
