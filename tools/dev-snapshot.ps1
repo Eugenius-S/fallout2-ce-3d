@@ -32,7 +32,7 @@ param(
     [switch]$DialogCursorCheck,
     [ValidateSet('inventory', 'pipboy', 'character', 'barter', 'log')]
     [string]$UiFixture,
-    [ValidateSet('1.00', '1.08', '1.15')]
+    [ValidateSet('1.00', '1.08', '1.15', '1.22', '1.29')]
     [string]$Font101PreviewScale,
     [string]$Tour,
     [switch]$Classic,

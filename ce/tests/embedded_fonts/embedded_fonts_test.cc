@@ -221,7 +221,7 @@ int main()
     std::vector<fallout::scene::TextVisibilityMask> fullLineVisibility(1);
     fullLineVisibility[0].bounds = { 0, 0, 256, 32 };
     fullLineVisibility[0].pixels.assign(256 * 32, 1);
-    for (double preview : { 1.0, 1.08, 1.15 }) {
+    for (double preview : { 1.0, 1.08, 1.15, 1.22, 1.29 }) {
         fallout::scene::setFont101PreviewScale(preview, -1);
         const int coverageHeight = fallout::scene::font101PreviewCoverageHeight(9, -1);
         std::vector<fallout::scene::TextVisibilityMask> clippedLineVisibility = fullLineVisibility;

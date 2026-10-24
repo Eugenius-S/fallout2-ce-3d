@@ -508,9 +508,11 @@ bool parseUiFixtureFont101PreviewOption(const char* arg)
     if (strcmp(value, "1.00") == 0) gFont101PreviewScale = 1.0;
     else if (strcmp(value, "1.08") == 0) gFont101PreviewScale = 1.08;
     else if (strcmp(value, "1.15") == 0) gFont101PreviewScale = 1.15;
+    else if (strcmp(value, "1.22") == 0) gFont101PreviewScale = 1.22;
+    else if (strcmp(value, "1.29") == 0) gFont101PreviewScale = 1.29;
     else {
         gInvalidUiFixture = true;
-        fprintf(stderr, "devtools: invalid font-101 size preview (expected 1.00, 1.08, or 1.15)\n");
+        fprintf(stderr, "devtools: invalid font-101 size preview (expected 1.00, 1.08, 1.15, 1.22, or 1.29)\n");
         fflush(stderr);
         return true;
     }

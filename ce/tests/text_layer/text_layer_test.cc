@@ -87,8 +87,14 @@ int main()
     failures += !check(fallout::scene::setFont101PreviewScale(1.15, 42)
             && fallout::scene::font101PreviewCoverageHeight(9, 42) == 11,
         "1.15 preview extends 9px coverage by two rows");
+    failures += !check(fallout::scene::setFont101PreviewScale(1.22, 42)
+            && fallout::scene::font101PreviewCoverageHeight(9, 42) == 11,
+        "1.22 preview extends 9px coverage by two rows");
+    failures += !check(fallout::scene::setFont101PreviewScale(1.29, 42)
+            && fallout::scene::font101PreviewCoverageHeight(9, 42) == 12,
+        "1.29 preview extends 9px coverage by three rows");
     failures += !check(!fallout::scene::setFont101PreviewScale(1.2, 42)
-            && fallout::scene::font101PreviewScaleForWindow(42) == 1.15,
+            && fallout::scene::font101PreviewScaleForWindow(42) == 1.29,
         "unsupported preview scale leaves the active value unchanged");
     fallout::scene::setFont101PreviewScale(1.0, -1);
 

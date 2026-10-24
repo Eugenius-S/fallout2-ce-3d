@@ -109,7 +109,7 @@ void traceRun(const char* stage, TextBufferId buffer, const TextRunInfo& run, co
 
 bool setFont101PreviewScale(double scale, int ownerWindow)
 {
-    if (scale != 1.0 && scale != 1.08 && scale != 1.15) return false;
+    if (scale != 1.0 && scale != 1.08 && scale != 1.15 && scale != 1.22 && scale != 1.29) return false;
     gFont101PreviewScale = scale;
     gFont101PreviewOwnerWindow = ownerWindow;
     return true;
