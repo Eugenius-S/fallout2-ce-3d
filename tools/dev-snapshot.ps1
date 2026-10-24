@@ -182,6 +182,7 @@ $runId = [guid]::NewGuid().ToString('N')
 $arguments = @('--dev-tools')
 if ($SharpText) { $arguments += '--dev-sharp-text=1' } else { $arguments += '--dev-sharp-text=0' }
 if ($UiFixture) { $arguments += "--dev-ui-fixture=$UiFixture" }
+if ($UiFixture -eq 'log') { $arguments += '--dev-classic' }
 if ($DialogFixture) { $arguments += '--dev-dialog-fixture' }
 if ($DialogPageInspect) { $arguments += '--dev-dialog-page-inspect' }
 if ($DialogCursorCheck) { $arguments += '--dev-dialog-cursor-check' }

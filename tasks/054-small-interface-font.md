@@ -86,8 +86,9 @@ No runtime screenshots or new screen fixtures have been added.
 Done: added opt-in `--dev-ui-fixture` modes for inventory, Pip-Boy, character,
 barter, and message log. They use normal engine key routes and visible window
 records. Barter reuses the reachable Sulik conversation and the real B key
-path; it requires two white `$0` totals. Message log uses the stock slash key
-and validates a newly added current in-game date record. Fixtures require the
+path; it requires two white `$0` totals. Message log uses the existing Classic
+2D map path so the vanilla frame includes the HUD, then validates a new current
+date record created through the stock slash key. Fixtures require the
 copied screen-buffer records to match the expected owner window generation,
 have visible coverage, and contain overlay pixels when sharp text is enabled.
 The Pip-Boy fixture enables the existing start option in memory for the
