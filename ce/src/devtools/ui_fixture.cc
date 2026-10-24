@@ -436,10 +436,22 @@ void uiFixtureVanillaPresented()
 
     std::vector<scene::TextRecord> runs = eligibleRuns(window);
     if (gKind == UiFixtureKind::Pipboy && gPipboyDiagnosticFrames < 8) {
-        const ScreenProof proof = screenProof(window, scene_renderer::preparedSharpTextFrame());
-        printf("UI_FIXTURE WAIT screen=pipboy frame=%d window=%d generation=%llu eligible=%zu screen_runs=%zu visible_runs=%zu coverage=%u overlay_runs=%zu\n",
-            gPipboyDiagnosticFrames++, window.id, static_cast<unsigned long long>(window.generation), runs.size(),
-            proof.records.size(), proof.visibleRecords.size(), proof.visibleCoverage, proof.overlayRecords.size());
+        const scene_renderer::PreparedSharpTextFrame& frame = scene_renderer::preparedSharpTextFrame();
+        const ScreenProof proof = screenProof(window, frame);
+        const scene::TextBufferId buffer = textCaptureBufferId(window.pixels);
+        int ownerRuns = 0;
+        int font101OwnerRuns = 0;
+        if (buffer != 0) {
+            for (const scene::TextRecord& record : scene::textCaptureSharpRecords(buffer)) {
+                if (record.ownerWindow != window.id || record.ownerGeneration != window.generation) continue;
+                ownerRuns++;
+                if (record.run.font == 101) font101OwnerRuns++;
+            }
+        }
+        printf("UI_FIXTURE WAIT screen=pipboy callback=entered frame=%d window=%d generation=%llu owner_runs=%d font101_owner_runs=%d eligible=%zu screen_runs=%zu visible_runs=%zu coverage=%u frame_active=%d frame_drawn=%d overlay_runs=%zu\n",
+            gPipboyDiagnosticFrames++, window.id, static_cast<unsigned long long>(window.generation), ownerRuns,
+            font101OwnerRuns, runs.size(), proof.records.size(), proof.visibleRecords.size(), proof.visibleCoverage,
+            frame.active ? 1 : 0, frame.drawn ? 1 : 0, proof.overlayRecords.size());
         fflush(stdout);
     }
     if (runs.empty()) return;
