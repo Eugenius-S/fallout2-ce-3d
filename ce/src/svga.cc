@@ -17,6 +17,7 @@
 #include "movie.h"
 #include "scan_unimplemented.h"
 #include "settings.h"
+#include "scene/text_capture.h"
 #include "devtools/devtools.h"
 #include "scene/scene_overlay.h"
 #include "scene/scene_view.h"
@@ -27,6 +28,7 @@
 #include "scene_renderer/post.h"
 #include "scene_renderer/scene_draw.h"
 #include "scene_renderer/static_scene.h"
+#include "scene_renderer/text_present.h"
 #include "text_font.h"
 #include "tile.h"
 #include "win32.h"
@@ -246,6 +248,9 @@ int directDrawInit(int width, int height, int bpp)
         directDrawFree();
         return -1;
     }
+    textCaptureRegisterExternalBuffer(gSdlSurface->pixels,
+        static_cast<size_t>(gSdlSurface->pitch) * gSdlSurface->h,
+        gSdlSurface->w, gSdlSurface->h, gSdlSurface->pitch, false);
 
     SDL_Color colors[256];
     for (int index = 0; index < 256; index++) {
@@ -264,6 +269,7 @@ int directDrawInit(int width, int height, int bpp)
 void directDrawFree()
 {
     if (gSdlSurface != nullptr) {
+        textCaptureUnregisterExternalBuffer(gSdlSurface->pixels);
         SDL_FreeSurface(gSdlSurface);
         gSdlSurface = nullptr;
     }
@@ -524,6 +530,9 @@ void renderPresent()
     // Sprite-lighting mod: the dev panel is drawn into the framebuffer after
     // the game (so it shows in both presentation paths).
     devtools::draw(static_cast<unsigned char*>(gSdlSurface->pixels), gSdlSurface->w, gSdlSurface->h, gSdlSurface->pitch);
+    const bool uiVisible = scene_renderer::isActive() && !scene_renderer::staticFlyCameraActive()
+        && (!scene::shouldPresent() || scene::activeView() == scene::View::Full);
+    const bool sharpTextReady = scene_renderer::prepareSharpTextForPresent(gSdlSurface, gSdlTextureSurface, uiVisible);
     // A frame without the 3D scene (combat, dialog, ...) lands the fly camera
     // before the game takes input again.
     if (scene_renderer::staticFlyCameraActive()
@@ -548,12 +557,7 @@ void renderPresent()
                     return;
                 }
                 // The game's interface, mouse cursor and floating text over it.
-                SDL_BlitSurface(gSdlSurface, nullptr, gSdlTextureSurface, nullptr);
-                scene::maskOverlay(static_cast<const unsigned char*>(gSdlSurface->pixels), gSdlSurface->pitch,
-                    static_cast<unsigned char*>(gSdlTextureSurface->pixels), gSdlTextureSurface->pitch,
-                    gSdlSurface->w, gSdlSurface->h);
-                scene_renderer::drawSceneOverlay(static_cast<const unsigned char*>(gSdlTextureSurface->pixels),
-                    gSdlTextureSurface->w, gSdlTextureSurface->h, gSdlTextureSurface->pitch);
+                scene_renderer::drawSceneOverlayWithSharpText(gSdlSurface, gSdlTextureSurface, sharpTextReady);
                 scene_renderer::swap();
                 return;
             }
@@ -571,12 +575,7 @@ void renderPresent()
         // Palette -> RGBA conversion is the same SDL_BlitSurface the vanilla
         // path performs every frame, so palette fades and cycling behave
         // identically under the OpenGL presentation.
-        SDL_BlitSurface(gSdlSurface, nullptr, gSdlTextureSurface, nullptr);
-        scene_renderer::presentFrame(
-            static_cast<const unsigned char*>(gSdlTextureSurface->pixels),
-            gSdlTextureSurface->w,
-            gSdlTextureSurface->h,
-            gSdlTextureSurface->pitch);
+        scene_renderer::presentFrameWithSharpText(gSdlSurface, gSdlTextureSurface, sharpTextReady);
         // render movie frame if present
         movieRenderDirectOverlay();
         scene_renderer::swap();

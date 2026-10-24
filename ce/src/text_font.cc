@@ -304,6 +304,14 @@ void fontSetCurrent(int font)
     }
 }
 
+int fontGetCurrentGlyphCount()
+{
+    if (gCurrentFont >= 0 && gCurrentFont < TEXT_FONT_MAX) {
+        return gCurrentTextFontDescriptor != nullptr ? gCurrentTextFontDescriptor->glyphCount : 0;
+    }
+    return 256;
+}
+
 // 0x4D595C text_font_exists
 static bool fontManagerFind(int font, FontManager** fontManagerPtr)
 {

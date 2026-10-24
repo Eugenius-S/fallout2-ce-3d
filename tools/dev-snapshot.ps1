@@ -27,6 +27,9 @@ param(
     [int]$Elevation = 0,
     [int]$TimeoutSeconds = 90,
     [switch]$Probe,
+    [switch]$DialogFixture,
+    [switch]$DialogPageInspect,
+    [switch]$DialogCursorCheck,
     [string]$Tour,
     [switch]$Classic,
     [switch]$Preferences,
@@ -59,6 +62,8 @@ param(
     # -Glow: keep the glow on in this background run (it is forced off by
     # default, so captures stay byte-stable).
     [switch]$Glow,
+    # -SharpText: opt in to the experimental high-resolution interface text pass.
+    [switch]$SharpText,
     # -Zoom D: the 3D zoom of the snapshots (1 is the game's own size).
     [ValidateRange(0.25, 4)]
     [double]$Zoom = -1,
@@ -105,6 +110,26 @@ if ($PreferencesProbe) {
 } elseif ($ReuseTestConfig) {
     throw '-ReuseTestConfig requires -PreferencesProbe.'
 }
+if ($DialogFixture) {
+    if ($Map -ne 'kladwtwn') { throw '-DialogFixture requires the resource-verified Klamath map kladwtwn.' }
+    if ($Preferences -or $Classic -or $Probe -or $Tour -or $Still -or $NoPreview -or $PreferencesProbe) {
+        throw '-DialogFixture cannot be combined with Preferences, Classic, Probe, Tour, Still, NoPreview, or PreferencesProbe.'
+    }
+    if (-not $CaptureConsole -or -not $OutputDirectory) {
+        throw '-DialogFixture requires -CaptureConsole and -OutputDirectory for fixture diagnostics.'
+    }
+}
+if ($DialogPageInspect) {
+    if (-not $DialogFixture) { throw '-DialogPageInspect requires -DialogFixture.' }
+    if ($SharpText) { throw '-DialogPageInspect must inspect the original pixel text with sharp text off.' }
+    if ($Language -ne 'english') { throw '-DialogPageInspect requires -Language english so the recorded reply text is readable.' }
+}
+if ($DialogCursorCheck) {
+    if (-not $DialogFixture) { throw '-DialogCursorCheck requires -DialogFixture.' }
+    if (-not $SharpText) { throw '-DialogCursorCheck requires -SharpText.' }
+    if ($DialogPageInspect) { throw '-DialogCursorCheck cannot be combined with -DialogPageInspect.' }
+    if ($Language -ne 'english') { throw '-DialogCursorCheck requires -Language english for readable diagnostics.' }
+}
 if ($ReuseTestConfig) {
     if (-not (Test-Path -LiteralPath $configPath -PathType Leaf)) { throw "No isolated config to reuse: $configPath" }
 } else {
@@ -141,6 +166,10 @@ if (-not (Test-Path -LiteralPath $exe) -or
 $shots = 1
 $runId = [guid]::NewGuid().ToString('N')
 $arguments = @('--dev-tools')
+if ($SharpText) { $arguments += '--dev-sharp-text=1' } else { $arguments += '--dev-sharp-text=0' }
+if ($DialogFixture) { $arguments += '--dev-dialog-fixture' }
+if ($DialogPageInspect) { $arguments += '--dev-dialog-page-inspect' }
+if ($DialogCursorCheck) { $arguments += '--dev-dialog-cursor-check' }
 if ($PreferencesProbe) {
     $arguments += @('--dev-new-game', "--dev-map=$Map", "--dev-elevation=$Elevation", "--dev-preferences-probe=$PreferencesProbe")
 } else {
@@ -193,7 +222,10 @@ if ($PreferencesProbe) {
     $shots = 1 + @("$Tour".Split(',') | Where-Object { $_.Trim() }).Count
     $arguments += "--dev-map-tour=$Tour"
 } else {
-    $arguments += '--dev-snapshot-once'
+    if ($DialogPageInspect) { $shots = 0 }
+    elseif ($DialogCursorCheck) { $shots = 1 }
+    elseif ($DialogFixture) { $shots = 1 }
+    else { $arguments += '--dev-snapshot-once' }
 }
 
 $started = Get-Date
@@ -208,6 +240,7 @@ if (Test-Path -LiteralPath $sceneCache -PathType Container) { $env:F2CE_SCENE_CA
 $process = $null
 $probeHarnessStoppedProcess = $false
 $snapshots = @()
+$dialogFixtureFailed = $false
 try {
     $startParameters = @{
         FilePath = $exe
@@ -244,7 +277,28 @@ try {
             })
             $log = Join-Path $GameDir 'devprobe.log'
             $probed = -not $Probe -or ((Test-Path $log) -and (Select-String -Path $log -Pattern 'probe done' -Quiet))
-            if ($snapshots.Count -ge $shots -and $probed) { break }
+            if ($DialogPageInspect) {
+                $fixtureLog = Join-Path $OutputDirectory 'process.stdout.log'
+                if ((Test-Path -LiteralPath $fixtureLog) -and
+                    (Select-String -LiteralPath $fixtureLog -Pattern '^DIALOG_PAGE_INSPECT PASS ' -Quiet)) { break }
+                if ((Test-Path -LiteralPath $fixtureLog) -and
+                    (Select-String -LiteralPath $fixtureLog -Pattern '^DIALOG_FIXTURE FAIL ' -Quiet)) { $dialogFixtureFailed = $true; break }
+            } elseif ($DialogCursorCheck) {
+                $fixtureLog = Join-Path $OutputDirectory 'process.stdout.log'
+                if ((Test-Path -LiteralPath $fixtureLog) -and
+                    (Select-String -LiteralPath $fixtureLog -Pattern '^DIALOG_CURSOR_CHECK FAIL ' -Quiet)) { $dialogFixtureFailed = $true; break }
+                if ($snapshots.Count -ge $shots -and (Test-Path -LiteralPath $fixtureLog) -and
+                    (Select-String -LiteralPath $fixtureLog -Pattern '^DIALOG_CURSOR_CHECK PASS ' -Quiet)) { break }
+            } elseif ($DialogFixture) {
+                $fixtureLog = Join-Path $OutputDirectory 'process.stdout.log'
+                if ((Test-Path -LiteralPath $fixtureLog) -and
+                    (Select-String -LiteralPath $fixtureLog -Pattern '^DIALOG_FIXTURE FAIL ' -Quiet)) {
+                    $dialogFixtureFailed = $true
+                    break
+                }
+                if ($snapshots.Count -ge $shots -and (Test-Path -LiteralPath $fixtureLog) -and
+                    (Select-String -LiteralPath $fixtureLog -Pattern '^DIALOG_FIXTURE PASS ' -Quiet)) { break }
+            } elseif ($snapshots.Count -ge $shots -and $probed) { break }
             Start-Sleep -Milliseconds 500
         }
     }
@@ -331,6 +385,50 @@ if ($PreferencesProbe) {
     $probeResult | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $resultPath -Encoding utf8
     Write-Output "PREFERENCES_PROBE RESULT $resultPath"
     return
+}
+if ($DialogFixture -and -not $DialogPageInspect -and -not $DialogCursorCheck) {
+    $fixtureLog = Get-Content -Raw -LiteralPath (Join-Path $OutputDirectory 'process.stdout.log')
+    if ($dialogFixtureFailed) {
+        throw "Dialog fixture reported failure.`n$fixtureLog"
+    }
+    if ($fixtureLog -notmatch '(?m)^DIALOG_FIXTURE PASS ') {
+        throw "Dialog fixture timed out within $TimeoutSeconds s.`n$fixtureLog"
+    }
+    if (-not $probeHarnessStoppedProcess) { throw 'Dialog fixture was not stopped by its isolated helper harness.' }
+}
+if ($DialogPageInspect) {
+    $inspectLog = Get-Content -Raw -LiteralPath (Join-Path $OutputDirectory 'process.stdout.log')
+    if ($inspectLog -notmatch '(?m)^DIALOG_PAGE_INSPECT PASS .*reply_offset=\d+') {
+        throw "Dialog page inspection did not report a completed real-key selection within $TimeoutSeconds s.`n$inspectLog"
+    }
+    if (-not $probeHarnessStoppedProcess) { throw 'Dialog page inspection was not stopped by its isolated helper harness.' }
+    Write-Output $inspectLog
+    return
+}
+if ($DialogCursorCheck) {
+    $cursorLog = Get-Content -Raw -LiteralPath (Join-Path $OutputDirectory 'process.stdout.log')
+    $cursorPass = [regex]::Match($cursorLog, '(?m)^DIALOG_CURSOR_CHECK PASS .*opaque_physical=(\d+),(\d+).*transparent_physical=(\d+),(\d+).*cursor_index=\d+ expected_rgb=(\d+),(\d+),(\d+).*opaque_alpha=(\d+)->0 transparent_alpha=(\d+)->(\d+) same_run_ink_pixels=(\d+)->(\d+)')
+    if ($dialogFixtureFailed -or -not $cursorPass.Success) {
+        throw "Dialog cursor check failed or timed out within $TimeoutSeconds s.`n$cursorLog"
+    }
+    if ([int]$cursorPass.Groups[8].Value -le 0 -or [int]$cursorPass.Groups[9].Value -le 0 -or
+        [int]$cursorPass.Groups[9].Value -ne [int]$cursorPass.Groups[10].Value -or
+        [int]$cursorPass.Groups[11].Value -le [int]$cursorPass.Groups[12].Value -or
+        [int]$cursorPass.Groups[12].Value -le 0) {
+        throw 'Dialog cursor check did not preserve sharp text at the transparent cursor cell.'
+    }
+    if (-not $probeHarnessStoppedProcess) { throw 'Dialog cursor check was not stopped by its isolated helper harness.' }
+    if ($snapshots.Count -lt 1) { throw 'Dialog cursor check passed without a framebuffer snapshot.' }
+    $cursorMetadata = Get-Content -Raw -LiteralPath $snapshots[0].FullName | ConvertFrom-Json
+    if (-not $cursorMetadata.sharp_text.active -or -not $cursorMetadata.sharp_text.drawn -or
+        $cursorMetadata.sharp_text.runs -le 0 -or $cursorMetadata.sharp_text.glyphs -le 0) {
+        throw 'Dialog cursor snapshot does not prove an active drawn sharp-text pass.'
+    }
+    $cursorImagePath = Join-Path $GameDir $cursorMetadata.image
+    & py -3 (Join-Path $PSScriptRoot 'check_png_pixel.py') $cursorImagePath $cursorPass.Groups[1].Value $cursorPass.Groups[2].Value `
+        $cursorPass.Groups[5].Value $cursorPass.Groups[6].Value $cursorPass.Groups[7].Value
+    if ($LASTEXITCODE -ne 0) { throw 'Dialog cursor pixel in the decoded PNG does not match the engine cursor palette color.' }
+    Write-Output $cursorLog
 }
 if ($snapshots.Count -lt $shots) { throw "No snapshot within $TimeoutSeconds s." }
 foreach ($snapshot in $snapshots) {

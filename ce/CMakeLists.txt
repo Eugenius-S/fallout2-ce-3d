@@ -302,9 +302,13 @@ set(FALLOUT_PLATFORM_SOURCES
     "src/scene/preview_policy.cc"
     "src/scene/preview_policy.h"
     "src/scene/scene_lights.cc"
+    "src/scene/text_layer.cc"
+    "src/scene/text_capture.cc"
     "src/scene/sun.cc"
     "src/scene/sun.h"
     "src/scene/scene_lights.h"
+    "src/scene/text_layer.h"
+    "src/scene/text_capture.h"
     "src/scene/options_panel.cc"
     "src/scene/options_panel.h"
     "src/scene/scene_objects.cc"
@@ -335,6 +339,10 @@ set(FALLOUT_PLATFORM_SOURCES
     "src/scene_renderer/roofs.cc"
     "src/scene_renderer/scene_draw.cc"
     "src/scene_renderer/scene_draw.h"
+    "src/scene_renderer/text_draw.cc"
+    "src/scene_renderer/text_draw.h"
+    "src/scene_renderer/text_present.cc"
+    "src/scene_renderer/text_present.h"
     "src/scene_renderer/scene_internal.cc"
     "src/scene_renderer/scene_internal.h"
     "src/scene_renderer/scene_shader.cc"
@@ -424,6 +432,7 @@ if(BUILD_TESTING)
     add_subdirectory(tests/embedded_fonts)
     add_subdirectory(tests/clean_edges_boundary_mask)
     add_subdirectory(tests/sun)
+    add_subdirectory(tests/text_layer)
 endif()
 
 target_sources(${EXECUTABLE_NAME} PUBLIC
