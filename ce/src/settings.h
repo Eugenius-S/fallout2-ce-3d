@@ -293,7 +293,7 @@ struct Scene3dSettings {
     bool lights = true;
     bool sun = true;
     bool shadows = true;
-    double shadow_pixel_size = 4.0;
+    double shadow_pixel_size = 2.0;
     bool glow = true;
     double glow_strength = 1.0;
     bool camera_rotation = false;

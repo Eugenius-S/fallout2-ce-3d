@@ -1,33 +1,36 @@
 #ifndef FALLOUT_SCENE_RENDERER_SHADOW_H
 #define FALLOUT_SCENE_RENDERER_SHADOW_H
 
+#include <vector>
+
 namespace fallout {
 namespace scene_renderer {
 
 // Per-frame stats of the shadow pass for the dev perf log: whether the last
 // bindStaticShadows rendered it, and the seconds it took since the last call.
 void shadowFrameStats(bool* rendered, double* seconds);
-// The hex pass (task 046): whether the last shadow frame read the ground
-// factors back, and the shadowed share at a tile's anchor hex from it (a
-// fraction, the border fades across hexes). The live cards chase it over
-// ~150 ms.
-bool shadowGroundReady();
-double shadowGroundShadowFactor(int tile);
 
 namespace internal {
 
 // Sun shadows from buildings and big things (task 045). One directional depth
 // map over the whole map ground, cast by the static scene: wall batches (backs
 // and ends included), all roof squares (hidden ones too) and the baked objects
-// big enough to cast. The floor and the walls sample it; sprites do not (that
-// is task 046).
+// big enough to cast. Every lit fragment samples it: the floor and the walls
+// at their texel, a card at its pixel's own place and height (057).
 //
 // Set the casters once after walls and roofs load; the rest happens per frame
 // in bindStaticShadows from the scene draw.
 
 // Takes the caster triangles walls.cc kept and the tall enough of them; both
-// null arguments are allowed.
-void setShadowWallCasters(unsigned int vao, int vertexCount, float maxCasterHeight);
+// null arguments are allowed. The buffer carries positions with UVs and one
+// draw range per atlas page, so the pass can bind the page and cut the art's
+// transparent holes out of the depth map (task 057).
+struct WallCasterRange {
+    unsigned int texture; // the page's GL texture
+    int first; // first vertex of the range
+    int count; // vertices in the range
+};
+void setShadowWallCasters(unsigned int vao, float maxCasterHeight, std::vector<WallCasterRange> ranges);
 // Takes the all-squares roof buffer roofs.cc keeps for the shadow pass.
 void setShadowRoofCasters(unsigned int vao, int vertexCount);
 void destroyStaticShadows();

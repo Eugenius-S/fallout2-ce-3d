@@ -15,8 +15,7 @@ namespace internal {
 
 namespace {
 
-constexpr unsigned int kShadowMapSize = 2048;
-constexpr unsigned int kHexSize = 200; // hexes per map side; one texel per hex
+constexpr unsigned int kShadowMapSize = 4096;
 constexpr unsigned int kFramebuffer = 0x8D40;
 constexpr unsigned int kDepthAttachment = 0x8D00;
 constexpr unsigned int kDepthComponent24 = 0x81A6;
@@ -30,18 +29,9 @@ constexpr double kEyeDistance = 220.0;
 
 unsigned int gShadowMapTexture = 0;
 unsigned int gShadowFbo = 0;
-// The hex pass (046): the shadow test at every hex's ground point, read back
-// for the live cards' fade.
-unsigned int gHexFbo = 0;
-unsigned int gHexTexture = 0;
-unsigned int gHexVao = 0;
-unsigned int gHexVbo = 0;
-unsigned int gHexWhiteTexture = 0;
-std::vector<unsigned char> gHexFactor;
-bool gHexFactorValid = false;
 
 unsigned int gWallCasterVao = 0;
-int gWallCasterVertices = 0;
+std::vector<WallCasterRange> gWallCasterRanges;
 unsigned int gRoofCasterVao = 0;
 int gRoofCasterVertices = 0;
 float gMaxCasterHeight = 3.2f;
@@ -137,10 +127,10 @@ void ensureResources()
 
 } // namespace
 
-void setShadowWallCasters(unsigned int vao, int vertexCount, float maxCasterHeight)
+void setShadowWallCasters(unsigned int vao, float maxCasterHeight, std::vector<WallCasterRange> ranges)
 {
     gWallCasterVao = vao;
-    gWallCasterVertices = vertexCount;
+    gWallCasterRanges = std::move(ranges);
     if (maxCasterHeight > 0.0f) gMaxCasterHeight = maxCasterHeight;
 }
 
@@ -155,86 +145,19 @@ void destroyStaticShadows()
     if (gContext != nullptr) {
         if (gShadowMapTexture != 0) glDeleteTextures(1, &gShadowMapTexture);
         if (gShadowFbo != 0) glDeleteFramebuffers(1, &gShadowFbo);
-        if (gHexTexture != 0) glDeleteTextures(1, &gHexTexture);
-        if (gHexFbo != 0) glDeleteFramebuffers(1, &gHexFbo);
-        if (gHexVbo != 0) glDeleteBuffers(1, &gHexVbo);
-        if (gHexVao != 0) glDeleteVertexArrays(1, &gHexVao);
-        if (gHexWhiteTexture != 0) glDeleteTextures(1, &gHexWhiteTexture);
     }
     gShadowMapTexture = 0;
     gShadowFbo = 0;
-    gHexFbo = 0;
-    gHexTexture = 0;
-    gHexVao = 0;
-    gHexVbo = 0;
-    gHexWhiteTexture = 0;
-    gHexFactor.clear();
-    gHexFactorValid = false;
     gWallCasterVao = 0;
-    gWallCasterVertices = 0;
+    gWallCasterRanges.clear();
     gRoofCasterVao = 0;
     gRoofCasterVertices = 0;
     gMaxCasterHeight = 3.2f;
 }
 
-// The hex pass's framebuffer, ground quad and white texel; false when the
-// driver refuses them and the cards keep their unfaded factors.
-bool ensureHexResources()
-{
-    if (gHexTexture == 0) {
-        glGenTextures(1, &gHexTexture);
-        glBindTexture(kTexture2D, gHexTexture);
-        glTexImage2D(kTexture2D, 0, kRgba8, kHexSize, kHexSize, 0, kRGBA, kUnsignedByte, nullptr);
-        glTexParameteri(kTexture2D, kTextureMinFilter, kNearest);
-        glTexParameteri(kTexture2D, kTextureMagFilter, kNearest);
-        glTexParameteri(kTexture2D, kTextureWrapS, kClampToEdge);
-        glTexParameteri(kTexture2D, kTextureWrapT, kClampToEdge);
-    }
-    if (gHexWhiteTexture == 0) {
-        glGenTextures(1, &gHexWhiteTexture);
-        glBindTexture(kTexture2D, gHexWhiteTexture);
-        const unsigned char white[4] = { 255, 255, 255, 255 };
-        glTexImage2D(kTexture2D, 0, kRgba8, 1, 1, 0, kRGBA, kUnsignedByte, white);
-        glTexParameteri(kTexture2D, kTextureMinFilter, kNearest);
-        glTexParameteri(kTexture2D, kTextureMagFilter, kNearest);
-    }
-    if (gHexVao == 0) {
-        const float ground[18] = {
-            -50.0f, 0.05f, -50.0f, 50.0f, 0.05f, -50.0f, 50.0f, 0.05f, 50.0f,
-            -50.0f, 0.05f, -50.0f, 50.0f, 0.05f, 50.0f, -50.0f, 0.05f, 50.0f,
-        };
-        glGenVertexArrays(1, &gHexVao);
-        glGenBuffers(1, &gHexVbo);
-        glBindVertexArray(gHexVao);
-        glBindBuffer(kArrayBuffer, gHexVbo);
-        glBufferData(kArrayBuffer, sizeof(ground), ground, kStaticDraw);
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 3, 0x1406 /* GL_FLOAT */, 0, 3 * sizeof(float), nullptr);
-        glBindVertexArray(0);
-    }
-    if (gHexFbo == 0) {
-        glGenFramebuffers(1, &gHexFbo);
-        glBindFramebuffer(kFramebuffer, gHexFbo);
-        glFramebufferTexture2D(kFramebuffer, 0x8CE0 /* GL_COLOR_ATTACHMENT0 */, kTexture2D, gHexTexture, 0);
-        if (glCheckFramebufferStatus(kFramebuffer) != kFramebufferComplete) {
-            fprintf(stderr, "scene_renderer: the hex shadow framebuffer is incomplete; sprite fade stays off\n");
-            fflush(stderr);
-            glDeleteFramebuffers(1, &gHexFbo);
-            gHexFbo = 0;
-            return false;
-        }
-    }
-    if (gHexFactor.size() != static_cast<size_t>(kHexSize) * kHexSize * 4) {
-        gHexFactor.assign(static_cast<size_t>(kHexSize) * kHexSize * 4, 255);
-    }
-    glBindTexture(kTexture2D, 0);
-    return gHexFbo != 0;
-}
-
 bool bindStaticShadows(const float* sceneMvp)
 {
     gShadowRendered = false;
-    gHexFactorValid = false;
     if (!settings.scene3d.shadows || sceneMvp == nullptr) return false;
     const scene::Sun& sun = scene::currentSun();
     if (!sun.up || sun.strength <= 0.0f) return false;
@@ -263,20 +186,24 @@ bool bindStaticShadows(const float* sceneMvp)
     float matrix[16];
     shadowMatrix(sun.direction, pad, matrix);
 
-    // The lookup grid: uShadowStep GL units per [3d] shadow_pixel_size game
-    // pixel (hpx is the projection's pixels per GL unit). The compare bias
-    // covers the snap window and the depth map's slope error; it is set in
+    // The AA ring: uShadowStep GL units per [3d] shadow_pixel_size game
+    // pixel (hpx is the projection's pixels per GL unit), but at least 1.25
+    // depth map texels wide: at one texel the ring's taps still share texels
+    // and the edge reads a stair (the owner's round 6). The compare bias
+    // covers the ring's span and the depth map's slope error; it is set in
     // the map's 0..1 depth, whose range the matrix uses. Set before the
-    // passes: both the casters and the hex pass draw with them.
+    // passes: the casters draw with them.
     const double hpx = gHeroProjection.hpx > 0.0 ? gHeroProjection.hpx : 32.0;
     const float step = static_cast<float>(settings.scene3d.shadow_pixel_size / hpx);
     const double near = 1.0;
     const double far = 2.0 * kEyeDistance + 2.0 * gMaxCasterHeight + 20.0;
+    const float texel = static_cast<float>(2.0 * (50.0 + pad) / kShadowMapSize);
+    const float ring = std::max(step, texel * 1.25f);
     glUniform1i(gSceneShadowOnLocation, 1);
     glUniformMatrix4fv(gSceneShadowMatrixLocation, 1, 0, matrix);
     glUniform1f(gSceneShadowStrengthLocation, sun.strength);
-    glUniform1f(gSceneShadowStepLocation, step);
-    glUniform1f(gSceneShadowBiasLocation, static_cast<float>(step * 1.5 / (far - near)));
+    glUniform1f(gSceneShadowStepLocation, ring);
+    glUniform1f(gSceneShadowBiasLocation, static_cast<float>(ring * 1.5 / (far - near)));
     // The map's depth span in GL units: the shader fades the shadow with the
     // distance the sun's ray travels past its caster.
     glUniform1f(gSceneShadowRangeLocation, static_cast<float>(far - near));
@@ -286,7 +213,10 @@ bool bindStaticShadows(const float* sceneMvp)
     glActiveTexture(kTexture0);
 
     // The casters draw with the scene program itself, in its pick mode (a
-    // flat colour, no lighting math) with the shadow matrix as uMvp.
+    // flat colour, no lighting math) with the shadow matrix as uMvp. Textured
+    // with a cutoff, so the art's transparent holes (a fence's gaps, a
+    // window's glass) cast no shadow (057); the discard sits in the shader's
+    // shared textured path, before the pick branch.
     glBindFramebuffer(kFramebuffer, gShadowFbo);
     glViewport(0, 0, kShadowMapSize, kShadowMapSize);
     glClear(kDepthBufferBit);
@@ -298,58 +228,26 @@ bool bindStaticShadows(const float* sceneMvp)
     glColorMask(0, 0, 0, 0);
     glUniformMatrix4fv(gSceneMvpLocation, 1, 0, matrix);
     glUniform1i(gScenePickLocation, 1);
-    if (gWallCasterVao != 0 && gWallCasterVertices > 0) {
+    glUniform1i(gSceneTexturedLocation, 1);
+    glUniform1f(gSceneCutoffLocation, 0.5f);
+    glActiveTexture(kTexture0);
+    if (gWallCasterVao != 0 && !gWallCasterRanges.empty()) {
         glBindVertexArray(gWallCasterVao);
-        glDrawArrays(kTriangles, 0, gWallCasterVertices);
+        for (const WallCasterRange& range : gWallCasterRanges) {
+            if (range.count <= 0 || range.texture == 0) continue;
+            glBindTexture(kTexture2D, range.texture);
+            glDrawArrays(kTriangles, range.first, range.count);
+        }
+        glBindVertexArray(0);
     }
+    glUniform1i(gSceneTexturedLocation, 0);
+    glUniform1f(gSceneCutoffLocation, 0.0f);
     if (gRoofCasterVao != 0 && gRoofCasterVertices > 0) {
         glBindVertexArray(gRoofCasterVao);
         glDrawArrays(kTriangles, 0, gRoofCasterVertices);
-    }
-    glBindVertexArray(0);
-
-    // The hex pass (046): the shadow test at every hex's ground point, one
-    // readback the sprite cards' fade chases. The ground quad draws with the
-    // scene program, light mode 5: a white texel scaled by the pure shadow
-    // factor, so the red channel read back is 0 or 255.
-    if (ensureHexResources()) {
-        glViewport(0, 0, kHexSize, kHexSize);
-        glBindFramebuffer(kFramebuffer, gHexFbo);
-        glDisable(kDepthTest);
-        glColorMask(1, 1, 1, 1);
-        // World ground (x, y up, z) to the 200x200 clip square: x and z of
-        // [-50, 50] onto [-1, 1], vWorld stays the attribute itself.
-        const float hexMatrix[16] = {
-            1.0f / 50.0f, 0.0f, 0.0f, 0.0f,
-            0.0f, 1.0f / 50.0f, 0.0f, 0.0f,
-            0.0f, 0.0f, 0.0f, 0.0f,
-            0.0f, 0.0f, 0.0f, 1.0f,
-        };
-        glUniformMatrix4fv(gSceneMvpLocation, 1, 0, hexMatrix);
-        glUniform1i(gScenePickLocation, 0);
-        glUniform1i(gSceneTexturedLocation, 1);
-        glUniform1f(gSceneCutoffLocation, 0.0f);
-        glUniform1i(gSceneTranslucentLocation, 0);
-        glUniform1i(gSceneDepthAtLocation, 0);
-        glUniform1i(gSceneClipEnabledLocation, 0);
-        glUniform1i(gSceneEggLocation, 0);
-        glUniform1i(gSceneEggPassLocation, 0);
-        glUniform1i(gSceneSeeThroughLocation, 0);
-        glUniform1i(gSceneLightModeLocation, 5);
-        int savedUnit = 0;
-        glGetIntegerv(0x84E0 /* GL_ACTIVE_TEXTURE */, &savedUnit);
-        int savedUnit0Texture = 0;
-        glActiveTexture(kTexture0);
-        glGetIntegerv(0x8069 /* GL_TEXTURE_BINDING_2D */, &savedUnit0Texture);
-        glBindTexture(kTexture2D, gHexWhiteTexture);
-        glBindVertexArray(gHexVao);
-        glDrawArrays(kTriangles, 0, 6);
-        glReadPixels(0, 0, kHexSize, kHexSize, kRGBA, kUnsignedByte, gHexFactor.data());
         glBindVertexArray(0);
-        glBindTexture(kTexture2D, static_cast<unsigned int>(savedUnit0Texture));
-        glActiveTexture(static_cast<unsigned int>(savedUnit));
-        gHexFactorValid = true;
     }
+
     glUniformMatrix4fv(gSceneMvpLocation, 1, 0, sceneMvp);
     glUniform1i(gScenePickLocation, 0);
     glColorMask(1, 1, 1, 1);
@@ -376,27 +274,6 @@ void shadowFrameStats(bool* rendered, double* seconds)
 void shadowFrameStats(bool* rendered, double* seconds)
 {
     internal::shadowFrameStats(rendered, seconds);
-}
-
-bool shadowGroundReady()
-{
-    return internal::gHexFactorValid;
-}
-
-double shadowGroundShadowFactor(int tile)
-{
-    if (!internal::gHexFactorValid) return 0.0;
-    double x = 0.0, z = 0.0;
-    if (!internal::lightAnchorGround(tile, &x, &z)) return 0.0;
-    const int hexSize = static_cast<int>(internal::kHexSize);
-    const int col = static_cast<int>((x + 50.0) * 2.0);
-    const int row = static_cast<int>((z + 50.0) * 2.0);
-    if (col < 0 || col >= hexSize || row < 0 || row >= hexSize) {
-        return 0.0;
-    }
-    // The hex pass renders the lit level (1 minus the shadowed share) in the
-    // red channel; the fade chases it as a fraction.
-    return 1.0 - static_cast<int>(internal::gHexFactor[(row * hexSize + col) * 4]) / 255.0;
 }
 
 } // namespace scene_renderer
