@@ -35,6 +35,7 @@ DEFAULT_MAP = "kladwtwn"
 # Map groups for --maps: every elevation each map has.
 MAP_GROUPS = {
     "klamath": ("kladwtwn", "klatrap", "klacanyn", "klagraz", "klamall", "klaratcv", "klatoxcv"),
+    "den": ("denbus1", "denbus2", "denres1"),
 }
 EXPECTED_OUTPUT_FILES = {"scene.json", "provenance.json", "floor.bin", "walls.bin", "projection.bin", "baked.bin",
                          "tiles.png", "light.png", "rock.png"}
