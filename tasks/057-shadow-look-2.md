@@ -132,6 +132,26 @@ plateau widens by one constant (2 to ~4); the melt end (9) and the default
 softness (2) are one line each. The 4096 map costs 32 MB and one caster pass
 a frame; the dev perf log can price it if the owner asks.
 
+### 2026-10-24 owner (round 6, live in the round 2 build, shots 25..32)
+- Stairs on the shadow edges again.
+- No fade at the shadow's far end.
+- The pen is partially fixed.
+- Patches of ground inside the pen look excluded from the shadow.
+- Shadow artifacts expose the bad geometry at the fence corner (the corner
+  itself is the walls line in the inbox).
+- A man darkened where no shadow lies on him.
+- T does nothing in gameplay: make Ctrl+T the hour hotkey.
+
+### 2026-10-24 glm
+Plan for round 3, taken to work now: the sprite dimming is the likely
+source of both the stairs and the wrongly darkened man (a whole card takes
+its anchor hex's factor, one hex chunk at a time), so mode 3 goes per
+fragment: each card pixel takes its own sunShadow(), the anchor hex factor
+staying as a floor. The melt window widens (2..9 to 2..12) for a visible
+fade at the end; the AA ring floor rises to 1.25 texels for the stairs.
+The pen's excluded ground patches need a look at which light mode those
+floor quads draw with. Ctrl+T becomes a global hotkey.
+
 ### 2026-10-24 glm (diagnosis before the fix)
 The melted middle is real and it is the distance fade misreading stacked
 blockers: for a ground point at the wall base the sun's ray often clears the
