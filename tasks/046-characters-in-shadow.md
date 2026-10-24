@@ -117,3 +117,29 @@ with the pinned config (shadows off) is untouched by the shader path; the
 morning byte-identical run covers it.
 Next: the owner judges the look (user-check: yes); the fade lengths (border
 ~2 steps, distance ~5 units) are one constant each, tuned for the pen view.
+
+### 2026-10-24 owner (live game review, round 2)
+He is playing the build from this branch and is not done reviewing; recorded
+only, nothing started. Eight screenshots in the order he sent them:
+runs/046-characters-in-shadow/review-2026-10-24/shot-01..08.png.
+
+Shadows (the 023/045/046 line):
+- Shadows grab objects in odd ways: bands and patches land on objects that
+  should not be shaded like that.
+- No antialiasing on the shadow edges; the border still stairs.
+- The T hotkey (the sun hour in the [3d] panel) barely moves or stalls; one
+  press must skip a whole hour.
+- The "shadow pixel size" setting draws stripes on house walls.
+- The look he wants, his words: a fairly crisp shadow that fades to nothing
+  with distance from the blocker (his cube example). What the build shows now
+  does not read that way yet.
+- Characters standing in shade dim too much; ease the sprite dimming down
+  a bit.
+
+Not shadows, split into their own tasks once he finishes:
+- Holes in walls in the 3D view; close them.
+- The computer stands must get real 3D too.
+- Defects at house corners; he wants one universal fix for all corners, not
+  spot patches.
+
+Next: wait for the rest of his notes before planning any fix.
