@@ -291,6 +291,14 @@ int main()
         return 1;
     }
 
+    fallout::_cmap[43 * 3 + 1] = 0;
+    const unsigned char originalPaletteGreen[] = { 0, 252, 0 };
+    if (!renderedColorMatches(fallout::scene::TextColorRole::InterfaceGreen, 101, 43, originalPaletteGreen)) {
+        std::fprintf(stderr, "Missing canonical green reference did not preserve the source palette color\n");
+        return 1;
+    }
+    fallout::_cmap[43 * 3 + 1] = 63;
+
     const unsigned char halfInterfaceGreen[] = { 0x20, 0x5A, 0x0D };
     const unsigned char halfHudGreen[] = { 0x26, 0x6B, 0x10 };
     palette[43 * 3 + 1] = 126;

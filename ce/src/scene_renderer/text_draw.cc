@@ -190,11 +190,11 @@ void getTextColor(const scene::TextRunInfo& run, const unsigned char* paletteRgb
     // source green against the base COLOR_GREEN palette entry, then apply that
     // factor to the requested sharp-text green.
     const double gain = std::clamp(paletteRgb[sourceIndex * 3 + 1] / fullGreen, 0.0, 1.0);
-    const unsigned char target[] = {
-        run.colorRole == scene::TextColorRole::HudMessageLogGreen ? 0x4B : 0x3F,
-        run.colorRole == scene::TextColorRole::HudMessageLogGreen ? 0xD5 : 0xB4,
-        run.colorRole == scene::TextColorRole::HudMessageLogGreen ? 0x1F : 0x19,
+    static constexpr unsigned char targetColors[2][3] = {
+        { 0x3F, 0xB4, 0x19 },
+        { 0x4B, 0xD5, 0x1F },
     };
+    const unsigned char* target = targetColors[run.colorRole == scene::TextColorRole::HudMessageLogGreen ? 1 : 0];
     for (int channel = 0; channel < 3; ++channel) {
         recoloredRgb[channel] = static_cast<unsigned char>(std::lround(target[channel] * gain));
     }
