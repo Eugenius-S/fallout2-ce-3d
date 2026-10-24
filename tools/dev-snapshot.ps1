@@ -407,7 +407,7 @@ if ($DialogPageInspect) {
 }
 if ($DialogCursorCheck) {
     $cursorLog = Get-Content -Raw -LiteralPath (Join-Path $OutputDirectory 'process.stdout.log')
-    $cursorPass = [regex]::Match($cursorLog, '(?m)^DIALOG_CURSOR_CHECK PASS .*opaque_physical=(\d+),(\d+) transparent_physical=(\d+),(\d+) cursor_index=\d+ expected_rgb=(\d+),(\d+),(\d+) opaque_alpha=(\d+)->0 transparent_alpha=(\d+)->(\d+) same_run_ink_pixels=(\d+)->(\d+)')
+    $cursorPass = [regex]::Match($cursorLog, '(?m)^DIALOG_CURSOR_CHECK PASS .*opaque_physical=(\d+),(\d+).*transparent_physical=(\d+),(\d+).*cursor_index=\d+ expected_rgb=(\d+),(\d+),(\d+).*opaque_alpha=(\d+)->0 transparent_alpha=(\d+)->(\d+) same_run_ink_pixels=(\d+)->(\d+)')
     if ($dialogFixtureFailed -or -not $cursorPass.Success) {
         throw "Dialog cursor check failed or timed out within $TimeoutSeconds s.`n$cursorLog"
     }
