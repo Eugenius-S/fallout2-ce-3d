@@ -2,13 +2,13 @@
 id: 055
 title: Bold small interface font
 milestone: M1
-status: doing
+status: done
 owner: gpt
 suggested: gpt
 claude-only: no
 user-check: yes
 depends-on: [054]
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -54,3 +54,13 @@ placement, palette colors, and fades.
 Done: claimed task 055 from `origin/main` at `d29e8cfb`.
 Next: implement only the font-101 face selection and its focused face tests.
 Check: task branch and claim commit pushed before code changes.
+
+### 2026-10-24 gpt (visual and regression validation)
+Done: font 101 uses the embedded Bold 700 face; font 102 remains on the
+existing SemiBold path, and font 103/104 continue sharing Bold. Captured three
+Russian scale-3 screens with sharp text off and on using the same binary.
+Next: parent handles PR 82 CI, review, and merge.
+Check: Release build at `1ddaa05f`; CTest 14/14, exporter tests 44/44,
+regression checker tests 12/12, and official off regression 16/16 with zero
+changed pixels. Evidence is in
+`runs/055-bold-interface-font/accepted-20261024/final-validation.md`.
