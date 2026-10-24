@@ -107,3 +107,30 @@ Free for any agent: claude is out of limits until the weekly reset. Parts 1 to
 the entries above. Work from a fresh branch off main; the eval's views come
 from the worktree's own export (`export.py ... --cache-root build/scene-cache`,
 then `eval.py shoot --only <frm>`, `eval.py sheets`, `eval.py score`).
+
+### 2026-10-24 glm
+Done: claimed and took the car first (the biggest thing still a card). Tried
+the cheapest road: overrides.json names car5.frm a box, as crate1 and ss108
+are. The exporter honors it: the car gets a fitted box solid, its board goes
+hidden, its props row carries the forced flag, and the score's kind check
+passes (engine box+back against the label's box). REVERTED all the same: in
+the eval's solo turned views the car shows 0 pixels (eval.py check: "flat in
+the floor"), so the owner's eye pass would meet an invisible car. The
+likely cause, for the next session: the forced solid's faces are fly-only
+batches and walls.bin is what solo strips, while the card is FLY_SKIPped for
+the rotated game camera the eval shoots with; crate1 somehow dodges this
+(same mechanism, and its check passes) and the difference between the two
+rows is the thread to pull. The override change is out (overrides.json back
+to as-merged; kladwtwn re-exported clean).
+Next: either find why crate1's solo draws and the car's does not (then the
+override comes back and the car is done), or fit the car with a real fitter
+(glass and lowness defeat props.fit today). Then the notice board (posts),
+the crate heap (boxes2), the cave brace (cavbrac1), the chair's back (ss108)
+and sstove2 from behind (12% at 180 degrees, 044's note) are left; the Den
+failures (ss112, ss118, tirs002, cac2000, char06) are 048's follow-up, not
+this task's.
+Check: the runs of this step are reproducible: add car5.frm to
+overrides.json box, export kladwtwn, `eval.py shoot --only car5.frm` then
+`eval.py check --threshold 0.4` (skip, 0 px); `eval.py score --scenes
+build/scene-cache` (kind passes, eye fails). The car's instance is kladwtwn
+e0 tile 18041.
