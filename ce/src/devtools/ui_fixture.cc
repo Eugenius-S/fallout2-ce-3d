@@ -142,6 +142,72 @@ struct ScreenProof {
     unsigned int overlayPixels = 0;
 };
 
+struct OpaqueOverlaySample {
+    int logicalX = -1;
+    int logicalY = -1;
+    int physicalX = -1;
+    int physicalY = -1;
+    unsigned char rgb[3] = {};
+    unsigned char alpha = 0;
+};
+
+bool sampleOpaqueOverlayPixel(const scene::TextRecord& record,
+    const scene_renderer::PreparedSharpTextFrame& frame, const unsigned char expectedRgb[3],
+    OpaqueOverlaySample* result)
+{
+    if (result == nullptr || !frame.active || !frame.drawn || frame.width <= 0 || frame.height <= 0
+        || frame.overlay.width <= 0 || frame.overlay.height <= 0
+        || frame.overlay.pitch < frame.overlay.width * 4
+        || frame.overlay.pixels.size() < static_cast<std::size_t>(frame.overlay.pitch) * frame.overlay.height) return false;
+
+    scene::TextVisibilityMask mask;
+    if (!scene::textCaptureVisibilityMask(record, frame.width, frame.height, &mask) || mask.pixels.empty()) return false;
+
+    const double sx = static_cast<double>(frame.overlay.width) / frame.width;
+    const double sy = static_cast<double>(frame.overlay.height) / frame.height;
+    const int logicalLeft = std::max(mask.bounds.x, record.run.x);
+    const int logicalTop = std::max(mask.bounds.y, record.run.y);
+    const int logicalRight = std::min(mask.bounds.x + mask.bounds.width, record.run.x + record.run.width);
+    const int logicalBottom = std::min(mask.bounds.y + mask.bounds.height, record.run.y + record.run.lineHeight);
+    if (logicalRight <= logicalLeft || logicalBottom <= logicalTop) return false;
+
+    const int left = std::clamp(static_cast<int>(std::floor(logicalLeft * sx)), 0, frame.overlay.width);
+    const int top = std::clamp(static_cast<int>(std::floor(logicalTop * sy)), 0, frame.overlay.height);
+    const int right = std::clamp(static_cast<int>(std::ceil(logicalRight * sx)), 0, frame.overlay.width);
+    const int bottom = std::clamp(static_cast<int>(std::ceil(logicalBottom * sy)), 0, frame.overlay.height);
+    for (int y = top; y < bottom; ++y) {
+        for (int x = left; x < right; ++x) {
+            const int logicalX = std::clamp(static_cast<int>(x / sx), 0, frame.width - 1);
+            const int logicalY = std::clamp(static_cast<int>(y / sy), 0, frame.height - 1);
+            if (!mask.visibleAt(logicalX, logicalY)) continue;
+            const unsigned char* pixel = frame.overlay.pixels.data()
+                + static_cast<std::size_t>(y) * frame.overlay.pitch + x * 4;
+            if (pixel[3] != 255 || pixel[0] != expectedRgb[0]
+                || pixel[1] != expectedRgb[1] || pixel[2] != expectedRgb[2]) continue;
+            result->logicalX = logicalX;
+            result->logicalY = logicalY;
+            result->physicalX = x;
+            result->physicalY = y;
+            std::copy(pixel, pixel + 3, result->rgb);
+            result->alpha = pixel[3];
+            return true;
+        }
+    }
+    return false;
+}
+
+bool currentPaletteColor(unsigned int index, unsigned char rgb[3])
+{
+    if (rgb == nullptr || gSdlSurface == nullptr || gSdlSurface->format == nullptr
+        || gSdlSurface->format->palette == nullptr || gSdlSurface->format->palette->colors == nullptr
+        || index >= static_cast<unsigned int>(gSdlSurface->format->palette->ncolors)) return false;
+    const SDL_Color& color = gSdlSurface->format->palette->colors[index];
+    rgb[0] = color.r;
+    rgb[1] = color.g;
+    rgb[2] = color.b;
+    return true;
+}
+
 unsigned int countOverlayInk(const scene::TextVisibilityMask& mask,
     const scene_renderer::PreparedSharpTextFrame& frame)
 {
@@ -281,6 +347,72 @@ void captureWindow(const TextWindowSnapshot& window, const std::vector<scene::Te
     if (settings.scene3d.sharp_text && !sharpActive) return;
     if (settings.scene3d.sharp_text && overlayEvidence.empty()) return;
 
+    OpaqueOverlaySample interfaceGreenSample;
+    OpaqueOverlaySample hudLogSample;
+    OpaqueOverlaySample blackTextSample;
+    OpaqueOverlaySample whiteTotalSamples[2];
+    bool hasInterfaceGreenSample = false;
+    bool hasHudLogSample = false;
+    bool hasBlackTextSample = false;
+    int whiteTotalSampleCount = 0;
+    static constexpr unsigned char kInterfaceGreen[] = { 0x3F, 0xB4, 0x19 };
+    static constexpr unsigned char kHudLogGreen[] = { 0x4B, 0xD5, 0x1F };
+
+    if (sharpActive && (gKind == UiFixtureKind::Inventory || gKind == UiFixtureKind::Character)) {
+        for (const scene::TextRecord& record : proof.overlayRecords) {
+            if (record.run.colorRole != scene::TextColorRole::InterfaceGreen
+                || static_cast<Color>(record.run.colorAndFlags & colorMask) != COLOR_GREEN) continue;
+            hasInterfaceGreenSample = sampleOpaqueOverlayPixel(record, frame, kInterfaceGreen, &interfaceGreenSample);
+            if (hasInterfaceGreenSample) break;
+        }
+        if (!hasInterfaceGreenSample) {
+            fixtureFail("could-not-find-opaque-interface-green-overlay-pixel");
+            return;
+        }
+    } else if (sharpActive && gKind == UiFixtureKind::Log) {
+        for (const scene::TextRecord& record : proof.overlayRecords) {
+            if (record.run.colorRole != scene::TextColorRole::HudMessageLogGreen
+                || static_cast<Color>(record.run.colorAndFlags & colorMask) != COLOR_GREEN) continue;
+            hasHudLogSample = sampleOpaqueOverlayPixel(record, frame, kHudLogGreen, &hudLogSample);
+            if (hasHudLogSample) break;
+        }
+        if (!hasHudLogSample) {
+            fixtureFail("could-not-find-opaque-hud-log-green-overlay-pixel");
+            return;
+        }
+    }
+
+    if (sharpActive && gKind == UiFixtureKind::Barter) {
+        for (const scene::TextRecord& record : overlayEvidence) {
+            if (record.run.text != "$0"
+                || static_cast<Color>(record.run.colorAndFlags & colorMask) != COLOR_WHITE
+                || whiteTotalSampleCount >= 2) continue;
+            unsigned char expectedWhite[3] = {};
+            if (currentPaletteColor(static_cast<unsigned int>(record.run.colorAndFlags & colorMask), expectedWhite)
+                && sampleOpaqueOverlayPixel(record, frame, expectedWhite, &whiteTotalSamples[whiteTotalSampleCount])) {
+                whiteTotalSampleCount++;
+            }
+        }
+        if (whiteTotalSampleCount != 2) {
+            fixtureFail("white-barter-totals-do-not-match-current-palette");
+            return;
+        }
+    }
+
+    if (sharpActive && gKind == UiFixtureKind::Character) {
+        for (const scene::TextRecord& record : proof.overlayRecords) {
+            if (record.run.colorRole != scene::TextColorRole::Palette
+                || static_cast<Color>(record.run.colorAndFlags & colorMask) != COLOR_BLACK) continue;
+            unsigned char expectedBlack[3] = {};
+            if (currentPaletteColor(static_cast<unsigned int>(record.run.colorAndFlags & colorMask), expectedBlack)
+                && expectedBlack[0] == 0 && expectedBlack[1] == 0 && expectedBlack[2] == 0
+                && sampleOpaqueOverlayPixel(record, frame, expectedBlack, &blackTextSample)) {
+                hasBlackTextSample = true;
+                break;
+            }
+        }
+    }
+
     int greenCount = 0;
     int whiteCount = 0;
     int yellowCount = 0;
@@ -314,6 +446,30 @@ void captureWindow(const TextWindowSnapshot& window, const std::vector<scene::Te
             gInitialDateLogCount, evidence.size(), evidence.front().run.text.c_str());
     } else {
         printf(" sample=%s", evidence.front().run.text.c_str());
+    }
+    if (hasInterfaceGreenSample) {
+        printf(" interface_green_rgb=%u,%u,%u logical=%d,%d physical=%d,%d alpha=%u",
+            interfaceGreenSample.rgb[0], interfaceGreenSample.rgb[1], interfaceGreenSample.rgb[2],
+            interfaceGreenSample.logicalX, interfaceGreenSample.logicalY,
+            interfaceGreenSample.physicalX, interfaceGreenSample.physicalY, interfaceGreenSample.alpha);
+    }
+    if (hasHudLogSample) {
+        printf(" hud_log_green_rgb=%u,%u,%u logical=%d,%d physical=%d,%d alpha=%u",
+            hudLogSample.rgb[0], hudLogSample.rgb[1], hudLogSample.rgb[2],
+            hudLogSample.logicalX, hudLogSample.logicalY,
+            hudLogSample.physicalX, hudLogSample.physicalY, hudLogSample.alpha);
+    }
+    if (whiteTotalSampleCount == 2) {
+        printf(" barter_white_palette_rgb=%u,%u,%u first=%d,%d second=%d,%d",
+            whiteTotalSamples[0].rgb[0], whiteTotalSamples[0].rgb[1], whiteTotalSamples[0].rgb[2],
+            whiteTotalSamples[0].physicalX, whiteTotalSamples[0].physicalY,
+            whiteTotalSamples[1].physicalX, whiteTotalSamples[1].physicalY);
+    }
+    if (hasBlackTextSample) {
+        printf(" black_text_rgb=%u,%u,%u logical=%d,%d physical=%d,%d alpha=%u",
+            blackTextSample.rgb[0], blackTextSample.rgb[1], blackTextSample.rgb[2],
+            blackTextSample.logicalX, blackTextSample.logicalY,
+            blackTextSample.physicalX, blackTextSample.physicalY, blackTextSample.alpha);
     }
     printf("\n");
     fflush(stdout);
