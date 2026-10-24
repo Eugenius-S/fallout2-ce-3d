@@ -2,8 +2,8 @@
 id: 048
 title: Shapes eval gets things from a second town, not only Klamath
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: glm
 suggested: gpt
 claude-only: no
 user-check: yes
