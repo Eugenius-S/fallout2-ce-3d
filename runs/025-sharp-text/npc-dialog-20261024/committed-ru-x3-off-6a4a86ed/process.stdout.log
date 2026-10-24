@@ -1,0 +1,6 @@
+scene: cache E:\Projects\fallout2-ce-3d-gpt\build\scene-cache\kladwtwn\0
+devtools: static wall+hero preview started for KLADWTWN.MAP elevation 0
+scene: preview policy=available gameState=0 gameMode=0x0 uiDisabled=0 isoDisabled=0 combat=0 dialog=0 movie=0
+DIALOG_FIXTURE START map=KLADWTWN.MAP elevation=0 script=Kcsulik.int speaker=26 speaker_tile=23478 hero=25075 talk_result=0
+scene: preview policy=game-mode gameState=0 gameMode=0x4 uiDisabled=0 isoDisabled=1 combat=0 dialog=0 movie=0
+DIALOG_FIXTURE PASS map=KLADWTWN.MAP elevation=0 script=Kcsulik.int speaker=26 speaker_tile=23478 hero=25075 dialog_owners=5,6 eligible_runs=9
