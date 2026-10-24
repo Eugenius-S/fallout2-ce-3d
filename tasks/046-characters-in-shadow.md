@@ -161,3 +161,11 @@ reproduced in dev runs when the fix work starts.
   it. The lamps are 020, so it likely belongs there.
 
 Next: still waiting for the rest of his notes.
+
+### 2026-10-24 glm
+The owner checked whether the chat can hand me his screenshots: nine more
+arrived inline (shot-11..19.png, saved). It cannot: neither a chat attachment
+nor a file read shows this agent the picture this session (the read returns a
+hosted link). The shots stay as evidence in sending order; new items need his
+words next to them, and every fix gets its own before/after from the dev runs
+anyway.
