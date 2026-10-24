@@ -143,6 +143,14 @@ void setLightAnchor(int tile)
     glUniform2f(gSceneLightAnchorLocation, static_cast<float>(x), static_cast<float>(z));
 }
 
+bool lightAnchorGround(int tile, double* x, double* z)
+{
+    double hexX, hexY;
+    if (tile < 0 || tile >= kHexGrid * kHexGrid) return false;
+    spriteHexPixel(tile, &hexX, &hexY);
+    return groundAt(hexX, hexY, x, z);
+}
+
 bool bindLight()
 {
     if (!lightShown() || !gHeroProjectionLoaded) return false;

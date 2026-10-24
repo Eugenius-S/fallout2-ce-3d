@@ -4,6 +4,7 @@
 
 #include "gl_api.h"
 #include "scene_internal.h"
+#include "shadow.h"
 
 namespace fallout {
 namespace scene_renderer {
@@ -23,6 +24,11 @@ bool gRoofBufferStale = true;
 unsigned int gRoofVao = 0;
 unsigned int gRoofVbo = 0;
 int gRoofVertexCount = 0;
+// All squares, hidden ones included, for the sun's shadow map (task 045).
+unsigned int gRoofShadowVao = 0;
+unsigned int gRoofShadowVbo = 0;
+int gRoofShadowVertexCount = 0;
+bool gRoofShadowStale = true;
 
 // The see-through circle around the hero (the engine's egg).
 unsigned int gEggTexture = 0;
@@ -70,6 +76,45 @@ void setRoofSquares(std::vector<RoofSquare> squares)
     gRoofSquares = std::move(squares);
     gRoofVisibilityKnown = false;
     gRoofBufferStale = true;
+    gRoofShadowStale = true;
+}
+
+void roofShadowCasters(unsigned int* vao, int* vertexCount)
+{
+    *vao = 0;
+    *vertexCount = 0;
+    if (gRoofSquares.empty() || !gHeroProjectionLoaded) return;
+    if (gRoofShadowStale) {
+        if (gRoofShadowVao == 0) glGenVertexArrays(1, &gRoofShadowVao);
+        if (gRoofShadowVbo == 0) glGenBuffers(1, &gRoofShadowVbo);
+        const float y = static_cast<float>(kRoofPixels / gHeroProjection.hpx);
+        std::vector<float> positions;
+        positions.reserve(gRoofSquares.size() * 6 * 3);
+        for (const RoofSquare& square : gRoofSquares) {
+            const float x0 = square.x0, z0 = square.z0, x1 = square.x1, z1 = square.z1;
+            const float corners[6][3] = {
+                { x0, y, z0 }, { x1, y, z0 }, { x1, y, z1 },
+                { x0, y, z0 }, { x1, y, z1 }, { x0, y, z1 },
+            };
+            for (const auto& corner : corners) {
+                positions.push_back(corner[0]);
+                positions.push_back(corner[1]);
+                positions.push_back(corner[2]);
+            }
+        }
+        glBindVertexArray(gRoofShadowVao);
+        glBindBuffer(kArrayBuffer, gRoofShadowVbo);
+        glBufferData(kArrayBuffer,
+            static_cast<long long>(positions.size() * sizeof(float)), positions.data(), kStaticDraw);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, 0x1406 /* GL_FLOAT */, 0, 3 * sizeof(float), nullptr);
+        glBindVertexArray(0);
+        gRoofShadowVertexCount = static_cast<int>(positions.size() / 3);
+        gRoofShadowStale = false;
+    }
+    if (gRoofShadowVertexCount == 0) return;
+    *vao = gRoofShadowVao;
+    *vertexCount = gRoofShadowVertexCount;
 }
 
 void destroyRoofs()
@@ -77,11 +122,18 @@ void destroyRoofs()
     if (gContext != nullptr) {
         if (gRoofVbo != 0) glDeleteBuffers(1, &gRoofVbo);
         if (gRoofVao != 0) glDeleteVertexArrays(1, &gRoofVao);
+        if (gRoofShadowVbo != 0) glDeleteBuffers(1, &gRoofShadowVbo);
+        if (gRoofShadowVao != 0) glDeleteVertexArrays(1, &gRoofShadowVao);
         if (gEggTexture != 0) glDeleteTextures(1, &gEggTexture);
     }
+    setShadowRoofCasters(0, 0);
     gRoofVbo = 0;
     gRoofVao = 0;
     gRoofVertexCount = 0;
+    gRoofShadowVbo = 0;
+    gRoofShadowVao = 0;
+    gRoofShadowVertexCount = 0;
+    gRoofShadowStale = true;
     gRoofSquares.clear();
     gRoofVisibilityKnown = false;
     gRoofBufferStale = true;

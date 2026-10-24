@@ -1,6 +1,7 @@
 #include "scene_draw.h"
 
 #include <algorithm>
+#include <stdio.h>
 
 #include <lodepng.h>
 
@@ -8,6 +9,7 @@
 #include "gl_api.h"
 #include "post.h"
 #include "scene_internal.h"
+#include "shadow.h"
 #include "static_scene.h"
 
 namespace fallout {
@@ -62,11 +64,19 @@ void drawStaticPreview(bool withWalls, bool withHero)
     // The game's light as point lights: the floor and walls at each fragment,
     // sprites at their own hex, roofs by the ambient level.
     const bool lit = withHero && bindLight();
+    // The sun's shadow map renders before the scene; the floor and the walls
+    // sample it (uShadowOn). It restores the framebuffer and the viewport.
+    const bool shadowed = withWalls && bindStaticShadows(mvp);
+    glUniform1i(gSceneShadowOnLocation, shadowed ? 1 : 0);
     glUniform1i(gSceneLightModeLocation, 0);
-    auto lightSprite = [&](int tile) {
+    auto lightSprite = [&](int tile, float shadow) {
         // tile -1: painted at full light (OBJECT_TRANS_WALL), or not known.
         glUniform1i(gSceneLightModeLocation, lit && tile >= 0 ? 3 : 0);
-        if (lit && tile >= 0) setLightAnchor(tile);
+        if (lit && tile >= 0) {
+            setLightAnchor(tile);
+            // The card's own faded share of the sun's shadow (046).
+            glUniform1f(gSceneSpriteShadowLocation, shadowed ? shadow : 0.0f);
+        }
     };
     if (withWalls && gWallSeeThroughTexture != 0 && (wallEgg || lit)) {
         flushWallObjectTable();
@@ -102,7 +112,7 @@ void drawStaticPreview(bool withWalls, bool withHero)
         glBindVertexArray(gObjectVao);
         for (const ObjectDraw& draw : gObjectDraws) {
             if (draw.pickOnly || !draw.flat || draw.tint[0] >= 0.0f) continue;
-            lightSprite(draw.tile);
+            lightSprite(draw.tile, draw.shadow);
             glBindTexture(kTexture2D, draw.texture);
             glDrawArrays(kTriangles, draw.firstVertex, 6);
         }
@@ -134,7 +144,7 @@ void drawStaticPreview(bool withWalls, bool withHero)
         for (const ObjectDraw& draw : gObjectDraws) {
             if (draw.pickOnly || draw.flat || draw.tint[0] >= 0.0f) continue;
             glUniform1i(gSceneSeeThroughLocation, egg && draw.seeThrough ? 2 : 0);
-            lightSprite(draw.tile);
+            lightSprite(draw.tile, draw.shadow);
             glBindTexture(kTexture2D, draw.texture);
             glDrawArrays(kTriangles, draw.firstVertex, 6);
         }
@@ -143,7 +153,7 @@ void drawStaticPreview(bool withWalls, bool withHero)
     glUniform1i(gSceneEggPassLocation, 0);
     if (withHero && gHeroLoaded) {
         StaticHeroInfo hero;
-        lightSprite(staticHeroInfo(&hero) ? hero.tile : -1);
+        lightSprite(staticHeroInfo(&hero) ? hero.tile : -1, gHeroShadowFactor);
         glUniform1f(gSceneCutoffLocation, 0.5f);
         glBindVertexArray(gHeroVao);
         glBindTexture(kTexture2D, gHeroTexture);
@@ -172,7 +182,7 @@ void drawStaticPreview(bool withWalls, bool withHero)
             glBindVertexArray(gObjectVao);
             for (const ObjectDraw& draw : gObjectDraws) {
                 if (draw.pickOnly || draw.flat || draw.tint[0] >= 0.0f || !draw.seeThrough) continue;
-                lightSprite(draw.tile);
+                lightSprite(draw.tile, draw.shadow);
                 glBindTexture(kTexture2D, draw.texture);
                 glDrawArrays(kTriangles, draw.firstVertex, 6);
             }
@@ -192,7 +202,7 @@ void drawStaticPreview(bool withWalls, bool withHero)
         glBindVertexArray(gObjectVao);
         for (const ObjectDraw& draw : gObjectDraws) {
             if (draw.pickOnly || draw.tint[0] < 0.0f) continue;
-            lightSprite(draw.tile);
+            lightSprite(draw.tile, draw.shadow);
             glUniform3f(gSceneTintLocation, draw.tint[0], draw.tint[1], draw.tint[2]);
             glUniform1i(gSceneGlassGrayLocation, draw.glassGray ? 1 : 0);
             glBindTexture(kTexture2D, draw.texture);
