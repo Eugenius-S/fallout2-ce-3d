@@ -2,7 +2,7 @@
 id: 046
 title: Characters darken in building shadows; painted shadows give way
 milestone: M1
-status: doing
+status: done
 owner: glm
 suggested: gpt (bailed 2026-10-23, the owner passed it to glm)
 claude-only: no

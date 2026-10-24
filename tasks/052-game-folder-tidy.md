@@ -2,8 +2,8 @@
 id: 052
 title: Shots and logs go to subfolders, not next to the exe
 milestone: M1
-status: todo
-owner: none
+status: done
+owner: glm
 suggested: glm
 claude-only: no
 user-check: yes
