@@ -174,6 +174,33 @@ void blendPixel(unsigned char* pixel, const unsigned char* rgb, unsigned char al
     pixel[3] = static_cast<unsigned char>(alpha + (pixel[3] * inverse + 127) / 255);
 }
 
+void getTextColor(const scene::TextRunInfo& run, const unsigned char* paletteRgb,
+    int paletteEntries, const unsigned char** rgb, unsigned char* recoloredRgb)
+{
+    const unsigned int sourceIndex = run.colorAndFlags & 0xFF;
+    *rgb = paletteRgb + sourceIndex * 3;
+    if (run.font != 101 || run.colorRole == scene::TextColorRole::Palette) return;
+
+    const unsigned int greenIndex = static_cast<unsigned int>(COLOR_GREEN);
+    if (greenIndex >= static_cast<unsigned int>(paletteEntries)) return;
+    const double fullGreen = _cmap[greenIndex * 3 + 1] * 4.0;
+    if (fullGreen <= 0.0) return;
+
+    // The current palette includes fades and gamma correction. Normalize its
+    // source green against the base COLOR_GREEN palette entry, then apply that
+    // factor to the requested sharp-text green.
+    const double gain = std::clamp(paletteRgb[sourceIndex * 3 + 1] / fullGreen, 0.0, 1.0);
+    const unsigned char target[] = {
+        run.colorRole == scene::TextColorRole::HudMessageLogGreen ? 0x4B : 0x3F,
+        run.colorRole == scene::TextColorRole::HudMessageLogGreen ? 0xD5 : 0xB4,
+        run.colorRole == scene::TextColorRole::HudMessageLogGreen ? 0x1F : 0x19,
+    };
+    for (int channel = 0; channel < 3; ++channel) {
+        recoloredRgb[channel] = static_cast<unsigned char>(std::lround(target[channel] * gain));
+    }
+    *rgb = recoloredRgb;
+}
+
 bool equalsAsciiCaseInsensitive(const std::string& value, const char* expected)
 {
     const std::size_t expectedSize = std::strlen(expected);
@@ -270,7 +297,9 @@ bool renderSharpText(const std::vector<scene::TextRecord>& records,
         const double proportionalCondense = naturalWidth <= 0.0 ? 1.0 : std::min(1.0, run.width / naturalWidth);
         const unsigned int colorIndex = static_cast<unsigned int>(run.colorAndFlags) & 0xFF;
         if (colorIndex >= static_cast<unsigned int>(paletteEntries)) continue;
-        const unsigned char* rgb = paletteRgb + colorIndex * 3;
+        const unsigned char* rgb = nullptr;
+        unsigned char recoloredRgb[3] = {};
+        getTextColor(run, paletteRgb, paletteEntries, &rgb, recoloredRgb);
         struct PositionedGlyph {
             const GlyphBitmap* bitmap;
             int x;

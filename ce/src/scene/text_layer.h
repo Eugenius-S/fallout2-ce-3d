@@ -29,6 +29,12 @@ struct TextPixels {
     int originY = 0;
 };
 
+enum class TextColorRole : std::uint8_t {
+    Palette,
+    InterfaceGreen,
+    HudMessageLogGreen,
+};
+
 struct TextValidationPixels {
     TextBufferId buffer = 0;
     TextPixels pixels;
@@ -38,6 +44,7 @@ struct TextRunInfo {
     std::string text;
     int font = 0;
     unsigned int colorAndFlags = 0;
+    TextColorRole colorRole = TextColorRole::Palette;
     int x = 0;
     int y = 0;
     // Accepted logical advance and mono cell grid remain unchanged when a

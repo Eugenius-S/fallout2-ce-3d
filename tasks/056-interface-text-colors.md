@@ -33,7 +33,9 @@ relative dimming.
 ## Acceptance
 
 - Semantic source green palette states are identified by their canonical
-  palette indices at capture time, never by rendered RGB hue.
+  palette indices at capture time, never by rendered RGB hue. Include GREEN,
+  LIGHT_GREEN variants, DARK_GREEN variants, and SAGE_GREEN. Keep GRASS_GREEN,
+  YELLOW_GREEN, and OLIVE unchanged because they carry inactive/warning meaning.
 - Font-101 green records render at normal full intensity as #3FB419; only the
   lower HUD message log renders at #4BD51F.
 - Source-palette dimming and palette fades reduce the target green proportionally.

@@ -7,6 +7,12 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdio>
+#include <cstdlib>
+
+namespace fallout {
+unsigned char _cmap[COLOR_MAP_SIZE] = {};
+Color _colorTable[COLOR_PALETTE_SIZE_15BIT] = {};
+}
 
 bool checkFont(const unsigned char* data, std::size_t size)
 {
@@ -243,6 +249,90 @@ int main()
     }
     fitRecord.run.text = "Hg";
     fitRecord.run.lineHeight = 18;
+
+    fallout::_colorTable[fallout::rgb555(0x00FF00)] = static_cast<fallout::Color>(43);
+    fallout::_cmap[43 * 3 + 1] = 63;
+    const unsigned char normalInterfaceGreen[] = { 0x3F, 0xB4, 0x19 };
+    const unsigned char normalHudGreen[] = { 0x4B, 0xD5, 0x1F };
+    auto renderedColorMatches = [&](fallout::scene::TextColorRole role, int font, int sourceIndex,
+                                    const unsigned char expected[3]) {
+        fallout::scene::TextRecord colorRecord = fitRecord;
+        colorRecord.run.text = "Hg";
+        colorRecord.run.font = font;
+        colorRecord.run.colorAndFlags = static_cast<unsigned int>(sourceIndex);
+        colorRecord.run.colorRole = role;
+        if (!renderSharpText({ colorRecord }, 256, 32, 512, 64, palette, 256, visibility, &surface)) return false;
+        bool foundOpaquePixel = false;
+        bool foundAntialiasedPixel = false;
+        for (std::size_t index = 0; index < surface.pixels.size(); index += 4) {
+            const unsigned int alpha = surface.pixels[index + 3];
+            if (alpha == 0) continue;
+            if (alpha == 255) {
+                foundOpaquePixel = true;
+                if (surface.pixels[index] != expected[0] || surface.pixels[index + 1] != expected[1]
+                    || surface.pixels[index + 2] != expected[2]) return false;
+            } else if (alpha >= 128) {
+                foundAntialiasedPixel = true;
+                for (int channel = 0; channel < 3; ++channel) {
+                    const unsigned int unpremultiplied = (surface.pixels[index + channel] * 255 + alpha / 2) / alpha;
+                    if (std::abs(static_cast<int>(unpremultiplied) - expected[channel]) > 1) return false;
+                }
+            }
+        }
+        return foundOpaquePixel && foundAntialiasedPixel;
+    };
+
+    palette[43 * 3] = 0;
+    palette[43 * 3 + 1] = 252;
+    palette[43 * 3 + 2] = 0;
+    if (!renderedColorMatches(fallout::scene::TextColorRole::InterfaceGreen, 101, 43, normalInterfaceGreen)
+        || !renderedColorMatches(fallout::scene::TextColorRole::HudMessageLogGreen, 101, 43, normalHudGreen)) {
+        std::fprintf(stderr, "Normal font-101 green roles did not produce exact target RGB with correct alpha\n");
+        return 1;
+    }
+
+    const unsigned char halfInterfaceGreen[] = { 0x20, 0x5A, 0x0D };
+    const unsigned char halfHudGreen[] = { 0x26, 0x6B, 0x10 };
+    palette[43 * 3 + 1] = 126;
+    if (!renderedColorMatches(fallout::scene::TextColorRole::InterfaceGreen, 101, 43, halfInterfaceGreen)
+        || !renderedColorMatches(fallout::scene::TextColorRole::HudMessageLogGreen, 101, 43, halfHudGreen)) {
+        std::fprintf(stderr, "Half palette fade did not proportionally dim green roles\n");
+        return 1;
+    }
+
+    const unsigned char black[] = { 0, 0, 0 };
+    palette[43 * 3 + 1] = 0;
+    if (!renderedColorMatches(fallout::scene::TextColorRole::InterfaceGreen, 101, 43, black)) {
+        std::fprintf(stderr, "Black palette fade did not reduce the green overlay to black\n");
+        return 1;
+    }
+
+    struct OriginalColorCase {
+        int index;
+        unsigned char rgb[3];
+    } originalColors[] = {
+        { 50, { 123, 123, 41 } }, // Grass green remains an inactive olive state.
+        { 51, { 239, 255, 8 } }, // Yellow-green remains a warning color.
+        { 52, { 173, 173, 90 } }, // Olive remains unchanged.
+        { 53, { 0, 0, 0 } },
+        { 54, { 255, 255, 255 } },
+        { 55, { 128, 128, 128 } },
+        { 56, { 255, 0, 0 } },
+        { 57, { 255, 230, 20 } },
+    };
+    for (const OriginalColorCase& color : originalColors) {
+        std::copy(color.rgb, color.rgb + 3, palette + color.index * 3);
+        if (!renderedColorMatches(fallout::scene::TextColorRole::Palette, 101, color.index, color.rgb)) {
+            std::fprintf(stderr, "Non-green source palette color %d was changed or lost alpha accuracy\n", color.index);
+            return 1;
+        }
+    }
+
+    palette[43 * 3 + 1] = 252;
+    if (!renderedColorMatches(fallout::scene::TextColorRole::InterfaceGreen, 103, 43, palette + 43 * 3)) {
+        std::fprintf(stderr, "A non-101 font with a green role was unexpectedly recolored\n");
+        return 1;
+    }
 
     fitRecord.run.colorAndFlags = 43;
     palette[43 * 3] = 0;
