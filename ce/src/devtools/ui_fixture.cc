@@ -57,6 +57,7 @@ char gSpeakerScript[96] = {};
 int gSpeakerId = -1;
 int gSpeakerTile = -1;
 int gInitialDateLogCount = 0;
+int gPipboyDiagnosticFrames = 0;
 
 const char* fixtureName()
 {
@@ -421,9 +422,26 @@ void uiFixtureVanillaPresented()
 
     const int windowId = expectedWindow();
     TextWindowSnapshot window = {};
-    if (!snapshotWindow(windowId, &window)) return;
+    if (!snapshotWindow(windowId, &window)) {
+        if (gKind == UiFixtureKind::Pipboy && gPipboyDiagnosticFrames < 8) {
+            TextWindowSnapshot first = {};
+            int count = 0;
+            textCaptureGetWindowSnapshot(0, &first, &count);
+            printf("UI_FIXTURE WAIT screen=pipboy frame=%d target_window=%d snapshot_count=%d\n",
+                gPipboyDiagnosticFrames++, windowId, count);
+            fflush(stdout);
+        }
+        return;
+    }
 
     std::vector<scene::TextRecord> runs = eligibleRuns(window);
+    if (gKind == UiFixtureKind::Pipboy && gPipboyDiagnosticFrames < 8) {
+        const ScreenProof proof = screenProof(window, scene_renderer::preparedSharpTextFrame());
+        printf("UI_FIXTURE WAIT screen=pipboy frame=%d window=%d generation=%llu eligible=%zu screen_runs=%zu visible_runs=%zu coverage=%u overlay_runs=%zu\n",
+            gPipboyDiagnosticFrames++, window.id, static_cast<unsigned long long>(window.generation), runs.size(),
+            proof.records.size(), proof.visibleRecords.size(), proof.visibleCoverage, proof.overlayRecords.size());
+        fflush(stdout);
+    }
     if (runs.empty()) return;
     captureWindow(window, runs);
 }
