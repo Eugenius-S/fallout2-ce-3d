@@ -147,6 +147,10 @@ int gDialogCursorCheckTargetLogicalX = -1;
 int gDialogCursorCheckTargetLogicalY = -1;
 int gDialogCursorCheckTargetPhysicalX = -1;
 int gDialogCursorCheckTargetPhysicalY = -1;
+int gDialogCursorCheckTransparentLogicalX = -1;
+int gDialogCursorCheckTransparentLogicalY = -1;
+int gDialogCursorCheckTransparentPhysicalX = -1;
+int gDialogCursorCheckTransparentPhysicalY = -1;
 unsigned char gDialogCursorCheckCursorIndex = 0;
 unsigned char gDialogCursorCheckCursorRed = 0;
 unsigned char gDialogCursorCheckCursorGreen = 0;
@@ -2018,6 +2022,10 @@ void vanillaPresented()
                         gDialogCursorCheckTargetPhysicalX, gDialogCursorCheckTargetPhysicalY);
                     const unsigned char targetAfter = alphaAt(frame.overlay.pixels,
                         gDialogCursorCheckTargetPhysicalX, gDialogCursorCheckTargetPhysicalY);
+                    const unsigned char transparentBefore = alphaAt(gDialogCursorCheckOverlayBefore,
+                        gDialogCursorCheckTransparentPhysicalX, gDialogCursorCheckTransparentPhysicalY);
+                    const unsigned char transparentAfter = alphaAt(frame.overlay.pixels,
+                        gDialogCursorCheckTransparentPhysicalX, gDialogCursorCheckTransparentPhysicalY);
                     unsigned int beforeInkPixels = 0;
                     unsigned int afterInkPixels = 0;
                     for (const scene::TextPixelCoverage& coverage : gDialogCursorCheckRecord.coverage) {
@@ -2040,8 +2048,14 @@ void vanillaPresented()
                         || gDialogCursorCheckTargetLogicalX >= cursor.x + cursor.width
                         || gDialogCursorCheckTargetLogicalY >= cursor.y + cursor.height
                         || cursor.pixels[static_cast<std::size_t>(gDialogCursorCheckTargetLogicalY - cursor.y) * cursor.pitch
-                            + gDialogCursorCheckTargetLogicalX - cursor.x] == cursor.transparentIndex) {
-                        failCursorCheck("opaque-engine-cursor-moved-off-target");
+                            + gDialogCursorCheckTargetLogicalX - cursor.x] == cursor.transparentIndex
+                        || gDialogCursorCheckTransparentLogicalX < cursor.x
+                        || gDialogCursorCheckTransparentLogicalY < cursor.y
+                        || gDialogCursorCheckTransparentLogicalX >= cursor.x + cursor.width
+                        || gDialogCursorCheckTransparentLogicalY >= cursor.y + cursor.height
+                        || cursor.pixels[static_cast<std::size_t>(gDialogCursorCheckTransparentLogicalY - cursor.y) * cursor.pitch
+                            + gDialogCursorCheckTransparentLogicalX - cursor.x] != cursor.transparentIndex) {
+                        failCursorCheck("engine-cursor-opaque-and-transparent-cells-mismatch");
                         return;
                     }
                     if (gSdlSurface == nullptr || gSdlSurface->pixels == nullptr
@@ -2061,10 +2075,11 @@ void vanillaPresented()
                         failCursorCheck("cursor-not-drawn-at-target-in-indexed-frame");
                         return;
                     }
-                    if (targetBefore == 0 || targetAfter != 0 || beforeInkPixels == 0 || afterInkPixels == 0) {
-                        printf("DIALOG_CURSOR_CHECK FAIL map=%s script=%s speaker=%d reason=overlay-assertion target_before=%u target_after=%u before_ink=%u after_ink=%u\n",
+                    if (targetBefore == 0 || targetAfter != 0 || transparentBefore == 0
+                        || transparentAfter != transparentBefore || beforeInkPixels == 0 || afterInkPixels == 0) {
+                        printf("DIALOG_CURSOR_CHECK FAIL map=%s script=%s speaker=%d reason=overlay-assertion opaque_alpha=%u->%u transparent_alpha=%u->%u before_ink=%u after_ink=%u\n",
                             gMapHeader.name, gDialogFixtureScript, gDialogFixtureSpeakerId,
-                            targetBefore, targetAfter, beforeInkPixels, afterInkPixels);
+                            targetBefore, targetAfter, transparentBefore, transparentAfter, beforeInkPixels, afterInkPixels);
                         fflush(stdout);
                         gDialogFixtureFinished = true;
                         return;
@@ -2104,14 +2119,17 @@ void vanillaPresented()
                         gDialogFixtureFinished = true;
                         return;
                     }
-                    printf("DIALOG_CURSOR_CHECK PASS map=%s script=%s speaker=%d speaker_tile=%d hero=%d reply_offset=%d reply_bytes=%zu logical=%d,%d physical=%d,%d cursor_index=%u expected_rgb=%u,%u,%u target_alpha=%u->%u same_run_ink_pixels=%u->%u\n",
+                    printf("DIALOG_CURSOR_CHECK PASS map=%s script=%s speaker=%d speaker_tile=%d hero=%d reply_offset=%d reply_bytes=%zu opaque_logical=%d,%d opaque_physical=%d,%d transparent_logical=%d,%d transparent_physical=%d,%d cursor_index=%u expected_rgb=%u,%u,%u opaque_alpha=%u->%u transparent_alpha=%u->%u same_run_ink_pixels=%u->%u\n",
                         gMapHeader.name, gDialogFixtureScript, gDialogFixtureSpeakerId,
                         gDialogFixtureSpeakerTile, gDude != nullptr ? gDude->tile : -1,
                         gameDialogGetReplyTextOffset(), gDialogCursorCheckRecord.run.text.size(),
                         gDialogCursorCheckTargetLogicalX, gDialogCursorCheckTargetLogicalY,
-                        gDialogCursorCheckTargetPhysicalX, gDialogCursorCheckTargetPhysicalY, gDialogCursorCheckCursorIndex,
+                        gDialogCursorCheckTargetPhysicalX, gDialogCursorCheckTargetPhysicalY,
+                        gDialogCursorCheckTransparentLogicalX, gDialogCursorCheckTransparentLogicalY,
+                        gDialogCursorCheckTransparentPhysicalX, gDialogCursorCheckTransparentPhysicalY,
+                        gDialogCursorCheckCursorIndex,
                         gDialogCursorCheckCursorRed, gDialogCursorCheckCursorGreen, gDialogCursorCheckCursorBlue,
-                        targetBefore, targetAfter, beforeInkPixels, afterInkPixels);
+                        targetBefore, targetAfter, transparentBefore, transparentAfter, beforeInkPixels, afterInkPixels);
                     fflush(stdout);
                     gDialogFixtureFinished = true;
                     return;
@@ -2189,28 +2207,59 @@ void vanillaPresented()
                 int targetLogicalY = -1;
                 int targetPhysicalX = -1;
                 int targetPhysicalY = -1;
+                int transparentLogicalX = -1;
+                int transparentLogicalY = -1;
+                int transparentPhysicalX = -1;
+                int transparentPhysicalY = -1;
+                struct InkPoint {
+                    int logicalX;
+                    int logicalY;
+                    int physicalX;
+                    int physicalY;
+                };
+                std::vector<InkPoint> inkPoints;
                 for (const scene::TextPixelCoverage& coverage : replyRecord->coverage) {
                     if (coverage.x < 0 || coverage.y < 0 || coverage.x >= frame.width || coverage.y >= frame.height) continue;
                     const int left = coverage.x * frame.overlay.width / frame.width;
                     const int top = coverage.y * frame.overlay.height / frame.height;
                     const int right = std::max(left + 1, (coverage.x + 1) * frame.overlay.width / frame.width);
                     const int bottom = std::max(top + 1, (coverage.y + 1) * frame.overlay.height / frame.height);
-                    for (int y = top; y < bottom && targetPhysicalY < 0; y++) {
+                    for (int y = top; y < bottom; y++) {
                         for (int x = left; x < right; x++) {
                             const std::size_t offset = static_cast<std::size_t>(y) * frame.overlay.pitch + x * 4;
                             if (offset + 3 < frame.overlay.pixels.size() && frame.overlay.pixels[offset + 3] != 0) {
-                                targetLogicalX = coverage.x;
-                                targetLogicalY = coverage.y;
-                                targetPhysicalX = x;
-                                targetPhysicalY = y;
+                                inkPoints.push_back({ coverage.x, coverage.y, x, y });
                                 break;
                             }
                         }
                     }
-                    if (targetPhysicalY >= 0) break;
                 }
-                if (targetPhysicalY < 0) {
-                    failCursorCheck("reply-has-no-visible-glyph-pixel");
+                for (const InkPoint& opaqueTarget : inkPoints) {
+                    for (int cursorY = 0; cursorY < cursor.height && transparentPhysicalY < 0; cursorY++) {
+                        for (int cursorX = 0; cursorX < cursor.width && transparentPhysicalY < 0; cursorX++) {
+                            if (cursor.pixels[static_cast<std::size_t>(cursorY) * cursor.pitch + cursorX]
+                                != cursor.transparentIndex) continue;
+                            const int candidateX = opaqueTarget.logicalX + cursorX - cursorPixelX;
+                            const int candidateY = opaqueTarget.logicalY + cursorY - cursorPixelY;
+                            if (candidateX == opaqueTarget.logicalX && candidateY == opaqueTarget.logicalY) continue;
+                            for (const InkPoint& transparentTarget : inkPoints) {
+                                if (transparentTarget.logicalX != candidateX || transparentTarget.logicalY != candidateY) continue;
+                                targetLogicalX = opaqueTarget.logicalX;
+                                targetLogicalY = opaqueTarget.logicalY;
+                                targetPhysicalX = opaqueTarget.physicalX;
+                                targetPhysicalY = opaqueTarget.physicalY;
+                                transparentLogicalX = transparentTarget.logicalX;
+                                transparentLogicalY = transparentTarget.logicalY;
+                                transparentPhysicalX = transparentTarget.physicalX;
+                                transparentPhysicalY = transparentTarget.physicalY;
+                                break;
+                            }
+                        }
+                    }
+                    if (transparentPhysicalY >= 0) break;
+                }
+                if (targetPhysicalY < 0 || transparentPhysicalY < 0) {
+                    failCursorCheck("reply-has-no-opaque-and-transparent-cursor-ink-pair");
                     return;
                 }
 
@@ -2218,6 +2267,10 @@ void vanillaPresented()
                 gDialogCursorCheckTargetLogicalY = targetLogicalY;
                 gDialogCursorCheckTargetPhysicalX = targetPhysicalX;
                 gDialogCursorCheckTargetPhysicalY = targetPhysicalY;
+                gDialogCursorCheckTransparentLogicalX = transparentLogicalX;
+                gDialogCursorCheckTransparentLogicalY = transparentLogicalY;
+                gDialogCursorCheckTransparentPhysicalX = transparentPhysicalX;
+                gDialogCursorCheckTransparentPhysicalY = transparentPhysicalY;
                 gDialogCursorCheckRecord = *replyRecord;
                 gDialogCursorCheckOverlayBefore = frame.overlay.pixels;
                 gDialogCursorCheckCursorMoveInProgress = true;
@@ -2238,9 +2291,10 @@ void vanillaPresented()
                     return;
                 }
                 gDialogCursorCheckStage = 2;
-                printf("DIALOG_CURSOR_CHECK TARGET reply_bytes=%zu logical=%d,%d physical=%d,%d cursor_opaque_offset=%d,%d cursor_index=%u expected_rgb=%u,%u,%u\n",
+                printf("DIALOG_CURSOR_CHECK TARGET reply_bytes=%zu opaque_logical=%d,%d opaque_physical=%d,%d transparent_logical=%d,%d transparent_physical=%d,%d cursor_opaque_offset=%d,%d cursor_index=%u expected_rgb=%u,%u,%u\n",
                     replyRecord->run.text.size(), targetLogicalX, targetLogicalY,
-                    targetPhysicalX, targetPhysicalY, cursorPixelX, cursorPixelY, gDialogCursorCheckCursorIndex,
+                    targetPhysicalX, targetPhysicalY, transparentLogicalX, transparentLogicalY,
+                    transparentPhysicalX, transparentPhysicalY, cursorPixelX, cursorPixelY, gDialogCursorCheckCursorIndex,
                     gDialogCursorCheckCursorRed, gDialogCursorCheckCursorGreen, gDialogCursorCheckCursorBlue);
                 fflush(stdout);
                 return;

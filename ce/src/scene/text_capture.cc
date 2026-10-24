@@ -504,6 +504,38 @@ void textCaptureDrawText(unsigned char* buffer, const char* string, int length, 
         range->ownerWindow, range->ownerWindow >= 0 ? range->id : 0);
 }
 
+namespace {
+
+std::vector<scene::TextValidationPixels> textCaptureCopyOwnerPixels(scene::TextBufferId source)
+{
+    std::vector<std::pair<int, scene::TextBufferId>> requiredOwners;
+    for (const scene::TextRecord& record : layer().records()) {
+        if (record.buffer != source || record.ownerWindow < 0 || record.ownerGeneration == 0
+            || record.ownerGeneration == source) continue;
+        const auto owner = std::make_pair(record.ownerWindow, record.ownerGeneration);
+        if (std::find(requiredOwners.begin(), requiredOwners.end(), owner) == requiredOwners.end()) {
+            requiredOwners.push_back(owner);
+        }
+    }
+    if (requiredOwners.empty()) return {};
+
+    std::vector<scene::TextValidationPixels> ownerPixels;
+    for (int index = 0; ; ++index) {
+        TextWindowSnapshot snapshot;
+        if (!textCaptureGetWindowSnapshot(index, &snapshot, nullptr)) break;
+        const auto required = std::find(requiredOwners.begin(), requiredOwners.end(),
+            std::make_pair(snapshot.id, snapshot.generation));
+        if (required == requiredOwners.end()) continue;
+        BufferRange* owner = findRange(snapshot.pixels);
+        if (owner == nullptr || owner->id != snapshot.generation || owner->orphan || owner->pitch <= 0) continue;
+        ownerPixels.push_back({ owner->id, { reinterpret_cast<const unsigned char*>(owner->base),
+            owner->width, owner->height, owner->pitch } });
+    }
+    return ownerPixels;
+}
+
+} // namespace
+
 void textCaptureCopy(const unsigned char* source, int width, int height, int sourcePitch,
     unsigned char* destination, int destinationPitch, bool transparent, TextPixelCopyProc* copyProc)
 {
@@ -567,11 +599,13 @@ void textCaptureCopy(const unsigned char* source, int width, int height, int sou
     PixelSnapshot destinationBefore = snapshot(*destinationRange, destinationRect);
     copyProc(destination, destinationPitch, source, sourcePitch, width, height);
     PixelSnapshot destinationAfter = snapshot(*destinationRange, destinationRect);
+    const auto ownerPixels = textCaptureCopyOwnerPixels(sourceRange->id);
     layer().copy(sourceRange->id, destinationRange->id, destinationRange->orphan,
         sourceRect, destinationX, destinationY, transparent, 0,
         sourceSnapshot.view, destinationBefore.view, destinationAfter.view,
         destinationRange->ownerWindow,
-        destinationRange->ownerWindow >= 0 ? destinationRange->id : 0);
+        destinationRange->ownerWindow >= 0 ? destinationRange->id : 0,
+        ownerPixels);
 }
 
 namespace scene {

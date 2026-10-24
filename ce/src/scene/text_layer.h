@@ -117,7 +117,8 @@ public:
         TextRect sourceRect, int destinationX, int destinationY,
         bool transparent, unsigned char transparentIndex,
         TextPixels sourceSnapshot, TextPixels destinationBefore, TextPixels destinationAfter,
-        int destinationOwnerWindow = -1, TextBufferId destinationOwnerGeneration = 0);
+        int destinationOwnerWindow = -1, TextBufferId destinationOwnerGeneration = 0,
+        const std::vector<TextValidationPixels>& ownerPixels = {});
 
     // Retire only text coverage explicitly overwritten by a known image blit.
     // For a transparent blit, source pixels are aligned to destinationRect and

@@ -553,6 +553,22 @@ void testCursorOcclusionPreservesOwnedText()
                 && !mask.visibleAt(1, 0) && mask.visibleAt(2, 0),
             "cursor over a foreground glyph preserves the remaining sharp glyph pixels");
 
+        std::vector<unsigned char> cursorCompositeCopy(8, 1);
+        textCaptureRegisterExternalBuffer(cursorCompositeCopy.data(), cursorCompositeCopy.size(), 4, 2, 4, true);
+        textCaptureCopy(screenPixels.data(), 4, 2, 4, cursorCompositeCopy.data(), 4, false, fakeCopy);
+        std::vector<unsigned char> cursorCompositeOutput(8, 1);
+        textCaptureRegisterExternalBuffer(cursorCompositeOutput.data(), cursorCompositeOutput.size(), 4, 2, 4, false);
+        const scene::TextBufferId cursorCompositeOutputId = textCaptureBufferId(cursorCompositeOutput.data());
+        textCaptureCopy(cursorCompositeCopy.data(), 4, 2, 4, cursorCompositeOutput.data(), 4, false, fakeCopy);
+        const auto cursorCompositeRecords = scene::textCaptureRecords(cursorCompositeOutputId);
+        check(cursorCompositeRecords.size() == 1 && cursorCompositeRecords.front().pixels.size() == 1
+                && cursorCompositeRecords.front().pixels.front().x == 2
+                && std::none_of(cursorCompositeRecords.front().coverage.begin(), cursorCompositeRecords.front().coverage.end(),
+                    [](const scene::TextPixelCoverage& pixel) { return pixel.x == 1 && pixel.y == 0; }),
+            "orphan cursor scratch copy keeps owner-validated glyph pixels without retaining its opaque cell");
+        textCaptureUnregisterExternalBuffer(cursorCompositeOutput.data());
+        textCaptureUnregisterExternalBuffer(cursorCompositeCopy.data());
+
         screenPixels[1] = 5;
         gTestCursor.visible = false;
         gTestWindow.generation = windowId + 1;

@@ -188,7 +188,8 @@ void TextLayer::copy(TextBufferId source, TextBufferId destination, bool destina
     TextRect sourceRect, int destinationX, int destinationY,
     bool transparent, unsigned char transparentIndex,
     TextPixels sourceSnapshot, TextPixels destinationBefore, TextPixels destinationAfter,
-    int destinationOwnerWindow, TextBufferId destinationOwnerGeneration)
+    int destinationOwnerWindow, TextBufferId destinationOwnerGeneration,
+    const std::vector<TextValidationPixels>& ownerPixels)
 {
     if (source == 0 || destination == 0 || !validPixels(sourceSnapshot) || !validPixels(destinationBefore)
         || !validPixels(destinationAfter) || destinationBefore.width != destinationAfter.width
@@ -234,27 +235,66 @@ void TextLayer::copy(TextBufferId source, TextBufferId destination, bool destina
         for (int& characterX : clone.run.characterX) characterX = static_cast<int>(static_cast<std::int64_t>(characterX) + shiftX);
         for (int& characterCellX : clone.run.characterCellX) characterCellX = static_cast<int>(static_cast<std::int64_t>(characterCellX) + shiftX);
 
-        // Validate only actual legacy glyph deltas. Blank cells belong to the
-        // modern glyph mask but may be covered by a cursor or another layer.
-        // A stale changed pixel invalidates the whole copied fragment.
+        // Validate actual legacy glyph deltas against their authoritative
+        // source. A cursor may already be composited into a copied scratch
+        // buffer, so use the separate live owner for derived copies. A copy
+        // directly from its owner uses the pre-blit source snapshot instead.
+        // Blank mask cells and mismatching composite cells are handled below.
         bool validFragment = true;
         bool hasGlyphPixel = false;
         int staleX = -1;
         int staleY = -1;
         int staleExpected = -1;
         int staleActual = -1;
+        const TextPixels* ownerView = nullptr;
+        if (sourceRecord.ownerWindow >= 0 && sourceRecord.ownerGeneration != 0
+            && sourceRecord.ownerGeneration != source) {
+            const auto owner = std::find_if(ownerPixels.begin(), ownerPixels.end(), [&](const TextValidationPixels& candidate) {
+                return candidate.buffer == sourceRecord.ownerGeneration;
+            });
+            if (owner != ownerPixels.end() && validPixels(owner->pixels)) ownerView = &owner->pixels;
+            if (ownerView == nullptr) validFragment = false;
+        }
         for (const auto& pixel : sourceRecord.pixels) {
+            if (!validFragment) break;
             if (pixel.x < sourceLeft || pixel.x >= sourceRight || pixel.y < sourceTop || pixel.y >= sourceBottom) continue;
-            if (!contains(sourceSnapshot, pixel.x, pixel.y)
-                || pixelAt(sourceSnapshot, pixel.x, pixel.y) != pixel.after) {
-                validFragment = false;
-                staleX = pixel.x;
-                staleY = pixel.y;
-                staleExpected = pixel.after;
-                staleActual = contains(sourceSnapshot, pixel.x, pixel.y) ? pixelAt(sourceSnapshot, pixel.x, pixel.y) : -1;
-                break;
+            if (sourceRecord.ownerWindow >= 0 && sourceRecord.ownerGeneration != 0) {
+                const std::int64_t ownerX = ownerView != nullptr
+                    ? static_cast<std::int64_t>(pixel.x) - sourceRecord.ownerOffsetX
+                    : pixel.x;
+                const std::int64_t ownerY = ownerView != nullptr
+                    ? static_cast<std::int64_t>(pixel.y) - sourceRecord.ownerOffsetY
+                    : pixel.y;
+                const TextPixels& validationView = ownerView != nullptr ? *ownerView : sourceSnapshot;
+                if (ownerX < INT32_MIN || ownerX > INT32_MAX || ownerY < INT32_MIN || ownerY > INT32_MAX
+                    || !contains(validationView, static_cast<int>(ownerX), static_cast<int>(ownerY))
+                    || pixelAt(validationView, static_cast<int>(ownerX), static_cast<int>(ownerY)) != pixel.after) {
+                    validFragment = false;
+                    staleX = pixel.x;
+                    staleY = pixel.y;
+                    staleExpected = pixel.after;
+                    staleActual = ownerX >= INT32_MIN && ownerX <= INT32_MAX && ownerY >= INT32_MIN && ownerY <= INT32_MAX
+                        && contains(validationView, static_cast<int>(ownerX), static_cast<int>(ownerY))
+                        ? pixelAt(validationView, static_cast<int>(ownerX), static_cast<int>(ownerY)) : -1;
+                    break;
+                }
+                if (contains(sourceSnapshot, pixel.x, pixel.y)
+                    && pixelAt(sourceSnapshot, pixel.x, pixel.y) == pixel.after
+                    && !(transparent && pixel.after == transparentIndex)) {
+                    hasGlyphPixel = true;
+                }
+            } else {
+                if (!contains(sourceSnapshot, pixel.x, pixel.y)
+                    || pixelAt(sourceSnapshot, pixel.x, pixel.y) != pixel.after) {
+                    validFragment = false;
+                    staleX = pixel.x;
+                    staleY = pixel.y;
+                    staleExpected = pixel.after;
+                    staleActual = contains(sourceSnapshot, pixel.x, pixel.y) ? pixelAt(sourceSnapshot, pixel.x, pixel.y) : -1;
+                    break;
+                }
+                if (!(transparent && pixel.after == transparentIndex)) hasGlyphPixel = true;
             }
-            if (!(transparent && pixel.after == transparentIndex)) hasGlyphPixel = true;
         }
         if (!validFragment) {
             traceRun("copy_skip_stale", sourceRecord.buffer, sourceRecord.run,

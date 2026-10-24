@@ -8,6 +8,7 @@ using fallout::scene::TextLayer;
 using fallout::scene::TextPixels;
 using fallout::scene::TextRect;
 using fallout::scene::TextRunInfo;
+using fallout::scene::TextValidationPixels;
 
 namespace {
 
@@ -87,9 +88,10 @@ int main()
         std::vector<unsigned char> destBefore(20, 77);
         const auto destAfter = blit(sourceAfter, 4, 3, destBefore, 5, 4,
             { 0, 0, 4, 3 }, 1, 0, false, 0);
+        const std::vector<TextValidationPixels> owners = { { 12, view(sourceAfter, 4, 3, 4) } };
         layer.copy(1, 2, false, { 0, 0, 4, 3 }, 1, 0, false, 0,
             view(sourceAfter, 4, 3, 4),
-            view(destBefore, 5, 4, 5), view(destAfter, 5, 4, 5));
+            view(destBefore, 5, 4, 5), view(destAfter, 5, 4, 5), -1, 0, owners);
         const auto restored = layer.restorationPixels(2, view(destAfter, 5, 4, 5));
         failures += !check(restored.size() == 2, "opaque copy keeps both glyph pixels");
         failures += !check(restored.size() == 2 && restored[0].paletteIndex == 10 && restored[1].paletteIndex == 10,
@@ -127,7 +129,7 @@ int main()
         TextLayer layer;
         std::vector<unsigned char> before = { 1, 1, 1, 1 };
         std::vector<unsigned char> after = { 9, 8, 1, 1 };
-        capture(layer, 12, false, before, after, 4, 1, { 0, 0, 4, 1 }, "AB");
+        capture(layer, 12, false, before, after, 4, 1, { 0, 0, 4, 1 }, "AB", 5, 12);
         const std::vector<unsigned char> sourceSnapshot = after;
         const std::vector<unsigned char> destinationBefore = after;
         const auto destinationAfter = blit(sourceSnapshot, 4, 1, destinationBefore, 4, 1,
@@ -307,9 +309,10 @@ int main()
         std::vector<unsigned char> compact = { 20, 21 };
         std::vector<unsigned char> destinationBefore(4, 9);
         std::vector<unsigned char> destinationAfter = { 3, 20, 21, 3 };
+        const std::vector<TextValidationPixels> owners = { { 15, view(after, 4, 1, 4) } };
         TextPixels compactView { compact.data(), 2, 1, 2, 1, 0 };
         layer.copy(186, 187, false, { 0, 0, 4, 1 }, 0, 0, false, 0,
-            compactView, view(destinationBefore, 4, 1, 4), view(destinationAfter, 4, 1, 4));
+            compactView, view(destinationBefore, 4, 1, 4), view(destinationAfter, 4, 1, 4), -1, 0, owners);
         const auto records = layer.records();
         failures += !check(records.size() == 2 && records.back().bounds.x == 1 && records.back().bounds.width == 2,
             "copy with a compact source snapshot retains only safely sampled glyph geometry");
@@ -323,9 +326,10 @@ int main()
         std::vector<unsigned char> compact = { 3, 3 };
         std::vector<unsigned char> destinationBefore(4, 9);
         std::vector<unsigned char> destinationAfter = after;
+        const std::vector<TextValidationPixels> owners = { { 16, view(after, 4, 1, 4) } };
         TextPixels compactView { compact.data(), 2, 1, 2, 1, 0 };
         layer.copy(188, 189, false, { 0, 0, 4, 1 }, 0, 0, false, 0,
-            compactView, view(destinationBefore, 4, 1, 4), view(destinationAfter, 4, 1, 4));
+            compactView, view(destinationBefore, 4, 1, 4), view(destinationAfter, 4, 1, 4), -1, 0, owners);
         failures += !check(layer.records().size() == 1,
             "a compact source snapshot missing changed glyph pixels cannot clone an unvalidated record");
     }
@@ -378,6 +382,46 @@ int main()
         layer.eraseBuffer(8);
         failures += !check(layer.records().size() == 2 && layer.records()[0].buffer == 9 && layer.records()[1].buffer == 10,
             "destroyed owner generation is removed");
+    }
+
+    // A cursor-composited source may differ from its live owner at opaque
+    // cursor pixels. The owner validates the text generation; matching source
+    // and destination cells retain the rest of the copied run.
+    {
+        TextLayer layer;
+        std::vector<unsigned char> ownerBefore(6, 1);
+        std::vector<unsigned char> ownerAfter = { 1, 8, 1, 9, 1, 10 };
+        capture(layer, 190, false, ownerBefore, ownerAfter, 6, 1, { 0, 0, 6, 1 }, "ABC", 3, 190);
+        std::vector<TextValidationPixels> owners = { { 190, view(ownerAfter, 6, 1, 6) } };
+
+        std::vector<unsigned char> firstBefore(6, 2);
+        layer.copy(190, 191, false, { 0, 0, 6, 1 }, 0, 0, false, 0,
+            view(ownerAfter, 6, 1, 6), view(firstBefore, 6, 1, 6), view(ownerAfter, 6, 1, 6), -1, 0, owners);
+
+        std::vector<unsigned char> composited = ownerAfter;
+        composited[1] = 77; // opaque cursor pixel covers the first glyph delta
+        std::vector<unsigned char> destinationBefore(6, 4);
+        std::vector<unsigned char> destinationAfter = composited;
+        layer.copy(191, 192, false, { 0, 0, 6, 1 }, 0, 0, false, 0,
+            view(composited, 6, 1, 6), view(destinationBefore, 6, 1, 6), view(destinationAfter, 6, 1, 6), -1, 0, owners);
+        failures += !check(layer.records().size() == 3 && layer.records().back().buffer == 192
+                && layer.records().back().pixels.size() == 2
+                && layer.records().back().pixels[0].x == 3 && layer.records().back().pixels[1].x == 5,
+            "cursor-composited copy keeps matching owner-validated glyph pixels and skips the opaque cursor pixel");
+        failures += !check(layer.records().back().coverage.size() == 5,
+            "cursor-composited copy retains visible and transparent mask cells around the opaque cursor");
+
+        std::vector<unsigned char> staleOwner = ownerAfter;
+        staleOwner[5] = 88;
+        std::vector<TextValidationPixels> staleOwners = { { 190, view(staleOwner, 6, 1, 6) } };
+        layer.copy(191, 193, false, { 0, 0, 6, 1 }, 0, 0, false, 0,
+            view(composited, 6, 1, 6), view(destinationBefore, 6, 1, 6), view(destinationAfter, 6, 1, 6), -1, 0, staleOwners);
+        failures += !check(layer.records().size() == 3,
+            "an overwritten authoritative owner pixel rejects the entire copied fragment");
+        layer.copy(191, 194, false, { 0, 0, 6, 1 }, 0, 0, false, 0,
+            view(composited, 6, 1, 6), view(destinationBefore, 6, 1, 6), view(destinationAfter, 6, 1, 6));
+        failures += !check(layer.records().size() == 3,
+            "a missing live owner snapshot rejects the entire copied fragment");
     }
 
     // Copying into previously tracked text retains the source's own
