@@ -2,8 +2,8 @@
 id: 040
 title: Solid shapes for chairs, crate heaps, the notice board, the car and cave braces
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: glm
 suggested: gpt
 claude-only: no
 user-check: yes
