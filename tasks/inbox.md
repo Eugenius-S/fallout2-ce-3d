@@ -42,3 +42,4 @@ that fits no task becomes a new task when the board runs dry.
   scale-3 character screen as a reference
   (`runs/054-small-interface-font/accepted-20261024/ru-x3-character-on/scr00062.png`).
   Deferred until the owner reviews coverage.
+- 2026-10-24 Around the dialogue UI, turn the free screen area black so the street world is hidden. Reference: `runs/inbox/2026-10-24-dialog-black-background.png` (owner source: `C:\Users\jiraf\AppData\Local\Temp\codex-clipboard-3865ace3-a630-45ed-b714-034d45600988.png`). Not now.
