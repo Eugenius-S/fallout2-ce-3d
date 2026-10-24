@@ -137,6 +137,15 @@ bool gDialogFixtureFinished = false;
 bool gDialogPageInspectRequested = false;
 int gDialogPageInspectStage = 0;
 std::vector<std::string> gDialogPageInspectInitialText;
+bool gDialogCursorCheckRequested = false;
+int gDialogCursorCheckStage = 0;
+std::vector<std::string> gDialogCursorCheckInitialText;
+scene::TextRecord gDialogCursorCheckRecord;
+std::vector<unsigned char> gDialogCursorCheckOverlayBefore;
+int gDialogCursorCheckTargetLogicalX = -1;
+int gDialogCursorCheckTargetLogicalY = -1;
+int gDialogCursorCheckTargetPhysicalX = -1;
+int gDialogCursorCheckTargetPhysicalY = -1;
 char gDialogFixtureScript[32] = {};
 int gDialogFixtureSpeakerId = -1;
 int gDialogFixtureSpeakerTile = -1;
@@ -728,6 +737,10 @@ bool parseOption(const char* arg)
     }
     if (strcmp(arg, "--dev-dialog-page-inspect") == 0) {
         gDialogPageInspectRequested = true;
+        return true;
+    }
+    if (strcmp(arg, "--dev-dialog-cursor-check") == 0) {
+        gDialogCursorCheckRequested = true;
         return true;
     }
     if (strcmp(arg, "--dev-preferences-snapshot") == 0) {
@@ -1900,24 +1913,25 @@ void vanillaPresented()
             }
         }
         if (ownerCount >= 2) {
-            if (gDialogPageInspectRequested) {
-                std::vector<std::string> currentText;
+            std::vector<std::string> currentReplyText;
+            if (gDialogPageInspectRequested || gDialogCursorCheckRequested) {
                 for (int index = 0; index < windowCount; index++) {
                     TextWindowSnapshot window;
-                    if (!textCaptureGetWindowSnapshot(index, &window, nullptr) || window.hidden || window.pixels == nullptr) {
+                    if (!textCaptureGetWindowSnapshot(index, &window, nullptr) || window.hidden
+                        || window.pixels == nullptr || window.id != replyOwnerId) {
                         continue;
                     }
                     const scene::TextBufferId buffer = textCaptureBufferId(window.pixels);
                     if (buffer == 0) continue;
                     const std::vector<scene::TextRecord> records = scene::textCaptureSharpRecords(buffer);
                     for (const scene::TextRecord& record : records) {
-                        if (window.id == replyOwnerId && record.ownerWindow == window.id) {
-                            currentText.push_back(record.run.text);
-                        }
+                        if (record.ownerWindow == window.id) currentReplyText.push_back(record.run.text);
                     }
                 }
+            }
+            if (gDialogPageInspectRequested) {
                 if (gDialogPageInspectStage == 0) {
-                    gDialogPageInspectInitialText = currentText;
+                    gDialogPageInspectInitialText = currentReplyText;
                     gDialogPageInspectStage = 1;
                     printf("DIALOG_PAGE_INSPECT INPUT key=2 map=%s script=%s speaker=%d speaker_tile=%d hero=%d\n",
                         gMapHeader.name, gDialogFixtureScript, gDialogFixtureSpeakerId,
@@ -1926,22 +1940,234 @@ void vanillaPresented()
                     enqueueInputEvent(KEY_2);
                     return;
                 }
-                if (currentText != gDialogPageInspectInitialText) {
+                if (currentReplyText != gDialogPageInspectInitialText) {
                     const int offset = gameDialogGetReplyTextOffset();
                     std::size_t textBytes = 0;
-                    for (const std::string& text : currentText) textBytes += text.size();
+                    for (const std::string& text : currentReplyText) textBytes += text.size();
                     printf("DIALOG_PAGE_INSPECT PASS map=%s script=%s speaker=%d speaker_tile=%d hero=%d reply_window=%d reply_y=%d reply_offset=%d runs=%zu text_bytes=%zu\n",
                         gMapHeader.name, gDialogFixtureScript, gDialogFixtureSpeakerId,
                         gDialogFixtureSpeakerTile, gDude != nullptr ? gDude->tile : -1, replyOwnerId, replyOwnerY,
-                        offset, currentText.size(), textBytes);
-                    for (std::size_t index = 0; index < currentText.size(); index++) {
+                        offset, currentReplyText.size(), textBytes);
+                    for (std::size_t index = 0; index < currentReplyText.size(); index++) {
                         printf("DIALOG_PAGE_INSPECT TEXT index=%zu bytes=%zu text=%s\n",
-                            index, currentText[index].size(), currentText[index].c_str());
+                            index, currentReplyText[index].size(), currentReplyText[index].c_str());
                     }
                     fflush(stdout);
                     gDialogFixtureFinished = true;
                     return;
                 }
+            }
+            if (gDialogCursorCheckRequested) {
+                auto failCursorCheck = [](const char* reason) {
+                    printf("DIALOG_CURSOR_CHECK FAIL map=%s script=%s speaker=%d speaker_tile=%d hero=%d reason=%s\n",
+                        gMapHeader.name, gDialogFixtureScript, gDialogFixtureSpeakerId,
+                        gDialogFixtureSpeakerTile, gDude != nullptr ? gDude->tile : -1, reason);
+                    fflush(stdout);
+                    gDialogFixtureFinished = true;
+                };
+                if (gDialogCursorCheckStage == 0) {
+                    gDialogCursorCheckInitialText = currentReplyText;
+                    gDialogCursorCheckStage = 1;
+                    printf("DIALOG_CURSOR_CHECK INPUT key=2 map=%s script=%s speaker=%d speaker_tile=%d hero=%d\n",
+                        gMapHeader.name, gDialogFixtureScript, gDialogFixtureSpeakerId,
+                        gDialogFixtureSpeakerTile, gDude != nullptr ? gDude->tile : -1);
+                    fflush(stdout);
+                    enqueueInputEvent(KEY_2);
+                    return;
+                }
+                if (currentReplyText == gDialogCursorCheckInitialText) return;
+
+                const scene_renderer::PreparedSharpTextFrame& frame = scene_renderer::preparedSharpTextFrame();
+                if (gDialogCursorCheckStage == 2) {
+                    if (!frame.active || !frame.drawn || frame.overlay.pixels.empty()
+                        || frame.width <= 0 || frame.height <= 0
+                        || frame.overlay.width <= 0 || frame.overlay.height <= 0
+                        || frame.overlay.pitch < frame.overlay.width * 4
+                        || frame.overlay.width != static_cast<int>(gDialogCursorCheckOverlayBefore.size() / 4 / frame.overlay.height)) {
+                        failCursorCheck("sharp-overlay-invalid-after-cursor-move");
+                        return;
+                    }
+                    const scene::TextBufferId screenBuffer = gSdlSurface != nullptr && gSdlSurface->pixels != nullptr
+                        ? textCaptureBufferId(gSdlSurface->pixels)
+                        : 0;
+                    const std::vector<scene::TextRecord> screenRecords = screenBuffer != 0
+                        ? scene::textCaptureSharpRecords(screenBuffer)
+                        : std::vector<scene::TextRecord>();
+                    bool sameReplyRun = false;
+                    for (const scene::TextRecord& record : screenRecords) {
+                        if (record.ownerWindow == replyOwnerId && record.run.text == gDialogCursorCheckRecord.run.text) {
+                            sameReplyRun = true;
+                            break;
+                        }
+                    }
+                    if (!sameReplyRun) {
+                        failCursorCheck("reply-run-changed-after-cursor-move");
+                        return;
+                    }
+                    auto alphaAt = [&](const std::vector<unsigned char>& pixels, int x, int y) {
+                        const std::size_t offset = static_cast<std::size_t>(y) * frame.overlay.pitch + x * 4 + 3;
+                        return offset < pixels.size() ? pixels[offset] : static_cast<unsigned char>(0);
+                    };
+                    const unsigned char targetBefore = alphaAt(gDialogCursorCheckOverlayBefore,
+                        gDialogCursorCheckTargetPhysicalX, gDialogCursorCheckTargetPhysicalY);
+                    const unsigned char targetAfter = alphaAt(frame.overlay.pixels,
+                        gDialogCursorCheckTargetPhysicalX, gDialogCursorCheckTargetPhysicalY);
+                    unsigned int beforeInkPixels = 0;
+                    unsigned int afterInkPixels = 0;
+                    for (const scene::TextPixelCoverage& coverage : gDialogCursorCheckRecord.coverage) {
+                        if (coverage.x < 0 || coverage.y < 0 || coverage.x >= frame.width || coverage.y >= frame.height) continue;
+                        const int left = coverage.x * frame.overlay.width / frame.width;
+                        const int top = coverage.y * frame.overlay.height / frame.height;
+                        const int right = std::max(left + 1, (coverage.x + 1) * frame.overlay.width / frame.width);
+                        const int bottom = std::max(top + 1, (coverage.y + 1) * frame.overlay.height / frame.height);
+                        for (int y = top; y < bottom; y++) {
+                            for (int x = left; x < right; x++) {
+                                if (alphaAt(gDialogCursorCheckOverlayBefore, x, y) != 0) beforeInkPixels++;
+                                if (alphaAt(frame.overlay.pixels, x, y) != 0) afterInkPixels++;
+                            }
+                        }
+                    }
+                    TextCursorSnapshot cursor = {};
+                    if (!textCaptureGetCursorSnapshot(&cursor) || !cursor.visible
+                        || gDialogCursorCheckTargetLogicalX < cursor.x
+                        || gDialogCursorCheckTargetLogicalY < cursor.y
+                        || gDialogCursorCheckTargetLogicalX >= cursor.x + cursor.width
+                        || gDialogCursorCheckTargetLogicalY >= cursor.y + cursor.height
+                        || cursor.pixels[static_cast<std::size_t>(gDialogCursorCheckTargetLogicalY - cursor.y) * cursor.pitch
+                            + gDialogCursorCheckTargetLogicalX - cursor.x] == cursor.transparentIndex) {
+                        failCursorCheck("opaque-engine-cursor-moved-off-target");
+                        return;
+                    }
+                    if (targetBefore == 0 || targetAfter != 0 || beforeInkPixels == 0 || afterInkPixels == 0) {
+                        printf("DIALOG_CURSOR_CHECK FAIL map=%s script=%s speaker=%d reason=overlay-assertion target_before=%u target_after=%u before_ink=%u after_ink=%u\n",
+                            gMapHeader.name, gDialogFixtureScript, gDialogFixtureSpeakerId,
+                            targetBefore, targetAfter, beforeInkPixels, afterInkPixels);
+                        fflush(stdout);
+                        gDialogFixtureFinished = true;
+                        return;
+                    }
+                    const bool captured = takeSnapshot();
+                    if (!captured) {
+                        failCursorCheck("cursor-snapshot-failed");
+                        return;
+                    }
+                    printf("DIALOG_CURSOR_CHECK PASS map=%s script=%s speaker=%d speaker_tile=%d hero=%d reply_offset=%d reply_bytes=%zu logical=%d,%d physical=%d,%d target_alpha=%u->%u same_run_ink_pixels=%u->%u\n",
+                        gMapHeader.name, gDialogFixtureScript, gDialogFixtureSpeakerId,
+                        gDialogFixtureSpeakerTile, gDude != nullptr ? gDude->tile : -1,
+                        gameDialogGetReplyTextOffset(), gDialogCursorCheckRecord.run.text.size(),
+                        gDialogCursorCheckTargetLogicalX, gDialogCursorCheckTargetLogicalY,
+                        gDialogCursorCheckTargetPhysicalX, gDialogCursorCheckTargetPhysicalY,
+                        targetBefore, targetAfter, beforeInkPixels, afterInkPixels);
+                    fflush(stdout);
+                    gDialogFixtureFinished = true;
+                    return;
+                }
+                if (!frame.active || !frame.drawn || frame.overlay.pixels.empty()
+                    || frame.width <= 0 || frame.height <= 0
+                    || frame.overlay.width <= 0 || frame.overlay.height <= 0
+                    || frame.overlay.pitch < frame.overlay.width * 4) {
+                    failCursorCheck("sharp-overlay-not-drawn");
+                    return;
+                }
+                const scene::TextBufferId screenBuffer = gSdlSurface != nullptr && gSdlSurface->pixels != nullptr
+                    ? textCaptureBufferId(gSdlSurface->pixels)
+                    : 0;
+                if (screenBuffer == 0) {
+                    failCursorCheck("screen-text-buffer-unavailable");
+                    return;
+                }
+                const std::vector<scene::TextRecord> screenRecords = scene::textCaptureSharpRecords(screenBuffer);
+                const scene::TextRecord* replyRecord = nullptr;
+                for (const scene::TextRecord& record : screenRecords) {
+                    if (record.ownerWindow == replyOwnerId && !record.run.text.empty() && !record.coverage.empty()) {
+                        replyRecord = &record;
+                        break;
+                    }
+                }
+                if (replyRecord == nullptr) {
+                    failCursorCheck("reply-run-not-present-on-screen");
+                    return;
+                }
+
+                TextCursorSnapshot cursor = {};
+                if (!textCaptureGetCursorSnapshot(&cursor) || !cursor.visible || cursor.pixels == nullptr
+                    || cursor.width <= 0 || cursor.height <= 0 || cursor.pitch < cursor.width) {
+                    failCursorCheck("engine-cursor-not-visible");
+                    return;
+                }
+                int mouseX = 0;
+                int mouseY = 0;
+                mouseGetPosition(&mouseX, &mouseY);
+                const int hotX = mouseX - cursor.x;
+                const int hotY = mouseY - cursor.y;
+                int cursorPixelX = -1;
+                int cursorPixelY = -1;
+                for (int y = 0; y < cursor.height && cursorPixelY < 0; y++) {
+                    for (int x = 0; x < cursor.width; x++) {
+                        if (cursor.pixels[static_cast<std::size_t>(y) * cursor.pitch + x] != cursor.transparentIndex) {
+                            cursorPixelX = x;
+                            cursorPixelY = y;
+                            break;
+                        }
+                    }
+                }
+                if (cursorPixelX < 0) {
+                    failCursorCheck("engine-cursor-has-no-opaque-pixels");
+                    return;
+                }
+
+                int targetLogicalX = -1;
+                int targetLogicalY = -1;
+                int targetPhysicalX = -1;
+                int targetPhysicalY = -1;
+                for (const scene::TextPixelCoverage& coverage : replyRecord->coverage) {
+                    if (coverage.x < 0 || coverage.y < 0 || coverage.x >= frame.width || coverage.y >= frame.height) continue;
+                    const int left = coverage.x * frame.overlay.width / frame.width;
+                    const int top = coverage.y * frame.overlay.height / frame.height;
+                    const int right = std::max(left + 1, (coverage.x + 1) * frame.overlay.width / frame.width);
+                    const int bottom = std::max(top + 1, (coverage.y + 1) * frame.overlay.height / frame.height);
+                    for (int y = top; y < bottom && targetPhysicalY < 0; y++) {
+                        for (int x = left; x < right; x++) {
+                            const std::size_t offset = static_cast<std::size_t>(y) * frame.overlay.pitch + x * 4;
+                            if (offset + 3 < frame.overlay.pixels.size() && frame.overlay.pixels[offset + 3] != 0) {
+                                targetLogicalX = coverage.x;
+                                targetLogicalY = coverage.y;
+                                targetPhysicalX = x;
+                                targetPhysicalY = y;
+                                break;
+                            }
+                        }
+                    }
+                    if (targetPhysicalY >= 0) break;
+                }
+                if (targetPhysicalY < 0) {
+                    failCursorCheck("reply-has-no-visible-glyph-pixel");
+                    return;
+                }
+
+                gDialogCursorCheckTargetLogicalX = targetLogicalX;
+                gDialogCursorCheckTargetLogicalY = targetLogicalY;
+                gDialogCursorCheckTargetPhysicalX = targetPhysicalX;
+                gDialogCursorCheckTargetPhysicalY = targetPhysicalY;
+                gDialogCursorCheckRecord = *replyRecord;
+                gDialogCursorCheckOverlayBefore = frame.overlay.pixels;
+                _mouse_set_position(targetLogicalX - cursorPixelX + hotX, targetLogicalY - cursorPixelY + hotY);
+                TextCursorSnapshot movedCursor = {};
+                if (!textCaptureGetCursorSnapshot(&movedCursor) || !movedCursor.visible
+                    || targetLogicalX < movedCursor.x || targetLogicalY < movedCursor.y
+                    || targetLogicalX >= movedCursor.x + movedCursor.width
+                    || targetLogicalY >= movedCursor.y + movedCursor.height
+                    || movedCursor.pixels[static_cast<std::size_t>(targetLogicalY - movedCursor.y) * movedCursor.pitch
+                        + targetLogicalX - movedCursor.x] == movedCursor.transparentIndex) {
+                    failCursorCheck("engine-cursor-could-not-cover-target");
+                    return;
+                }
+                gDialogCursorCheckStage = 2;
+                printf("DIALOG_CURSOR_CHECK TARGET reply_bytes=%zu logical=%d,%d physical=%d,%d cursor_opaque_offset=%d,%d\n",
+                    replyRecord->run.text.size(), targetLogicalX, targetLogicalY,
+                    targetPhysicalX, targetPhysicalY, cursorPixelX, cursorPixelY);
+                fflush(stdout);
+                return;
             }
             const bool captured = takeSnapshot();
             if (captured) {
