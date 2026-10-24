@@ -9,20 +9,14 @@ namespace scene_renderer {
 // Per-frame stats of the shadow pass for the dev perf log: whether the last
 // bindStaticShadows rendered it, and the seconds it took since the last call.
 void shadowFrameStats(bool* rendered, double* seconds);
-// The hex pass (task 046): whether the last shadow frame read the ground
-// factors back, and the shadowed share at a tile's anchor hex from it (a
-// fraction, the border fades across hexes). The live cards chase it over
-// ~150 ms.
-bool shadowGroundReady();
-double shadowGroundShadowFactor(int tile);
 
 namespace internal {
 
 // Sun shadows from buildings and big things (task 045). One directional depth
 // map over the whole map ground, cast by the static scene: wall batches (backs
 // and ends included), all roof squares (hidden ones too) and the baked objects
-// big enough to cast. The floor and the walls sample it; sprites do not (that
-// is task 046).
+// big enough to cast. Every lit fragment samples it: the floor and the walls
+// at their texel, a card at its pixel's own place and height (057).
 //
 // Set the casters once after walls and roofs load; the rest happens per frame
 // in bindStaticShadows from the scene draw.

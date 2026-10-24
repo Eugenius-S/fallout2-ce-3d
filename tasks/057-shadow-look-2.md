@@ -164,3 +164,31 @@ longer reach (smoothstep(3, 10) GL units instead of (0, 5)), halve the depth
 map texel (2048 to 4096) and drop the default edge softness from 4 to 2 game
 pixels, so the fence's lattice and the edges come out crisp; then re-shoot
 the pen.
+
+### 2026-10-24 glm
+Done: round 3, the owner's round 6 notes.
+- Sprite cards sample the sun shadow per fragment (mode 3 in
+  shadowDarken): each card pixel takes its own place and height, so the
+  hex-chunk stairs on cards and a man darkened where no shadow lies on him
+  should be gone (the card's own texels answer the ray test, not its anchor
+  hex), and the edge antialiases on cards as it does on the ground. The 046
+  hex pass and the 150 ms CPU fade are removed with it (uSpriteShadow, the
+  200 x 200 readback every frame, the fade state): nothing consumes them
+  now. Flat cards, the pen's ground patches among them, take the same
+  lookup; if a patch still stays out of the shadow it is drawn at full
+  light (mode 0), a diagnosis for the next round.
+- The melt window widens (smoothstep(2, 9) to (2, 12)) so the far end
+  fades visibly; the AA ring floor rises to 1.25 depth map texels for the
+  stairs on the ground.
+- Ctrl+T steps the game hour by one in gameplay and in the fly camera (the
+  options panel's plain T answers only while the panel is open; its Shift+T
+  still steps back).
+Check: build Release, ctest 12/12. Round 3 shots under
+runs/057-shadow-look-2/ (corrals-sunset-r3, corrals-noon-r3,
+corrals-fence-zoom-r3): 34% of the sunset frame moved against round 2 (the
+wider melt keeps shadows dense longer, the cards shade per pixel), 24% at
+noon, 57% at the fence zoom. The shadows-off regression: all 16 spots at
+exactly the round 2 run's counts (the reference drift that began at 10:45,
+before this round, is unchanged by it).
+Next: the owner's eye. The feel constants are one line each: the melt end
+(12), the ring floor (1.25), the card dim (0.35).
