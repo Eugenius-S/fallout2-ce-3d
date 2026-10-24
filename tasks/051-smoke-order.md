@@ -2,8 +2,8 @@
 id: 051
 title: Smoke over a burning barrel draws in front of it, as in the game
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: glm
 suggested: gpt
 claude-only: no
 user-check: yes
