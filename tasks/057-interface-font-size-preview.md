@@ -13,11 +13,12 @@ reviewed: no
 
 ## Goal
 
-Show five font-101 point-size variants on the Russian character screen for the owner to choose. Keep the regular scale at 1.00 and make larger scales available only through a dev-only preview.
+Show five font-101 point-size variants and an E-size Bold versus SemiBold comparison on the Russian character screen for the owner to choose. Keep the regular scale at 1.00 and make larger sizes or the alternate face available only through a dev-only preview.
 
 ## Context
 
 - Current font 101 uses the embedded IBM Plex Mono Bold 700 face with size derived from the captured line height.
+- The optional E face comparison uses embedded IBM Plex Mono SemiBold 600 only in the preview fixture. Default font 101 remains Bold 700.
 - The actual Russian character screen has 9 logical pixel text rows at 1920x1440 scale 3.
 - Required variants are 1.00, 1.08, 1.15, 1.22, and 1.29. The preview may extend sharp glyph coverage within the live owner window while legacy drawing, accepted widths, line height, and wrapping stay unchanged.
 - Keep source color behavior from task 056: normal interface green `#3FB419`, lower HUD log green `#4BD51F`, all other palette states unchanged.
@@ -27,6 +28,7 @@ Show five font-101 point-size variants on the Russian character screen for the o
 - The preview can be started only from the opt-in dev fixture and is off by default. No player setting, menu control, or changed default is added.
 - Capture authentic character-screen frames at 1920x1440 scale 3 with identical game state. Keep the original 1.00, 1.08, and 1.15 frames from source `95700dbd`, and capture D=1.22 and E=1.29 from the same source revision and EXE SHA. Present original PNGs without resizing or editing their content.
 - The 1.00 preview is pixel-identical to normal production rendering.
+- At 1.29, capture Bold 700 and SemiBold 600 with the same executable and character-screen setup. Keep the default face at Bold 700.
 - Renderer tests cover `Й`, `Ё`, descenders, and other glyphs that meet the enlarged coverage edge. They verify no clipping at the selected preview scales and no overlay beyond the live owner window or captured text width.
 - Review actual character rows for collisions with neighboring text at every variant. If a larger size needs a broader UI row-layout change, stop and report the limit instead of changing production layout.
 - Release build and CTest pass.
@@ -52,3 +54,8 @@ Check: `runs/057-interface-font-size-preview/accepted/preview-report.md`, the ma
 Done: extended the preview-only allowlist with D=1.22 and E=1.29 in commit `d25c69e6`. Release build and CTest pass 14/14. Both new real character-screen captures use source `d25c69e6`, the same EXE SHA, and the same 1920x1440/x3 fixture setup. Curated the full PNG, snapshot JSON, and stdout under `runs/057-interface-font-size-preview/accepted/preview-1x22/` and `preview-1x29/`.
 Next: owner chooses from 1.00, 1.08, 1.15, 1.22, and 1.29. Keep the production default at 1.00 pending that choice.
 Check: the two new fixture logs confirm their requested scales; the renderer tests cover all five scales at x2 and x3.
+
+### 2026-10-24 gpt
+Done: added a character-fixture-only face override for comparing SemiBold 600 with the existing Bold 700 at E=1.29 in commit `c0bf3b08`. Release build and CTest pass 14/14. Both genuine screen captures use the same EXE SHA, source, and 1920x1440/x3 setup. Curated the original PNGs, snapshot JSON, and stdout under `runs/057-interface-font-size-preview/accepted/preview-1x29-bold/` and `preview-1x29-semibold/`.
+Next: owner chooses a size and face. Keep production font 101 at 1.00 Bold 700 until that choice.
+Check: `runs/057-interface-font-size-preview/accepted/preview-report.md`; both JSON files and fixture logs confirm scale 1.29, the requested weight, and matching source and EXE SHA.
