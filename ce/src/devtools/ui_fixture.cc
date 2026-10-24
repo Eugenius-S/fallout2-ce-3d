@@ -61,9 +61,9 @@ bool gPipboyStatusRequested = false;
 int gLogDiagnosticFrames = 0;
 bool gFont101PreviewRequested = false;
 bool gFont101PreviewActivated = false;
-double gFont101PreviewScale = 1.0;
+double gFont101PreviewScale = 1.29;
 bool gFont101PreviewWeightRequested = false;
-bool gFont101PreviewBold = true;
+bool gFont101PreviewBold = false;
 
 const char* fixtureName()
 {
@@ -145,6 +145,10 @@ struct ScreenProof {
     std::vector<scene::TextRecord> overlayRecords;
     unsigned int visibleCoverage = 0;
     unsigned int overlayPixels = 0;
+    int font101LineHeightMin = 0;
+    int font101LineHeightMax = 0;
+    int statBoxRuns = 0;
+    int statBoxLineHeight = 0;
 };
 
 struct OpaqueOverlaySample {
@@ -256,6 +260,14 @@ ScreenProof screenProof(const TextWindowSnapshot& window,
         if (record.ownerWindow != window.id || record.ownerGeneration != window.generation
             || record.run.font != 101 || !record.run.sharpEligible) continue;
         proof.records.push_back(record);
+        if (proof.font101LineHeightMin == 0 || record.run.lineHeight < proof.font101LineHeightMin) {
+            proof.font101LineHeightMin = record.run.lineHeight;
+        }
+        proof.font101LineHeightMax = std::max(proof.font101LineHeightMax, record.run.lineHeight);
+        if (record.run.verticalAlignmentBoxHeight > 0) {
+            proof.statBoxRuns++;
+            proof.statBoxLineHeight = record.run.lineHeight;
+        }
 
         scene::TextVisibilityMask mask;
         if (!scene::textCaptureVisibilityMask(record, surfaceWidth, surfaceHeight, &mask)) continue;
@@ -405,6 +417,10 @@ void captureWindow(const TextWindowSnapshot& window, const std::vector<scene::Te
     }
 
     if (sharpActive && gKind == UiFixtureKind::Character) {
+        if (proof.statBoxRuns <= 0) {
+            fixtureFail("special-stat-box-record-missing");
+            return;
+        }
         for (const scene::TextRecord& record : proof.overlayRecords) {
             if (record.run.colorRole != scene::TextColorRole::Palette
                 || static_cast<Color>(record.run.colorAndFlags & colorMask) != COLOR_BLACK) continue;
@@ -438,13 +454,14 @@ void captureWindow(const TextWindowSnapshot& window, const std::vector<scene::Te
         return;
     }
 
-    printf("UI_FIXTURE PASS screen=%s window=%d generation=%llu font=101 runs=%zu screen_runs=%zu visible_runs=%zu visible_coverage=%u overlay_runs=%zu overlay_pixels=%u colors=original green=%d white=%d yellow=%d red=%d other=%d sharp_setting=%d active=%d drawn=%d preview_scale=%.2f preview_weight=%s",
+    printf("UI_FIXTURE PASS screen=%s window=%d generation=%llu font=101 runs=%zu screen_runs=%zu visible_runs=%zu visible_coverage=%u overlay_runs=%zu overlay_pixels=%u font101_lineheight=%d..%d stat_box_runs=%d stat_box_lineheight=%d colors=original green=%d white=%d yellow=%d red=%d other=%d sharp_setting=%d active=%d drawn=%d preview_scale=%.2f preview_weight=%s",
         fixtureName(), window.id, static_cast<unsigned long long>(window.generation), evidence.size(),
         proof.records.size(), proof.visibleRecords.size(), proof.visibleCoverage, overlayEvidence.size(), proof.overlayPixels,
+        proof.font101LineHeightMin, proof.font101LineHeightMax, proof.statBoxRuns, proof.statBoxLineHeight,
         greenCount, whiteCount, yellowCount, redCount, otherCount,
         settings.scene3d.sharp_text ? 1 : 0, frame.active ? 1 : 0, frame.drawn ? 1 : 0,
-        gFont101PreviewRequested ? gFont101PreviewScale : 1.0,
-        gFont101PreviewWeightRequested ? (gFont101PreviewBold ? "bold" : "semibold") : "bold");
+        scene::font101PreviewScaleForWindow(window.id),
+        scene::font101PreviewUsesBold(window.id) ? "bold" : "semibold");
     if (gKind == UiFixtureKind::Barter) {
         printf(" speaker_script=%s speaker=%d speaker_tile=%d white_zero_totals=%d left=$0@%d right=$0@%d",
             gSpeakerScript, gSpeakerId, gSpeakerTile, whiteZeroCount, leftZeroX, rightZeroX);
@@ -596,7 +613,7 @@ bool startUiFixtureWhenReady(bool startupReady, bool blockingState)
         }
         printf("UI_FIXTURE SETUP screen=character preview_scale=%.2f preview_weight=%s process_only=1\n",
             gFont101PreviewScale,
-            gFont101PreviewWeightRequested ? (gFont101PreviewBold ? "bold" : "semibold") : "bold");
+            gFont101PreviewWeightRequested ? (gFont101PreviewBold ? "bold" : "semibold") : "selected-semibold");
         fflush(stdout);
     }
     if (key == -1) {

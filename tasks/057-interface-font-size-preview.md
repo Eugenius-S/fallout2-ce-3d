@@ -1,6 +1,6 @@
 ---
 id: 057
-title: Interface font size preview
+title: Interface font size and weight rollout
 milestone: M1
 status: doing
 owner: gpt
@@ -13,30 +13,28 @@ reviewed: no
 
 ## Goal
 
-Show five font-101 point-size variants and an E-size Bold versus SemiBold comparison on the Russian character screen for the owner to choose. Keep the regular scale at 1.00 and make larger sizes or the alternate face available only through a dev-only preview.
+Apply the owner's selected font-101 appearance globally: scale 1.29 with the embedded IBM Plex Mono SemiBold 600 face. Vertically center the SPECIAL stat-description labels inside their existing content boxes. Keep the original pixel font exact when SharpText is off.
 
 ## Context
 
-- Current font 101 uses the embedded IBM Plex Mono Bold 700 face with size derived from the captured line height.
-- The optional E face comparison uses embedded IBM Plex Mono SemiBold 600 only in the preview fixture. Default font 101 remains Bold 700.
-- The actual Russian character screen has 9 logical pixel text rows at 1920x1440 scale 3.
-- Required variants are 1.00, 1.08, 1.15, 1.22, and 1.29. The preview may extend sharp glyph coverage within the live owner window while legacy drawing, accepted widths, line height, and wrapping stay unchanged.
+- The owner selected E=1.29 and SemiBold 600 from the five-size and two-face previews. Keep all preview captures and their original history in this task.
+- The actual Russian character screen has 9 logical pixel text rows at 1920x1440 scale 3. The selected scale increases modern glyph coverage within each live owner window; legacy drawing, accepted widths, line height, and wrapping stay unchanged.
+- The SPECIAL description field has a 17-row interior in both active character-editor background FRMs. Center only the modern glyph ink for those two tagged draw calls; preserve legacy text coordinates.
 - Keep source color behavior from task 056: normal interface green `#3FB419`, lower HUD log green `#4BD51F`, all other palette states unchanged.
 
 ## Acceptance
 
-- The preview can be started only from the opt-in dev fixture and is off by default. No player setting, menu control, or changed default is added.
-- Capture authentic character-screen frames at 1920x1440 scale 3 with identical game state. Keep the original 1.00, 1.08, and 1.15 frames from source `95700dbd`, and capture D=1.22 and E=1.29 from the same source revision and EXE SHA. Present original PNGs without resizing or editing their content.
-- The 1.00 preview is pixel-identical to normal production rendering.
-- At 1.29, capture Bold 700 and SemiBold 600 with the same executable and character-screen setup. Keep the default face at Bold 700.
-- Renderer tests cover `Й`, `Ё`, descenders, and other glyphs that meet the enlarged coverage edge. They verify no clipping at the selected preview scales and no overlay beyond the live owner window or captured text width.
-- Review actual character rows for collisions with neighboring text at every variant. If a larger size needs a broader UI row-layout change, stop and report the limit instead of changing production layout.
-- Release build and CTest pass.
+- With SharpText enabled, every eligible font-101 run uses scale 1.29 and SemiBold 600, including UI copies. Other font IDs retain their previous behavior.
+- The SPECIAL stat-description role is attached only at its two real font-draw call sites. Its modern glyph ink is centered within the measured 17-row box and its copied records retain the box geometry.
+- With SharpText disabled, inventory, dialogue, and character-screen captures are pixel-identical to original rendering.
+- Runtime evidence covers Russian inventory, dialogue, character screen, and HUD at scale 3, English barter and a boxed label at scale 2, plus PipBoy. Compare original and final frames for inventory, dialogue, and character.
+- Renderer and capture tests cover selected defaults, per-window preview overrides, label centering and copied geometry, glyph clipping, palette fades, and unchanged original palette states.
+- Release build, CTest, and the 16-point SharpText-off regression pass.
 
 ## Out of scope
 
-- Changing the default font size, adding a public setting, or merging a permanent size choice before the owner selects a variant.
-- Changing the Bold 700 face, colors, brightness, UI layout, game font, or fonts other than 101.
+- Adding a public size or weight control, changing game-font resources, or modifying layout outside the two SPECIAL description labels.
+- Changing the owner-selected palette roles or tinting non-green states.
 
 ## Log
 
@@ -59,3 +57,13 @@ Check: the two new fixture logs confirm their requested scales; the renderer tes
 Done: added a character-fixture-only face override for comparing SemiBold 600 with the existing Bold 700 at E=1.29 in commit `c0bf3b08`. Release build and CTest pass 14/14. Both genuine screen captures use the same EXE SHA, source, and 1920x1440/x3 setup. Curated the original PNGs, snapshot JSON, and stdout under `runs/057-interface-font-size-preview/accepted/preview-1x29-bold/` and `preview-1x29-semibold/`.
 Next: owner chooses a size and face. Keep production font 101 at 1.00 Bold 700 until that choice.
 Check: `runs/057-interface-font-size-preview/accepted/preview-report.md`; both JSON files and fixture logs confirm scale 1.29, the requested weight, and matching source and EXE SHA.
+
+### 2026-10-24 gpt
+Done: owner selected production scale 1.29 and SemiBold 600. Added a semantic box for only the two SPECIAL stat-description draws; confirmed the active creation and edit background FRMs share a 17-row box interior.
+Next: finish default, centering, copy, and OFF-pixel tests; rebuild and capture the selected global appearance across the approved UI fixtures.
+Check: active resources resolve `edtrcrte.frm` and `edtredt.frm` from `mods/rpu_russian.dat`; their box borders are rows 40 and 58, with content rows 41 through 57.
+
+### 2026-10-24 gpt
+Done: set SharpText font-101 fallback to 1.29 SemiBold 600; added copied box geometry and ink-union centering for the two SPECIAL description calls. Added 9/10px x2/x3 centering tests and capture/copy metadata checks.
+Next: full clean Release build, CTest, then source-bound UI and original-pixel comparisons.
+Check: stock `master.dat` and active mod both show matching 17-row label interiors in `edtrcrte.frm` and `edtredt.frm`; `git diff --check` passes.

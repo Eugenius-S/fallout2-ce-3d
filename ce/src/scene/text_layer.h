@@ -52,6 +52,10 @@ struct TextRunInfo {
     int width = 0;
     int cellWidth = 0;
     int lineHeight = 0;
+    // Optional fixed content box for per-run vertical centering. The box moves
+    // with the run when the record is copied to another buffer.
+    int verticalAlignmentBoxY = 0;
+    int verticalAlignmentBoxHeight = 0;
     bool sharpEligible = false;
     std::vector<int> characterX;
     std::vector<int> characterCellX;

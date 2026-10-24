@@ -60,12 +60,17 @@ TextRunInfo run(const char* text, int x, int y)
 bool capture(TextLayer& layer, TextBufferId id, bool orphan,
     const std::vector<unsigned char>& before, const std::vector<unsigned char>& after,
     int width, int height, TextRect bounds, const char* text = "AB",
-    int ownerWindow = -1, TextBufferId ownerGeneration = 0)
+    int ownerWindow = -1, TextBufferId ownerGeneration = 0,
+    int verticalBoxY = 0, int verticalBoxHeight = 0)
 {
     const auto beforeView = view(before, width, height, width);
     const auto afterView = view(after, width, height, width);
     TextRunInfo capturedRun = run(text, bounds.x, bounds.y);
     capturedRun.width = bounds.width;
+    if (verticalBoxHeight > 0) {
+        capturedRun.verticalAlignmentBoxY = verticalBoxY;
+        capturedRun.verticalAlignmentBoxHeight = verticalBoxHeight;
+    }
     return layer.capture(id, orphan, capturedRun, bounds, beforeView, afterView,
         ownerWindow, ownerGeneration);
 }
@@ -75,14 +80,17 @@ bool capture(TextLayer& layer, TextBufferId id, bool orphan,
 int main()
 {
     int failures = 0;
+    failures += !check(fallout::scene::font101PreviewScaleForWindow(42) == 1.29
+            && fallout::scene::font101PreviewCoverageHeight(9, 42) == 12
+            && fallout::scene::font101PreviewUsesBold(42) == false,
+        "selected production font-101 defaults are size 1.29 and SemiBold 600");
     failures += !check(fallout::scene::setFont101PreviewScale(1.0, -1)
             && fallout::scene::font101PreviewCoverageHeight(9, -1) == 9
-            && fallout::scene::font101PreviewCoverageHeight(1, -1) == 1
-            && fallout::scene::font101PreviewUsesBold(42),
-        "default preview preserves short and production line heights");
+            && fallout::scene::font101PreviewCoverageHeight(1, -1) == 1,
+        "explicit 1.00 preview preserves original line coverage");
     failures += !check(fallout::scene::setFont101PreviewScale(1.08, 42)
             && fallout::scene::font101PreviewScaleForWindow(42) == 1.08
-            && fallout::scene::font101PreviewScaleForWindow(43) == 1.0
+            && fallout::scene::font101PreviewScaleForWindow(43) == 1.29
             && fallout::scene::font101PreviewCoverageHeight(9, 42) == 10,
         "1.08 preview is owner scoped and extends 9px coverage by one row");
     failures += !check(fallout::scene::setFont101PreviewScale(1.15, 42)
@@ -97,12 +105,16 @@ int main()
     failures += !check(!fallout::scene::setFont101PreviewScale(1.2, 42)
             && fallout::scene::font101PreviewScaleForWindow(42) == 1.29,
         "unsupported preview scale leaves the active value unchanged");
-    fallout::scene::setFont101PreviewScale(1.0, -1);
+    fallout::scene::setFont101PreviewScale(1.29, -1);
     failures += !check(fallout::scene::setFont101PreviewBold(false, 42)
             && !fallout::scene::font101PreviewUsesBold(42)
-            && fallout::scene::font101PreviewUsesBold(43),
+            && !fallout::scene::font101PreviewUsesBold(43),
         "semi-bold preview face is limited to its owner window");
-    fallout::scene::setFont101PreviewBold(true, -1);
+    failures += !check(fallout::scene::setFont101PreviewBold(true, 42)
+            && fallout::scene::font101PreviewUsesBold(42)
+            && !fallout::scene::font101PreviewUsesBold(43),
+        "Bold 700 preview override does not change the selected default elsewhere");
+    fallout::scene::setFont101PreviewBold(false, -1);
 
     // An opaque button-image copy restores the source background, not whatever
     // happened to be under the destination before the blit.
@@ -182,7 +194,7 @@ int main()
         after[6] = 9;
         after[7] = 10;
         after[8] = 11;
-        capture(layer, 5, false, before, after, 5, 3, { 0, 0, 5, 3 });
+        capture(layer, 5, false, before, after, 5, 3, { 0, 0, 5, 3 }, "AB", -1, 0, -2, 4);
         std::vector<unsigned char> destBefore(6, 4);
         const auto destAfter = blit(after, 5, 3, destBefore, 3, 2,
             { 1, 1, 3, 1 }, -1, 0, false, 0);
@@ -193,6 +205,10 @@ int main()
             "clipped copy keeps the visible pixel fragment");
         failures += !check(layer.records().back().bounds.x == 0 && layer.records().back().bounds.width == 2,
             "clipped fragment has clipped bounds");
+        failures += !check(layer.records().back().run.y == -1
+                && layer.records().back().run.verticalAlignmentBoxY == -3
+                && layer.records().back().run.verticalAlignmentBoxHeight == 4,
+            "copy translation moves the centered content box with its run");
     }
 
     // Bounds overlap because both runs include blank advance/line-height area,

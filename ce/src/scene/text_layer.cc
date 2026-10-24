@@ -13,9 +13,11 @@ namespace fallout {
 namespace scene {
 namespace {
 
-double gFont101PreviewScale = 1.0;
+constexpr double kFont101SelectedScale = 1.29;
+constexpr bool kFont101SelectedBold = false;
+double gFont101PreviewScale = kFont101SelectedScale;
 int gFont101PreviewOwnerWindow = -1;
-bool gFont101PreviewBold = true;
+bool gFont101PreviewBold = kFont101SelectedBold;
 int gFont101PreviewWeightOwnerWindow = -1;
 
 bool validPixels(TextPixels pixels)
@@ -119,7 +121,7 @@ bool setFont101PreviewScale(double scale, int ownerWindow)
 
 double font101PreviewScaleForWindow(int ownerWindow)
 {
-    if (gFont101PreviewOwnerWindow >= 0 && ownerWindow != gFont101PreviewOwnerWindow) return 1.0;
+    if (gFont101PreviewOwnerWindow >= 0 && ownerWindow != gFont101PreviewOwnerWindow) return kFont101SelectedScale;
     return gFont101PreviewScale;
 }
 
@@ -140,7 +142,7 @@ bool setFont101PreviewBold(bool bold, int ownerWindow)
 
 bool font101PreviewUsesBold(int ownerWindow)
 {
-    if (gFont101PreviewWeightOwnerWindow >= 0 && ownerWindow != gFont101PreviewWeightOwnerWindow) return true;
+    if (gFont101PreviewWeightOwnerWindow >= 0 && ownerWindow != gFont101PreviewWeightOwnerWindow) return kFont101SelectedBold;
     return gFont101PreviewBold;
 }
 
@@ -277,6 +279,10 @@ void TextLayer::copy(TextBufferId source, TextBufferId destination, bool destina
         clone.ownerOffsetY = destinationOwnerWindow >= 0 ? 0 : sourceRecord.ownerOffsetY + static_cast<int>(shiftY);
         clone.run.x = static_cast<int>(static_cast<std::int64_t>(clone.run.x) + shiftX);
         clone.run.y = static_cast<int>(static_cast<std::int64_t>(clone.run.y) + shiftY);
+        if (clone.run.verticalAlignmentBoxHeight > 0) {
+            clone.run.verticalAlignmentBoxY = static_cast<int>(
+                static_cast<std::int64_t>(clone.run.verticalAlignmentBoxY) + shiftY);
+        }
         for (int& characterX : clone.run.characterX) characterX = static_cast<int>(static_cast<std::int64_t>(characterX) + shiftX);
         for (int& characterCellX : clone.run.characterCellX) characterCellX = static_cast<int>(static_cast<std::int64_t>(characterCellX) + shiftX);
 

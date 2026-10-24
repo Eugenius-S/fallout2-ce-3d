@@ -502,8 +502,16 @@ void textCaptureDrawText(unsigned char* buffer, const char* string, int length, 
     const int previewLineHeight = fontGetCurrent() == 101
         ? scene::font101PreviewCoverageHeight(lineHeight, range->ownerWindow)
         : lineHeight;
-    scene::TextRect bounds { x, y, std::max(1, width + (shadowed ? 1 : 0)),
-        std::max(1, std::max(lineHeight, previewLineHeight) + (shadowed ? 1 : 0)) };
+    const bool centeredStatDescription = fontGetCurrent() == 101
+        && activeTextCaptureTag() == TextCaptureTag::SpecialStatDescription;
+    const int verticalBoxY = centeredStatDescription ? y - 4 : y;
+    const int verticalBoxHeight = centeredStatDescription ? 17 : 0;
+    const int boundsY = centeredStatDescription ? verticalBoxY : y;
+    const int boundsHeight = centeredStatDescription
+        ? verticalBoxHeight + (shadowed ? 1 : 0)
+        : std::max(1, std::max(lineHeight, previewLineHeight) + (shadowed ? 1 : 0));
+    scene::TextRect bounds { x, boundsY, std::max(1, width + (shadowed ? 1 : 0)),
+        std::max(1, boundsHeight) };
     const scene::TextRect clipped = clippedRect(bounds, *range);
     PixelSnapshot before = snapshot(*range, clipped);
 
@@ -529,6 +537,8 @@ void textCaptureDrawText(unsigned char* buffer, const char* string, int length, 
     run.width = width;
     run.cellWidth = cellWidth;
     run.lineHeight = lineHeight;
+    run.verticalAlignmentBoxY = centeredStatDescription ? verticalBoxY : 0;
+    run.verticalAlignmentBoxHeight = verticalBoxHeight;
     run.characterX.reserve(characterOffsets.size());
     for (int offset : characterOffsets) run.characterX.push_back(x + offset);
     run.characterCellX.reserve(cellOffsets.size());

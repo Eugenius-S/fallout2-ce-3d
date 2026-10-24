@@ -679,14 +679,17 @@ void testCursorOcclusionPreservesOwnedText()
 void testFont101SizePreviewExtendsCaptureOnly()
 {
     using namespace fallout;
-    std::vector<unsigned char> pixels(20 * 20, 0);
-    textCaptureRegisterExternalBuffer(pixels.data(), pixels.size(), 20, 20, 20, false);
+    check(scene::font101PreviewScaleForWindow(12) == 1.29
+            && !scene::font101PreviewUsesBold(12),
+        "production font-101 defaults select 1.29 SemiBold");
+    std::vector<unsigned char> pixels(20 * 40, 0);
+    textCaptureRegisterExternalBuffer(pixels.data(), pixels.size(), 20, 40, 20, false);
     textCaptureMarkWindowBuffer(pixels.data(), 12);
     scene::TextBufferId generation = textCaptureBufferId(pixels.data());
     gTestWindow = {};
     gTestWindow.id = 12;
     gTestWindow.width = 20;
-    gTestWindow.height = 20;
+    gTestWindow.height = 40;
     gTestWindow.pitch = 20;
     gTestWindow.pixels = pixels.data();
     gTestWindow.generation = generation;
@@ -702,7 +705,7 @@ void testFont101SizePreviewExtendsCaptureOnly()
 
     textCaptureUnregisterExternalBuffer(pixels.data());
     pixels.assign(pixels.size(), 0);
-    textCaptureRegisterExternalBuffer(pixels.data(), pixels.size(), 20, 20, 20, false);
+    textCaptureRegisterExternalBuffer(pixels.data(), pixels.size(), 20, 40, 20, false);
     textCaptureMarkWindowBuffer(pixels.data(), 12);
     generation = textCaptureBufferId(pixels.data());
     gTestWindow.generation = generation;
@@ -712,11 +715,33 @@ void testFont101SizePreviewExtendsCaptureOnly()
     scene::TextVisibilityMask mask;
     check(records.size() == 1 && records.front().bounds.height == 11
             && records.front().pixels.size() == 1
-            && scene::textCaptureVisibilityMask(records.front(), 20, 20, &mask)
+            && scene::textCaptureVisibilityMask(records.front(), 20, 40, &mask)
             && mask.bounds.height == 11,
         "font-101 preview extends only captured coverage, not legacy pixels or visibility logic");
 
-    scene::setFont101PreviewScale(1.0, -1);
+    scene::setFont101PreviewScale(1.29, 12);
+    {
+        ScopedTextCaptureTag captureTag(TextCaptureTag::SpecialStatDescription);
+        fontDrawText(pixels.data() + 14 * 20 + 2, "C", 1, 20, static_cast<ColorWithFlags>(7));
+    }
+    const auto aligned = scene::textCaptureRecords(generation);
+    const auto alignedRun = std::find_if(aligned.begin(), aligned.end(), [](const scene::TextRecord& record) {
+        return record.run.text == "C";
+    });
+    check(alignedRun != aligned.end() && alignedRun->run.verticalAlignmentBoxY == 10
+            && alignedRun->run.verticalAlignmentBoxHeight == 17
+            && alignedRun->bounds.y == 10 && alignedRun->bounds.height == 17,
+        "SPECIAL label captures its measured 17-row box above and below the original draw line");
+    fontDrawText(pixels.data() + 28 * 20 + 2, "D", 1, 20, static_cast<ColorWithFlags>(7));
+    const auto afterScope = scene::textCaptureRecords(generation);
+    const auto plainRun = std::find_if(afterScope.begin(), afterScope.end(), [](const scene::TextRecord& record) {
+        return record.run.text == "D";
+    });
+    check(plainRun != afterScope.end() && plainRun->run.verticalAlignmentBoxHeight == 0
+            && plainRun->bounds.y == 28,
+        "SPECIAL box capture tag does not leak to the next run");
+
+    scene::setFont101PreviewScale(1.29, -1);
     fontGetLineHeight = fakeLineHeight;
     textCaptureUnregisterExternalBuffer(pixels.data());
     gTestWindow = {};

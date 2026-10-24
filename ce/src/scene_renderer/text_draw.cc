@@ -296,7 +296,7 @@ bool renderSharpText(const std::vector<scene::TextRecord>& records,
         const double fontScaleX = logicalScale * sx;
         const double fontScaleY = logicalScale * sy;
         const double baselinePosition = (run.y + verticalBounds.top * logicalScale) * sy;
-        const int baseline = static_cast<int>(sizePreview > 1.0
+        int baseline = static_cast<int>(sizePreview > 1.0
                 ? std::ceil(baselinePosition)
                 : std::lround(baselinePosition));
 
@@ -349,6 +349,24 @@ bool renderSharpText(const std::vector<scene::TextRecord>& records,
             if (glyph == nullptr) return false;
             positioned.push_back({ glyph, anchorX });
             if (!monospaced) cursorX += logicalAdvance * proportionalCondense;
+        }
+        if (run.verticalAlignmentBoxHeight > 0) {
+            int inkTop = std::numeric_limits<int>::max();
+            int inkBottom = std::numeric_limits<int>::min();
+            for (const PositionedGlyph& glyph : positioned) {
+                for (int row = 0; row < glyph.bitmap->height; ++row) {
+                    const auto begin = glyph.bitmap->pixels.begin()
+                        + static_cast<std::size_t>(row) * glyph.bitmap->width;
+                    if (std::none_of(begin, begin + glyph.bitmap->width, [](unsigned char alpha) { return alpha != 0; })) continue;
+                    inkTop = std::min(inkTop, glyph.bitmap->yoff + row);
+                    inkBottom = std::max(inkBottom, glyph.bitmap->yoff + row + 1);
+                }
+            }
+            if (inkTop < inkBottom) {
+                const double boxCenter = (run.verticalAlignmentBoxY
+                    + run.verticalAlignmentBoxHeight * 0.5) * sy;
+                baseline = static_cast<int>(std::lround(boxCenter - (inkTop + inkBottom) * 0.5));
+            }
         }
         const bool shadowed = (run.colorAndFlags & DRAW_TEXT_FLAG_SHADOWED) != 0;
         if (shadowed) {

@@ -314,7 +314,71 @@ int main()
         std::fprintf(stderr, "Font-101 face preview failed to select a distinct, unclipped Bold 700 face\n");
         return 1;
     }
-    fallout::scene::setFont101PreviewScale(1.0, -1);
+    fallout::scene::setFont101PreviewScale(1.29, -1);
+    fallout::scene::setFont101PreviewBold(false, -1);
+    if (fallout::scene::font101PreviewScaleForWindow(-1) != 1.29
+        || fallout::scene::font101PreviewUsesBold(-1)) {
+        std::fprintf(stderr, "Production font-101 default did not select E=1.29 SemiBold 600\n");
+        return 1;
+    }
+    const std::string statDescriptions[] = {
+        std::string("\xCE\xF2\xEB\xE8\xF7\xED\xEE", 7), // CP1251: Otlichno.
+        std::string("\xD5\xEE\xF0\xEE\xF8\xEE", 6), // CP1251: Khorosho.
+    };
+    for (const std::string& description : statDescriptions) {
+        for (int lineHeight : { 9, 10 }) {
+            for (int outputScale : { 2, 3 }) {
+                fallout::scene::TextRecord statLabel = fitRecord;
+                statLabel.run.text = description;
+                statLabel.run.font = 101;
+                statLabel.run.x = 12;
+                statLabel.run.y = 10;
+                statLabel.run.width = 65;
+                statLabel.run.lineHeight = lineHeight;
+                statLabel.run.verticalAlignmentBoxY = 6;
+                statLabel.run.verticalAlignmentBoxHeight = 17;
+                std::vector<fallout::scene::TextVisibilityMask> fullVisibility = fullLineVisibility;
+                fallout::scene::TextVisibilityMask boxVisibility = fullVisibility.front();
+                std::fill(boxVisibility.pixels.begin(), boxVisibility.pixels.end(), 0);
+                for (int y = statLabel.run.verticalAlignmentBoxY;
+                     y < statLabel.run.verticalAlignmentBoxY + statLabel.run.verticalAlignmentBoxHeight; ++y) {
+                    std::fill(boxVisibility.pixels.begin() + y * 256,
+                        boxVisibility.pixels.begin() + (y + 1) * 256, 1);
+                }
+                std::vector<fallout::scene::TextVisibilityMask> clippedVisibility = { boxVisibility };
+                SharpTextSurface fullLabel;
+                SharpTextSurface clippedLabel;
+                const bool rendered = renderSharpText({ statLabel }, 256, 32, 256 * outputScale, 32 * outputScale,
+                        palette, 256, fullVisibility, &fullLabel)
+                    && renderSharpText({ statLabel }, 256, 32, 256 * outputScale, 32 * outputScale,
+                        palette, 256, clippedVisibility, &clippedLabel);
+                if (!rendered || fullLabel.pixels != clippedLabel.pixels) {
+                    std::fprintf(stderr, "SPECIAL label escaped or clipped its box at line=%d x%d\n", lineHeight, outputScale);
+                    return 1;
+                }
+                int inkTop = fullLabel.height;
+                int inkBottom = -1;
+                for (int y = 0; y < fullLabel.height; ++y) {
+                    for (int x = 0; x < fullLabel.width; ++x) {
+                        if (fullLabel.pixels[(static_cast<std::size_t>(y) * fullLabel.width + x) * 4 + 3] == 0) continue;
+                        inkTop = std::min(inkTop, y);
+                        inkBottom = std::max(inkBottom, y);
+                    }
+                }
+                const double inkCenter = (inkTop + inkBottom + 1) * 0.5;
+                const double boxCenter = (statLabel.run.verticalAlignmentBoxY
+                    + statLabel.run.verticalAlignmentBoxHeight * 0.5) * outputScale;
+                if (inkBottom < inkTop || std::abs(inkCenter - boxCenter) > 0.75
+                    || inkTop < statLabel.run.verticalAlignmentBoxY * outputScale
+                    || inkBottom >= (statLabel.run.verticalAlignmentBoxY
+                        + statLabel.run.verticalAlignmentBoxHeight) * outputScale) {
+                    std::fprintf(stderr, "SPECIAL label ink is not centered in its box at line=%d x%d: %d..%d center=%.2f expected=%.2f\n",
+                        lineHeight, outputScale, inkTop, inkBottom, inkCenter, boxCenter);
+                    return 1;
+                }
+            }
+        }
+    }
     fitRecord.run.text = "Hg";
     fitRecord.run.lineHeight = 18;
 
