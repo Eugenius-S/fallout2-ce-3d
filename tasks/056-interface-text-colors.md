@@ -2,13 +2,13 @@
 id: 056
 title: Sharp interface text colors
 milestone: M1
-status: doing
+status: done
 owner: gpt
 suggested: gpt
 claude-only: no
 user-check: yes
 depends-on: [055]
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -56,21 +56,16 @@ relative dimming.
 - Font face, size, metrics, placement, brightness settings, game palettes,
   original pixels, or non-green sharp text colors.
 - The black background around the dialogue screen; it remains an inbox item.
-
 ## Log
 
-Done: recolored semantic font-101 green while preserving source-palette fades, non-green colors, and the lower HUD log exception. Added source-bound UI evidence and updated the small-font brightness request as completed.
-Next: parent handles PR review and merge.
-Check: official clean Release build 721/721, CTest 14/14, scene exporter 44/44, regression unit 12/12, and official 16-spot sharp-off regression all passed; see `runs/056-interface-text-colors/final-validation.md`.
+Done: introduced semantic font-101 green rendering with the lower HUD log exception and preserved non-green text. Source-bound screenshots and initial full-suite evidence are in `runs/056-interface-text-colors/accepted-20261024/`.
+Next: correct palette transition handling for the white endpoint review.
+Check: source `0e203738`; full clean Release build 721/721, CTest 14/14, exporter tests 44/44, regression unit tests 12/12, and sharp-off regression 16/16 passed.
 
-Done: corrected the green overlay's palette-transition mapping so white fades
-and colored endpoints retain the current live palette channels.
-Next: run focused font renderer tests, rebuild and bind the updated source, then
-capture the verified runtime states and rerun the 16-spot sharp-off regression.
-Check: opaque font-rendering tests cover normal, dim, black-fade, white-fade,
-mid-white, red, and blue values for both green roles; build and runtime checks
-are pending.
+Done: fixed green overlay mapping for white and colored palette endpoints, added both-role fade coverage, and captured the final eight-screen matrix on `b99d12c3`.
+Next: parent handles PR83 review and merge.
+Check: official incremental build 15/15, embedded font renderer tests pass, CTest 14/14, and final 16-spot sharp-off regression has zero changed pixels. See `runs/056-interface-text-colors/final-validation.md`.
 
 ## Validation
 
-See [final-validation.md](../runs/056-interface-text-colors/final-validation.md) for the eight source-bound UI captures and pixel checks.
+See [final-validation.md](../runs/056-interface-text-colors/final-validation.md) for current source-bound screenshots, pixel checks, tests, and regression results.
