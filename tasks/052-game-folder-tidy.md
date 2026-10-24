@@ -2,7 +2,7 @@
 id: 052
 title: Shots and logs go to subfolders, not next to the exe
 milestone: M1
-status: doing
+status: done
 owner: glm
 suggested: glm
 claude-only: no
