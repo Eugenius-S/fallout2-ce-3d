@@ -839,6 +839,11 @@ bool gameDialogWindowActive()
     return _gdialog_state == GAME_DIALOG_ACTIVE;
 }
 
+int gameDialogGetReplyTextOffset()
+{
+    return dialogReplyTextOffset;
+}
+
 // gdialogEnter
 // 0x444D3C
 void gameDialogEnter(Object* speaker, int mode)

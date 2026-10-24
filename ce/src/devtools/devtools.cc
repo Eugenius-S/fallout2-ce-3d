@@ -134,6 +134,9 @@ char gSnapshotRun[33] = {};
 bool gDialogFixtureRequested = false;
 bool gDialogFixtureStarted = false;
 bool gDialogFixtureFinished = false;
+bool gDialogPageInspectRequested = false;
+int gDialogPageInspectStage = 0;
+std::vector<std::string> gDialogPageInspectInitialText;
 char gDialogFixtureScript[32] = {};
 int gDialogFixtureSpeakerId = -1;
 int gDialogFixtureSpeakerTile = -1;
@@ -721,6 +724,10 @@ bool parseOption(const char* arg)
     }
     if (strcmp(arg, "--dev-dialog-fixture") == 0) {
         gDialogFixtureRequested = true;
+        return true;
+    }
+    if (strcmp(arg, "--dev-dialog-page-inspect") == 0) {
+        gDialogPageInspectRequested = true;
         return true;
     }
     if (strcmp(arg, "--dev-preferences-snapshot") == 0) {
@@ -1864,6 +1871,8 @@ void vanillaPresented()
         && gameDialogWindowActive()) {
         int ownerIds[2] = { -1, -1 };
         int ownerCount = 0;
+        int replyOwnerId = -1;
+        int replyOwnerY = 2147483647;
         int runCount = 0;
         int windowCount = 0;
         TextWindowSnapshot firstWindow;
@@ -1882,9 +1891,58 @@ void vanillaPresented()
                 hasEligibleRun = true;
                 runCount++;
             }
-            if (hasEligibleRun && ownerCount < 2) ownerIds[ownerCount++] = window.id;
+            if (hasEligibleRun) {
+                if (window.y < replyOwnerY) {
+                    replyOwnerY = window.y;
+                    replyOwnerId = window.id;
+                }
+                if (ownerCount < 2) ownerIds[ownerCount++] = window.id;
+            }
         }
         if (ownerCount >= 2) {
+            if (gDialogPageInspectRequested) {
+                std::vector<std::string> currentText;
+                for (int index = 0; index < windowCount; index++) {
+                    TextWindowSnapshot window;
+                    if (!textCaptureGetWindowSnapshot(index, &window, nullptr) || window.hidden || window.pixels == nullptr) {
+                        continue;
+                    }
+                    const scene::TextBufferId buffer = textCaptureBufferId(window.pixels);
+                    if (buffer == 0) continue;
+                    const std::vector<scene::TextRecord> records = scene::textCaptureSharpRecords(buffer);
+                    for (const scene::TextRecord& record : records) {
+                        if (window.id == replyOwnerId && record.ownerWindow == window.id) {
+                            currentText.push_back(record.run.text);
+                        }
+                    }
+                }
+                if (gDialogPageInspectStage == 0) {
+                    gDialogPageInspectInitialText = currentText;
+                    gDialogPageInspectStage = 1;
+                    printf("DIALOG_PAGE_INSPECT INPUT key=2 map=%s script=%s speaker=%d speaker_tile=%d hero=%d\n",
+                        gMapHeader.name, gDialogFixtureScript, gDialogFixtureSpeakerId,
+                        gDialogFixtureSpeakerTile, gDude != nullptr ? gDude->tile : -1);
+                    fflush(stdout);
+                    enqueueInputEvent(KEY_2);
+                    return;
+                }
+                if (currentText != gDialogPageInspectInitialText) {
+                    const int offset = gameDialogGetReplyTextOffset();
+                    std::size_t textBytes = 0;
+                    for (const std::string& text : currentText) textBytes += text.size();
+                    printf("DIALOG_PAGE_INSPECT PASS map=%s script=%s speaker=%d speaker_tile=%d hero=%d reply_window=%d reply_y=%d reply_offset=%d runs=%zu text_bytes=%zu\n",
+                        gMapHeader.name, gDialogFixtureScript, gDialogFixtureSpeakerId,
+                        gDialogFixtureSpeakerTile, gDude != nullptr ? gDude->tile : -1, replyOwnerId, replyOwnerY,
+                        offset, currentText.size(), textBytes);
+                    for (std::size_t index = 0; index < currentText.size(); index++) {
+                        printf("DIALOG_PAGE_INSPECT TEXT index=%zu bytes=%zu text=%s\n",
+                            index, currentText[index].size(), currentText[index].c_str());
+                    }
+                    fflush(stdout);
+                    gDialogFixtureFinished = true;
+                    return;
+                }
+            }
             const bool captured = takeSnapshot();
             if (captured) {
                 printf("DIALOG_FIXTURE PASS map=%s elevation=%d script=%s speaker=%d speaker_tile=%d hero=%d dialog_owners=%d,%d eligible_runs=%d\n",

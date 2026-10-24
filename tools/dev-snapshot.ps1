@@ -28,6 +28,7 @@ param(
     [int]$TimeoutSeconds = 90,
     [switch]$Probe,
     [switch]$DialogFixture,
+    [switch]$DialogPageInspect,
     [string]$Tour,
     [switch]$Classic,
     [switch]$Preferences,
@@ -117,6 +118,11 @@ if ($DialogFixture) {
         throw '-DialogFixture requires -CaptureConsole and -OutputDirectory for fixture diagnostics.'
     }
 }
+if ($DialogPageInspect) {
+    if (-not $DialogFixture) { throw '-DialogPageInspect requires -DialogFixture.' }
+    if ($SharpText) { throw '-DialogPageInspect must inspect the original pixel text with sharp text off.' }
+    if ($Language -ne 'english') { throw '-DialogPageInspect requires -Language english so the recorded reply text is readable.' }
+}
 if ($ReuseTestConfig) {
     if (-not (Test-Path -LiteralPath $configPath -PathType Leaf)) { throw "No isolated config to reuse: $configPath" }
 } else {
@@ -155,6 +161,7 @@ $runId = [guid]::NewGuid().ToString('N')
 $arguments = @('--dev-tools')
 if ($SharpText) { $arguments += '--dev-sharp-text=1' } else { $arguments += '--dev-sharp-text=0' }
 if ($DialogFixture) { $arguments += '--dev-dialog-fixture' }
+if ($DialogPageInspect) { $arguments += '--dev-dialog-page-inspect' }
 if ($PreferencesProbe) {
     $arguments += @('--dev-new-game', "--dev-map=$Map", "--dev-elevation=$Elevation", "--dev-preferences-probe=$PreferencesProbe")
 } else {
@@ -207,7 +214,9 @@ if ($PreferencesProbe) {
     $shots = 1 + @("$Tour".Split(',') | Where-Object { $_.Trim() }).Count
     $arguments += "--dev-map-tour=$Tour"
 } else {
-    if ($DialogFixture) { $shots = 1 } else { $arguments += '--dev-snapshot-once' }
+    if ($DialogPageInspect) { $shots = 0 }
+    elseif ($DialogFixture) { $shots = 1 }
+    else { $arguments += '--dev-snapshot-once' }
 }
 
 $started = Get-Date
@@ -259,7 +268,13 @@ try {
             })
             $log = Join-Path $GameDir 'devprobe.log'
             $probed = -not $Probe -or ((Test-Path $log) -and (Select-String -Path $log -Pattern 'probe done' -Quiet))
-            if ($DialogFixture) {
+            if ($DialogPageInspect) {
+                $fixtureLog = Join-Path $OutputDirectory 'process.stdout.log'
+                if ((Test-Path -LiteralPath $fixtureLog) -and
+                    (Select-String -LiteralPath $fixtureLog -Pattern '^DIALOG_PAGE_INSPECT PASS ' -Quiet)) { break }
+                if ((Test-Path -LiteralPath $fixtureLog) -and
+                    (Select-String -LiteralPath $fixtureLog -Pattern '^DIALOG_FIXTURE FAIL ' -Quiet)) { $dialogFixtureFailed = $true; break }
+            } elseif ($DialogFixture) {
                 $fixtureLog = Join-Path $OutputDirectory 'process.stdout.log'
                 if ((Test-Path -LiteralPath $fixtureLog) -and
                     (Select-String -LiteralPath $fixtureLog -Pattern '^DIALOG_FIXTURE FAIL ' -Quiet)) {
@@ -356,7 +371,7 @@ if ($PreferencesProbe) {
     Write-Output "PREFERENCES_PROBE RESULT $resultPath"
     return
 }
-if ($DialogFixture) {
+if ($DialogFixture -and -not $DialogPageInspect) {
     $fixtureLog = Get-Content -Raw -LiteralPath (Join-Path $OutputDirectory 'process.stdout.log')
     if ($dialogFixtureFailed) {
         throw "Dialog fixture reported failure.`n$fixtureLog"
@@ -365,6 +380,15 @@ if ($DialogFixture) {
         throw "Dialog fixture timed out within $TimeoutSeconds s.`n$fixtureLog"
     }
     if (-not $probeHarnessStoppedProcess) { throw 'Dialog fixture was not stopped by its isolated helper harness.' }
+}
+if ($DialogPageInspect) {
+    $inspectLog = Get-Content -Raw -LiteralPath (Join-Path $OutputDirectory 'process.stdout.log')
+    if ($inspectLog -notmatch '(?m)^DIALOG_PAGE_INSPECT PASS .*reply_offset=\d+') {
+        throw "Dialog page inspection did not report a completed real-key selection within $TimeoutSeconds s.`n$inspectLog"
+    }
+    if (-not $probeHarnessStoppedProcess) { throw 'Dialog page inspection was not stopped by its isolated helper harness.' }
+    Write-Output $inspectLog
+    return
 }
 if ($snapshots.Count -lt $shots) { throw "No snapshot within $TimeoutSeconds s." }
 foreach ($snapshot in $snapshots) {
