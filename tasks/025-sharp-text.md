@@ -2,13 +2,13 @@
 id: 025
 title: Sharp green dialogue text
 milestone: M1
-status: doing
+status: done
 owner: gpt
 suggested: gpt
 claude-only: no
 user-check: yes
 depends-on: [002, 017, 024, 026]
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -59,12 +59,12 @@ text font stays pixel-rendered.
    regions. Its before and after values are read from the destination around
    the blit. Orphan memory is read only inside such a blit, within a known
    allocation range the game itself reads; unknown ranges are not sampled.
-4. **Validity.** At each present a window or screen record lives while all its
-   changed ink pixels still hold their after-values in the owning buffer;
-   otherwise the complete run is dropped. A new record retires an older run
-   only where changed ink pixels actually overlap in the same buffer; overlap
-   of their bounding boxes alone is not enough. Records of destroyed or
-   repainted owner generations are dropped; the count is capped (oldest first).
+4. **Validity.** At each present, tracked owner generations validate the
+   complete captured run through changed ink pixels and owner witnesses;
+   missing or stale witnesses drop coverage-only records. A new record retires
+   an older run only where changed ink pixels actually overlap in the same
+   buffer; overlap of bounding boxes alone is not enough. The count is capped
+   (oldest first).
 5. **Erase.** After `renderPresent` converts the 8-bit frame to RGBA, every
    pixel of a live record whose screen value still equals its after-value is
    replaced with the current palette color of its before-value. The game's
@@ -256,3 +256,8 @@ Check: game source `5a8c0183` was built with the official Release configuration;
 Done: kept coverage-only clipped dialog fragments tied to full authoritative owner witnesses. Tests now require owner snapshots for restoration, accept the two-cell compact fragment only with matching owner evidence, reject it without that evidence, and suppress stale-owner restoration and visibility.
 Next: parent review of the corrected owner-witness contract. After acceptance, run the current-source English cursor fixture and 16-case off regression; final task docs remain pending.
 Check: commit `361694e0` completed an official full clean Release build (719/719); after the expectation updates, the official Release configure/build and full CTest passed 14/14. The full rebuild exposed five old test assumptions, now updated to enforce the strict owner snapshot contract. Runtime evidence is not yet bound to the corrected tests.
+
+### 2026-10-24 gpt (final owner validation)
+Done: completed the sharp green NPC conversation text scope. Owner-witness validation now preserves clipped coverage-only fragments only with current authoritative owner snapshots; stale owner generations do not restore or draw captured text. Menus and all other UI remain pixel-rendered.
+Next: parent handles PR #77 CI, readiness and merge.
+Check: production source `361694e0` passed the official full clean Release build (719/719) and full CTest passed 14/14 after test updates in `d8dcb168`. The source-bound English x2 cursor fixture has decoded RGB `(84,84,84)` at the opaque cursor pixel, alpha `126->0`, transparent-cell alpha `5->5`, and same-run ink `2601->2467`; evidence is `runs/025-sharp-text/cursor-runtime-20261024/361694e0-en-x2/`, EXE SHA-256 `db32ec45c9797ab8b1c654fe36cf4fe8f2bde2025e97327be915fd44d2f5452e`. The sharp-off regression passed 16/16 with zero changed pixels on the same source and hash; summary is `runs/025-sharp-text/final-validation-20261024-regression-summary.json`. English/Russian NPC captures cover x2/x3, menu pairs are pixel-identical, exporter tests passed 44/44 and regression unit tests passed 12/12. CPU tests cover clipped scrolling, owner-witness validity and palette fades. No live paging claim is made because the inspected reply had page offset 0.
