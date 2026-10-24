@@ -574,9 +574,9 @@ void testCursorOcclusionPreservesOwnedText()
         gTestWindow.generation = windowId + 1;
         restored = scene::textCaptureRestoration(screenId);
         scene::textCaptureVisibilityMask(records.front(), 4, 2, &mask);
-        check(restored.size() == 2
+        check(restored.empty()
                 && std::none_of(mask.pixels.begin(), mask.pixels.end(), [](unsigned char value) { return value != 0; }),
-            "stale owner generation cannot display captured text");
+            "stale owner generation cannot restore or display captured text");
 
         gTestWindow.generation = windowId;
         windowPixels[0] = 99; // Repaint the owner while the screen copy remains unchanged.

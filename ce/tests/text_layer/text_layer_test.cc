@@ -94,7 +94,7 @@ int main()
         layer.copy(1, 2, false, { 0, 0, 4, 3 }, 1, 0, false, 0,
             view(sourceAfter, 4, 3, 4),
             view(destBefore, 5, 4, 5), view(destAfter, 5, 4, 5), -1, 0, owners);
-        const auto restored = layer.restorationPixels(2, view(destAfter, 5, 4, 5));
+        const auto restored = layer.restorationPixels(2, view(destAfter, 5, 4, 5), owners);
         failures += !check(restored.size() == 2, "opaque copy keeps both glyph pixels");
         failures += !check(restored.size() == 2 && restored[0].paletteIndex == 10 && restored[1].paletteIndex == 10,
             "opaque copy carries source underlying pixels");
@@ -332,8 +332,22 @@ int main()
         TextPixels compactView { compact.data(), 2, 1, 2, 1, 0 };
         layer.copy(188, 189, false, { 0, 0, 4, 1 }, 0, 0, false, 0,
             compactView, view(destinationBefore, 4, 1, 4), view(destinationAfter, 4, 1, 4), -1, 0, owners);
-        failures += !check(layer.records().size() == 1,
-            "a compact source snapshot missing changed glyph pixels cannot clone an unvalidated record");
+        failures += !check(layer.records().size() == 2,
+            "authoritative owner witnesses allow a validated coverage-only compact fragment");
+        if (layer.records().size() == 2) {
+            const TextRecord& clone = layer.records().back();
+            failures += !check(clone.pixels.empty() && clone.bounds.x == 1 && clone.bounds.width == 2
+                    && !clone.ownerWitnesses.empty()
+                    && layer.restorationPixels(189, view(destinationAfter, 4, 1, 4), owners).empty(),
+                "compact coverage-only fragment survives through authoritative owner witnesses");
+        }
+
+        TextLayer missingOwnerLayer;
+        capture(missingOwnerLayer, 188, true, before, after, 4, 1, { 0, 0, 4, 1 }, "AB", 5, 16);
+        missingOwnerLayer.copy(188, 189, false, { 0, 0, 4, 1 }, 0, 0, false, 0,
+            compactView, view(destinationBefore, 4, 1, 4), view(destinationAfter, 4, 1, 4));
+        failures += !check(missingOwnerLayer.records().size() == 1,
+            "compact coverage-only fragment is rejected without authoritative owner witnesses");
     }
 
     // A clipped run may carry modern coverage without any legacy ink in the
