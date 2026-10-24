@@ -90,6 +90,8 @@ path; it requires two white `$0` totals. Message log uses the stock slash key
 and validates a newly added current in-game date record. Fixtures require the
 copied screen-buffer records to match the expected owner window generation,
 have visible coverage, and contain overlay pixels when sharp text is enabled.
+The Pip-Boy fixture enables the existing start option in memory for the
+isolated process only, then opens the screen through the stock P-key path.
 The helper checks the screenshot's actual resolution, scale, and sharp-pass
 metadata.
 Next: parent review the fixture code and helper checks before any runtime

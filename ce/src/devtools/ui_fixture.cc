@@ -9,6 +9,8 @@
 
 #include "../character_editor.h"
 #include "../color.h"
+#include "../config.h"
+#include "../content_config.h"
 #include "../display_monitor.h"
 #include "../game.h"
 #include "../game_dialog.h"
@@ -363,6 +365,17 @@ bool startUiFixtureWhenReady(bool startupReady, bool blockingState)
     case UiFixtureKind::Character: key = KEY_LOWERCASE_C; break;
     case UiFixtureKind::Log: key = KEY_SLASH; break;
     default: break;
+    }
+    if (gKind == UiFixtureKind::Pipboy) {
+        // The isolated test map can start without a Pip-Boy. Use the engine's
+        // existing start option in memory so the normal P-key path is available.
+        if (!configSetInt(&gContentConfig, CONTENT_CONFIG_START_SECTION, "pipboy", 2)) {
+            fixtureFail("could-not-enable-process-only-start-pipboy");
+            return false;
+        }
+        pipboyReset();
+        printf("UI_FIXTURE SETUP screen=pipboy start_pipboy=2 process_only=1\n");
+        fflush(stdout);
     }
     if (key == -1) {
         fixtureFail("no-engine-open-key");
