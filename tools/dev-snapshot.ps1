@@ -419,8 +419,7 @@ if ($DialogCursorCheck) {
         throw 'Dialog cursor snapshot does not prove an active drawn sharp-text pass.'
     }
     $cursorImagePath = Join-Path $GameDir $cursorMetadata.image
-    $cursorPixelCheck = 'from PIL import Image; import sys; im = Image.open(sys.argv[1]).convert("RGB"); x, y = map(int, sys.argv[2:4]); expected = tuple(map(int, sys.argv[4:7])); actual = im.getpixel((x, y)); print("CURSOR_PNG_RGB physical=%d,%d expected=%s actual=%s" % (x, y, expected, actual)); assert actual == expected, "cursor PNG pixel does not match engine cursor palette color"'
-    & py -3 -c $cursorPixelCheck $cursorImagePath $cursorPass.Groups[1].Value $cursorPass.Groups[2].Value `
+    & py -3 (Join-Path $PSScriptRoot 'check_png_pixel.py') $cursorImagePath $cursorPass.Groups[1].Value $cursorPass.Groups[2].Value `
         $cursorPass.Groups[3].Value $cursorPass.Groups[4].Value $cursorPass.Groups[5].Value
     if ($LASTEXITCODE -ne 0) { throw 'Dialog cursor pixel in the decoded PNG does not match the engine cursor palette color.' }
     Write-Output $cursorLog
