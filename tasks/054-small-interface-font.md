@@ -42,9 +42,9 @@ remain unchanged.
 - The existing sharp-text setting applies to every genuine font-101 draw and
   keeps each run's original `ColorWithFlags`. Font IDs 102, 103, 104 and other
   non-101 fonts stay on their original rendering path.
-- Tests cover font 101 using green, white, yellow, red, and a palette fade;
-  they verify the palette and original font draw metrics remain intact. Tests
-  also prove that IDs 102, 103, and 104 are not captured.
+- Tests cover font 101 using green, white, yellow, and red; they verify the
+  original palette flags and font draw metrics remain intact. Tests also prove
+  that IDs 102, 103, and 104 are not selected for restoration or sharp rendering.
 - Real engine UI evidence covers inventory, Pip-Boy, character/status,
   conversation, barter totals, and message log. Use English and Russian at
   representative x2 and x3 scales; verify barter `$0` uses the same font 101
@@ -71,4 +71,14 @@ new live UI fixtures.
 Check: read-only audit found font-101 use across inventory, Pip-Boy,
 character/status, dialogue, barter, message log, and other small interface
 labels. Barter totals use white; exact font identity preserves their palette.
+
+### 2026-10-24 gpt (eligibility stage)
+Done: changed sharp eligibility to depend only on font ID 101, preserved each
+run's original color and flags, and broadened the setting label and description.
+The focused capture test covers green, white, yellow, and red font-101 text,
+excludes font IDs 102 through 104 from sharp rendering, and checks unchanged
+font metrics and copy propagation.
+Next: parent review this bounded stage before adding real UI fixtures.
+Check: Release build using `tools/configure-build.ps1`; CTest 14/14 passed.
+No runtime screenshots or new screen fixtures have been added.
 ---
