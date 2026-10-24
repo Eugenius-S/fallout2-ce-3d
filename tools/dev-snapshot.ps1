@@ -407,9 +407,15 @@ if ($DialogPageInspect) {
 }
 if ($DialogCursorCheck) {
     $cursorLog = Get-Content -Raw -LiteralPath (Join-Path $OutputDirectory 'process.stdout.log')
-    $cursorPass = [regex]::Match($cursorLog, '(?m)^DIALOG_CURSOR_CHECK PASS .*physical=(\d+),(\d+) cursor_index=\d+ expected_rgb=(\d+),(\d+),(\d+) target_alpha=\d+->0 same_run_ink_pixels=\d+->\d+')
+    $cursorPass = [regex]::Match($cursorLog, '(?m)^DIALOG_CURSOR_CHECK PASS .*opaque_physical=(\d+),(\d+) transparent_physical=(\d+),(\d+) cursor_index=\d+ expected_rgb=(\d+),(\d+),(\d+) opaque_alpha=(\d+)->0 transparent_alpha=(\d+)->(\d+) same_run_ink_pixels=(\d+)->(\d+)')
     if ($dialogFixtureFailed -or -not $cursorPass.Success) {
         throw "Dialog cursor check failed or timed out within $TimeoutSeconds s.`n$cursorLog"
+    }
+    if ([int]$cursorPass.Groups[8].Value -le 0 -or [int]$cursorPass.Groups[9].Value -le 0 -or
+        [int]$cursorPass.Groups[9].Value -ne [int]$cursorPass.Groups[10].Value -or
+        [int]$cursorPass.Groups[11].Value -le [int]$cursorPass.Groups[12].Value -or
+        [int]$cursorPass.Groups[12].Value -le 0) {
+        throw 'Dialog cursor check did not preserve sharp text at the transparent cursor cell.'
     }
     if (-not $probeHarnessStoppedProcess) { throw 'Dialog cursor check was not stopped by its isolated helper harness.' }
     if ($snapshots.Count -lt 1) { throw 'Dialog cursor check passed without a framebuffer snapshot.' }
@@ -420,7 +426,7 @@ if ($DialogCursorCheck) {
     }
     $cursorImagePath = Join-Path $GameDir $cursorMetadata.image
     & py -3 (Join-Path $PSScriptRoot 'check_png_pixel.py') $cursorImagePath $cursorPass.Groups[1].Value $cursorPass.Groups[2].Value `
-        $cursorPass.Groups[3].Value $cursorPass.Groups[4].Value $cursorPass.Groups[5].Value
+        $cursorPass.Groups[5].Value $cursorPass.Groups[6].Value $cursorPass.Groups[7].Value
     if ($LASTEXITCODE -ne 0) { throw 'Dialog cursor pixel in the decoded PNG does not match the engine cursor palette color.' }
     Write-Output $cursorLog
 }
