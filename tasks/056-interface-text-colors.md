@@ -2,13 +2,13 @@
 id: 056
 title: Sharp interface text colors
 milestone: M1
-status: doing
+status: done
 owner: gpt
 suggested: gpt
 claude-only: no
 user-check: yes
 depends-on: [055]
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -56,5 +56,12 @@ relative dimming.
 - Font face, size, metrics, placement, brightness settings, game palettes,
   original pixels, or non-green sharp text colors.
 - The black background around the dialogue screen; it remains an inbox item.
-
 ## Log
+
+Done: recolored semantic font-101 green while preserving source-palette fades, non-green colors, and the lower HUD log exception. Added source-bound UI evidence and updated the small-font brightness request as completed.
+Next: parent handles PR review and merge.
+Check: official clean Release build 721/721, CTest 14/14, scene exporter 44/44, regression unit 12/12, and official 16-spot sharp-off regression all passed; see `runs/056-interface-text-colors/final-validation.md`.
+
+## Validation
+
+See [final-validation.md](../runs/056-interface-text-colors/final-validation.md) for the eight source-bound UI captures and pixel checks.
