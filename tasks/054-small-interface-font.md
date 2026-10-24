@@ -2,13 +2,13 @@
 id: 054
 title: Sharp small interface text everywhere
 milestone: M1
-status: doing
+status: done
 owner: gpt
 suggested: gpt
 claude-only: no
 user-check: yes
 depends-on: [025]
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -100,4 +100,16 @@ Next: parent review the fixture code and helper checks before any runtime
 matrix launch.
 Check: Release build using `tools/configure-build.ps1`; CTest 14/14 passed and
 the PowerShell helper parsed successfully. No runtime fixtures were launched.
+
+### 2026-10-24 gpt (runtime coverage validation)
+Done: captured the genuine inventory, Pip-Boy Status, character, barter, message
+log, and NPC dialogue screens in English, plus Pip-Boy and character screens in
+Russian at scale 3. Captures preserve the original palette. Barter evidence
+proves both white `$0` totals. The Pip-Boy and log fixture routes are documented
+with their process-only setup and Classic 2D capture path.
+Next: Parent handles PR 81 CI, review, and merge.
+Check: Release build at `d38f5f35`; CTest 14/14, scene exporter tests 44/44,
+regression checker tests 12/12, and official off regression 16/16 with zero
+changed pixels. Exact per-capture source commits and executable hashes are in
+`runs/054-small-interface-font/accepted-20261024/final-validation.md`.
 ---
