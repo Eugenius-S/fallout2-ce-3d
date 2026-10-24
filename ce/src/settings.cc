@@ -450,9 +450,9 @@ void initSettingsRegistry(bool isMapper)
     shadowPixelDescriptor.category = SettingCategory::Uncategorized;
     shadowPixelDescriptor.applyPolicy = SettingApplyPolicy::OnClose;
     shadowPixelDescriptor.subsection = "3D";
-    shadowPixelDescriptor.fallbackLabel = "Shadow pixel size";
+    shadowPixelDescriptor.fallbackLabel = "Shadow edge softness";
     shadowPixelDescriptor.fallbackDescription =
-        "The world grid, in game pixels, that a shadow's edge snaps to, as in the original game's shadows.";
+        "How wide, in game pixels, a shadow's edge softens over; the shadow itself stays crisp.";
     shadowPixelDescriptor.numericRange = SettingNumericRange { 1.0, 16.0, 1.0 };
     settingsRegistry.back().descriptor = shadowPixelDescriptor;
     settingsRegistry.back().write = [](bool onlyAdd) {

@@ -41,7 +41,7 @@ std::vector<unsigned char> gHexFactor;
 bool gHexFactorValid = false;
 
 unsigned int gWallCasterVao = 0;
-int gWallCasterVertices = 0;
+std::vector<WallCasterRange> gWallCasterRanges;
 unsigned int gRoofCasterVao = 0;
 int gRoofCasterVertices = 0;
 float gMaxCasterHeight = 3.2f;
@@ -137,10 +137,10 @@ void ensureResources()
 
 } // namespace
 
-void setShadowWallCasters(unsigned int vao, int vertexCount, float maxCasterHeight)
+void setShadowWallCasters(unsigned int vao, float maxCasterHeight, std::vector<WallCasterRange> ranges)
 {
     gWallCasterVao = vao;
-    gWallCasterVertices = vertexCount;
+    gWallCasterRanges = std::move(ranges);
     if (maxCasterHeight > 0.0f) gMaxCasterHeight = maxCasterHeight;
 }
 
@@ -171,7 +171,7 @@ void destroyStaticShadows()
     gHexFactor.clear();
     gHexFactorValid = false;
     gWallCasterVao = 0;
-    gWallCasterVertices = 0;
+    gWallCasterRanges.clear();
     gRoofCasterVao = 0;
     gRoofCasterVertices = 0;
     gMaxCasterHeight = 3.2f;
@@ -263,20 +263,24 @@ bool bindStaticShadows(const float* sceneMvp)
     float matrix[16];
     shadowMatrix(sun.direction, pad, matrix);
 
-    // The lookup grid: uShadowStep GL units per [3d] shadow_pixel_size game
-    // pixel (hpx is the projection's pixels per GL unit). The compare bias
-    // covers the snap window and the depth map's slope error; it is set in
-    // the map's 0..1 depth, whose range the matrix uses. Set before the
-    // passes: both the casters and the hex pass draw with them.
+    // The AA ring: uShadowStep GL units per [3d] shadow_pixel_size game
+    // pixel (hpx is the projection's pixels per GL unit), but at least one
+    // depth map texel wide: smaller rings land all nine taps in one texel
+    // and the edge stays a stair. The compare bias covers the ring's span
+    // and the depth map's slope error; it is set in the map's 0..1 depth,
+    // whose range the matrix uses. Set before the passes: both the casters
+    // and the hex pass draw with them.
     const double hpx = gHeroProjection.hpx > 0.0 ? gHeroProjection.hpx : 32.0;
     const float step = static_cast<float>(settings.scene3d.shadow_pixel_size / hpx);
     const double near = 1.0;
     const double far = 2.0 * kEyeDistance + 2.0 * gMaxCasterHeight + 20.0;
+    const float texel = static_cast<float>(2.0 * (50.0 + pad) / kShadowMapSize);
+    const float ring = std::max(step, texel);
     glUniform1i(gSceneShadowOnLocation, 1);
     glUniformMatrix4fv(gSceneShadowMatrixLocation, 1, 0, matrix);
     glUniform1f(gSceneShadowStrengthLocation, sun.strength);
-    glUniform1f(gSceneShadowStepLocation, step);
-    glUniform1f(gSceneShadowBiasLocation, static_cast<float>(step * 1.5 / (far - near)));
+    glUniform1f(gSceneShadowStepLocation, ring);
+    glUniform1f(gSceneShadowBiasLocation, static_cast<float>(ring * 1.5 / (far - near)));
     // The map's depth span in GL units: the shader fades the shadow with the
     // distance the sun's ray travels past its caster.
     glUniform1f(gSceneShadowRangeLocation, static_cast<float>(far - near));
@@ -286,7 +290,10 @@ bool bindStaticShadows(const float* sceneMvp)
     glActiveTexture(kTexture0);
 
     // The casters draw with the scene program itself, in its pick mode (a
-    // flat colour, no lighting math) with the shadow matrix as uMvp.
+    // flat colour, no lighting math) with the shadow matrix as uMvp. Textured
+    // with a cutoff, so the art's transparent holes (a fence's gaps, a
+    // window's glass) cast no shadow (057); the discard sits in the shader's
+    // shared textured path, before the pick branch.
     glBindFramebuffer(kFramebuffer, gShadowFbo);
     glViewport(0, 0, kShadowMapSize, kShadowMapSize);
     glClear(kDepthBufferBit);
@@ -298,15 +305,25 @@ bool bindStaticShadows(const float* sceneMvp)
     glColorMask(0, 0, 0, 0);
     glUniformMatrix4fv(gSceneMvpLocation, 1, 0, matrix);
     glUniform1i(gScenePickLocation, 1);
-    if (gWallCasterVao != 0 && gWallCasterVertices > 0) {
+    glUniform1i(gSceneTexturedLocation, 1);
+    glUniform1f(gSceneCutoffLocation, 0.5f);
+    glActiveTexture(kTexture0);
+    if (gWallCasterVao != 0 && !gWallCasterRanges.empty()) {
         glBindVertexArray(gWallCasterVao);
-        glDrawArrays(kTriangles, 0, gWallCasterVertices);
+        for (const WallCasterRange& range : gWallCasterRanges) {
+            if (range.count <= 0 || range.texture == 0) continue;
+            glBindTexture(kTexture2D, range.texture);
+            glDrawArrays(kTriangles, range.first, range.count);
+        }
+        glBindVertexArray(0);
     }
+    glUniform1i(gSceneTexturedLocation, 0);
+    glUniform1f(gSceneCutoffLocation, 0.0f);
     if (gRoofCasterVao != 0 && gRoofCasterVertices > 0) {
         glBindVertexArray(gRoofCasterVao);
         glDrawArrays(kTriangles, 0, gRoofCasterVertices);
+        glBindVertexArray(0);
     }
-    glBindVertexArray(0);
 
     // The hex pass (046): the shadow test at every hex's ground point, one
     // readback the sprite cards' fade chases. The ground quad draws with the

@@ -168,41 +168,44 @@ vec4 sceneLighting() {
     return vec4(1.0);
 }
 // The sun's shadow at this fragment: the shadowed share, 0 lit to 1 fully in.
-// The lookup snaps to a world grid of uShadowStep units (the [3d]
-// shadow_pixel_size game pixels), so the edge stays put while the camera and
-// the sun move. Four taps a step across keep the core sharp and round the
-// snap's stairs off. The shadow is strongest at its caster and fades to
-// nothing with the distance the sun's ray travels from it (the map depth the
-// caster wrote vs the fragment's own): a wall keeps its dark contact line, a
-// fence's shadow melts along its length, and a roof's far stain across a yard
-// is gone.
+// Nine taps in a ring a uShadowStep wide (the [3d] shadow_pixel_size game
+// pixels) antialias the edge; the lookup itself stays unsnapped in world
+// space, so a wall face takes no stripes from the step grid (the sun is
+// static per hour and the lookups do not move with the camera). The shadow
+// is strongest at its caster and fades to nothing with the distance the
+// sun's ray travels from it (the map depth the caster wrote vs the
+// fragment's own): a wall keeps its dark contact line, a fence's shadow
+// melts along its length, and a roof's far stain across a yard is gone.
 float shadowPast(vec2 xz, float y) {
-    vec2 snapped = floor(xz / uShadowStep + 0.5) * uShadowStep;
-    vec4 s = uShadowMatrix * vec4(snapped.x, y, snapped.y, 1.0);
+    vec4 s = uShadowMatrix * vec4(xz.x, y, xz.y, 1.0);
     vec3 p = s.xyz / s.w * 0.5 + 0.5;
     if (p.x < 0.0 || p.x > 1.0 || p.y < 0.0 || p.y > 1.0 || p.z >= 1.0) return -1.0;
     float diff = p.z - (texture(uShadowMap, p.xy).r + uShadowBias);
     return diff > 0.0 ? diff : -1.0;
 }
 float sunShadow() {
+    const vec2 taps[9] = vec2[9](
+        vec2(0.0, 0.0),
+        vec2(1.0, 0.0), vec2(0.7071, 0.7071), vec2(0.0, 1.0), vec2(-0.7071, 0.7071),
+        vec2(-1.0, 0.0), vec2(-0.7071, -0.7071), vec2(0.0, -1.0), vec2(0.7071, -0.7071));
     float sum = 0.0;
-    for (int i = 0; i < 4; i++) {
-        vec2 offset = vec2(float(i & 1), float(i >> 1)) * 2.0 - 1.0;
-        float past = shadowPast(vWorld.xz + offset * uShadowStep, vWorld.y);
+    for (int i = 0; i < 9; i++) {
+        float past = shadowPast(vWorld.xz + taps[i] * uShadowStep, vWorld.y);
         if (past >= 0.0) sum += 1.0 - smoothstep(0.0, 5.0, past * uShadowRange);
     }
-    return sum * 0.25;
+    return sum / 9.0;
 }
 // The darkening inside a shadow, over the engine's own light: the game's
 // painted shadows read about as a half. The floor and the walls take the
-// fragment's faded share; a sprite takes its anchor's faded share (046);
+// fragment's faded share; a sprite takes its anchor's faded share (046),
+// lighter than the ground: a standing figure keeps its read (057);
 // mode 5 is the hex pass itself, the pure factor the fade chases.
 float shadowDarken(float light) {
     if (uShadowOn && uShadowStrength > 0.0) {
         if (uLightMode == 1 || uLightMode == 2) {
             light *= 1.0 - uShadowStrength * 0.5 * sunShadow();
         } else if (uLightMode == 3) {
-            light *= 1.0 - uShadowStrength * 0.5 * uSpriteShadow;
+            light *= 1.0 - uShadowStrength * 0.35 * uSpriteShadow;
         } else if (uLightMode == 5) {
             light *= 1.0 - sunShadow();
         }

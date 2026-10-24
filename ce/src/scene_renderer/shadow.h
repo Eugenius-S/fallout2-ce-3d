@@ -1,6 +1,8 @@
 #ifndef FALLOUT_SCENE_RENDERER_SHADOW_H
 #define FALLOUT_SCENE_RENDERER_SHADOW_H
 
+#include <vector>
+
 namespace fallout {
 namespace scene_renderer {
 
@@ -26,8 +28,15 @@ namespace internal {
 // in bindStaticShadows from the scene draw.
 
 // Takes the caster triangles walls.cc kept and the tall enough of them; both
-// null arguments are allowed.
-void setShadowWallCasters(unsigned int vao, int vertexCount, float maxCasterHeight);
+// null arguments are allowed. The buffer carries positions with UVs and one
+// draw range per atlas page, so the pass can bind the page and cut the art's
+// transparent holes out of the depth map (task 057).
+struct WallCasterRange {
+    unsigned int texture; // the page's GL texture
+    int first; // first vertex of the range
+    int count; // vertices in the range
+};
+void setShadowWallCasters(unsigned int vao, float maxCasterHeight, std::vector<WallCasterRange> ranges);
 // Takes the all-squares roof buffer roofs.cc keeps for the shadow pass.
 void setShadowRoofCasters(unsigned int vao, int vertexCount);
 void destroyStaticShadows();

@@ -827,12 +827,11 @@ bool OptionsPanel::handleEvent(int eventCode)
 bool OptionsPanel::handleKey(int keyCode)
 {
     if (rowCount() == 0) return false;
-    // T / Shift+T step the game hour by 3 hours, forth and back: morning,
-    // noon, sunset and night for a look in a minute. The sun snaps to the
-    // jump, as on waiting.
+    // T / Shift+T step the game hour by one hour, forth and back: the owner
+    // reads each hour's shadow. The sun snaps to the jump, as on waiting.
     if (keyCode == KEY_LOWERCASE_T || keyCode == KEY_UPPERCASE_T) {
         const unsigned int ticks = gameTimeGetTime();
-        const int hours = keyCode == KEY_LOWERCASE_T ? 3 : -3;
+        const int hours = keyCode == KEY_LOWERCASE_T ? 1 : -1;
         const unsigned int hour = (ticks / 36000u + 24u + static_cast<unsigned int>(hours)) % 24u;
         gameTimeSetTime(hour * 36000u + ticks % 36000u);
         return true;
