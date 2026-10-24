@@ -11,7 +11,7 @@
 
 - PR #77 review found that the renderer always decodes captured bytes as CP1251. Applying it to French, German, Italian or Spanish dialog bytes can turn accented Latin characters into Cyrillic.
 - The feature is reopened pending a conservative locale guard: only canonical English and Russian are supported, case-insensitively. Empty, unknown and other language settings must keep original pixel text and turn the feature off with one diagnostic before restoration or drawing.
-- Guard and unit coverage are in progress. Task status is `doing` and `reviewed: no` until the official build, tests and parent review finish.
+- Guard and unit coverage are committed as `5cde8f97`; official Release configure/build, targeted embedded-font test 1/1 and full CTest 14/14 passed. The unit predicate accepts English/Russian case-insensitively and rejects the other named locales, empty and unknown values. The presentation gate runs before restoration and drawing. Task status is `doing` and `reviewed: no` pending parent review and any requested runtime smoke.
 
 ## Accepted implementation and evidence
 

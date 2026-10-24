@@ -2,7 +2,7 @@
 
 ## Locale review follow-up
 
-PR review found that CP1251 decoding must not run for unsupported Latin-script locales. The task is reopened to guard the renderer to English and Russian only. Prior runtime and regression evidence below remains valid for those supported locales; unsupported-locale validation is pending the follow-up build and tests.
+PR review found that CP1251 decoding must not run for unsupported Latin-script locales. Commit `5cde8f97` guards the renderer to English and Russian only; the language-policy unit test and full CTest pass. The presentation gate precedes text restoration and drawing, so rejected locales keep the original indexed text. Prior runtime and regression evidence below remains valid for supported English/Russian. No unsupported-locale runtime smoke is claimed; parent review is pending.
 
 ## Scope
 
