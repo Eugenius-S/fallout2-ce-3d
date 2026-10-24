@@ -37,3 +37,16 @@ that fits no task becomes a new task when the board runs dry.
   fly camera they vanish. The owner remembers every wall had one before.
   Same visit as the close-up noise above; look for a lost back face or
   culling change in the walls since then. Not now.
+- 2026-10-24 The owner's live review of the 046 build (his screenshots:
+  runs/046-characters-in-shadow/review-2026-10-24/): the 3D view has holes
+  in walls; close them. May share a root with the missing back sides line
+  above.
+- 2026-10-24 Same review: defects at house corners; the owner wants one
+  universal fix for all corners, not spot patches.
+- 2026-10-24 Same review: the computer stands must get real 3D too.
+- 2026-10-24 Same review: a straight card cutout disappeared somewhere; it
+  was good before (his words; which card is unconfirmed, asked in chat).
+- 2026-10-24 Same review: no glows in his live Klamath run. 022 and 050
+  are in main and [3d] glow defaults on; Klamath screens are dead art, but
+  the burning barrels should glow, so check the fire glow live before
+  calling it art.
