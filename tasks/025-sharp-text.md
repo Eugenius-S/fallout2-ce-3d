@@ -45,29 +45,36 @@ text font stays pixel-rendered.
    runs the proc, and keeps a record: target pointer and pitch, string, font
    id, color and flags, the old-font x position of every character, and every
    changed pixel as offset, value before, value after.
-2. **Owner.** A record belongs to the window whose buffer holds its pointer,
-   or to the screen surface; otherwise it is an orphan in an off-screen image.
-3. **Copies.** The two blits are wrapped: a record inside the source rectangle
-   is cloned to the destination after the blit, its before and after values
-   read from the destination around the blit. Orphan memory is read only
-   inside such a blit, when the game itself reads it; never at present time.
+2. **Owner.** A record is associated with the window buffer and generation
+   that owns its pixels, or with the screen surface; otherwise it is an orphan
+   in an off-screen image. The owner's current visibility and occlusion mask
+   determine which parts can be restored and drawn.
+3. **Copies.** The two blits are wrapped: only a record intersecting the
+   source rectangle is cloned, clipped to the copied source and destination
+   regions. Its before and after values are read from the destination around
+   the blit. Orphan memory is read only inside such a blit, within a known
+   allocation range the game itself reads; unknown ranges are not sampled.
 4. **Validity.** At each present a window or screen record lives while all its
-   after-values still hold in its buffer; otherwise it is dropped. A new
-   record drops older records it overlaps in the same buffer. Records of
-   destroyed windows are dropped; the count is capped (oldest first).
+   changed ink pixels still hold their after-values in the owning buffer;
+   otherwise the complete run is dropped. A new record retires an older run
+   only where changed ink pixels actually overlap in the same buffer; overlap
+   of their bounding boxes alone is not enough. Records of destroyed or
+   repainted owner generations are dropped; the count is capped (oldest first).
 5. **Erase.** After `renderPresent` converts the 8-bit frame to RGBA, every
    pixel of a live record whose screen value still equals its after-value is
    replaced with the current palette color of its before-value. The game's
    own 8-bit buffers are never changed.
-6. **Draw.** A GL pass after the frame and the 3D scene overlay, at window
-   resolution: glyphs from a TTF atlas (the font and stb_truetype come from
-   task 026, `embedded_fonts.h`; the atlas is rebuilt when the pixel size
-   changes), placed through the same letterbox
-   mapping as the frame. Color is the current palette color of the record's
-   color index, so fades work. Shadow is one game pixel down-right in black;
-   underline at the old underline row. The pass is masked at game resolution:
-   only where the record's window is the visible top window (the rule of
-   `windowShownMask`) and the mouse cursor is not opaque.
+6. **Draw.** CPU-rasterized TTF glyph bitmaps are composed into a physical-size
+   RGBA overlay, then uploaded through the existing GL overlay texture after
+   the restored frame and 3D scene overlay. The bounded glyph bitmap cache is
+   keyed by glyph, physical size and weight; there is no GPU TTF atlas. Glyphs
+   use the same letterbox mapping as the frame. Their current palette color is
+   resolved on each prepared frame, so palette fades change the ink while
+   leaving glyph coverage and placement unchanged. Shadow is one game pixel
+   down-right in black; underline at the old underline row. The pass is masked
+   at game resolution: only where the record's owner window is the visible top
+   window (the rule of `windowShownMask`) and the mouse cursor is not opaque.
+   Physical pixels outside the frame are clipped before composition.
 7. **Fit.** Only tagged font-101 conversation runs are eligible. They use IBM Plex Mono SemiBold.
    Existing generic font rendering code remains available, but other font ids and
    weights are outside this feature.
@@ -196,3 +203,8 @@ Check: standalone Release text-layer CTest passed 2/2; git diff --check passed. 
 Done: verified English x2 and Russian x3 Preferences Top snapshots with sharp dialog text off/on. Both pairs are pixel-identical; the on snapshots report the setting enabled but inactive, with zero captured or restored runs. The clean Release build after `80d57da5` rebuilt all 175 game objects; the built EXE matches the snapshot SHA-256 `fb5a368a652cbd794c536637808373ef2b972fc57a533f6737e7262cdd8880e7`.
 Next: parent review a real NPC conversation fixture design before implementation. Menus, titles, Pip-Boy and all other UI remain outside sharp text scope.
 Check: full CTest passed 14/14; decoded RGBA images match exactly for `runs/025-sharp-text/menu-scope-80d57da5/en-x2-top-{off,on}` and `ru-x3-top-{off,on}`. Snapshot metadata reports scale 2 for English and scale 3 for Russian.
+
+### 2026-10-24 gpt (dialog fixture and palette fade)
+Done: added an opt-in real Klamath Sulik conversation fixture using the loaded `Kcsulik.int` script and normal talk-range check. Snapshot readiness requires eligible runs from separate reply and answer owner windows. Corrected the renderer design notes to describe CPU-rasterized glyph bitmaps, physical RGBA overlay, actual-ink overlap, clipped copies and owner-generation visibility. Added an embedded-font regression that changes the active palette color from green to black and asserts glyph coverage stays identical.
+Next: capture the committed-source English x2 dialog off/on pair for parent visual review. Wider locale and scale coverage waits for that review.
+Check: commit `6a4a86ed` was configured and fully rebuilt with the official MSVC setup; full CTest passed 14/14. The focused `embedded_fonts_tests` rebuild and CTest passed 1/1. Menu pairs remain separately verified as pixel-identical; dialog runtime evidence for the committed executable is pending.

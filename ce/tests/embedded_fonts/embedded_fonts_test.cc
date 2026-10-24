@@ -166,6 +166,33 @@ int main()
         return 1;
     }
 
+    fitRecord.run.colorAndFlags = 43;
+    palette[43 * 3] = 0;
+    palette[43 * 3 + 1] = 255;
+    palette[43 * 3 + 2] = 0;
+    if (!renderSharpText({ fitRecord }, 256, 32, 512, 64, palette, 256, visibility, &surface)) return 1;
+    const std::vector<unsigned char> greenPixels = surface.pixels;
+    palette[43 * 3 + 1] = 0;
+    if (!renderSharpText({ fitRecord }, 256, 32, 512, 64, palette, 256, visibility, &surface)) return 1;
+    bool checkedFadeCoverage = false;
+    for (std::size_t index = 0; index < surface.pixels.size(); index += 4) {
+        if (greenPixels[index] != 0 || greenPixels[index + 1] != greenPixels[index + 3]
+            || greenPixels[index + 2] != 0 || greenPixels[index + 3] != surface.pixels[index + 3]
+            || surface.pixels[index] != 0 || surface.pixels[index + 1] != 0 || surface.pixels[index + 2] != 0) {
+            std::fprintf(stderr, "Palette fade changed glyph coverage or retained RGB ink\n");
+            return 1;
+        }
+        checkedFadeCoverage = checkedFadeCoverage || greenPixels[index + 3] != 0;
+    }
+    if (!checkedFadeCoverage) {
+        std::fprintf(stderr, "Palette fade test found no glyph coverage\n");
+        return 1;
+    }
+    palette[43 * 3] = 255;
+    palette[43 * 3 + 1] = 255;
+    palette[43 * 3 + 2] = 255;
+    fitRecord.run.colorAndFlags = 255;
+
     const std::vector<unsigned char> foregroundPixels = surface.pixels;
     fitRecord.run.colorAndFlags = static_cast<unsigned int>(255 | fallout::DRAW_TEXT_FLAG_SHADOWED);
     if (!renderSharpText({ fitRecord }, 256, 32, 512, 64, palette, 256, visibility, &surface)) return 1;
