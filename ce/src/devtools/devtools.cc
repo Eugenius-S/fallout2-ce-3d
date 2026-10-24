@@ -16,6 +16,7 @@
 #include <vector>
 
 #include "../art.h"
+#include "../actions.h"
 #include "../animation.h"
 #include "../color.h"
 #include "../combat.h"
@@ -33,6 +34,7 @@
 #include "../map_edge.h"
 #include "../map_defs.h"
 #include "../game.h"
+#include "../game_dialog.h"
 #include "../game_mouse.h"
 #include "../object.h"
 #include "../preferences.h"
@@ -43,6 +45,7 @@
 #include "../platform_compat.h"
 #include "../random.h"
 #include "../scene/scene_lights.h"
+#include "../scene/text_capture.h"
 #include "../scripts.h"
 #include "../scene/scene_objects.h"
 #include "../scene/scene_settings.h"
@@ -128,6 +131,13 @@ int gViewTile = -1;
 bool gViewTileApplied = false;
 int gHeroTile = -1; // --dev-hero-tile: the hero is put there before the scene starts
 char gSnapshotRun[33] = {};
+bool gDialogFixtureRequested = false;
+bool gDialogFixtureStarted = false;
+bool gDialogFixtureFinished = false;
+char gDialogFixtureScript[32] = {};
+int gDialogFixtureSpeakerId = -1;
+int gDialogFixtureSpeakerTile = -1;
+int gDialogFixtureSpeakerElevation = -1;
 // --dev-pick-probe: the mouse is put on the scene's critters one by one and
 // what the game finds there is logged (devprobe.log); snapshots show the hex
 // cursor, then the hover icon over a critter. 0: off, then frames counted.
@@ -709,6 +719,10 @@ bool parseOption(const char* arg)
         gSnapshotOncePending = true;
         return true;
     }
+    if (strcmp(arg, "--dev-dialog-fixture") == 0) {
+        gDialogFixtureRequested = true;
+        return true;
+    }
     if (strcmp(arg, "--dev-preferences-snapshot") == 0) {
         gPreferencesSnapshotPending = true;
         return true;
@@ -1112,6 +1126,94 @@ void update()
             printf("PREFERENCES_PROBE finished; requesting isolated helper exit\n");
             fflush(stdout);
             _game_user_wants_to_quit = GAME_QUIT_REQUEST_EXIT;
+        }
+    }
+    if (gDialogFixtureRequested && !gDialogFixtureStarted && !gDialogFixtureFinished
+        && sceneStartupReady() && !inBlockingGameState()) {
+        gDialogFixtureStarted = true;
+        std::string mapName(gMapHeader.name);
+        std::transform(mapName.begin(), mapName.end(), mapName.begin(),
+            [](unsigned char ch) { return static_cast<char>(std::tolower(ch)); });
+        if (mapName.size() > 4 && mapName.compare(mapName.size() - 4, 4, ".map") == 0) {
+            mapName.resize(mapName.size() - 4);
+        }
+        if (gDude == nullptr || mapName != "kladwtwn") {
+            printf("DIALOG_FIXTURE FAIL map=%s hero=%d reason=expected-KLADWTWN-and-loaded-hero\n",
+                gMapHeader.name, gDude != nullptr ? gDude->tile : -1);
+            fflush(stdout);
+            gDialogFixtureFinished = true;
+            _game_user_wants_to_quit = GAME_QUIT_REQUEST_EXIT;
+            return;
+        }
+
+        Object* speaker = nullptr;
+        int talkResult = -3;
+        Object* candidate = objectFindFirstAtElevation(gElevation);
+        while (candidate != nullptr) {
+            if (candidate != gDude && candidate->sid != -1
+                && FrmId(candidate).objectType() == OBJ_TYPE_CRITTER) {
+                Script* script = nullptr;
+                if (scriptGetScript(candidate->sid, &script) != -1 && script != nullptr) {
+                    char scriptName[COMPAT_MAX_PATH] = {};
+                    if (scriptsGetFileName(script->index, scriptName, sizeof(scriptName)) != -1) {
+                        std::string baseName(scriptName);
+                        const std::size_t slash = baseName.find_last_of("/\\");
+                        if (slash != std::string::npos) baseName.erase(0, slash + 1);
+                        const std::size_t extension = baseName.find_last_of('.');
+                        if (extension != std::string::npos) baseName.resize(extension);
+                        std::transform(baseName.begin(), baseName.end(), baseName.begin(),
+                            [](unsigned char ch) { return static_cast<char>(std::tolower(ch)); });
+                        if (baseName == "kcsulik") {
+                            const int result = _action_can_talk_to(gDude, candidate);
+                            if (speaker == nullptr || result == 0) {
+                                speaker = candidate;
+                                talkResult = result;
+                                snprintf(gDialogFixtureScript, sizeof(gDialogFixtureScript), "%s", scriptName);
+                            }
+                            if (result == 0) break;
+                        }
+                    }
+                }
+            }
+            candidate = objectFindNextAtElevation();
+        }
+        if (speaker == nullptr || talkResult != 0) {
+            printf("DIALOG_FIXTURE FAIL map=%s script=%s hero=%d speaker=%d speaker_tile=%d elevation=%d talk_result=%d reason=missing-or-unreachable-speaker\n",
+                gMapHeader.name, gDialogFixtureScript[0] != '\0' ? gDialogFixtureScript : "Kcsulik.int",
+                gDude->tile, speaker != nullptr ? speaker->id : -1, speaker != nullptr ? speaker->tile : -1,
+                speaker != nullptr ? speaker->elevation : gElevation, talkResult);
+            fflush(stdout);
+            gDialogFixtureFinished = true;
+            _game_user_wants_to_quit = GAME_QUIT_REQUEST_EXIT;
+            return;
+        }
+
+        Script* speakerScript = nullptr;
+        if (scriptGetScript(speaker->sid, &speakerScript) == -1 || speakerScript == nullptr
+            || scriptsGetFileName(speakerScript->index, gDialogFixtureScript, sizeof(gDialogFixtureScript)) == -1) {
+            printf("DIALOG_FIXTURE FAIL map=%s hero=%d speaker=%d speaker_tile=%d elevation=%d reason=script-name-unavailable\n",
+                gMapHeader.name, gDude->tile, speaker->id, speaker->tile, speaker->elevation);
+            fflush(stdout);
+            gDialogFixtureFinished = true;
+            _game_user_wants_to_quit = GAME_QUIT_REQUEST_EXIT;
+            return;
+        }
+        gDialogFixtureSpeakerId = speaker->id;
+        gDialogFixtureSpeakerTile = speaker->tile;
+        gDialogFixtureSpeakerElevation = speaker->elevation;
+        printf("DIALOG_FIXTURE START map=%s elevation=%d script=%s speaker=%d speaker_tile=%d hero=%d talk_result=%d\n",
+            gMapHeader.name, gElevation, gDialogFixtureScript, gDialogFixtureSpeakerId,
+            gDialogFixtureSpeakerTile, gDude->tile, talkResult);
+        fflush(stdout);
+        gameDialogEnter(speaker, 0);
+        if (!gameDialogWindowActive()) {
+            printf("DIALOG_FIXTURE FAIL map=%s script=%s speaker=%d speaker_tile=%d elevation=%d hero=%d reason=dialog-window-did-not-open\n",
+                gMapHeader.name, gDialogFixtureScript, gDialogFixtureSpeakerId,
+                gDialogFixtureSpeakerTile, gDialogFixtureSpeakerElevation, gDude->tile);
+            fflush(stdout);
+            gDialogFixtureFinished = true;
+            _game_user_wants_to_quit = GAME_QUIT_REQUEST_EXIT;
+            return;
         }
     }
     fly();
@@ -1758,6 +1860,47 @@ void scenePresented(const scene::RefreshResult& refreshed)
 
 void vanillaPresented()
 {
+    if (gDialogFixtureRequested && gDialogFixtureStarted && !gDialogFixtureFinished
+        && gameDialogWindowActive()) {
+        int ownerIds[2] = { -1, -1 };
+        int ownerCount = 0;
+        int runCount = 0;
+        int windowCount = 0;
+        TextWindowSnapshot firstWindow;
+        textCaptureGetWindowSnapshot(0, &firstWindow, &windowCount);
+        for (int index = 0; index < windowCount; index++) {
+            TextWindowSnapshot window;
+            if (!textCaptureGetWindowSnapshot(index, &window, nullptr) || window.hidden || window.pixels == nullptr) {
+                continue;
+            }
+            const scene::TextBufferId buffer = textCaptureBufferId(window.pixels);
+            if (buffer == 0) continue;
+            const std::vector<scene::TextRecord> records = scene::textCaptureSharpRecords(buffer);
+            bool hasEligibleRun = false;
+            for (const scene::TextRecord& record : records) {
+                if (record.ownerWindow != window.id) continue;
+                hasEligibleRun = true;
+                runCount++;
+            }
+            if (hasEligibleRun && ownerCount < 2) ownerIds[ownerCount++] = window.id;
+        }
+        if (ownerCount >= 2) {
+            const bool captured = takeSnapshot();
+            if (captured) {
+                printf("DIALOG_FIXTURE PASS map=%s elevation=%d script=%s speaker=%d speaker_tile=%d hero=%d dialog_owners=%d,%d eligible_runs=%d\n",
+                    gMapHeader.name, gDialogFixtureSpeakerElevation, gDialogFixtureScript,
+                    gDialogFixtureSpeakerId, gDialogFixtureSpeakerTile, gDude != nullptr ? gDude->tile : -1,
+                    ownerIds[0], ownerIds[1], runCount);
+            } else {
+                printf("DIALOG_FIXTURE FAIL map=%s script=%s speaker=%d speaker_tile=%d hero=%d reason=snapshot-failed status=%s\n",
+                    gMapHeader.name, gDialogFixtureScript, gDialogFixtureSpeakerId,
+                    gDialogFixtureSpeakerTile, gDude != nullptr ? gDude->tile : -1, gStatus);
+            }
+            fflush(stdout);
+            gDialogFixtureFinished = true;
+            return;
+        }
+    }
     if (!gSnapshotOncePending || !gEnabled || !sceneStartupReady() || !gStartupFloorPreviewAttempted
         || scene::activeView() != scene::View::Off) {
         return;

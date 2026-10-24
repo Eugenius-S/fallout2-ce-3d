@@ -27,6 +27,7 @@ param(
     [int]$Elevation = 0,
     [int]$TimeoutSeconds = 90,
     [switch]$Probe,
+    [switch]$DialogFixture,
     [string]$Tour,
     [switch]$Classic,
     [switch]$Preferences,
@@ -107,6 +108,15 @@ if ($PreferencesProbe) {
 } elseif ($ReuseTestConfig) {
     throw '-ReuseTestConfig requires -PreferencesProbe.'
 }
+if ($DialogFixture) {
+    if ($Map -ne 'kladwtwn') { throw '-DialogFixture requires the resource-verified Klamath map kladwtwn.' }
+    if ($Preferences -or $Classic -or $Probe -or $Tour -or $Still -or $NoPreview -or $PreferencesProbe) {
+        throw '-DialogFixture cannot be combined with Preferences, Classic, Probe, Tour, Still, NoPreview, or PreferencesProbe.'
+    }
+    if (-not $CaptureConsole -or -not $OutputDirectory) {
+        throw '-DialogFixture requires -CaptureConsole and -OutputDirectory for fixture diagnostics.'
+    }
+}
 if ($ReuseTestConfig) {
     if (-not (Test-Path -LiteralPath $configPath -PathType Leaf)) { throw "No isolated config to reuse: $configPath" }
 } else {
@@ -144,6 +154,7 @@ $shots = 1
 $runId = [guid]::NewGuid().ToString('N')
 $arguments = @('--dev-tools')
 if ($SharpText) { $arguments += '--dev-sharp-text=1' } else { $arguments += '--dev-sharp-text=0' }
+if ($DialogFixture) { $arguments += '--dev-dialog-fixture' }
 if ($PreferencesProbe) {
     $arguments += @('--dev-new-game', "--dev-map=$Map", "--dev-elevation=$Elevation", "--dev-preferences-probe=$PreferencesProbe")
 } else {
@@ -196,7 +207,7 @@ if ($PreferencesProbe) {
     $shots = 1 + @("$Tour".Split(',') | Where-Object { $_.Trim() }).Count
     $arguments += "--dev-map-tour=$Tour"
 } else {
-    $arguments += '--dev-snapshot-once'
+    if ($DialogFixture) { $shots = 1 } else { $arguments += '--dev-snapshot-once' }
 }
 
 $started = Get-Date
@@ -211,6 +222,7 @@ if (Test-Path -LiteralPath $sceneCache -PathType Container) { $env:F2CE_SCENE_CA
 $process = $null
 $probeHarnessStoppedProcess = $false
 $snapshots = @()
+$dialogFixtureFailed = $false
 try {
     $startParameters = @{
         FilePath = $exe
@@ -247,7 +259,16 @@ try {
             })
             $log = Join-Path $GameDir 'devprobe.log'
             $probed = -not $Probe -or ((Test-Path $log) -and (Select-String -Path $log -Pattern 'probe done' -Quiet))
-            if ($snapshots.Count -ge $shots -and $probed) { break }
+            if ($DialogFixture) {
+                $fixtureLog = Join-Path $OutputDirectory 'process.stdout.log'
+                if ((Test-Path -LiteralPath $fixtureLog) -and
+                    (Select-String -LiteralPath $fixtureLog -Pattern '^DIALOG_FIXTURE FAIL ' -Quiet)) {
+                    $dialogFixtureFailed = $true
+                    break
+                }
+                if ($snapshots.Count -ge $shots -and (Test-Path -LiteralPath $fixtureLog) -and
+                    (Select-String -LiteralPath $fixtureLog -Pattern '^DIALOG_FIXTURE PASS ' -Quiet)) { break }
+            } elseif ($snapshots.Count -ge $shots -and $probed) { break }
             Start-Sleep -Milliseconds 500
         }
     }
@@ -334,6 +355,16 @@ if ($PreferencesProbe) {
     $probeResult | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $resultPath -Encoding utf8
     Write-Output "PREFERENCES_PROBE RESULT $resultPath"
     return
+}
+if ($DialogFixture) {
+    $fixtureLog = Get-Content -Raw -LiteralPath (Join-Path $OutputDirectory 'process.stdout.log')
+    if ($dialogFixtureFailed) {
+        throw "Dialog fixture reported failure.`n$fixtureLog"
+    }
+    if ($fixtureLog -notmatch '(?m)^DIALOG_FIXTURE PASS ') {
+        throw "Dialog fixture timed out within $TimeoutSeconds s.`n$fixtureLog"
+    }
+    if (-not $probeHarnessStoppedProcess) { throw 'Dialog fixture was not stopped by its isolated helper harness.' }
 }
 if ($snapshots.Count -lt $shots) { throw "No snapshot within $TimeoutSeconds s." }
 foreach ($snapshot in $snapshots) {
