@@ -172,10 +172,11 @@ vec4 sceneLighting() {
 // pixels) antialias the edge; the lookup itself stays unsnapped in world
 // space, so a wall face takes no stripes from the step grid (the sun is
 // static per hour and the lookups do not move with the camera). The shadow
-// is strongest at its caster and fades to nothing with the distance the
-// sun's ray travels from it (the map depth the caster wrote vs the
-// fragment's own): a wall keeps its dark contact line, a fence's shadow
-// melts along its length, and a roof's far stain across a yard is gone.
+// holds full density for the first couple of units past its blocker and
+// melts to nothing by ~9 (the owner's spec: dense along its length, a fade
+// only at the far end): a wall keeps its dark contact line under a roof
+// that overshadows it in the depth map, and a roof's far stain across a
+// yard is still gone.
 float shadowPast(vec2 xz, float y) {
     vec4 s = uShadowMatrix * vec4(xz.x, y, xz.y, 1.0);
     vec3 p = s.xyz / s.w * 0.5 + 0.5;
@@ -191,7 +192,7 @@ float sunShadow() {
     float sum = 0.0;
     for (int i = 0; i < 9; i++) {
         float past = shadowPast(vWorld.xz + taps[i] * uShadowStep, vWorld.y);
-        if (past >= 0.0) sum += 1.0 - smoothstep(0.0, 5.0, past * uShadowRange);
+        if (past >= 0.0) sum += 1.0 - smoothstep(2.0, 9.0, past * uShadowRange);
     }
     return sum / 9.0;
 }

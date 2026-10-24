@@ -15,7 +15,7 @@ namespace internal {
 
 namespace {
 
-constexpr unsigned int kShadowMapSize = 2048;
+constexpr unsigned int kShadowMapSize = 4096;
 constexpr unsigned int kHexSize = 200; // hexes per map side; one texel per hex
 constexpr unsigned int kFramebuffer = 0x8D40;
 constexpr unsigned int kDepthAttachment = 0x8D00;

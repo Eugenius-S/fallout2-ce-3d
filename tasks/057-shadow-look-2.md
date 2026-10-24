@@ -94,3 +94,53 @@ every spot's changed-pixel count identical, klacanyn-e0, klaratcv-e0 and
 klatoxcv-e2 at 0.
 Next: the owner's eye (user-check: yes). The two feel constants (the edge
 softness default 4, the distance fade ~5 units) are one line each.
+
+### 2026-10-24 owner (round 4, shots 20..23)
+Overall much better. For the next pass:
+- Edges a touch sharper still.
+- The pen: the shadow there reads as falling from nothing. An alpha-plane
+  wall (the pen fence with holes) must cast exactly its opaque texels: the
+  fence's shadow must read as the fence's lattice.
+- A figure standing in shade was left out of the dimming there.
+- A long building's shadow looks strong at both ends and melted in the
+  middle, right where the figure stands; asked whether that is real.
+
+### 2026-10-24 owner (round 5, shot 24)
+The wanted shape in his words: along its whole length the shadow stays dense
+first, and only then melts to zero. So: a solid core with no weakening right
+at the blocker, one melt window at the far end.
+
+### 2026-10-24 glm
+Done: round 2, the owner's shape spec (dense along the length, a melt only at
+the far end; the density right at the blocker he called good already).
+- The fade is a plateau now: full density for the first ~2 GL units past the
+  blocker, smoothstep to zero by ~9 (was a melt starting at the blocker over
+  5). A wall's contact line stays dark even where the roof overshadows it in
+  the depth map, and the figure standing there takes the same hex factor, so
+  he darkens with his ground.
+- The depth map is 4096 (was 2048): the texel halves, the fence's lattice and
+  the edges come out crisper through the same one-texel AA floor.
+- The default edge softness drops from 4 to 2 game pixels (sharper borders,
+  his round 4).
+Check: build Release, ctest 12/12. Round 2 shots under runs/057-shadow-look-2/
+(corrals-sunset-r2, corrals-noon-r2, corrals-fence-zoom-r2): 23% of the
+sunset frame moved against round 1, the shadows holding density where they
+melted before; the shadows-off regression is still line for line the morning
+baseline. The game exe in game/ carries the round.
+Next: the owner's eye again. If the building's middle still reads light, the
+plateau widens by one constant (2 to ~4); the melt end (9) and the default
+softness (2) are one line each. The 4096 map costs 32 MB and one caster pass
+a frame; the dev perf log can price it if the owner asks.
+
+### 2026-10-24 glm (diagnosis before the fix)
+The melted middle is real and it is the distance fade misreading stacked
+blockers: for a ground point at the wall base the sun's ray often clears the
+wall and hits the ROOF first, so the depth map stores the roof and the fade
+measures from the roof, far away, and melts the wall's own contact line; at
+the building's ends the rays pass the roof and the wall itself is the
+blocker, so the ends stay dark. The figure left out follows the same hex
+factor. Plan: keep the shadow whole for the first few units and melt over a
+longer reach (smoothstep(3, 10) GL units instead of (0, 5)), halve the depth
+map texel (2048 to 4096) and drop the default edge softness from 4 to 2 game
+pixels, so the fence's lattice and the edges come out crisp; then re-shoot
+the pen.
