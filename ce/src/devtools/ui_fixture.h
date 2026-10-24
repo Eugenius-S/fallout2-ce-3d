@@ -6,6 +6,7 @@ namespace devtools {
 
 bool parseUiFixtureOption(const char* arg);
 bool parseUiFixtureFont101PreviewOption(const char* arg);
+bool parseUiFixtureFont101WeightOption(const char* arg);
 bool startUiFixtureWhenReady(bool startupReady, bool blockingState);
 bool uiFixtureUsesDialogBarter();
 void uiFixtureDialogReady(const char* scriptName, int speakerId, int speakerTile, int eligibleRuns);

@@ -62,6 +62,8 @@ int gLogDiagnosticFrames = 0;
 bool gFont101PreviewRequested = false;
 bool gFont101PreviewActivated = false;
 double gFont101PreviewScale = 1.0;
+bool gFont101PreviewWeightRequested = false;
+bool gFont101PreviewBold = true;
 
 const char* fixtureName()
 {
@@ -436,12 +438,13 @@ void captureWindow(const TextWindowSnapshot& window, const std::vector<scene::Te
         return;
     }
 
-    printf("UI_FIXTURE PASS screen=%s window=%d generation=%llu font=101 runs=%zu screen_runs=%zu visible_runs=%zu visible_coverage=%u overlay_runs=%zu overlay_pixels=%u colors=original green=%d white=%d yellow=%d red=%d other=%d sharp_setting=%d active=%d drawn=%d preview_scale=%.2f",
+    printf("UI_FIXTURE PASS screen=%s window=%d generation=%llu font=101 runs=%zu screen_runs=%zu visible_runs=%zu visible_coverage=%u overlay_runs=%zu overlay_pixels=%u colors=original green=%d white=%d yellow=%d red=%d other=%d sharp_setting=%d active=%d drawn=%d preview_scale=%.2f preview_weight=%s",
         fixtureName(), window.id, static_cast<unsigned long long>(window.generation), evidence.size(),
         proof.records.size(), proof.visibleRecords.size(), proof.visibleCoverage, overlayEvidence.size(), proof.overlayPixels,
         greenCount, whiteCount, yellowCount, redCount, otherCount,
         settings.scene3d.sharp_text ? 1 : 0, frame.active ? 1 : 0, frame.drawn ? 1 : 0,
-        gFont101PreviewRequested ? gFont101PreviewScale : 1.0);
+        gFont101PreviewRequested ? gFont101PreviewScale : 1.0,
+        gFont101PreviewWeightRequested ? (gFont101PreviewBold ? "bold" : "semibold") : "bold");
     if (gKind == UiFixtureKind::Barter) {
         printf(" speaker_script=%s speaker=%d speaker_tile=%d white_zero_totals=%d left=$0@%d right=$0@%d",
             gSpeakerScript, gSpeakerId, gSpeakerTile, whiteZeroCount, leftZeroX, rightZeroX);
@@ -520,9 +523,30 @@ bool parseUiFixtureFont101PreviewOption(const char* arg)
     return true;
 }
 
+bool parseUiFixtureFont101WeightOption(const char* arg)
+{
+    const char* prefix = "--dev-font101-weight-preview=";
+    if (strncmp(arg, prefix, strlen(prefix)) != 0) return false;
+    const char* value = arg + strlen(prefix);
+    if (strcmp(value, "bold") == 0) gFont101PreviewBold = true;
+    else if (strcmp(value, "semibold") == 0) gFont101PreviewBold = false;
+    else {
+        gInvalidUiFixture = true;
+        fprintf(stderr, "devtools: invalid font-101 weight preview (expected bold or semibold)\n");
+        fflush(stderr);
+        return true;
+    }
+    gFont101PreviewWeightRequested = true;
+    return true;
+}
+
 bool startUiFixtureWhenReady(bool startupReady, bool blockingState)
 {
     if (gFont101PreviewRequested && (gKind != UiFixtureKind::Character || !settings.scene3d.sharp_text)) {
+        gInvalidUiFixture = true;
+    }
+    if (gFont101PreviewWeightRequested && (gKind != UiFixtureKind::Character
+            || !settings.scene3d.sharp_text || !gFont101PreviewRequested)) {
         gInvalidUiFixture = true;
     }
     if (gInvalidUiFixture && gStage == UiFixtureStage::Idle && startupReady && !blockingState) {
@@ -567,7 +591,12 @@ bool startUiFixtureWhenReady(bool startupReady, bool blockingState)
             fixtureFail("invalid-font101-preview-scale");
             return false;
         }
-        printf("UI_FIXTURE SETUP screen=character preview_scale=%.2f process_only=1\n", gFont101PreviewScale);
+        if (gFont101PreviewWeightRequested) {
+            scene::setFont101PreviewBold(gFont101PreviewBold, -1);
+        }
+        printf("UI_FIXTURE SETUP screen=character preview_scale=%.2f preview_weight=%s process_only=1\n",
+            gFont101PreviewScale,
+            gFont101PreviewWeightRequested ? (gFont101PreviewBold ? "bold" : "semibold") : "bold");
         fflush(stdout);
     }
     if (key == -1) {
@@ -630,6 +659,9 @@ void uiFixtureVanillaPresented()
         if (!scene::setFont101PreviewScale(gFont101PreviewScale, window.id)) {
             fixtureFail("invalid-font101-preview-scale");
             return;
+        }
+        if (gFont101PreviewWeightRequested) {
+            scene::setFont101PreviewBold(gFont101PreviewBold, window.id);
         }
         gFont101PreviewActivated = true;
         printf("UI_FIXTURE STEP screen=character preview_scale=%.2f owner_window=%d action=scope\n",

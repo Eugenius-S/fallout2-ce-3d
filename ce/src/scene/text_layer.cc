@@ -15,6 +15,8 @@ namespace {
 
 double gFont101PreviewScale = 1.0;
 int gFont101PreviewOwnerWindow = -1;
+bool gFont101PreviewBold = true;
+int gFont101PreviewWeightOwnerWindow = -1;
 
 bool validPixels(TextPixels pixels)
 {
@@ -127,6 +129,19 @@ int font101PreviewCoverageHeight(int lineHeight, int ownerWindow)
     const double scale = font101PreviewScaleForWindow(ownerWindow);
     if (scale <= 1.0) return lineHeight;
     return static_cast<int>(std::ceil((std::max(1.0, lineHeight - 0.5) * scale) + 0.5));
+}
+
+bool setFont101PreviewBold(bool bold, int ownerWindow)
+{
+    gFont101PreviewBold = bold;
+    gFont101PreviewWeightOwnerWindow = ownerWindow;
+    return true;
+}
+
+bool font101PreviewUsesBold(int ownerWindow)
+{
+    if (gFont101PreviewWeightOwnerWindow >= 0 && ownerWindow != gFont101PreviewWeightOwnerWindow) return true;
+    return gFont101PreviewBold;
 }
 
 TextLayer::TextLayer(std::size_t recordLimit)

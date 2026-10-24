@@ -77,7 +77,8 @@ int main()
     int failures = 0;
     failures += !check(fallout::scene::setFont101PreviewScale(1.0, -1)
             && fallout::scene::font101PreviewCoverageHeight(9, -1) == 9
-            && fallout::scene::font101PreviewCoverageHeight(1, -1) == 1,
+            && fallout::scene::font101PreviewCoverageHeight(1, -1) == 1
+            && fallout::scene::font101PreviewUsesBold(42),
         "default preview preserves short and production line heights");
     failures += !check(fallout::scene::setFont101PreviewScale(1.08, 42)
             && fallout::scene::font101PreviewScaleForWindow(42) == 1.08
@@ -97,6 +98,11 @@ int main()
             && fallout::scene::font101PreviewScaleForWindow(42) == 1.29,
         "unsupported preview scale leaves the active value unchanged");
     fallout::scene::setFont101PreviewScale(1.0, -1);
+    failures += !check(fallout::scene::setFont101PreviewBold(false, 42)
+            && !fallout::scene::font101PreviewUsesBold(42)
+            && fallout::scene::font101PreviewUsesBold(43),
+        "semi-bold preview face is limited to its owner window");
+    fallout::scene::setFont101PreviewBold(true, -1);
 
     // An opaque button-image copy restores the source background, not whatever
     // happened to be under the destination before the blit.

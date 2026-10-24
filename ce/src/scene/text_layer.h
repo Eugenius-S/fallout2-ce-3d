@@ -92,6 +92,8 @@ struct TextVisibilityMask {
 bool setFont101PreviewScale(double scale, int ownerWindow);
 double font101PreviewScaleForWindow(int ownerWindow);
 int font101PreviewCoverageHeight(int lineHeight, int ownerWindow);
+bool setFont101PreviewBold(bool bold, int ownerWindow);
+bool font101PreviewUsesBold(int ownerWindow);
 
 struct TextRecord {
     TextBufferId buffer = 0;

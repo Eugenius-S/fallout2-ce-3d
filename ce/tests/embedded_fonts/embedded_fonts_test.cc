@@ -290,6 +290,31 @@ int main()
         }
     }
     fallout::scene::setFont101PreviewScale(1.0, -1);
+    fallout::scene::setFont101PreviewScale(1.29, -1);
+    fallout::scene::setFont101PreviewBold(false, -1);
+    fitRecord.run.text = std::string("\xA8", 1); // CP1251: capital Yo.
+    const int facePreviewHeight = fallout::scene::font101PreviewCoverageHeight(9, -1);
+    std::vector<fallout::scene::TextVisibilityMask> facePreviewVisibility = fullLineVisibility;
+    std::fill(facePreviewVisibility[0].pixels.begin(), facePreviewVisibility[0].pixels.end(), 0);
+    for (int y = fitRecord.run.y; y < fitRecord.run.y + facePreviewHeight; ++y) {
+        std::fill(facePreviewVisibility[0].pixels.begin() + y * 256,
+            facePreviewVisibility[0].pixels.begin() + (y + 1) * 256, 1);
+    }
+    SharpTextSurface semiFull, semiClipped, boldFull, boldClipped;
+    if (!renderSharpText({ fitRecord }, 256, 32, 768, 96, palette, 256, fullLineVisibility, &semiFull)
+        || !renderSharpText({ fitRecord }, 256, 32, 768, 96, palette, 256, facePreviewVisibility, &semiClipped)
+        || semiFull.pixels != semiClipped.pixels) {
+        std::fprintf(stderr, "Semi-bold font-101 E preview clipped a CP1251 diacritic\n");
+        return 1;
+    }
+    fallout::scene::setFont101PreviewBold(true, -1);
+    if (!renderSharpText({ fitRecord }, 256, 32, 768, 96, palette, 256, fullLineVisibility, &boldFull)
+        || !renderSharpText({ fitRecord }, 256, 32, 768, 96, palette, 256, facePreviewVisibility, &boldClipped)
+        || boldFull.pixels != boldClipped.pixels || semiFull.pixels == boldFull.pixels) {
+        std::fprintf(stderr, "Font-101 face preview failed to select a distinct, unclipped Bold 700 face\n");
+        return 1;
+    }
+    fallout::scene::setFont101PreviewScale(1.0, -1);
     fitRecord.run.text = "Hg";
     fitRecord.run.lineHeight = 18;
 

@@ -34,6 +34,8 @@ param(
     [string]$UiFixture,
     [ValidateSet('1.00', '1.08', '1.15', '1.22', '1.29')]
     [string]$Font101PreviewScale,
+    [ValidateSet('bold', 'semibold')]
+    [string]$Font101PreviewWeight,
     [string]$Tour,
     [switch]$Classic,
     [switch]$Preferences,
@@ -139,6 +141,11 @@ if ($Font101PreviewScale) {
     if ($UiFixture -ne 'character') { throw '-Font101PreviewScale requires -UiFixture character.' }
     if (-not $SharpText) { throw '-Font101PreviewScale requires -SharpText.' }
 }
+if ($Font101PreviewWeight) {
+    if ($UiFixture -ne 'character') { throw '-Font101PreviewWeight requires -UiFixture character.' }
+    if (-not $SharpText) { throw '-Font101PreviewWeight requires -SharpText.' }
+    if (-not $Font101PreviewScale) { throw '-Font101PreviewWeight requires -Font101PreviewScale.' }
+}
 if ($DialogPageInspect) {
     if (-not $DialogFixture) { throw '-DialogPageInspect requires -DialogFixture.' }
     if ($SharpText) { throw '-DialogPageInspect must inspect the original pixel text with sharp text off.' }
@@ -189,6 +196,7 @@ $arguments = @('--dev-tools')
 if ($SharpText) { $arguments += '--dev-sharp-text=1' } else { $arguments += '--dev-sharp-text=0' }
 if ($UiFixture) { $arguments += "--dev-ui-fixture=$UiFixture" }
 if ($Font101PreviewScale) { $arguments += "--dev-font101-size-preview=$Font101PreviewScale" }
+if ($Font101PreviewWeight) { $arguments += "--dev-font101-weight-preview=$Font101PreviewWeight" }
 if ($UiFixture -eq 'log') { $arguments += '--dev-classic' }
 if ($DialogFixture) { $arguments += '--dev-dialog-fixture' }
 if ($DialogPageInspect) { $arguments += '--dev-dialog-page-inspect' }
@@ -442,6 +450,9 @@ if ($UiFixture) {
     }
     if ($Font101PreviewScale -and $fixtureLog -notmatch ('(?m)^UI_FIXTURE PASS screen=character .* preview_scale=' + [regex]::Escape($Font101PreviewScale) + '(?: |$)')) {
         throw "Character fixture did not confirm requested font-101 preview scale $Font101PreviewScale."
+    }
+    if ($Font101PreviewWeight -and $fixtureLog -notmatch ('(?m)^UI_FIXTURE PASS screen=character .* preview_weight=' + [regex]::Escape($Font101PreviewWeight) + '(?: |$)')) {
+        throw "Character fixture did not confirm requested font-101 preview weight $Font101PreviewWeight."
     }
     if ($SharpText -and ([int]$passLine.Groups[7].Value -le 0 -or [int]$passLine.Groups[8].Value -le 0)) {
         throw "Sharp-on UI fixture '$UiFixture' lacks visible overlay pixels from its target window."
