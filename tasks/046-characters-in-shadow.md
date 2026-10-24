@@ -143,3 +143,21 @@ Not shadows, split into their own tasks once he finishes:
   spot patches.
 
 Next: wait for the rest of his notes before planning any fix.
+
+### 2026-10-24 owner (live game review, round 3)
+Screenshots shot-09..10.png. Still recording only. Note: this agent cannot
+open the screenshots in this session (the file read returns a hosted link, not
+the picture), so they stay as evidence without captions; each artifact gets
+reproduced in dev runs when the fix work starts.
+
+- From the fence shadow he reads that the shadow pass ignores the object's
+  alpha channel: the fence casts a solid band although its art is full of
+  holes. The shadow must account for alpha.
+- The straight card cutout has gone somewhere; it was good before. Which card
+  is unclear from the note; ask when he wraps up.
+- Praise: the barrels' smoke in Klamath and the flies over the dead brahmin
+  read well (the 051 smoke order holds up in his eyes).
+- No glows render in the 3D view; his words: if that is not our line, ignore
+  it. The lamps are 020, so it likely belongs there.
+
+Next: still waiting for the rest of his notes.
