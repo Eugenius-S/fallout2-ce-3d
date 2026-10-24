@@ -499,7 +499,11 @@ void textCaptureDrawText(unsigned char* buffer, const char* string, int length, 
         return;
     }
     const bool shadowed = (color & DRAW_TEXT_FLAG_SHADOWED) != 0;
-    scene::TextRect bounds { x, y, std::max(1, width + (shadowed ? 1 : 0)), std::max(1, lineHeight + (shadowed ? 1 : 0)) };
+    const int previewLineHeight = fontGetCurrent() == 101
+        ? scene::font101PreviewCoverageHeight(lineHeight, range->ownerWindow)
+        : lineHeight;
+    scene::TextRect bounds { x, y, std::max(1, width + (shadowed ? 1 : 0)),
+        std::max(1, std::max(lineHeight, previewLineHeight) + (shadowed ? 1 : 0)) };
     const scene::TextRect clipped = clippedRect(bounds, *range);
     PixelSnapshot before = snapshot(*range, clipped);
 
@@ -777,6 +781,7 @@ bool textCaptureVisibilityMask(const TextRecord& record, int width, int height, 
     if (mask == nullptr || width <= 0 || height <= 0) return false;
     mask->bounds = {};
     mask->pixels.clear();
+
     std::lock_guard<std::recursive_mutex> lock(captureMutex());
     BufferRange* recordRange = nullptr;
     for (auto& item : ranges()) {

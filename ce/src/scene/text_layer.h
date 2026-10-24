@@ -87,6 +87,12 @@ struct TextVisibilityMask {
     }
 };
 
+// Process-local dev preview state. The owner window narrows the scale to a
+// single fixture window; -1 applies it to CPU-only renderer tests.
+bool setFont101PreviewScale(double scale, int ownerWindow);
+double font101PreviewScaleForWindow(int ownerWindow);
+int font101PreviewCoverageHeight(int lineHeight, int ownerWindow);
+
 struct TextRecord {
     TextBufferId buffer = 0;
     bool orphan = false;

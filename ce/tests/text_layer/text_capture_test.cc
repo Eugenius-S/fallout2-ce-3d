@@ -22,6 +22,7 @@ TextWindowSnapshot gTestWindow = {};
 TextCursorSnapshot gTestCursor = {};
 
 int fakeLineHeight() { return 2; }
+int fakePreviewLineHeight() { return 9; }
 int fakeCharacterWidth(int) { return 1; }
 int fakeLetterSpacing() { return 0; }
 int fakeMonospacedWidth() { return 1; }
@@ -675,6 +676,53 @@ void testCursorOcclusionPreservesOwnedText()
     gTestCursor = {};
 }
 
+void testFont101SizePreviewExtendsCaptureOnly()
+{
+    using namespace fallout;
+    std::vector<unsigned char> pixels(20 * 20, 0);
+    textCaptureRegisterExternalBuffer(pixels.data(), pixels.size(), 20, 20, 20, false);
+    textCaptureMarkWindowBuffer(pixels.data(), 12);
+    scene::TextBufferId generation = textCaptureBufferId(pixels.data());
+    gTestWindow = {};
+    gTestWindow.id = 12;
+    gTestWindow.width = 20;
+    gTestWindow.height = 20;
+    gTestWindow.pitch = 20;
+    gTestWindow.pixels = pixels.data();
+    gTestWindow.generation = generation;
+    gCurrentFont = 101;
+    fontGetLineHeight = fakePreviewLineHeight;
+    fontDrawTextPtr = fakeFontDraw;
+
+    check(scene::setFont101PreviewScale(1.0, 12), "font-101 preview default scale is available");
+    fontDrawText(pixels.data() + 2 * 20 + 2, "A", 1, 20, static_cast<ColorWithFlags>(7));
+    auto records = scene::textCaptureRecords(generation);
+    check(records.size() == 1 && records.front().bounds.height == 9,
+        "default font-101 capture keeps the original line bounds");
+
+    textCaptureUnregisterExternalBuffer(pixels.data());
+    pixels.assign(pixels.size(), 0);
+    textCaptureRegisterExternalBuffer(pixels.data(), pixels.size(), 20, 20, 20, false);
+    textCaptureMarkWindowBuffer(pixels.data(), 12);
+    generation = textCaptureBufferId(pixels.data());
+    gTestWindow.generation = generation;
+    scene::setFont101PreviewScale(1.15, 12);
+    fontDrawText(pixels.data() + 2 * 20 + 2, "B", 1, 20, static_cast<ColorWithFlags>(7));
+    records = scene::textCaptureRecords(generation);
+    scene::TextVisibilityMask mask;
+    check(records.size() == 1 && records.front().bounds.height == 11
+            && records.front().pixels.size() == 1
+            && scene::textCaptureVisibilityMask(records.front(), 20, 20, &mask)
+            && mask.bounds.height == 11,
+        "font-101 preview extends only captured coverage, not legacy pixels or visibility logic");
+
+    scene::setFont101PreviewScale(1.0, -1);
+    fontGetLineHeight = fakeLineHeight;
+    textCaptureUnregisterExternalBuffer(pixels.data());
+    gTestWindow = {};
+    gCurrentFont = 101;
+}
+
 } // namespace
 
 int main()
@@ -697,6 +745,7 @@ int main()
     testUnknownBuffersKeepPixelBehavior();
     testVisibilityClearsHiddenAndStaleOwners();
     testCursorOcclusionPreservesOwnedText();
+    testFont101SizePreviewExtendsCaptureOnly();
     if (failures == 0) std::printf("text_capture_tests: all passed\n");
     return failures == 0 ? 0 : 1;
 }

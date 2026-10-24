@@ -32,6 +32,8 @@ param(
     [switch]$DialogCursorCheck,
     [ValidateSet('inventory', 'pipboy', 'character', 'barter', 'log')]
     [string]$UiFixture,
+    [ValidateSet('1.00', '1.08', '1.15')]
+    [string]$Font101PreviewScale,
     [string]$Tour,
     [switch]$Classic,
     [switch]$Preferences,
@@ -133,6 +135,10 @@ if ($UiFixture) {
         throw '-UiFixture requires -CaptureConsole and -OutputDirectory for fixture diagnostics.'
     }
 }
+if ($Font101PreviewScale) {
+    if ($UiFixture -ne 'character') { throw '-Font101PreviewScale requires -UiFixture character.' }
+    if (-not $SharpText) { throw '-Font101PreviewScale requires -SharpText.' }
+}
 if ($DialogPageInspect) {
     if (-not $DialogFixture) { throw '-DialogPageInspect requires -DialogFixture.' }
     if ($SharpText) { throw '-DialogPageInspect must inspect the original pixel text with sharp text off.' }
@@ -182,6 +188,7 @@ $runId = [guid]::NewGuid().ToString('N')
 $arguments = @('--dev-tools')
 if ($SharpText) { $arguments += '--dev-sharp-text=1' } else { $arguments += '--dev-sharp-text=0' }
 if ($UiFixture) { $arguments += "--dev-ui-fixture=$UiFixture" }
+if ($Font101PreviewScale) { $arguments += "--dev-font101-size-preview=$Font101PreviewScale" }
 if ($UiFixture -eq 'log') { $arguments += '--dev-classic' }
 if ($DialogFixture) { $arguments += '--dev-dialog-fixture' }
 if ($DialogPageInspect) { $arguments += '--dev-dialog-page-inspect' }
@@ -432,6 +439,9 @@ if ($UiFixture) {
         [int]$passLine.Groups[4].Value -le 0 -or [int]$passLine.Groups[5].Value -le 0 -or
         [int]$passLine.Groups[6].Value -le 0) {
         throw "UI fixture '$UiFixture' lacks a visible target-window font-101 record and coverage proof."
+    }
+    if ($Font101PreviewScale -and $fixtureLog -notmatch ('(?m)^UI_FIXTURE PASS screen=character .* preview_scale=' + [regex]::Escape($Font101PreviewScale) + '(?: |$)')) {
+        throw "Character fixture did not confirm requested font-101 preview scale $Font101PreviewScale."
     }
     if ($SharpText -and ([int]$passLine.Groups[7].Value -le 0 -or [int]$passLine.Groups[8].Value -le 0)) {
         throw "Sharp-on UI fixture '$UiFixture' lacks visible overlay pixels from its target window."

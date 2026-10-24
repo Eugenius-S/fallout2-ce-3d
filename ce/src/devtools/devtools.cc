@@ -754,6 +754,7 @@ bool parseOption(const char* arg)
         return true;
     }
     if (parseUiFixtureOption(arg)) return true;
+    if (parseUiFixtureFont101PreviewOption(arg)) return true;
     if (strcmp(arg, "--dev-preferences-snapshot") == 0) {
         gPreferencesSnapshotPending = true;
         return true;

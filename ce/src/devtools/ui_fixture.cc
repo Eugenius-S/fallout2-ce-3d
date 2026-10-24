@@ -59,6 +59,9 @@ int gSpeakerTile = -1;
 int gInitialDateLogCount = 0;
 bool gPipboyStatusRequested = false;
 int gLogDiagnosticFrames = 0;
+bool gFont101PreviewRequested = false;
+bool gFont101PreviewActivated = false;
+double gFont101PreviewScale = 1.0;
 
 const char* fixtureName()
 {
@@ -433,11 +436,12 @@ void captureWindow(const TextWindowSnapshot& window, const std::vector<scene::Te
         return;
     }
 
-    printf("UI_FIXTURE PASS screen=%s window=%d generation=%llu font=101 runs=%zu screen_runs=%zu visible_runs=%zu visible_coverage=%u overlay_runs=%zu overlay_pixels=%u colors=original green=%d white=%d yellow=%d red=%d other=%d sharp_setting=%d active=%d drawn=%d",
+    printf("UI_FIXTURE PASS screen=%s window=%d generation=%llu font=101 runs=%zu screen_runs=%zu visible_runs=%zu visible_coverage=%u overlay_runs=%zu overlay_pixels=%u colors=original green=%d white=%d yellow=%d red=%d other=%d sharp_setting=%d active=%d drawn=%d preview_scale=%.2f",
         fixtureName(), window.id, static_cast<unsigned long long>(window.generation), evidence.size(),
         proof.records.size(), proof.visibleRecords.size(), proof.visibleCoverage, overlayEvidence.size(), proof.overlayPixels,
         greenCount, whiteCount, yellowCount, redCount, otherCount,
-        settings.scene3d.sharp_text ? 1 : 0, frame.active ? 1 : 0, frame.drawn ? 1 : 0);
+        settings.scene3d.sharp_text ? 1 : 0, frame.active ? 1 : 0, frame.drawn ? 1 : 0,
+        gFont101PreviewRequested ? gFont101PreviewScale : 1.0);
     if (gKind == UiFixtureKind::Barter) {
         printf(" speaker_script=%s speaker=%d speaker_tile=%d white_zero_totals=%d left=$0@%d right=$0@%d",
             gSpeakerScript, gSpeakerId, gSpeakerTile, whiteZeroCount, leftZeroX, rightZeroX);
@@ -496,8 +500,29 @@ bool parseUiFixtureOption(const char* arg)
     return true;
 }
 
+bool parseUiFixtureFont101PreviewOption(const char* arg)
+{
+    const char* prefix = "--dev-font101-size-preview=";
+    if (strncmp(arg, prefix, strlen(prefix)) != 0) return false;
+    const char* value = arg + strlen(prefix);
+    if (strcmp(value, "1.00") == 0) gFont101PreviewScale = 1.0;
+    else if (strcmp(value, "1.08") == 0) gFont101PreviewScale = 1.08;
+    else if (strcmp(value, "1.15") == 0) gFont101PreviewScale = 1.15;
+    else {
+        gInvalidUiFixture = true;
+        fprintf(stderr, "devtools: invalid font-101 size preview (expected 1.00, 1.08, or 1.15)\n");
+        fflush(stderr);
+        return true;
+    }
+    gFont101PreviewRequested = true;
+    return true;
+}
+
 bool startUiFixtureWhenReady(bool startupReady, bool blockingState)
 {
+    if (gFont101PreviewRequested && (gKind != UiFixtureKind::Character || !settings.scene3d.sharp_text)) {
+        gInvalidUiFixture = true;
+    }
     if (gInvalidUiFixture && gStage == UiFixtureStage::Idle && startupReady && !blockingState) {
         printf("UI_FIXTURE FAIL screen=unknown reason=invalid-mode\n");
         fflush(stdout);
@@ -533,6 +558,14 @@ bool startUiFixtureWhenReady(bool startupReady, bool blockingState)
         }
         pipboyReset();
         printf("UI_FIXTURE SETUP screen=pipboy start_pipboy=2 process_only=1\n");
+        fflush(stdout);
+    }
+    if (gKind == UiFixtureKind::Character && gFont101PreviewRequested) {
+        if (!scene::setFont101PreviewScale(gFont101PreviewScale, -1)) {
+            fixtureFail("invalid-font101-preview-scale");
+            return false;
+        }
+        printf("UI_FIXTURE SETUP screen=character preview_scale=%.2f process_only=1\n", gFont101PreviewScale);
         fflush(stdout);
     }
     if (key == -1) {
@@ -589,6 +622,17 @@ void uiFixtureVanillaPresented()
             fflush(stdout);
         }
         return;
+    }
+
+    if (gKind == UiFixtureKind::Character && gFont101PreviewRequested && !gFont101PreviewActivated) {
+        if (!scene::setFont101PreviewScale(gFont101PreviewScale, window.id)) {
+            fixtureFail("invalid-font101-preview-scale");
+            return;
+        }
+        gFont101PreviewActivated = true;
+        printf("UI_FIXTURE STEP screen=character preview_scale=%.2f owner_window=%d action=scope\n",
+            gFont101PreviewScale, window.id);
+        fflush(stdout);
     }
 
     if (gKind == UiFixtureKind::Pipboy && !gPipboyStatusRequested) {

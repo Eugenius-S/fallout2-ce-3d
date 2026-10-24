@@ -75,6 +75,22 @@ bool capture(TextLayer& layer, TextBufferId id, bool orphan,
 int main()
 {
     int failures = 0;
+    failures += !check(fallout::scene::setFont101PreviewScale(1.0, -1)
+            && fallout::scene::font101PreviewCoverageHeight(9, -1) == 9
+            && fallout::scene::font101PreviewCoverageHeight(1, -1) == 1,
+        "default preview preserves short and production line heights");
+    failures += !check(fallout::scene::setFont101PreviewScale(1.08, 42)
+            && fallout::scene::font101PreviewScaleForWindow(42) == 1.08
+            && fallout::scene::font101PreviewScaleForWindow(43) == 1.0
+            && fallout::scene::font101PreviewCoverageHeight(9, 42) == 10,
+        "1.08 preview is owner scoped and extends 9px coverage by one row");
+    failures += !check(fallout::scene::setFont101PreviewScale(1.15, 42)
+            && fallout::scene::font101PreviewCoverageHeight(9, 42) == 11,
+        "1.15 preview extends 9px coverage by two rows");
+    failures += !check(!fallout::scene::setFont101PreviewScale(1.2, 42)
+            && fallout::scene::font101PreviewScaleForWindow(42) == 1.15,
+        "unsupported preview scale leaves the active value unchanged");
+    fallout::scene::setFont101PreviewScale(1.0, -1);
 
     // An opaque button-image copy restores the source background, not whatever
     // happened to be under the destination before the blit.

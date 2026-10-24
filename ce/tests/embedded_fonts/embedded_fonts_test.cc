@@ -221,32 +221,75 @@ int main()
     std::vector<fallout::scene::TextVisibilityMask> fullLineVisibility(1);
     fullLineVisibility[0].bounds = { 0, 0, 256, 32 };
     fullLineVisibility[0].pixels.assign(256 * 32, 1);
-    std::vector<fallout::scene::TextVisibilityMask> clippedLineVisibility = fullLineVisibility;
-    std::fill(clippedLineVisibility[0].pixels.begin(), clippedLineVisibility[0].pixels.end(), 0);
-    for (int y = fitRecord.run.y; y < fitRecord.run.y + fitRecord.run.lineHeight; ++y) {
-        std::fill(clippedLineVisibility[0].pixels.begin() + y * 256,
-            clippedLineVisibility[0].pixels.begin() + (y + 1) * 256, 1);
-    }
-    for (int scale : { 2, 3 }) {
-        auto renderLine = [&](const char* bytes, std::size_t length, SharpTextSurface* full, SharpTextSurface* clipped) {
-            fitRecord.run.text.assign(bytes, length);
-            return renderSharpText({ fitRecord }, 256, 32, 256 * scale, 32 * scale,
-                    palette, 256, fullLineVisibility, full)
-                && renderSharpText({ fitRecord }, 256, 32, 256 * scale, 32 * scale,
-                    palette, 256, clippedLineVisibility, clipped)
-                && full->pixels == clipped->pixels;
-        };
-        SharpTextSurface iFull, iClipped, shortIFull, shortIClipped;
-        SharpTextSurface eFull, eClipped, diaeresisFull, diaeresisClipped;
-        if (!renderLine("\xC8", 1, &iFull, &iClipped)
-            || !renderLine("\xC9", 1, &shortIFull, &shortIClipped)
-            || !renderLine("\xC5", 1, &eFull, &eClipped)
-            || !renderLine("\xA8", 1, &diaeresisFull, &diaeresisClipped)
-            || iFull.pixels == shortIFull.pixels || eFull.pixels == diaeresisFull.pixels) {
-            std::fprintf(stderr, "CP1251 diacritics were clipped or collapsed at scale %d\n", scale);
-            return 1;
+    for (double preview : { 1.0, 1.08, 1.15 }) {
+        fallout::scene::setFont101PreviewScale(preview, -1);
+        const int coverageHeight = fallout::scene::font101PreviewCoverageHeight(9, -1);
+        std::vector<fallout::scene::TextVisibilityMask> clippedLineVisibility = fullLineVisibility;
+        std::fill(clippedLineVisibility[0].pixels.begin(), clippedLineVisibility[0].pixels.end(), 0);
+        for (int y = fitRecord.run.y; y < fitRecord.run.y + coverageHeight; ++y) {
+            std::fill(clippedLineVisibility[0].pixels.begin() + y * 256,
+                clippedLineVisibility[0].pixels.begin() + (y + 1) * 256, 1);
+        }
+        for (int outputScale : { 2, 3 }) {
+            auto renderLine = [&](const char* bytes, std::size_t length, SharpTextSurface* full, SharpTextSurface* clipped) {
+                fitRecord.run.text.assign(bytes, length);
+                const bool renderedFull = renderSharpText({ fitRecord }, 256, 32, 256 * outputScale, 32 * outputScale,
+                        palette, 256, fullLineVisibility, full)
+                    ;
+                const bool renderedClipped = renderSharpText({ fitRecord }, 256, 32, 256 * outputScale, 32 * outputScale,
+                    palette, 256, clippedLineVisibility, clipped);
+                if (!renderedFull || !renderedClipped || full->pixels != clipped->pixels) {
+                    std::size_t firstDifference = 0;
+                    while (firstDifference < full->pixels.size()
+                        && firstDifference < clipped->pixels.size()
+                        && full->pixels[firstDifference] == clipped->pixels[firstDifference]) firstDifference++;
+                    std::fprintf(stderr, "preview draw mismatch byte=%02X scale=%.2f x%d full=%d clipped=%d same=%d\n",
+                        static_cast<unsigned char>(bytes[0]), preview, outputScale, renderedFull ? 1 : 0,
+                        renderedClipped ? 1 : 0, full->pixels == clipped->pixels ? 1 : 0);
+                    if (firstDifference < full->pixels.size()) {
+                        const std::size_t pixel = firstDifference / 4;
+                        std::fprintf(stderr, "first differing pixel=%zu,%zu channel=%zu full=%u clipped=%u\n",
+                            pixel % full->width, pixel / full->width, firstDifference % 4,
+                            full->pixels[firstDifference], clipped->pixels[firstDifference]);
+                    }
+                    return false;
+                }
+                for (int y = 0; y < full->height; ++y) {
+                    for (int x = 0; x < full->width; ++x) {
+                        if (full->pixels[(static_cast<size_t>(y) * full->width + x) * 4 + 3] == 0) continue;
+                        if (x < fitRecord.run.x * outputScale
+                            || x >= (fitRecord.run.x + fitRecord.run.width) * outputScale
+                            || y < fitRecord.run.y * outputScale
+                            || y >= (fitRecord.run.y + coverageHeight) * outputScale) {
+                            std::fprintf(stderr, "preview pixel outside mask byte=%02X scale=%.2f x%d pixel=%d,%d rows=%d..%d\n",
+                                static_cast<unsigned char>(bytes[0]), preview, outputScale, x, y,
+                                fitRecord.run.y * outputScale,
+                                (fitRecord.run.y + coverageHeight) * outputScale - 1);
+                            return false;
+                        }
+                    }
+                }
+                return true;
+            };
+            SharpTextSurface iFull, iClipped, shortIFull, shortIClipped;
+            SharpTextSurface eFull, eClipped, diaeresisFull, diaeresisClipped;
+            SharpTextSurface lowerYoFull, lowerYoClipped, upperGFull, upperGClipped, descenderFull, descenderClipped;
+            if (!renderLine("\xC8", 1, &iFull, &iClipped)
+                || !renderLine("\xC9", 1, &shortIFull, &shortIClipped)
+                || !renderLine("\xC5", 1, &eFull, &eClipped)
+                || !renderLine("\xA8", 1, &diaeresisFull, &diaeresisClipped)
+                || !renderLine("\xB8", 1, &lowerYoFull, &lowerYoClipped)
+                || !renderLine("\x81", 1, &upperGFull, &upperGClipped)
+                || !renderLine("g", 1, &descenderFull, &descenderClipped)
+                || iFull.pixels == shortIFull.pixels || eFull.pixels == diaeresisFull.pixels
+                || lowerYoFull.pixels == upperGFull.pixels) {
+                std::fprintf(stderr, "CP1251 preview glyphs were clipped, escaped their captured mask, or collapsed at %.2f x%d\n",
+                    preview, outputScale);
+                return 1;
+            }
         }
     }
+    fallout::scene::setFont101PreviewScale(1.0, -1);
     fitRecord.run.text = "Hg";
     fitRecord.run.lineHeight = 18;
 

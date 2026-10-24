@@ -1,6 +1,7 @@
 #include "text_layer.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdarg>
 #include <cstdint>
 #include <cstdio>
@@ -11,6 +12,9 @@
 namespace fallout {
 namespace scene {
 namespace {
+
+double gFont101PreviewScale = 1.0;
+int gFont101PreviewOwnerWindow = -1;
 
 bool validPixels(TextPixels pixels)
 {
@@ -102,6 +106,28 @@ void traceRun(const char* stage, TextBufferId buffer, const TextRunInfo& run, co
 }
 
 } // namespace
+
+bool setFont101PreviewScale(double scale, int ownerWindow)
+{
+    if (scale != 1.0 && scale != 1.08 && scale != 1.15) return false;
+    gFont101PreviewScale = scale;
+    gFont101PreviewOwnerWindow = ownerWindow;
+    return true;
+}
+
+double font101PreviewScaleForWindow(int ownerWindow)
+{
+    if (gFont101PreviewOwnerWindow >= 0 && ownerWindow != gFont101PreviewOwnerWindow) return 1.0;
+    return gFont101PreviewScale;
+}
+
+int font101PreviewCoverageHeight(int lineHeight, int ownerWindow)
+{
+    if (lineHeight <= 0) return 0;
+    const double scale = font101PreviewScaleForWindow(ownerWindow);
+    if (scale <= 1.0) return lineHeight;
+    return static_cast<int>(std::ceil((std::max(1.0, lineHeight - 0.5) * scale) + 0.5));
+}
 
 TextLayer::TextLayer(std::size_t recordLimit)
     : recordLimit_(std::max<std::size_t>(recordLimit, 1))
