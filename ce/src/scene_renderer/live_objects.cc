@@ -47,9 +47,10 @@ unsigned long long objectArtKey(int fid, int frame, int rotation, int variant)
         | static_cast<unsigned int>(variant & 1);
 }
 
-// The sun shadow at a card's anchor, chasing 0 or 1 over ~150 ms so crossing
-// a shadow border is a short fade (046). The target comes from the hex pass
-// of the shadow map (shadow.cc); nothing of it runs with the shadows off.
+// The sun shadow at a card's anchor, chasing its hex's shadowed share over
+// ~150 ms so crossing a shadow border is a short fade (046). The target
+// comes from the hex pass of the shadow map (shadow.cc); nothing of it runs
+// with the shadows off.
 constexpr double kSpriteShadowFade = 0.15;
 
 double frameSeconds()
@@ -60,7 +61,7 @@ double frameSeconds()
 double spriteShadowFactor(double& state, double& lastSeen, int tile)
 {
     const double now = frameSeconds();
-    const double target = shadowGroundReady() && shadowGroundShadowed(tile) ? 1.0 : 0.0;
+    const double target = shadowGroundReady() ? shadowGroundShadowFactor(tile) : 0.0;
     if (lastSeen > 0.0) {
         state += (target - state) * std::clamp((now - lastSeen) / kSpriteShadowFade, 0.0, 1.0);
     } else {

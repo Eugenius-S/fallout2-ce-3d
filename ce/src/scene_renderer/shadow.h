@@ -8,10 +8,11 @@ namespace scene_renderer {
 // bindStaticShadows rendered it, and the seconds it took since the last call.
 void shadowFrameStats(bool* rendered, double* seconds);
 // The hex pass (task 046): whether the last shadow frame read the ground
-// factors back, and the sun shadow at a tile's anchor hex from it. The live
-// cards chase these over ~150 ms.
+// factors back, and the shadowed share at a tile's anchor hex from it (a
+// fraction, the border fades across hexes). The live cards chase it over
+// ~150 ms.
 bool shadowGroundReady();
-bool shadowGroundShadowed(int tile);
+double shadowGroundShadowFactor(int tile);
 
 namespace internal {
 

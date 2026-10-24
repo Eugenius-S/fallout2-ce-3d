@@ -610,12 +610,14 @@ class SceneBuilder:
         # Plants stay cards, but a card that turns with the eye is no tree: first person stands such
         # a sprite up twice, crosswise, where it grows (scene.crossed). A plant is of wood (its proto's
         # material), ragged and airy, and looks much the same from the side: its sprite is its own
-        # mirror image about the upright line through its hex.
+        # mirror image about the upright line through its hex. A plant baked as a solid is marked all
+        # the same (scene.plants): its crown throws no real shadow (task 045's follow-up).
+        self.plants = []
         self.crossed = []
         wood = pro.MATERIAL_NAMES.index("wood")
         for piece in pieces:
             obj = piece.obj
-            if piece.board is None or piece.board in hidden or not piece.stands or obj.obj_type != ids.OBJ_TYPE_SCENERY \
+            if piece.board is None or not piece.stands or obj.obj_type != ids.OBJ_TYPE_SCENERY \
                     or self.gf.protos.get(obj.pid).material != wood:
                 continue
             opaque = piece.index != 0
@@ -625,7 +627,9 @@ class SceneBuilder:
                 twin = 2 * axis - 1 - np.arange(opaque.shape[1])
                 there = (twin >= 0) & (twin < opaque.shape[1])
                 if (opaque[:, there] & opaque[:, twin[there]]).sum() >= PLANT[2] * opaque.sum():
-                    self.crossed.append(piece.board)
+                    self.plants.append(piece.board)
+                    if piece.board not in hidden:
+                        self.crossed.append(piece.board)
         self.shadows = [row for row in self.shadows if row[0] not in hidden]
         self.solids = solids
         for piece in pieces:
@@ -650,6 +654,7 @@ class SceneBuilder:
         self.panels = []                # (face, frm, scene row) of those that are not doors
         self.door_quads = []
         self.shadows = []               # [board, sprite without its painted shadow, the shadow, frame, rotation]
+        self.plants = []                # boards of plants: their crowns throw no real shadow
         self.exits = []                 # which decals are exit grid hatching
         self.shape_use = Counter()
         self.colliders = []             # [ua, va, ub, vb]: the fronts of walls that stop the player (and light)
@@ -911,6 +916,7 @@ class SceneBuilder:
             "rests": self.rests,                            # [sprite, u, v, z, top]: upright cards standing at height z
             "lifts": self.lifts,                            # [board, du, dv, z]: boards that stand on a solid: moved, and z up
             "crossed": self.crossed,                        # boards that stand as two crossed sheets (plants)
+            "plants": self.plants,                          # boards of plants: cast no real shadow (baked.bin's flag)
             "casts": self.casts,                            # [sprite, u, v]: shade to lie on the floor, like `shadows`
             "hidden": sorted(self.hidden),                  # boards ...
             "hiddenWalls": sorted(self.hidden_sheets + self.hidden_walls),      # ... walls ...

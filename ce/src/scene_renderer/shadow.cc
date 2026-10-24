@@ -277,6 +277,9 @@ bool bindStaticShadows(const float* sceneMvp)
     glUniform1f(gSceneShadowStrengthLocation, sun.strength);
     glUniform1f(gSceneShadowStepLocation, step);
     glUniform1f(gSceneShadowBiasLocation, static_cast<float>(step * 1.5 / (far - near)));
+    // The map's depth span in GL units: the shader fades the shadow with the
+    // distance the sun's ray travels past its caster.
+    glUniform1f(gSceneShadowRangeLocation, static_cast<float>(far - near));
     glActiveTexture(kTexture0 + 5);
     glBindTexture(kTexture2D, gShadowMapTexture);
     glUniform1i(gSceneShadowMapLocation, 5);
@@ -350,6 +353,7 @@ bool bindStaticShadows(const float* sceneMvp)
     glUniformMatrix4fv(gSceneMvpLocation, 1, 0, sceneMvp);
     glUniform1i(gScenePickLocation, 0);
     glColorMask(1, 1, 1, 1);
+    glEnable(kDepthTest);
     glUseProgram(gSceneProgram);
     glBindFramebuffer(kFramebuffer, static_cast<unsigned int>(savedFbo));
     glViewport(savedViewport[0], savedViewport[1], savedViewport[2], savedViewport[3]);
@@ -379,18 +383,20 @@ bool shadowGroundReady()
     return internal::gHexFactorValid;
 }
 
-bool shadowGroundShadowed(int tile)
+double shadowGroundShadowFactor(int tile)
 {
-    if (!internal::gHexFactorValid) return false;
+    if (!internal::gHexFactorValid) return 0.0;
     double x = 0.0, z = 0.0;
-    if (!internal::lightAnchorGround(tile, &x, &z)) return false;
+    if (!internal::lightAnchorGround(tile, &x, &z)) return 0.0;
     const int hexSize = static_cast<int>(internal::kHexSize);
     const int col = static_cast<int>((x + 50.0) * 2.0);
     const int row = static_cast<int>((z + 50.0) * 2.0);
     if (col < 0 || col >= hexSize || row < 0 || row >= hexSize) {
-        return false;
+        return 0.0;
     }
-    return internal::gHexFactor[(row * hexSize + col) * 4] < 128;
+    // The hex pass renders the lit level (1 minus the shadowed share) in the
+    // red channel; the fade chases it as a fraction.
+    return 1.0 - static_cast<int>(internal::gHexFactor[(row * hexSize + col) * 4]) / 255.0;
 }
 
 } // namespace scene_renderer

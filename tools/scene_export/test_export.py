@@ -9,8 +9,8 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from baked_sidecar import (ENTRY as BAKED_ENTRY, HEADER as BAKED_HEADER, LIFT as BAKED_LIFT, MAGIC as BAKED_MAGIC,
-                           SKIP as BAKED_SKIP, FLAT as BAKED_FLAT, FLY_FLAT as BAKED_FLY_FLAT, FLY_SKIP as BAKED_FLY_SKIP,
-                           PLANE as BAKED_PLANE,
+                           NOCAST as BAKED_NOCAST, SKIP as BAKED_SKIP, FLAT as BAKED_FLAT, FLY_FLAT as BAKED_FLY_FLAT,
+                           FLY_SKIP as BAKED_FLY_SKIP, PLANE as BAKED_PLANE,
                            baked_objects, decode_baked_sidecar, encode_baked_sidecar)
 from export import ReadOnlyGameFiles, choose_source, main, parse_args, patch_paths, scene_directory, validate_output_contents
 from floor_sidecar import HEADER, MAGIC, VERSION, cell_content_rect, decode_floor_sidecar, encode_floor_sidecar
@@ -613,6 +613,18 @@ class BakedSidecarTests(unittest.TestCase):
         self.assertIn((300, 0x02000099, BAKED_FLY_SKIP, 0.0, 0.0, 0.0), entries)
         self.assertIn((400, 0x00000036, BAKED_SKIP, 0.0, 0.0, 0.0), entries)
         self.assertEqual(decode_baked_sidecar(encode_baked_sidecar(entries)), entries)
+
+    def test_a_plant_s_object_casts_no_shadow(self):
+        scene, objects = self.sample()
+        scene["plants"] = [0]  # board 0 is the object at (300, 0x02000099)
+        entries = baked_objects(scene, objects)
+        self.assertIn((300, 0x02000099, BAKED_SKIP | BAKED_NOCAST, 0.0, 0.0, 0.0), entries)
+        self.assertIn((205, 0x02000007, BAKED_SKIP, 0.0, 0.0, 0.0), entries)
+        decoded = decode_baked_sidecar(encode_baked_sidecar(entries))
+        self.assertIn((300, 0x02000099, BAKED_SKIP | BAKED_NOCAST, 0.0, 0.0, 0.0), decoded)
+        scene["plants"] = [9]
+        with self.assertRaisesRegex(ValueError, "outside scene.boards"):
+            baked_objects(scene, objects)
 
     def test_an_animated_solid_stays_live(self):
         scene, objects = self.sample()

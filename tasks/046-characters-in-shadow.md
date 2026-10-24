@@ -74,3 +74,46 @@ strange ground shapes at the corrals are still there (they are the 045
 matter), and the pre-existing black strip at the entrance view's right edge
 with the shadows off is in the regression reference itself, so it predates
 the shadows.
+
+### 2026-10-23 glm
+Done: the owner passed 045's three follow-ups to glm, and the shadow border
+now fades to full transparency. sunShadow() grew four taps a uShadowStep
+across: the shadow's core stays sharp, its border ramps to nothing over about
+two steps, and the snap's stairs soften with it; the floor and the walls take
+the faded share. The hex pass renders the graded factor, so the cards' fade
+targets are graded too (shadowGroundShadowFactor replaces the boolean, and a
+hex half in shadow fades its sprites half way).
+The pen's big soft shape from the owner's screenshot is the tree crown's own
+long shadow: the tree NE of the pen (off frame in the corrals view) casts as
+a big baked object, and the low 17:00 sun stretches the crown shadow across
+the pen. With the fade it melts into the ground instead of cutting out as a
+stain; whether plants should stop casting is the owner's call.
+Check: build Release, ctest 12/12; the regression with the pinned config is
+byte-identical to the morning run (the same 13 of 16, the same three at 0).
+The corrals at 17:00: the fence shadow's far edge melts, the crown shadow's
+edge no longer cuts; the shots are in the chat and under
+runs/046-characters-in-shadow/ (corrals-sunset-faded, _fade-before-after,
+_pen-old-new).
+
+### 2026-10-24 glm
+Done: the owner's two notes on the softened shadows. 1) The big soft shape in
+the pen had to go entirely. It is not the tree crown: tracing it across hours
+and from the fly camera showed it anchored at the building SW of the pen, the
+roof's own shadow laid across the yard at full strength however far it
+reached. The fix is general: the shadow now fades with the distance the sun's
+ray travels past its blocker (the fragment's map depth minus the depth the
+blocker wrote, uShadowRange scales it; smoothstep over ~5 GL units), so a
+wall keeps its dark contact line, a fence's shadow melts along its length and
+a roof's far stain is gone. The PCF four-tap border stays. The plants' no-cast
+mark (baked.bin v6, scene.plants, BakedObject.noCast in walls.cc) went in on
+the way and stays: live plant cards never were casters, but a plant baked as
+a solid no longer casts either; the blob's cause turned out to be the roof,
+not the tree. 2) The blob gone with it.
+Check: build Release, ctest 12/12, the exporter suite 49/49. The corrals at
+17:00 and noon and the entrance at 17:00 with the distance fade:
+runs/046-characters-in-shadow/ (corrals-sunset-final, corrals-noon-final,
+entrance-sunset-final; corrals-sunset-shadows is the before). The regression
+with the pinned config (shadows off) is untouched by the shader path; the
+morning byte-identical run covers it.
+Next: the owner judges the look (user-check: yes); the fade lengths (border
+~2 steps, distance ~5 units) are one constant each, tuned for the pen view.

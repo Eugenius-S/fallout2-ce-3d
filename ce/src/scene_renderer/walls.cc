@@ -35,6 +35,7 @@ struct BakedObject {
     // solid made by name stands for in flight only.
     enum Mode { Skip, Lift, Flat, Plane, FlyFlat, FlySkip } mode;
     float offset[3]; // GL x, y, z when lifted; a plane's point x, its direction, z
+    bool noCast = false; // a plant's crown: its cards throw no shadow (task 045's follow-up)
 };
 
 unsigned int gWallTriangleCount = 0;
@@ -390,6 +391,46 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
         }
     }
 
+    // Objects walls.bin draws; live sprite cards skip them. Parsed before the
+    // shadow casters: a plant's crown is marked here and must not cast.
+    constexpr size_t kBakedHeaderSize = 12;
+    constexpr size_t kBakedEntrySize = 24;
+    constexpr unsigned int kMaxBakedEntries = 1000000;
+    std::vector<unsigned char> baked;
+    if (!readBinary(cacheDirectory / "baked.bin", baked)) {
+        return fail("baked.bin is missing or unreadable; re-run the scene exporter");
+    }
+    if (baked.size() < kBakedHeaderSize || baked[0] != 'F' || baked[1] != '2' || baked[2] != 'B' || baked[3] != 'K'
+        || readU16(baked.data() + 4) < 2 || readU16(baked.data() + 4) > 6
+        || readU16(baked.data() + 6) != kBakedHeaderSize) {
+        return fail("baked.bin has an invalid header");
+    }
+    const unsigned int bakedVersion = readU16(baked.data() + 4); // 3 adds Flat, 4 Plane and FlyFlat, 5 FlySkip,
+                                                                 // 6 the no-cast flag in the mode's high bit
+    const unsigned int bakedCount = readU32(baked.data() + 8);
+    if (bakedCount > kMaxBakedEntries || baked.size() != kBakedHeaderSize + bakedCount * kBakedEntrySize) {
+        return fail("baked.bin has a bad length");
+    }
+    std::unordered_map<unsigned long long, BakedObject> bakedObjects;
+    for (unsigned int index = 0; index < bakedCount; index++) {
+        const unsigned char* entry = baked.data() + kBakedHeaderSize + index * kBakedEntrySize;
+        const int tile = static_cast<int>(readU32(entry));
+        const unsigned int rawMode = readU32(entry + 8);
+        const unsigned int mode = rawMode & 0x7FFFFFFFu; // the high bit: a plant's crown throws no shadow
+        const float du = readF32(entry + 12);
+        const float dv = readF32(entry + 16);
+        const float dz = readF32(entry + 20);
+        if (tile < 0 || tile >= HEX_GRID_SIZE) return fail("baked.bin names a tile outside the hex grid");
+        const float reach = mode == 3 ? 1000.0f : 10.0f; // a plane's point is on the map, a lift is small
+        if (mode > (bakedVersion >= 4 ? bakedVersion : bakedVersion - 1) || !std::isfinite(du) || !std::isfinite(dv) || !std::isfinite(dz)
+            || std::abs(du) > reach || std::abs(dv) > reach || std::abs(dz) > 10.0f) {
+            return fail("baked.bin has an unknown mode or a bad lift");
+        }
+        // Lifts are donor (u, v, z); GL is (u, z, v).
+        bakedObjects[bakedObjectKey(tile, static_cast<int>(readU32(entry + 4)))]
+            = { static_cast<BakedObject::Mode>(mode), { du, dz, dv }, rawMode > mode };
+    }
+
     // The shadow casters (task 045): the walls (object type 3) always, with
     // their backs and ends; other baked objects when they span two hexes or
     // stand taller than half a wall. Doors are tall, so they come along.
@@ -400,9 +441,13 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
     std::vector<float> rowMinZ(objectCount, 0.0f), rowMaxZ(objectCount, 0.0f);
     std::vector<unsigned char> rowType(objectCount, 0);
     std::vector<bool> rowSeen(objectCount, false);
+    std::vector<unsigned int> rowByIndex(objectCount, 0); // the object's fid per walls.bin row
+    std::vector<int> rowTileOf(objectCount, -1); // the object's tile per walls.bin row
     {
-        std::vector<unsigned int> rowByIndex(objectCount, 0);
-        for (const auto& [key, row] : objectRows) rowByIndex[row] = static_cast<unsigned int>(key & 0xFFFFFFFFu);
+        for (const auto& [key, row] : objectRows) {
+            rowByIndex[row] = static_cast<unsigned int>(key & 0xFFFFFFFFu);
+            rowTileOf[row] = static_cast<int>(key >> 32);
+        }
         for (unsigned int row = 0; row < objectCount && row < rowByIndex.size(); row++) {
             rowType[row] = static_cast<unsigned char>((rowByIndex[row] >> 24) & 0xF);
         }
@@ -448,6 +493,9 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
                 casts = rowType[row] == 3
                     || (rowMaxX[row] - rowMinX[row]) >= 2.0f || (rowMaxZ[row] - rowMinZ[row]) >= 2.0f
                     || (rowMaxY[row] - rowMinY[row]) >= halfWall;
+                // A plant's crown throws no shadow (045's follow-up), whatever its size.
+                const auto known = gBakedObjects.find(bakedObjectKey(rowTileOf[row], static_cast<int>(rowByIndex[row])));
+                if (known != gBakedObjects.end() && known->second.noCast) casts = false;
             }
             if (!casts) continue;
             for (int corner = 0; corner < 3; corner++) {
@@ -473,43 +521,6 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
     offset += static_cast<size_t>(objectCount) * kObjectSize;
     if (offset != sidecar.size() || observedTriangles != totalTriangles) {
         return fail("walls.bin has trailing data or a mismatched triangle count");
-    }
-
-    // Objects walls.bin draws; live sprite cards skip them.
-    constexpr size_t kBakedHeaderSize = 12;
-    constexpr size_t kBakedEntrySize = 24;
-    constexpr unsigned int kMaxBakedEntries = 1000000;
-    std::vector<unsigned char> baked;
-    if (!readBinary(cacheDirectory / "baked.bin", baked)) {
-        return fail("baked.bin is missing or unreadable; re-run the scene exporter");
-    }
-    if (baked.size() < kBakedHeaderSize || baked[0] != 'F' || baked[1] != '2' || baked[2] != 'B' || baked[3] != 'K'
-        || readU16(baked.data() + 4) < 2 || readU16(baked.data() + 4) > 5
-        || readU16(baked.data() + 6) != kBakedHeaderSize) {
-        return fail("baked.bin has an invalid header");
-    }
-    const unsigned int bakedVersion = readU16(baked.data() + 4); // 3 adds Flat, 4 Plane and FlyFlat, 5 FlySkip
-    const unsigned int bakedCount = readU32(baked.data() + 8);
-    if (bakedCount > kMaxBakedEntries || baked.size() != kBakedHeaderSize + bakedCount * kBakedEntrySize) {
-        return fail("baked.bin has a bad length");
-    }
-    std::unordered_map<unsigned long long, BakedObject> bakedObjects;
-    for (unsigned int index = 0; index < bakedCount; index++) {
-        const unsigned char* entry = baked.data() + kBakedHeaderSize + index * kBakedEntrySize;
-        const int tile = static_cast<int>(readU32(entry));
-        const unsigned int mode = readU32(entry + 8);
-        const float du = readF32(entry + 12);
-        const float dv = readF32(entry + 16);
-        const float dz = readF32(entry + 20);
-        if (tile < 0 || tile >= HEX_GRID_SIZE) return fail("baked.bin names a tile outside the hex grid");
-        const float reach = mode == 3 ? 1000.0f : 10.0f; // a plane's point is on the map, a lift is small
-        if (mode > (bakedVersion >= 4 ? bakedVersion : bakedVersion - 1) || !std::isfinite(du) || !std::isfinite(dv) || !std::isfinite(dz)
-            || std::abs(du) > reach || std::abs(dv) > reach || std::abs(dz) > 10.0f) {
-            return fail("baked.bin has an unknown mode or a bad lift");
-        }
-        // Lifts are donor (u, v, z); GL is (u, z, v).
-        bakedObjects[bakedObjectKey(tile, static_cast<int>(readU32(entry + 4)))]
-            = { static_cast<BakedObject::Mode>(mode), { du, dz, dv } };
     }
 
     while (glGetError() != 0) {
