@@ -81,4 +81,19 @@ font metrics and copy propagation.
 Next: parent review this bounded stage before adding real UI fixtures.
 Check: Release build using `tools/configure-build.ps1`; CTest 14/14 passed.
 No runtime screenshots or new screen fixtures have been added.
+
+### 2026-10-24 gpt (real UI fixture implementation)
+Done: added opt-in `--dev-ui-fixture` modes for inventory, Pip-Boy, character,
+barter, and message log. They use normal engine key routes and visible window
+records. Barter reuses the reachable Sulik conversation and the real B key
+path; it requires two white `$0` totals. Message log uses the stock slash key
+and validates a newly added current in-game date record. Fixtures require the
+copied screen-buffer records to match the expected owner window generation,
+have visible coverage, and contain overlay pixels when sharp text is enabled.
+The helper checks the screenshot's actual resolution, scale, and sharp-pass
+metadata.
+Next: parent review the fixture code and helper checks before any runtime
+matrix launch.
+Check: Release build using `tools/configure-build.ps1`; CTest 14/14 passed and
+the PowerShell helper parsed successfully. No runtime fixtures were launched.
 ---
