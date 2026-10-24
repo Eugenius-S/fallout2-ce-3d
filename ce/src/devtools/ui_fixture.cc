@@ -170,8 +170,10 @@ ScreenProof screenProof(const TextWindowSnapshot& window,
     const scene_renderer::PreparedSharpTextFrame& frame)
 {
     ScreenProof proof;
-    if (gSdlSurface == nullptr || gSdlSurface->pixels == nullptr
-        || frame.width != gSdlSurface->w || frame.height != gSdlSurface->h) return proof;
+    if (gSdlSurface == nullptr || gSdlSurface->pixels == nullptr) return proof;
+    const int surfaceWidth = gSdlSurface->w;
+    const int surfaceHeight = gSdlSurface->h;
+    if (frame.active && (frame.width != surfaceWidth || frame.height != surfaceHeight)) return proof;
     const scene::TextBufferId buffer = textCaptureBufferId(gSdlSurface->pixels);
     if (buffer == 0) return proof;
 
@@ -181,7 +183,7 @@ ScreenProof screenProof(const TextWindowSnapshot& window,
         proof.records.push_back(record);
 
         scene::TextVisibilityMask mask;
-        if (!scene::textCaptureVisibilityMask(record, frame.width, frame.height, &mask)) continue;
+        if (!scene::textCaptureVisibilityMask(record, surfaceWidth, surfaceHeight, &mask)) continue;
         const unsigned int visiblePixels = static_cast<unsigned int>(std::count_if(
             mask.pixels.begin(), mask.pixels.end(), [](unsigned char pixel) { return pixel != 0; }));
         if (visiblePixels == 0) continue;
