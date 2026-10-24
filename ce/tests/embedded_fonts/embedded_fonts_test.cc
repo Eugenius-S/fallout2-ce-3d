@@ -196,10 +196,47 @@ int main()
             }
         }
     }
-    if (top < 3 || top > 7 || bottom < 36 || bottom > 41) {
-        std::fprintf(stderr, "Cap-to-descender fit is outside the logical line: %d..%d\n", top, bottom);
+    if (top < fitRecord.run.y * 2 || bottom < top
+        || bottom >= (fitRecord.run.y + fitRecord.run.lineHeight) * 2) {
+        std::fprintf(stderr, "CP1251 repertoire fit is outside the captured line: %d..%d\n", top, bottom);
         return 1;
     }
+
+    fitRecord.run.font = 101;
+    fitRecord.run.text = std::string("\xC8", 1); // CP1251: capital I.
+    fitRecord.run.y = 2;
+    fitRecord.run.lineHeight = 9; // Production font-101 reply line height.
+    std::vector<fallout::scene::TextVisibilityMask> fullLineVisibility(1);
+    fullLineVisibility[0].bounds = { 0, 0, 256, 32 };
+    fullLineVisibility[0].pixels.assign(256 * 32, 1);
+    std::vector<fallout::scene::TextVisibilityMask> clippedLineVisibility = fullLineVisibility;
+    std::fill(clippedLineVisibility[0].pixels.begin(), clippedLineVisibility[0].pixels.end(), 0);
+    for (int y = fitRecord.run.y; y < fitRecord.run.y + fitRecord.run.lineHeight; ++y) {
+        std::fill(clippedLineVisibility[0].pixels.begin() + y * 256,
+            clippedLineVisibility[0].pixels.begin() + (y + 1) * 256, 1);
+    }
+    for (int scale : { 2, 3 }) {
+        auto renderLine = [&](const char* bytes, std::size_t length, SharpTextSurface* full, SharpTextSurface* clipped) {
+            fitRecord.run.text.assign(bytes, length);
+            return renderSharpText({ fitRecord }, 256, 32, 256 * scale, 32 * scale,
+                    palette, 256, fullLineVisibility, full)
+                && renderSharpText({ fitRecord }, 256, 32, 256 * scale, 32 * scale,
+                    palette, 256, clippedLineVisibility, clipped)
+                && full->pixels == clipped->pixels;
+        };
+        SharpTextSurface iFull, iClipped, shortIFull, shortIClipped;
+        SharpTextSurface eFull, eClipped, diaeresisFull, diaeresisClipped;
+        if (!renderLine("\xC8", 1, &iFull, &iClipped)
+            || !renderLine("\xC9", 1, &shortIFull, &shortIClipped)
+            || !renderLine("\xC5", 1, &eFull, &eClipped)
+            || !renderLine("\xA8", 1, &diaeresisFull, &diaeresisClipped)
+            || iFull.pixels == shortIFull.pixels || eFull.pixels == diaeresisFull.pixels) {
+            std::fprintf(stderr, "CP1251 diacritics were clipped or collapsed at scale %d\n", scale);
+            return 1;
+        }
+    }
+    fitRecord.run.text = "Hg";
+    fitRecord.run.lineHeight = 18;
 
     fitRecord.run.colorAndFlags = 43;
     palette[43 * 3] = 0;

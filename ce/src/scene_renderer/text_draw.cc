@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
+#include <limits>
 #include <map>
 #include <tuple>
 
@@ -31,6 +32,40 @@ unsigned int decodeCp1251(unsigned char value)
     if (value < 0x80) return value;
     if (value < 0xC0) return upper[value - 0x80];
     return 0x0410 + value - 0xC0;
+}
+
+struct FontVerticalBounds {
+    int top = 0;
+    int bottom = 0;
+    bool valid = false;
+};
+
+const FontVerticalBounds& getFontVerticalBounds(bool bold, stbtt_fontinfo* font)
+{
+    static FontVerticalBounds bounds[2];
+    static bool initialized[2] = {};
+    const int index = bold ? 1 : 0;
+    if (initialized[index]) return bounds[index];
+    initialized[index] = true;
+
+    FontVerticalBounds& result = bounds[index];
+    result.top = std::numeric_limits<int>::min();
+    result.bottom = std::numeric_limits<int>::max();
+    for (unsigned int byte = 0x20; byte <= 0xFF; ++byte) {
+        if (byte == 0x7F) continue;
+        const unsigned int codepoint = decodeCp1251(static_cast<unsigned char>(byte));
+        if (codepoint == 0xFFFD || stbtt_FindGlyphIndex(font, static_cast<int>(codepoint)) == 0) continue;
+        int x0 = 0;
+        int y0 = 0;
+        int x1 = 0;
+        int y1 = 0;
+        if (!stbtt_GetCodepointBox(font, static_cast<int>(codepoint), &x0, &y0, &x1, &y1)
+            || (x0 == x1 && y0 == y1)) continue;
+        result.top = std::max(result.top, y1);
+        result.bottom = std::min(result.bottom, y0);
+        result.valid = true;
+    }
+    return result;
 }
 
 struct GlyphBitmap {
@@ -206,18 +241,16 @@ bool renderSharpText(const std::vector<scene::TextRecord>& records,
         const bool bold = run.font == 103 || run.font == 104;
         stbtt_fontinfo* font = getFont(bold);
         if (font == nullptr) return false;
-        int capTop = 0;
-        int capBottom = 0;
-        int descTop = 0;
-        int descBottom = 0;
-        if (!stbtt_GetCodepointBox(font, 'H', nullptr, &capBottom, nullptr, &capTop)
-            || !stbtt_GetCodepointBox(font, 'g', nullptr, &descBottom, nullptr, &descTop)) continue;
-        const int fitHeight = capTop - descBottom;
+        const FontVerticalBounds& verticalBounds = getFontVerticalBounds(bold, font);
+        if (!verticalBounds.valid) continue;
+        const int fitHeight = verticalBounds.top - verticalBounds.bottom;
         if (fitHeight <= 0) continue;
-        const double logicalScale = static_cast<double>(run.lineHeight) / fitHeight;
+        // Leave half a logical pixel for bitmap rounding at both line edges.
+        const double fitLineHeight = std::max(1.0, static_cast<double>(run.lineHeight) - 0.5);
+        const double logicalScale = fitLineHeight / fitHeight;
         const double fontScaleX = logicalScale * sx;
         const double fontScaleY = logicalScale * sy;
-        const int baseline = static_cast<int>(std::lround((run.y + capTop * logicalScale) * sy));
+        const int baseline = static_cast<int>(std::lround((run.y + verticalBounds.top * logicalScale) * sy));
 
         std::vector<unsigned int> codepoints;
         std::vector<double> advances;

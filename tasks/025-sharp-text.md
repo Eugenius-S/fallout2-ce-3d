@@ -2,13 +2,13 @@
 id: 025
 title: Sharp green dialogue text
 milestone: M1
-status: done
+status: doing
 owner: gpt
 suggested: gpt
 claude-only: no
 user-check: yes
 depends-on: [002, 017, 024, 026]
-reviewed: yes
+reviewed: no
 ---
 
 ## Goal
@@ -261,3 +261,7 @@ Check: commit `361694e0` completed an official full clean Release build (719/719
 Done: completed the sharp green NPC conversation text scope. Owner-witness validation now preserves clipped coverage-only fragments only with current authoritative owner snapshots; stale owner generations do not restore or draw captured text. Menus and all other UI remain pixel-rendered.
 Next: parent handles PR #77 CI, readiness and merge.
 Check: production source `361694e0` passed the official full clean Release build (719/719) and full CTest passed 14/14 after test updates in `d8dcb168`. The source-bound English x2 cursor fixture has decoded RGB `(84,84,84)` at the opaque cursor pixel, alpha `126->0`, transparent-cell alpha `5->5`, and same-run ink `2601->2467`; evidence is `runs/025-sharp-text/cursor-runtime-20261024/361694e0-en-x2/`, EXE SHA-256 `db32ec45c9797ab8b1c654fe36cf4fe8f2bde2025e97327be915fd44d2f5452e`. The sharp-off regression passed 16/16 with zero changed pixels on the same source and hash; summary is `runs/025-sharp-text/final-validation-20261024-regression-summary.json`. English/Russian NPC captures cover x2/x3, menu pairs are pixel-identical, exporter tests passed 44/44 and regression unit tests passed 12/12. CPU tests cover clipped scrolling, owner-witness validity and palette fades. No live paging claim is made because the inspected reply had page offset 0.
+### 2026-10-24 gpt (CP1251 vertical extents)
+Done: replaced H/g-only fit metrics with a per-face cached extent across printable decoded CP1251 glyphs. The same scale and baseline now include breve and diaeresis without changing by string. Added font-101 lineHeight-9 tests for И/Й and Е/Ё at x2 and x3; the glyph pairs differ and full-mask rendering matches the captured-line mask.
+Next: parent review, then source-bound Russian x3 dialog and English x2 cursor captures plus the 16-case sharp-off regression.
+Check: official Release configure/build and full CTest passed 14/14. The new tests use the production font-101 line height and verify no ink is clipped outside the captured line. Runtime evidence for this change is pending.
