@@ -407,7 +407,8 @@ if ($DialogPageInspect) {
 }
 if ($DialogCursorCheck) {
     $cursorLog = Get-Content -Raw -LiteralPath (Join-Path $OutputDirectory 'process.stdout.log')
-    if ($dialogFixtureFailed -or $cursorLog -notmatch '(?m)^DIALOG_CURSOR_CHECK PASS .*same_run_ink_pixels=\d+->\d+') {
+    $cursorPass = [regex]::Match($cursorLog, '(?m)^DIALOG_CURSOR_CHECK PASS .*physical=(\d+),(\d+) cursor_index=\d+ expected_rgb=(\d+),(\d+),(\d+) target_alpha=\d+->0 same_run_ink_pixels=\d+->\d+')
+    if ($dialogFixtureFailed -or -not $cursorPass.Success) {
         throw "Dialog cursor check failed or timed out within $TimeoutSeconds s.`n$cursorLog"
     }
     if (-not $probeHarnessStoppedProcess) { throw 'Dialog cursor check was not stopped by its isolated helper harness.' }
@@ -417,6 +418,11 @@ if ($DialogCursorCheck) {
         $cursorMetadata.sharp_text.runs -le 0 -or $cursorMetadata.sharp_text.glyphs -le 0) {
         throw 'Dialog cursor snapshot does not prove an active drawn sharp-text pass.'
     }
+    $cursorImagePath = Join-Path $GameDir $cursorMetadata.image
+    $cursorPixelCheck = 'from PIL import Image; import sys; im = Image.open(sys.argv[1]).convert("RGB"); x, y = map(int, sys.argv[2:4]); expected = tuple(map(int, sys.argv[4:7])); actual = im.getpixel((x, y)); print("CURSOR_PNG_RGB physical=%d,%d expected=%s actual=%s" % (x, y, expected, actual)); assert actual == expected, "cursor PNG pixel does not match engine cursor palette color"'
+    & py -3 -c $cursorPixelCheck $cursorImagePath $cursorPass.Groups[1].Value $cursorPass.Groups[2].Value `
+        $cursorPass.Groups[3].Value $cursorPass.Groups[4].Value $cursorPass.Groups[5].Value
+    if ($LASTEXITCODE -ne 0) { throw 'Dialog cursor pixel in the decoded PNG does not match the engine cursor palette color.' }
     Write-Output $cursorLog
 }
 if ($snapshots.Count -lt $shots) { throw "No snapshot within $TimeoutSeconds s." }

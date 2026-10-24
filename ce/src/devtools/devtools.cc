@@ -139,6 +139,7 @@ int gDialogPageInspectStage = 0;
 std::vector<std::string> gDialogPageInspectInitialText;
 bool gDialogCursorCheckRequested = false;
 int gDialogCursorCheckStage = 0;
+bool gDialogCursorCheckCursorMoveInProgress = false;
 std::vector<std::string> gDialogCursorCheckInitialText;
 scene::TextRecord gDialogCursorCheckRecord;
 std::vector<unsigned char> gDialogCursorCheckOverlayBefore;
@@ -146,6 +147,10 @@ int gDialogCursorCheckTargetLogicalX = -1;
 int gDialogCursorCheckTargetLogicalY = -1;
 int gDialogCursorCheckTargetPhysicalX = -1;
 int gDialogCursorCheckTargetPhysicalY = -1;
+unsigned char gDialogCursorCheckCursorIndex = 0;
+unsigned char gDialogCursorCheckCursorRed = 0;
+unsigned char gDialogCursorCheckCursorGreen = 0;
+unsigned char gDialogCursorCheckCursorBlue = 0;
 char gDialogFixtureScript[32] = {};
 int gDialogFixtureSpeakerId = -1;
 int gDialogFixtureSpeakerTile = -1;
@@ -1880,6 +1885,7 @@ void scenePresented(const scene::RefreshResult& refreshed)
 
 void vanillaPresented()
 {
+    if (gDialogCursorCheckCursorMoveInProgress) return;
     if (gDialogFixtureRequested && gDialogFixtureStarted && !gDialogFixtureFinished
         && gameDialogWindowActive()) {
         int ownerIds[2] = { -1, -1 };
@@ -2028,7 +2034,7 @@ void vanillaPresented()
                         }
                     }
                     TextCursorSnapshot cursor = {};
-                    if (!textCaptureGetCursorSnapshot(&cursor) || !cursor.visible
+                    if (!textCaptureGetCursorSnapshot(&cursor) || !cursor.visible || cursor.pixels == nullptr
                         || gDialogCursorCheckTargetLogicalX < cursor.x
                         || gDialogCursorCheckTargetLogicalY < cursor.y
                         || gDialogCursorCheckTargetLogicalX >= cursor.x + cursor.width
@@ -2036,6 +2042,23 @@ void vanillaPresented()
                         || cursor.pixels[static_cast<std::size_t>(gDialogCursorCheckTargetLogicalY - cursor.y) * cursor.pitch
                             + gDialogCursorCheckTargetLogicalX - cursor.x] == cursor.transparentIndex) {
                         failCursorCheck("opaque-engine-cursor-moved-off-target");
+                        return;
+                    }
+                    if (gSdlSurface == nullptr || gSdlSurface->pixels == nullptr
+                        || gDialogCursorCheckTargetLogicalX < 0 || gDialogCursorCheckTargetLogicalY < 0
+                        || gDialogCursorCheckTargetLogicalX >= gSdlSurface->w || gDialogCursorCheckTargetLogicalY >= gSdlSurface->h
+                        || frame.originalIndices.empty() || frame.indexPitch < frame.width) {
+                        failCursorCheck("cursor-index-frame-unavailable");
+                        return;
+                    }
+                    const std::size_t indexedOffset = static_cast<std::size_t>(gDialogCursorCheckTargetLogicalY) * gSdlSurface->pitch
+                        + gDialogCursorCheckTargetLogicalX;
+                    const std::size_t preparedOffset = static_cast<std::size_t>(gDialogCursorCheckTargetLogicalY) * frame.indexPitch
+                        + gDialogCursorCheckTargetLogicalX;
+                    if (preparedOffset >= frame.originalIndices.size()
+                        || static_cast<const unsigned char*>(gSdlSurface->pixels)[indexedOffset] != gDialogCursorCheckCursorIndex
+                        || frame.originalIndices[preparedOffset] != gDialogCursorCheckCursorIndex) {
+                        failCursorCheck("cursor-not-drawn-at-target-in-indexed-frame");
                         return;
                     }
                     if (targetBefore == 0 || targetAfter != 0 || beforeInkPixels == 0 || afterInkPixels == 0) {
@@ -2051,12 +2074,43 @@ void vanillaPresented()
                         failCursorCheck("cursor-snapshot-failed");
                         return;
                     }
-                    printf("DIALOG_CURSOR_CHECK PASS map=%s script=%s speaker=%d speaker_tile=%d hero=%d reply_offset=%d reply_bytes=%zu logical=%d,%d physical=%d,%d target_alpha=%u->%u same_run_ink_pixels=%u->%u\n",
+                    if (gSdlTextureSurface == nullptr || gSdlTextureSurface->pixels == nullptr
+                        || gDialogCursorCheckTargetLogicalX < 0 || gDialogCursorCheckTargetLogicalY < 0
+                        || gDialogCursorCheckTargetLogicalX >= gSdlTextureSurface->w
+                        || gDialogCursorCheckTargetLogicalY >= gSdlTextureSurface->h
+                        || gSdlTextureSurface->format == nullptr
+                        || gSdlTextureSurface->format->BytesPerPixel <= 0
+                        || gSdlTextureSurface->format->BytesPerPixel > sizeof(Uint32)) {
+                        failCursorCheck("cursor-png-source-pixel-unavailable");
+                        return;
+                    }
+                    Uint32 rgbaPixel = 0;
+                    const unsigned char* rgbaRow = static_cast<const unsigned char*>(gSdlTextureSurface->pixels)
+                        + static_cast<std::size_t>(gDialogCursorCheckTargetLogicalY) * gSdlTextureSurface->pitch;
+                    std::memcpy(&rgbaPixel, rgbaRow + static_cast<std::size_t>(gDialogCursorCheckTargetLogicalX)
+                            * gSdlTextureSurface->format->BytesPerPixel,
+                        gSdlTextureSurface->format->BytesPerPixel);
+                    Uint8 actualRed = 0;
+                    Uint8 actualGreen = 0;
+                    Uint8 actualBlue = 0;
+                    SDL_GetRGB(rgbaPixel, gSdlTextureSurface->format, &actualRed, &actualGreen, &actualBlue);
+                    if (actualRed != gDialogCursorCheckCursorRed || actualGreen != gDialogCursorCheckCursorGreen
+                        || actualBlue != gDialogCursorCheckCursorBlue) {
+                        printf("DIALOG_CURSOR_CHECK FAIL map=%s script=%s reason=png-source-rgb-mismatch logical=%d,%d expected_rgb=%u,%u,%u actual_rgb=%u,%u,%u\n",
+                            gMapHeader.name, gDialogFixtureScript, gDialogCursorCheckTargetLogicalX,
+                            gDialogCursorCheckTargetLogicalY, gDialogCursorCheckCursorRed, gDialogCursorCheckCursorGreen,
+                            gDialogCursorCheckCursorBlue, actualRed, actualGreen, actualBlue);
+                        fflush(stdout);
+                        gDialogFixtureFinished = true;
+                        return;
+                    }
+                    printf("DIALOG_CURSOR_CHECK PASS map=%s script=%s speaker=%d speaker_tile=%d hero=%d reply_offset=%d reply_bytes=%zu logical=%d,%d physical=%d,%d cursor_index=%u expected_rgb=%u,%u,%u target_alpha=%u->%u same_run_ink_pixels=%u->%u\n",
                         gMapHeader.name, gDialogFixtureScript, gDialogFixtureSpeakerId,
                         gDialogFixtureSpeakerTile, gDude != nullptr ? gDude->tile : -1,
                         gameDialogGetReplyTextOffset(), gDialogCursorCheckRecord.run.text.size(),
                         gDialogCursorCheckTargetLogicalX, gDialogCursorCheckTargetLogicalY,
-                        gDialogCursorCheckTargetPhysicalX, gDialogCursorCheckTargetPhysicalY,
+                        gDialogCursorCheckTargetPhysicalX, gDialogCursorCheckTargetPhysicalY, gDialogCursorCheckCursorIndex,
+                        gDialogCursorCheckCursorRed, gDialogCursorCheckCursorGreen, gDialogCursorCheckCursorBlue,
                         targetBefore, targetAfter, beforeInkPixels, afterInkPixels);
                     fflush(stdout);
                     gDialogFixtureFinished = true;
@@ -2100,21 +2154,36 @@ void vanillaPresented()
                 mouseGetPosition(&mouseX, &mouseY);
                 const int hotX = mouseX - cursor.x;
                 const int hotY = mouseY - cursor.y;
+                SDL_Palette* palette = gSdlSurface != nullptr && gSdlSurface->format != nullptr
+                    ? gSdlSurface->format->palette
+                    : nullptr;
+                if (palette == nullptr || COLOR_GREEN >= palette->ncolors) {
+                    failCursorCheck("cursor-palette-unavailable");
+                    return;
+                }
+                const SDL_Color greenColor = palette->colors[COLOR_GREEN];
                 int cursorPixelX = -1;
                 int cursorPixelY = -1;
                 for (int y = 0; y < cursor.height && cursorPixelY < 0; y++) {
                     for (int x = 0; x < cursor.width; x++) {
-                        if (cursor.pixels[static_cast<std::size_t>(y) * cursor.pitch + x] != cursor.transparentIndex) {
-                            cursorPixelX = x;
-                            cursorPixelY = y;
-                            break;
-                        }
+                        const unsigned char pixel = cursor.pixels[static_cast<std::size_t>(y) * cursor.pitch + x];
+                        if (pixel == cursor.transparentIndex || pixel >= palette->ncolors) continue;
+                        const SDL_Color color = palette->colors[pixel];
+                        if (color.r == greenColor.r && color.g == greenColor.g && color.b == greenColor.b) continue;
+                        cursorPixelX = x;
+                        cursorPixelY = y;
+                        break;
                     }
                 }
                 if (cursorPixelX < 0) {
-                    failCursorCheck("engine-cursor-has-no-opaque-pixels");
+                    failCursorCheck("engine-cursor-has-no-opaque-nongreen-pixels");
                     return;
                 }
+                gDialogCursorCheckCursorIndex = cursor.pixels[static_cast<std::size_t>(cursorPixelY) * cursor.pitch + cursorPixelX];
+                const SDL_Color cursorColor = palette->colors[gDialogCursorCheckCursorIndex];
+                gDialogCursorCheckCursorRed = cursorColor.r;
+                gDialogCursorCheckCursorGreen = cursorColor.g;
+                gDialogCursorCheckCursorBlue = cursorColor.b;
 
                 int targetLogicalX = -1;
                 int targetLogicalY = -1;
@@ -2151,21 +2220,28 @@ void vanillaPresented()
                 gDialogCursorCheckTargetPhysicalY = targetPhysicalY;
                 gDialogCursorCheckRecord = *replyRecord;
                 gDialogCursorCheckOverlayBefore = frame.overlay.pixels;
+                gDialogCursorCheckCursorMoveInProgress = true;
+                mouseHideCursor();
                 _mouse_set_position(targetLogicalX - cursorPixelX + hotX, targetLogicalY - cursorPixelY + hotY);
+                mouseShowCursor();
+                gDialogCursorCheckCursorMoveInProgress = false;
                 TextCursorSnapshot movedCursor = {};
-                if (!textCaptureGetCursorSnapshot(&movedCursor) || !movedCursor.visible
+                if (!textCaptureGetCursorSnapshot(&movedCursor) || !movedCursor.visible || movedCursor.pixels == nullptr
+                    || movedCursor.x + cursorPixelX != targetLogicalX
+                    || movedCursor.y + cursorPixelY != targetLogicalY
                     || targetLogicalX < movedCursor.x || targetLogicalY < movedCursor.y
                     || targetLogicalX >= movedCursor.x + movedCursor.width
                     || targetLogicalY >= movedCursor.y + movedCursor.height
                     || movedCursor.pixels[static_cast<std::size_t>(targetLogicalY - movedCursor.y) * movedCursor.pitch
                         + targetLogicalX - movedCursor.x] == movedCursor.transparentIndex) {
-                    failCursorCheck("engine-cursor-could-not-cover-target");
+                    failCursorCheck("engine-cursor-redraw-or-target-mismatch");
                     return;
                 }
                 gDialogCursorCheckStage = 2;
-                printf("DIALOG_CURSOR_CHECK TARGET reply_bytes=%zu logical=%d,%d physical=%d,%d cursor_opaque_offset=%d,%d\n",
+                printf("DIALOG_CURSOR_CHECK TARGET reply_bytes=%zu logical=%d,%d physical=%d,%d cursor_opaque_offset=%d,%d cursor_index=%u expected_rgb=%u,%u,%u\n",
                     replyRecord->run.text.size(), targetLogicalX, targetLogicalY,
-                    targetPhysicalX, targetPhysicalY, cursorPixelX, cursorPixelY);
+                    targetPhysicalX, targetPhysicalY, cursorPixelX, cursorPixelY, gDialogCursorCheckCursorIndex,
+                    gDialogCursorCheckCursorRed, gDialogCursorCheckCursorGreen, gDialogCursorCheckCursorBlue);
                 fflush(stdout);
                 return;
             }
