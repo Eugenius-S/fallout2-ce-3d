@@ -301,7 +301,9 @@ int main()
 
     const unsigned char halfInterfaceGreen[] = { 0x20, 0x5A, 0x0D };
     const unsigned char halfHudGreen[] = { 0x26, 0x6B, 0x10 };
+    palette[43 * 3] = 0;
     palette[43 * 3 + 1] = 126;
+    palette[43 * 3 + 2] = 0;
     if (!renderedColorMatches(fallout::scene::TextColorRole::InterfaceGreen, 101, 43, halfInterfaceGreen)
         || !renderedColorMatches(fallout::scene::TextColorRole::HudMessageLogGreen, 101, 43, halfHudGreen)) {
         std::fprintf(stderr, "Half palette fade did not proportionally dim green roles\n");
@@ -309,9 +311,69 @@ int main()
     }
 
     const unsigned char black[] = { 0, 0, 0 };
+    const unsigned char whiteFade[] = { 252, 252, 252 };
+    const unsigned char midWhiteInterface[] = { 158, 216, 139 };
+    const unsigned char midWhiteHud[] = { 164, 233, 142 };
+    const unsigned char redEndpoint[] = { 255, 0, 0 };
+    const unsigned char blueEndpoint[] = { 0, 0, 255 };
+    palette[43 * 3] = 252;
+    palette[43 * 3 + 1] = 252;
+    palette[43 * 3 + 2] = 252;
+    if (!renderedColorMatches(fallout::scene::TextColorRole::InterfaceGreen, 101, 43, whiteFade)
+        || !renderedColorMatches(fallout::scene::TextColorRole::HudMessageLogGreen, 101, 43, whiteFade)) {
+        std::fprintf(stderr, "White palette endpoint did not turn both green roles white\n");
+        return 1;
+    }
+
+    palette[43 * 3] = 126;
+    palette[43 * 3 + 1] = 252;
+    palette[43 * 3 + 2] = 126;
+    if (!renderedColorMatches(fallout::scene::TextColorRole::InterfaceGreen, 101, 43, midWhiteInterface)
+        || !renderedColorMatches(fallout::scene::TextColorRole::HudMessageLogGreen, 101, 43, midWhiteHud)) {
+        std::fprintf(stderr, "Intermediate white fade did not preserve each live palette channel\n");
+        return 1;
+    }
+
+    palette[43 * 3] = 255;
     palette[43 * 3 + 1] = 0;
-    if (!renderedColorMatches(fallout::scene::TextColorRole::InterfaceGreen, 101, 43, black)) {
-        std::fprintf(stderr, "Black palette fade did not reduce the green overlay to black\n");
+    palette[43 * 3 + 2] = 0;
+    if (!renderedColorMatches(fallout::scene::TextColorRole::InterfaceGreen, 101, 43, redEndpoint)
+        || !renderedColorMatches(fallout::scene::TextColorRole::HudMessageLogGreen, 101, 43, redEndpoint)) {
+        std::fprintf(stderr, "Red palette endpoint was changed by green recoloring\n");
+        return 1;
+    }
+    palette[43 * 3] = 0;
+    palette[43 * 3 + 1] = 0;
+    palette[43 * 3 + 2] = 255;
+    if (!renderedColorMatches(fallout::scene::TextColorRole::InterfaceGreen, 101, 43, blueEndpoint)
+        || !renderedColorMatches(fallout::scene::TextColorRole::HudMessageLogGreen, 101, 43, blueEndpoint)) {
+        std::fprintf(stderr, "Blue palette endpoint was changed by green recoloring\n");
+        return 1;
+    }
+
+    const unsigned char dimInterfaceGreen[] = { 31, 89, 12 };
+    const unsigned char dimHudGreen[] = { 37, 105, 15 };
+    fallout::_cmap[44 * 3] = 0;
+    fallout::_cmap[44 * 3 + 1] = 31;
+    fallout::_cmap[44 * 3 + 2] = 0;
+    palette[44 * 3] = 0;
+    palette[44 * 3 + 1] = 124;
+    palette[44 * 3 + 2] = 0;
+    if (!renderedColorMatches(fallout::scene::TextColorRole::InterfaceGreen, 101, 44, dimInterfaceGreen)
+        || !renderedColorMatches(fallout::scene::TextColorRole::HudMessageLogGreen, 101, 44, dimHudGreen)) {
+        std::fprintf(stderr, "Dim canonical green source intensity was not preserved for both roles\n");
+        return 1;
+    }
+    fallout::_cmap[44 * 3] = 0;
+    fallout::_cmap[44 * 3 + 1] = 0;
+    fallout::_cmap[44 * 3 + 2] = 0;
+
+    palette[43 * 3] = 0;
+    palette[43 * 3 + 1] = 0;
+    palette[43 * 3 + 2] = 0;
+    if (!renderedColorMatches(fallout::scene::TextColorRole::InterfaceGreen, 101, 43, black)
+        || !renderedColorMatches(fallout::scene::TextColorRole::HudMessageLogGreen, 101, 43, black)) {
+        std::fprintf(stderr, "Black palette fade did not reduce both green overlays to black\n");
         return 1;
     }
 
