@@ -57,7 +57,7 @@ char gSpeakerScript[96] = {};
 int gSpeakerId = -1;
 int gSpeakerTile = -1;
 int gInitialDateLogCount = 0;
-int gPipboyDiagnosticFrames = 0;
+bool gPipboyStatusRequested = false;
 
 const char* fixtureName()
 {
@@ -422,40 +422,18 @@ void uiFixtureVanillaPresented()
 
     const int windowId = expectedWindow();
     TextWindowSnapshot window = {};
-    if (!snapshotWindow(windowId, &window)) {
-        if (gKind == UiFixtureKind::Pipboy && gPipboyDiagnosticFrames < 8) {
-            TextWindowSnapshot first = {};
-            int count = 0;
-            textCaptureGetWindowSnapshot(0, &first, &count);
-            printf("UI_FIXTURE WAIT screen=pipboy frame=%d target_window=%d snapshot_count=%d\n",
-                gPipboyDiagnosticFrames++, windowId, count);
-            fflush(stdout);
-        }
+    if (!snapshotWindow(windowId, &window)) return;
+
+    if (gKind == UiFixtureKind::Pipboy && !gPipboyStatusRequested) {
+        gPipboyStatusRequested = true;
+        printf("UI_FIXTURE STEP screen=pipboy window=%d generation=%llu input=STATUS-500\n",
+            window.id, static_cast<unsigned long long>(window.generation));
+        fflush(stdout);
+        enqueueInputEvent(500);
         return;
     }
 
     std::vector<scene::TextRecord> runs = eligibleRuns(window);
-    if (gKind == UiFixtureKind::Pipboy && gPipboyDiagnosticFrames < 8) {
-        const scene_renderer::PreparedSharpTextFrame& frame = scene_renderer::preparedSharpTextFrame();
-        const ScreenProof proof = screenProof(window, frame);
-        const scene::TextBufferId buffer = textCaptureBufferId(window.pixels);
-        int ownerRuns = 0;
-        int font101OwnerRuns = 0;
-        int otherFontOwnerRuns = 0;
-        if (buffer != 0) {
-            for (const scene::TextRecord& record : scene::textCaptureRecords(buffer)) {
-                if (record.ownerWindow != window.id || record.ownerGeneration != window.generation) continue;
-                ownerRuns++;
-                if (record.run.font == 101) font101OwnerRuns++;
-                else otherFontOwnerRuns++;
-            }
-        }
-        printf("UI_FIXTURE WAIT screen=pipboy callback=entered frame=%d window=%d generation=%llu owner_runs=%d font101_owner_runs=%d other_font_owner_runs=%d eligible=%zu screen_runs=%zu visible_runs=%zu coverage=%u frame_active=%d frame_drawn=%d overlay_runs=%zu\n",
-            gPipboyDiagnosticFrames++, window.id, static_cast<unsigned long long>(window.generation), ownerRuns,
-            font101OwnerRuns, otherFontOwnerRuns, runs.size(), proof.records.size(), proof.visibleRecords.size(),
-            proof.visibleCoverage, frame.active ? 1 : 0, frame.drawn ? 1 : 0, proof.overlayRecords.size());
-        fflush(stdout);
-    }
     if (runs.empty()) return;
     captureWindow(window, runs);
 }
