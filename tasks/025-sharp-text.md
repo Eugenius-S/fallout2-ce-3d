@@ -2,13 +2,13 @@
 id: 025
 title: Sharp green dialogue text
 milestone: M1
-status: doing
+status: done
 owner: gpt
 suggested: gpt
 claude-only: no
 user-check: yes
 depends-on: [002, 017, 024, 026]
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -246,3 +246,8 @@ Check: final regression summary is `runs/regression/20261024-103814-975-9564/sum
 Done: reopened the task after PR #77 review identified that unconditional CP1251 decoding would render accented French, German, Italian and Spanish dialog bytes as Cyrillic. Added an explicit English/Russian language gate before text restoration, palette expansion and drawing; unsupported values follow the existing one-shot failure policy and retain pixel text. Added focused language-policy tests.
 Next: parent reviews the focused diff and decides whether to request an English or unsupported-language runtime smoke. The existing English/Russian matrix remains valid; no matrix rerun is needed for the decoder boundary.
 Check: commit `5cde8f97` passed official Release configure/build, targeted `embedded_fonts_tests` 1/1 and full CTest 14/14. `settings.system.language` is a `std::string` defaulting to canonical `ENGLISH` (`"english"`). The unit predicate accepts English/Russian case-insensitively and rejects French, German, Italian, Spanish, empty and unknown values. In `prepareSharpTextForPresent`, the gate precedes restoration, palette expansion and drawing, preserving the indexed pixel buffer for unsupported languages. No runtime smoke was run.
+
+### 2026-10-24 gpt (final validation)
+Done: completed and reviewed the bounded English/Russian NPC conversation text scope. Only small green NPC replies and player answers use sharp text; all menus and other UI remain pixel-rendered. Added owner-validated capture through cursor compositing and the conservative language gate.
+Next: parent handles PR #77 readiness and merge after CI.
+Check: game source `5a8c0183` was built with the official Release configuration; full CTest passed 14/14. The final official English x2 cursor fixture binds to that source and EXE SHA-256 `fa5b4c618a35c4436ff7857f2218105f2994454143477236081b8df88005582e`. At physical cursor pixel (610,530), decoded PNG RGB matches cursor palette `(84,84,84)`; overlay alpha changes `126->0`. At transparent pixel (637,533), inside the same cursor rectangle, sharp text alpha stays `5->5`; remaining same-run ink is `2601->2467`. Evidence is `runs/025-sharp-text/cursor-runtime-20261024/5a8c0183-en-x2-transparent-verified-v2/`. The final sharp-off regression on embedded source `5a8c0183` passed 16/16 with zero changed pixels; summary: `runs/regression/20261024-111711-398-28976/summary.json`. English/Russian off/on NPC captures cover x2/x3, menu off/on pairs are pixel-identical, exporter tests passed 44/44 and regression unit tests 12/12. CPU tests cover clipped scrolling and palette fades. The inspected live reply had offset 0, so runtime paging is not claimed. Rejected earlier cursor proofs remain explicitly identified in this log and handoff.

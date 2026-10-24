@@ -1,39 +1,25 @@
 # Task 025 handoff, 2026-10-24
 
-## Scope and safety
+## Current status
 
-- The owner's latest correction narrows the feature to small green NPC conversation replies and player answers only. Menus, titles, headers, Pip-Boy and every other UI font stay pixel-rendered.
+- Task 025 is done and reviewed. The accepted scope is only small green NPC conversation replies and player answers. Menus, titles, headers, Pip-Boy and every other UI font remain pixel-rendered.
+- Sharp text supports canonical English and Russian settings, case-insensitively. Other, empty and unknown values preserve original pixel text before restoration or drawing.
+- PR #77 is owned by the parent for CI, readiness and merge.
 - Worktree: `E:/Projects/fallout2-ce-3d-gpt`, branch `task/025-sharp-text`. Do not switch branches in `E:/Projects/fallout2-ce-3d` or touch its owner executable or window.
 - Only `tools/dev-snapshot.ps1` may start `fallout2-ce-test.exe`. Check for both the shared tester and another worker's launcher before every snapshot. Stop only the tester started by this helper.
 - Preserve untracked task017 evidence, old failed task025 captures and local build folders. Stage only explicitly selected evidence files.
 
-## Current review finding
+## Accepted checks
 
-- PR #77 review found that the renderer always decodes captured bytes as CP1251. Applying it to French, German, Italian or Spanish dialog bytes can turn accented Latin characters into Cyrillic.
-- The feature is reopened pending a conservative locale guard: only canonical English and Russian are supported, case-insensitively. Empty, unknown and other language settings must keep original pixel text and turn the feature off with one diagnostic before restoration or drawing.
-- Guard and unit coverage are committed as `5cde8f97`; official Release configure/build, targeted embedded-font test 1/1 and full CTest 14/14 passed. The unit predicate accepts English/Russian case-insensitively and rejects the other named locales, empty and unknown values. The presentation gate runs before restoration and drawing. Task status is `doing` and `reviewed: no` pending parent review and any requested runtime smoke.
+- Source `5a8c0183` was configured and built with the official Release setup. Full CTest passed 14/14.
+- English and Russian Klamath Sulik conversations were captured with sharp text off/on at x2 and x3. Menu off/on pairs are pixel-identical. Full evidence and metadata are listed in `runs/025-sharp-text/final-validation-20261024.md`.
+- The final English x2 cursor proof is `runs/025-sharp-text/cursor-runtime-20261024/5a8c0183-en-x2-transparent-verified-v2/`. The decoded PNG at opaque engine-cursor pixel (610,530) is RGB `(84,84,84)`, matching the cursor palette, and sharp overlay alpha changes `126->0`. At transparent pixel (637,533), inside the same cursor rectangle, sharp text alpha stays `5->5`; same-run ink is `2601->2467`. Metadata reports active/drawn, 9 runs and 342 glyphs. EXE SHA-256: `fa5b4c618a35c4436ff7857f2218105f2994454143477236081b8df88005582e`.
+- Final sharp-off regression passed all 16 spots with zero changed pixels on embedded source `5a8c0183`. Summary: `runs/regression/20261024-111711-398-28976/summary.json`.
+- Exporter tests passed 44/44; regression unit tests passed 12/12. Locale policy tests reject French, German, Italian, Spanish, empty and unknown values. CPU tests cover clipped scrolling and palette fades.
+- The inspected live Sulik reply had page offset 0. Do not claim runtime paging acceptance.
 
-## Accepted implementation and evidence
+## Rejected evidence
 
-- `80d57da5`: semantic conversation capture tag, restricted to font 101 and runtime `COLOR_GREEN`; original menu text remains untouched.
-- `6a4a86ed`: resource-verified `Kcsulik.int` fixture on Klamath, with the engine talk-range check and two distinct live dialog owners.
-- `af5163ff`: corrected technical design and palette-fade coverage for CPU-rasterized cached glyph bitmaps and the separate physical RGBA overlay.
-- `01b3164f`: curated menu proof and the eight-case NPC matrix. The menu off/on pairs are pixel-identical. NPC pairs cover English/Russian at x2/x3; metadata binds them to source `6a4a86ed` and executable SHA-256 `3173879bcdae46afd9ee328d0e2be5bbe5cc0921e981f46bd6d9dcd86f61412c`.
-- Parent independently reviewed the English x2 off/on pair and Russian x3 sharp-on image. The full CTest passed 14/14.
-
-## Current edge-case stage
-
-- `fd886190` adds a read-only reply-offset accessor and a gated `-DialogPageInspect` mode. It starts a real Klamath conversation, records the visible reply text, queues exactly one real engine `KEY_2`, then reports the changed reply text, byte lengths and `dialogReplyTextOffset`. Sharp text must be off for this inspection.
-- OFF inspection on `fd886190` confirmed the selected live reply has offset 0 and 61 visible bytes across two text runs: `The spirits with me, fren! They be all around. Sometimes` and `talk.` Evidence log: `runs/025-sharp-text/page-inspect-20261024/fd886190-en-off/process.stdout.log`. No page-down was injected; this is a short reply, not paging evidence.
-- REJECTED: the `2af21dea` cursor screenshot at `runs/025-sharp-text/cursor-runtime-20261024/2af21dea-en-x2/` shows the engine cursor still at screen center. Its alpha-mask change only proved a computed mask at the requested location, not that the cursor was drawn there. Preserve this artifact as rejected evidence; do not cite it as cursor acceptance.
-- `1c00e08b` fixes the gated `-DialogCursorCheck`: redraw the real engine cursor after moving it, confirm the cursor rectangle and opaque palette index in the indexed framebuffer and prepared frame, then independently decode the snapshot PNG and compare the physical target RGB to the cursor palette color. It also verifies other ink remains in the same reply run.
-- Parent independently accepted the corrected fixture at `runs/025-sharp-text/cursor-runtime-20261024/1c00e08b-en-x2-validated/`. The official helper verified target (610,530) in the decoded 1920x1080 PNG as palette RGB (84,84,84); the log verifies overlay alpha 126 to 0 and same-run ink 2601 to 2408. Metadata reports 7 runs, 281 glyphs, 1,812 restored pixels and 2.049 ms preparation at scale 2. EXE SHA-256: `fdd9ed58c09d67c9e101d525b0f3471bfa587943a7574466c32e483dfb41f8f2`.
-- The Release build was configured and built through `tools/configure-build.ps1` after `1c00e08b`; `ce/src/platform/git_version.h` embeds `1c00e08b`. Full CTest: 14/14. The helper's PNG decoder is `tools/check_png_pixel.py`.
-- Final validation on source `1c00e08b`: the 16-case sharp-off regression passed with zero changed pixels at all spots, and full CTest passed 14/14. Exporter tests passed 44/44 and regression unit tests passed 12/12. The regression summary is `runs/regression/20261024-103814-975-9564/summary.json`, with executable SHA-256 `fdd9ed58c09d67c9e101d525b0f3471bfa587943a7574466c32e483dfb41f8f2`.
-- Prior English/Russian and pixel-regression results are summarized in `runs/025-sharp-text/final-validation-20261024.md`; they remain valid for those supported locales. CPU capture tests cover clipped scrolling and palette fades, but no long live NPC reply with a nonzero page offset was observed, so do not claim runtime paging acceptance. Do not synthesize text, bypass talk rules, or use OS cursor/focus APIs.
-
-## Build and delivery state
-
-- Local Ninja header dependency tracking is unreliable. Use the official configure/build script for MSVC. Rebuild affected source objects after code changes; do not run `ninja -t clean` or remove broad build outputs.
-- Draft PR #77 contains the curated matrix, accepted corrected cursor proof and prior validation record. The PR remains blocked on the locale guard, its tests and parent review; do not mark task 025 done or the PR ready before then.
-- Final task scope is the conversation-only Acceptance in `tasks/025-sharp-text.md`; the earlier full-interface plan in old notes is superseded.
+- `runs/025-sharp-text/cursor-runtime-20261024/2af21dea-en-x2/` is rejected because the engine cursor remained at screen center; its alpha assertion did not prove a cursor blit at the target.
+- `runs/025-sharp-text/cursor-runtime-20261024/1c00e08b-en-x2-validated/` was a valid earlier proof, superseded by the final opaque and transparent cell checks above.
+- Earlier all-UI sharp-text notes are superseded by the narrow conversation-only scope in `tasks/025-sharp-text.md`.
