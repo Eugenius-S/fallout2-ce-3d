@@ -13,6 +13,7 @@
 #include <utility>
 
 #include "../text_font.h"
+#include "../color.h"
 
 #ifdef min
 #undef min
@@ -246,6 +247,23 @@ bool captureMetrics(const char* string, int length, ColorWithFlags color,
         width += advance;
     }
     return true;
+}
+
+bool isSemanticGreenColor(Color color)
+{
+    // These are the green states used by font-101 UI. Grass/olive and yellow-green
+    // carry inactive or warning meaning and intentionally retain their palette.
+    const Color semanticGreenColors[] = {
+        COLOR_GREEN,
+        COLOR_LIGHT_GREEN,
+        COLOR_LIGHT_GREEN_2,
+        COLOR_LIGHT_GREEN_3,
+        COLOR_DARK_GREEN,
+        COLOR_DARK_GREEN_2,
+        COLOR_SAGE_GREEN,
+    };
+    return std::find(std::begin(semanticGreenColors), std::end(semanticGreenColors), color)
+        != std::end(semanticGreenColors);
 }
 
 bool textTraceEnabled()
@@ -496,6 +514,12 @@ void textCaptureDrawText(unsigned char* buffer, const char* string, int length, 
     run.font = fontGetCurrent();
     run.colorAndFlags = static_cast<unsigned int>(color);
     run.sharpEligible = run.font == 101;
+    const Color sourceColor = static_cast<Color>(static_cast<unsigned int>(color) & 0xFF);
+    if (run.sharpEligible && isSemanticGreenColor(sourceColor)) {
+        run.colorRole = activeTextCaptureTag() == TextCaptureTag::HudMessageLog
+            ? scene::TextColorRole::HudMessageLogGreen
+            : scene::TextColorRole::InterfaceGreen;
+    }
     run.x = x;
     run.y = y;
     run.width = width;

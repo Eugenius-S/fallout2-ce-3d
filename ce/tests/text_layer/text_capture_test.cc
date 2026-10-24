@@ -215,8 +215,8 @@ void testFont101SharpEligibility()
     }
     check(allColorsPreserved, "font ID, palette flags, and original font metrics are preserved");
     check(std::all_of(rawRecords.begin() + 5, rawRecords.end(), [](const scene::TextRecord& record) {
-        return !record.run.sharpEligible;
-    }), "font IDs 102, 103, and 104 stay on the pixel-text path");
+        return !record.run.sharpEligible && record.run.colorRole == scene::TextColorRole::Palette;
+    }), "font IDs 102, 103, and 104 stay on the pixel-text path and keep original colors");
     check(sharpRestore.size() == 10,
         "sharp restoration includes all font-101 colors and excludes other font IDs");
 
@@ -228,6 +228,74 @@ void testFont101SharpEligibility()
         "font-101 eligibility survives image-buffer copies for all original colors");
     check(copiedRestore.size() == 10,
         "copied font-101 text contributes to sharp restoration; other font IDs do not");
+
+    textCaptureUnregisterExternalBuffer(source.data());
+    textCaptureUnregisterExternalBuffer(destination.data());
+    gCurrentFont = 101;
+}
+
+void testSemanticGreenCaptureRoles()
+{
+    using namespace fallout;
+    _colorTable[rgb555(0x00FF00)] = static_cast<Color>(43);
+    _colorTable[rgb555(0x007300)] = static_cast<Color>(44);
+    _colorTable[rgb555(0x429C21)] = static_cast<Color>(45);
+    _colorTable[rgb555(0x00C500)] = static_cast<Color>(46);
+    _colorTable[rgb555(0x007B00)] = static_cast<Color>(47);
+    _colorTable[rgb555(0x084A08)] = static_cast<Color>(48);
+    _colorTable[rgb555(0x8CBD8C)] = static_cast<Color>(49);
+    _colorTable[rgb555(0x7B7B29)] = static_cast<Color>(50);
+    _colorTable[rgb555(0xEFFF08)] = static_cast<Color>(51);
+    _colorTable[rgb555(0xADAD5A)] = static_cast<Color>(52);
+
+    std::vector<unsigned char> source(128, 1);
+    std::vector<unsigned char> destination(128, 2);
+    textCaptureRegisterExternalBuffer(source.data(), source.size(), 64, 2, 64, false);
+    textCaptureRegisterExternalBuffer(destination.data(), destination.size(), 64, 2, 64, false);
+    textCaptureMarkBufferOwned(source.data());
+    textCaptureMarkBufferOwned(destination.data());
+    const scene::TextBufferId sourceId = textCaptureBufferId(source.data());
+    const scene::TextBufferId destinationId = textCaptureBufferId(destination.data());
+    const Color greenColors[] = { COLOR_GREEN, COLOR_LIGHT_GREEN, COLOR_LIGHT_GREEN_2,
+        COLOR_LIGHT_GREEN_3, COLOR_DARK_GREEN, COLOR_DARK_GREEN_2, COLOR_SAGE_GREEN };
+    fontDrawTextPtr = drawTwoGlyphs;
+    gCurrentFont = 101;
+    for (std::size_t index = 0; index < std::size(greenColors); ++index) {
+        fontDrawText(source.data() + index * 2, "ab", 8, 64,
+            static_cast<ColorWithFlags>(greenColors[index]));
+    }
+    {
+        ScopedTextCaptureTag captureTag(TextCaptureTag::HudMessageLog);
+        fontDrawText(source.data() + 14, "ab", 8, 64, static_cast<ColorWithFlags>(COLOR_GREEN));
+        fontDrawText(source.data() + 16, "ab", 8, 64, static_cast<ColorWithFlags>(COLOR_YELLOW_GREEN));
+    }
+    fontDrawText(source.data() + 18, "ab", 8, 64, static_cast<ColorWithFlags>(COLOR_GREEN));
+    fontDrawText(source.data() + 20, "ab", 8, 64, static_cast<ColorWithFlags>(COLOR_GRASS_GREEN));
+    fontDrawText(source.data() + 22, "ab", 8, 64, static_cast<ColorWithFlags>(COLOR_OLIVE));
+
+    const auto captured = scene::textCaptureRecords(sourceId);
+    check(captured.size() == 12, "all font-101 semantic-color test runs are captured");
+    bool rolesMatch = captured.size() == 12;
+    for (std::size_t index = 0; index < std::size(greenColors) && rolesMatch; ++index) {
+        rolesMatch = captured[index].run.colorRole == scene::TextColorRole::InterfaceGreen;
+    }
+    if (captured.size() == 12) {
+        rolesMatch = rolesMatch
+            && captured[7].run.colorRole == scene::TextColorRole::HudMessageLogGreen
+            && captured[8].run.colorRole == scene::TextColorRole::Palette
+            && captured[9].run.colorRole == scene::TextColorRole::InterfaceGreen
+            && captured[10].run.colorRole == scene::TextColorRole::Palette
+            && captured[11].run.colorRole == scene::TextColorRole::Palette;
+    }
+    check(rolesMatch, "semantic greens are tagged, HUD role is scoped, and olive/yellow-green stay original");
+
+    textCaptureCopy(source.data(), 64, 2, 64, destination.data(), 64, false, fakeCopy);
+    const auto copied = scene::textCaptureRecords(destinationId);
+    bool copiedRolesMatch = copied.size() == captured.size();
+    for (std::size_t index = 0; index < copied.size() && copiedRolesMatch; ++index) {
+        copiedRolesMatch = copied[index].run.colorRole == captured[index].run.colorRole;
+    }
+    check(copiedRolesMatch, "green and HUD-log roles survive buffer copies");
 
     textCaptureUnregisterExternalBuffer(source.data());
     textCaptureUnregisterExternalBuffer(destination.data());
@@ -617,6 +685,7 @@ int main()
     fallout::fontGetMonospacedCharacterWidth = fallout::fakeMonospacedWidth;
     testAllocatorGenerationAndShadowGuard();
     testFont101SharpEligibility();
+    testSemanticGreenCaptureRoles();
     testSafeClippedCaptureAndBlit();
     testAllocationEdgeBounds();
     testMonospacedClippedRunMetadata();

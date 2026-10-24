@@ -16,6 +16,7 @@ using TextPixelCopyProc = void(unsigned char* destination, int destinationPitch,
 enum class TextCaptureTag {
     None,
     Conversation,
+    HudMessageLog,
 };
 
 class ScopedTextCaptureTag {

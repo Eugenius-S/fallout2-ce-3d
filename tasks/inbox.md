@@ -37,8 +37,6 @@ that fits no task becomes a new task when the board runs dry.
   fly camera they vanish. The owner remembers every wall had one before.
   Same visit as the close-up noise above; look for a lost back face or
   culling change in the walls since then. Not now.
-- 2026-10-24 After font-101 coverage review, reduce sharp interface text
-  brightness while preserving palette-state distinctions; use the Russian
-  scale-3 character screen as a reference
-  (`runs/054-small-interface-font/accepted-20261024/ru-x3-character-on/scr00062.png`).
-  Deferred until the owner reviews coverage.
+- 2026-10-24 Around the dialogue UI, turn the free screen area black so the street world is hidden. Reference: `runs/inbox/2026-10-24-dialog-black-background.png` (owner source: `C:\Users\jiraf\AppData\Local\Temp\codex-clipboard-3865ace3-a630-45ed-b714-034d45600988.png`). Not now.
+
+- 2026-10-24 Russian custom menus still use English labels while the game language is Russian. Review menu localization and match the active UI language. Not now.

@@ -174,6 +174,49 @@ void blendPixel(unsigned char* pixel, const unsigned char* rgb, unsigned char al
     pixel[3] = static_cast<unsigned char>(alpha + (pixel[3] * inverse + 127) / 255);
 }
 
+void getTextColor(const scene::TextRunInfo& run, const unsigned char* paletteRgb,
+    int paletteEntries, const unsigned char** rgb, unsigned char* recoloredRgb)
+{
+    const unsigned int sourceIndex = run.colorAndFlags & 0xFF;
+    *rgb = paletteRgb + sourceIndex * 3;
+    if (run.font != 101 || run.colorRole == scene::TextColorRole::Palette) return;
+
+    const unsigned int greenIndex = static_cast<unsigned int>(COLOR_GREEN);
+    if (greenIndex >= static_cast<unsigned int>(paletteEntries)) return;
+    const double fullGreen = _cmap[greenIndex * 3 + 1] * 4.0;
+    if (fullGreen <= 0.0) return;
+
+    // Infer the palette transition using the canonical source color's extrema.
+    // Keeping each live channel as the transition baseline preserves fades to
+    // white and colored palette endpoints instead of forcing them through green.
+    double base[3];
+    int minimumChannel = 0;
+    int maximumChannel = 0;
+    for (int channel = 0; channel < 3; ++channel) {
+        base[channel] = _cmap[sourceIndex * 3 + channel] * 4.0;
+        if (base[channel] < base[minimumChannel]) minimumChannel = channel;
+        if (base[channel] > base[maximumChannel]) maximumChannel = channel;
+    }
+    const double baseRange = base[maximumChannel] - base[minimumChannel];
+    if (baseRange <= 0.0) return;
+    const double factor = std::clamp(
+        (paletteRgb[sourceIndex * 3 + maximumChannel] - paletteRgb[sourceIndex * 3 + minimumChannel]) / baseRange,
+        0.0, 1.0);
+    static constexpr unsigned char targetColors[2][3] = {
+        { 0x3F, 0xB4, 0x19 },
+        { 0x4B, 0xD5, 0x1F },
+    };
+    const unsigned char* target = targetColors[run.colorRole == scene::TextColorRole::HudMessageLogGreen ? 1 : 0];
+    for (int channel = 0; channel < 3; ++channel) {
+        const double mappedBase = target[channel] * (base[1] / fullGreen);
+        const double value = std::clamp(paletteRgb[sourceIndex * 3 + channel]
+                + factor * (mappedBase - base[channel]),
+            0.0, 255.0);
+        recoloredRgb[channel] = static_cast<unsigned char>(std::lround(value));
+    }
+    *rgb = recoloredRgb;
+}
+
 bool equalsAsciiCaseInsensitive(const std::string& value, const char* expected)
 {
     const std::size_t expectedSize = std::strlen(expected);
@@ -270,7 +313,9 @@ bool renderSharpText(const std::vector<scene::TextRecord>& records,
         const double proportionalCondense = naturalWidth <= 0.0 ? 1.0 : std::min(1.0, run.width / naturalWidth);
         const unsigned int colorIndex = static_cast<unsigned int>(run.colorAndFlags) & 0xFF;
         if (colorIndex >= static_cast<unsigned int>(paletteEntries)) continue;
-        const unsigned char* rgb = paletteRgb + colorIndex * 3;
+        const unsigned char* rgb = nullptr;
+        unsigned char recoloredRgb[3] = {};
+        getTextColor(run, paletteRgb, paletteEntries, &rgb, recoloredRgb);
         struct PositionedGlyph {
             const GlyphBitmap* bitmap;
             int x;
