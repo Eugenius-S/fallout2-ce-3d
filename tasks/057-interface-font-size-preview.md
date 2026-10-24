@@ -42,3 +42,8 @@ Show three font-101 point-size variants on the Russian character screen for the 
 Done: claimed task 057 on the branch from origin/main.
 Next: audit a bounded preview-only scale path, then implement after plan review.
 Check: branch starts at `d64e12a6`; all tracked files were clean before branching.
+
+### 2026-10-24 gpt
+Done: added the opt-in character-screen preview at 1.00, 1.08, and 1.15 in commit `95700dbd`. Release build and CTest pass 14/14. Curated the normal 1.00 control and three variants in `runs/057-interface-font-size-preview/accepted/`. The normal control and explicit 1.00 PNGs decode pixel-identically. Visual review found no adjacent-row collisions or clipped diacritics in the 1.08 and 1.15 frames.
+Next: owner chooses a preview size. Keep the production default at 1.00 until that choice.
+Check: `runs/057-interface-font-size-preview/accepted/preview-report.md`, the matching snapshot JSON and fixture stdout in each variant folder, and CTest 14/14.
