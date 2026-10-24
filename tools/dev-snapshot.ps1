@@ -30,6 +30,8 @@ param(
     [switch]$DialogFixture,
     [switch]$DialogPageInspect,
     [switch]$DialogCursorCheck,
+    [ValidateSet('inventory', 'pipboy', 'character', 'barter', 'log')]
+    [string]$UiFixture,
     [string]$Tour,
     [switch]$Classic,
     [switch]$Preferences,
@@ -119,6 +121,18 @@ if ($DialogFixture) {
         throw '-DialogFixture requires -CaptureConsole and -OutputDirectory for fixture diagnostics.'
     }
 }
+if ($UiFixture) {
+    if ($DialogFixture -or $DialogPageInspect -or $DialogCursorCheck -or $Preferences -or $PreferencesProbe -or
+        $Classic -or $Probe -or $Tour -or $Still -or $NoPreview) {
+        throw '-UiFixture cannot be combined with DialogFixture, Preferences, Classic, Probe, Tour, Still, NoPreview, or PreferencesProbe.'
+    }
+    if ($UiFixture -eq 'barter' -and $Map -ne 'kladwtwn') {
+        throw '-UiFixture barter requires the resource-verified Klamath map kladwtwn.'
+    }
+    if (-not $CaptureConsole -or -not $OutputDirectory) {
+        throw '-UiFixture requires -CaptureConsole and -OutputDirectory for fixture diagnostics.'
+    }
+}
 if ($DialogPageInspect) {
     if (-not $DialogFixture) { throw '-DialogPageInspect requires -DialogFixture.' }
     if ($SharpText) { throw '-DialogPageInspect must inspect the original pixel text with sharp text off.' }
@@ -167,6 +181,8 @@ $shots = 1
 $runId = [guid]::NewGuid().ToString('N')
 $arguments = @('--dev-tools')
 if ($SharpText) { $arguments += '--dev-sharp-text=1' } else { $arguments += '--dev-sharp-text=0' }
+if ($UiFixture) { $arguments += "--dev-ui-fixture=$UiFixture" }
+if ($UiFixture -eq 'log') { $arguments += '--dev-classic' }
 if ($DialogFixture) { $arguments += '--dev-dialog-fixture' }
 if ($DialogPageInspect) { $arguments += '--dev-dialog-page-inspect' }
 if ($DialogCursorCheck) { $arguments += '--dev-dialog-cursor-check' }
@@ -222,7 +238,8 @@ if ($PreferencesProbe) {
     $shots = 1 + @("$Tour".Split(',') | Where-Object { $_.Trim() }).Count
     $arguments += "--dev-map-tour=$Tour"
 } else {
-    if ($DialogPageInspect) { $shots = 0 }
+    if ($UiFixture) { $shots = 1 }
+    elseif ($DialogPageInspect) { $shots = 0 }
     elseif ($DialogCursorCheck) { $shots = 1 }
     elseif ($DialogFixture) { $shots = 1 }
     else { $arguments += '--dev-snapshot-once' }
@@ -277,7 +294,17 @@ try {
             })
             $log = Join-Path $GameDir 'devprobe.log'
             $probed = -not $Probe -or ((Test-Path $log) -and (Select-String -Path $log -Pattern 'probe done' -Quiet))
-            if ($DialogPageInspect) {
+            if ($UiFixture) {
+                $fixtureLog = Join-Path $OutputDirectory 'process.stdout.log'
+                if ((Test-Path -LiteralPath $fixtureLog) -and
+                    ((Select-String -LiteralPath $fixtureLog -Pattern '^UI_FIXTURE FAIL ' -Quiet) -or
+                        ($UiFixture -eq 'barter' -and (Select-String -LiteralPath $fixtureLog -Pattern '^DIALOG_FIXTURE FAIL ' -Quiet)))) {
+                    $dialogFixtureFailed = $true
+                    break
+                }
+                if ($snapshots.Count -ge $shots -and (Test-Path -LiteralPath $fixtureLog) -and
+                    (Select-String -LiteralPath $fixtureLog -Pattern ('^UI_FIXTURE PASS screen=' + [regex]::Escape($UiFixture) + ' ') -Quiet)) { break }
+            } elseif ($DialogPageInspect) {
                 $fixtureLog = Join-Path $OutputDirectory 'process.stdout.log'
                 if ((Test-Path -LiteralPath $fixtureLog) -and
                     (Select-String -LiteralPath $fixtureLog -Pattern '^DIALOG_PAGE_INSPECT PASS ' -Quiet)) { break }
@@ -385,6 +412,44 @@ if ($PreferencesProbe) {
     $probeResult | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $resultPath -Encoding utf8
     Write-Output "PREFERENCES_PROBE RESULT $resultPath"
     return
+}
+if ($UiFixture) {
+    $fixtureLog = Get-Content -Raw -LiteralPath (Join-Path $OutputDirectory 'process.stdout.log')
+    if ($dialogFixtureFailed -or $fixtureLog -notmatch ('(?m)^UI_FIXTURE PASS screen=' + [regex]::Escape($UiFixture) + ' ')) {
+        throw "UI fixture '$UiFixture' failed or timed out within $TimeoutSeconds s.`n$fixtureLog"
+    }
+    if (-not $probeHarnessStoppedProcess) { throw 'UI fixture was not stopped by its isolated helper harness.' }
+    if ($snapshots.Count -lt 1) { throw "UI fixture '$UiFixture' passed without a framebuffer snapshot." }
+    $uiMetadata = Get-Content -Raw -LiteralPath $snapshots[0].FullName | ConvertFrom-Json
+    $expectedResolution = "${ScreenWidth}x${ScreenHeight}"
+    $expectedLogicalResolution = "$([int]($ScreenWidth / $Scale))x$([int]($ScreenHeight / $Scale))"
+    if ($uiMetadata.snapshot_run -ne $runId -or $uiMetadata.resolution -ne $expectedResolution -or
+        $uiMetadata.logical_resolution -ne $expectedLogicalResolution -or $uiMetadata.scale -ne $Scale) {
+        throw "UI fixture '$UiFixture' snapshot metadata does not match the requested run, dimensions, and scale."
+    }
+    $passLine = [regex]::Match($fixtureLog, '(?m)^UI_FIXTURE PASS screen=' + [regex]::Escape($UiFixture) + ' window=(\d+) generation=(\d+) font=101 runs=(\d+) screen_runs=(\d+) visible_runs=(\d+) visible_coverage=(\d+) overlay_runs=(\d+) overlay_pixels=(\d+)')
+    if (-not $passLine.Success -or [int]$passLine.Groups[3].Value -le 0 -or
+        [int]$passLine.Groups[4].Value -le 0 -or [int]$passLine.Groups[5].Value -le 0 -or
+        [int]$passLine.Groups[6].Value -le 0) {
+        throw "UI fixture '$UiFixture' lacks a visible target-window font-101 record and coverage proof."
+    }
+    if ($SharpText -and ([int]$passLine.Groups[7].Value -le 0 -or [int]$passLine.Groups[8].Value -le 0)) {
+        throw "Sharp-on UI fixture '$UiFixture' lacks visible overlay pixels from its target window."
+    }
+    if ($UiFixture -eq 'barter' -and $fixtureLog -notmatch '(?m)^UI_FIXTURE PASS .*white_zero_totals=2 left=\$0@\d+ right=\$0@\d+') {
+        throw 'Barter fixture did not prove two white $0 totals at distinct screen positions.'
+    }
+    if ($UiFixture -eq 'log' -and $fixtureLog -notmatch '(?m)^UI_FIXTURE PASS .*real_date_log=.+') {
+        throw 'Message log fixture did not report the real date message from editor.msg.'
+    }
+    if ($SharpText) {
+        if (-not $uiMetadata.sharp_text.setting -or -not $uiMetadata.sharp_text.active -or
+            -not $uiMetadata.sharp_text.drawn -or $uiMetadata.sharp_text.runs -le 0) {
+            throw "Sharp-on UI fixture '$UiFixture' lacks an active drawn font-101 pass in its snapshot metadata."
+        }
+    } elseif ($uiMetadata.sharp_text.setting -or $uiMetadata.sharp_text.active -or $uiMetadata.sharp_text.drawn) {
+        throw "Sharp-off UI fixture '$UiFixture' unexpectedly reports active sharp text."
+    }
 }
 if ($DialogFixture -and -not $DialogPageInspect -and -not $DialogCursorCheck) {
     $fixtureLog = Get-Content -Raw -LiteralPath (Join-Path $OutputDirectory 'process.stdout.log')

@@ -1,6 +1,7 @@
 #include "devtools.h"
 #include "snapshot_rows.h"
 #include "preferences_probe.h"
+#include "ui_fixture.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -752,6 +753,7 @@ bool parseOption(const char* arg)
         gDialogCursorCheckRequested = true;
         return true;
     }
+    if (parseUiFixtureOption(arg)) return true;
     if (strcmp(arg, "--dev-preferences-snapshot") == 0) {
         gPreferencesSnapshotPending = true;
         return true;
@@ -1145,6 +1147,9 @@ void update()
 {
     if (!gEnabled) {
         return;
+    }
+    if (startUiFixtureWhenReady(sceneStartupReady(), inBlockingGameState())) {
+        gDialogFixtureRequested = true;
     }
     if (gPreferencesSnapshotPending && sceneStartupReady() && !inBlockingGameState()) {
         gPreferencesSnapshotPending = false;
@@ -1890,6 +1895,7 @@ void scenePresented(const scene::RefreshResult& refreshed)
 void vanillaPresented()
 {
     if (gDialogCursorCheckCursorMoveInProgress) return;
+    uiFixtureVanillaPresented();
     if (gDialogFixtureRequested && gDialogFixtureStarted && !gDialogFixtureFinished
         && gameDialogWindowActive()) {
         int ownerIds[2] = { -1, -1 };
@@ -1923,6 +1929,11 @@ void vanillaPresented()
             }
         }
         if (ownerCount >= 2) {
+            if (uiFixtureUsesDialogBarter()) {
+                uiFixtureDialogReady(gDialogFixtureScript, gDialogFixtureSpeakerId,
+                    gDialogFixtureSpeakerTile, runCount);
+                return;
+            }
             std::vector<std::string> currentReplyText;
             if (gDialogPageInspectRequested || gDialogCursorCheckRequested) {
                 for (int index = 0; index < windowCount; index++) {

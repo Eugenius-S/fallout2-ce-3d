@@ -495,8 +495,7 @@ void textCaptureDrawText(unsigned char* buffer, const char* string, int length, 
     run.text = std::move(acceptedText);
     run.font = fontGetCurrent();
     run.colorAndFlags = static_cast<unsigned int>(color);
-    run.sharpEligible = activeTextCaptureTag() == TextCaptureTag::Conversation
-        && run.font == 101 && static_cast<Color>(static_cast<unsigned int>(color) & 0xFF) == COLOR_GREEN;
+    run.sharpEligible = run.font == 101;
     run.x = x;
     run.y = y;
     run.width = width;

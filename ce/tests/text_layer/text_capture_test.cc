@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cstdio>
 #include <cstring>
+#include <iterator>
 #include <string>
 #include <vector>
 
@@ -164,10 +165,13 @@ void testAllocatorGenerationAndShadowGuard()
     textCaptureAllocationDestroyed(pixels.data());
 }
 
-void testTaggedConversationSharpEligibility()
+void testFont101SharpEligibility()
 {
     using namespace fallout;
     _colorTable[rgb555(0x00FF00)] = static_cast<Color>(43);
+    _colorTable[rgb555(0xFFFFFF)] = static_cast<Color>(44);
+    _colorTable[rgb555(0xFFFF5A)] = static_cast<Color>(45);
+    _colorTable[rgb555(0xFF0000)] = static_cast<Color>(46);
     std::vector<unsigned char> source(32, 1);
     std::vector<unsigned char> destination(32, 2);
     textCaptureRegisterExternalBuffer(source.data(), source.size(), 8, 4, 8, false);
@@ -178,39 +182,52 @@ void testTaggedConversationSharpEligibility()
     const scene::TextBufferId destinationId = textCaptureBufferId(destination.data());
     fontDrawTextPtr = drawTwoGlyphs;
     gCurrentFont = 101;
-    {
-        ScopedTextCaptureTag tag(TextCaptureTag::Conversation);
-        fontDrawText(source.data(), "ab", 8, 8, static_cast<ColorWithFlags>(COLOR_GREEN | DRAW_TEXT_FLAG_NO_BG));
+    const ColorWithFlags font101Colors[] = {
+        static_cast<ColorWithFlags>(COLOR_GREEN | DRAW_TEXT_FLAG_NO_BG),
+        static_cast<ColorWithFlags>(COLOR_WHITE),
+        static_cast<ColorWithFlags>(COLOR_LIGHT_YELLOW),
+        static_cast<ColorWithFlags>(COLOR_RED),
+        static_cast<ColorWithFlags>(COLOR_GREEN | DRAW_TEXT_FLAG_REFRESH),
+    };
+    for (std::size_t index = 0; index < std::size(font101Colors); index++) {
+        fontDrawText(source.data() + index * 2, "ab", 8, 8, font101Colors[index]);
     }
-    fontDrawText(source.data() + 2, "ab", 8, 8, static_cast<ColorWithFlags>(COLOR_GREEN)); // Green menu text.
-    {
-        ScopedTextCaptureTag tag(TextCaptureTag::Conversation);
-        fontDrawText(source.data() + 4, "ab", 8, 8, static_cast<ColorWithFlags>(21)); // Yellow dialog.
-    }
-    gCurrentFont = 103;
-    {
-        ScopedTextCaptureTag tag(TextCaptureTag::Conversation);
-        fontDrawText(source.data() + 6, "ab", 8, 8, static_cast<ColorWithFlags>(COLOR_GREEN)); // Large title.
+    const int otherFonts[] = { 102, 103, 104 };
+    for (std::size_t index = 0; index < std::size(otherFonts); index++) {
+        gCurrentFont = otherFonts[index];
+        fontDrawText(source.data() + 10 + index * 2, "ab", 8, 8,
+            static_cast<ColorWithFlags>(COLOR_GREEN));
     }
 
     const auto rawRecords = scene::textCaptureRecords(sourceId);
     const auto sharpRecords = scene::textCaptureSharpRecords(sourceId);
     const auto sharpRestore = scene::textCaptureSharpRestoration(sourceId);
-    check(rawRecords.size() == 4, "raw diagnostics retain conversation, menu, yellow, and title records");
-    check(sharpRecords.size() == 1 && sharpRecords.front().run.font == 101
-            && sharpRecords.front().run.sharpEligible,
-        "only tagged font-101 runtime-green conversation text is eligible");
-    check(sharpRestore.size() == 2 && sharpRestore[0].x == 0 && sharpRestore[1].x == 1,
-        "off-target green menu, yellow dialog, and title pixels are not restored");
+    check(rawRecords.size() == 8, "raw diagnostics retain all captured font IDs");
+    check(sharpRecords.size() == 5, "every font-101 palette color is eligible without a conversation tag");
+    bool allColorsPreserved = sharpRecords.size() == std::size(font101Colors);
+    for (std::size_t index = 0; index < sharpRecords.size() && allColorsPreserved; index++) {
+        allColorsPreserved = sharpRecords[index].run.font == 101
+            && sharpRecords[index].run.sharpEligible
+            && sharpRecords[index].run.colorAndFlags == static_cast<unsigned int>(font101Colors[index])
+            && sharpRecords[index].run.lineHeight == 2
+            && sharpRecords[index].run.width == 2
+            && sharpRecords[index].run.characterX.size() == 2;
+    }
+    check(allColorsPreserved, "font ID, palette flags, and original font metrics are preserved");
+    check(std::all_of(rawRecords.begin() + 5, rawRecords.end(), [](const scene::TextRecord& record) {
+        return !record.run.sharpEligible;
+    }), "font IDs 102, 103, and 104 stay on the pixel-text path");
+    check(sharpRestore.size() == 10,
+        "sharp restoration includes all font-101 colors and excludes other font IDs");
 
     textCaptureCopy(source.data(), 8, 4, 8, destination.data(), 8, false, fakeCopy);
     const auto copiedRaw = scene::textCaptureRecords(destinationId);
     const auto copiedSharp = scene::textCaptureSharpRecords(destinationId);
     const auto copiedRestore = scene::textCaptureSharpRestoration(destinationId);
-    check(copiedRaw.size() == 4 && copiedSharp.size() == 1 && copiedSharp.front().run.sharpEligible,
-        "semantic conversation tag survives image-buffer copies");
-    check(copiedRestore.size() == 2,
-        "copied off-target text cannot contribute to sharp restoration");
+    check(copiedRaw.size() == 8 && copiedSharp.size() == 5,
+        "font-101 eligibility survives image-buffer copies for all original colors");
+    check(copiedRestore.size() == 10,
+        "copied font-101 text contributes to sharp restoration; other font IDs do not");
 
     textCaptureUnregisterExternalBuffer(source.data());
     textCaptureUnregisterExternalBuffer(destination.data());
@@ -599,7 +616,7 @@ int main()
     fallout::fontGetLetterSpacing = fallout::fakeLetterSpacing;
     fallout::fontGetMonospacedCharacterWidth = fallout::fakeMonospacedWidth;
     testAllocatorGenerationAndShadowGuard();
-    testTaggedConversationSharpEligibility();
+    testFont101SharpEligibility();
     testSafeClippedCaptureAndBlit();
     testAllocationEdgeBounds();
     testMonospacedClippedRunMetadata();
