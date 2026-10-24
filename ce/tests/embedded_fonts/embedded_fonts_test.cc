@@ -171,10 +171,16 @@ int main()
         std::fprintf(stderr, "Fonts 103 and 104 do not share the bold face\n");
         return 1;
     }
+    record.run.font = 102;
+    if (!renderSharpText({ record }, 256, 32, 512, 64, palette, 256, visibility, &surface)) {
+        std::fprintf(stderr, "Font 102 did not rasterize\n");
+        return 1;
+    }
+    const std::vector<unsigned char> font102Pixels = surface.pixels;
     record.run.font = 101;
     if (!renderSharpText({ record }, 256, 32, 512, 64, palette, 256, visibility, &surface)
-        || surface.pixels == font103Pixels) {
-        std::fprintf(stderr, "Regular font unexpectedly uses the bold face\n");
+        || surface.pixels != font103Pixels || surface.pixels == font102Pixels) {
+        std::fprintf(stderr, "Font 101 did not select the bold face while font 102 stayed regular\n");
         return 1;
     }
 

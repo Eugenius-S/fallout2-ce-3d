@@ -38,7 +38,9 @@ placement, palette colors, and fades.
   eligibility are unchanged.
 - Release build, CTest, scene exporter tests, regression unit tests, and the
   official 16-point off regression pass. Capture genuine Russian inventory,
-  dialogue, and character screens at scale 3.
+  dialogue, and character screens at scale 3 with sharp text off (original
+  pixels) and on (Bold 700). Each before/after pair uses the same source,
+  executable, private test setup, and 1920x1440 framebuffer.
 
 ## Out of scope
 

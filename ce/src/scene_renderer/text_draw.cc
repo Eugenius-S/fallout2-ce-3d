@@ -238,7 +238,7 @@ bool renderSharpText(const std::vector<scene::TextRecord>& records,
         const scene::TextVisibilityMask& visibility = logicalVisibility[recordIndex];
         if (visibility.pixels.size() != static_cast<std::size_t>(visibility.bounds.width) * visibility.bounds.height
             || run.text.empty() || run.lineHeight <= 0 || run.width <= 0) continue;
-        const bool bold = run.font == 103 || run.font == 104;
+        const bool bold = run.font == 101 || run.font == 103 || run.font == 104;
         stbtt_fontinfo* font = getFont(bold);
         if (font == nullptr) return false;
         const FontVerticalBounds& verticalBounds = getFontVerticalBounds(bold, font);
