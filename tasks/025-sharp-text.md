@@ -191,3 +191,8 @@ Check: full CTest passed 14/14. Evidence base `runs/025-sharp-text/blit-fix-568c
 Done: narrowed capture eligibility to four semantic NPC conversation/player-answer callsites. A run is eligible only with the active Conversation tag, font 101, and runtime COLOR_GREEN; raw capture remains available for diagnostics, while the presentation renderer selects and restores eligible runs only. The setting is labeled Sharp dialog text. Menus and other UI remain pixel-rendered.
 Next: configure after this commit, run the full clean Release build and CTest, then verify menu pixels are identical with the setting off/on before designing an actual NPC conversation snapshot fixture.
 Check: standalone Release text-layer CTest passed 2/2; git diff --check passed. Parent reviewed and accepted the focused scope/tag diff. Full build and runtime evidence for this scope are pending.
+
+### 2026-10-24 gpt
+Done: verified English x2 and Russian x3 Preferences Top snapshots with sharp dialog text off/on. Both pairs are pixel-identical; the on snapshots report the setting enabled but inactive, with zero captured or restored runs. The clean Release build after `80d57da5` rebuilt all 175 game objects; the built EXE matches the snapshot SHA-256 `fb5a368a652cbd794c536637808373ef2b972fc57a533f6737e7262cdd8880e7`.
+Next: parent review a real NPC conversation fixture design before implementation. Menus, titles, Pip-Boy and all other UI remain outside sharp text scope.
+Check: full CTest passed 14/14; decoded RGBA images match exactly for `runs/025-sharp-text/menu-scope-80d57da5/en-x2-top-{off,on}` and `ru-x3-top-{off,on}`. Snapshot metadata reports scale 2 for English and scale 3 for Russian.
