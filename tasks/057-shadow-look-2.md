@@ -67,3 +67,30 @@ Claimed straight from the owner's review round; the notes and his
 screenshots are in 046's Log and
 runs/046-characters-in-shadow/review-2026-10-24/. The non-shadow finds of
 the same review went to the inbox.
+
+### 2026-10-24 glm
+Done: the shadow look after the owner's live review.
+- The lookup no longer snaps to the shadow_pixel_size grid: the snap was the
+  stripes on house walls (a whole wall face shared a few lookup cells). The
+  setting is now the edge softness (the label is "Shadow edge softness"): an
+  antialiasing ring of nine taps (the center plus eight round) spans
+  max(setting, one depth map texel), so the edge always antialiases whatever
+  the setting says, and the shadow core stays crisp.
+- The caster pass draws textured with a cutoff: the art's transparent holes
+  (a fence's gaps, a window's glass) cast no shadow. The caster buffer
+  carries UVs and one draw range per atlas page (walls.cc, WallCasterRange in
+  shadow.h, the pass binds each page's texture).
+- Sprites in shade dim to 0.35 of the factor (was 0.5); the ground keeps
+  0.5. Characters stay readable in a wall's shadow.
+- T steps one game hour (was three); night hours still show no sun.
+Check: build Release, ctest 12/12. Shots under runs/057-shadow-look-2/:
+the corrals at 17:00 and noon, a fence close-up at zoom 2, and size 1
+against the default 4. Vs the 046 shots 3.3% of the sunset frame changed
+(the shadow areas); the size change now moves 1.1% of the frame, the edge
+softness only, where the snap used to restripe every shadowed wall; shadows
+on against off moves 27% (they are live in the runs). The regression with
+the pinned config (shadows off) is line for line the morning baseline:
+every spot's changed-pixel count identical, klacanyn-e0, klaratcv-e0 and
+klatoxcv-e2 at 0.
+Next: the owner's eye (user-check: yes). The two feel constants (the edge
+softness default 4, the distance fade ~5 units) are one line each.
