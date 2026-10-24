@@ -58,6 +58,7 @@ int gSpeakerId = -1;
 int gSpeakerTile = -1;
 int gInitialDateLogCount = 0;
 bool gPipboyStatusRequested = false;
+int gLogDiagnosticFrames = 0;
 
 const char* fixtureName()
 {
@@ -422,7 +423,17 @@ void uiFixtureVanillaPresented()
 
     const int windowId = expectedWindow();
     TextWindowSnapshot window = {};
-    if (!snapshotWindow(windowId, &window)) return;
+    if (!snapshotWindow(windowId, &window)) {
+        if (gKind == UiFixtureKind::Log && gLogDiagnosticFrames < 8) {
+            TextWindowSnapshot first = {};
+            int count = 0;
+            textCaptureGetWindowSnapshot(0, &first, &count);
+            printf("UI_FIXTURE WAIT screen=log callback=entered frame=%d target_window=%d snapshot_count=%d baseline_date_runs=%d\n",
+                gLogDiagnosticFrames++, windowId, count, gInitialDateLogCount);
+            fflush(stdout);
+        }
+        return;
+    }
 
     if (gKind == UiFixtureKind::Pipboy && !gPipboyStatusRequested) {
         gPipboyStatusRequested = true;
@@ -434,6 +445,19 @@ void uiFixtureVanillaPresented()
     }
 
     std::vector<scene::TextRecord> runs = eligibleRuns(window);
+    if (gKind == UiFixtureKind::Log && gLogDiagnosticFrames < 8) {
+        const scene_renderer::PreparedSharpTextFrame& frame = scene_renderer::preparedSharpTextFrame();
+        const ScreenProof proof = screenProof(window, frame);
+        int dateRuns = 0;
+        for (const scene::TextRecord& record : proof.records) {
+            if (isDateLogRun(record)) dateRuns++;
+        }
+        printf("UI_FIXTURE WAIT screen=log callback=entered frame=%d window=%d generation=%llu eligible=%zu owner_runs=%zu screen_runs=%zu visible_runs=%zu date_runs=%d baseline_date_runs=%d coverage=%u frame_active=%d frame_drawn=%d overlay_runs=%zu\n",
+            gLogDiagnosticFrames++, window.id, static_cast<unsigned long long>(window.generation), runs.size(),
+            runs.size(), proof.records.size(), proof.visibleRecords.size(), dateRuns, gInitialDateLogCount,
+            proof.visibleCoverage, frame.active ? 1 : 0, frame.drawn ? 1 : 0, proof.overlayRecords.size());
+        fflush(stdout);
+    }
     if (runs.empty()) return;
     captureWindow(window, runs);
 }
