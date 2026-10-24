@@ -134,3 +134,31 @@ overrides.json box, export kladwtwn, `eval.py shoot --only car5.frm` then
 `eval.py check --threshold 0.4` (skip, 0 px); `eval.py score --scenes
 build/scene-cache` (kind passes, eye fails). The car's instance is kladwtwn
 e0 tile 18041.
+
+### 2026-10-24 glm (the root cause found)
+Done: pulled the thread to the end. It is not a solo or eval artifact: every
+by-name BOX solid since part 3 is a collapsed sliver. Measured from
+walls.bin (batch 1, fly-only): the car's box 1.1 x 0.7 units with a UV
+window 4% x 2% of the atlas page, the crate's 0.4 x 0.4 x 0.3, the chair's
+0.4 x 0.8 x 0.3, all sampling a sliver that reads transparent, so every
+fragment discards and the thing draws nothing from the fly camera (the
+stove, a by-name DRUM, is 1.2 x 1.1 and fine). The eval sheets for crate1
+and ss108 are blank (0.2% non-background) and their "pass" verdicts ride
+the kind check alone; the owner's eye never saw those blank sheets. The
+car's 0 px in solo is the same defect meeting the solo's no-walls rule.
+The bug is in the forced fit path: props.fit(force=True) fits its box
+around a tiny opaque core of ragged things (the very things the flag was
+made for), and nothing checks the box against the sprite's real footprint.
+The car override stays out (overrides.json back to as-merged; kladwtwn
+re-exported clean).
+Next: fix the forced fit to cover the sprite's opaque footprint (or reject
+a fit that covers too little of it) in tools/scene_export/solids.py /
+vendor/fp/props.py; then crate1 and ss108 get real boxes, the sheets stop
+being blank, those two verdicts need the owner's eye again, and the car
+override comes back with a box worth looking at. Then the notice board
+(posts), the crate heap (boxes2), the cave brace (cavbrac1) and sstove2
+from behind (12% at 180 degrees).
+Check: decode_wall_sidecar on build/scene-cache/kladwtwn/0/walls.bin, batch
+1, object rows of tiles 18041 / 9711 / 14914 (sizes above); the fly shots
+of this step: the stove visible at its tile, the car and the crate not
+(devhero-20261024-114454 / 114323; the car's solo 114001).
