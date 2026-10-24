@@ -1,14 +1,14 @@
 ---
 id: 025
-title: Sharp text layer
+title: Sharp green dialogue text
 milestone: M1
-status: doing
+status: done
 owner: gpt
 suggested: gpt
 claude-only: no
 user-check: yes
 depends-on: [002, 017, 024, 026]
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -228,3 +228,8 @@ Check: official Release configure/build after `1c00e08b` passed; full CTest pass
 Done: parent independently confirmed the corrected cursor proof. The official fixture draws the real engine cursor over a green Kcsulik reply glyph; its indexed source pixel and palette color match the decoded PNG, and the sharp overlay masks the cursor point while other glyph ink remains visible.
 Next: parent is running the final 16-case sharp-off regression and CTest. Keep task status `doing` until those checks and final review are reported.
 Check: source commit `1c00e08b`, executable SHA-256 `fdd9ed58c09d67c9e101d525b0f3471bfa587943a7574466c32e483dfb41f8f2`; CTest 14/14 passed. Validated evidence is `runs/025-sharp-text/cursor-runtime-20261024/1c00e08b-en-x2-validated/`: 1920x1080 PNG at x2, target physical pixel (610,530) is RGB (84,84,84) in both expected palette and decoded PNG, overlay alpha 126 to 0, and same-run visible ink 2601 to 2408. The older `2af21dea` cursor image is explicitly rejected: its cursor stayed centered and its alpha assertion did not prove a real cursor blit.
+
+### 2026-10-24 gpt (accepted)
+Done: completed the conversation-only sharp text scope. English and Russian Klamath NPC reply/answer captures cover x2 and x3 with the setting off and on; the menu off/on evidence is pixel-identical. The corrected real-cursor proof is accepted. The final sharp-off regression passed all 16 spots with zero changed pixels, and the full CTest passed 14/14. The 44/44 exporter and 12/12 regression unit suites also passed.
+Next: parent updates the draft PR #77 after the latest CI result, then handles PR readiness and merge.
+Check: final regression summary is `runs/regression/20261024-103814-975-9564/summary.json` and uses source `1c00e08b`, EXE SHA-256 `fdd9ed58c09d67c9e101d525b0f3471bfa587943a7574466c32e483dfb41f8f2`. Curated evidence and the exact scope limits are in `runs/025-sharp-text/final-validation-20261024.md`. No live long-reply paging claim is made; the inspected real reply had offset 0, while scroll and palette-fade behavior are covered by focused CPU tests. The rejected `2af21dea` screenshot remains marked as rejected above.
