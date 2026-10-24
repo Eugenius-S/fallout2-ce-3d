@@ -1,5 +1,6 @@
 #include "text_layer.h"
 
+#include <algorithm>
 #include <cstdio>
 #include <vector>
 
@@ -7,6 +8,7 @@ using fallout::scene::TextBufferId;
 using fallout::scene::TextLayer;
 using fallout::scene::TextPixels;
 using fallout::scene::TextRect;
+using fallout::scene::TextRecord;
 using fallout::scene::TextRunInfo;
 using fallout::scene::TextValidationPixels;
 
@@ -332,6 +334,115 @@ int main()
             compactView, view(destinationBefore, 4, 1, 4), view(destinationAfter, 4, 1, 4), -1, 0, owners);
         failures += !check(layer.records().size() == 1,
             "a compact source snapshot missing changed glyph pixels cannot clone an unvalidated record");
+    }
+
+    // A clipped run may carry modern coverage without any legacy ink in the
+    // copied fragment. Keep owner witnesses so it survives validation and a
+    // further clipped copy, while overwritten destination text is retired.
+    {
+        TextLayer layer;
+        std::vector<unsigned char> ownerBefore(8, 3);
+        std::vector<unsigned char> ownerAfter = ownerBefore;
+        ownerAfter[0] = 20;
+        capture(layer, 201, false, ownerBefore, ownerAfter, 8, 1, { 0, 0, 8, 1 }, "AB", 5, 201);
+
+        std::vector<unsigned char> destinationBefore = { 30, 31, 32 };
+        std::vector<unsigned char> destinationOldBackground(3, 9);
+        capture(layer, 202, false, destinationOldBackground, destinationBefore, 3, 1, { 0, 0, 3, 1 }, "CD");
+        std::vector<unsigned char> firstSource = { 3, 3, 3 };
+        std::vector<unsigned char> firstDestinationAfter = firstSource;
+        const std::vector<TextValidationPixels> owners = { { 201, view(ownerAfter, 8, 1, 8) } };
+        TextPixels firstSourceView { firstSource.data(), 3, 1, 3, 3, 0 };
+        layer.copy(201, 202, false, { 3, 0, 3, 1 }, 0, 0, false, 0,
+            firstSourceView, view(destinationBefore, 3, 1, 3), view(firstDestinationAfter, 3, 1, 3), 6, 202, owners);
+
+        const auto firstCopies = layer.records();
+        failures += !check(firstCopies.size() == 2 && firstCopies.back().buffer == 202
+                && firstCopies.back().pixels.empty() && firstCopies.back().coverage.size() == 3
+                && firstCopies.back().ownerWitnesses.size() == 1
+                && firstCopies.back().ownerWitnesses.front().x == 0
+                && firstCopies.back().ownerWindow == 6 && firstCopies.back().ownerGeneration == 202
+                && firstCopies.back().ownerWitnessWindow == 5 && firstCopies.back().ownerWitnessGeneration == 201,
+            "coverage-only fragment keeps translated source-owner witnesses outside the copied rectangle");
+        failures += !check(layer.restorationPixels(202, view(firstDestinationAfter, 3, 1, 3), owners).empty()
+                && layer.records().size() == 2,
+            "coverage-only fragment survives owner validation with no legacy restoration pixels");
+
+        std::vector<unsigned char> secondSource = { 3, 3 };
+        std::vector<unsigned char> secondDestinationBefore(2, 6);
+        std::vector<unsigned char> secondDestinationAfter = secondSource;
+        TextPixels secondSourceView { secondSource.data(), 2, 1, 2, 1, 0 };
+        layer.copy(202, 203, false, { 1, 0, 2, 1 }, 0, 0, false, 0,
+            secondSourceView, view(secondDestinationBefore, 2, 1, 2), view(secondDestinationAfter, 2, 1, 2), -1, 0, owners);
+        const auto chained = layer.records();
+        failures += !check(chained.size() == 3 && chained.back().buffer == 203
+                && chained.back().pixels.empty() && chained.back().coverage.size() == 2
+                && chained.back().ownerWitnesses.size() == 1,
+            "coverage-only owner witness survives another clipped copy");
+        failures += !check(layer.restorationPixels(203, view(secondDestinationAfter, 2, 1, 2), owners).empty()
+                && layer.records().size() == 3,
+            "chained coverage-only fragment remains available for modern glyph drawing");
+
+        std::vector<unsigned char> repaintedOwner = ownerAfter;
+        repaintedOwner[0] = 99;
+        const std::vector<TextValidationPixels> staleOwners = { { 201, view(repaintedOwner, 8, 1, 8) } };
+        const auto staleRestore = layer.restorationPixels(203, view(secondDestinationAfter, 2, 1, 2), staleOwners);
+        const auto afterStaleOwner = layer.records();
+        failures += !check(staleRestore.empty()
+                && std::none_of(afterStaleOwner.begin(), afterStaleOwner.end(), [](const TextRecord& record) {
+                    return record.buffer == 203;
+                }),
+            "repainted owner witness invalidates a coverage-only fragment");
+
+        TextLayer missingOwnerLayer;
+        capture(missingOwnerLayer, 204, false, ownerBefore, ownerAfter, 8, 1, { 0, 0, 8, 1 }, "AB", 5, 204);
+        missingOwnerLayer.copy(204, 205, false, { 3, 0, 3, 1 }, 0, 0, false, 0,
+            firstSourceView, view(destinationBefore, 3, 1, 3), view(firstDestinationAfter, 3, 1, 3));
+        failures += !check(missingOwnerLayer.records().size() == 1,
+            "coverage-only fragment is rejected when its authoritative owner snapshot is missing");
+    }
+
+    // In-place scrolling validates against the pre-copy owner and updates
+    // witnesses to post-copy coordinates only when the ink was actually moved.
+    {
+        TextLayer layer;
+        std::vector<unsigned char> ownerBefore(8, 3);
+        std::vector<unsigned char> ownerAfter = ownerBefore;
+        ownerAfter[7] = 30;
+        capture(layer, 206, false, ownerBefore, ownerAfter, 8, 1, { 0, 0, 8, 1 }, "AB", 5, 206);
+        std::vector<unsigned char> sourceFragment = { 3, 3, 3 };
+        TextPixels sourceView { sourceFragment.data(), 3, 1, 3, 3, 0 };
+        std::vector<unsigned char> destinationBefore(ownerAfter.begin(), ownerAfter.begin() + 3);
+        std::vector<unsigned char> destinationAfter = sourceFragment;
+        const std::vector<TextValidationPixels> beforeCopyOwners = { { 206, view(ownerAfter, 8, 1, 8) } };
+        layer.copy(206, 206, false, { 3, 0, 3, 1 }, 0, 0, false, 0,
+            sourceView, view(destinationBefore, 3, 1, 3), view(destinationAfter, 3, 1, 3), 5, 206, beforeCopyOwners);
+
+        std::vector<unsigned char> scrolled = ownerAfter;
+        std::copy(destinationAfter.begin(), destinationAfter.end(), scrolled.begin());
+        const std::vector<TextValidationPixels> afterCopyOwners = { { 206, view(scrolled, 8, 1, 8) } };
+        const auto restored = layer.restorationPixels(206, view(scrolled, 8, 1, 8), afterCopyOwners);
+        const auto scrolledRecords = layer.records();
+        failures += !check(scrolledRecords.size() == 2 && scrolledRecords.back().pixels.empty()
+                && scrolledRecords.back().ownerWitnesses.size() == 1
+                && scrolledRecords.back().ownerWitnesses.front().x == 7
+                && restored.size() == 1 && restored[0].x == 7,
+            "in-place coverage-only scroll retains an unchanged owner anchor through full restoration");
+
+        std::vector<unsigned char> overwrittenBefore(8, 3);
+        std::vector<unsigned char> overwrittenAfter = overwrittenBefore;
+        overwrittenAfter[0] = 20;
+        TextLayer overwrittenLayer;
+        capture(overwrittenLayer, 207, false, overwrittenBefore, overwrittenAfter, 8, 1,
+            { 0, 0, 8, 1 }, "AB", 5, 207);
+        const std::vector<TextValidationPixels> overwrittenOwners = { { 207, view(overwrittenAfter, 8, 1, 8) } };
+        overwrittenLayer.copy(207, 207, false, { 3, 0, 3, 1 }, 0, 0, false, 0,
+            sourceView, view(overwrittenAfter, 8, 1, 8), view(scrolled, 8, 1, 8), 5, 207, overwrittenOwners);
+        std::vector<unsigned char> overwrittenResult = overwrittenAfter;
+        std::copy(sourceFragment.begin(), sourceFragment.end(), overwrittenResult.begin());
+        const auto overwrittenRestore = overwrittenLayer.restorationPixels(207, view(overwrittenResult, 8, 1, 8));
+        failures += !check(overwrittenRestore.empty() && overwrittenLayer.records().empty(),
+            "in-place scroll does not retain a coverage fragment whose only owner anchor was overwritten");
     }
 
     // Orphan memory is checked only during the live copy, and a single stale

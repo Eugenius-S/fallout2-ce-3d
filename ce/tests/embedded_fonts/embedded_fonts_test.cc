@@ -89,6 +89,27 @@ int main()
         std::fprintf(stderr, "CP1251 sharp text did not rasterize\n");
         return 1;
     }
+    fallout::scene::TextRecord coverageOnly = record;
+    coverageOnly.run.text = "A";
+    coverageOnly.run.font = 101;
+    coverageOnly.run.x = 32;
+    coverageOnly.run.y = 2;
+    coverageOnly.run.width = 32;
+    coverageOnly.pixels.clear();
+    coverageOnly.coverage.clear();
+    for (int y = 2; y < 21; ++y) {
+        for (int x = 32; x < 64; ++x) coverageOnly.coverage.push_back({ x, y, 0 });
+    }
+    visibility[0].bounds = { 32, 2, 32, 19 };
+    visibility[0].pixels.assign(32 * 19, 1);
+    SharpTextSurface coverageSurface;
+    if (!renderSharpText({ coverageOnly }, 256, 32, 512, 64, palette, 256, visibility, &coverageSurface)
+        || std::none_of(coverageSurface.pixels.begin(), coverageSurface.pixels.end(), [](unsigned char value) { return value != 0; })) {
+        std::fprintf(stderr, "Coverage-only sharp text fragment did not rasterize\n");
+        return 1;
+    }
+    visibility[0].bounds = { 0, 0, 256, 32 };
+    visibility[0].pixels.assign(256 * 32, 1);
     bool adjacentCoverage = false;
     int rightmost = -1;
     for (int y = 0; y < surface.height; ++y) {

@@ -5,6 +5,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <iterator>
 #include <limits>
 #include <map>
 #include <mutex>
@@ -58,6 +59,11 @@ struct PixelSnapshot {
         }
         return *this;
     }
+};
+
+struct TextOwnerCopySnapshot {
+    scene::TextBufferId buffer = 0;
+    PixelSnapshot snapshot;
 };
 
 std::map<std::uintptr_t, BufferRange>& ranges()
@@ -506,30 +512,83 @@ void textCaptureDrawText(unsigned char* buffer, const char* string, int length, 
 
 namespace {
 
-std::vector<scene::TextValidationPixels> textCaptureCopyOwnerPixels(scene::TextBufferId source)
+std::vector<TextOwnerCopySnapshot> textCaptureCopyOwnerPixels(scene::TextBufferId source)
 {
-    std::vector<std::pair<int, scene::TextBufferId>> requiredOwners;
+    struct RequiredOwner {
+        int window;
+        scene::TextBufferId generation;
+        int left;
+        int top;
+        int right;
+        int bottom;
+    };
+    std::vector<RequiredOwner> requiredOwners;
     for (const scene::TextRecord& record : layer().records()) {
-        if (record.buffer != source || record.ownerWindow < 0 || record.ownerGeneration == 0
-            || record.ownerGeneration == source) continue;
-        const auto owner = std::make_pair(record.ownerWindow, record.ownerGeneration);
-        if (std::find(requiredOwners.begin(), requiredOwners.end(), owner) == requiredOwners.end()) {
-            requiredOwners.push_back(owner);
+        if (record.buffer != source) continue;
+        const int window = record.ownerWitnessGeneration != 0 ? record.ownerWitnessWindow : record.ownerWindow;
+        const scene::TextBufferId generation = record.ownerWitnessGeneration != 0
+            ? record.ownerWitnessGeneration : record.ownerGeneration;
+        if (window < 0 || generation == 0) continue;
+        auto required = std::find_if(requiredOwners.begin(), requiredOwners.end(), [window, generation](const RequiredOwner& owner) {
+            return owner.window == window && owner.generation == generation;
+        });
+        auto addPoint = [&](int x, int y) {
+            if (required == requiredOwners.end()) {
+                requiredOwners.push_back({ window, generation, x, y, x + 1, y + 1 });
+                required = std::prev(requiredOwners.end());
+            } else {
+                required->left = std::min(required->left, x);
+                required->top = std::min(required->top, y);
+                required->right = std::max(required->right, x + 1);
+                required->bottom = std::max(required->bottom, y + 1);
+            }
+        };
+        if (!record.ownerWitnesses.empty()) {
+            for (const scene::TextOwnerWitness& witness : record.ownerWitnesses) addPoint(witness.x, witness.y);
+        } else {
+            for (const scene::TextPixelRecord& pixel : record.pixels) {
+                const std::int64_t x = static_cast<std::int64_t>(pixel.x) - record.ownerOffsetX;
+                const std::int64_t y = static_cast<std::int64_t>(pixel.y) - record.ownerOffsetY;
+                if (x >= std::numeric_limits<int>::min() && x <= std::numeric_limits<int>::max()
+                    && y >= std::numeric_limits<int>::min() && y <= std::numeric_limits<int>::max()) {
+                    addPoint(static_cast<int>(x), static_cast<int>(y));
+                }
+            }
         }
     }
     if (requiredOwners.empty()) return {};
 
-    std::vector<scene::TextValidationPixels> ownerPixels;
+    std::vector<TextOwnerCopySnapshot> ownerPixels;
     for (int index = 0; ; ++index) {
         TextWindowSnapshot snapshot;
         if (!textCaptureGetWindowSnapshot(index, &snapshot, nullptr)) break;
-        const auto required = std::find(requiredOwners.begin(), requiredOwners.end(),
-            std::make_pair(snapshot.id, snapshot.generation));
+        const auto required = std::find_if(requiredOwners.begin(), requiredOwners.end(),
+            [&snapshot](const RequiredOwner& owner) {
+                return owner.window == snapshot.id && owner.generation == snapshot.generation;
+            });
         if (required == requiredOwners.end()) continue;
         BufferRange* owner = findRange(snapshot.pixels);
-        if (owner == nullptr || owner->id != snapshot.generation || owner->orphan || owner->pitch <= 0) continue;
-        ownerPixels.push_back({ owner->id, { reinterpret_cast<const unsigned char*>(owner->base),
-            owner->width, owner->height, owner->pitch } });
+        if (owner == nullptr || owner->id != snapshot.generation || owner->orphan || owner->pitch <= 0
+            || owner->width <= 0 || owner->height <= 0
+            || static_cast<std::size_t>(owner->width) > std::numeric_limits<std::size_t>::max()
+                / static_cast<std::size_t>(owner->height)) continue;
+        const int left = std::max(0, required->left);
+        const int top = std::max(0, required->top);
+        const int right = std::min(owner->width, required->right);
+        const int bottom = std::min(owner->height, required->bottom);
+        if (right <= left || bottom <= top) continue;
+        TextOwnerCopySnapshot copy;
+        copy.buffer = owner->id;
+        const int width = right - left;
+        const int height = bottom - top;
+        copy.snapshot.pixels.resize(static_cast<std::size_t>(width) * height);
+        const auto* base = reinterpret_cast<const unsigned char*>(owner->base);
+        for (int y = 0; y < height; ++y) {
+            std::memcpy(copy.snapshot.pixels.data() + static_cast<std::size_t>(y) * width,
+                base + static_cast<std::size_t>(top + y) * owner->pitch + left, static_cast<std::size_t>(width));
+        }
+        copy.snapshot.view = { copy.snapshot.pixels.data(), width, height, width, left, top };
+        ownerPixels.push_back(std::move(copy));
     }
     return ownerPixels;
 }
@@ -597,9 +656,14 @@ void textCaptureCopy(const unsigned char* source, int width, int height, int sou
         return;
     }
     PixelSnapshot destinationBefore = snapshot(*destinationRange, destinationRect);
+    const auto ownerSnapshots = textCaptureCopyOwnerPixels(sourceRange->id);
+    std::vector<scene::TextValidationPixels> ownerPixels;
+    ownerPixels.reserve(ownerSnapshots.size());
+    for (const TextOwnerCopySnapshot& owner : ownerSnapshots) {
+        ownerPixels.push_back({ owner.buffer, owner.snapshot.view });
+    }
     copyProc(destination, destinationPitch, source, sourcePitch, width, height);
     PixelSnapshot destinationAfter = snapshot(*destinationRange, destinationRect);
-    const auto ownerPixels = textCaptureCopyOwnerPixels(sourceRange->id);
     layer().copy(sourceRange->id, destinationRange->id, destinationRange->orphan,
         sourceRect, destinationX, destinationY, transparent, 0,
         sourceSnapshot.view, destinationBefore.view, destinationAfter.view,
@@ -640,11 +704,19 @@ std::vector<TextRestorePixel> textCaptureRestorationFor(TextBufferId buffer, boo
         const auto* pixels = reinterpret_cast<const unsigned char*>(range.base);
         std::vector<std::pair<int, scene::TextBufferId>> requiredOwners;
         for (const scene::TextRecord& record : layer().records()) {
-            if (record.buffer != buffer || record.ownerWindow < 0 || record.ownerGeneration == 0
-                || record.ownerGeneration == buffer) continue;
-            const auto owner = std::make_pair(record.ownerWindow, record.ownerGeneration);
-            if (std::find(requiredOwners.begin(), requiredOwners.end(), owner) == requiredOwners.end()) {
-                requiredOwners.push_back(owner);
+            if (record.buffer != buffer) continue;
+            if (!record.ownerWitnesses.empty() && record.ownerWitnessWindow >= 0
+                && record.ownerWitnessGeneration != 0 && record.ownerWitnessGeneration != buffer) {
+                const auto witnessOwner = std::make_pair(record.ownerWitnessWindow, record.ownerWitnessGeneration);
+                if (std::find(requiredOwners.begin(), requiredOwners.end(), witnessOwner) == requiredOwners.end()) {
+                    requiredOwners.push_back(witnessOwner);
+                }
+            }
+            if (record.ownerWindow >= 0 && record.ownerGeneration != 0 && record.ownerGeneration != buffer) {
+                const auto owner = std::make_pair(record.ownerWindow, record.ownerGeneration);
+                if (std::find(requiredOwners.begin(), requiredOwners.end(), owner) == requiredOwners.end()) {
+                    requiredOwners.push_back(owner);
+                }
             }
         }
         std::vector<scene::TextValidationPixels> ownerPixels;

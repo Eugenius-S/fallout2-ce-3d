@@ -63,6 +63,12 @@ struct TextPixelCoverage {
     unsigned char expected = 0;
 };
 
+struct TextOwnerWitness {
+    int x = 0;
+    int y = 0;
+    unsigned char expected = 0;
+};
+
 struct TextVisibilityMask {
     TextRect bounds;
     std::vector<unsigned char> pixels;
@@ -85,10 +91,16 @@ struct TextRecord {
     TextRunInfo run;
     TextRect bounds;
     // Per-game-pixel geometry for the modern glyph. It covers the captured
-    // text rectangle or copied fragment. Legacy changed pixels determine
-    // whether the record is still valid; blank mask cells may be occluded.
+    // text rectangle or copied fragment. Legacy changed pixels and owner
+    // witnesses determine validity; blank mask cells may be occluded.
     std::vector<TextPixelCoverage> coverage;
     std::vector<TextPixelRecord> pixels;
+    // Derived coverage fragments can contain no legacy ink in their copy
+    // rectangle. Keep the source run's changed pixels in owner coordinates so
+    // those fragments remain tied to the live authoritative owner.
+    std::vector<TextOwnerWitness> ownerWitnesses;
+    int ownerWitnessWindow = -1;
+    TextBufferId ownerWitnessGeneration = 0;
 };
 
 struct TextRestorePixel {

@@ -2,13 +2,13 @@
 id: 025
 title: Sharp green dialogue text
 milestone: M1
-status: done
+status: doing
 owner: gpt
 suggested: gpt
 claude-only: no
 user-check: yes
 depends-on: [002, 017, 024, 026]
-reviewed: yes
+reviewed: no
 ---
 
 ## Goal
