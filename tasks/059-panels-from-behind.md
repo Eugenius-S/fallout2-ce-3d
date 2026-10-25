@@ -1,5 +1,5 @@
 ---
-id: 055
+id: 059
 title: Panels and some boxes vanish from behind in turned views
 milestone: M1
 status: todo
