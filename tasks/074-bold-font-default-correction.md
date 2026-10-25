@@ -103,3 +103,10 @@ Check: run `runs/regression/20261025-144410-708-33728`; every capture sidecar id
 - Character injury color: `runs/074-bold-font-default-correction/accepted/crops/character-injury.jpg` (raw PNG SHA-256 `BF269D316F5D8A53156A1C199444F0F4A6786B0C879950509BD96C1DA3EC7C32`).
 - PipBoy underline: `runs/074-bold-font-default-correction/accepted/crops/pipboy-underline.jpg` (raw PNG SHA-256 `60987C39333853CD184B6A0E35C430EC841C2E8ED9B3CBD1386EEF55A1EE571A`).
 - Bark lifecycle sidecars and logs are under `runs/074-bold-font-default-correction/accepted/bark/`; raw PNGs are in the local `game/shots/raw-task074/` folder. The replacement crop is `runs/074-bold-font-default-correction/accepted/crops/bark-replacement.jpg`. The fixture verified the old bark is absent from the replacement's visible mask and both fixture barks are absent after expiry.
+
+### 2026-10-25 gpt
+Done: extracted floating-text engine plumbing into `scene/floating_text` while keeping bark layout/render orchestration outside `text_object.cc`. Official incremental Release build passed; CTest passed 15/15.
+Done: the source-bound bark lifecycle fixture passed on `dfc5ae76` at 2310x1298 scale 2. It logged 1955 visible pixels initially, 595 on replacement, `old_visible_runs=0`, and `cleared_runs=0` after expiry. Initial/replacement frames match the previously accepted frames byte-for-byte; the expiry bark crop also matches.
+Done: the complete SharpText-off regression passed 16/16 with 0 changed pixels and no reference updates. Run: `runs/regression/20261025-152721-139-49124`; all sidecars identify source `dfc5ae76` and EXE SHA-256 `c3d0bbe5d93452cfb914d2ea4381fcc1162bd8beb52016b63b8d7a9895c15d85`.
+Next: root final review and merge.
+Check: `git diff --check` passed. No owner game was focused, stopped, or restarted.
