@@ -36,3 +36,6 @@ vanished (bolcas2).
 - The shapes-klamath score's panel failures clear.
 
 ## Log
+
+### 2026-10-25 claude
+Folded into 075; close together with it.

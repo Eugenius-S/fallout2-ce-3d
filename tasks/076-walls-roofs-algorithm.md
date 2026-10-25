@@ -43,6 +43,8 @@ patches for single spots.
 - The game's own view stays pixel for pixel (`dev-snapshot.ps1 -Map
   kladwtwn|klamall` against the pre-071 shots: 0 px).
 - The owner may add more from the same review.
+- This task takes over 060 (Vic's shack from the back: roof gap, open
+  corner, hanging sign); close it with it.
 
 ## Acceptance
 
