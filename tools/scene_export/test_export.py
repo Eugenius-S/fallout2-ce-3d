@@ -514,6 +514,35 @@ class WallSidecarTests(unittest.TestCase):
         fly = lambda data: sum(batch["triangles"] for batch in data["batches"] if batch["fly_only"])
         self.assertGreater(fly(closed), fly(plain))
 
+    def test_a_corner_block_takes_a_wide_picture_not_the_end_strip(self):
+        import wall_sidecar
+        # The wall along v ends in a 2-column strip short of the corner: the
+        # block that fills the shortfall copies the 16-column row behind it
+        # (up to twice stretched), not the strip stretched into stripes.
+        along_u = [0, 1.0, 2.0, 3.4, 2.0, 0.0, 2.0, 0, 1, 1.8, 0.25, -1]
+        along_v = [1, 3.0, 0.0, 3.0, 1.45, 0.0, 2.0, 0, 1, 1.8, 0.25, -1]
+        strip = [2, 3.0, 1.45, 3.0, 1.5, 0.0, 2.0, 0, 1, 1.8, 0.25, -1]
+        walls = [along_u, along_v, strip]
+        width = lambda index: (16, 16, 2)[index]
+        corners = wall_sidecar._corner_fits(walls, set(), (0.49, 0.74, 0.46), width, (48.0, 32.0))
+        self.assertEqual([lender for _, lender, _, _ in corners.fills], [1])
+        self.assertEqual(wall_sidecar._corner_fits(walls, set(), (0.49, 0.74, 0.46)).fills[0][1], 2)
+
+    def test_a_corner_core_stands_in_solid_walls_only(self):
+        import numpy as np
+        # The L of the test above gets an opaque core inside the corner for
+        # the free camera; a clear mesh (half its texels clear) gets none.
+        scene = self.sample_scene()
+        scene["walls"] = [[0, 1.0, 2.0, 3.4, 2.0, 0.0, 2.0, 0, 1, 1.8, 0.25, -1],
+                          [1, 3.0, 0.0, 3.0, 1.5, 0.0, 2.0, 0, 1, 1.8, 0.25, -1]]
+        solid = np.full((100, 100, 4), 255, np.uint8)
+        mesh = solid.copy()
+        mesh[::2, :, 3] = 0
+        fly = lambda atlas: sum(batch["triangles"] for batch in decode_wall_sidecar(
+            encode_wall_sidecar(scene, atlas=None if atlas is None else [atlas]))["batches"] if batch["fly_only"])
+        self.assertGreater(fly(solid), fly(mesh))
+        self.assertEqual(fly(None), fly(solid))  # without the atlas every wall counts as solid
+
     def test_first_person_surfaces_are_for_the_fly_camera_only(self):
         # Backs and trims go into fly-only batches: what the game's camera
         # draws stays the same.

@@ -346,14 +346,22 @@ class _Corners:
     s, row)]: an end face in the picture of the wall whose plane it lies in;
     caps [(slab, row, s from, s to)]: the top at the corner, one flat piece;
     moved [(slab, old end)]: the ends whose donor end strips no longer stand at
-    the wall's end."""
+    the wall's end; cores [(slab, other, row)]: the corner square's solid
+    core (walls at least CORE_THICK thick)."""
 
     def __init__(self):
-        self.keep, self.fills, self.faces, self.caps, self.moved = {}, [], [], [], []
+        self.keep, self.fills, self.faces, self.caps, self.moved, self.cores = {}, [], [], [], [], []
+        self.extent = {}  # {id(slab): (from, to)} what the free camera keeps of a slab a corner moved
 
 
-def _corner_fits(walls, hidden, toward_camera):
+def _corner_fits(walls, hidden, toward_camera, width=None, px=(1.0, 1.0)):
+    """width(row): its picture's columns; px: picture columns per unit along
+    u and along v. A block, face or cap takes its picture from a row at least
+    half as wide as the columns it needs (task 076): the narrow end strips
+    hold only the light edge, and stretched over a block they read as
+    stripes."""
     slabs = _slabs(walls, hidden, toward_camera)
+    wide = lambda index, need: width is None or width(index) >= need
     gap = lambda x, lo, hi: max(lo - x, 0.0, x - hi)
     far = lambda slab, out: slab.band()[1] if out > 0 else slab.band()[0]
     near = lambda slab, out: slab.band()[0] if out > 0 else slab.band()[1]
@@ -390,7 +398,15 @@ def _corner_fits(walls, hidden, toward_camera):
         axis = slab.axis
         s_of = lambda row, at: row[1 + 2 * at + axis]  # the row's s at its a (0) or b (1) end
         span = lambda index: sorted((s_of(walls[index], 0), s_of(walls[index], 1)))
-        lender = max(slab.rows, key=lambda index: span(index)[1] if out > 0 else -span(index)[0])
+        reach = lambda index: span(index)[1] if out > 0 else -span(index)[0]
+        # Up to twice stretched reads as the wall; a nearer, wider row would
+        # repeat what stands further in (a window).
+        need = max(abs(end - target) * px[axis] / 2, 4)  # a cap's colour too comes from the lender
+        near_end = [index for index in slab.rows if out * (end - (span(index)[1] if out > 0 else span(index)[0]))
+                    <= 2 * CORNER_REACH]
+        fits = [index for index in near_end if wide(index, need)]
+        lender = max(fits, key=reach) if fits else \
+            max(near_end or slab.rows, key=lambda index: (width(index) if width else 0, reach(index)))
         # Every row near this end stops at the target, its top included: a
         # top runs on past its picture's edge and would stick out of the corner.
         for index in slab.rows:
@@ -417,12 +433,18 @@ def _corner_fits(walls, hidden, toward_camera):
             # The other wall's row nearest the corner lends the end face.
             middle = sum(slab.band()) / 2
             other_s = lambda index: (walls[index][1 + other.axis], walls[index][3 + other.axis])
-            face_row = min(other.rows, key=lambda index: gap(middle, *sorted(other_s(index))))
+            by_gap = sorted(other.rows, key=lambda index: gap(middle, *sorted(other_s(index))))
+            fits = [index for index in by_gap if gap(middle, *sorted(other_s(index))) <= 2 * CORNER_REACH
+                    and wide(index, max(slab.thick * px[other.axis] / 2, 4))]
+            face_row = fits[0] if fits else by_gap[0]
             corners.faces.append((slab, out, target, face_row))
+            if min(slab.thick, other.thick) >= CORE_THICK:
+                corners.cores.append((slab, other, lender))
         # The cap stays within what is left of the slab: a short corner piece
         # may have both of its ends set.
         other_end = targets.get((id(slab), -out))
         stop = other_end[2] if other_end else (slab.lo if out > 0 else slab.hi)
+        corners.extent[id(slab)] = (stop, target) if out > 0 else (target, stop)
         reach = target - out * max(2 * slab.thick, 0.35)
         corners.caps.append((slab, lender, max(reach, stop) if out > 0 else min(reach, stop), target))
     return corners
@@ -497,6 +519,87 @@ def _corner_cap(batches, proj, sprites, pages, hpx, row, slab, s0, s1):
                                                 [*p(hi, slab.thick), z, tx, ty], [*p(lo, slab.thick), z, tx, ty]])
 
 
+def _opaque_texel(atlas, page, x, y, w, h):
+    """An opaque texel of a picture rectangle of its median brightness: the
+    wall's everyday colour, not a highlight (the middle without the atlas)."""
+    cx, cy = x + w / 2, y + h / 2
+    if atlas is None:
+        return cx, cy
+    block = atlas[page][int(y):int(y + h), int(x):int(x + w)]
+    found = sorted((int(block[i, j, 0]) + int(block[i, j, 1]) + int(block[i, j, 2]), i, j)
+                   for i in range(block.shape[0]) for j in range(block.shape[1]) if block[i, j, 3] >= 128)
+    if not found:
+        return cx, cy
+    _, i, j = found[len(found) // 2]
+    return x + j + 0.5, y + i + 0.5
+
+
+CORE_SOLID = 0.9  # a wall whose front pictures are this opaque is a solid wall, not a mesh
+
+
+def _solidity(walls, sprites, hpx, atlas, slab):
+    """The median share of opaque texels on the fronts of a slab's rows (the
+    narrow end strips left out); 1 without the atlas."""
+    if atlas is None:
+        return 1.0
+    shares = []
+    for index in slab.rows:
+        page, x, y, w, h, top = _picture(sprites, walls[index], hpx)
+        if w >= 8 and h - top >= 1:
+            shares.append(float((atlas[page][int(y + top):int(y + h), x:x + w, 3] >= 128).mean()))
+    shares.sort()
+    return shares[len(shares) // 2] if shares else 0.0
+
+
+def _corner_core(batches, proj, sprites, pages, hpx, toward_camera, row, slab, other, extent, solid, atlas=None):
+    """An opaque box just inside the square where two walls of a corner
+    overlap. A corner piece's picture is often clear along its edge, where
+    the game shows the other wall's picture behind it; the free camera would
+    look through there into the hollow wall. Seen only through such texels,
+    it is one opaque colour of the wall's front."""
+    # A mesh fence is clear on purpose: a corner gets a core only where a
+    # solid wall stands, and it runs on only into solid walls (solid(slab)).
+    if max(solid(slab), solid(other)) < CORE_SOLID or min(solid(slab), solid(other)) < CORE_SOLID / 2:
+        return
+    page, x, y, w, h, top = _picture(sprites, row, hpx)
+    z0, zc = row[5], row[9] - 0.006
+    tx, ty = _opaque_texel(atlas, page, x, y + top, w, h - top)
+    # The corner square and CORE_REACH of each wall beyond it: the clear
+    # edge of a corner piece runs on past the square. Within what the free
+    # camera keeps of each wall (`extent`), so it never stands in the open.
+    middle = lambda b: sum(b.band()) / 2
+    for a, b in ((slab, other), (other, slab)):
+        lo, hi = extent.get(id(a), (a.lo, a.hi))
+        inward = -1 if abs(hi - middle(b)) < abs(lo - middle(b)) else 1  # from the corner into a
+        inner = b.band()[1 if inward > 0 else 0] + inward * (CORE_REACH if solid(a) >= CORE_SOLID else 0.0)
+        inner = min(inner, hi) if inward > 0 else max(inner, lo)
+        along = sorted((b.band()[0 if inward > 0 else 1], inner))
+        _box(batches, proj, pages, toward_camera, a.axis, along, a.band(), z0, zc, page, tx, ty)
+
+
+CORE_REACH = 0.5  # how far a corner's core runs into each wall past the square
+CORE_THICK = 0.15  # thinner walls (fences, rails) get no core
+
+
+def _box(batches, proj, pages, toward_camera, axis, along, across, z0, z1, page, tx, ty):
+    """The four sides of a box one colour, a hair inside the given ranges:
+    `along` the axis, `across` it."""
+    inset = 0.006
+    (a0, a1), (b0, b1) = along, across
+    a0, a1, b0, b1 = a0 + inset, a1 - inset, b0 + inset, b1 - inset
+    if a1 <= a0 or b1 <= b0 or z1 <= z0:
+        return
+    point = lambda a, b: (a, b) if axis == 0 else (b, a)
+    ring = [point(a0, b0), point(a1, b0), point(a1, b1), point(a0, b1)]
+    cu, cv = point((a0 + a1) / 2, (b0 + b1) / 2)
+    for index, p in enumerate(ring):
+        q = ring[(index + 1) % 4]
+        # A side facing away from the game's camera is wound for the far side.
+        outward = ((p[0] + q[0]) / 2 - cu) * toward_camera[0] + ((p[1] + q[1]) / 2 - cv) * toward_camera[1]
+        corners = [[*p, z0, tx, ty], [*q, z0, tx, ty], [*q, z1, tx, ty], [*p, z1, tx, ty]]
+        _polygon(batches, proj, page, pages[page], corners, outward < 0)
+
+
 def _moved_strip(trim, moved):
     """Is this donor trim an end strip at a wall end that a corner moved?"""
     ua, va, ub, vb = trim[1:5]
@@ -508,7 +611,7 @@ def _moved_strip(trim, moved):
     return False
 
 
-def encode_wall_sidecar(scene, skip_props=frozenset(), skip_rests=frozenset(), map_objects=None):
+def encode_wall_sidecar(scene, skip_props=frozenset(), skip_rests=frozenset(), map_objects=None, atlas=None):
     """Build the donor game view's wall triangles for one scene: what the game's
     camera sees of walls (fronts and tops) and the sheets that have no
     thickness. Backs and slab ends (wallRest, trims) are first-person only in
@@ -516,7 +619,8 @@ def encode_wall_sidecar(scene, skip_props=frozenset(), skip_rests=frozenset(), m
     they go into FLY_ONLY batches, which only the fly camera draws. (Cut-open
     upper parts are left out.) map_objects: the elevation's objects in map file
     order (the rows' serial numbers); the faces of each object name it in the
-    table."""
+    table. atlas: the packed RGBA pages (alpha), so a corner's core takes an
+    opaque texel."""
     if scene.get("format") != 6 or not one_map_elevation(scene):
         raise ValueError("wall sidecar expects one map elevation in scene format 6")
     pages_data = scene.get("pages")
@@ -572,8 +676,9 @@ def encode_wall_sidecar(scene, skip_props=frozenset(), skip_rests=frozenset(), m
         _finite(row[10], f"wall {index} thickness")
     continuations = _continuations(walls)
     hidden_walls = set(scene.get("hiddenWalls") or [])
-    corners = _corner_fits(walls, hidden_walls, toward_camera)
     px = (abs(squ[0]), abs(sqv[0]))  # picture columns per unit of wall along u, along v
+    corners = _corner_fits(walls, hidden_walls, toward_camera,
+                           lambda index: _int(sprites[_int(walls[index][0], "wall sprite")][3], "wall sprite width"), px)
     for index, row in enumerate(walls):
         batches.object = game.object = fly.object = owner(row[8])
         if row[10] > 0 and index in corners.keep:
@@ -605,6 +710,12 @@ def encode_wall_sidecar(scene, skip_props=frozenset(), skip_rests=frozenset(), m
     for slab, lender, s0, s1 in corners.caps:
         fly.object = owner(walls[lender][8])
         _corner_cap(fly, proj, sprites, pages, hpx, walls[lender], slab, s0, s1)
+    solidity = {}
+    solid = lambda slab: solidity.setdefault(id(slab), _solidity(walls, sprites, hpx, atlas, slab))
+    for slab, other, lender in corners.cores:
+        fly.object = owner(walls[lender][8])
+        _corner_core(fly, proj, sprites, pages, hpx, toward_camera, walls[lender], slab, other, corners.extent,
+                     solid, atlas)
     batches.object = game.object = fly.object = -1.0
     for index, row in enumerate(scene.get("trims") or []):
         _record(row, 11, f"trim {index}")
