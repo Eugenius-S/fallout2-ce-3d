@@ -2,13 +2,13 @@
 id: 072
 title: Doors sit on the 3D wall planes
 milestone: M1
-status: todo
-owner: none
+status: done
+owner: claude
 suggested: claude
 claude-only: no
 user-check: yes
 depends-on: []
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -46,3 +46,19 @@ shots of kladwtwn from four sides every door sits in its wall
 16 and 17 show wall ends at corners, not doors: 071 fixed those.
 Next: the owner's screenshot of the door that floats (map, where, which
 view: fly camera, turned view, an open door), then fix that case.
+
+### 2026-10-25 claude
+Done: an open door under a free camera is a real leaf on a hinge. The game
+draws an open door as a picture of the swung leaf; laid on the wall's plane
+(037) it read as a crooked panel sticking out of the wall. Now
+`scene_objects.cc` hands the renderer the door's closed frame and how far it
+is open (frame / last frame), and `swingDoor` (live_objects.cc) turns that
+closed leaf round its hinge, out to the camera's side of the wall; the hinge
+is the leaf's edge nearer to where the game draws the open door. The game's
+own view keeps the frame it shows. A new dev switch opens every door of the
+map for snapshots: `dev-snapshot.ps1 -OpenDoors` (`--dev-open-doors`).
+Check: ctest 15/15; the game's view 0 pixels changed (kladwtwn, klamall);
+the Buckner door open from three sides in `runs/072-doors-on-walls/`.
+Not settled: the closed doors the owner saw sitting crooked in the bathhouse;
+in today's shots closed doors lie flat in their doorways. If they still read
+wrong in the owner's game, that is a new task with a screenshot.

@@ -66,6 +66,8 @@ param(
     [string]$PreferencesProbe,
     [switch]$ReuseTestConfig,
     [switch]$CaptureConsole,
+    # -OpenDoors: every door on the map stands open (its last frame).
+    [switch]$OpenDoors,
     # -Glow: keep the glow on in this background run (it is forced off by
     # default, so captures stay byte-stable).
     [switch]$Glow,
@@ -222,6 +224,7 @@ if ($PreferencesProbe) {
 }
 if ($Glow) { $arguments += '--dev-glow' }
 if ($Shadows) { $arguments += '--dev-shadows' }
+if ($OpenDoors) { $arguments += '--dev-open-doors' }
 if ($Hour -ge 0) { $arguments += "--dev-hour=$Hour" }
 if ($Zoom -gt 0) { $arguments += "--dev-zoom=$Zoom" }
 if ($PreferencesProbe) {

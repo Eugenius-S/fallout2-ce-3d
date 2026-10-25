@@ -127,6 +127,8 @@ int gTourFrames = 0;
 bool gStillSnapshot = false;
 bool gBackgroundGlow = false;
 bool gBackgroundShadows = false; // --dev-shadows: shadows stay on in a background run
+bool gDevOpenDoors = false; // --dev-open-doors: every door of the map stands open, once
+bool gDevOpenDoorsDone = false;
 double gDevZoom = -1.0; // --dev-zoom=D: the background run's 3D zoom (default 1)
 int gDevAmbient = -1; // --dev-ambient: the map's ambient light held there (night views)
 double gDevHour = -1.0; // --dev-hour: the game hour set on the map, once
@@ -805,6 +807,12 @@ bool parseOption(const char* arg)
     // --dev-shadows: keep the sun shadows on in a background run (a snapshot
     // of the shadowed view); off is the default there, so captures stay
     // byte-stable.
+    // --dev-open-doors: every door on the map is shown at its last frame, so a
+    // snapshot sees open doors (072).
+    if (strcmp(arg, "--dev-open-doors") == 0) {
+        gDevOpenDoors = true;
+        return true;
+    }
     if (strcmp(arg, "--dev-shadows") == 0) {
         gBackgroundShadows = true;
         debugPrint("DEVTOOLS: the shadows stay on in this background run\n");
@@ -1296,6 +1304,23 @@ void update()
     }
     // A dev view sets the hour once on the map; the sun snaps to it (021's
     // time jump), so morning, noon, sunset and night follow in a minute.
+    if (gDevOpenDoors && !gDevOpenDoorsDone && gMapHeader.name[0] != '\0') {
+        gDevOpenDoorsDone = true;
+        for (Object* object = objectFindFirstAtElevation(gDude->elevation); object != nullptr;
+             object = objectFindNextAtElevation()) {
+            const ProtoId protoId = object;
+            Proto* proto = nullptr;
+            if (protoId.objectType() != OBJ_TYPE_SCENERY || protoGetProto(protoId, &proto) == -1
+                || proto->scenery.type != SCENERY_TYPE_DOOR) {
+                continue;
+            }
+            CacheEntry* handle = nullptr;
+            Art* art = artLock(FrmId(object), &handle);
+            const int frames = art != nullptr ? artGetFrameCount(art) : 0;
+            if (handle != nullptr) artUnlock(handle);
+            if (frames > 1) objectSetFrame(object, frames - 1, nullptr);
+        }
+    }
     if (gDevHour >= 0.0 && !gDevHourSet && gMapHeader.name[0] != '\0') {
         gameTimeSetTime(static_cast<unsigned int>(gDevHour * 36000.0) % 864000u);
         gDevHourSet = true;

@@ -57,6 +57,14 @@ struct StaticObjectFrame {
     int variant = 0;
     // A wall or scenery the hero stands behind: the egg around him cuts it.
     bool seeThrough = false;
+    // A door standing open under a free camera (072): the art above is its
+    // closed leaf, doorOpen how far it is open (0..1), and the open frame's
+    // place (offsets, size) tells the side its hinge is on.
+    float doorOpen = 0.0f;
+    int openXOffset = 0;
+    int openYOffset = 0;
+    int openWidth = 0;
+    int openHeight = 0;
 };
 
 struct StaticHeroInfo {
