@@ -464,11 +464,11 @@ if ($UiFixture) {
         if ($dialogFixtureFailed -or $fixtureLog -notmatch '(?m)^UI_FIXTURE PASS screen=bark first=1 replacement=1 cleared_runs=0$') {
             throw "Bark fixture failed to replace and expire its outlined text.`n$fixtureLog"
         }
-        $visibleBarkLine = [regex]::Match($fixtureLog, '(?m)^UI_FIXTURE STEP screen=bark stage=visible hasOutline=1 ownedPixels=(\d+) ')
-        $replacementBarkLine = [regex]::Match($fixtureLog, '(?m)^UI_FIXTURE STEP screen=bark stage=replaced hasOutline=1 ownedPixels=(\d+) ')
+        $visibleBarkLine = [regex]::Match($fixtureLog, '(?m)^UI_FIXTURE STEP screen=bark stage=visible hasOutline=1 visiblePixels=(\d+) ')
+        $replacementBarkLine = [regex]::Match($fixtureLog, '(?m)^UI_FIXTURE STEP screen=bark stage=replaced hasOutline=1 visiblePixels=(\d+) ')
         if (-not $visibleBarkLine.Success -or [int]$visibleBarkLine.Groups[1].Value -le 0 -or
             -not $replacementBarkLine.Success -or [int]$replacementBarkLine.Groups[1].Value -le 0) {
-            throw 'Bark fixture did not prove owned pixels for both outlined Russian runs.'
+            throw 'Bark fixture did not prove visible pixels for both outlined Russian runs.'
         }
         if (-not $probeHarnessStoppedProcess -or $snapshots.Count -lt 2) {
             throw 'Bark fixture must capture the visible bark and its cleared frame in the isolated helper process.'

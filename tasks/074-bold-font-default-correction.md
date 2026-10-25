@@ -51,7 +51,7 @@ Next: add and build the bounded bark lifecycle fixture, capture injury/PipBoy/ba
 Check: clean official MSVC Release build passed all 733 targets; CTest passed 15/15. Focused tests cover injury palette fades, underline span/gap/clipping at E1.29 and D1.22 with x2/x3, exact outline-pixel restoration/copying, and multiline bark layout.
 
 ### 2026-10-25 gpt
-Done: added a bark-only dev fixture using real CP1251 Russian bark strings. It captures the longer outlined bark, replaces it with the shorter line, verifies the old run disappears while the replacement still owns outlined pixels, then captures the cleared frame after expiry. The fixture logs outline ownership and pixel counts.
+Done: added a bark-only dev fixture using real CP1251 Russian bark strings. It captures the longer outlined bark, replaces it with the shorter line, verifies visible font-101 outline records through owned window/generation visibility masks, then captures the cleared frame after expiry. The fixture logs visible pixel counts.
 Next: review the narrow fixture diff, build it, and validate SharpText-on/off lifecycle captures.
 Check: no own `fallout2-ce-test.exe` process was active before runtime work; the owner GLM process remains untouched.
 
@@ -66,7 +66,7 @@ Next: rebuild, confirm the real bark appears and is removed by the engine, then 
 Check: second attempt also ended without snapshots at the isolated harness deadline; it is diagnostic only. Only the task's `fallout2-ce-test.exe` PID was stopped, after confirming its exact worktree executable path.
 
 ### 2026-10-25 gpt
-Done: the first bark frame is visible and reports 707 owned text pixels. The first replacement attempt timed out. Added scene-module refresh bounds that accept the renderer's `tileSceneShift` for add and removal rectangles, plus a shifted-bounds unit assertion.
+Done: the first bark frame showed the Russian line in the rendered scene. Its 707-pixel count came from raw copied records and is not accepted as visibility proof. The first replacement attempt timed out. Added scene-module refresh bounds that accept the renderer's `tileSceneShift` for add and removal rectangles, plus a shifted-bounds unit assertion.
 Next: rebuild with a bounded diagnostic for actual scene shift, old/new copied-run counts, and object count; cap replacement at 300 frames and natural expiry at 1200.
 Check: replacement has not passed yet. The prior attempt used the pre-shift build, so it does not establish whether the shift caused the timeout.
 
@@ -76,6 +76,6 @@ Next: rebuild and rerun once the isolated tester queue is clear.
 Check: that run emitted `UI_FIXTURE FAIL` without a `START` line, so it is not lifecycle evidence.
 
 ### 2026-10-25 gpt
-Done: at replacement frame 60 the scene shift was 0,0; the capture table contained 3 old-run copies and 63 replacement-run copies. Global TextObject count was 5 with startup baseline 1, so map activity makes it unsuitable as the removal assertion. Added an owner-specific active/marked count and a replacement-stage snapshot as soon as the new run is visible.
-Next: rebuild and inspect per-owner ticker state plus the replacement frame; then verify player bark expiry.
-Check: the diagnostic build reported positive outline-owned pixels for both strings, but did not prove replacement or cleanup. No lifecycle claim is accepted yet.
+Done: review found a fixture reentrancy error: during `tileWindowRefreshRect`, the stage still said `WaitingForBark`, so nested scene callbacks re-added the replacement repeatedly. The 3/63 record counts came from that broken harness and are invalid. The fixture now switches to `WaitingForBarkReplacement` before mutation/refresh and suppresses nested callbacks for that operation. It counts only visible font-101 records with matching window owner/generation and nonzero visibility masks. Removed the unnecessary owner-count API.
+Next: rebuild and inspect the single replacement frame, then verify natural expiry and a clear frame.
+Check: prior diagnostic builds showed a scene shift of 0,0; replacement and cleanup remain unverified.

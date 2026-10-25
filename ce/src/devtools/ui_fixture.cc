@@ -71,10 +71,10 @@ double gFont101PreviewScale = 1.29;
 bool gFont101PreviewWeightRequested = false;
 bool gFont101PreviewBold = false;
 int gBarkBaselineCount = 0;
-int gBarkOwnerBaselineCount = 0;
 int gBarkWaitFrames = 0;
 bool gBarkFirstCaptured = false;
 bool gBarkReplacementSeen = false;
+bool gBarkCallbackSuppressed = false;
 // CP1251 Russian bark fixtures.
 char gBarkFirstText[] = "\xD2\xFB \xEC\xE5\xED\xFF \xEF\xF3\xE3\xE0\xE5\xF8\xFC.";
 char gBarkReplacementText[] = "\xD1\xF2\xEE\xE9!";
@@ -113,30 +113,18 @@ int expectedWindow()
     }
 }
 
-int outlinedTextCount(const char* text, std::size_t* ownedPixelCount = nullptr)
-{
-    int count = 0;
-    std::size_t pixels = 0;
-    int windowCount = 0;
-    TextWindowSnapshot first = {};
-    if (!textCaptureGetWindowSnapshot(0, &first, &windowCount)) return 0;
-    for (int index = 0; index < windowCount; index++) {
-        TextWindowSnapshot window = {};
-        if (!textCaptureGetWindowSnapshot(index, &window, nullptr) || window.hidden || window.pixels == nullptr) continue;
-        for (const scene::TextRecord& record : scene::textCaptureRecords(window.generation)) {
-            if (record.run.font == 101 && record.run.hasOutline && record.run.text == text) {
-                count++;
-                pixels += record.pixels.size();
-            }
-        }
-    }
-    if (ownedPixelCount != nullptr) *ownedPixelCount = pixels;
-    return count;
-}
+int visibleOutlinedTextCount(const char* text, std::size_t* visiblePixelCount = nullptr);
+
+class ScopedBarkCallbackSuppression {
+public:
+    ScopedBarkCallbackSuppression() { gBarkCallbackSuppressed = true; }
+    ~ScopedBarkCallbackSuppression() { gBarkCallbackSuppressed = false; }
+};
 
 void runBarkFixtureFrame()
 {
-    if (gStage == UiFixtureStage::Idle || gStage == UiFixtureStage::Finished) return;
+    if (gBarkCallbackSuppressed || gStage == UiFixtureStage::Idle || gStage == UiFixtureStage::Capturing
+        || gStage == UiFixtureStage::Finished) return;
     gBarkWaitFrames++;
     const int stageFrameLimit = gStage == UiFixtureStage::WaitingForBarkExpiration ? 1200 : 300;
     if (gBarkWaitFrames > stageFrameLimit) {
@@ -144,25 +132,27 @@ void runBarkFixtureFrame()
         return;
     }
     if (gStage == UiFixtureStage::WaitingForBark) {
-        std::size_t firstOwnedPixels = 0;
-        if (outlinedTextCount(gBarkFirstText, &firstOwnedPixels) == 0) return;
+        std::size_t firstVisiblePixels = 0;
+        if (visibleOutlinedTextCount(gBarkFirstText, &firstVisiblePixels) == 0) return;
         gStage = UiFixtureStage::Capturing;
         if (!takeSnapshot()) {
             fixtureFail("bark-first-snapshot-failed");
             return;
         }
         gBarkFirstCaptured = true;
-        gStage = UiFixtureStage::WaitingForBark;
-        printf("UI_FIXTURE STEP screen=bark stage=visible hasOutline=1 ownedPixels=%zu text=first-ru-line\n", firstOwnedPixels);
+        printf("UI_FIXTURE STEP screen=bark stage=visible hasOutline=1 visiblePixels=%zu text=first-ru-line\n", firstVisiblePixels);
         fflush(stdout);
-        Rect refreshRect;
-        if (textObjectAdd(gDude, gBarkReplacementText, 101, COLOR_LIGHT_YELLOW, COLOR_BLACK, &refreshRect) == -1) {
-            fixtureFail("bark-replacement-add-failed");
-            return;
-        }
-        tileWindowRefreshRect(&refreshRect, gDude->elevation);
         gStage = UiFixtureStage::WaitingForBarkReplacement;
         gBarkWaitFrames = 0;
+        Rect refreshRect;
+        {
+            ScopedBarkCallbackSuppression suppressCallbacks;
+            if (textObjectAdd(gDude, gBarkReplacementText, 101, COLOR_LIGHT_YELLOW, COLOR_BLACK, &refreshRect) == -1) {
+                fixtureFail("bark-replacement-add-failed");
+                return;
+            }
+            tileWindowRefreshRect(&refreshRect, gDude->elevation);
+        }
         int sceneOffsetX = 0;
         int sceneOffsetY = 0;
         tileSceneShift(gDude->tile, &sceneOffsetX, &sceneOffsetY);
@@ -178,18 +168,13 @@ void runBarkFixtureFrame()
             tileSceneShift(gDude->tile, &sceneOffsetX, &sceneOffsetY);
             printf("UI_FIXTURE DIAG screen=bark stage=replacement-wait frames=%d tile=%d scene_shift=%d,%d old_runs=%d new_runs=%d objects=%d baseline=%d\n",
                 gBarkWaitFrames, gDude->tile, sceneOffsetX, sceneOffsetY,
-                outlinedTextCount(gBarkFirstText), outlinedTextCount(gBarkReplacementText),
+                visibleOutlinedTextCount(gBarkFirstText), visibleOutlinedTextCount(gBarkReplacementText),
                 textObjectsGetCount(), gBarkBaselineCount);
-            int activeOwnerObjects = 0;
-            int markedOwnerObjects = 0;
-            textObjectsGetOwnerCounts(gDude, &activeOwnerObjects, &markedOwnerObjects);
-            printf("UI_FIXTURE DIAG screen=bark owner_active=%d owner_marked=%d owner_baseline=%d\n",
-                activeOwnerObjects, markedOwnerObjects, gBarkOwnerBaselineCount);
             fflush(stdout);
         }
-        std::size_t replacementOwnedPixels = 0;
-        if (outlinedTextCount(gBarkReplacementText, &replacementOwnedPixels) == 0) return;
-        const int oldRunCopies = outlinedTextCount(gBarkFirstText);
+        std::size_t replacementVisiblePixels = 0;
+        if (visibleOutlinedTextCount(gBarkReplacementText, &replacementVisiblePixels) == 0) return;
+        const int oldVisibleRuns = visibleOutlinedTextCount(gBarkFirstText);
         gStage = UiFixtureStage::Capturing;
         if (!takeSnapshot()) {
             fixtureFail("bark-replacement-snapshot-failed");
@@ -198,18 +183,14 @@ void runBarkFixtureFrame()
         gBarkReplacementSeen = true;
         gStage = UiFixtureStage::WaitingForBarkExpiration;
         gBarkWaitFrames = 0;
-        printf("UI_FIXTURE STEP screen=bark stage=replaced hasOutline=1 ownedPixels=%zu old_run_copies=%d text=short-ru-line\n",
-            replacementOwnedPixels, oldRunCopies);
+        printf("UI_FIXTURE STEP screen=bark stage=replaced hasOutline=1 visiblePixels=%zu old_visible_runs=%d text=short-ru-line\n",
+            replacementVisiblePixels, oldVisibleRuns);
         fflush(stdout);
         return;
     }
-    int activeOwnerObjects = 0;
-    int markedOwnerObjects = 0;
-    textObjectsGetOwnerCounts(gDude, &activeOwnerObjects, &markedOwnerObjects);
     if (gStage == UiFixtureStage::WaitingForBarkExpiration
-        && activeOwnerObjects + markedOwnerObjects <= gBarkOwnerBaselineCount
-        && outlinedTextCount(gBarkFirstText) == 0
-        && outlinedTextCount(gBarkReplacementText) == 0) {
+        && visibleOutlinedTextCount(gBarkFirstText) == 0
+        && visibleOutlinedTextCount(gBarkReplacementText) == 0) {
         gStage = UiFixtureStage::Capturing;
         if (!takeSnapshot()) {
             fixtureFail("bark-expiration-snapshot-failed");
@@ -409,6 +390,35 @@ ScreenProof screenProof(const TextWindowSnapshot& window,
         }
     }
     return proof;
+}
+
+int visibleOutlinedTextCount(const char* text, std::size_t* visiblePixelCount)
+{
+    if (text == nullptr || gSdlSurface == nullptr || gSdlSurface->pixels == nullptr) return 0;
+    const scene_renderer::PreparedSharpTextFrame& frame = scene_renderer::preparedSharpTextFrame();
+    int windowCount = 0;
+    TextWindowSnapshot first = {};
+    if (!textCaptureGetWindowSnapshot(0, &first, &windowCount)) return 0;
+
+    int count = 0;
+    std::size_t pixels = 0;
+    for (int index = 0; index < windowCount; index++) {
+        TextWindowSnapshot window = {};
+        if (!textCaptureGetWindowSnapshot(index, &window, nullptr) || window.hidden || window.pixels == nullptr) continue;
+        const ScreenProof proof = screenProof(window, frame);
+        for (const scene::TextRecord& record : proof.visibleRecords) {
+            if (record.run.font != 101 || !record.run.hasOutline || record.run.text != text) continue;
+            scene::TextVisibilityMask mask;
+            if (!scene::textCaptureVisibilityMask(record, gSdlSurface->w, gSdlSurface->h, &mask)) continue;
+            const std::size_t visiblePixels = static_cast<std::size_t>(std::count_if(mask.pixels.begin(), mask.pixels.end(),
+                [](unsigned char pixel) { return pixel != 0; }));
+            if (visiblePixels == 0) continue;
+            count++;
+            pixels += visiblePixels;
+        }
+    }
+    if (visiblePixelCount != nullptr) *visiblePixelCount = pixels;
+    return count;
 }
 
 void captureWindow(const TextWindowSnapshot& window, const std::vector<scene::TextRecord>& runs)
@@ -732,10 +742,6 @@ bool startUiFixtureWhenReady(bool startupReady, bool blockingState)
             return false;
         }
         gBarkBaselineCount = textObjectsGetCount();
-        int activeOwnerObjects = 0;
-        int markedOwnerObjects = 0;
-        textObjectsGetOwnerCounts(gDude, &activeOwnerObjects, &markedOwnerObjects);
-        gBarkOwnerBaselineCount = activeOwnerObjects + markedOwnerObjects;
         Rect refreshRect;
         if (textObjectAdd(gDude, gBarkFirstText, 101, COLOR_LIGHT_YELLOW, COLOR_BLACK, &refreshRect) == -1) {
             fixtureFail("bark-first-add-failed");
@@ -884,7 +890,7 @@ void uiFixtureVanillaPresented()
 
 void uiFixtureScenePresented()
 {
-    if (gKind == UiFixtureKind::Bark) runBarkFixtureFrame();
+    if (gKind == UiFixtureKind::Bark && !gBarkCallbackSuppressed) runBarkFixtureFrame();
 }
 
 } // namespace devtools

@@ -24,7 +24,6 @@ inline int textObjectAdd(Object* object, char* string, int font, Color color, Co
 
 void textObjectsRenderInRect(Rect* rect);
 int textObjectsGetCount();
-void textObjectsGetOwnerCounts(Object* owner, int* activeCount, int* markedCount);
 void textObjectsRemoveByOwner(Object* object);
 
 } // namespace fallout
