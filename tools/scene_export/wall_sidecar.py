@@ -1100,9 +1100,10 @@ def encode_wall_sidecar(scene, skip_props=frozenset(), skip_rests=frozenset(), m
         # each from both sides.
         game.object = fly.object = axis_owner.get((row[1], row[2]), -1.0)
         page, corners = rest_card(proj, sprites, row)
-        if (row[1], row[2]) not in forced_axes:  # the game's camera sees that solid's card whole
+        seen = row[5] if len(row) > 5 else 0     # 1: of a solid the fly camera alone sees, 2: the game's
+        if (row[1], row[2]) not in forced_axes and seen != 1:  # the game's camera sees that solid's card whole
             _polygon(game, proj, page, pages[page], corners)
-        for page, corners in rest_cross(proj, sprites, row):
+        for page, corners in rest_cross(proj, sprites, row) if seen != 2 else ():
             # The sheet across the screen is a line to the game's camera, so
             # it is wound both ways without asking that camera.
             for wound in (corners, corners[::-1]):

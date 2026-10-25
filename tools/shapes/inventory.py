@@ -37,7 +37,7 @@ def todays_shapes(scene):
     for index in scene.get("hidden") or []:
         shape[boards[index][-1]] = "part of a solid"
     for row in scene.get("props") or []:
-        if row[3] >= 0:
+        if row[3] >= 0 and (len(row) < 16 or row[15] != 2):     # 2: the game's camera's copy
             # A box whose far sides go on well over its top (wallU, wallV) has
             # a back on its far edge: a bed's headboard.
             back = not row[4] and max(row[11], row[12]) - row[10] > BACK_RISE

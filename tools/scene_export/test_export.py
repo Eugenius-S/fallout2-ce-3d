@@ -770,6 +770,12 @@ class BakedSidecarTests(unittest.TestCase):
         self.assertIn((400, 0x00000036, BAKED_SKIP, 0.0, 0.0, 0.0), entries)
         self.assertEqual(decode_baked_sidecar(encode_baked_sidecar(entries)), entries)
 
+    def test_a_detail_of_a_joined_thing_hides_its_card_in_flight_beside_forms(self):
+        scene, objects = self.sample()
+        scene["forms"], scene["props"], scene["flyBoards"] = [[0]], [[0, 1, 1, 0]], [1]  # board 1 names no row
+        entries = baked_objects(scene, objects)
+        self.assertIn((400, 0x00000036, BAKED_FLY_SKIP, 0.0, 0.0, 0.0), entries)
+
     def test_a_plant_s_object_casts_no_shadow(self):
         scene, objects = self.sample()
         scene["plants"] = [0]  # board 0 is the object at (300, 0x02000099)
@@ -918,6 +924,90 @@ class ShadowSidecarTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "truncated"):
             decode_shadow_sidecar(payload[:-33])
 
+
+class ThingShapeTests(unittest.TestCase):
+    """Task 075: the pieces of one thing are fitted together, and solids keep out of walls and each other."""
+
+    @staticmethod
+    def piece(name, x, y, w, h, tile=1, order=0):
+        import numpy as np
+        from types import SimpleNamespace
+        from vendor.fp import props
+        return props.Piece(SimpleNamespace(tile=tile), np.ones((h, w), np.uint8), np.zeros((h, w, 4), np.uint8),
+                           x, y, order, name)
+
+    def test_a_detail_inside_a_bigger_piece_of_its_name_joins_it(self):
+        from vendor.fp import props
+        bed, rail = self.piece("Bed", 0, 0, 80, 60, tile=1), self.piece("Bed", 50, 30, 25, 20, tile=401, order=1)
+        crate = self.piece("Crate", 10, 10, 20, 20, tile=3, order=2)
+        groups = sorted(props.groups([bed, rail, crate]), key=len)
+        self.assertEqual([[crate], [bed, rail]], groups)
+        self.assertIs(bed, props.lead(groups[1]))
+        apart = self.piece("Bed", 70, 30, 25, 20, tile=402)          # half of it outside the bed: a bed of its own
+        self.assertEqual(2, len(props.groups([bed, apart])))
+
+    def scene(self, rows, boxes=()):
+        from types import SimpleNamespace
+        return SimpleNamespace(props=[list(row) for row in rows], boxes=list(boxes))
+
+    @staticmethod
+    def row(round_, cu, cv, a, b, u=None, v=None, z1=0.5):
+        return [0, cu if u is None else u, cv if v is None else v, -1, round_, cu, cv, a, b, 0.0, z1, z1, z1, 0, 0, 0]
+
+    def test_two_things_that_overlap_in_plan_are_cut_back_by_half_each(self):
+        from vendor.fp import scene
+        fake = self.scene([self.row(0, 0.0, 0.0, 1.0, 1.0), self.row(0, 0.8, 0.1, 1.0, 1.0)])
+        scene.SceneBuilder.keep_apart(fake, [0, 1])
+        game, cut = fake.props[:2], fake.props[2:]
+        self.assertEqual([2, 2, 1, 1], [row[15] for row in fake.props])  # the game's camera keeps them as made
+        self.assertEqual(1.0, game[0][7])
+        first, second = cut
+        self.assertAlmostEqual(first[5] + first[7] / 2, second[5] - second[7] / 2, places=3)   # they meet at u = 0.4
+        self.assertAlmostEqual(0.4, first[5] + first[7] / 2, places=3)
+        self.assertEqual(1.0, first[8])                                  # cut across u only
+        slices = self.scene([self.row(0, 0.0, 0.0, 1.0, 1.0), self.row(0, 0.8, 0.1, 1.0, 1.0)])
+        scene.SceneBuilder.keep_apart(slices, [0, 0])                          # slices of one thing stay
+        held = self.scene([self.row(0, 0.0, 0.0, 2.0, 2.0), self.row(0, 0.1, 0.1, 1.0, 1.0)])
+        scene.SceneBuilder.keep_apart(held, [0, 1])                            # one holds the other along u
+        big, small = held.props[2:]
+        self.assertAlmostEqual(big[5] + big[7] / 2, small[5] - small[7] / 2, places=3)
+        self.assertEqual(2, len(slices.props))
+        self.assertEqual(1.0, slices.props[0][7])
+
+    def test_a_drum_in_a_wall_keeps_its_hex_side_and_its_near_edge(self):
+        from vendor.fp import proj, scene
+        radius = 0.5
+        fake = self.scene([self.row(1, 0.0, 0.0, radius * proj.BB_PX, radius * proj.BB_PX * 0.5, u=0.0, v=0.4)],
+                          boxes=[(-2.0, -0.2, 2.0, 0.1)])                 # a slab along u through the drum's axis
+        scene.SceneBuilder.keep_apart(fake, [0])
+        cu, cv, a = fake.props[1][5:8]
+        r = a / proj.BB_PX
+        self.assertAlmostEqual(0.1, cv - r, places=3)                    # on the slab's face
+        self.assertAlmostEqual(0.5, cv + r, places=3)                    # its near edge where it was
+        self.assertAlmostEqual(0.0, cu, places=3)
+
+    def test_a_cut_solid_is_the_fly_cameras_and_as_made_the_games(self):
+        import solids
+        faces = [(0, [], False, "both"), (0, [], False, "game"), (0, [], True, "fly")]
+        row = self.row(1, 0.0, 0.0, 1.0, 1.0)
+        row[15] = 1
+        self.assertEqual(["fly", "fly"], [face[3] for face in solids._forced(row, faces)])
+        row[15] = 2
+        self.assertEqual(["game", "game"], [face[3] for face in solids._forced(row, faces)])
+        row[14] = 1                                                      # by name: the game's camera keeps the card
+        self.assertEqual([], solids._forced(row, faces))
+
+    def test_a_cut_solid_by_name_keeps_its_axis_for_its_rests(self):
+        import solids
+        from vendor.fp import scene
+        crate = self.row(0, 0.0, 0.0, 1.0, 1.0)
+        crate[14] = 1
+        fake = self.scene([crate, self.row(0, 0.8, 0.1, 1.0, 1.0)])
+        scene.SceneBuilder.keep_apart(fake, [0, 1])
+        self.assertEqual([2, 2, 1, 1], [row[15] for row in fake.props])
+        self.assertEqual((0.0, 0.0), tuple(fake.props[0][5:7]))       # as made: its rests' axis
+        self.assertEqual([], solids._forced(fake.props[0], [(0, [], False, "both")]))
+        self.assertAlmostEqual(0.4, fake.props[2][5] + fake.props[2][7] / 2, places=3)
 
 if __name__ == "__main__":
     unittest.main()
