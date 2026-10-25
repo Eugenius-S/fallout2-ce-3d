@@ -335,6 +335,9 @@ int main()
     const std::string statDescriptions[] = {
         std::string("\xCE\xF2\xEB\xE8\xF7\xED\xEE", 7), // CP1251: Otlichno.
         std::string("\xD5\xEE\xF0\xEE\xF8\xEE", 6), // CP1251: Khorosho.
+        std::string("\xD1\xF0\xE5\xE4\xED\xE5", 6), // CP1251: Sredne, includes descenders.
+        std::string("\xC9", 1), // CP1251: capital short I.
+        std::string("\xA8", 1), // CP1251: capital Yo.
     };
     for (const std::string& description : statDescriptions) {
         for (int lineHeight : { 9, 10 }) {
