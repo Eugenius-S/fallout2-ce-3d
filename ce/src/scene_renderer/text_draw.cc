@@ -205,7 +205,7 @@ void getTextColor(const scene::TextRunInfo& run, const unsigned char* paletteRgb
     static constexpr unsigned char targetColors[3][3] = {
         { 0x3F, 0xB4, 0x19 },
         { 0x4B, 0xD5, 0x1F },
-        { 0x00, 0x7B, 0x00 },
+        { 0x06, 0x4F, 0x03 },
     };
     const int targetIndex = run.colorRole == scene::TextColorRole::HudMessageLogGreen ? 1
         : run.colorRole == scene::TextColorRole::InactiveInjuryStatusGreen ? 2 : 0;
