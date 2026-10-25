@@ -72,5 +72,5 @@ that fits no task becomes a new task when the board runs dry.
   rewrites `ce/src/scene/sun.cc`): (1) the darkness of building shadows as a
   slider (none on main or in PR #104 today); (2) how far the sun swings from
   overhead, default 30 degrees each way (morning -30, evening +30; this
-  replaces 082's 15), adjustable by the player. Both small: one uniform and
-  one angle read by `sun.cc`, plus two settings entries.
+  replaces 082's 15), adjustable by the player. The owner gave glm these
+  instructions for 082 directly; check what 082 lands before cutting a task.
