@@ -135,6 +135,7 @@ int outlinedTextCount(const char* text, std::size_t* ownedPixelCount = nullptr)
 
 void runBarkFixtureFrame()
 {
+    if (gStage == UiFixtureStage::Idle || gStage == UiFixtureStage::Finished) return;
     gBarkWaitFrames++;
     const int stageFrameLimit = gStage == UiFixtureStage::WaitingForBarkExpiration ? 1200 : 300;
     if (gBarkWaitFrames > stageFrameLimit) {

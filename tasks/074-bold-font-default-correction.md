@@ -69,3 +69,8 @@ Check: second attempt also ended without snapshots at the isolated harness deadl
 Done: the first bark frame is visible and reports 707 owned text pixels. The first replacement attempt timed out. Added scene-module refresh bounds that accept the renderer's `tileSceneShift` for add and removal rectangles, plus a shifted-bounds unit assertion.
 Next: rebuild with a bounded diagnostic for actual scene shift, old/new copied-run counts, and object count; cap replacement at 300 frames and natural expiry at 1200.
 Check: replacement has not passed yet. The prior attempt used the pre-shift build, so it does not establish whether the shift caused the timeout.
+
+### 2026-10-25 gpt
+Done: added the requested replacement diagnostic and separate 300-frame replacement / 1200-frame expiry bounds. The first bounded run exposed a startup ordering bug: the scene callback could count frames before the bark fixture entered its first active stage. It now ignores Idle and Finished stages.
+Next: rebuild and rerun once the isolated tester queue is clear.
+Check: that run emitted `UI_FIXTURE FAIL` without a `START` line, so it is not lifecycle evidence.
