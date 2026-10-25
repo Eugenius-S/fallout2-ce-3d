@@ -461,7 +461,7 @@ if ($PreferencesProbe) {
 if ($UiFixture) {
     $fixtureLog = Get-Content -Raw -LiteralPath (Join-Path $OutputDirectory 'process.stdout.log')
     if ($UiFixture -eq 'bark') {
-        if ($dialogFixtureFailed -or $fixtureLog -notmatch '(?m)^UI_FIXTURE PASS screen=bark first=1 replacement=1 cleared_runs=0$') {
+        if ($dialogFixtureFailed -or $fixtureLog -notmatch '(?m)^UI_FIXTURE PASS screen=bark first=1 replacement=1 cleared_runs=0\r?$') {
             throw "Bark fixture failed to replace and expire its outlined text.`n$fixtureLog"
         }
         $visibleBarkLine = [regex]::Match($fixtureLog, '(?m)^UI_FIXTURE STEP screen=bark stage=visible hasOutline=1 visiblePixels=(\d+) ')

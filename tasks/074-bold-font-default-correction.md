@@ -21,6 +21,7 @@ Use the owner's corrected font-101 default weight: IBM Plex Mono Bold 700. Keep 
 - Keep the Bold/SemiBold preview override available for future comparison.
 - Preserve all shipped size scopes, SPECIAL-label centering, plaque lifts, dialogue spacing, colors, and SharpText-off pixels.
 - The owner reports inactive injury labels too dark, PipBoy underlines misaligned with the larger glyphs, floating character barks retaining pixel outlines, and live-owner text appearing smaller than reviewed captures. The first three are bounded rendering fixes. The live-owner size difference is investigated as a source/config mismatch and must not trigger an unrequested restart.
+- Live-game audit on 2026-10-25: owner process was `E:\Projects\fallout2-ce-3d-glm\game\fallout2-ce.exe`, SHA-256 `1C7233B89C249D987BD2B40B834A14E5600102447659991EEE19AD29D2EBFB8B`, GLM commit `e08785c8`; its config was 2310x1298, scale 2, SharpText enabled. It predates the merged font implementation. Current approved captures use the task build at 2310x1298, scale 2; no owner process was changed.
 
 ## Acceptance
 
@@ -79,3 +80,13 @@ Check: that run emitted `UI_FIXTURE FAIL` without a `START` line, so it is not l
 Done: review found a fixture reentrancy error: during `tileWindowRefreshRect`, the stage still said `WaitingForBark`, so nested scene callbacks re-added the replacement repeatedly. The 3/63 record counts came from that broken harness and are invalid. The fixture now switches to `WaitingForBarkReplacement` before mutation/refresh and suppresses nested callbacks for that operation. It counts only visible font-101 records with matching window owner/generation and nonzero visibility masks. Removed the unnecessary owner-count API.
 Next: rebuild and inspect the single replacement frame, then verify natural expiry and a clear frame.
 Check: prior diagnostic builds showed a scene shift of 0,0; replacement and cleanup remain unverified.
+
+### 2026-10-25 gpt
+Done: source `b2b11252` passes the bark lifecycle fixture at 2310x1298 scale 2: the long Russian bark has 1955 visible mask pixels; the short replacement has 595 and `old_visible_runs=0`; expiry leaves `cleared_runs=0`. The wrapper accepted all three source-matched sidecars after its CRLF-aware PASS check. Character and PipBoy fixtures also passed at this source; their pixel hashes match the earlier accepted frames. Mainstream source-bark images, sidecars, stdout and EXE SHA-256 are preserved under `runs/074-bold-font-default-correction/runtime-b2b1/`.
+Next: run the full SharpText-off 16-spot regression without updating references, then finish task evidence and PR.
+Check: official Release incremental build and CTest passed 15/15 at source `b2b11252`; owner GLM game was not focused, stopped, or restarted.
+
+### 2026-10-25 gpt
+Done: started the SharpText-off regression without updating references. The first three spots (`entrance`, `corrals`, `residents`) passed with 0 changed pixels, each from source `b2b11252` and EXE SHA-256 `b42652371149fd364a573aba284cf1497cdf267118d88a18056148fabd3ce704`.
+Next: rerun the full 16-spot regression after the other worktree's test process releases the global slot.
+Check: this attempt stopped at `central-doors` when the harness detected another `fallout2-ce-test.exe`; it is incomplete and not counted as a full regression pass. No other process was stopped.
