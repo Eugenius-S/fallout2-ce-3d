@@ -238,9 +238,9 @@ float shadowDarken(float light) {
             // the distance from the roof or the opposite wall that blocks
             // its sun, so the face grades; only with the round-3 prism
             // curtains did it collapse flat (reverted).
-            light *= 1.0 - uShadowStrength * 0.5 * sunShadow();
+            light *= 1.0 - uShadowStrength * 0.425 * sunShadow();
         } else if (uLightMode == 3) {
-            light *= 1.0 - uShadowStrength * 0.35 * sunShadow();
+            light *= 1.0 - uShadowStrength * 0.3 * sunShadow();
         }
     }
     return light;

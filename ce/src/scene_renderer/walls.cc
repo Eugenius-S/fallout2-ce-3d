@@ -504,13 +504,28 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
             }
             if (!casts) continue;
             std::vector<float>& page = casterPages[batch.page];
-            for (int corner = 0; corner < 3; corner++) {
-                const DepthVertex& vertex = batch.vertices[index + corner].vertex;
-                page.push_back(vertex.x);
-                page.push_back(vertex.y);
-                page.push_back(vertex.z);
-                page.push_back(vertex.u);
-                page.push_back(vertex.v);
+            for (int pass = 0; pass < 2; pass++) {
+                // Pass 0 draws the triangle as it is. Pass 1 draws a copy
+                // shifted straight down (at most 0.4, never under the
+                // floor): the art's quads sit about 0.37 GL units up, and
+                // with the sun always low that gap left a lit strip between
+                // a wall and its own shadow. The copy stays in the
+                // triangle's plane, so the shadow's measured distance from
+                // the caster does not change (062 round 6).
+                float lowest = 1e9f;
+                for (int corner = 0; corner < 3; corner++) {
+                    lowest = std::min(lowest, batch.vertices[index + corner].vertex.y);
+                }
+                const float drop = pass == 0 ? 0.0f : std::min(0.4f, std::max(lowest, 0.0f));
+                if (pass == 1 && drop <= 0.0f) break;
+                for (int corner = 0; corner < 3; corner++) {
+                    const DepthVertex& vertex = batch.vertices[index + corner].vertex;
+                    page.push_back(vertex.x);
+                    page.push_back(vertex.y - drop);
+                    page.push_back(vertex.z);
+                    page.push_back(vertex.u);
+                    page.push_back(vertex.v);
+                }
             }
         }
     }

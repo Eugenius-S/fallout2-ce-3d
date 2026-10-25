@@ -12,7 +12,10 @@ constexpr double kPi = 3.14159265358979323846;
 constexpr double kTicksPerHour = 36000.0;
 constexpr double kSunrise = 6.0;
 constexpr double kSunset = 18.0;
-constexpr double kNoonHeight = 60.0; // degrees
+// The sun swings low, at most this many degrees up at noon, over the whole
+// day arc (the owner's 062 round 6: a long geometric shadow everywhere, so
+// the rim's melt always cuts it and no hard straight shadow edge shows).
+constexpr double kNoonHeight = 15.0; // degrees
 // Where the sun stands at noon, degrees in the GL ground plane; it rises 90
 // degrees before and sets 90 degrees after. To be tuned on the shadows (045).
 constexpr double kNoonAzimuth = 225.0;

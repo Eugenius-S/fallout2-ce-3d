@@ -211,3 +211,29 @@ Check: build Release, ctest 14/14; spawn8-noprism-mode{2,3} under this
 runs folder (93.8% of the wall dim at full density, 6.2% melting at the
 edges); game relaunched on the restored build (exe 844b9315).
 Next: the owner's eye.
+
+### 2026-10-25 glm
+Done: round 6, the owner's plan (his words: cap the sun's swing at about
++/-15 degrees stretched over the day, smooth the straight shadow runs, no
+stairs, opacity down 15 percent; the moon is future work, already in the
+inbox).
+- sun.cc: kNoonHeight 60 -> 15 (one constant; the swing runs over the
+  day arc, so 7:00 reads 7.5 degrees, noon 15, 17:00 3.9 with the horizon
+  fade dimming it to half strength). A low sun lays long geometric
+  shadows everywhere, so the rim's melt always cuts them: no hard
+  straight geometric edge is left in view. sun_test updated for the new
+  arc (noon 15 degrees, warm at noon: the sun never climbs high).
+- The shadow opacity drops 15 percent: 0.5 -> 0.425 for the ground and
+  the walls, 0.35 -> 0.3 for the cards.
+- walls.cc: every caster triangle also draws a copy shifted straight down
+  (at most 0.4, never below the floor): with the sun now always low, the
+  art's 0.37-unit lift would leave a lit strip between every wall and
+  its shadow at every hour. The copy stays in the triangle's plane, so
+  the measured distance from the caster does not change.
+Check: build Release, ctest 14/14; the shadows-off regression keeps the
+13 drifted counts. Pairs under this runs folder: spawn-low (8:00,
+elev 7.5), corrals-low (17:00, elev 3.9), noon-low (12:00, elev 15):
+edge samples across the masks read 2306 soft vs 27 hard at the spawn,
+303 vs 1 at the corrals, 2206 vs 18 at noon; the median shadow drop
+halved to 24 gray levels (the lighter 0.425).
+Next: the owner's eye on the relaunched game.
