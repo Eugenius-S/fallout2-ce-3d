@@ -1,9 +1,13 @@
 #include "live_objects.h"
 
+#include <algorithm>
+#include <chrono>
 #include <cmath>
+#include <unordered_map>
 
 #include "gl_api.h"
 #include "scene_internal.h"
+#include "shadow.h"
 #include "static_scene.h"
 
 namespace fallout {
@@ -25,7 +29,7 @@ using namespace internal;
 namespace {
 
 // Live map objects: one textured quad each, rebuilt every presented frame.
-// Frame textures are cached by (fid, frame, rotation) across frames.
+// Frame textures are cached by (fid, frame, rotation, variant) across frames.
 constexpr size_t kMaxObjectTextures = 4096;
 constexpr float kFlatObjectHeight = 0.01f;
 constexpr int kHexRowStep = 200; // one hex row south, the plane in front of a card
@@ -35,11 +39,12 @@ unsigned int gObjectVbo = 0;
 unsigned int gHeroVbo = 0;
 StaticHeroInfo gHeroInfo = {};
 
-unsigned long long objectArtKey(int fid, int frame, int rotation)
+unsigned long long objectArtKey(int fid, int frame, int rotation, int variant)
 {
     return (static_cast<unsigned long long>(static_cast<unsigned int>(fid)) << 32)
-        | ((static_cast<unsigned long long>(static_cast<unsigned int>(frame)) & 0xFFFFFF) << 8)
-        | (static_cast<unsigned int>(rotation) & 0xFF);
+        | ((static_cast<unsigned long long>(static_cast<unsigned int>(frame)) & 0xFFFFFF) << 9)
+        | (static_cast<unsigned int>(rotation) & 0xFF) << 1
+        | static_cast<unsigned int>(variant & 1);
 }
 
 void destroyStaticObjectTextures()
@@ -209,9 +214,9 @@ bool staticHeroInfo(StaticHeroInfo* info)
     return true;
 }
 
-bool staticObjectArtCached(int fid, int frame, int rotation)
+bool staticObjectArtCached(int fid, int frame, int rotation, int variant)
 {
-    return gObjectTextures.count(objectArtKey(fid, frame, rotation)) != 0;
+    return gObjectTextures.count(objectArtKey(fid, frame, rotation, variant)) != 0;
 }
 
 void beginStaticObjects()
@@ -263,7 +268,7 @@ bool addStaticObject(const StaticObjectFrame& frame, std::string* error)
         row = spriteRowPlane(cardProjection(), frame.tile + kHexRowStep, 1);
     }
 
-    const unsigned long long key = objectArtKey(frame.fid, frame.frame, frame.rotation);
+    const unsigned long long key = objectArtKey(frame.fid, frame.frame, frame.rotation, frame.variant);
     auto cached = gObjectTextures.find(key);
     unsigned int texture = 0;
     if (cached != gObjectTextures.end()) {
@@ -290,7 +295,6 @@ bool addStaticObject(const StaticObjectFrame& frame, std::string* error)
         }
         gObjectTextures.emplace(key, texture);
     }
-
     gObjectDraws.push_back({ texture, static_cast<int>(gObjectVertices.size()), flat,
         { frame.tint[0], frame.tint[1], frame.tint[2] }, frame.glassGray, frame.pickId, frame.pickOnly,
         frame.seeThrough, frame.fullLight ? -1 : frame.tile });

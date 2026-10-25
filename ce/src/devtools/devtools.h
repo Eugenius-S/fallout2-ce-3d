@@ -44,6 +44,7 @@ void applyFixedScreenOptions();
 // background run re-applies the glow switch and the zoom once the flags are
 // known.
 void applyBackgroundGlow();
+void applyBackgroundShadows();
 void applyBackgroundZoom();
 
 bool isEnabled();

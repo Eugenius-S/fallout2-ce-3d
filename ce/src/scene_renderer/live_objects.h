@@ -52,6 +52,9 @@ struct StaticObjectFrame {
     // Drawn by walls.bin (a wall, furniture made solid): its card is only
     // picked. Seen from the game's camera a solid covers its sprite's pixels.
     bool pickOnly = false;
+    // The art variant: 1 = the shadow-free sprite of a painted-shadow board
+    // (shadows.bin), so its texture caches apart from the original's.
+    int variant = 0;
     // A wall or scenery the hero stands behind: the egg around him cuts it.
     bool seeThrough = false;
 };
@@ -71,7 +74,7 @@ bool staticHeroInfo(StaticHeroInfo* info);
 
 // Live objects are rebuilt every presented frame between begin and end.
 // Objects walls.bin already draws (static_scene.h) are only picked.
-bool staticObjectArtCached(int fid, int frame, int rotation);
+bool staticObjectArtCached(int fid, int frame, int rotation, int variant = 0);
 void beginStaticObjects();
 bool addStaticObject(const StaticObjectFrame& frame, std::string* error);
 void endStaticObjects();

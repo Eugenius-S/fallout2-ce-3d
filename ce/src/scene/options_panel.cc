@@ -15,6 +15,7 @@
 #include "../input.h"
 #include "../kb.h"
 #include "../mouse.h"
+#include "../scripts.h"
 #include "../settings.h"
 #include "../svga.h"
 #include "../text_font.h"
@@ -352,7 +353,7 @@ void OptionsPanel::buildRowLayout()
         const std::string key = separator == std::string::npos ? id : id.substr(separator + 1);
         int group = 3;
         if (key == "enabled" || key == "clean_edges" || key == "sharp_text") group = 0;
-        else if (key == "sun" || key == "lights" || key == "glow" || key == "glow_strength") group = 1;
+        else if (key == "sun" || key == "shadows" || key == "shadow_pixel_size" || key == "lights" || key == "glow" || key == "glow_strength") group = 1;
         else if (key == "camera_rotation" || key == "zoom" || key == "zoom_min" || key == "zoom_max") group = 2;
         groupedRows[group].push_back(index);
     }
@@ -834,6 +835,15 @@ bool OptionsPanel::handleEvent(int eventCode)
 bool OptionsPanel::handleKey(int keyCode)
 {
     if (rowCount() == 0) return false;
+    // T / Shift+T step the game hour by one hour, forth and back: the owner
+    // reads each hour's shadow. The sun snaps to the jump, as on waiting.
+    if (keyCode == KEY_LOWERCASE_T || keyCode == KEY_UPPERCASE_T) {
+        const unsigned int ticks = gameTimeGetTime();
+        const int hours = keyCode == KEY_LOWERCASE_T ? 1 : -1;
+        const unsigned int hour = (ticks / 36000u + 24u + static_cast<unsigned int>(hours)) % 24u;
+        gameTimeSetTime(hour * 36000u + ticks % 36000u);
+        return true;
+    }
     switch (keyCode) {
     case KEY_ARROW_UP: setScroll(scroll_ - rowHeight(selectedRow_)); return true;
     case KEY_ARROW_DOWN: setScroll(scroll_ + rowHeight(selectedRow_)); return true;

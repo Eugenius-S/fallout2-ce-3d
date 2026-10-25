@@ -22,7 +22,7 @@ import struct
 
 
 MAGIC = b"F2BK"
-VERSION = 5
+VERSION = 6
 HEADER = struct.Struct("<4sHHI")  # magic, version, header bytes, entries
 ENTRY = struct.Struct("<iIIfff")  # object tile, object fid, mode, du, dv, dz
 SKIP = 0
@@ -31,6 +31,8 @@ FLAT = 2
 PLANE = 3
 FLY_FLAT = 4
 FLY_SKIP = 5  # a card a solid made by name stands for, but only in flight
+NOCAST = 0x80000000  # mode's high bit: the object's cards throw no shadow (a plant's crown)
+MODE_MASK = 0x7FFFFFFF
 GL_MAP_OFFSET = 50.0  # GL x, z = u, v less this (wall_sidecar.py)
 LOW_HEIGHT = 20  # px: a card this low (and wider than tall) lies flat
 FLAT_TYPES = (0, 2)  # items, scenery (fid >> 24)
@@ -95,6 +97,15 @@ def baked_objects(scene, map_objects, live_boards=frozenset()):
         ua, va, ub, vb = (float(value) for value in row[1:5])
         entries.setdefault((obj.tile, obj.fid), (PLANE, ua - GL_MAP_OFFSET, va - GL_MAP_OFFSET,
                                                  math.atan2(vb - va, ub - ua)))
+    # A plant's crown throws no shadow (task 045's follow-up): the mark rides
+    # the mode's high bit, on whatever the object's entry is.
+    for board in scene.get("plants") or []:
+        if not isinstance(board, int) or isinstance(board, bool) or not 0 <= board < len(boards):
+            raise ValueError(f"plant board {board} is outside scene.boards")
+        obj = _object(map_objects, boards[board][5], f"plant board {board}")
+        key = (obj.tile, obj.fid)
+        if key in entries:
+            entries[key] = (entries[key][0] | NOCAST,) + entries[key][1:]
     return sorted((tile, fid, *rest) for (tile, fid), rest in entries.items())
 
 
@@ -108,7 +119,7 @@ def encode_baked_sidecar(entries):
             raise ValueError(f"baked object tile {tile} is outside the hex grid")
         if not 0 <= fid <= 0xFFFFFFFF:
             raise ValueError(f"baked object fid {fid} is out of range")
-        if mode not in (SKIP, LIFT, FLAT, PLANE, FLY_FLAT, FLY_SKIP):
+        if (mode & MODE_MASK) not in (SKIP, LIFT, FLAT, PLANE, FLY_FLAT, FLY_SKIP):
             raise ValueError(f"baked object mode {mode} is unknown")
         payload.extend(ENTRY.pack(tile, fid, mode, du, dv, dz))
     return bytes(payload)
@@ -125,6 +136,6 @@ def decode_baked_sidecar(payload):
     entries = [ENTRY.unpack_from(payload, HEADER.size + index * ENTRY.size) for index in range(count)]
     if any(not 0 <= entry[0] < 200 * 200 for entry in entries):
         raise ValueError("baked sidecar names a tile outside the hex grid")
-    if any(entry[2] not in (SKIP, LIFT, FLAT, PLANE, FLY_FLAT, FLY_SKIP) for entry in entries):
+    if any((entry[2] & MODE_MASK) not in (SKIP, LIFT, FLAT, PLANE, FLY_FLAT, FLY_SKIP) for entry in entries):
         raise ValueError("baked sidecar has an unknown mode")
     return entries

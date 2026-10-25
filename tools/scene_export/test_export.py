@@ -9,14 +9,16 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from baked_sidecar import (ENTRY as BAKED_ENTRY, HEADER as BAKED_HEADER, LIFT as BAKED_LIFT, MAGIC as BAKED_MAGIC,
-                           SKIP as BAKED_SKIP, FLAT as BAKED_FLAT, FLY_FLAT as BAKED_FLY_FLAT, FLY_SKIP as BAKED_FLY_SKIP,
-                           PLANE as BAKED_PLANE,
+                           NOCAST as BAKED_NOCAST, SKIP as BAKED_SKIP, FLAT as BAKED_FLAT, FLY_FLAT as BAKED_FLY_FLAT,
+                           FLY_SKIP as BAKED_FLY_SKIP, PLANE as BAKED_PLANE,
                            baked_objects, decode_baked_sidecar, encode_baked_sidecar)
 from export import ReadOnlyGameFiles, choose_source, main, parse_args, patch_paths, scene_directory, validate_output_contents
 from floor_sidecar import HEADER, MAGIC, VERSION, cell_content_rect, decode_floor_sidecar, encode_floor_sidecar
 from projection_sidecar import (HEADER as PROJECTION_HEADER, MAGIC as PROJECTION_MAGIC,
                                 VERSION as PROJECTION_VERSION, decode_projection_sidecar,
                                 encode_projection_sidecar, hero_anchor, standing_card)
+from shadow_sidecar import (MAGIC as SHADOW_MAGIC, VERSION as SHADOW_VERSION,
+                            decode_shadow_sidecar, encode_shadow_sidecar)
 from solids import Projection, row_plane
 from wall_sidecar import (BATCH, HEADER as WALL_HEADER, MAGIC as WALL_MAGIC, VERTEX,
                           VERSION as WALL_VERSION, decode_wall_sidecar, encode_wall_sidecar)
@@ -612,6 +614,18 @@ class BakedSidecarTests(unittest.TestCase):
         self.assertIn((400, 0x00000036, BAKED_SKIP, 0.0, 0.0, 0.0), entries)
         self.assertEqual(decode_baked_sidecar(encode_baked_sidecar(entries)), entries)
 
+    def test_a_plant_s_object_casts_no_shadow(self):
+        scene, objects = self.sample()
+        scene["plants"] = [0]  # board 0 is the object at (300, 0x02000099)
+        entries = baked_objects(scene, objects)
+        self.assertIn((300, 0x02000099, BAKED_SKIP | BAKED_NOCAST, 0.0, 0.0, 0.0), entries)
+        self.assertIn((205, 0x02000007, BAKED_SKIP, 0.0, 0.0, 0.0), entries)
+        decoded = decode_baked_sidecar(encode_baked_sidecar(entries))
+        self.assertIn((300, 0x02000099, BAKED_SKIP | BAKED_NOCAST, 0.0, 0.0, 0.0), decoded)
+        scene["plants"] = [9]
+        with self.assertRaisesRegex(ValueError, "outside scene.boards"):
+            baked_objects(scene, objects)
+
     def test_an_animated_solid_stays_live(self):
         scene, objects = self.sample()
         entries = baked_objects(scene, objects, live_boards={1})
@@ -680,6 +694,73 @@ class ProjectionSidecarTests(unittest.TestCase):
             decode_projection_sidecar(payload)
         with self.assertRaisesRegex(ValueError, "bad length"):
             decode_projection_sidecar(payload[:-1])
+
+
+class ShadowSidecarTests(unittest.TestCase):
+    class _Image:
+        def __init__(self, width, height):
+            self.shape = (height, width, 4)
+            self.pixels = bytes(index % 256 for index in range(width * height * 4))
+
+        def astype(self, kind, copy):
+            return self
+
+        def tobytes(self):
+            return self.pixels
+
+    class _Object:
+        def __init__(self, tile, fid):
+            self.tile = tile
+            self.fid = fid
+
+    @staticmethod
+    def sample_scene():
+        return {
+            "boards": [[9, 72.5, 37.2, 0, 9, 0]],
+            "sprites": [[0, 0, 0, 8, 4, 3, 4]],
+            "shadows": [[0, 0, 1, 3, 2]],
+        }
+
+    def test_versioned_binary_round_trip(self):
+        images = [self._Image(8, 4)]
+        objects = [self._Object(1234, 0x0300000B)]
+        payload = encode_shadow_sidecar(self.sample_scene(), images, objects)
+        self.assertEqual(payload[:4], SHADOW_MAGIC)
+        rows = decode_shadow_sidecar(payload)
+        self.assertEqual(len(rows), 1)
+        row = rows[0]
+        self.assertEqual(row["tile"], 1234)
+        self.assertEqual(row["fid"], 0x0300000B)
+        self.assertEqual(row["frame"], 3)
+        self.assertEqual(row["rotation"], 2)
+        self.assertEqual((row["width"], row["height"]), (8, 4))
+        self.assertEqual((row["ox"], row["oy"]), (3, 4))
+        self.assertEqual(row["rgba"], images[0].pixels)
+
+    def test_row_without_a_map_object_of_this_elevation_is_skipped(self):
+        payload = encode_shadow_sidecar(self.sample_scene(), [self._Image(8, 4)], [])
+        self.assertEqual(decode_shadow_sidecar(payload), [])
+
+    def test_rejects_board_or_sprite_outside_the_scene(self):
+        scene = self.sample_scene()
+        scene["shadows"][0][0] = 5
+        with self.assertRaisesRegex(ValueError, "outside scene.boards"):
+            encode_shadow_sidecar(scene, [self._Image(8, 4)], [self._Object(1, 1)])
+        scene = self.sample_scene()
+        scene["shadows"][0][1] = 5
+        with self.assertRaisesRegex(ValueError, "outside scene.sprites"):
+            encode_shadow_sidecar(scene, [self._Image(8, 4)], [self._Object(1, 1)])
+
+    def test_rejects_unsupported_version_and_truncation(self):
+        payload = encode_shadow_sidecar(self.sample_scene(), [self._Image(8, 4)], [self._Object(1, 1)])
+        bad_version = bytearray(payload)
+        struct.pack_into("<H", bad_version, 4, SHADOW_VERSION + 1)
+        with self.assertRaisesRegex(ValueError, "magic/version"):
+            decode_shadow_sidecar(bad_version)
+        with self.assertRaisesRegex(ValueError, "truncated"):
+            decode_shadow_sidecar(payload[:-1])
+        with self.assertRaisesRegex(ValueError, "truncated"):
+            decode_shadow_sidecar(payload[:-33])
 
 
 if __name__ == "__main__":

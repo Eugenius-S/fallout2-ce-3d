@@ -74,7 +74,8 @@ uniform vec2 uLogical; // the game picture's size in game logical pixels
 // through, 2 draws only that, blended over what lies behind.
 uniform int uEggPass;
 // 0 unlit, 1 the floor at the fragment, 2 walls at the fragment, by the lights
-// they face, 3 a sprite at its hex (uLightAnchor), 4 uLightValue.
+// they face, 3 a sprite at its hex (uLightAnchor), 4 uLightValue, 5 the hex
+// shadow pass (046).
 uniform int uLightMode;
 uniform float uLightValue;
 uniform vec2 uLightAnchor; // GL ground point (x, z) of a sprite's hex
@@ -92,6 +93,17 @@ uniform vec3 uTowardCamera; // GL direction towards the game's camera
 uniform vec2 uLightSqu; // ground (u, v) to game pixels
 uniform vec2 uLightSqv;
 uniform vec2 uLightOrigin;
+// The sun's shadow map (shadow.cc): 1 on, the world-to-map matrix, the map
+// itself (unit 5), the sun's strength now, the AA ring's span in GL units
+// (the [3d] shadow_pixel_size setting, the edge softness) and the compare
+// bias in map depth.
+uniform bool uShadowOn;
+uniform mat4 uShadowMatrix;
+uniform sampler2D uShadowMap;
+uniform float uShadowStrength;
+uniform float uShadowStep;
+uniform float uShadowBias;
+uniform float uShadowRange; // the map's depth span in GL units
 out vec4 outColor;
 // What a texel shines by itself for the glow (task 022): the colour a
 // full-bright texel keeps, premultiplied by its shown coverage; black
@@ -152,6 +164,51 @@ vec4 sceneLighting() {
     if (uLightMode == 4) return vec4(vec3(1.0), uLightValue);
     return vec4(1.0);
 }
+// The sun's shadow at this fragment: the shadowed share, 0 lit to 1 fully in.
+// Nine taps in a ring a uShadowStep wide (the [3d] shadow_pixel_size setting,
+// the edge softness) antialias the edge; the lookup itself stays unsnapped in
+// world space, so a wall face takes no stripes from the step grid (the sun is
+// static per hour and the lookups do not move with the camera). The shadow is
+// a rim like the game's painted ones (the owner's round 7): full density at
+// the blocker, fully zero a few meters past it (smoothstep over 0.75..3 GL
+// units, one unit = two hexes). A roof's far stain across a yard is gone with
+// it: those ground points sit many units past their blocker and melt whole.
+float shadowPast(vec2 xz, float y) {
+    vec4 s = uShadowMatrix * vec4(xz.x, y, xz.y, 1.0);
+    vec3 p = s.xyz / s.w * 0.5 + 0.5;
+    if (p.x < 0.0 || p.x > 1.0 || p.y < 0.0 || p.y > 1.0 || p.z >= 1.0) return -1.0;
+    float diff = p.z - (texture(uShadowMap, p.xy).r + uShadowBias);
+    return diff > 0.0 ? diff : -1.0;
+}
+float sunShadow() {
+    const vec2 taps[9] = vec2[9](
+        vec2(0.0, 0.0),
+        vec2(1.0, 0.0), vec2(0.7071, 0.7071), vec2(0.0, 1.0), vec2(-0.7071, 0.7071),
+        vec2(-1.0, 0.0), vec2(-0.7071, -0.7071), vec2(0.0, -1.0), vec2(0.7071, -0.7071));
+    float sum = 0.0;
+    for (int i = 0; i < 9; i++) {
+        float past = shadowPast(vWorld.xz + taps[i] * uShadowStep, vWorld.y);
+        if (past >= 0.0) sum += 1.0 - smoothstep(0.75, 3.0, past * uShadowRange);
+    }
+    return sum / 9.0;
+}
+// The darkening inside a shadow, over the engine's own light: the game's
+// painted shadows read about as a half. Every fragment takes its own faded
+// share: the floor and the walls at their texel, a card at its pixel's own
+// place and height (063): a card no longer darkens whole from its anchor hex
+// (hex-chunk stairs on cards, a man darkened where no shadow lies on him),
+// and the edge antialiases on cards as it does on the ground. A card reads
+// lighter than the ground: a standing figure keeps its read.
+float shadowDarken(float light) {
+    if (uShadowOn && uShadowStrength > 0.0) {
+        if (uLightMode == 1 || uLightMode == 2) {
+            light *= 1.0 - uShadowStrength * 0.5 * sunShadow();
+        } else if (uLightMode == 3) {
+            light *= 1.0 - uShadowStrength * 0.35 * sunShadow();
+        }
+    }
+    return light;
+}
 // _intensity_mask_buf_to_buf: inside the egg a nonzero mask value is the
 // surface's share in 128ths; 0 outside it and where the surface stays whole.
 float eggShare() {
@@ -188,7 +245,7 @@ void main() {
             // the result by the object's light, what lies behind included:
             // L * (tint * a + behind * (1 - a)).
             float a = min(gray, 7.0) / 7.0;
-            float light = min(floor(sceneLighting().a * 128.0 + 0.0001), 128.0) / 128.0;
+            float light = min(floor(shadowDarken(sceneLighting().a) * 128.0 + 0.0001), 128.0) / 128.0;
             outColor = vec4(uTint * a * light, 1.0 - light * (1.0 - a));
             outEmissive = vec4(0.0);
         } else {
@@ -201,6 +258,7 @@ void main() {
             // _dark_trans_buf_to_buf: the engine darkens a texel by its light in
             // 128 steps, on its 5-bit colour rounded down (setIntensityTableColor).
             vec4 lit = fullBright ? vec4(1.0) : sceneLighting();
+            lit.a = shadowDarken(lit.a);
             float steps = floor(lit.a * 128.0 + 0.0001);
             if (steps < 128.0) outColor.rgb = floor(floor(outColor.rgb * 31.0 + 0.5) * steps / 128.0) / 31.0;
             outColor.rgb *= lit.rgb;
@@ -270,6 +328,13 @@ int gSceneLightWindowLocation = -1;
 int gSceneSeeThroughLocation = -1;
 int gSceneSeeThroughObjectsLocation = -1;
 int gSceneEggPassLocation = -1;
+int gSceneShadowOnLocation = -1;
+int gSceneShadowMatrixLocation = -1;
+int gSceneShadowMapLocation = -1;
+int gSceneShadowStrengthLocation = -1;
+int gSceneShadowStepLocation = -1;
+int gSceneShadowBiasLocation = -1;
+int gSceneShadowRangeLocation = -1;
 
 bool createSceneShader(std::string* error)
 {
@@ -336,6 +401,13 @@ bool createSceneShader(std::string* error)
     gSceneSeeThroughLocation = glGetUniformLocation(gSceneProgram, "uSeeThrough");
     gSceneSeeThroughObjectsLocation = glGetUniformLocation(gSceneProgram, "uSeeThroughObjects");
     gSceneEggPassLocation = glGetUniformLocation(gSceneProgram, "uEggPass");
+    gSceneShadowOnLocation = glGetUniformLocation(gSceneProgram, "uShadowOn");
+    gSceneShadowMatrixLocation = glGetUniformLocation(gSceneProgram, "uShadowMatrix");
+    gSceneShadowMapLocation = glGetUniformLocation(gSceneProgram, "uShadowMap");
+    gSceneShadowStrengthLocation = glGetUniformLocation(gSceneProgram, "uShadowStrength");
+    gSceneShadowStepLocation = glGetUniformLocation(gSceneProgram, "uShadowStep");
+    gSceneShadowBiasLocation = glGetUniformLocation(gSceneProgram, "uShadowBias");
+    gSceneShadowRangeLocation = glGetUniformLocation(gSceneProgram, "uShadowRange");
     if (gSceneMvpLocation < 0 || gSceneTextureLocation < 0
         || gSceneTexturedLocation < 0 || gSceneColorLocation < 0 || gSceneCutoffLocation < 0
         || gSceneDepthAtLocation < 0 || gSceneTranslucentLocation < 0 || gSceneTintLocation < 0
