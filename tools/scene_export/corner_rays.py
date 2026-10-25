@@ -44,7 +44,7 @@ def check(base):
 
     def opaque(page, u, v):
         if page not in alpha:
-            alpha[page] = np.array(Image.open(base / f"sprites{page}.png"))[:, :, 3]
+            alpha[page] = np.array(Image.open(base / f"sprites{page}.png").convert("RGBA"))[:, :, 3]  # a page may be a palette PNG
         a = alpha[page]
         return a[min(int(v * a.shape[0]), a.shape[0] - 1), min(int(u * a.shape[1]), a.shape[1] - 1)] >= 128
 

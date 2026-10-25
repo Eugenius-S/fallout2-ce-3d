@@ -582,7 +582,7 @@ def _opaque_texel(atlas, page, x, y, w, h):
     if not found:
         return cx, cy
     _, i, j = found[len(found) // 2]
-    return x + j + 0.5, y + i + 0.5
+    return int(x) + j + 0.5, int(y) + i + 0.5  # the block starts at the whole pixel
 
 
 CORE_SOLID = 0.9  # a wall whose front pictures are this opaque is a solid wall, not a mesh
