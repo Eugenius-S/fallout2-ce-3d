@@ -1,5 +1,5 @@
 ---
-id: 056
+id: 064
 title: Faces with no real art fill from the sprite's edge texel, not holes
 milestone: M1
 status: doing
