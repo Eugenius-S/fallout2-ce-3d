@@ -27,6 +27,12 @@ void drawSceneOverlay(const unsigned char* rgba, int width, int height, int pitc
 // RGBA image mapped into `dstX/dstY/dstW/dstH` in LOGICAL coordinates.
 void drawOverlay(const unsigned char* rgba, int width, int height, int pitch, int dstX, int dstY, int dstW, int dstH);
 
+// Sharp UI text uses an independent texture so it cannot replace the cached
+// game overlay used by static scene snapshots.
+bool sharpTextOutputSize(int* width, int* height);
+bool uploadSharpTextOverlay(const unsigned char* rgba, int width, int height, int pitch);
+bool drawSharpTextOverlay();
+
 // Swaps after overlay drawing.
 void swap();
 

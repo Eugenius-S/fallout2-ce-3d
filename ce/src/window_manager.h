@@ -229,6 +229,8 @@ int windowGetAtPoint(int x, int y);
 // it and under no shown window above it that paints all of its pixels; 0
 // elsewhere. False when `win` does not exist.
 bool windowShownMask(int win, unsigned char* mask, int width, int height);
+// Returns the number of windows in draw order and the window at index, or null.
+Window* windowGetDrawOrderWindow(int index, int* count);
 int windowGetWidth(int win);
 int windowGetHeight(int win);
 int windowGetRect(int win, Rect* rect);

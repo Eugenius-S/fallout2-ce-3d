@@ -1,6 +1,7 @@
 #include "devtools.h"
 #include "snapshot_rows.h"
 #include "preferences_probe.h"
+#include "ui_fixture.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -16,6 +17,7 @@
 #include <vector>
 
 #include "../art.h"
+#include "../actions.h"
 #include "../animation.h"
 #include "../color.h"
 #include "../combat.h"
@@ -33,6 +35,7 @@
 #include "../map_edge.h"
 #include "../map_defs.h"
 #include "../game.h"
+#include "../game_dialog.h"
 #include "../game_mouse.h"
 #include "../object.h"
 #include "../preferences.h"
@@ -43,6 +46,7 @@
 #include "../platform_compat.h"
 #include "../random.h"
 #include "../scene/scene_lights.h"
+#include "../scene/text_capture.h"
 #include "../scripts.h"
 #include "../scene/scene_objects.h"
 #include "../scene/scene_settings.h"
@@ -55,6 +59,7 @@
 #include "../scene_renderer/scene_draw.h"
 #include "../scene_renderer/shadow.h"
 #include "../scene_renderer/static_scene.h"
+#include "../scene_renderer/text_present.h"
 #include "../settings.h"
 #include "../svga.h"
 #include "../text_font.h"
@@ -131,6 +136,34 @@ int gViewTile = -1;
 bool gViewTileApplied = false;
 int gHeroTile = -1; // --dev-hero-tile: the hero is put there before the scene starts
 char gSnapshotRun[33] = {};
+bool gDialogFixtureRequested = false;
+bool gDialogFixtureStarted = false;
+bool gDialogFixtureFinished = false;
+bool gDialogPageInspectRequested = false;
+int gDialogPageInspectStage = 0;
+std::vector<std::string> gDialogPageInspectInitialText;
+bool gDialogCursorCheckRequested = false;
+int gDialogCursorCheckStage = 0;
+bool gDialogCursorCheckCursorMoveInProgress = false;
+std::vector<std::string> gDialogCursorCheckInitialText;
+scene::TextRecord gDialogCursorCheckRecord;
+std::vector<unsigned char> gDialogCursorCheckOverlayBefore;
+int gDialogCursorCheckTargetLogicalX = -1;
+int gDialogCursorCheckTargetLogicalY = -1;
+int gDialogCursorCheckTargetPhysicalX = -1;
+int gDialogCursorCheckTargetPhysicalY = -1;
+int gDialogCursorCheckTransparentLogicalX = -1;
+int gDialogCursorCheckTransparentLogicalY = -1;
+int gDialogCursorCheckTransparentPhysicalX = -1;
+int gDialogCursorCheckTransparentPhysicalY = -1;
+unsigned char gDialogCursorCheckCursorIndex = 0;
+unsigned char gDialogCursorCheckCursorRed = 0;
+unsigned char gDialogCursorCheckCursorGreen = 0;
+unsigned char gDialogCursorCheckCursorBlue = 0;
+char gDialogFixtureScript[32] = {};
+int gDialogFixtureSpeakerId = -1;
+int gDialogFixtureSpeakerTile = -1;
+int gDialogFixtureSpeakerElevation = -1;
 // --dev-pick-probe: the mouse is put on the scene's critters one by one and
 // what the game finds there is logged (devprobe.log); snapshots show the hex
 // cursor, then the hover icon over a critter. 0: off, then frames counted.
@@ -712,8 +745,32 @@ bool parseOption(const char* arg)
         gSnapshotOncePending = true;
         return true;
     }
+    if (strcmp(arg, "--dev-dialog-fixture") == 0) {
+        gDialogFixtureRequested = true;
+        return true;
+    }
+    if (strcmp(arg, "--dev-dialog-page-inspect") == 0) {
+        gDialogPageInspectRequested = true;
+        return true;
+    }
+    if (strcmp(arg, "--dev-dialog-cursor-check") == 0) {
+        gDialogCursorCheckRequested = true;
+        return true;
+    }
+    if (parseUiFixtureOption(arg)) return true;
     if (strcmp(arg, "--dev-preferences-snapshot") == 0) {
         gPreferencesSnapshotPending = true;
+        return true;
+    }
+    const char* sharpTextPrefix = "--dev-sharp-text=";
+    if (strncmp(arg, sharpTextPrefix, strlen(sharpTextPrefix)) == 0) {
+        const char* value = arg + strlen(sharpTextPrefix);
+        if (strcmp(value, "0") == 0 || strcmp(value, "1") == 0) {
+            settings.scene3d.sharp_text = value[0] == '1';
+        } else {
+            fprintf(stderr, "devtools: invalid --dev-sharp-text value (expected 0 or 1)\n");
+            fflush(stderr);
+        }
         return true;
     }
     if (strcmp(arg, "--dev-preferences-bottom") == 0) {
@@ -1116,6 +1173,9 @@ void update()
     if (!gEnabled) {
         return;
     }
+    if (startUiFixtureWhenReady(sceneStartupReady(), inBlockingGameState())) {
+        gDialogFixtureRequested = true;
+    }
     if (gPreferencesSnapshotPending && sceneStartupReady() && !inBlockingGameState()) {
         gPreferencesSnapshotPending = false;
         gPreferencesSnapshotActive = true;
@@ -1125,6 +1185,94 @@ void update()
             printf("PREFERENCES_PROBE finished; requesting isolated helper exit\n");
             fflush(stdout);
             _game_user_wants_to_quit = GAME_QUIT_REQUEST_EXIT;
+        }
+    }
+    if (gDialogFixtureRequested && !gDialogFixtureStarted && !gDialogFixtureFinished
+        && sceneStartupReady() && !inBlockingGameState()) {
+        gDialogFixtureStarted = true;
+        std::string mapName(gMapHeader.name);
+        std::transform(mapName.begin(), mapName.end(), mapName.begin(),
+            [](unsigned char ch) { return static_cast<char>(std::tolower(ch)); });
+        if (mapName.size() > 4 && mapName.compare(mapName.size() - 4, 4, ".map") == 0) {
+            mapName.resize(mapName.size() - 4);
+        }
+        if (gDude == nullptr || mapName != "kladwtwn") {
+            printf("DIALOG_FIXTURE FAIL map=%s hero=%d reason=expected-KLADWTWN-and-loaded-hero\n",
+                gMapHeader.name, gDude != nullptr ? gDude->tile : -1);
+            fflush(stdout);
+            gDialogFixtureFinished = true;
+            _game_user_wants_to_quit = GAME_QUIT_REQUEST_EXIT;
+            return;
+        }
+
+        Object* speaker = nullptr;
+        int talkResult = -3;
+        Object* candidate = objectFindFirstAtElevation(gElevation);
+        while (candidate != nullptr) {
+            if (candidate != gDude && candidate->sid != -1
+                && FrmId(candidate).objectType() == OBJ_TYPE_CRITTER) {
+                Script* script = nullptr;
+                if (scriptGetScript(candidate->sid, &script) != -1 && script != nullptr) {
+                    char scriptName[COMPAT_MAX_PATH] = {};
+                    if (scriptsGetFileName(script->index, scriptName, sizeof(scriptName)) != -1) {
+                        std::string baseName(scriptName);
+                        const std::size_t slash = baseName.find_last_of("/\\");
+                        if (slash != std::string::npos) baseName.erase(0, slash + 1);
+                        const std::size_t extension = baseName.find_last_of('.');
+                        if (extension != std::string::npos) baseName.resize(extension);
+                        std::transform(baseName.begin(), baseName.end(), baseName.begin(),
+                            [](unsigned char ch) { return static_cast<char>(std::tolower(ch)); });
+                        if (baseName == "kcsulik") {
+                            const int result = _action_can_talk_to(gDude, candidate);
+                            if (speaker == nullptr || result == 0) {
+                                speaker = candidate;
+                                talkResult = result;
+                                snprintf(gDialogFixtureScript, sizeof(gDialogFixtureScript), "%s", scriptName);
+                            }
+                            if (result == 0) break;
+                        }
+                    }
+                }
+            }
+            candidate = objectFindNextAtElevation();
+        }
+        if (speaker == nullptr || talkResult != 0) {
+            printf("DIALOG_FIXTURE FAIL map=%s script=%s hero=%d speaker=%d speaker_tile=%d elevation=%d talk_result=%d reason=missing-or-unreachable-speaker\n",
+                gMapHeader.name, gDialogFixtureScript[0] != '\0' ? gDialogFixtureScript : "Kcsulik.int",
+                gDude->tile, speaker != nullptr ? speaker->id : -1, speaker != nullptr ? speaker->tile : -1,
+                speaker != nullptr ? speaker->elevation : gElevation, talkResult);
+            fflush(stdout);
+            gDialogFixtureFinished = true;
+            _game_user_wants_to_quit = GAME_QUIT_REQUEST_EXIT;
+            return;
+        }
+
+        Script* speakerScript = nullptr;
+        if (scriptGetScript(speaker->sid, &speakerScript) == -1 || speakerScript == nullptr
+            || scriptsGetFileName(speakerScript->index, gDialogFixtureScript, sizeof(gDialogFixtureScript)) == -1) {
+            printf("DIALOG_FIXTURE FAIL map=%s hero=%d speaker=%d speaker_tile=%d elevation=%d reason=script-name-unavailable\n",
+                gMapHeader.name, gDude->tile, speaker->id, speaker->tile, speaker->elevation);
+            fflush(stdout);
+            gDialogFixtureFinished = true;
+            _game_user_wants_to_quit = GAME_QUIT_REQUEST_EXIT;
+            return;
+        }
+        gDialogFixtureSpeakerId = speaker->id;
+        gDialogFixtureSpeakerTile = speaker->tile;
+        gDialogFixtureSpeakerElevation = speaker->elevation;
+        printf("DIALOG_FIXTURE START map=%s elevation=%d script=%s speaker=%d speaker_tile=%d hero=%d talk_result=%d\n",
+            gMapHeader.name, gElevation, gDialogFixtureScript, gDialogFixtureSpeakerId,
+            gDialogFixtureSpeakerTile, gDude->tile, talkResult);
+        fflush(stdout);
+        gameDialogEnter(speaker, 0);
+        if (!gameDialogWindowActive()) {
+            printf("DIALOG_FIXTURE FAIL map=%s script=%s speaker=%d speaker_tile=%d elevation=%d hero=%d reason=dialog-window-did-not-open\n",
+                gMapHeader.name, gDialogFixtureScript, gDialogFixtureSpeakerId,
+                gDialogFixtureSpeakerTile, gDialogFixtureSpeakerElevation, gDude->tile);
+            fflush(stdout);
+            gDialogFixtureFinished = true;
+            _game_user_wants_to_quit = GAME_QUIT_REQUEST_EXIT;
+            return;
         }
     }
     fly();
@@ -1784,6 +1932,438 @@ void scenePresented(const scene::RefreshResult& refreshed)
 
 void vanillaPresented()
 {
+    if (gDialogCursorCheckCursorMoveInProgress) return;
+    uiFixtureVanillaPresented();
+    if (gDialogFixtureRequested && gDialogFixtureStarted && !gDialogFixtureFinished
+        && gameDialogWindowActive()) {
+        int ownerIds[2] = { -1, -1 };
+        int ownerCount = 0;
+        int replyOwnerId = -1;
+        int replyOwnerY = 2147483647;
+        int runCount = 0;
+        int windowCount = 0;
+        TextWindowSnapshot firstWindow;
+        textCaptureGetWindowSnapshot(0, &firstWindow, &windowCount);
+        for (int index = 0; index < windowCount; index++) {
+            TextWindowSnapshot window;
+            if (!textCaptureGetWindowSnapshot(index, &window, nullptr) || window.hidden || window.pixels == nullptr) {
+                continue;
+            }
+            const scene::TextBufferId buffer = textCaptureBufferId(window.pixels);
+            if (buffer == 0) continue;
+            const std::vector<scene::TextRecord> records = scene::textCaptureSharpRecords(buffer);
+            bool hasEligibleRun = false;
+            for (const scene::TextRecord& record : records) {
+                if (record.ownerWindow != window.id) continue;
+                hasEligibleRun = true;
+                runCount++;
+            }
+            if (hasEligibleRun) {
+                if (window.y < replyOwnerY) {
+                    replyOwnerY = window.y;
+                    replyOwnerId = window.id;
+                }
+                if (ownerCount < 2) ownerIds[ownerCount++] = window.id;
+            }
+        }
+        if (ownerCount >= 2) {
+            if (uiFixtureUsesDialogBarter()) {
+                uiFixtureDialogReady(gDialogFixtureScript, gDialogFixtureSpeakerId,
+                    gDialogFixtureSpeakerTile, runCount);
+                return;
+            }
+            std::vector<std::string> currentReplyText;
+            if (gDialogPageInspectRequested || gDialogCursorCheckRequested) {
+                for (int index = 0; index < windowCount; index++) {
+                    TextWindowSnapshot window;
+                    if (!textCaptureGetWindowSnapshot(index, &window, nullptr) || window.hidden
+                        || window.pixels == nullptr || window.id != replyOwnerId) {
+                        continue;
+                    }
+                    const scene::TextBufferId buffer = textCaptureBufferId(window.pixels);
+                    if (buffer == 0) continue;
+                    const std::vector<scene::TextRecord> records = scene::textCaptureSharpRecords(buffer);
+                    for (const scene::TextRecord& record : records) {
+                        if (record.ownerWindow == window.id) currentReplyText.push_back(record.run.text);
+                    }
+                }
+            }
+            if (gDialogPageInspectRequested) {
+                if (gDialogPageInspectStage == 0) {
+                    gDialogPageInspectInitialText = currentReplyText;
+                    gDialogPageInspectStage = 1;
+                    printf("DIALOG_PAGE_INSPECT INPUT key=2 map=%s script=%s speaker=%d speaker_tile=%d hero=%d\n",
+                        gMapHeader.name, gDialogFixtureScript, gDialogFixtureSpeakerId,
+                        gDialogFixtureSpeakerTile, gDude != nullptr ? gDude->tile : -1);
+                    fflush(stdout);
+                    enqueueInputEvent(KEY_2);
+                    return;
+                }
+                if (currentReplyText != gDialogPageInspectInitialText) {
+                    const int offset = gameDialogGetReplyTextOffset();
+                    std::size_t textBytes = 0;
+                    for (const std::string& text : currentReplyText) textBytes += text.size();
+                    printf("DIALOG_PAGE_INSPECT PASS map=%s script=%s speaker=%d speaker_tile=%d hero=%d reply_window=%d reply_y=%d reply_offset=%d runs=%zu text_bytes=%zu\n",
+                        gMapHeader.name, gDialogFixtureScript, gDialogFixtureSpeakerId,
+                        gDialogFixtureSpeakerTile, gDude != nullptr ? gDude->tile : -1, replyOwnerId, replyOwnerY,
+                        offset, currentReplyText.size(), textBytes);
+                    for (std::size_t index = 0; index < currentReplyText.size(); index++) {
+                        printf("DIALOG_PAGE_INSPECT TEXT index=%zu bytes=%zu text=%s\n",
+                            index, currentReplyText[index].size(), currentReplyText[index].c_str());
+                    }
+                    fflush(stdout);
+                    gDialogFixtureFinished = true;
+                    return;
+                }
+            }
+            if (gDialogCursorCheckRequested) {
+                auto failCursorCheck = [](const char* reason) {
+                    printf("DIALOG_CURSOR_CHECK FAIL map=%s script=%s speaker=%d speaker_tile=%d hero=%d reason=%s\n",
+                        gMapHeader.name, gDialogFixtureScript, gDialogFixtureSpeakerId,
+                        gDialogFixtureSpeakerTile, gDude != nullptr ? gDude->tile : -1, reason);
+                    fflush(stdout);
+                    gDialogFixtureFinished = true;
+                };
+                if (gDialogCursorCheckStage == 0) {
+                    gDialogCursorCheckInitialText = currentReplyText;
+                    gDialogCursorCheckStage = 1;
+                    printf("DIALOG_CURSOR_CHECK INPUT key=2 map=%s script=%s speaker=%d speaker_tile=%d hero=%d\n",
+                        gMapHeader.name, gDialogFixtureScript, gDialogFixtureSpeakerId,
+                        gDialogFixtureSpeakerTile, gDude != nullptr ? gDude->tile : -1);
+                    fflush(stdout);
+                    enqueueInputEvent(KEY_2);
+                    return;
+                }
+                if (currentReplyText == gDialogCursorCheckInitialText) return;
+
+                const scene_renderer::PreparedSharpTextFrame& frame = scene_renderer::preparedSharpTextFrame();
+                if (gDialogCursorCheckStage == 2) {
+                    if (!frame.active || !frame.drawn || frame.overlay.pixels.empty()
+                        || frame.width <= 0 || frame.height <= 0
+                        || frame.overlay.width <= 0 || frame.overlay.height <= 0
+                        || frame.overlay.pitch < frame.overlay.width * 4
+                        || frame.overlay.width != static_cast<int>(gDialogCursorCheckOverlayBefore.size() / 4 / frame.overlay.height)) {
+                        failCursorCheck("sharp-overlay-invalid-after-cursor-move");
+                        return;
+                    }
+                    const scene::TextBufferId screenBuffer = gSdlSurface != nullptr && gSdlSurface->pixels != nullptr
+                        ? textCaptureBufferId(gSdlSurface->pixels)
+                        : 0;
+                    const std::vector<scene::TextRecord> screenRecords = screenBuffer != 0
+                        ? scene::textCaptureSharpRecords(screenBuffer)
+                        : std::vector<scene::TextRecord>();
+                    bool sameReplyRun = false;
+                    for (const scene::TextRecord& record : screenRecords) {
+                        if (record.ownerWindow == replyOwnerId && record.run.text == gDialogCursorCheckRecord.run.text) {
+                            sameReplyRun = true;
+                            break;
+                        }
+                    }
+                    if (!sameReplyRun) {
+                        failCursorCheck("reply-run-changed-after-cursor-move");
+                        return;
+                    }
+                    auto alphaAt = [&](const std::vector<unsigned char>& pixels, int x, int y) {
+                        const std::size_t offset = static_cast<std::size_t>(y) * frame.overlay.pitch + x * 4 + 3;
+                        return offset < pixels.size() ? pixels[offset] : static_cast<unsigned char>(0);
+                    };
+                    const unsigned char targetBefore = alphaAt(gDialogCursorCheckOverlayBefore,
+                        gDialogCursorCheckTargetPhysicalX, gDialogCursorCheckTargetPhysicalY);
+                    const unsigned char targetAfter = alphaAt(frame.overlay.pixels,
+                        gDialogCursorCheckTargetPhysicalX, gDialogCursorCheckTargetPhysicalY);
+                    const unsigned char transparentBefore = alphaAt(gDialogCursorCheckOverlayBefore,
+                        gDialogCursorCheckTransparentPhysicalX, gDialogCursorCheckTransparentPhysicalY);
+                    const unsigned char transparentAfter = alphaAt(frame.overlay.pixels,
+                        gDialogCursorCheckTransparentPhysicalX, gDialogCursorCheckTransparentPhysicalY);
+                    unsigned int beforeInkPixels = 0;
+                    unsigned int afterInkPixels = 0;
+                    for (const scene::TextPixelCoverage& coverage : gDialogCursorCheckRecord.coverage) {
+                        if (coverage.x < 0 || coverage.y < 0 || coverage.x >= frame.width || coverage.y >= frame.height) continue;
+                        const int left = coverage.x * frame.overlay.width / frame.width;
+                        const int top = coverage.y * frame.overlay.height / frame.height;
+                        const int right = std::max(left + 1, (coverage.x + 1) * frame.overlay.width / frame.width);
+                        const int bottom = std::max(top + 1, (coverage.y + 1) * frame.overlay.height / frame.height);
+                        for (int y = top; y < bottom; y++) {
+                            for (int x = left; x < right; x++) {
+                                if (alphaAt(gDialogCursorCheckOverlayBefore, x, y) != 0) beforeInkPixels++;
+                                if (alphaAt(frame.overlay.pixels, x, y) != 0) afterInkPixels++;
+                            }
+                        }
+                    }
+                    TextCursorSnapshot cursor = {};
+                    if (!textCaptureGetCursorSnapshot(&cursor) || !cursor.visible || cursor.pixels == nullptr
+                        || gDialogCursorCheckTargetLogicalX < cursor.x
+                        || gDialogCursorCheckTargetLogicalY < cursor.y
+                        || gDialogCursorCheckTargetLogicalX >= cursor.x + cursor.width
+                        || gDialogCursorCheckTargetLogicalY >= cursor.y + cursor.height
+                        || cursor.pixels[static_cast<std::size_t>(gDialogCursorCheckTargetLogicalY - cursor.y) * cursor.pitch
+                            + gDialogCursorCheckTargetLogicalX - cursor.x] == cursor.transparentIndex
+                        || gDialogCursorCheckTransparentLogicalX < cursor.x
+                        || gDialogCursorCheckTransparentLogicalY < cursor.y
+                        || gDialogCursorCheckTransparentLogicalX >= cursor.x + cursor.width
+                        || gDialogCursorCheckTransparentLogicalY >= cursor.y + cursor.height
+                        || cursor.pixels[static_cast<std::size_t>(gDialogCursorCheckTransparentLogicalY - cursor.y) * cursor.pitch
+                            + gDialogCursorCheckTransparentLogicalX - cursor.x] != cursor.transparentIndex) {
+                        failCursorCheck("engine-cursor-opaque-and-transparent-cells-mismatch");
+                        return;
+                    }
+                    if (gSdlSurface == nullptr || gSdlSurface->pixels == nullptr
+                        || gDialogCursorCheckTargetLogicalX < 0 || gDialogCursorCheckTargetLogicalY < 0
+                        || gDialogCursorCheckTargetLogicalX >= gSdlSurface->w || gDialogCursorCheckTargetLogicalY >= gSdlSurface->h
+                        || frame.originalIndices.empty() || frame.indexPitch < frame.width) {
+                        failCursorCheck("cursor-index-frame-unavailable");
+                        return;
+                    }
+                    const std::size_t indexedOffset = static_cast<std::size_t>(gDialogCursorCheckTargetLogicalY) * gSdlSurface->pitch
+                        + gDialogCursorCheckTargetLogicalX;
+                    const std::size_t preparedOffset = static_cast<std::size_t>(gDialogCursorCheckTargetLogicalY) * frame.indexPitch
+                        + gDialogCursorCheckTargetLogicalX;
+                    if (preparedOffset >= frame.originalIndices.size()
+                        || static_cast<const unsigned char*>(gSdlSurface->pixels)[indexedOffset] != gDialogCursorCheckCursorIndex
+                        || frame.originalIndices[preparedOffset] != gDialogCursorCheckCursorIndex) {
+                        failCursorCheck("cursor-not-drawn-at-target-in-indexed-frame");
+                        return;
+                    }
+                    if (targetBefore == 0 || targetAfter != 0 || transparentBefore == 0
+                        || transparentAfter != transparentBefore || beforeInkPixels == 0 || afterInkPixels == 0) {
+                        printf("DIALOG_CURSOR_CHECK FAIL map=%s script=%s speaker=%d reason=overlay-assertion opaque_alpha=%u->%u transparent_alpha=%u->%u before_ink=%u after_ink=%u\n",
+                            gMapHeader.name, gDialogFixtureScript, gDialogFixtureSpeakerId,
+                            targetBefore, targetAfter, transparentBefore, transparentAfter, beforeInkPixels, afterInkPixels);
+                        fflush(stdout);
+                        gDialogFixtureFinished = true;
+                        return;
+                    }
+                    const bool captured = takeSnapshot();
+                    if (!captured) {
+                        failCursorCheck("cursor-snapshot-failed");
+                        return;
+                    }
+                    if (gSdlTextureSurface == nullptr || gSdlTextureSurface->pixels == nullptr
+                        || gDialogCursorCheckTargetLogicalX < 0 || gDialogCursorCheckTargetLogicalY < 0
+                        || gDialogCursorCheckTargetLogicalX >= gSdlTextureSurface->w
+                        || gDialogCursorCheckTargetLogicalY >= gSdlTextureSurface->h
+                        || gSdlTextureSurface->format == nullptr
+                        || gSdlTextureSurface->format->BytesPerPixel <= 0
+                        || gSdlTextureSurface->format->BytesPerPixel > sizeof(Uint32)) {
+                        failCursorCheck("cursor-png-source-pixel-unavailable");
+                        return;
+                    }
+                    Uint32 rgbaPixel = 0;
+                    const unsigned char* rgbaRow = static_cast<const unsigned char*>(gSdlTextureSurface->pixels)
+                        + static_cast<std::size_t>(gDialogCursorCheckTargetLogicalY) * gSdlTextureSurface->pitch;
+                    std::memcpy(&rgbaPixel, rgbaRow + static_cast<std::size_t>(gDialogCursorCheckTargetLogicalX)
+                            * gSdlTextureSurface->format->BytesPerPixel,
+                        gSdlTextureSurface->format->BytesPerPixel);
+                    Uint8 actualRed = 0;
+                    Uint8 actualGreen = 0;
+                    Uint8 actualBlue = 0;
+                    SDL_GetRGB(rgbaPixel, gSdlTextureSurface->format, &actualRed, &actualGreen, &actualBlue);
+                    if (actualRed != gDialogCursorCheckCursorRed || actualGreen != gDialogCursorCheckCursorGreen
+                        || actualBlue != gDialogCursorCheckCursorBlue) {
+                        printf("DIALOG_CURSOR_CHECK FAIL map=%s script=%s reason=png-source-rgb-mismatch logical=%d,%d expected_rgb=%u,%u,%u actual_rgb=%u,%u,%u\n",
+                            gMapHeader.name, gDialogFixtureScript, gDialogCursorCheckTargetLogicalX,
+                            gDialogCursorCheckTargetLogicalY, gDialogCursorCheckCursorRed, gDialogCursorCheckCursorGreen,
+                            gDialogCursorCheckCursorBlue, actualRed, actualGreen, actualBlue);
+                        fflush(stdout);
+                        gDialogFixtureFinished = true;
+                        return;
+                    }
+                    printf("DIALOG_CURSOR_CHECK PASS map=%s script=%s speaker=%d speaker_tile=%d hero=%d reply_offset=%d reply_bytes=%zu opaque_logical=%d,%d opaque_physical=%d,%d transparent_logical=%d,%d transparent_physical=%d,%d cursor_index=%u expected_rgb=%u,%u,%u opaque_alpha=%u->%u transparent_alpha=%u->%u same_run_ink_pixels=%u->%u\n",
+                        gMapHeader.name, gDialogFixtureScript, gDialogFixtureSpeakerId,
+                        gDialogFixtureSpeakerTile, gDude != nullptr ? gDude->tile : -1,
+                        gameDialogGetReplyTextOffset(), gDialogCursorCheckRecord.run.text.size(),
+                        gDialogCursorCheckTargetLogicalX, gDialogCursorCheckTargetLogicalY,
+                        gDialogCursorCheckTargetPhysicalX, gDialogCursorCheckTargetPhysicalY,
+                        gDialogCursorCheckTransparentLogicalX, gDialogCursorCheckTransparentLogicalY,
+                        gDialogCursorCheckTransparentPhysicalX, gDialogCursorCheckTransparentPhysicalY,
+                        gDialogCursorCheckCursorIndex,
+                        gDialogCursorCheckCursorRed, gDialogCursorCheckCursorGreen, gDialogCursorCheckCursorBlue,
+                        targetBefore, targetAfter, transparentBefore, transparentAfter, beforeInkPixels, afterInkPixels);
+                    fflush(stdout);
+                    gDialogFixtureFinished = true;
+                    return;
+                }
+                if (!frame.active || !frame.drawn || frame.overlay.pixels.empty()
+                    || frame.width <= 0 || frame.height <= 0
+                    || frame.overlay.width <= 0 || frame.overlay.height <= 0
+                    || frame.overlay.pitch < frame.overlay.width * 4) {
+                    failCursorCheck("sharp-overlay-not-drawn");
+                    return;
+                }
+                const scene::TextBufferId screenBuffer = gSdlSurface != nullptr && gSdlSurface->pixels != nullptr
+                    ? textCaptureBufferId(gSdlSurface->pixels)
+                    : 0;
+                if (screenBuffer == 0) {
+                    failCursorCheck("screen-text-buffer-unavailable");
+                    return;
+                }
+                const std::vector<scene::TextRecord> screenRecords = scene::textCaptureSharpRecords(screenBuffer);
+                const scene::TextRecord* replyRecord = nullptr;
+                for (const scene::TextRecord& record : screenRecords) {
+                    if (record.ownerWindow == replyOwnerId && !record.run.text.empty() && !record.coverage.empty()) {
+                        replyRecord = &record;
+                        break;
+                    }
+                }
+                if (replyRecord == nullptr) {
+                    failCursorCheck("reply-run-not-present-on-screen");
+                    return;
+                }
+
+                TextCursorSnapshot cursor = {};
+                if (!textCaptureGetCursorSnapshot(&cursor) || !cursor.visible || cursor.pixels == nullptr
+                    || cursor.width <= 0 || cursor.height <= 0 || cursor.pitch < cursor.width) {
+                    failCursorCheck("engine-cursor-not-visible");
+                    return;
+                }
+                int mouseX = 0;
+                int mouseY = 0;
+                mouseGetPosition(&mouseX, &mouseY);
+                const int hotX = mouseX - cursor.x;
+                const int hotY = mouseY - cursor.y;
+                SDL_Palette* palette = gSdlSurface != nullptr && gSdlSurface->format != nullptr
+                    ? gSdlSurface->format->palette
+                    : nullptr;
+                if (palette == nullptr || COLOR_GREEN >= palette->ncolors) {
+                    failCursorCheck("cursor-palette-unavailable");
+                    return;
+                }
+                const SDL_Color greenColor = palette->colors[COLOR_GREEN];
+                int cursorPixelX = -1;
+                int cursorPixelY = -1;
+                for (int y = 0; y < cursor.height && cursorPixelY < 0; y++) {
+                    for (int x = 0; x < cursor.width; x++) {
+                        const unsigned char pixel = cursor.pixels[static_cast<std::size_t>(y) * cursor.pitch + x];
+                        if (pixel == cursor.transparentIndex || pixel >= palette->ncolors) continue;
+                        const SDL_Color color = palette->colors[pixel];
+                        if (color.r == greenColor.r && color.g == greenColor.g && color.b == greenColor.b) continue;
+                        cursorPixelX = x;
+                        cursorPixelY = y;
+                        break;
+                    }
+                }
+                if (cursorPixelX < 0) {
+                    failCursorCheck("engine-cursor-has-no-opaque-nongreen-pixels");
+                    return;
+                }
+                gDialogCursorCheckCursorIndex = cursor.pixels[static_cast<std::size_t>(cursorPixelY) * cursor.pitch + cursorPixelX];
+                const SDL_Color cursorColor = palette->colors[gDialogCursorCheckCursorIndex];
+                gDialogCursorCheckCursorRed = cursorColor.r;
+                gDialogCursorCheckCursorGreen = cursorColor.g;
+                gDialogCursorCheckCursorBlue = cursorColor.b;
+
+                int targetLogicalX = -1;
+                int targetLogicalY = -1;
+                int targetPhysicalX = -1;
+                int targetPhysicalY = -1;
+                int transparentLogicalX = -1;
+                int transparentLogicalY = -1;
+                int transparentPhysicalX = -1;
+                int transparentPhysicalY = -1;
+                struct InkPoint {
+                    int logicalX;
+                    int logicalY;
+                    int physicalX;
+                    int physicalY;
+                };
+                std::vector<InkPoint> inkPoints;
+                for (const scene::TextPixelCoverage& coverage : replyRecord->coverage) {
+                    if (coverage.x < 0 || coverage.y < 0 || coverage.x >= frame.width || coverage.y >= frame.height) continue;
+                    const int left = coverage.x * frame.overlay.width / frame.width;
+                    const int top = coverage.y * frame.overlay.height / frame.height;
+                    const int right = std::max(left + 1, (coverage.x + 1) * frame.overlay.width / frame.width);
+                    const int bottom = std::max(top + 1, (coverage.y + 1) * frame.overlay.height / frame.height);
+                    for (int y = top; y < bottom; y++) {
+                        for (int x = left; x < right; x++) {
+                            const std::size_t offset = static_cast<std::size_t>(y) * frame.overlay.pitch + x * 4;
+                            if (offset + 3 < frame.overlay.pixels.size() && frame.overlay.pixels[offset + 3] != 0) {
+                                inkPoints.push_back({ coverage.x, coverage.y, x, y });
+                                break;
+                            }
+                        }
+                    }
+                }
+                for (const InkPoint& opaqueTarget : inkPoints) {
+                    for (int cursorY = 0; cursorY < cursor.height && transparentPhysicalY < 0; cursorY++) {
+                        for (int cursorX = 0; cursorX < cursor.width && transparentPhysicalY < 0; cursorX++) {
+                            if (cursor.pixels[static_cast<std::size_t>(cursorY) * cursor.pitch + cursorX]
+                                != cursor.transparentIndex) continue;
+                            const int candidateX = opaqueTarget.logicalX + cursorX - cursorPixelX;
+                            const int candidateY = opaqueTarget.logicalY + cursorY - cursorPixelY;
+                            if (candidateX == opaqueTarget.logicalX && candidateY == opaqueTarget.logicalY) continue;
+                            for (const InkPoint& transparentTarget : inkPoints) {
+                                if (transparentTarget.logicalX != candidateX || transparentTarget.logicalY != candidateY) continue;
+                                targetLogicalX = opaqueTarget.logicalX;
+                                targetLogicalY = opaqueTarget.logicalY;
+                                targetPhysicalX = opaqueTarget.physicalX;
+                                targetPhysicalY = opaqueTarget.physicalY;
+                                transparentLogicalX = transparentTarget.logicalX;
+                                transparentLogicalY = transparentTarget.logicalY;
+                                transparentPhysicalX = transparentTarget.physicalX;
+                                transparentPhysicalY = transparentTarget.physicalY;
+                                break;
+                            }
+                        }
+                    }
+                    if (transparentPhysicalY >= 0) break;
+                }
+                if (targetPhysicalY < 0 || transparentPhysicalY < 0) {
+                    failCursorCheck("reply-has-no-opaque-and-transparent-cursor-ink-pair");
+                    return;
+                }
+
+                gDialogCursorCheckTargetLogicalX = targetLogicalX;
+                gDialogCursorCheckTargetLogicalY = targetLogicalY;
+                gDialogCursorCheckTargetPhysicalX = targetPhysicalX;
+                gDialogCursorCheckTargetPhysicalY = targetPhysicalY;
+                gDialogCursorCheckTransparentLogicalX = transparentLogicalX;
+                gDialogCursorCheckTransparentLogicalY = transparentLogicalY;
+                gDialogCursorCheckTransparentPhysicalX = transparentPhysicalX;
+                gDialogCursorCheckTransparentPhysicalY = transparentPhysicalY;
+                gDialogCursorCheckRecord = *replyRecord;
+                gDialogCursorCheckOverlayBefore = frame.overlay.pixels;
+                gDialogCursorCheckCursorMoveInProgress = true;
+                mouseHideCursor();
+                _mouse_set_position(targetLogicalX - cursorPixelX + hotX, targetLogicalY - cursorPixelY + hotY);
+                mouseShowCursor();
+                gDialogCursorCheckCursorMoveInProgress = false;
+                TextCursorSnapshot movedCursor = {};
+                if (!textCaptureGetCursorSnapshot(&movedCursor) || !movedCursor.visible || movedCursor.pixels == nullptr
+                    || movedCursor.x + cursorPixelX != targetLogicalX
+                    || movedCursor.y + cursorPixelY != targetLogicalY
+                    || targetLogicalX < movedCursor.x || targetLogicalY < movedCursor.y
+                    || targetLogicalX >= movedCursor.x + movedCursor.width
+                    || targetLogicalY >= movedCursor.y + movedCursor.height
+                    || movedCursor.pixels[static_cast<std::size_t>(targetLogicalY - movedCursor.y) * movedCursor.pitch
+                        + targetLogicalX - movedCursor.x] == movedCursor.transparentIndex) {
+                    failCursorCheck("engine-cursor-redraw-or-target-mismatch");
+                    return;
+                }
+                gDialogCursorCheckStage = 2;
+                printf("DIALOG_CURSOR_CHECK TARGET reply_bytes=%zu opaque_logical=%d,%d opaque_physical=%d,%d transparent_logical=%d,%d transparent_physical=%d,%d cursor_opaque_offset=%d,%d cursor_index=%u expected_rgb=%u,%u,%u\n",
+                    replyRecord->run.text.size(), targetLogicalX, targetLogicalY,
+                    targetPhysicalX, targetPhysicalY, transparentLogicalX, transparentLogicalY,
+                    transparentPhysicalX, transparentPhysicalY, cursorPixelX, cursorPixelY, gDialogCursorCheckCursorIndex,
+                    gDialogCursorCheckCursorRed, gDialogCursorCheckCursorGreen, gDialogCursorCheckCursorBlue);
+                fflush(stdout);
+                return;
+            }
+            const bool captured = takeSnapshot();
+            if (captured) {
+                printf("DIALOG_FIXTURE PASS map=%s elevation=%d script=%s speaker=%d speaker_tile=%d hero=%d dialog_owners=%d,%d eligible_runs=%d\n",
+                    gMapHeader.name, gDialogFixtureSpeakerElevation, gDialogFixtureScript,
+                    gDialogFixtureSpeakerId, gDialogFixtureSpeakerTile, gDude != nullptr ? gDude->tile : -1,
+                    ownerIds[0], ownerIds[1], runCount);
+            } else {
+                printf("DIALOG_FIXTURE FAIL map=%s script=%s speaker=%d speaker_tile=%d hero=%d reason=snapshot-failed status=%s\n",
+                    gMapHeader.name, gDialogFixtureScript, gDialogFixtureSpeakerId,
+                    gDialogFixtureSpeakerTile, gDude != nullptr ? gDude->tile : -1, gStatus);
+            }
+            fflush(stdout);
+            gDialogFixtureFinished = true;
+            return;
+        }
+    }
     if (!gSnapshotOncePending || !gEnabled || !sceneStartupReady() || !gStartupFloorPreviewAttempted
         || scene::activeView() != scene::View::Off) {
         return;
@@ -1848,6 +2428,15 @@ bool handleKey(int key)
 {
     if (!gEnabled) {
         return false;
+    }
+
+    // Ctrl+T steps the game hour by one, the [3d] sun the owner reads
+    // shadows by: the options panel's plain T answers only while the panel
+    // is open (063), and the fly camera below would eat the key.
+    if (key == KEY_CTRL_T && scene::enabled()) {
+        const unsigned int ticks = gameTimeGetTime();
+        gameTimeSetTime(((ticks / 36000u + 1u) % 24u) * 36000u + ticks % 36000u);
+        return true;
     }
 
     if (key == KEY_CTRL_F12) {
@@ -2355,6 +2944,7 @@ bool takeSnapshot()
         settings.scene3d.sun ? "true" : "false", scene::sceneDaylight() ? "true" : "false", gameTimeGetTime(),
         sun.up ? "true" : "false", sun.height, sun.azimuth, sun.direction[0], sun.direction[1], sun.direction[2],
         sun.color[0], sun.color[1], sun.color[2], sun.strength);
+    const scene_renderer::PreparedSharpTextFrame& sharpText = scene_renderer::preparedSharpTextFrame();
 
     FILE* f = fopen(sidecarPath.string().c_str(), "w");
     if (f == nullptr) {
@@ -2377,6 +2967,7 @@ bool takeSnapshot()
         "  \"preview_requested\": %s,\n"
         "  \"scene_3d_enabled\": %s,\n"
         "  \"scene_view\": \"%s\",\n"
+        "  \"sharp_text\": {\"setting\":%s,\"active\":%s,\"drawn\":%s,\"runs\":%u,\"glyphs\":%u,\"restored_pixels\":%u,\"prepare_ms\":%.3f},\n"
         "  \"map_clip\": %s,\n"
         "  \"camera\": \"%s\",\n"
         "  \"wall_triangles\": %u,\n"
@@ -2411,6 +3002,13 @@ bool takeSnapshot()
         scene::activeView() == scene::View::Full ? "full"
             : scene::activeView() == scene::View::Walls ? "walls"
             : scene::activeView() == scene::View::Floor ? "floor" : "off",
+        settings.scene3d.sharp_text ? "true" : "false",
+        sharpText.active ? "true" : "false",
+        sharpText.drawn ? "true" : "false",
+        sharpText.runCount,
+        sharpText.glyphCount,
+        sharpText.restoredPixelCount,
+        sharpText.prepareMilliseconds,
         clipMetadata,
         camera,
         wallTriangles,

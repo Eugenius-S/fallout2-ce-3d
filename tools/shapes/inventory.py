@@ -51,11 +51,11 @@ def todays_shapes(scene):
     return shape
 
 
-def inventory(game_root, scenes):
+def inventory(game_root, scenes, group="klamath"):
     gf = ReadOnlyGameFiles(game_root)
     things = defaultdict(lambda: {"count": 0, "today": Counter(), "instances": [], "name": ""})
     try:
-        for name in MAP_GROUPS["klamath"]:
+        for name in MAP_GROUPS[group]:
             game_map = MapFile.load(name, gf)
             for elevation in sorted(game_map.tiles):
                 path = scenes / name / str(elevation) / "scene.json"
@@ -85,11 +85,12 @@ def inventory(game_root, scenes):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--game-root", type=Path, default=ROOT / "game")
+    parser.add_argument("--group", choices=sorted(MAP_GROUPS), default="klamath")
     parser.add_argument("--scenes", type=Path, help="exported scenes (default: <game-root>/mod-cache/scene)")
     parser.add_argument("--out", type=Path, default=ROOT / "build" / "shapes-eval" / "inventory.json")
     parser.add_argument("--top", type=int, default=60)
     args = parser.parse_args(argv)
-    rows = inventory(args.game_root, args.scenes or args.game_root / "mod-cache" / "scene")
+    rows = inventory(args.game_root, args.scenes or args.game_root / "mod-cache" / "scene", args.group)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(rows, indent=1), encoding="utf-8")
     total = sum(row["count"] for row in rows)

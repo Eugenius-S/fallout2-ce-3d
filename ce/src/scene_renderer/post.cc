@@ -83,10 +83,26 @@ void main() {
 }
 )";
 
+// The wide halo comes only from what shines by itself: the emissive buffer's
+// alpha holds 1 on its marked texels (the palette's cycling colours) and 0 on
+// the bright-pass ones, so daylight surfaces never feed it.
+constexpr const char* kMarksFragmentShader = R"(#version 330 core
+in vec2 vTexcoord;
+uniform sampler2D uTexture;
+uniform vec2 uDirection;
+uniform float uBright;
+out vec4 outColor;
+void main() {
+    vec4 texel = texture(uTexture, vTexcoord);
+    outColor = vec4(texel.rgb * texel.a, 1.0);
+}
+)";
+
 bool gInitialized = false;
 bool gDisabled = false;
 unsigned int gProgramBlur = 0;
 unsigned int gProgramAdd = 0;
+unsigned int gProgramMarks = 0;
 unsigned int gQuadVao = 0;
 unsigned int gQuadVbo = 0;
 unsigned int gSceneFbo = 0;
@@ -97,6 +113,10 @@ unsigned int gGlowA = 0;
 unsigned int gGlowB = 0;
 unsigned int gGlowFboA = 0;
 unsigned int gGlowFboB = 0;
+unsigned int gGlowA8 = 0;
+unsigned int gGlowB8 = 0;
+unsigned int gGlowFboA8 = 0;
+unsigned int gGlowFboB8 = 0;
 int gTargetsWidth = 0;
 int gTargetsHeight = 0;
 
@@ -168,6 +188,10 @@ void destroyTargets()
     if (gGlowB != 0) { glDeleteTextures(1, &gGlowB); gGlowB = 0; }
     if (gGlowFboA != 0) { glDeleteFramebuffers(1, &gGlowFboA); gGlowFboA = 0; }
     if (gGlowFboB != 0) { glDeleteFramebuffers(1, &gGlowFboB); gGlowFboB = 0; }
+    if (gGlowA8 != 0) { glDeleteTextures(1, &gGlowA8); gGlowA8 = 0; }
+    if (gGlowB8 != 0) { glDeleteTextures(1, &gGlowB8); gGlowB8 = 0; }
+    if (gGlowFboA8 != 0) { glDeleteFramebuffers(1, &gGlowFboA8); gGlowFboA8 = 0; }
+    if (gGlowFboB8 != 0) { glDeleteFramebuffers(1, &gGlowFboB8); gGlowFboB8 = 0; }
     gTargetsWidth = 0;
     gTargetsHeight = 0;
 }
@@ -198,7 +222,8 @@ bool initGlow(std::string* error)
 
     gProgramBlur = makeProgram(kBlurFragmentShader);
     gProgramAdd = makeProgram(kAddFragmentShader);
-    if (gProgramBlur == 0 || gProgramAdd == 0) {
+    gProgramMarks = makeProgram(kMarksFragmentShader);
+    if (gProgramBlur == 0 || gProgramAdd == 0 || gProgramMarks == 0) {
         if (error != nullptr) *error = "the glow programs failed to build";
         return false;
     }
@@ -244,6 +269,7 @@ void shutdownGlow()
     destroyTargets();
     if (gProgramBlur != 0) { glDeleteProgram(gProgramBlur); gProgramBlur = 0; }
     if (gProgramAdd != 0) { glDeleteProgram(gProgramAdd); gProgramAdd = 0; }
+    if (gProgramMarks != 0) { glDeleteProgram(gProgramMarks); gProgramMarks = 0; }
     if (gQuadVbo != 0) { glDeleteBuffers(1, &gQuadVbo); gQuadVbo = 0; }
     if (gQuadVao != 0) { glDeleteVertexArrays(1, &gQuadVao); gQuadVao = 0; }
     gInitialized = false;
@@ -284,6 +310,20 @@ void resizeGlow()
     glBindFramebuffer(kFramebuffer, gGlowFboB);
     glFramebufferTexture2D(kFramebuffer, kColorAttachment0, kTexture2D, gGlowB, 0);
     glDrawBuffers(1, &kColorAttachment0);
+    // The wide halo blurs an eighth of the window: twice the quarter's reach
+    // per round, so a few rounds spill it far over the surroundings.
+    int wideWidth = std::max(width / 8, 1);
+    int wideHeight = std::max(height / 8, 1);
+    gGlowA8 = colorTexture(wideWidth, wideHeight);
+    gGlowB8 = colorTexture(wideWidth, wideHeight);
+    glGenFramebuffers(1, &gGlowFboA8);
+    glBindFramebuffer(kFramebuffer, gGlowFboA8);
+    glFramebufferTexture2D(kFramebuffer, kColorAttachment0, kTexture2D, gGlowA8, 0);
+    glDrawBuffers(1, &kColorAttachment0);
+    glGenFramebuffers(1, &gGlowFboB8);
+    glBindFramebuffer(kFramebuffer, gGlowFboB8);
+    glFramebufferTexture2D(kFramebuffer, kColorAttachment0, kTexture2D, gGlowB8, 0);
+    glDrawBuffers(1, &kColorAttachment0);
     glBindFramebuffer(kFramebuffer, 0);
     gTargetsWidth = width;
     gTargetsHeight = height;
@@ -320,8 +360,10 @@ void compositeGlow()
 {
     if (!gInitialized || gSceneFbo == 0) return;
 
-    // The emissive buffer is the glow's source: blur it wide, horizontal into
-    // B, vertical back into A, twice for a soft spread.
+    // Two scales of bleed. The near glow keeps the quarter's one round, tight
+    // around the source as before; the wide halo is the marked texels only,
+    // blurred at an eighth of the window twice, spilling far over whatever is
+    // next to the source (the floor and walls included).
     int glowWidth = std::max(gTargetsWidth / 4, 1);
     int glowHeight = std::max(gTargetsHeight / 4, 1);
     glBindFramebuffer(kFramebuffer, gGlowFboB);
@@ -330,16 +372,23 @@ void compositeGlow()
     glBindFramebuffer(kFramebuffer, gGlowFboA);
     glViewport(0, 0, glowWidth, glowHeight);
     drawPostQuad(gGlowB, gProgramBlur, 0.0f, 1.0f / glowHeight, 1.0f);
+
+    int wideWidth = std::max(gTargetsWidth / 8, 1);
+    int wideHeight = std::max(gTargetsHeight / 8, 1);
+    glBindFramebuffer(kFramebuffer, gGlowFboA8);
+    glViewport(0, 0, wideWidth, wideHeight);
+    drawPostQuad(gEmissiveTexture, gProgramMarks, 0.0f, 0.0f, 1.0f);
     for (int pass = 0; pass < 2; pass++) {
-        glBindFramebuffer(kFramebuffer, gGlowFboB);
-        glViewport(0, 0, glowWidth, glowHeight);
-        drawPostQuad(gGlowA, gProgramBlur, 1.0f / glowWidth, 0.0f, 1.0f);
-        glBindFramebuffer(kFramebuffer, gGlowFboA);
-        glViewport(0, 0, glowWidth, glowHeight);
-        drawPostQuad(gGlowB, gProgramBlur, 0.0f, 1.0f / glowHeight, 1.0f);
+        glBindFramebuffer(kFramebuffer, gGlowFboB8);
+        glViewport(0, 0, wideWidth, wideHeight);
+        drawPostQuad(gGlowA8, gProgramBlur, 1.0f / wideWidth, 0.0f, 1.0f);
+        glBindFramebuffer(kFramebuffer, gGlowFboA8);
+        glViewport(0, 0, wideWidth, wideHeight);
+        drawPostQuad(gGlowB8, gProgramBlur, 0.0f, 1.0f / wideHeight, 1.0f);
     }
 
-    // The picture, then its bleed added over it, over the window.
+    // The picture, then its two bleeds added over it, over the window: the
+    // quarter one lighter, the wide halo carries the spill.
     glBindFramebuffer(kFramebuffer, 0);
     glViewport(0, 0, gTargetsWidth, gTargetsHeight);
     glDisable(kDepthTest);
@@ -349,7 +398,8 @@ void compositeGlow()
     drawPostQuad(gSceneTexture, gProgramAdd, 0.0f, 0.0f, 1.0f);
     const double strength = std::max(settings.scene3d.glow_strength, 0.0);
     glBlendFunc(kOne, kOne);
-    drawPostQuad(gGlowA, gProgramAdd, 0.0f, 0.0f, static_cast<float>(strength));
+    drawPostQuad(gGlowA, gProgramAdd, 0.0f, 0.0f, static_cast<float>(0.55 * strength));
+    drawPostQuad(gGlowA8, gProgramAdd, 0.0f, 0.0f, static_cast<float>(1.5 * strength));
     glDisable(kBlend);
     glBindVertexArray(0);
     glUseProgram(0);

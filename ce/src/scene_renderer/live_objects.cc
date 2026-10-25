@@ -21,7 +21,6 @@ unsigned int gHeroVao = 0;
 unsigned int gHeroTexture = 0;
 bool gHeroLoaded = false;
 int gHeroPickId = -1;
-float gHeroShadowFactor = 0.0f; // the hero card's sun shadow, faded (046)
 
 } // namespace internal
 
@@ -33,6 +32,7 @@ namespace {
 // Frame textures are cached by (fid, frame, rotation, variant) across frames.
 constexpr size_t kMaxObjectTextures = 4096;
 constexpr float kFlatObjectHeight = 0.01f;
+constexpr int kHexRowStep = 200; // one hex row south, the plane in front of a card
 std::unordered_map<unsigned long long, unsigned int> gObjectTextures;
 std::vector<DepthVertex> gObjectVertices;
 unsigned int gObjectVbo = 0;
@@ -46,39 +46,6 @@ unsigned long long objectArtKey(int fid, int frame, int rotation, int variant)
         | (static_cast<unsigned int>(rotation) & 0xFF) << 1
         | static_cast<unsigned int>(variant & 1);
 }
-
-// The sun shadow at a card's anchor, chasing its hex's shadowed share over
-// ~150 ms so crossing a shadow border is a short fade (046). The target
-// comes from the hex pass of the shadow map (shadow.cc); nothing of it runs
-// with the shadows off.
-constexpr double kSpriteShadowFade = 0.15;
-
-double frameSeconds()
-{
-    return std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
-}
-
-double spriteShadowFactor(double& state, double& lastSeen, int tile)
-{
-    const double now = frameSeconds();
-    const double target = shadowGroundReady() ? shadowGroundShadowFactor(tile) : 0.0;
-    if (lastSeen > 0.0) {
-        state += (target - state) * std::clamp((now - lastSeen) / kSpriteShadowFade, 0.0, 1.0);
-    } else {
-        state = target;
-    }
-    lastSeen = now;
-    return state;
-}
-
-struct ShadowFadeState {
-    double value = 0.0;
-    double lastSeen = 0.0;
-};
-std::unordered_map<int, ShadowFadeState> gSpriteShadow;
-unsigned gSpriteShadowPrune = 0;
-double gHeroShadowState = 0.0;
-double gHeroShadowSeen = 0.0;
 
 void destroyStaticObjectTextures()
 {
@@ -148,9 +115,6 @@ void destroyStaticHero()
     gHeroVao = 0;
     gHeroLoaded = false;
     gHeroInfo = {};
-    gHeroShadowFactor = 0.0f;
-    gHeroShadowState = 0.0;
-    gHeroShadowSeen = 0.0;
 }
 
 void destroyStaticObjects()
@@ -164,7 +128,6 @@ void destroyStaticObjects()
     gObjectVao = 0;
     gObjectVertices.clear();
     gObjectDraws.clear();
-    gSpriteShadow.clear();
 }
 
 } // namespace internal
@@ -194,7 +157,6 @@ bool updateStaticHero(const StaticHeroFrame& frame, std::string* error)
     const unsigned long long expectedRgba = static_cast<unsigned long long>(frame.width)
         * static_cast<unsigned long long>(frame.height) * 4;
     if (expectedRgba != frame.rgbaSize) return fail("hero frame RGBA byte count is inconsistent");
-    gHeroShadowFactor = static_cast<float>(spriteShadowFactor(gHeroShadowState, gHeroShadowSeen, frame.tile));
 
     const SpriteCardArt art = { frame.tile, frame.objectX, frame.objectY, frame.artXOffset, frame.artYOffset,
         frame.width, frame.height };
@@ -263,14 +225,6 @@ void beginStaticObjects()
     gObjectDraws.clear();
     // Bound the cache; a frame's texture is uploaded again on demand.
     if (gObjectTextures.size() > kMaxObjectTextures) destroyStaticObjectTextures();
-    // Fade states of cards the game stopped drawing are of no use anymore.
-    if (++gSpriteShadowPrune % 512 == 0) {
-        const double now = frameSeconds();
-        for (auto it = gSpriteShadow.begin(); it != gSpriteShadow.end();) {
-            if (now - it->second.lastSeen > 2.0) it = gSpriteShadow.erase(it);
-            else ++it;
-        }
-    }
 }
 
 bool addStaticObject(const StaticObjectFrame& frame, std::string* error)
@@ -303,7 +257,16 @@ bool addStaticObject(const StaticObjectFrame& frame, std::string* error)
     } else {
         faceFlyCamera(corners);
     }
-    const double row = flat ? 0.0 : spriteRowPlane(cardProjection(), frame.tile, frame.stack);
+    // A sprite hung in the air, its art wholly above its anchor with no
+    // footprint on the ground (smoke over a burning barrel), draws in front
+    // of the scenery one row south of it: the classic game paints it after
+    // that row's things, so its puffs cover the barrel's rim instead of
+    // hiding behind the drum. Its card takes that next row's plane, one
+    // stack step nearer than the row's own things.
+    double row = flat ? 0.0 : spriteRowPlane(cardProjection(), frame.tile, frame.stack);
+    if (!flat && frame.artYOffset + frame.height <= -2) {
+        row = spriteRowPlane(cardProjection(), frame.tile + kHexRowStep, 1);
+    }
 
     const unsigned long long key = objectArtKey(frame.fid, frame.frame, frame.rotation, frame.variant);
     auto cached = gObjectTextures.find(key);
@@ -332,16 +295,9 @@ bool addStaticObject(const StaticObjectFrame& frame, std::string* error)
         }
         gObjectTextures.emplace(key, texture);
     }
-
-    // The card's own share of the sun's shadow at its anchor, faded (046).
-    float drawShadow = 0.0f;
-    if (frame.pickId >= 0) {
-        ShadowFadeState& fade = gSpriteShadow[frame.pickId];
-        drawShadow = static_cast<float>(spriteShadowFactor(fade.value, fade.lastSeen, frame.tile));
-    }
     gObjectDraws.push_back({ texture, static_cast<int>(gObjectVertices.size()), flat,
         { frame.tint[0], frame.tint[1], frame.tint[2] }, frame.glassGray, frame.pickId, frame.pickOnly,
-        frame.seeThrough, frame.fullLight ? -1 : frame.tile, drawShadow });
+        frame.seeThrough, frame.fullLight ? -1 : frame.tile });
     // A thing standing on a solid moves onto it, and so does its row plane.
     float lift[3] = { 0.0f, 0.0f, 0.0f };
     const bool lifted = staticObjectLift(frame.tile, frame.fid, lift);

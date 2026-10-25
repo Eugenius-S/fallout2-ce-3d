@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <map>
 #include <stdio.h>
 
 #include <lodepng.h>
@@ -89,7 +90,7 @@ namespace internal {
 
 void destroyStaticWalls()
 {
-    setShadowWallCasters(0, 0, 0.0f);
+    setShadowWallCasters(0, 0.0f, {});
     unloadBoardShadows();
     if (gContext != nullptr) {
         if (gShadowVbo != 0) glDeleteBuffers(1, &gShadowVbo);
@@ -481,7 +482,11 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
     }
     if (wallHeight <= 0.0f) wallHeight = 3.2f; // a wall with no walls on the map
     const float halfWall = wallHeight * 0.5f;
-    std::vector<float> casterPositions;
+    // The caster triangles gather per atlas page, positions with UVs: the
+    // shadow pass binds each page's texture and cuts the art's transparent
+    // holes out of the depth map (063). The buffer and ranges are built after
+    // the wall batches own their GL textures, below.
+    std::map<unsigned int, std::vector<float>> casterPages;
     for (const WallBatchData& batch : batches) {
         for (size_t index = 0; index + 2 < batch.vertices.size(); index += 3) {
             const float object = batch.vertices[index].object;
@@ -498,25 +503,16 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
                 if (known != gBakedObjects.end() && known->second.noCast) casts = false;
             }
             if (!casts) continue;
+            std::vector<float>& page = casterPages[batch.page];
             for (int corner = 0; corner < 3; corner++) {
                 const DepthVertex& vertex = batch.vertices[index + corner].vertex;
-                casterPositions.push_back(vertex.x);
-                casterPositions.push_back(vertex.y);
-                casterPositions.push_back(vertex.z);
+                page.push_back(vertex.x);
+                page.push_back(vertex.y);
+                page.push_back(vertex.z);
+                page.push_back(vertex.u);
+                page.push_back(vertex.v);
             }
         }
-    }
-    if (!casterPositions.empty()) {
-        if (gShadowVao == 0) glGenVertexArrays(1, &gShadowVao);
-        if (gShadowVbo == 0) glGenBuffers(1, &gShadowVbo);
-        glBindVertexArray(gShadowVao);
-        glBindBuffer(kArrayBuffer, gShadowVbo);
-        glBufferData(kArrayBuffer,
-            static_cast<long long>(casterPositions.size() * sizeof(float)), casterPositions.data(), kStaticDraw);
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 3, 0x1406 /* GL_FLOAT */, 0, 3 * sizeof(float), nullptr);
-        glBindVertexArray(0);
-        setShadowWallCasters(gShadowVao, static_cast<int>(casterPositions.size() / 3), wallHeight);
     }
     offset += static_cast<size_t>(objectCount) * kObjectSize;
     if (offset != sidecar.size() || observedTriangles != totalTriangles) {
@@ -569,6 +565,45 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
     }
     glPixelStorei(kUnpackAlignment, 4);
     glBindVertexArray(0);
+    if (!casterPages.empty()) {
+        std::vector<float> casterData;
+        struct PageRange {
+            unsigned int page;
+            int first;
+            int count;
+        };
+        std::vector<PageRange> pageRanges;
+        for (auto& [page, vertices] : casterPages) {
+            pageRanges.push_back({ page, static_cast<int>(casterData.size() / 5),
+                static_cast<int>(vertices.size() / 5) });
+            casterData.insert(casterData.end(), vertices.begin(), vertices.end());
+        }
+        if (gShadowVao == 0) glGenVertexArrays(1, &gShadowVao);
+        if (gShadowVbo == 0) glGenBuffers(1, &gShadowVbo);
+        glBindVertexArray(gShadowVao);
+        glBindBuffer(kArrayBuffer, gShadowVbo);
+        glBufferData(kArrayBuffer,
+            static_cast<long long>(casterData.size() * sizeof(float)), casterData.data(), kStaticDraw);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, 0x1406 /* GL_FLOAT */, 0, 5 * sizeof(float), nullptr);
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 2, 0x1406 /* GL_FLOAT */, 0, 5 * sizeof(float),
+            reinterpret_cast<const void*>(3 * sizeof(float)));
+        glBindVertexArray(0);
+        std::vector<WallCasterRange> ranges;
+        for (const PageRange& pageRange : pageRanges) {
+            unsigned int texture = 0;
+            for (const WallBatch& batch : gWallBatches) {
+                if (batch.page == pageRange.page && batch.texture != 0) {
+                    texture = batch.texture;
+                    break;
+                }
+            }
+            if (texture == 0) continue; // the page's texture never loaded
+            ranges.push_back({ texture, pageRange.first, pageRange.count });
+        }
+        setShadowWallCasters(gShadowVao, wallHeight, std::move(ranges));
+    }
     if (objectCount > 0) {
         const unsigned int rows = (objectCount + kSeeThroughRowWidth - 1) / kSeeThroughRowWidth;
         gWallSeeThrough.assign(static_cast<size_t>(rows) * kSeeThroughRowWidth, 0);

@@ -1,0 +1,340 @@
+{
+ "anmlx4.frm": {
+  "verdict": "pass"
+ },
+ "anmgotn.frm": {
+  "verdict": "pass"
+ },
+ "anmradl.frm": {
+  "verdict": "pass"
+ },
+ "anmstl08.frm": {
+  "verdict": "pass"
+ },
+ "nybed7.frm": {
+  "verdict": "pass"
+ },
+ "bed1.frm": {
+  "verdict": "pass"
+ },
+ "bed2.frm": {
+  "verdict": "pass"
+ },
+ "bed3.frm": {
+  "verdict": "pass"
+ },
+ "bed6.frm": {
+  "verdict": "pass"
+ },
+ "bed8.frm": {
+  "verdict": "pass"
+ },
+ "bar01.frm": {
+  "verdict": "pass"
+ },
+ "barrel.frm": {
+  "verdict": "pass"
+ },
+ "barrel0.frm": {
+  "verdict": "pass"
+ },
+ "barrel1.frm": {
+  "verdict": "pass"
+ },
+ "barrel3.frm": {
+  "verdict": "pass"
+ },
+ "barrel4.frm": {
+  "verdict": "pass"
+ },
+ "barrel2.frm": {
+  "verdict": "pass"
+ },
+ "barst0l.frm": {
+  "verdict": "pass"
+ },
+ "bilchsig.frm": {
+  "verdict": "fail",
+  "why": "the sign shows only from its face side"
+ },
+ "bilksh18.frm": {
+  "verdict": "pass"
+ },
+ "bilksh1fr.frm": {
+  "verdict": "pass"
+ },
+ "bilksh1fr2.frm": {
+  "verdict": "pass"
+ },
+ "bilksh1fr3.frm": {
+  "verdict": "pass"
+ },
+ "bkshlf3.frm": {
+  "verdict": "pass"
+ },
+ "bkshlf5.frm": {
+  "verdict": "pass"
+ },
+ "bolcas2.frm": {
+  "verdict": "fail",
+  "why": "the box is gone from behind (its wall-part half is solo-stripped?)"
+ },
+ "bolcas3.frm": {
+  "verdict": "pass"
+ },
+ "bolcas4.frm": {
+  "verdict": "pass"
+ },
+ "bolcas5.frm": {
+  "verdict": "pass"
+ },
+ "boxes4.frm": {
+  "verdict": "pass"
+ },
+ "brl1000.frm": {
+  "verdict": "fail",
+  "why": "the crushed barrel fans into a bent sheet at 270"
+ },
+ "brl2000.frm": {
+  "verdict": "pass"
+ },
+ "bucket1.frm": {
+  "verdict": "fail",
+  "why": "the pot sinks half under the floor from the sides"
+ },
+ "buckas1.frm": {
+  "verdict": "fail",
+  "why": "the wall sign vanishes from behind"
+ },
+ "bush5.frm": {
+  "verdict": "pass"
+ },
+ "cab26.frm": {
+  "verdict": "pass"
+ },
+ "cab28.frm": {
+  "verdict": "pass"
+ },
+ "car5.frm": {
+  "verdict": "pass"
+ },
+ "char05.frm": {
+  "verdict": "pass"
+ },
+ "char06.frm": {
+  "verdict": "pass",
+  "why": "the 180 half is a solo-radius artifact"
+ },
+ "chair2.frm": {
+  "verdict": "pass"
+ },
+ "crat01.frm": {
+  "verdict": "pass"
+ },
+ "crat04.frm": {
+  "verdict": "pass"
+ },
+ "dresr3.frm": {
+  "verdict": "pass"
+ },
+ "girlp005.frm": {
+  "verdict": "fail",
+  "why": "the poster vanishes from behind"
+ },
+ "anmste14.frm": {
+  "verdict": "fail",
+  "why": "the panel keeps almost no pixels from the sides"
+ },
+ "njunk2.frm": {
+  "verdict": "fail",
+  "why": "the ragged pile fans apart at 270"
+ },
+ "njunk5.frm": {
+  "verdict": "fail",
+  "why": "a stray shard at 180, the pile reads as one box at 270"
+ },
+ "njunk6.frm": {
+  "verdict": "fail",
+  "why": "the pile vanishes at 270, a shard floats"
+ },
+ "sstove2.frm": {
+  "verdict": "pass"
+ },
+ "weed01.frm": {
+  "verdict": "pass"
+ },
+ "bush3.frm": {
+  "verdict": "pass"
+ },
+ "weed04.frm": {
+  "verdict": "pass"
+ },
+ "maryj02.frm": {
+  "verdict": "pass"
+ },
+ "rock02.frm": {
+  "verdict": "pass"
+ },
+ "barrel6.frm": {
+  "verdict": "pass"
+ },
+ "crate1.frm": {
+  "verdict": "pass"
+ },
+ "boxes2.frm": {
+  "verdict": "pass"
+ },
+ "barrel7.frm": {
+  "verdict": "pass"
+ },
+ "barrel5.frm": {
+  "verdict": "pass"
+ },
+ "ss108.frm": {
+  "verdict": "pass"
+ },
+ "boxes1.frm": {
+  "verdict": "pass"
+ },
+ "tbl2000.frm": {
+  "verdict": "pass"
+ },
+ "ss122.frm": {
+  "verdict": "pass"
+ },
+ "trashcn.frm": {
+  "verdict": "pass"
+ },
+ "pot003.frm": {
+  "verdict": "pass"
+ },
+ "cavbrac2.frm": {
+  "verdict": "pass"
+ },
+ "tire002.frm": {
+  "verdict": "pass"
+ },
+ "tire003.frm": {
+  "verdict": "pass"
+ },
+ "ladder.frm": {
+  "verdict": "pass"
+ },
+ "locker5.frm": {
+  "verdict": "pass"
+ },
+ "bokcas6.frm": {
+  "verdict": "pass"
+ },
+ "pot001.frm": {
+  "verdict": "pass"
+ },
+ "table1.frm": {
+  "verdict": "pass"
+ },
+ "arcanm05.frm": {
+  "verdict": "pass"
+ },
+ "arcanm06.frm": {
+  "verdict": "pass"
+ },
+ "pot004.frm": {
+  "verdict": "pass"
+ },
+ "arwlsc08.frm": {
+  "verdict": "pass"
+ },
+ "fridge.frm": {
+  "verdict": "pass"
+ },
+ "newsp3.frm": {
+  "verdict": "pass"
+ },
+ "newsp6.frm": {
+  "verdict": "pass"
+ },
+ "pot1.frm": {
+  "verdict": "pass"
+ },
+ "tire001.frm": {
+  "verdict": "pass"
+ },
+ "tire004.frm": {
+  "verdict": "pass"
+ },
+ "atorch3.frm": {
+  "verdict": "pass"
+ },
+ "barrel04.frm": {
+  "verdict": "pass"
+ },
+ "barrel05.frm": {
+  "verdict": "pass"
+ },
+ "junk1.frm": {
+  "verdict": "pass"
+ },
+ "newsp1.frm": {
+  "verdict": "pass"
+ },
+ "newsp4.frm": {
+  "verdict": "pass"
+ },
+ "pot002.frm": {
+  "verdict": "pass"
+ },
+ "tire006.frm": {
+  "verdict": "pass"
+ },
+ "vicsign.frm": {
+  "verdict": "pass"
+ },
+ "ltable5.frm": {
+  "verdict": "pass",
+  "why": "part of a solid, merged into the wall solid, nothing independent to break"
+ },
+ "mach05.frm": {
+  "verdict": "pass",
+  "why": "part of a solid, merged into the wall solid, nothing independent to break"
+ },
+ "graf07.frm": {
+  "verdict": "fail",
+  "why": "the panel vanishes from behind (task 055)"
+ },
+ "graf08.frm": {
+  "verdict": "fail",
+  "why": "the panel vanishes from behind (task 055)"
+ },
+ "bath01.frm": {
+  "verdict": "fail",
+  "why": "the panel vanishes from behind (task 055)"
+ },
+ "bokcas3.frm": {
+  "verdict": "fail",
+  "why": "the panel vanishes from behind (task 055)"
+ },
+ "girlp017.frm": {
+  "verdict": "fail",
+  "why": "the panel vanishes from behind (task 055)"
+ },
+ "graf11.frm": {
+  "verdict": "fail",
+  "why": "the panel vanishes from behind (task 055)"
+ },
+ "klasign1.frm": {
+  "verdict": "fail",
+  "why": "the panel vanishes from behind (task 055)"
+ },
+ "klasign3.frm": {
+  "verdict": "fail",
+  "why": "the panel vanishes from behind (task 055)"
+ },
+ "ripsign2.frm": {
+  "verdict": "fail",
+  "why": "the panel vanishes from behind (task 055)"
+ },
+ "wareh04.frm": {
+  "verdict": "fail",
+  "why": "the panel vanishes from behind (task 055)"
+ }
+}

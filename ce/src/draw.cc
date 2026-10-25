@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "color.h"
+#include "scene/text_capture.h"
 #include "svga.h"
 
 namespace fallout {
@@ -212,13 +213,13 @@ void blitBufferToBufferStretchTrans(const unsigned char* src, int srcWidth, int 
 // 0x4D36D4
 void blitBufferToBuffer(const unsigned char* src, int width, int height, int srcPitch, unsigned char* dest, int destPitch)
 {
-    srcCopy(dest, destPitch, src, srcPitch, width, height);
+    textCaptureCopy(src, width, height, srcPitch, dest, destPitch, false, srcCopy);
 }
 
 // 0x4D3704
 void blitBufferToBufferTrans(const unsigned char* src, int width, int height, int srcPitch, unsigned char* dest, int destPitch)
 {
-    transSrcCopy(dest, destPitch, src, srcPitch, width, height);
+    textCaptureCopy(src, width, height, srcPitch, dest, destPitch, true, transSrcCopy);
 }
 
 void blitBuffer2D(ConstBuffer2D src, Buffer2D dst, int dstX, int dstY)

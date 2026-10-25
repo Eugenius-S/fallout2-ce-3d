@@ -2,12 +2,15 @@
 
 #include <algorithm>
 #include <stdio.h>
+#include <vector>
 
 #include <lodepng.h>
 
 #include "context.h"
 #include "gl_api.h"
 #include "post.h"
+#include "../scene/scene_overlay.h"
+#include "text_present.h"
 #include "scene_internal.h"
 #include "shadow.h"
 #include "static_scene.h"
@@ -69,14 +72,10 @@ void drawStaticPreview(bool withWalls, bool withHero)
     const bool shadowed = withWalls && bindStaticShadows(mvp);
     glUniform1i(gSceneShadowOnLocation, shadowed ? 1 : 0);
     glUniform1i(gSceneLightModeLocation, 0);
-    auto lightSprite = [&](int tile, float shadow) {
+    auto lightSprite = [&](int tile) {
         // tile -1: painted at full light (OBJECT_TRANS_WALL), or not known.
         glUniform1i(gSceneLightModeLocation, lit && tile >= 0 ? 3 : 0);
-        if (lit && tile >= 0) {
-            setLightAnchor(tile);
-            // The card's own faded share of the sun's shadow (046).
-            glUniform1f(gSceneSpriteShadowLocation, shadowed ? shadow : 0.0f);
-        }
+        if (lit && tile >= 0) setLightAnchor(tile);
     };
     if (withWalls && gWallSeeThroughTexture != 0 && (wallEgg || lit)) {
         flushWallObjectTable();
@@ -112,7 +111,7 @@ void drawStaticPreview(bool withWalls, bool withHero)
         glBindVertexArray(gObjectVao);
         for (const ObjectDraw& draw : gObjectDraws) {
             if (draw.pickOnly || !draw.flat || draw.tint[0] >= 0.0f) continue;
-            lightSprite(draw.tile, draw.shadow);
+            lightSprite(draw.tile);
             glBindTexture(kTexture2D, draw.texture);
             glDrawArrays(kTriangles, draw.firstVertex, 6);
         }
@@ -144,7 +143,7 @@ void drawStaticPreview(bool withWalls, bool withHero)
         for (const ObjectDraw& draw : gObjectDraws) {
             if (draw.pickOnly || draw.flat || draw.tint[0] >= 0.0f) continue;
             glUniform1i(gSceneSeeThroughLocation, egg && draw.seeThrough ? 2 : 0);
-            lightSprite(draw.tile, draw.shadow);
+            lightSprite(draw.tile);
             glBindTexture(kTexture2D, draw.texture);
             glDrawArrays(kTriangles, draw.firstVertex, 6);
         }
@@ -153,7 +152,7 @@ void drawStaticPreview(bool withWalls, bool withHero)
     glUniform1i(gSceneEggPassLocation, 0);
     if (withHero && gHeroLoaded) {
         StaticHeroInfo hero;
-        lightSprite(staticHeroInfo(&hero) ? hero.tile : -1, gHeroShadowFactor);
+        lightSprite(staticHeroInfo(&hero) ? hero.tile : -1);
         glUniform1f(gSceneCutoffLocation, 0.5f);
         glBindVertexArray(gHeroVao);
         glBindTexture(kTexture2D, gHeroTexture);
@@ -182,7 +181,7 @@ void drawStaticPreview(bool withWalls, bool withHero)
             glBindVertexArray(gObjectVao);
             for (const ObjectDraw& draw : gObjectDraws) {
                 if (draw.pickOnly || draw.flat || draw.tint[0] >= 0.0f || !draw.seeThrough) continue;
-                lightSprite(draw.tile, draw.shadow);
+                lightSprite(draw.tile);
                 glBindTexture(kTexture2D, draw.texture);
                 glDrawArrays(kTriangles, draw.firstVertex, 6);
             }
@@ -202,7 +201,7 @@ void drawStaticPreview(bool withWalls, bool withHero)
         glBindVertexArray(gObjectVao);
         for (const ObjectDraw& draw : gObjectDraws) {
             if (draw.pickOnly || draw.tint[0] < 0.0f) continue;
-            lightSprite(draw.tile, draw.shadow);
+            lightSprite(draw.tile);
             glUniform3f(gSceneTintLocation, draw.tint[0], draw.tint[1], draw.tint[2]);
             glUniform1i(gSceneGlassGrayLocation, draw.glassGray ? 1 : 0);
             glBindTexture(kTexture2D, draw.texture);
@@ -291,8 +290,19 @@ bool captureFramePng(const std::filesystem::path& path, const unsigned char* rgb
     if (drawableWidth <= 0 || drawableHeight <= 0) return fail("OpenGL drawable has no pixels");
     while (glGetError() != 0) {
     }
+    // Reuse the prepared sharp pass from the same frame shown live.
+    const PreparedSharpTextFrame& text = preparedSharpTextFrame();
+    const bool sharpReady = text.active && text.width == frameWidth && text.height == frameHeight
+        && uploadSharpTextOverlay(text.overlay.pixels.data(), text.overlay.width,
+            text.overlay.height, text.overlay.pitch);
+    if (text.active && !sharpReady) disableSharpText("OpenGL upload failed during frame capture");
     // The next present clears and redraws the back buffer; nothing is swapped.
-    presentFrame(rgba, frameWidth, frameHeight, pitch);
+    presentFrame(sharpReady ? text.restoredRgba.data() : rgba,
+        frameWidth, frameHeight, sharpReady ? text.rgbaPitch : pitch);
+    if (sharpReady && !drawPreparedSharpTextOverlay()) {
+        disableSharpText("OpenGL draw failed during frame capture");
+        presentFrame(rgba, frameWidth, frameHeight, pitch);
+    }
     std::string message;
     if (!writeBackBufferPng(path, drawableWidth, drawableHeight, &message)) return fail(message);
     if (width != nullptr) *width = drawableWidth;
@@ -338,6 +348,26 @@ bool captureStaticPreviewPng(const std::filesystem::path& path, bool withWalls, 
         glBlendFunc(1 /* GL_ONE */, kOneMinusSrcAlpha);
         drawQuad(gTextureWidth, gTextureHeight, gTextureWidth * 4, nullptr, 0, 0, gLogicalWidth, gLogicalHeight);
         glDisable(kBlend);
+        const PreparedSharpTextFrame& text = preparedSharpTextFrame();
+        if (text.active) {
+            const bool uploaded = uploadSharpTextOverlay(text.overlay.pixels.data(), text.overlay.width,
+                text.overlay.height, text.overlay.pitch);
+            if (!uploaded) disableSharpText("OpenGL upload failed during static preview capture");
+            if (uploaded && drawPreparedSharpTextOverlay()) {
+                // The sharp pass completed over the cached game overlay.
+            } else {
+                if (uploaded) disableSharpText("OpenGL draw failed during static preview capture");
+                const bool fallbackGlow = beginSceneCapture();
+                drawStaticPreview(withWalls, withHero);
+                if (fallbackGlow) compositeGlow();
+                if (withHero && gSceneOverlayReady) {
+                    std::vector<unsigned char> fallback = text.originalRgba;
+                    scene::maskOverlay(text.originalIndices.data(), text.indexPitch,
+                        fallback.data(), text.rgbaPitch, text.width, text.height);
+                    drawSceneOverlay(fallback.data(), text.width, text.height, text.rgbaPitch);
+                }
+            }
+        }
     }
     if (glGetError() != 0) return fail(withWalls
         ? "static wall draw failed before snapshot" : "static floor draw failed before snapshot");
