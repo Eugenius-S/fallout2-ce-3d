@@ -61,6 +61,6 @@ Next: rebuild and rerun the bark fixture; then capture the final character, PipB
 Check: first attempt reached `UI_FIXTURE START` but made no snapshots and ended at the harness deadline; no result was accepted from that run.
 
 ### 2026-10-25 gpt
-Done: identified that the active 3D Full-view presentation returns before `vanillaPresented`, so the bark-only lifecycle stage never advanced. Added a bark-gated fixture callback after the scene overlay swap; ordinary fixtures and modal/dialog hooks are unchanged.
+Done: identified that the active 3D Full-view presentation returns before `vanillaPresented`, so the bark-only lifecycle stage never advanced. Added a bark-gated fixture callback after the scene overlay swap and a temporary capturing stage to prevent reentrant snapshots; ordinary fixtures and modal/dialog hooks are unchanged.
 Next: rebuild, confirm the real bark appears and is removed by the engine, then capture final source-matched character/PipBoy/bark images.
 Check: second attempt also ended without snapshots at the isolated harness deadline; it is diagnostic only. Only the task's `fallout2-ce-test.exe` PID was stopped, after confirming its exact worktree executable path.

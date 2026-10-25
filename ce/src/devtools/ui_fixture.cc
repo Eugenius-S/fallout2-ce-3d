@@ -143,11 +143,13 @@ void runBarkFixtureFrame()
     if (gStage == UiFixtureStage::WaitingForBark) {
         std::size_t firstOwnedPixels = 0;
         if (outlinedTextCount(gBarkFirstText, &firstOwnedPixels) == 0) return;
+        gStage = UiFixtureStage::Capturing;
         if (!takeSnapshot()) {
             fixtureFail("bark-first-snapshot-failed");
             return;
         }
         gBarkFirstCaptured = true;
+        gStage = UiFixtureStage::WaitingForBark;
         printf("UI_FIXTURE STEP screen=bark stage=visible hasOutline=1 ownedPixels=%zu text=first-ru-line\n", firstOwnedPixels);
         fflush(stdout);
         Rect refreshRect;
@@ -177,6 +179,7 @@ void runBarkFixtureFrame()
         && textObjectsGetCount() <= gBarkBaselineCount
         && outlinedTextCount(gBarkFirstText) == 0
         && outlinedTextCount(gBarkReplacementText) == 0) {
+        gStage = UiFixtureStage::Capturing;
         if (!takeSnapshot()) {
             fixtureFail("bark-expiration-snapshot-failed");
             return;
