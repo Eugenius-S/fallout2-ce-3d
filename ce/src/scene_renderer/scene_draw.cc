@@ -90,12 +90,15 @@ void drawStaticPreview(bool withWalls, bool withHero)
 
     // Nothing lies below the floor, so it is painted first and hides nothing
     // (the donor's game view): cards and solids take the depth of their hex
-    // row's plane, which can lie under the floor along the view ray.
+    // row's plane, which can lie under the floor along the view ray. A fly
+    // camera takes each vertex's own depth, so there the floor hides what
+    // hangs below the ground: a wall picture's foot reaches under it (071).
     glDepthMask(0);
     glUniform1i(gSceneTexturedLocation, 0);
     glUniform1f(gSceneCutoffLocation, 0.01f);
     glUniform4f(gSceneColorLocation, 0.0f, 0.0f, 0.0f, 1.0f);
     glDrawArrays(kTriangles, 0, 6);
+    glDepthMask(flying ? 1 : 0);
     glUniform1i(gSceneTexturedLocation, 1);
     glUniform1f(gSceneCutoffLocation, 0.01f);
     glUniform1i(gSceneLightModeLocation, lit ? 1 : 0);
