@@ -5,11 +5,11 @@
 
 #include "color.h"
 #include "debug.h"
-#include "draw.h"
 #include "input.h"
 #include "memory.h"
 #include "object.h"
 #include "settings.h"
+#include "scene/floating_text.h"
 #include "svga.h"
 #include "text_font.h"
 #include "tile.h"
@@ -37,6 +37,7 @@ typedef struct TextObject {
     int y;
     int width;
     int height;
+    scene::FloatingTextOutlineLayout dataLayout;
     unsigned char* data;
 } TextObject;
 
@@ -221,42 +222,11 @@ int textObjectAdd(Object* object, char* string, int font, ColorWithFlags color, 
         textObject->height += 2;
     }
 
-    int size = textObject->width * textObject->height;
-    textObject->data = (unsigned char*)internal_malloc(size);
-    if (textObject->data == nullptr) {
+    if (!scene::floatingTextCreateData(string, beginnings, textObject->linesCount,
+            font, color, outlineColor, textObject->width, textObject->height,
+            &textObject->dataLayout, &textObject->data)) {
         fontSetCurrent(oldFont);
         return -1;
-    }
-
-    memset(textObject->data, 0, size);
-
-    unsigned char* dest = textObject->data;
-    int skip = textObject->width * (fontGetLineHeight() + 1);
-
-    if (outlineColor != COLOR_INVALID) {
-        dest += textObject->width;
-    }
-
-    for (int index = 0; index < textObject->linesCount; index++) {
-        char* beginning = string + beginnings[index];
-        char* ending = string + beginnings[index + 1];
-        if (ending[-1] == ' ') {
-            --ending;
-        }
-
-        char c = *ending;
-        *ending = '\0';
-
-        int width = fontGetStringWidth(beginning);
-        fontDrawText(dest + (textObject->width - width) / 2, beginning, textObject->width, textObject->width, color);
-
-        *ending = c;
-
-        dest += skip;
-    }
-
-    if (outlineColor != COLOR_INVALID) {
-        bufferOutline(textObject->data, textObject->width, textObject->height, textObject->width, static_cast<Color>(outlineColor & COLOR_LAST));
     }
 
     if (object != nullptr) {
@@ -269,10 +239,8 @@ int textObjectAdd(Object* object, char* string, int font, ColorWithFlags color, 
     textObjectFindPlacement(textObject);
 
     if (rect != nullptr) {
-        rect->left = textObject->x;
-        rect->top = textObject->y;
-        rect->right = textObject->x + textObject->width - 1;
-        rect->bottom = textObject->y + textObject->height - 1;
+        *rect = scene::floatingTextRefreshRect(textObject->dataLayout,
+            textObject->x, textObject->y, textObject->tile);
     }
 
     textObjectsRemoveByOwner(object);
@@ -308,19 +276,9 @@ void textObjectsRenderInRect(Rect* rect)
         textObject->x += sceneX;
         textObject->y += sceneY;
 
-        Rect textObjectRect;
-        textObjectRect.left = textObject->x;
-        textObjectRect.top = textObject->y;
-        textObjectRect.right = textObject->width + textObject->x - 1;
-        textObjectRect.bottom = textObject->height + textObject->y - 1;
-        if (rectIntersection(&textObjectRect, rect, &textObjectRect) == 0) {
-            blitBufferToBufferTrans(textObject->data + textObject->width * (textObjectRect.top - textObject->y) + (textObjectRect.left - textObject->x),
-                textObjectRect.right - textObjectRect.left + 1,
-                textObjectRect.bottom - textObjectRect.top + 1,
-                textObject->width,
-                gTextObjectsWindowBuffer + gTextObjectsWindowWidth * textObjectRect.top + textObjectRect.left,
-                gTextObjectsWindowWidth);
-        }
+        scene::floatingTextRenderInRect(textObject->dataLayout,
+            textObject->data, textObject->x, textObject->y, *rect,
+            gTextObjectsWindowBuffer, gTextObjectsWindowWidth);
     }
 }
 
@@ -349,11 +307,8 @@ static void textObjectsTicker()
             textObject->x += textObject->sx;
             textObject->y += textObject->sy;
 
-            Rect textObjectRect;
-            textObjectRect.left = textObject->x;
-            textObjectRect.top = textObject->y;
-            textObjectRect.right = textObject->width + textObject->x - 1;
-            textObjectRect.bottom = textObject->height + textObject->y - 1;
+            Rect textObjectRect = scene::floatingTextRefreshRect(textObject->dataLayout,
+                textObject->x, textObject->y, textObject->tile);
 
             if (textObjectsRemoved) {
                 rectUnion(&dirtyRect, &textObjectRect, &dirtyRect);

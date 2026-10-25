@@ -103,6 +103,18 @@ TextCaptureTag& activeTextCaptureTag()
     return value;
 }
 
+ColorWithFlags& activeTextOutlineColor()
+{
+    static thread_local ColorWithFlags value = COLOR_INVALID;
+    return value;
+}
+
+int& activeTextSharpOffsetY()
+{
+    static thread_local int value = 0;
+    return value;
+}
+
 scene::TextSizeRole& activeTextSizeRole()
 {
     static thread_local scene::TextSizeRole value = scene::TextSizeRole::Default;
@@ -323,15 +335,55 @@ void traceUntrackedCopySource(const BufferRange* sourceRange, const BufferRange*
 
 } // namespace
 
-ScopedTextCaptureTag::ScopedTextCaptureTag(TextCaptureTag tag)
+ScopedTextCaptureTag::ScopedTextCaptureTag(TextCaptureTag tag, ColorWithFlags outlineColor, int sharpTextOffsetY)
     : previous_(activeTextCaptureTag())
+    , previousOutlineColor_(activeTextOutlineColor())
+    , previousSharpTextOffsetY_(activeTextSharpOffsetY())
 {
     activeTextCaptureTag() = tag;
+    activeTextOutlineColor() = outlineColor;
+    activeTextSharpOffsetY() = sharpTextOffsetY;
 }
 
 ScopedTextCaptureTag::~ScopedTextCaptureTag()
 {
     activeTextCaptureTag() = previous_;
+    activeTextOutlineColor() = previousOutlineColor_;
+    activeTextSharpOffsetY() = previousSharpTextOffsetY_;
+}
+
+ScopedTextOutlineCapture::ScopedTextOutlineCapture(unsigned char* buffer, int width, int height, int pitch)
+    : buffer_(buffer)
+    , width_(width)
+    , height_(height)
+    , pitch_(pitch)
+{
+    std::lock_guard<std::recursive_mutex> lock(captureMutex());
+    BufferRange* range = findRange(buffer);
+    if (range == nullptr || width <= 0 || height <= 0 || pitch < width
+        || (range->pitch != 0 && range->pitch != pitch)
+        || !layer().hasOutlinedRuns(range->id)
+        || static_cast<std::size_t>(height) > std::numeric_limits<std::size_t>::max() / static_cast<std::size_t>(width)) {
+        buffer_ = nullptr;
+        return;
+    }
+    bufferId_ = range->id;
+    before_.resize(static_cast<std::size_t>(width) * height);
+    for (int y = 0; y < height; ++y) {
+        std::memcpy(before_.data() + static_cast<std::size_t>(y) * width,
+            buffer + static_cast<std::size_t>(y) * pitch, static_cast<std::size_t>(width));
+    }
+}
+
+ScopedTextOutlineCapture::~ScopedTextOutlineCapture()
+{
+    if (buffer_ == nullptr || bufferId_ == 0 || before_.empty()) return;
+    std::lock_guard<std::recursive_mutex> lock(captureMutex());
+    BufferRange* range = findRange(buffer_);
+    if (range == nullptr || range->id != bufferId_ || range->pitch != pitch_) return;
+    const scene::TextPixels before { before_.data(), width_, height_, width_ };
+    const scene::TextPixels after { buffer_, width_, height_, pitch_ };
+    layer().refreshOutlinedRuns(bufferId_, before, after);
 }
 
 ScopedTextSizeRole::ScopedTextSizeRole(scene::TextSizeRole role, bool enabled)
@@ -520,15 +572,19 @@ void textCaptureDrawText(unsigned char* buffer, const char* string, int length, 
     const int previewLineHeight = fontGetCurrent() == 101
         ? scene::font101PreviewCoverageHeight(lineHeight, range->ownerWindow, activeTextSizeRole())
         : lineHeight;
-    const int sharpTextOffsetY = fontGetCurrent() == 101
-            && activeTextCaptureTag() == TextCaptureTag::InterfacePlaqueOffset
-        ? -2
-        : 0;
+    const int sharpTextOffsetY = fontGetCurrent() != 101 ? 0
+        : activeTextCaptureTag() == TextCaptureTag::FloatingCharacterBark ? activeTextSharpOffsetY()
+        : activeTextCaptureTag() == TextCaptureTag::InterfacePlaqueOffset
+                || activeTextCaptureTag() == TextCaptureTag::CharacterStatsPlaque ? -2 : 0;
     const bool centeredStatDescription = fontGetCurrent() == 101
         && activeTextCaptureTag() == TextCaptureTag::SpecialStatDescription;
     const int verticalBoxY = centeredStatDescription ? y - 4 : y;
     const int verticalBoxHeight = centeredStatDescription ? 17 : 0;
-    const int textHeight = std::max(1, std::max(lineHeight, previewLineHeight) + (shadowed ? 1 : 0));
+    const bool underlined = (color & DRAW_TEXT_FLAG_UNDERLINED) != 0;
+    const int underlineCoverage = fontGetCurrent() == 101 && underlined ? 2 : 0;
+    const int underlineWidth = fontGetCurrent() == 101 && underlined ? 2 : 0;
+    const int textHeight = std::max(1, std::max(lineHeight, previewLineHeight)
+        + (shadowed ? 1 : 0) + underlineCoverage);
     const int legacyBottom = y + std::max(1, lineHeight) + (shadowed ? 1 : 0);
     const int shiftedTop = y + sharpTextOffsetY;
     const int shiftedBottom = shiftedTop + textHeight;
@@ -536,8 +592,13 @@ void textCaptureDrawText(unsigned char* buffer, const char* string, int length, 
     const int boundsHeight = centeredStatDescription
         ? verticalBoxHeight + (shadowed ? 1 : 0)
         : std::max(1, std::max(legacyBottom, shiftedBottom) - boundsY);
-    scene::TextRect bounds { x, boundsY, std::max(1, width + (shadowed ? 1 : 0)),
-        std::max(1, boundsHeight) };
+    const bool outlinedRun = fontGetCurrent() == 101
+        && activeTextCaptureTag() == TextCaptureTag::FloatingCharacterBark
+        && activeTextOutlineColor() != COLOR_INVALID;
+    const int outlineMargin = outlinedRun ? 2 : 0;
+    scene::TextRect bounds { x - outlineMargin, boundsY - outlineMargin,
+        std::max(1, width + (shadowed ? 1 : 0) + underlineWidth + 2 * outlineMargin),
+        std::max(1, boundsHeight + 2 * outlineMargin) };
     const scene::TextRect clipped = clippedRect(bounds, *range);
     PixelSnapshot before = snapshot(*range, clipped);
 
@@ -552,12 +613,18 @@ void textCaptureDrawText(unsigned char* buffer, const char* string, int length, 
     run.font = fontGetCurrent();
     run.sizeRole = run.font == 101 ? activeTextSizeRole() : scene::TextSizeRole::Default;
     run.colorAndFlags = static_cast<unsigned int>(color);
+    run.hasOutline = outlinedRun;
+    run.outlineColor = outlinedRun ? static_cast<unsigned int>(activeTextOutlineColor()) : 0;
     run.sharpEligible = run.font == 101;
     const Color sourceColor = static_cast<Color>(static_cast<unsigned int>(color) & 0xFF);
     if (run.sharpEligible && isSemanticGreenColor(sourceColor)) {
-        run.colorRole = activeTextCaptureTag() == TextCaptureTag::HudMessageLog
-            ? scene::TextColorRole::HudMessageLogGreen
-            : scene::TextColorRole::InterfaceGreen;
+        if (activeTextCaptureTag() == TextCaptureTag::CharacterStatsPlaque && sourceColor == COLOR_DARK_GREEN_2) {
+            run.colorRole = scene::TextColorRole::InactiveInjuryStatusGreen;
+        } else {
+            run.colorRole = activeTextCaptureTag() == TextCaptureTag::HudMessageLog
+                ? scene::TextColorRole::HudMessageLogGreen
+                : scene::TextColorRole::InterfaceGreen;
+        }
     }
     run.x = x;
     run.y = y;

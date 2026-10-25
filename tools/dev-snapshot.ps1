@@ -34,7 +34,7 @@ param(
     [switch]$DialogPageInspect,
     [switch]$DialogCursorCheck,
     [switch]$DialogLayoutCheck,
-    [ValidateSet('inventory', 'pipboy', 'character', 'barter', 'log')]
+    [ValidateSet('inventory', 'pipboy', 'character', 'barter', 'log', 'bark')]
     [string]$UiFixture,
     [ValidateSet('1.00', '1.08', '1.15', '1.22', '1.29')]
     [string]$Font101PreviewScale,
@@ -294,7 +294,7 @@ if ($PreferencesProbe) {
     $shots = 1 + @("$Tour".Split(',') | Where-Object { $_.Trim() }).Count
     $arguments += "--dev-map-tour=$Tour"
 } else {
-    if ($UiFixture) { $shots = 1 }
+    if ($UiFixture) { $shots = if ($UiFixture -eq 'bark') { 2 } else { 1 } }
     elseif ($DialogPageInspect) { $shots = 0 }
     elseif ($DialogCursorCheck) { $shots = 1 }
     elseif ($DialogFixture) { $shots = 1 }
@@ -486,6 +486,39 @@ if ($PreferencesProbe) {
 }
 if ($UiFixture) {
     $fixtureLog = Get-Content -Raw -LiteralPath (Join-Path $OutputDirectory 'process.stdout.log')
+    if ($UiFixture -eq 'bark') {
+        if ($dialogFixtureFailed -or $fixtureLog -notmatch '(?m)^UI_FIXTURE PASS screen=bark first=1 replacement=1 cleared_runs=0\r?$') {
+            throw "Bark fixture failed to replace and expire its outlined text.`n$fixtureLog"
+        }
+        $visibleBarkLine = [regex]::Match($fixtureLog, '(?m)^UI_FIXTURE STEP screen=bark stage=visible hasOutline=1 visiblePixels=(\d+) ')
+        $replacementBarkLine = [regex]::Match($fixtureLog, '(?m)^UI_FIXTURE STEP screen=bark stage=replaced hasOutline=1 visiblePixels=(\d+) ')
+        if (-not $visibleBarkLine.Success -or [int]$visibleBarkLine.Groups[1].Value -le 0 -or
+            -not $replacementBarkLine.Success -or [int]$replacementBarkLine.Groups[1].Value -le 0) {
+            throw 'Bark fixture did not prove visible pixels for both outlined Russian runs.'
+        }
+        if (-not $probeHarnessStoppedProcess -or $snapshots.Count -lt 2) {
+            throw 'Bark fixture must capture the visible bark and its cleared frame in the isolated helper process.'
+        }
+        $ordered = @($snapshots | Sort-Object LastWriteTime)
+        $barkMetadata = Get-Content -Raw -LiteralPath $ordered[0].FullName | ConvertFrom-Json
+        $clearMetadata = Get-Content -Raw -LiteralPath $ordered[-1].FullName | ConvertFrom-Json
+        $expectedResolution = "${ScreenWidth}x${ScreenHeight}"
+        $expectedLogicalResolution = "$([int]($ScreenWidth / $Scale))x$([int]($ScreenHeight / $Scale))"
+        foreach ($metadata in @($barkMetadata, $clearMetadata)) {
+            if ($metadata.snapshot_run -ne $runId -or $metadata.resolution -ne $expectedResolution -or
+                $metadata.logical_resolution -ne $expectedLogicalResolution -or $metadata.scale -ne $Scale) {
+                throw 'Bark fixture metadata does not match the requested dimensions and scale.'
+            }
+        }
+        if ($SharpText) {
+            if (-not $barkMetadata.sharp_text.setting -or -not $barkMetadata.sharp_text.active -or
+                -not $barkMetadata.sharp_text.drawn -or $barkMetadata.sharp_text.runs -le 0) {
+                throw 'Sharp-on bark snapshot lacks a drawn font-101 pass.'
+            }
+        } elseif ($barkMetadata.sharp_text.setting -or $barkMetadata.sharp_text.active -or $barkMetadata.sharp_text.drawn) {
+            throw 'Sharp-off bark snapshot unexpectedly reports active SharpText.'
+        }
+    } else {
     if ($dialogFixtureFailed -or $fixtureLog -notmatch ('(?m)^UI_FIXTURE PASS screen=' + [regex]::Escape($UiFixture) + ' ')) {
         throw "UI fixture '$UiFixture' failed or timed out within $TimeoutSeconds s.`n$fixtureLog"
     }
@@ -530,6 +563,7 @@ if ($UiFixture) {
         }
     } elseif ($uiMetadata.sharp_text.setting -or $uiMetadata.sharp_text.active -or $uiMetadata.sharp_text.drawn) {
         throw "Sharp-off UI fixture '$UiFixture' unexpectedly reports active sharp text."
+    }
     }
 }
 if ($DialogFixture -and -not $DialogPageInspect -and -not $DialogCursorCheck) {

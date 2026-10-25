@@ -184,20 +184,21 @@ int main()
         return 1;
     }
     const std::vector<unsigned char> font102Pixels = surface.pixels;
-    fallout::scene::setFont101PreviewBold(false, -1);
     record.run.font = 101;
     if (!renderSharpText({ record }, 256, 32, 512, 64, palette, 256, visibility, &surface)) return 1;
+    const std::vector<unsigned char> font101BoldPixels = surface.pixels;
+    fallout::scene::setFont101PreviewBold(false, -1);
+    if (!renderSharpText({ record }, 256, 32, 512, 64, palette, 256, visibility, &surface)
+        || surface.pixels == font101BoldPixels || surface.pixels == font102Pixels) {
+        std::fprintf(stderr, "Font-101 SemiBold 600 preview did not differ from selected Bold 700 at equal size\n");
+        return 1;
+    }
     const std::vector<unsigned char> font101SemiPixels = surface.pixels;
     fallout::scene::setFont101PreviewBold(true, -1);
     if (!renderSharpText({ record }, 256, 32, 512, 64, palette, 256, visibility, &surface)
-        || surface.pixels == font101SemiPixels) {
-        std::fprintf(stderr, "Font-101 Bold 700 override did not differ from selected SemiBold 600 at equal size\n");
-        return 1;
-    }
-    fallout::scene::setFont101PreviewBold(false, -1);
-    if (!renderSharpText({ record }, 256, 32, 512, 64, palette, 256, visibility, &surface)
-        || surface.pixels != font101SemiPixels || surface.pixels == font102Pixels) {
-        std::fprintf(stderr, "Font-101 default did not retain its SemiBold face distinct from regular font 102\n");
+        || surface.pixels != font101BoldPixels || surface.pixels == font101SemiPixels
+        || surface.pixels == font102Pixels) {
+        std::fprintf(stderr, "Font-101 Bold default did not match Bold preview or differ from SemiBold and regular font 102\n");
         return 1;
     }
 
@@ -223,6 +224,106 @@ int main()
     if (top < fitRecord.run.y * 2 || bottom < top
         || bottom >= (fitRecord.run.y + fitRecord.run.lineHeight) * 2) {
         std::fprintf(stderr, "CP1251 repertoire fit is outside the captured line: %d..%d\n", top, bottom);
+        return 1;
+    }
+
+    fallout::scene::TextRecord underlined = fitRecord;
+    underlined.run.font = 101;
+    underlined.run.text = "Hg";
+    underlined.run.x = 20;
+    underlined.run.y = 5;
+    underlined.run.width = 40;
+    underlined.run.lineHeight = 9;
+    std::vector<fallout::scene::TextVisibilityMask> underlineFullVisibility(1);
+    underlineFullVisibility[0].bounds = { 0, 0, 256, 32 };
+    underlineFullVisibility[0].pixels.assign(256 * 32, 1);
+    fallout::scene::setFont101PreviewScale(1.29, -1);
+    fallout::scene::setFont101PreviewBold(true, -1);
+    for (auto role : { fallout::scene::TextSizeRole::Default, fallout::scene::TextSizeRole::CompactUi }) {
+        underlined.run.sizeRole = role;
+        for (int outputScale : { 2, 3 }) {
+            underlined.run.colorAndFlags = 255;
+            if (!renderSharpText({ underlined }, 256, 32, 256 * outputScale, 32 * outputScale,
+                    palette, 256, underlineFullVisibility, &surface)) return 1;
+            int inkLeft = surface.width;
+            int inkRight = 0;
+            int inkBottom = -1;
+            for (int y = 0; y < surface.height; ++y) {
+                for (int x = 0; x < surface.width; ++x) {
+                    if (surface.pixels[(static_cast<size_t>(y) * surface.width + x) * 4 + 3] == 0) continue;
+                    inkLeft = std::min(inkLeft, x);
+                    inkRight = std::max(inkRight, x + 1);
+                    inkBottom = std::max(inkBottom, y + 1);
+                }
+            }
+            underlined.run.colorAndFlags = 255 | fallout::DRAW_TEXT_FLAG_UNDERLINED;
+            if (!renderSharpText({ underlined }, 256, 32, 256 * outputScale, 32 * outputScale,
+                    palette, 256, underlineFullVisibility, &surface)) return 1;
+            const int underlineY = inkBottom + outputScale;
+            bool aligned = inkBottom > 0 && inkRight > inkLeft && underlineY < surface.height;
+            for (int x = 0; aligned && x < surface.width; ++x) {
+                const bool linePixel = surface.pixels[(static_cast<size_t>(underlineY) * surface.width + x) * 4 + 3] == 255;
+                aligned = linePixel == (x >= inkLeft && x < inkRight);
+            }
+            if (!aligned) {
+                std::fprintf(stderr, "Font underline missed descender ink bounds at role=%d scale=%d\n",
+                    static_cast<int>(role), outputScale);
+                return 1;
+            }
+            const std::vector<unsigned char> fullUnderline = surface.pixels;
+            std::vector<fallout::scene::TextVisibilityMask> capturedUnderline = underlineFullVisibility;
+            const int capturedHeight = fallout::scene::font101PreviewCoverageHeight(9, -1, role) + 2;
+            capturedUnderline[0].bounds = { underlined.run.x, underlined.run.y,
+                underlined.run.width + 2, capturedHeight };
+            capturedUnderline[0].pixels.assign(static_cast<std::size_t>(capturedUnderline[0].bounds.width)
+                * capturedUnderline[0].bounds.height, 1);
+            if (!renderSharpText({ underlined }, 256, 32, 256 * outputScale, 32 * outputScale,
+                    palette, 256, capturedUnderline, &surface)
+                || surface.pixels != fullUnderline) {
+                std::fprintf(stderr, "Captured underline bounds clipped glyph or line at role=%d scale=%d\n",
+                    static_cast<int>(role), outputScale);
+                return 1;
+            }
+        }
+    }
+
+    underlined.run.colorAndFlags = 255;
+    if (!renderSharpText({ underlined }, 256, 32, 768, 96, palette, 256,
+            underlineFullVisibility, &surface)) return 1;
+    std::vector<unsigned char> glyphOnly = surface.pixels;
+    int glyphTop = surface.height;
+    int glyphBottom = -1;
+    int glyphLeft = surface.width;
+    int glyphRight = 0;
+    for (int y = 0; y < surface.height; ++y) {
+        for (int x = 0; x < surface.width; ++x) {
+            if (glyphOnly[(static_cast<size_t>(y) * surface.width + x) * 4 + 3] == 0) continue;
+            glyphTop = std::min(glyphTop, y);
+            glyphBottom = std::max(glyphBottom, y);
+            glyphLeft = std::min(glyphLeft, x);
+            glyphRight = std::max(glyphRight, x);
+        }
+    }
+    underlined.run.hasOutline = true;
+    underlined.run.outlineColor = 0;
+    if (!renderSharpText({ underlined }, 256, 32, 768, 96, palette, 256,
+            underlineFullVisibility, &surface)) return 1;
+    bool blackOutsideGlyph = false;
+    for (int y = 0; y < surface.height && !blackOutsideGlyph; ++y) {
+        for (int x = 0; x < surface.width; ++x) {
+            const size_t pixelIndex = (static_cast<size_t>(y) * surface.width + x) * 4;
+            if (surface.pixels[pixelIndex + 3] != 0
+                && surface.pixels[pixelIndex] == 0 && surface.pixels[pixelIndex + 1] == 0
+                && surface.pixels[pixelIndex + 2] == 0
+                && glyphOnly[pixelIndex + 3] == 0
+                && (x < glyphLeft || x > glyphRight || y < glyphTop || y > glyphBottom)) {
+                blackOutsideGlyph = true;
+                break;
+            }
+        }
+    }
+    if (!blackOutsideGlyph) {
+        std::fprintf(stderr, "Floating bark outline did not extend the sharp glyph mask\n");
         return 1;
     }
 
@@ -327,10 +428,10 @@ int main()
         return 1;
     }
     fallout::scene::setFont101PreviewScale(1.29, -1);
-    fallout::scene::setFont101PreviewBold(false, -1);
+    fallout::scene::setFont101PreviewBold(true, -1);
     if (fallout::scene::font101PreviewScaleForWindow(-1) != 1.29
-        || fallout::scene::font101PreviewUsesBold(-1)) {
-        std::fprintf(stderr, "Production font-101 default did not select E=1.29 SemiBold 600\n");
+        || !fallout::scene::font101PreviewUsesBold(-1)) {
+        std::fprintf(stderr, "Production font-101 default did not select E=1.29 Bold 700\n");
         return 1;
     }
     const std::string statDescriptions[] = {
@@ -555,6 +656,41 @@ int main()
     if (!renderedColorMatches(fallout::scene::TextColorRole::InterfaceGreen, 101, 44, dimInterfaceGreen)
         || !renderedColorMatches(fallout::scene::TextColorRole::HudMessageLogGreen, 101, 44, dimHudGreen)) {
         std::fprintf(stderr, "Dim canonical green source intensity was not preserved for both roles\n");
+        return 1;
+    }
+
+    fallout::_cmap[45 * 3] = 2;
+    fallout::_cmap[45 * 3 + 1] = 18;
+    fallout::_cmap[45 * 3 + 2] = 2;
+    fallout::_colorTable[fallout::rgb555(0x084A08)] = static_cast<fallout::Color>(45);
+    palette[45 * 3] = 8;
+    palette[45 * 3 + 1] = 72;
+    palette[45 * 3 + 2] = 8;
+    const unsigned char inactiveInjury[] = { 0, 123, 0 };
+    if (!renderedColorMatches(fallout::scene::TextColorRole::InactiveInjuryStatusGreen, 101, 45, inactiveInjury)) {
+        std::fprintf(stderr, "Inactive injury status did not brighten one palette step\n");
+        return 1;
+    }
+    palette[45 * 3] = 4;
+    palette[45 * 3 + 1] = 37;
+    palette[45 * 3 + 2] = 4;
+    const unsigned char dimInactiveInjury[] = { 0, 63, 0 };
+    if (!renderedColorMatches(fallout::scene::TextColorRole::InactiveInjuryStatusGreen, 101, 45, dimInactiveInjury)) {
+        std::fprintf(stderr, "Inactive injury status did not retain its intermediate palette fade\n");
+        return 1;
+    }
+    palette[45 * 3] = 252;
+    palette[45 * 3 + 1] = 252;
+    palette[45 * 3 + 2] = 252;
+    if (!renderedColorMatches(fallout::scene::TextColorRole::InactiveInjuryStatusGreen, 101, 45, whiteFade)) {
+        std::fprintf(stderr, "Inactive injury status did not preserve the white fade endpoint\n");
+        return 1;
+    }
+    palette[45 * 3] = 0;
+    palette[45 * 3 + 1] = 0;
+    palette[45 * 3 + 2] = 0;
+    if (!renderedColorMatches(fallout::scene::TextColorRole::InactiveInjuryStatusGreen, 101, 45, black)) {
+        std::fprintf(stderr, "Inactive injury status did not preserve the black fade endpoint\n");
         return 1;
     }
     fallout::_cmap[44 * 3] = 0;

@@ -19,11 +19,30 @@ enum class TextCaptureTag {
     HudMessageLog,
     SpecialStatDescription,
     InterfacePlaqueOffset,
+    CharacterStatsPlaque,
+    FloatingCharacterBark,
+};
+
+class ScopedTextOutlineCapture {
+public:
+    ScopedTextOutlineCapture(unsigned char* buffer, int width, int height, int pitch);
+    ~ScopedTextOutlineCapture();
+
+    ScopedTextOutlineCapture(const ScopedTextOutlineCapture&) = delete;
+    ScopedTextOutlineCapture& operator=(const ScopedTextOutlineCapture&) = delete;
+
+private:
+    unsigned char* buffer_ = nullptr;
+    scene::TextBufferId bufferId_ = 0;
+    int width_ = 0;
+    int height_ = 0;
+    int pitch_ = 0;
+    std::vector<unsigned char> before_;
 };
 
 class ScopedTextCaptureTag {
 public:
-    explicit ScopedTextCaptureTag(TextCaptureTag tag);
+    explicit ScopedTextCaptureTag(TextCaptureTag tag, ColorWithFlags outlineColor = COLOR_INVALID, int sharpTextOffsetY = 0);
     ~ScopedTextCaptureTag();
 
     ScopedTextCaptureTag(const ScopedTextCaptureTag&) = delete;
@@ -31,6 +50,8 @@ public:
 
 private:
     TextCaptureTag previous_;
+    ColorWithFlags previousOutlineColor_;
+    int previousSharpTextOffsetY_;
 };
 
 class ScopedTextSizeRole {
