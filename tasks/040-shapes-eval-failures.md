@@ -109,4 +109,4 @@ from the worktree's own export (`export.py ... --cache-root build/scene-cache`,
 then `eval.py shoot --only <frm>`, `eval.py sheets`, `eval.py score`).
 
 ### 2026-10-25 claude
-Folded into 074; close together with it.
+Folded into 075; close together with it.

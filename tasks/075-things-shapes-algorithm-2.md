@@ -1,5 +1,5 @@
 ---
-id: 074
+id: 075
 title: Things in 3D: a second, serious pass on the shapes algorithm
 milestone: M1
 status: todo
@@ -34,6 +34,12 @@ single spot.
   walls and the shelves read flat (`2026-10-25-bathhouse-interior.png`,
   `-bathhouse-shelves-flat.png`). First check whether the owner's build or
   cache lost solids that glm's eval shots had.
+- Likely why furniture vanished: glm found on 2026-10-24 (branch
+  `task/040-shapes-eval-failures`, its log) that every by-name box solid
+  since 040 part 3 is a collapsed sliver: `props.fit(force=True)` fits
+  around a tiny opaque core and nothing checks the box against the
+  sprite's footprint, so the chair, crate1 and the car draw nothing in
+  flight. Start here.
 - This task takes over 040 (the eval's failing FRMs) and 061 (holes in
   fitted solids); close both with it.
 - Where things stand: the design in
@@ -50,13 +56,13 @@ single spot.
 ## Acceptance
 
 - The owner's spots above read as solid things from 90, 180 and 270
-  degrees, before | after in `runs/074-things-shapes-algorithm-2/`.
+  degrees, before | after in `runs/075-things-shapes-algorithm-2/`.
 - No thing sticks through a wall or another thing in the Klamath fly
   shots; the eval score does not drop.
 - The game's own view unchanged (regression 16/16).
 
 ## Out of scope
 
-Walls, corners and roofs (the rest of the owner's second review).
+Walls, corners and roofs (076).
 
 ## Log

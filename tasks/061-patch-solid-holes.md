@@ -46,4 +46,4 @@ things from turned views.
 ## Log
 
 ### 2026-10-25 claude
-Folded into 074; close together with it.
+Folded into 075; close together with it.
