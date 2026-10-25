@@ -8,6 +8,7 @@
 #include <cstddef>
 #include <cstdio>
 #include <cstdlib>
+#include <utility>
 
 namespace fallout {
 unsigned char _cmap[COLOR_MAP_SIZE] = {};
@@ -390,6 +391,52 @@ int main()
                         lineHeight, outputScale, inkTop, inkBottom, inkCenter, boxCenter);
                     return 1;
                 }
+            }
+        }
+    }
+    for (int lineHeight : { 9, 10 }) {
+        for (int outputScale : { 2, 3 }) {
+            fallout::scene::TextRecord plaqueLine = fitRecord;
+            plaqueLine.run.text = std::string("\xC9", 1); // CP1251: capital short I.
+            plaqueLine.run.font = 101;
+            plaqueLine.run.x = 12;
+            plaqueLine.run.y = 10;
+            plaqueLine.run.width = 30;
+            plaqueLine.run.lineHeight = lineHeight;
+            plaqueLine.run.sharpTextOffsetY = 0;
+            SharpTextSurface originalLine;
+            SharpTextSurface shiftedLine;
+            if (!renderSharpText({ plaqueLine }, 256, 32, 256 * outputScale, 32 * outputScale,
+                    palette, 256, fullLineVisibility, &originalLine)) {
+                std::fprintf(stderr, "Unshifted character plaque text failed at line=%d x%d\n", lineHeight, outputScale);
+                return 1;
+            }
+            plaqueLine.run.sharpTextOffsetY = -2;
+            if (!renderSharpText({ plaqueLine }, 256, 32, 256 * outputScale, 32 * outputScale,
+                    palette, 256, fullLineVisibility, &shiftedLine)) {
+                std::fprintf(stderr, "Shifted character plaque text failed at line=%d x%d\n", lineHeight, outputScale);
+                return 1;
+            }
+            auto inkVerticalBounds = [](const SharpTextSurface& rendered) {
+                std::pair<int, int> result { rendered.height, -1 };
+                for (int y = 0; y < rendered.height; ++y) {
+                    for (int x = 0; x < rendered.width; ++x) {
+                        if (rendered.pixels[(static_cast<std::size_t>(y) * rendered.width + x) * 4 + 3] == 0) continue;
+                        result.first = std::min(result.first, y);
+                        result.second = std::max(result.second, y);
+                    }
+                }
+                return result;
+            };
+            const auto originalBounds = inkVerticalBounds(originalLine);
+            const auto shiftedBounds = inkVerticalBounds(shiftedLine);
+            const int pixelOffset = 2 * outputScale;
+            if (originalBounds.second < originalBounds.first
+                || shiftedBounds.first != originalBounds.first - pixelOffset
+                || shiftedBounds.second != originalBounds.second - pixelOffset) {
+                std::fprintf(stderr, "Character plaque text was not shifted exactly two logical rows at line=%d x%d\n",
+                    lineHeight, outputScale);
+                return 1;
             }
         }
     }

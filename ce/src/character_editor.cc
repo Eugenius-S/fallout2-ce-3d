@@ -2390,6 +2390,7 @@ static void characterEditorDrawPcStats()
     snprintf(stringBuffer, sizeof(stringBuffer), "%s %d",
         getmsg(&gCharacterEditorMessageList, &gCharacterEditorMessageListItem, 113),
         level);
+    ScopedTextCaptureTag plaqueOffset(TextCaptureTag::CharacterPlaqueOffset);
     fontDrawText(gCharacterEditorWindowBuffer + 640 * y + 32, stringBuffer, 640, 640, color);
 
     // EXPERIENCE
@@ -2635,6 +2636,8 @@ static void characterEditorDrawDerivedStats()
     y = 46;
 
     blitBufferToBuffer(_editorBackgroundFrmImage.getData() + 640 * y + 194, 118, 108, 640, gCharacterEditorWindowBuffer + 640 * y + 194, 640);
+
+    ScopedTextCaptureTag healthPlaqueOffset(TextCaptureTag::CharacterPlaqueOffset);
 
     // Hit Points
     if (characterEditorSelectedItem == EDITOR_HIT_POINTS) {

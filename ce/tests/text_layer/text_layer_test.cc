@@ -61,7 +61,7 @@ bool capture(TextLayer& layer, TextBufferId id, bool orphan,
     const std::vector<unsigned char>& before, const std::vector<unsigned char>& after,
     int width, int height, TextRect bounds, const char* text = "AB",
     int ownerWindow = -1, TextBufferId ownerGeneration = 0,
-    int verticalBoxY = 0, int verticalBoxHeight = 0)
+    int verticalBoxY = 0, int verticalBoxHeight = 0, int sharpTextOffsetY = 0)
 {
     const auto beforeView = view(before, width, height, width);
     const auto afterView = view(after, width, height, width);
@@ -71,6 +71,7 @@ bool capture(TextLayer& layer, TextBufferId id, bool orphan,
         capturedRun.verticalAlignmentBoxY = verticalBoxY;
         capturedRun.verticalAlignmentBoxHeight = verticalBoxHeight;
     }
+    capturedRun.sharpTextOffsetY = sharpTextOffsetY;
     return layer.capture(id, orphan, capturedRun, bounds, beforeView, afterView,
         ownerWindow, ownerGeneration);
 }
@@ -194,7 +195,7 @@ int main()
         after[6] = 9;
         after[7] = 10;
         after[8] = 11;
-        capture(layer, 5, false, before, after, 5, 3, { 0, 0, 5, 3 }, "AB", -1, 0, -2, 4);
+        capture(layer, 5, false, before, after, 5, 3, { 0, 0, 5, 3 }, "AB", -1, 0, -2, 4, -2);
         std::vector<unsigned char> destBefore(6, 4);
         const auto destAfter = blit(after, 5, 3, destBefore, 3, 2,
             { 1, 1, 3, 1 }, -1, 0, false, 0);
@@ -207,8 +208,9 @@ int main()
             "clipped fragment has clipped bounds");
         failures += !check(layer.records().back().run.y == -1
                 && layer.records().back().run.verticalAlignmentBoxY == -3
-                && layer.records().back().run.verticalAlignmentBoxHeight == 4,
-            "copy translation moves the centered content box with its run");
+                && layer.records().back().run.verticalAlignmentBoxHeight == 4
+                && layer.records().back().run.sharpTextOffsetY == -2,
+            "copy translates the centered box and preserves the relative modern text offset");
     }
 
     // Bounds overlap because both runs include blank advance/line-height area,

@@ -295,7 +295,7 @@ bool renderSharpText(const std::vector<scene::TextRecord>& records,
         const double logicalScale = (fitLineHeight / fitHeight) * sizePreview;
         const double fontScaleX = logicalScale * sx;
         const double fontScaleY = logicalScale * sy;
-        const double baselinePosition = (run.y + verticalBounds.top * logicalScale) * sy;
+        const double baselinePosition = (run.y + run.sharpTextOffsetY + verticalBounds.top * logicalScale) * sy;
         int baseline = static_cast<int>(sizePreview > 1.0
                 ? std::ceil(baselinePosition)
                 : std::lround(baselinePosition));

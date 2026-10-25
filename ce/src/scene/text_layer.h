@@ -56,6 +56,8 @@ struct TextRunInfo {
     // with the run when the record is copied to another buffer.
     int verticalAlignmentBoxY = 0;
     int verticalAlignmentBoxHeight = 0;
+    // Logical vertical shift for the modern glyph overlay only.
+    int sharpTextOffsetY = 0;
     bool sharpEligible = false;
     std::vector<int> characterX;
     std::vector<int> characterCellX;
