@@ -204,7 +204,9 @@ def _wall_front(batches, proj, sprites, pages, row, toward_camera, continues, ke
     at = lambda s, d, z: (ua + s * t[0] + d * back[0], va + s * t[1] + d * back[1], z)
     faces = [ends([at(-reach, 0, zc), at(reach, 0, zc), at(reach, thick, zc), at(-reach, thick, zc)])]
     rise = (top - texel(at(0, thick, zc))[1]) / hpx
-    if rise > 1e-6:
+    # Near a corner what the picture shows above the top is the other wall's
+    # top, drawn in the same picture: the free camera has that wall itself.
+    if rise > 1e-6 and keep == (0.0, 1.0):
         faces.append(ends([at(-reach, thick, zc), at(reach, thick, zc),
                            at(reach, thick, zc + rise), at(-reach, thick, zc + rise)], (False, False)))
     if keep != (0.0, 1.0):
@@ -294,6 +296,7 @@ def _quad_triangle(batches, page, page_size, corners):
 # wall's own material. The game's view stays as it was.
 CORNER_REACH = 0.75  # how far an end may lie from the wall it meets
 CORNER_SLACK = 0.02  # an end this close already meets it
+CORNER_OVERLAP = 0.01  # added faces reach this far into their neighbours: no crack shows between them
 
 
 class _Slab:
@@ -381,6 +384,7 @@ def _corner_fits(walls, hidden, toward_camera):
                 targets[(id(a), out)] = (a, out, near(b, out), None)
                 targets.setdefault((id(b), b_out), (b, b_out, far(a, b_out), a))
     corners = _Corners()
+    corners.targets = list(targets.values())
     for slab, out, target, other in targets.values():
         end = slab.hi if out > 0 else slab.lo
         axis = slab.axis
@@ -415,7 +419,12 @@ def _corner_fits(walls, hidden, toward_camera):
             other_s = lambda index: (walls[index][1 + other.axis], walls[index][3 + other.axis])
             face_row = min(other.rows, key=lambda index: gap(middle, *sorted(other_s(index))))
             corners.faces.append((slab, out, target, face_row))
-        corners.caps.append((slab, lender, target - out * max(2 * slab.thick, 0.35), target))
+        # The cap stays within what is left of the slab: a short corner piece
+        # may have both of its ends set.
+        other_end = targets.get((id(slab), -out))
+        stop = other_end[2] if other_end else (slab.lo if out > 0 else slab.hi)
+        reach = target - out * max(2 * slab.thick, 0.35)
+        corners.caps.append((slab, lender, max(reach, stop) if out > 0 else min(reach, stop), target))
     return corners
 
 
@@ -433,14 +442,15 @@ def _strip(row, axis, at, px, w, x, n):
     return (x, x + n) if abs(sa - at) < abs(sb - at) else (x + w, x + w - n)
 
 
-def _corner_fill(batches, proj, sprites, pages, hpx, row, slab, s0, s1):
+def _corner_fill(batches, proj, sprites, pages, hpx, px, row, slab, s0, s1):
     """A block of the wall's own material between s0 and s1 along `slab`: its
-    front and back, a strip of columns from the picture's edge at that end."""
+    front and back, a strip of columns from the picture's edge at that end.
+    px: picture columns per unit along u and along v."""
     page, x, y, w, h, top = _picture(sprites, row, hpx)
     z0, zc, thick = row[5], row[9], slab.thick
-    px = w / max(abs(row[3 + slab.axis] - row[1 + slab.axis]), 1e-6)
-    c0, c1 = _strip(row, slab.axis, s1, px, w, x, abs(s1 - s0))
+    c0, c1 = _strip(row, slab.axis, s1, px[slab.axis], w, x, abs(s1 - s0))
     lo, hi = sorted((s0, s1))
+    lo, hi = lo - CORNER_OVERLAP, hi + CORNER_OVERLAP
     p = slab.point
     for depth, away in ((0.0, False), (thick, True)):
         corners = [[*p(lo, depth), z0, c0, y + h], [*p(hi, depth), z0, c1, y + h],
@@ -448,29 +458,39 @@ def _corner_fill(batches, proj, sprites, pages, hpx, row, slab, s0, s1):
         _polygon(batches, proj, page, pages[page], corners, away)
 
 
-def _corner_face(batches, proj, sprites, pages, hpx, toward_camera, row, slab, out, s):
+def _corner_face(batches, proj, sprites, pages, hpx, px, toward_camera, row, slab, out, s):
     """The end face of `slab` at s, across its thickness, in the picture of the
     wall `row` whose plane it lies in, so the two read as one face."""
     page, x, y, w, h, top = _picture(sprites, row, hpx)
     axis = 1 - slab.axis  # the face runs along the other wall
-    px = w / max(abs(row[3 + axis] - row[1 + axis]), 1e-6)
-    c0, c1 = _strip(row, axis, sum(slab.band()) / 2, px, w, x, slab.thick)
+    c0, c1 = _strip(row, axis, sum(slab.band()) / 2, px[axis], w, x, slab.thick)
     z0, zc = row[5], row[9]
     p = slab.point
-    corners = [[*p(s, 0.0), z0, c0, y + h], [*p(s, slab.thick), z0, c1, y + h],
-               [*p(s, slab.thick), zc, c1, y + top], [*p(s, 0.0), zc, c0, y + top]]
+    near, far = -CORNER_OVERLAP, slab.thick + CORNER_OVERLAP
+    corners = [[*p(s, near), z0, c0, y + h], [*p(s, far), z0, c1, y + h],
+               [*p(s, far), zc, c1, y + top], [*p(s, near), zc, c0, y + top]]
     _polygon(batches, proj, page, pages[page], corners, out * toward_camera[slab.axis] < 0)
 
 
 def _corner_cap(batches, proj, sprites, pages, hpx, row, slab, s0, s1):
-    """The wall's top over s0 .. s1 as one flat piece in its cap's colour, a
-    hair above the tops it covers: the sheared tops end in a slant at a
-    corner and leave a notch there."""
+    """The wall's top over s0 .. s1 as one flat piece, a hair above the tops it
+    covers: the sheared tops end in a slant at a corner and leave a notch
+    there. Its colour is the texel the game drew the top on at its middle,
+    as the wall's own top samples it (_wall_front)."""
     page, x, y, w, h, top = _picture(sprites, row, hpx)
     if top < 1:
         return
-    tx, ty = x + w / 2, y + top / 2
-    z = row[9] + 0.004
+    ua, va, ub, vb, zc = row[1], row[2], row[3], row[4], row[9]
+    e0, e1 = proj.ground_to_px(ua, va, zc), proj.ground_to_px(ub, vb, zc)
+    dx = e1[0] - e0[0]
+    if abs(dx) < 1e-9:
+        return
+    middle = slab.point((s0 + s1) / 2, slab.thick / 2)
+    qx, qy = proj.ground_to_px(*middle, zc)
+    column = min(max((qx - e0[0]) * w / dx, 0.5), w - 0.5)
+    rows = min(max(e0[1] + (e1[1] - e0[1]) / dx * (qx - e0[0]) - qy, 0.5), top - 0.5)
+    tx, ty = x + column, y + top - rows
+    z = zc + 0.004
     p = slab.point
     lo, hi = sorted((s0, s1))
     _polygon(batches, proj, page, pages[page], [[*p(lo, 0.0), z, tx, ty], [*p(hi, 0.0), z, tx, ty],
@@ -483,7 +503,7 @@ def _moved_strip(trim, moved):
     for slab, end in moved:
         lo, hi = slab.band()
         s, t = ((ua, ub), (va, vb)) if slab.axis == 0 else ((va, vb), (ua, ub))
-        if abs(s[0] - end) < 0.03 and abs(s[1] - end) < 0.03 and lo - 0.03 <= min(t) and max(t) <= hi + 0.03:
+        if abs(s[0] - end) < 0.06 and abs(s[1] - end) < 0.06 and lo - 0.06 <= min(t) and max(t) <= hi + 0.06:
             return True
     return False
 
@@ -553,6 +573,7 @@ def encode_wall_sidecar(scene, skip_props=frozenset(), skip_rests=frozenset(), m
     continuations = _continuations(walls)
     hidden_walls = set(scene.get("hiddenWalls") or [])
     corners = _corner_fits(walls, hidden_walls, toward_camera)
+    px = (abs(squ[0]), abs(sqv[0]))  # picture columns per unit of wall along u, along v
     for index, row in enumerate(walls):
         batches.object = game.object = fly.object = owner(row[8])
         if row[10] > 0 and index in corners.keep:
@@ -577,10 +598,10 @@ def encode_wall_sidecar(scene, skip_props=frozenset(), skip_rests=frozenset(), m
             _wall_back(fly, sprites, pages, row, hpx, corners.keep.get(index, (0.0, 1.0)))
     for slab, lender, s0, s1 in corners.fills:
         fly.object = owner(walls[lender][8])
-        _corner_fill(fly, proj, sprites, pages, hpx, walls[lender], slab, s0, s1)
+        _corner_fill(fly, proj, sprites, pages, hpx, px, walls[lender], slab, s0, s1)
     for slab, out, at, lender in corners.faces:
         fly.object = owner(walls[lender][8])
-        _corner_face(fly, proj, sprites, pages, hpx, toward_camera, walls[lender], slab, out, at)
+        _corner_face(fly, proj, sprites, pages, hpx, px, toward_camera, walls[lender], slab, out, at)
     for slab, lender, s0, s1 in corners.caps:
         fly.object = owner(walls[lender][8])
         _corner_cap(fly, proj, sprites, pages, hpx, walls[lender], slab, s0, s1)
