@@ -41,6 +41,7 @@
 #include "queue.h"
 #include "random.h"
 #include "scripts.h"
+#include "scene/dialogue_backdrop.h"
 #include "scene/dialogue_layout.h"
 #include "scene/text_capture.h"
 #include "settings.h"
@@ -2691,7 +2692,7 @@ void _gdDestroyHeadWindow()
     }
 
     if (gameDialogBackgroundWindow != -1) {
-        windowDestroy(gameDialogBackgroundWindow);
+        scene::destroyDialogueBackgroundWindow(gameDialogBackgroundWindow);
         gameDialogBackgroundWindow = -1;
     }
 
@@ -4872,12 +4873,10 @@ static int talk_to_create_background_window()
     int backgroundWindowX = (screenGetWidth() - GAME_DIALOG_WINDOW_WIDTH) / 2;
     int backgroundWindowY = gameDialogGetBackgroundWindowY();
 
-    gameDialogBackgroundWindow = windowCreate(backgroundWindowX,
+    gameDialogBackgroundWindow = scene::createDialogueBackgroundWindow(backgroundWindowX,
         backgroundWindowY,
         GAME_DIALOG_WINDOW_WIDTH,
-        GAME_DIALOG_WINDOW_HEIGHT,
-        static_cast<ColorWithFlags>(256),
-        WINDOW_DONT_MOVE_TOP | WINDOW_MODAL);
+        GAME_DIALOG_WINDOW_HEIGHT);
 
     if (gameDialogBackgroundWindow != -1) {
         return 0;

@@ -304,6 +304,8 @@ set(FALLOUT_PLATFORM_SOURCES
     "src/devtools/ui_fixture.cc"
     "src/scene/preview_policy.cc"
     "src/scene/preview_policy.h"
+    "src/scene/dialogue_backdrop.cc"
+    "src/scene/dialogue_backdrop.h"
     "src/scene/dialogue_layout.cc"
     "src/scene/dialogue_layout.h"
     "src/scene/scene_lights.cc"
