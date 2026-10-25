@@ -62,3 +62,14 @@ that fits no task becomes a new task when the board runs dry.
   shows as 2D again; find out why it dropped out.
 - 2026-10-24 Same review: the fence corner's geometry is broken and the
   shadows expose it (the corners line above is the walls side of it).
+- 2026-10-24 Same chat (round 7): the holes in the shack wall by the
+  barrels may be fine, the owner says, it is a shack after all (the walls
+  holes line above; low priority unless he says otherwise).
+- 2026-10-24 Same chat: pin the doors to the 3D wall planes. The owner
+  says he already tasked claude with it; no task file on the board carries
+  it, so claude claims it or it becomes a task when the board runs dry
+  (the PLANE mechanism exists, 037).
+- 2026-10-25 The devshot still path renders no sun shadows (057's clean
+  A/B: same view and hour, [3d] shadows 1 vs 0, 0 pixels differ), so run
+  evidence for shadow tasks must come from the owner's game until the
+  snapshot path binds the shadow pass. Needs its own task when taken.

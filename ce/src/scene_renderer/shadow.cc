@@ -187,18 +187,19 @@ bool bindStaticShadows(const float* sceneMvp)
     shadowMatrix(sun.direction, pad, matrix);
 
     // The AA ring: uShadowStep GL units per [3d] shadow_pixel_size game
-    // pixel (hpx is the projection's pixels per GL unit), but at least 1.25
-    // depth map texels wide: at one texel the ring's taps still share texels
-    // and the edge reads a stair (the owner's round 6). The compare bias
-    // covers the ring's span and the depth map's slope error; it is set in
-    // the map's 0..1 depth, whose range the matrix uses. Set before the
-    // passes: the casters draw with them.
+    // pixel (hpx is the projection's pixels per GL unit), but at least two
+    // depth map texels wide: the nine taps must straddle texel boundaries or
+    // the edge still reads a stair (the owner's rounds 6 and 7; 1.25 texels
+    // were not enough). The compare bias covers the ring's span and the
+    // depth map's slope error; it is set in the map's 0..1 depth, whose
+    // range the matrix uses. Set before the passes: the casters draw with
+    // them.
     const double hpx = gHeroProjection.hpx > 0.0 ? gHeroProjection.hpx : 32.0;
     const float step = static_cast<float>(settings.scene3d.shadow_pixel_size / hpx);
     const double near = 1.0;
     const double far = 2.0 * kEyeDistance + 2.0 * gMaxCasterHeight + 20.0;
     const float texel = static_cast<float>(2.0 * (50.0 + pad) / kShadowMapSize);
-    const float ring = std::max(step, texel * 1.25f);
+    const float ring = std::max(step, texel * 2.0f);
     glUniform1i(gSceneShadowOnLocation, 1);
     glUniformMatrix4fv(gSceneShadowMatrixLocation, 1, 0, matrix);
     glUniform1f(gSceneShadowStrengthLocation, sun.strength);

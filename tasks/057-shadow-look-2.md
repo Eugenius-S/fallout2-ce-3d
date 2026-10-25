@@ -192,3 +192,30 @@ exactly the round 2 run's counts (the reference drift that began at 10:45,
 before this round, is unchanged by it).
 Next: the owner's eye. The feel constants are one line each: the melt end
 (12), the ring floor (1.25), the card dim (0.35).
+
+### 2026-10-25 glm
+Done: round 4, the owner's round 7 verdict (his screenshots stayed in the
+chat; the text is the record). His asks: the shadow must end a few meters
+past its caster, fully to zero ("длинные как в космосе"); the stairs are
+still on the edges.
+- The shadow is a rim now, like the game's painted ones: full density at
+  the blocker, smoothstep to zero over 0.75..3 GL units past it (one unit
+  is two hexes, so about six hexes). A roof's far stain across a yard goes
+  with it by construction: those ground points sit many units past their
+  blocker. This supersedes round 5's "dense along its whole length".
+- The stairs: the AA ring floor rises to two depth map texels (1.25 were
+  not enough), and the default edge softness goes from 2 to 3 game pixels
+  (settings.h and the onlyAdd default in settings.cc together).
+Check: build Release, ctest 12/12; the shadows-off code path is untouched
+this round.
+FOUND, and it voids this task's own earlier evidence: the devshot still
+path renders NO sun shadows at all. A clean A/B (same view, hour 17, [3d]
+shadows 1 vs 0 through tools/test-config/fallout2.cfg) differs by 0
+pixels, so the r1/r2/r3 corrals devshots and every percent claimed about
+them in the logs above measured build-to-build differences, not shadows.
+The invalid r3/r4 shots are deleted; the shadow look is judged in the
+owner's game only (his devperf.log there reads shadow=on, about 1 ms a
+frame). The snapshot blind spot is an inbox line.
+Next: the owner's eye on the relaunched game. Knobs, one line each: the
+rim end (3), the rim start (0.75), the ring floor (2 texels), the softness
+default (3).

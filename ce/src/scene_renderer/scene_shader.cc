@@ -168,12 +168,11 @@ vec4 sceneLighting() {
 // Nine taps in a ring a uShadowStep wide (the [3d] shadow_pixel_size setting,
 // the edge softness) antialias the edge; the lookup itself stays unsnapped in
 // world space, so a wall face takes no stripes from the step grid (the sun is
-// static per hour and the lookups do not move with the camera). The shadow
-// holds full density for the first couple of units past its blocker and
-// melts to nothing by ~12 (the owner's spec: dense along its length, a fade
-// only at the far end, wide enough to read): a wall keeps its dark contact
-// line under a roof that overshadows it in the depth map, and a roof's far
-// stain across a yard is still gone.
+// static per hour and the lookups do not move with the camera). The shadow is
+// a rim like the game's painted ones (the owner's round 7): full density at
+// the blocker, fully zero a few meters past it (smoothstep over 0.75..3 GL
+// units, one unit = two hexes). A roof's far stain across a yard is gone with
+// it: those ground points sit many units past their blocker and melt whole.
 float shadowPast(vec2 xz, float y) {
     vec4 s = uShadowMatrix * vec4(xz.x, y, xz.y, 1.0);
     vec3 p = s.xyz / s.w * 0.5 + 0.5;
@@ -189,7 +188,7 @@ float sunShadow() {
     float sum = 0.0;
     for (int i = 0; i < 9; i++) {
         float past = shadowPast(vWorld.xz + taps[i] * uShadowStep, vWorld.y);
-        if (past >= 0.0) sum += 1.0 - smoothstep(2.0, 12.0, past * uShadowRange);
+        if (past >= 0.0) sum += 1.0 - smoothstep(0.75, 3.0, past * uShadowRange);
     }
     return sum / 9.0;
 }
