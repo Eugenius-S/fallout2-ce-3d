@@ -60,3 +60,9 @@ that fits no task becomes a new task when the board runs dry.
   line with the first text character after the bullet, rather than with the
   bullet itself. The text should have a straight left edge independent of
   the markers. Not now; backlog only.
+- 2026-10-25 A brick house corner in flight (owner's shot
+  `runs/inbox/2026-10-25-corner-wall-floats.png`): the lower stretch of both
+  walls near the corner is missing, so the brick bottom floats above the
+  street, and a flat brown box (the corner core) stands under it alone; the
+  bricks above also look see-through near the edge. Belongs to the corner
+  work of 076/083 (`_corner_fits`, `_corner_core`); place not named yet.
