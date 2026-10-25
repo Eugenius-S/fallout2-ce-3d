@@ -2,8 +2,8 @@
 id: 076
 title: Walls, corners and roofs in 3D: one rule instead of patches
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: claude
 suggested: claude
 claude-only: no
 user-check: yes
