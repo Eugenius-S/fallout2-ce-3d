@@ -13,29 +13,34 @@ reviewed: yes
 
 ## Goal
 
-Apply the owner's selected font-101 appearance globally: scale 1.29 with the embedded IBM Plex Mono SemiBold 600 face. Vertically center the SPECIAL stat-description labels inside their existing content boxes. Raise the modern font-101 overlay by two logical pixels in the character level, health/injury, and derived-stat plaques. Keep the original pixel font exact when SharpText is off.
+Apply the owner's selected font-101 appearance globally: scale 1.29 with the embedded IBM Plex Mono SemiBold 600 face, except the main inventory and PipBoy screens, which use the next smaller 1.22 size with the same face. Vertically center the SPECIAL stat-description labels inside their existing content boxes. Raise the modern font-101 overlay by two logical pixels in the character level, health/injury, and derived-stat plaques, plus the inventory total-weight line. Add larger modern-only spacing between dialogue choices while preserving every option the baseline layout can display. Keep the original pixel font exact when SharpText is off.
 
 ## Context
 
 - The owner selected E=1.29 and SemiBold 600 from the five-size and two-face previews. Keep all preview captures and their original history in this task.
+- The owner later selected D=1.22 for font-101 text in the main inventory and PipBoy screens only. Store this as copied per-run semantic metadata; all other UI, including trade and loot, remains at the selected global 1.29 size.
 - The actual Russian character screen has 10 logical pixel text rows at 1920x1440 scale 3. The selected scale increases modern glyph coverage within each live owner window; legacy drawing, accepted widths, line height, and wrapping stay unchanged.
 - The SPECIAL description field has a 17-row interior in both active character-editor background FRMs. Center only the modern glyph ink for those two tagged draw calls; preserve legacy text coordinates.
 - The three specified character plaques shift only their modern font-101 glyphs upward by two logical pixels. Preserve legacy text coordinates and include both original and shifted coverage in capture bounds.
+- Only the inventory total-weight label/value line also shifts its modern font-101 glyphs upward by two logical pixels. Preserve legacy text coordinates and all other inventory rows.
+- Main inventory and PipBoy font-101 runs use size 1.22 with SemiBold 600. The compact role survives copied records and expands capture bounds for its smaller glyph coverage. Inventory slot labels, summary, weight, and selected item descriptions are included; loot and trade text is excluded.
+- With SharpText enabled, dialogue choice groups receive up to two additional logical pixels beyond the existing two-pixel row margin. The extra gap shrinks as needed to retain all baseline-visible options. Wrapped lines within one choice keep the original ten-pixel line height, and button rectangles follow the shifted text without overlap.
 - Keep source color behavior from task 056: normal interface green `#3FB419`, lower HUD log green `#4BD51F`, all other palette states unchanged.
 
 ## Acceptance
 
-- With SharpText enabled, every eligible font-101 run uses scale 1.29 and SemiBold 600, including UI copies. Other font IDs retain their previous behavior.
+- With SharpText enabled, untagged eligible font-101 runs use scale 1.29 and SemiBold 600, including UI copies. Main-inventory and PipBoy font-101 runs use the copied CompactUi role at scale 1.22 with the same face. Other font IDs retain their previous behavior.
 - The SPECIAL stat-description role is attached only at its two real font-draw call sites. Its modern glyph ink is centered within the measured 17-row box and its copied records retain the box geometry.
-- Only the level/experience/next-level, health/injury, and derived-stat plaques shift modern font-101 glyphs upward by two logical pixels. Legacy coordinates and pixels stay unchanged, and other fonts and UI panels retain a zero offset.
-- With SharpText disabled, dialogue and character full-frame captures are byte-identical to the latest task 056 references. The inventory window is unchanged; its full frame has a 432-pixel difference in the lower HUD outside the inventory window. All pixels outside that 60x9 rectangle are byte-identical, and the current inventory capture also matches the earlier task 056 reference exactly.
+- Only the level/experience/next-level, health/injury, and derived-stat plaques plus the inventory total-weight line shift modern font-101 glyphs upward by two logical pixels. Legacy coordinates and pixels stay unchanged, and other fonts and UI panels retain a zero offset.
+- With SharpText disabled, the new dialogue layout frame is byte-identical to the earlier accepted task 057 dialogue OFF frame. The compact inventory OFF frame is byte-identical to the accepted inventory weight OFF frame; the older task 056 comparison retains the documented 432-pixel lower-HUD difference outside the inventory window. The inventory and PipBoy size roles affect only modern font-101 glyphs.
 - Runtime evidence covers Russian inventory, dialogue, character screen, and HUD at scale 3, English barter and a boxed label at scale 2, plus PipBoy. Compare original and final frames for inventory, dialogue, and character.
-- Renderer and capture tests cover selected defaults, per-window preview overrides, label centering and copied geometry, scoped plaque offsets and expanded capture bounds, glyph clipping, palette fades, and unchanged original palette states.
+- Renderer and capture tests cover selected defaults, per-window previews, compact per-run role resolution and copy preservation, label centering and copied geometry, scoped plaque offsets and expanded capture bounds, glyph clipping, palette fades, and unchanged original palette states.
+- Dialogue layout tests cover seven choices with eight rows, dense menus, actual draw-end limits, skipped entries, and single-choice menus. Runtime geometry evidence confirms seven non-overlapping buttons and no lost options. The existing real KEY_2 fixture changes the reply; game-dialog maps keycode 50 to option index 1. This is keyboard-path evidence, not a mouse-injection test.
 - Release build, CTest, and the 16-point SharpText-off regression pass.
 
 ## Out of scope
 
-- Adding a public size or weight control, changing game-font resources, changing legacy text coordinates, or modifying layout outside the specified character plaques and SPECIAL labels.
+- Adding a public size or weight control, changing game-font resources, changing legacy text coordinates, or modifying layout outside the specified plaques, SPECIAL labels, dialogue choice spacing, main inventory size role, and PipBoy size role.
 - Changing the owner-selected palette roles or tinting non-green states.
 
 ## Log
@@ -74,3 +79,13 @@ Check: stock `master.dat` and active mod both show matching 17-row label interio
 Done: completed the global 1.29 SemiBold 600 rollout, centered SPECIAL labels, and applied a scoped two-row modern-only lift to the level, health/injury, and derived-stat plaques. Updated the measured Russian character text line height to 10 logical pixels. Curated the final runtime matrix under `runs/057-interface-font-size-preview/accepted/final/` at source `a9674c33` and EXE SHA-256 `8c5b57d5754e491c41509dc422d264178f93a2f145b3a9a7b1cb72d6c992679f`.
 Next: root final review, then merge the PR.
 Check: clean Release build passed, CTest 14/14, SharpText-off regression 16/16 with zero changed pixels. Dialogue and character OFF frames are byte-identical to the latest task 056 references. The inventory window is unchanged; 432 differing pixels are confined to a non-green lower HUD rectangle already differing between task 056 captures. The current repeated inventory capture is byte-identical, and the earlier task 056 reference matches it exactly. Runtime fixture logs confirm the selected default, plaque boxes, colors, and scoped offset.
+
+### 2026-10-25 gpt
+Done: raised only the inventory total-weight line's modern font-101 overlay by two logical pixels. Renamed the scoped metadata tag to `InterfacePlaqueOffset`; character plaque behavior stays the same. Curated the OFF/ON verification pair under `runs/057-interface-font-size-preview/accepted/final/inventory-weight-off/` and `inventory-weight-on/` at source `73cfb968` and EXE SHA-256 `5174d457f2b1e3bfa5536ea38512fbf6bc6a98a7407ce9474eff9113826c2ac0`.
+Next: root final review and PR #84 checks, then merge.
+Check: clean Release build and CTest 14/14 pass. The new OFF frame is byte-identical to the earlier inventory OFF frame. The ON fixture passes with font-101 at 1.29 SemiBold, 34 green runs, and 218 glyphs; visual review confirms the weight line has additional bottom clearance. The HUD split is legacy word wrap: the line is 155 logical pixels, ` городок` is 55, and only 6 pixels remain in the full 167-pixel monitor after the marker.
+
+### 2026-10-25 gpt
+Done: added adaptive modern-only dialogue-choice gaps and the per-run `CompactUi` font-101 size role for the main inventory and PipBoy. Captures, metadata, and process logs are curated under `runs/057-interface-font-size-preview/accepted/final/`; source `eb2d3c4e`, EXE SHA-256 `5e4d1c6592071733dbd3f4f796fac670e8de3ae8aec4e2d41498063fcad2de73`.
+Next: root final review of PR #84, then merge.
+Check: clean Release build passed; CTest 15/15; SharpText-off regression 16/16 with zero changed pixels. Dialogue OFF is byte-identical to the prior accepted OFF frame; inventory OFF is byte-identical to `inventory-weight-off`. The dialogue fixture retains 7 options across 8 rows with 4px between-choice gaps ON versus 2px OFF, non-overlapping buttons, and no lost option. Inventory and PipBoy fixtures confirm all target runs use 1.22 SemiBold; other font-101 runs keep 1.29. The real KEY_2 fixture changes the reply and maps to option index 1. The HUD split was verified as normal legacy word wrapping, so no HUD code changed.
