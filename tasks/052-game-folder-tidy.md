@@ -8,7 +8,7 @@ suggested: glm
 claude-only: no
 user-check: yes
 depends-on: []
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
