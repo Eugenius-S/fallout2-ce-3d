@@ -1,18 +1,26 @@
 #include "scene/text_capture.h"
+#include "scene/floating_text.h"
 
 #include <algorithm>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <iterator>
 #include <string>
 #include <vector>
 
 #include "text_font.h"
+#include "draw.h"
+#include "geometry.h"
+#include "memory.h"
 
 namespace fallout {
 
+void tileSceneShift(int tile, int* dx, int* dy);
+
 FontManagerDrawTextProc* fontDrawTextPtr = nullptr;
 FontManagerGetLineHeightProc* fontGetLineHeight = nullptr;
+FontManagerGetStringWidthProc* fontGetStringWidth = nullptr;
 FontManagerGetCharacterWidthProc* fontGetCharacterWidth = nullptr;
 FontManagerGetLetterSpacingProc* fontGetLetterSpacing = nullptr;
 FontManagerGetMonospacedCharacterWidth* fontGetMonospacedCharacterWidth = nullptr;
@@ -20,6 +28,15 @@ int gCurrentFont = 101;
 Color _colorTable[COLOR_PALETTE_SIZE_15BIT] = {};
 TextWindowSnapshot gTestWindow = {};
 TextCursorSnapshot gTestCursor = {};
+int gFloatingTextOutlineCalls = 0;
+Color gFloatingTextOutlineColor = COLOR_BLACK;
+int gFloatingTextBlitCalls = 0;
+int gFloatingTextLastBlitWidth = 0;
+int gFloatingTextLastBlitHeight = 0;
+int gFloatingTextLastSourcePitch = 0;
+int gFloatingTextLastDestinationPitch = 0;
+int gFloatingTextShiftX = 0;
+int gFloatingTextShiftY = 0;
 
 int fakeLineHeight() { return 2; }
 int fakePreviewLineHeight() { return 9; }
@@ -28,6 +45,70 @@ int fakeLetterSpacing() { return 0; }
 int fakeMonospacedWidth() { return 1; }
 int wideCharacterWidth(int character) { return character == 'w' ? 3 : 1; }
 int fivePixelMonospacedWidth() { return 5; }
+int fakeStringWidth(const char* string) { return static_cast<int>(std::strlen(string)); }
+
+void* internal_malloc(std::size_t size)
+{
+    void* buffer = std::malloc(size);
+    if (buffer != nullptr) {
+        textCaptureAllocationCreated(buffer, size);
+        textCaptureMarkBufferOwned(buffer);
+    }
+    return buffer;
+}
+
+void internal_free(void* buffer)
+{
+    if (buffer != nullptr) {
+        textCaptureAllocationDestroyed(buffer);
+        std::free(buffer);
+    }
+}
+
+void bufferOutline(unsigned char* buffer, int width, int height, int pitch, Color color)
+{
+    gFloatingTextOutlineCalls++;
+    gFloatingTextOutlineColor = color;
+    std::vector<unsigned char> original(buffer, buffer + pitch * height);
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+            if (original[y * pitch + x] != 0) continue;
+            for (int dy = -1; dy <= 1; dy++) {
+                for (int dx = -1; dx <= 1; dx++) {
+                    const int neighborX = x + dx;
+                    const int neighborY = y + dy;
+                    if (neighborX >= 0 && neighborX < width && neighborY >= 0 && neighborY < height
+                        && original[neighborY * pitch + neighborX] != 0) {
+                        buffer[y * pitch + x] = static_cast<unsigned char>(color);
+                    }
+                }
+            }
+        }
+    }
+}
+
+void blitBufferToBufferTrans(const unsigned char* source, int width, int height, int sourcePitch,
+    unsigned char* destination, int destinationPitch)
+{
+    gFloatingTextBlitCalls++;
+    gFloatingTextLastBlitWidth = width;
+    gFloatingTextLastBlitHeight = height;
+    gFloatingTextLastSourcePitch = sourcePitch;
+    gFloatingTextLastDestinationPitch = destinationPitch;
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+            if (source[x] != 0) destination[x] = source[x];
+        }
+        source += sourcePitch;
+        destination += destinationPitch;
+    }
+}
+
+void tileSceneShift(int, int* dx, int* dy)
+{
+    *dx = gFloatingTextShiftX;
+    *dy = gFloatingTextShiftY;
+}
 
 int fontGetCurrent()
 {
@@ -818,6 +899,87 @@ void testFont101SizePreviewExtendsCaptureOnly()
     gCurrentFont = 101;
 }
 
+void testFloatingTextEngineAdapter()
+{
+    using namespace fallout;
+
+    const int previousFont = gCurrentFont;
+    FontManagerGetLineHeightProc* previousLineHeight = fontGetLineHeight;
+    FontManagerGetStringWidthProc* previousStringWidth = fontGetStringWidth;
+    FontManagerDrawTextProc* previousDrawText = fontDrawTextPtr;
+    gCurrentFont = 101;
+    fontGetLineHeight = fakePreviewLineHeight;
+    fontGetStringWidth = fakeStringWidth;
+    fontDrawTextPtr = fakeFontDraw;
+
+    char text[] = "ab cd";
+    const short lineStarts[] = { 0, 3, 5 };
+    const ColorWithFlags outlineColor = static_cast<ColorWithFlags>(73);
+    const ColorWithFlags textColor = static_cast<ColorWithFlags>(41);
+    scene::FloatingTextOutlineLayout layout;
+    unsigned char* data = nullptr;
+    const int outlineCalls = gFloatingTextOutlineCalls;
+    const int drawCallsBefore = drawCalls;
+    check(scene::floatingTextCreateData(text, lineStarts, 2, 101, textColor,
+              outlineColor, 8, 24, &layout, &data),
+        "floating text adapter creates its padded font-101 buffer");
+    const int lineOffset = scene::font101PreviewCoverageHeight(9, -1) - 9;
+    check(layout.bufferWidth == 12 && layout.bufferHeight == 26 + 2 * lineOffset,
+        "floating text adapter preserves the outlined buffer layout");
+    check(data != nullptr && drawCalls == drawCallsBefore + 2,
+        "floating text adapter draws each wrapped line once");
+    check(gFloatingTextOutlineCalls == outlineCalls + 1
+            && gFloatingTextOutlineColor == static_cast<Color>(outlineColor & COLOR_LAST),
+        "floating text adapter applies the requested outline color");
+    check(std::strcmp(text, "ab cd") == 0,
+        "floating text adapter restores the wrapped input string");
+
+    if (data != nullptr) {
+        const auto records = scene::textCaptureRecords(textCaptureBufferId(data));
+        const auto firstLine = std::find_if(records.begin(), records.end(), [](const scene::TextRecord& record) {
+            return record.run.text == "ab";
+        });
+        const auto secondLine = std::find_if(records.begin(), records.end(), [](const scene::TextRecord& record) {
+            return record.run.text == "cd";
+        });
+        check(firstLine != records.end() && firstLine->run.hasOutline
+                && firstLine->run.outlineColor == static_cast<unsigned int>(outlineColor & COLOR_LAST)
+                && firstLine->run.sharpTextOffsetY == 0,
+            "floating text adapter scopes the first font-101 outline capture");
+        check(secondLine != records.end() && secondLine->run.hasOutline
+                && secondLine->run.outlineColor == static_cast<unsigned int>(outlineColor & COLOR_LAST)
+                && secondLine->run.sharpTextOffsetY == lineOffset,
+            "floating text adapter applies the per-line font-101 capture offset");
+
+        std::vector<unsigned char> destination(32 * 32, 0);
+        const int blitCalls = gFloatingTextBlitCalls;
+        scene::floatingTextRenderInRect(layout, data, 4, 5, Rect { 6, 7, 8, 9 },
+            destination.data(), 32);
+        check(gFloatingTextBlitCalls == blitCalls + 1
+                && gFloatingTextLastBlitWidth == 3 && gFloatingTextLastBlitHeight == 3
+                && gFloatingTextLastSourcePitch == layout.bufferWidth
+                && gFloatingTextLastDestinationPitch == 32,
+            "floating text adapter clips before the transparent blit");
+
+        gFloatingTextShiftX = 7;
+        gFloatingTextShiftY = -4;
+        const Rect refresh = scene::floatingTextRefreshRect(layout, 100, 50, 42);
+        check(refresh.left == 100 + 7 - layout.offsetX
+                && refresh.top == 50 - 4 - layout.offsetY
+                && refresh.right == refresh.left + layout.bufferWidth - 1
+                && refresh.bottom == refresh.top + layout.bufferHeight - 1,
+            "floating text adapter includes scene shift and padded bounds in refresh rectangles");
+        gFloatingTextShiftX = 0;
+        gFloatingTextShiftY = 0;
+        internal_free(data);
+    }
+
+    gCurrentFont = previousFont;
+    fontGetLineHeight = previousLineHeight;
+    fontGetStringWidth = previousStringWidth;
+    fontDrawTextPtr = previousDrawText;
+}
+
 } // namespace
 
 int main()
@@ -841,6 +1003,7 @@ int main()
     testVisibilityClearsHiddenAndStaleOwners();
     testCursorOcclusionPreservesOwnedText();
     testFont101SizePreviewExtendsCaptureOnly();
+    testFloatingTextEngineAdapter();
     if (failures == 0) std::printf("text_capture_tests: all passed\n");
     return failures == 0 ? 0 : 1;
 }
