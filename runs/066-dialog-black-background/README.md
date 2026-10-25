@@ -31,13 +31,17 @@ permits a successfully captured dialogue to return normally. This avoids
 mistaking world text during initial backdrop composition for a ready
 dialogue, or reporting a normal goodbye as a failed window opening.
 
-## Checks and remaining gate
+## Checks and regression diagnosis
 
 Release build, 15 CTests, 52 exporter tests and 12 regression unit tests pass.
 The complete 16-spot visual regression has 3 passes and 13 reference mismatches.
-A control build with both changed engine files restored to `origin/main`
-produces the same entrance image as the patched build (0 different pixels).
-Both have the same 501-pixel difference from the stored reference. This proves
-that particular difference predates this fix; the other 12 have not been
-individually controlled. References were not updated. The task remains doing
-and its PR remains a draft pending this separate regression investigation.
+A control build with both changed engine files restored to base `04dbdf88`
+produces exactly the same images as the patched build at all 16 spots. Strict
+comparison allows no channel tolerance and reports 0 changed pixels everywhere.
+Every old-reference mismatch also reproduces in the control. Per-spot counts,
+validation settings and executable hashes are in `baseline-comparison.json`.
+
+The ordinary regression checker passes 16/16 against the temporary current-base
+reference set. The committed references still come from 2026-10-22, source
+`32f0fe2b`, and were not updated. Their independent audit is task 084. This task
+changes no world pixels relative to its base.

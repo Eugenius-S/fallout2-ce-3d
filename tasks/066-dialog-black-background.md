@@ -2,13 +2,13 @@
 id: 066
 title: The dialogue screen hides the street behind black
 milestone: M1
-status: doing
+status: done
 owner: gpt
 suggested: glm
 claude-only: no
 user-check: yes
 depends-on: []
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -61,3 +61,24 @@ full regression: `runs/regression/20261025-191452-400-19392/summary.txt` (not
 committed); incomplete local cache was exported and missing captures retried.
 Control capture: `build/control-entrance/`; control EXE:
 `build/fallout2-ce-control.exe`. Final patched EXE was rebuilt afterward.
+
+### 2026-10-25 gpt, regression diagnosis
+
+Done: all 16 control captures from the base engine match the task captures
+exactly, with channel tolerance 0 and 0 changed pixels at every spot. All 13
+stored-reference mismatches also reproduce in the control build. Recorded
+per-spot counts and executable hashes in
+`runs/066-dialog-black-background/baseline-comparison.json`. Stored references
+date from 2026-10-22, source `32f0fe2b`; the task base is `04dbdf88`.
+
+Next: no remaining work in 066. Task 084 independently audits the old reference
+drift; it must not automatically accept unintended changes. No reference PNG
+or engine data format was changed in this task. Task 065 was not started.
+
+Check: `py -3 build/verify-controls.py` validates both sets with the standard
+capture validator and strict pixel comparison. The normal regression checker
+also passes 16/16 against the temporary current-base reference set:
+`py -3 tools/regression/check.py --run runs/regression/20261025-191452-400-19392
+--reference build/current-base-reference`. The committed old references still
+have 13 mismatches; their original summary is preserved in
+`build/stored-reference-summary.json`. The final patched EXE remains in build.
