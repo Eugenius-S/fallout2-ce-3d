@@ -33,3 +33,12 @@ in the wall instead of floating as a card.
 Wall geometry (071).
 
 ## Log
+
+### 2026-10-25 claude
+Looked, nothing changed. Doors already lie on their wall's plane under the
+free camera since 037 (`onFlyPlane`, live_objects.cc), and in today's fly
+shots of kladwtwn from four sides every door sits in its wall
+(`runs/inbox/2026-10-25-door-on-wall-fly.png`). The owner's review shots
+16 and 17 show wall ends at corners, not doors: 071 fixed those.
+Next: the owner's screenshot of the door that floats (map, where, which
+view: fly camera, turned view, an open door), then fix that case.
