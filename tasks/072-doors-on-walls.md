@@ -62,3 +62,11 @@ the Buckner door open from three sides in `runs/072-doors-on-walls/`.
 Not settled: the closed doors the owner saw sitting crooked in the bathhouse;
 in today's shots closed doors lie flat in their doorways. If they still read
 wrong in the owner's game, that is a new task with a screenshot.
+
+### 2026-10-25 claude (the owner's call)
+The owner: no doors opening in 3D. Under a free camera a door standing wide
+open (its last frame) is not drawn at all, the doorway stays empty; a door
+caught between frames keeps its picture on the wall's plane, as since 037.
+The hinged leaf (`swingDoor`) is gone. `-OpenDoors` stays for snapshots.
+Check: ctest 15/15, the game's view 0 pixels changed; swung against hidden:
+`runs/072-doors-on-walls/buckner-door-swing-vs-hidden.png`.

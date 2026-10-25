@@ -103,47 +103,6 @@ void onFlyPlane(SpriteCardVertex corners[4], const float plane[3], const float e
     }
 }
 
-// A door standing open under the fly camera (072): the game's picture of an
-// open door laid on the wall reads as a crooked panel, so the closed leaf
-// (the card's art, already on the wall's plane) turns round its hinge by how
-// far the door is open, out to the camera's side of the wall. The hinge is the
-// leaf's edge nearer to where the game draws the open door.
-void swingDoor(SpriteCardVertex corners[4], const StaticObjectFrame& frame, const float plane[3], const float eye[3])
-{
-    const SpriteCardArt openArt = { frame.tile, frame.objectX, frame.objectY, frame.openXOffset, frame.openYOffset,
-        frame.openWidth, frame.openHeight };
-    SpriteCardVertex open[4];
-    if (!standingSpriteCard(cardProjection(), openArt, open, nullptr, nullptr)) return;
-    onFlyPlane(open, plane, eye);
-    const double alongX = std::cos(plane[1]);
-    const double alongZ = std::sin(plane[1]);
-    auto along = [&](const SpriteCardVertex& vertex) { return vertex.x * alongX + vertex.z * alongZ; };
-    const double left = (along(corners[0]) + along(corners[1])) / 2.0;
-    const double right = (along(corners[2]) + along(corners[3])) / 2.0;
-    const double middle = (along(open[0]) + along(open[1]) + along(open[2]) + along(open[3])) / 4.0;
-    const int hinge = std::abs(middle - left) <= std::abs(middle - right) ? 0 : 2;
-    const double hingeX = (corners[hinge].x + corners[hinge + 1].x) / 2.0;
-    const double hingeZ = (corners[hinge].z + corners[hinge + 1].z) / 2.0;
-    double normalX = -std::sin(plane[1]);
-    double normalZ = std::cos(plane[1]);
-    if (normalX * (eye[0] - plane[0]) + normalZ * (eye[2] - plane[2]) < 0.0) {
-        normalX = -normalX;
-        normalZ = -normalZ;
-    }
-    const double angle = std::clamp(static_cast<double>(frame.doorOpen), 0.0, 1.0) * 1.5707963267948966;
-    for (int index = 2 - hinge; index < 4 - hinge; index++) {
-        SpriteCardVertex& corner = corners[index];
-        const double dx = corner.x - hingeX;
-        const double dz = corner.z - hingeZ;
-        const double reach = std::sqrt(dx * dx + dz * dz);
-        if (reach < 1e-9) continue;
-        const double ux = dx / reach;
-        const double uz = dz / reach;
-        corner.x = hingeX + reach * (std::cos(angle) * ux + std::sin(angle) * normalX);
-        corner.z = hingeZ + reach * (std::cos(angle) * uz + std::sin(angle) * normalZ);
-    }
-}
-
 void destroyStaticHero()
 {
     if (gContext != nullptr) {
@@ -295,7 +254,6 @@ bool addStaticObject(const StaticObjectFrame& frame, std::string* error)
     if (flat) {
     } else if (staticObjectPlane(frame.tile, frame.fid, plane)) {
         onFlyPlane(corners, plane, camera.eye);
-        if (frame.doorOpen > 0.0f) swingDoor(corners, frame, plane, camera.eye);
     } else {
         faceFlyCamera(corners);
     }
