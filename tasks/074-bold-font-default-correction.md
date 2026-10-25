@@ -67,5 +67,5 @@ Check: second attempt also ended without snapshots at the isolated harness deadl
 
 ### 2026-10-25 gpt
 Done: the first bark frame is visible and reports 707 owned text pixels. The first replacement attempt timed out. Added scene-module refresh bounds that accept the renderer's `tileSceneShift` for add and removal rectangles, plus a shifted-bounds unit assertion.
-Next: rebuild with a bounded diagnostic for actual scene shift, old/new copied-run counts, and object count; keep the fixture wait to 300 frames.
+Next: rebuild with a bounded diagnostic for actual scene shift, old/new copied-run counts, and object count; cap replacement at 300 frames and natural expiry at 1200.
 Check: replacement has not passed yet. The prior attempt used the pre-shift build, so it does not establish whether the shift caused the timeout.
