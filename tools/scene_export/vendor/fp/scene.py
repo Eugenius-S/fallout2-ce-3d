@@ -754,6 +754,10 @@ class SceneBuilder:
                     abs(u - cu) <= half[0] + ON_TOP and abs(v - cv) <= half[1] + ON_TOP
                 if on:                                  # the same pixels, but z1 up: that much nearer to the camera
                     self.lifts.append([piece.board] + _round(proj.delta_to_ground(0, z1 * proj.HPX) + (z1,)))
+                    if piece.board in self.fly_hidden:  # a baked card is lifted or skipped, not both: it stays
+                        self.fly_hidden.discard(piece.board)        # a lifted card in flight too
+                        self.forced_boards.discard(piece.board)
+                        self.hidden.remove(piece.board)
                     break
 
     # ------------------------------------------------------------------ objects

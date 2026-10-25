@@ -770,6 +770,12 @@ class BakedSidecarTests(unittest.TestCase):
         self.assertIn((400, 0x00000036, BAKED_SKIP, 0.0, 0.0, 0.0), entries)
         self.assertEqual(decode_baked_sidecar(encode_baked_sidecar(entries)), entries)
 
+    def test_a_detail_of_a_joined_thing_hides_its_card_in_flight_beside_forms(self):
+        scene, objects = self.sample()
+        scene["forms"], scene["props"], scene["flyBoards"] = [[0]], [[0, 1, 1, 0]], [1]  # board 1 names no row
+        entries = baked_objects(scene, objects)
+        self.assertIn((400, 0x00000036, BAKED_FLY_SKIP, 0.0, 0.0, 0.0), entries)
+
     def test_a_plant_s_object_casts_no_shadow(self):
         scene, objects = self.sample()
         scene["plants"] = [0]  # board 0 is the object at (300, 0x02000099)
