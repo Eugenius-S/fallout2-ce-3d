@@ -37,10 +37,10 @@ that fits no task becomes a new task when the board runs dry.
   whether these things were never covered. Not now.
 - 2026-10-25 (task 075) A table in the bathhouse sticks through its walls
   (`runs/inbox/2026-10-25-bathhouse-interior.png`). Not now.
-- 2026-10-25 (task 076; 04, 07's holes and 09 in 075) The owner's live review after 071 round 4 and 072
-  (`runs/inbox/2026-10-25-review2-01..10.png`);
-  owner is not done. The owner's verdict: fix the 3D-fication algorithm
-  itself, no hand-made cases.
+- 2026-10-25 (task 076; 04, 07's holes and 09 in 075) The owner's live
+  review after 071 round 4 and 072
+  (`runs/inbox/2026-10-25-review2-01..12.png`). The owner's verdict: fix
+  the 3D-fication algorithm itself, no hand-made cases.
   - 01: the STOP corner still meets wrong.
   - 02: a corner of the dark building on the left: a striped strip of
     other material on the corner.
