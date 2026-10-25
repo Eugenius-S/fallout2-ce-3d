@@ -494,19 +494,20 @@ class WallSidecarTests(unittest.TestCase):
         # (u 3.0), which stops 0.25 short of the near face of the first (v 1.75).
         along_u = [0, 1.0, 2.0, 3.4, 2.0, 0.0, 2.0, 0, 1, 1.8, 0.25, -1]
         along_v = [1, 3.0, 0.0, 3.0, 1.5, 0.0, 2.0, 0, 1, 1.8, 0.25, -1]
-        keep, fills, moved = wall_sidecar._corner_fits([along_u, along_v], set(), (0.49, 0.74, 0.46))
-        self.assertAlmostEqual(keep[0][1], 2.0 / 2.4)
-        self.assertNotIn(1, keep)
-        spans = sorted((round(s0, 3), round(s1, 3), face) for _, _, s0, s1, _, face in fills)
-        self.assertEqual(spans, [(1.5, 1.75, False), (3.0, 3.0, True)])
-        self.assertEqual(len(moved), 2)
+        corners = wall_sidecar._corner_fits([along_u, along_v], set(), (0.49, 0.74, 0.46))
+        self.assertAlmostEqual(corners.keep[0][1], 2.0 / 2.4)
+        self.assertGreater(corners.keep[1][1], 1.0)  # only its top is cut, at the first one's near face
+        self.assertEqual([(round(s0, 3), round(s1, 3)) for _, _, s0, s1 in corners.fills], [(1.5, 1.75)])
+        self.assertEqual([(round(at, 3), lender) for _, _, at, lender in corners.faces], [(3.0, 1)])
+        self.assertEqual(len(corners.caps), 2)
+        self.assertEqual(len(corners.moved), 2)
         # What the game's camera draws is the same triangles as without the pass.
         scene = self.sample_scene()
         scene["walls"] = [along_u, along_v]
         def game(data):
             return sorted(tuple(round(n, 5) for n in vertex) for batch in data["batches"] if not batch["fly_only"]
                           for vertex in batch["vertices"])
-        with mock.patch.object(wall_sidecar, "_corner_fits", return_value=({}, [], [])):
+        with mock.patch.object(wall_sidecar, "_corner_fits", return_value=wall_sidecar._Corners()):
             plain = decode_wall_sidecar(encode_wall_sidecar(scene))
         closed = decode_wall_sidecar(encode_wall_sidecar(scene))
         self.assertEqual(game(closed), game(plain))

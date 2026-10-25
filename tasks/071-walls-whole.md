@@ -65,3 +65,17 @@ triangles stay the same), ctest 14/14. The game's view is unchanged to the
 pixel: kladwtwn, klamall and klaratcv default views, old against new export,
 0 pixels differ. Before and after under `runs/071-walls-whole/`
 (`dev-snapshot.ps1 -FlyTurn 90 -FlyPitch 30 -FlyDistance 14`).
+
+### 2026-10-25 claude (round 2)
+The owner: the corner still did not meet. Three causes, all fixed in
+`wall_sidecar.py`: the end face took the material of the wall it closes
+while it lies in the other wall's plane, so the brick rows broke into a
+pillar (it now takes the other wall's picture, `_corner_face`); a wall's top
+is sheared and ended in a slant at the corner, leaving a notch where the
+street showed through (one flat cap piece in the top's colour now covers
+each corner, `_corner_cap`); and a neighbouring row's top could run past the
+corner (every row near a corner has its top cut at the corner, `keep` holds
+fractions past 0 or 1 for that).
+Check: the exporter suite 50/50; the game's view still 0 pixels changed on
+kladwtwn, klamall and klaratcv. Round 1 against round 2 of both corners:
+`runs/071-walls-whole/corners-round-1-vs-2.png`.
