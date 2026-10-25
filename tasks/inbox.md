@@ -65,4 +65,6 @@ that fits no task becomes a new task when the board runs dry.
   walls near the corner is missing, so the brick bottom floats above the
   street, and a flat brown box (the corner core) stands under it alone; the
   bricks above also look see-through near the edge. Belongs to the corner
-  work of 076/083 (`_corner_fits`, `_corner_core`); place not named yet.
+  work of 076/083 (`_corner_fits`, `_corner_core`) or to glm's build;
+  place not named yet. Seen in a build glm ran (its shadow work), so first
+  check whether main shows it too before fixing anything.
