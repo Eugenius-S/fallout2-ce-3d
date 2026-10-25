@@ -4,7 +4,7 @@ title: Our menus speak the game's language
 milestone: M1
 status: todo
 owner: none
-suggested: gpt
+suggested: glm
 claude-only: no
 user-check: yes
 depends-on: []

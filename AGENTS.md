@@ -73,6 +73,7 @@ milestone: M0
 status: todo        # todo | doing | done
 owner: none         # claude | gpt | glm | none
 suggested: gpt      # a preference: if that agent is out of limits, take it
+priority: normal    # high: taken before the other free tasks
 claude-only: no
 user-check: no      # yes: the owner looks after the merge (never blocks)
 depends-on: []
@@ -81,7 +82,9 @@ reviewed: no        # see Review
 
 `tools/tasks.ps1` shows the board; `-Next <you>` prints the task to take:
 your own doing task, else a stale one (no commit on its branch for three
-days), else the first free `todo` suggested for you, else any free one.
+days), else the first free `todo` suggested for you, else any free one;
+`priority: high` tasks come first. Finish the task you took before taking
+another: a hard task is split (step 4), not handed over.
 
 1. Work in your own worktree, never switch branches in the main checkout:
    `git worktree add --detach ../fallout2-ce-3d-<you> origin/main`. It has no

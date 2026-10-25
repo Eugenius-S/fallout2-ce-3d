@@ -66,6 +66,7 @@ $rows = foreach ($file in $files) {
         status = if ($stale) { 'stale' } else { $status }
         owner = $header['owner']
         suggested = $header['suggested']
+        priority = $header['priority']
         claude = $header['claude-only']
         deps = $header['depends-on']
         reviewed = $header['reviewed']
@@ -103,11 +104,13 @@ if ($Next) {
                 -and (($_.deps -replace '[\[\]]', '').Split(',') | Where-Object { $_.Trim() } |
                     ForEach-Object { [bool]$done[$_.Trim()] }) -notcontains $false
         })
-        $suggested = @($free | Where-Object { $_.suggested -eq $agent } | Sort-Object { [int]$_.id })
+        # priority: high comes before the rest, then the lower id.
+        $order = @({ if ($_.priority -eq 'high') { 0 } else { 1 } }, { [int]$_.id })
+        $suggested = @($free | Where-Object { $_.suggested -eq $agent } | Sort-Object $order)
         if ($suggested.Count -gt 0) {
             $task = $suggested[0]
         } elseif ($free.Count -gt 0) {
-            $task = @($free | Sort-Object { [int]$_.id })[0]
+            $task = @($free | Sort-Object $order)[0]
         }
         if ($task) {
             Write-Output "${agent}: next free task"

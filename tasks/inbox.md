@@ -1,11 +1,11 @@
-# Inbox: the owner's finds
-
-What the owner notices and sends in chat goes here first, one line each: the
-date, what is wrong, where (map, hex, turn), the picture in `runs/inbox/`.
-A find is not urgent unless the owner says "now". When an agent takes a task
-in that area, it moves the matching lines into that task's Context; a line
-that fits no task becomes a new task when the board runs dry.
-
+# Inbox: the owner's finds
+
+What the owner notices and sends in chat goes here first, one line each: the
+date, what is wrong, where (map, hex, turn), the picture in `runs/inbox/`.
+A find is not urgent unless the owner says "now". When an agent takes a task
+in that area, it moves the matching lines into that task's Context; a line
+that fits no task becomes a new task when the board runs dry.
+
 - 2026-10-21 The 3D scene cuts the map edge farther out than the original
   game (kladwtwn, the bottom edge by the cornfield): the game cuts closer, so
   the wall there would stick out past the edge
@@ -29,11 +29,29 @@ that fits no task becomes a new task when the board runs dry.
   050 (the wide halo) merged on 2026-10-25; Klamath screens are dead art, but
   the burning barrels should glow. Look again in the next build before
   calling it art.
-- 2026-10-25 The 3D furniture looks gone in the owner's live game: the
+- 2026-10-25 (task 075) The 3D furniture looks gone in the owner's live game: the
   bathhouse shelves read flat (`runs/inbox/2026-10-25-bathhouse-shelves-flat.png`,
   `2026-10-25-bathhouse-interior.png`), though glm's eval shots had them in
   3D; the stove the owner sent glm the day before belongs here too. First
   check whether the owner's build or cache lost the solids (040, 039), or
   whether these things were never covered. Not now.
-- 2026-10-25 A table in the bathhouse sticks through its walls
+- 2026-10-25 (task 075) A table in the bathhouse sticks through its walls
   (`runs/inbox/2026-10-25-bathhouse-interior.png`). Not now.
+- 2026-10-25 (task 076; 04, 07's holes and 09 in 075) The owner's live
+  review after 071 round 4 and 072
+  (`runs/inbox/2026-10-25-review2-01..12.png`). The owner's verdict: fix
+  the 3D-fication algorithm itself, no hand-made cases.
+  - 01: the STOP corner still meets wrong.
+  - 02: a corner of the dark building on the left: a striped strip of
+    other material on the corner.
+  - 03: a wall shows through another wall (the light patch in the middle
+    of the dark wall).
+  - 04: a stove fell out through a house wall, and the wall's texture is
+    broken around it.
+  - 05, 06: the corner of the dark house: a light striped strip down the
+    corner.
+  - 07: holes where the stove is; another corner with stripes.
+  - 08: walls and triangular pieces stick out of the roofs in the 3D view.
+  - 09: clothes lines stick out over the roof.
+  - 10: a corner of the house is broken (an open door leaf and the
+    corner's material).

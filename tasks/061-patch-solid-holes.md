@@ -2,13 +2,13 @@
 id: 061
 title: See-through holes in fitted solids get patched over
 milestone: M1
-status: todo
+status: done
 owner: none
 suggested: claude
 claude-only: no
 user-check: yes
 depends-on: [037, 039]
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -44,3 +44,6 @@ things from turned views.
 - The eval score does not drop; the game's own view unchanged.
 
 ## Log
+
+### 2026-10-25 claude
+Folded into 075: closed here, the work goes on there.

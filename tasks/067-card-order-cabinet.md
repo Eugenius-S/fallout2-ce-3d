@@ -4,7 +4,7 @@ title: A person standing before a cabinet draws in front of it
 milestone: M1
 status: todo
 owner: none
-suggested: gpt
+suggested: glm
 claude-only: no
 user-check: yes
 depends-on: []
