@@ -98,8 +98,8 @@ Check: run `runs/regression/20261025-144410-708-33728`; every capture sidecar id
 
 ### Final runtime evidence
 
-- All UI captures: 2310x1298, scale 2, source `b2b11252`, EXE SHA-256 `b42652371149fd364a573aba284cf1497cdf267118d88a18056148fabd3ce704`; curated files and matching metadata are under `runs/074-bold-font-default-correction/accepted/`.
+- All UI captures: 2310x1298, scale 2, source `b2b11252`, EXE SHA-256 `b42652371149fd364a573aba284cf1497cdf267118d88a18056148fabd3ce704`; JPEG presentation crops and matching metadata are under `runs/074-bold-font-default-correction/accepted/README.md`. Raw PNGs are local under `E:\Projects\fallout2-ce-3d\game\shots\raw-task074\`.
 - Inventory and dialogue source-matched captures pass at this final source. Inventory logs 34 font-101 runs with effective `D1.22`; the Russian dialogue fixture reports 11 eligible font-101 runs at the global `E1.29` default. The wrapper's final PNG-copy step used the wrong folder for these two captures; each PNG was retrieved from the exact image path named in its matching JSON sidecar.
-- Character injury color: `runs/074-bold-font-default-correction/runtime-b2b1/character-on/scr00199.png` (PNG SHA-256 `BF269D316F5D8A53156A1C199444F0F4A6786B0C879950509BD96C1DA3EC7C32`).
-- PipBoy underline: `runs/074-bold-font-default-correction/runtime-b2b1/pipboy-on/scr00200.png` (PNG SHA-256 `60987C39333853CD184B6A0E35C430EC841C2E8ED9B3CBD1386EEF55A1EE571A`).
-- Bark lifecycle, with source sidecars and logs under `runs/074-bold-font-default-correction/accepted/bark/`: first `devhero-20261025-143840-000.png`; replacement `devhero-20261025-143841-000.png`; cleared `devhero-20261025-143844-000.png`. The fixture verified the old bark is absent from the replacement's visible mask and both fixture barks are absent after expiry.
+- Character injury color: `runs/074-bold-font-default-correction/accepted/crops/character-injury.jpg` (raw PNG SHA-256 `BF269D316F5D8A53156A1C199444F0F4A6786B0C879950509BD96C1DA3EC7C32`).
+- PipBoy underline: `runs/074-bold-font-default-correction/accepted/crops/pipboy-underline.jpg` (raw PNG SHA-256 `60987C39333853CD184B6A0E35C430EC841C2E8ED9B3CBD1386EEF55A1EE571A`).
+- Bark lifecycle sidecars and logs are under `runs/074-bold-font-default-correction/accepted/bark/`; raw PNGs are in the local `game/shots/raw-task074/` folder. The replacement crop is `runs/074-bold-font-default-correction/accepted/crops/bark-replacement.jpg`. The fixture verified the old bark is absent from the replacement's visible mask and both fixture barks are absent after expiry.
