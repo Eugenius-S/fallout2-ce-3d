@@ -844,5 +844,10 @@ void uiFixtureVanillaPresented()
     captureWindow(window, runs);
 }
 
+void uiFixtureScenePresented()
+{
+    if (gKind == UiFixtureKind::Bark) runBarkFixtureFrame();
+}
+
 } // namespace devtools
 } // namespace fallout

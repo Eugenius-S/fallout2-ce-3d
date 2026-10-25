@@ -2437,6 +2437,11 @@ void vanillaPresented()
     fflush(stdout);
 }
 
+void sceneOverlayPresented()
+{
+    uiFixtureScenePresented();
+}
+
 void sceneOverlaySynced(bool on)
 {
     // --dev-pick-probe: the click took the game out of the scene (a dialog).

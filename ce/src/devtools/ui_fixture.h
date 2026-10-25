@@ -11,6 +11,7 @@ bool startUiFixtureWhenReady(bool startupReady, bool blockingState);
 bool uiFixtureUsesDialogBarter();
 void uiFixtureDialogReady(const char* scriptName, int speakerId, int speakerTile, int eligibleRuns);
 void uiFixtureVanillaPresented();
+void uiFixtureScenePresented();
 
 } // namespace devtools
 } // namespace fallout

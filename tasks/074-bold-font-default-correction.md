@@ -59,3 +59,8 @@ Check: no own `fallout2-ce-test.exe` process was active before runtime work; the
 Done: first bark runtime attempt exposed a fixture setup omission: `textObjectAdd` callers refresh the exact returned tile rectangle, while the fixture had passed no rectangle and never requested a redraw. Updated both bark adds to refresh the returned rectangle and changed `textObjectAdd` to return `FloatingTextOutlineLayout::renderBounds`, which includes the modern-only padded backing extent. Legacy layout returns its original rectangle. Extended the scene test to assert the full refresh rectangle.
 Next: rebuild and rerun the bark fixture; then capture the final character, PipBoy, and bark screens from this source.
 Check: first attempt reached `UI_FIXTURE START` but made no snapshots and ended at the harness deadline; no result was accepted from that run.
+
+### 2026-10-25 gpt
+Done: identified that the active 3D Full-view presentation returns before `vanillaPresented`, so the bark-only lifecycle stage never advanced. Added a bark-gated fixture callback after the scene overlay swap; ordinary fixtures and modal/dialog hooks are unchanged.
+Next: rebuild, confirm the real bark appears and is removed by the engine, then capture final source-matched character/PipBoy/bark images.
+Check: second attempt also ended without snapshots at the isolated harness deadline; it is diagnostic only. Only the task's `fallout2-ce-test.exe` PID was stopped, after confirming its exact worktree executable path.
