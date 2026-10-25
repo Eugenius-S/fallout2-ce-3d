@@ -2,8 +2,8 @@
 id: 071
 title: Walls: no holes, a back side everywhere, clean corners
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: claude
 suggested: claude
 claude-only: no
 user-check: yes
