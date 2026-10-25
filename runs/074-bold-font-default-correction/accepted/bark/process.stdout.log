@@ -1,0 +1,9 @@
+scene: cache E:\Projects\fallout2-ce-3d-gpt\build\scene-cache\kladwtwn\0
+devtools: static wall+hero preview started for KLADWTWN.MAP elevation 0
+scene: preview policy=available gameState=0 gameMode=0x0 uiDisabled=0 isoDisabled=0 combat=0 dialog=0 movie=0
+UI_FIXTURE START screen=bark source=textObjectAdd owner=player
+UI_FIXTURE STEP screen=bark stage=visible hasOutline=1 visiblePixels=1955 text=first-ru-line
+UI_FIXTURE STEP screen=bark stage=replace old=long-ru new=short-ru tile=25075 scene_shift=0,0 objects=3 baseline=1
+UI_FIXTURE STEP screen=bark stage=replaced hasOutline=1 visiblePixels=595 old_visible_runs=0 text=short-ru-line
+UI_FIXTURE PASS screen=bark first=1 replacement=1 cleared_runs=0
+scene: hero card skipped: player is hidden, off-map, or on another elevation
