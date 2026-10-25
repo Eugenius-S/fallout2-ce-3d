@@ -488,6 +488,10 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
     // the wall batches own their GL textures, below.
     std::map<unsigned int, std::vector<float>> casterPages;
     for (const WallBatchData& batch : batches) {
+        // The casters are the things as the free camera sees them: a game-only
+        // face (a corner's overrun, a drum's near half) has its 3D twin among
+        // the fly batches (071).
+        if (batch.gameOnly) continue;
         for (size_t index = 0; index + 2 < batch.vertices.size(); index += 3) {
             const float object = batch.vertices[index].object;
             bool casts = false;
