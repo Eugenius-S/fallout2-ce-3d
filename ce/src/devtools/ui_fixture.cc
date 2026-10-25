@@ -25,6 +25,7 @@
 #include "../settings.h"
 #include "../svga.h"
 #include "../text_object.h"
+#include "../tile.h"
 #include "../window_manager.h"
 #include "devtools.h"
 
@@ -149,10 +150,12 @@ void runBarkFixtureFrame()
         gBarkFirstCaptured = true;
         printf("UI_FIXTURE STEP screen=bark stage=visible hasOutline=1 ownedPixels=%zu text=first-ru-line\n", firstOwnedPixels);
         fflush(stdout);
-        if (textObjectAdd(gDude, gBarkReplacementText, 101, COLOR_LIGHT_YELLOW, COLOR_BLACK, nullptr) == -1) {
+        Rect refreshRect;
+        if (textObjectAdd(gDude, gBarkReplacementText, 101, COLOR_LIGHT_YELLOW, COLOR_BLACK, &refreshRect) == -1) {
             fixtureFail("bark-replacement-add-failed");
             return;
         }
+        tileWindowRefreshRect(&refreshRect, gDude->elevation);
         gStage = UiFixtureStage::WaitingForBarkReplacement;
         gBarkWaitFrames = 0;
         printf("UI_FIXTURE STEP screen=bark stage=replace old=long-ru new=short-ru\n");
@@ -695,10 +698,12 @@ bool startUiFixtureWhenReady(bool startupReady, bool blockingState)
             return false;
         }
         gBarkBaselineCount = textObjectsGetCount();
-        if (textObjectAdd(gDude, gBarkFirstText, 101, COLOR_LIGHT_YELLOW, COLOR_BLACK, nullptr) == -1) {
+        Rect refreshRect;
+        if (textObjectAdd(gDude, gBarkFirstText, 101, COLOR_LIGHT_YELLOW, COLOR_BLACK, &refreshRect) == -1) {
             fixtureFail("bark-first-add-failed");
             return false;
         }
+        tileWindowRefreshRect(&refreshRect, gDude->elevation);
         gStage = UiFixtureStage::WaitingForBark;
         printf("UI_FIXTURE START screen=bark source=textObjectAdd owner=player\n");
         fflush(stdout);

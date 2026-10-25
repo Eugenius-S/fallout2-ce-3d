@@ -86,8 +86,10 @@ int main()
     const auto barkLayout = fallout::scene::floatingTextOutlineLayout(120, 22, 9, 2, true, true);
     const auto plainLayout = fallout::scene::floatingTextOutlineLayout(120, 22, 9, 2, true, false);
     const auto barkClip = barkLayout.clipBounds(100, 50, { 100, 50, 8, 8 });
+    const auto barkRefreshBounds = barkLayout.renderBounds(100, 50);
     failures += !check(barkLayout.bufferWidth == 124 && barkLayout.bufferHeight == 30
-            && barkLayout.renderBounds(100, 50).x == 98 && barkLayout.renderBounds(100, 50).y == 48
+            && barkRefreshBounds.x == 98 && barkRefreshBounds.y == 48
+            && barkRefreshBounds.width == 124 && barkRefreshBounds.height == 30
             && barkLayout.linePitch == 10 && barkLayout.sharpLineOffset(1) == 3
             && barkLayout.lineStartOffset(1) == static_cast<std::size_t>(13 * 124 + 2)
             && barkLayout.sourceOffset(barkClip, 100, 50) == static_cast<std::size_t>(2 * 124 + 2)

@@ -54,3 +54,8 @@ Check: clean official MSVC Release build passed all 733 targets; CTest passed 15
 Done: added a bark-only dev fixture using real CP1251 Russian bark strings. It captures the longer outlined bark, replaces it with the shorter line, verifies the old run disappears while the replacement still owns outlined pixels, then captures the cleared frame after expiry. The fixture logs outline ownership and pixel counts.
 Next: review the narrow fixture diff, build it, and validate SharpText-on/off lifecycle captures.
 Check: no own `fallout2-ce-test.exe` process was active before runtime work; the owner GLM process remains untouched.
+
+### 2026-10-25 gpt
+Done: first bark runtime attempt exposed a fixture setup omission: `textObjectAdd` callers refresh the exact returned tile rectangle, while the fixture had passed no rectangle and never requested a redraw. Updated both bark adds to refresh the returned rectangle and changed `textObjectAdd` to return `FloatingTextOutlineLayout::renderBounds`, which includes the modern-only padded backing extent. Legacy layout returns its original rectangle. Extended the scene test to assert the full refresh rectangle.
+Next: rebuild and rerun the bark fixture; then capture the final character, PipBoy, and bark screens from this source.
+Check: first attempt reached `UI_FIXTURE START` but made no snapshots and ended at the harness deadline; no result was accepted from that run.

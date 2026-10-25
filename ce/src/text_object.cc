@@ -277,10 +277,11 @@ int textObjectAdd(Object* object, char* string, int font, ColorWithFlags color, 
     textObjectFindPlacement(textObject);
 
     if (rect != nullptr) {
-        rect->left = textObject->x;
-        rect->top = textObject->y;
-        rect->right = textObject->x + textObject->width - 1;
-        rect->bottom = textObject->y + textObject->height - 1;
+        const scene::TextRect refreshBounds = textObject->dataLayout.renderBounds(textObject->x, textObject->y);
+        rect->left = refreshBounds.x;
+        rect->top = refreshBounds.y;
+        rect->right = refreshBounds.x + refreshBounds.width - 1;
+        rect->bottom = refreshBounds.y + refreshBounds.height - 1;
     }
 
     textObjectsRemoveByOwner(object);
