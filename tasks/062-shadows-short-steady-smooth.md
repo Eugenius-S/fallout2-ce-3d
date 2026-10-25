@@ -2,8 +2,8 @@
 id: 062
 title: Sun shadows end a few meters past their caster, hold still and blend smoothly
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: glm
 suggested: glm
 claude-only: no
 user-check: yes
