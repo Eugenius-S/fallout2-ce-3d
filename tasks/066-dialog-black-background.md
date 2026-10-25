@@ -2,8 +2,8 @@
 id: 066
 title: The dialogue screen hides the street behind black
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: gpt
 suggested: glm
 claude-only: no
 user-check: yes
