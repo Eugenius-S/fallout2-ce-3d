@@ -184,20 +184,21 @@ int main()
         return 1;
     }
     const std::vector<unsigned char> font102Pixels = surface.pixels;
-    fallout::scene::setFont101PreviewBold(false, -1);
     record.run.font = 101;
     if (!renderSharpText({ record }, 256, 32, 512, 64, palette, 256, visibility, &surface)) return 1;
+    const std::vector<unsigned char> font101BoldPixels = surface.pixels;
+    fallout::scene::setFont101PreviewBold(false, -1);
+    if (!renderSharpText({ record }, 256, 32, 512, 64, palette, 256, visibility, &surface)
+        || surface.pixels == font101BoldPixels || surface.pixels == font102Pixels) {
+        std::fprintf(stderr, "Font-101 SemiBold 600 preview did not differ from selected Bold 700 at equal size\n");
+        return 1;
+    }
     const std::vector<unsigned char> font101SemiPixels = surface.pixels;
     fallout::scene::setFont101PreviewBold(true, -1);
     if (!renderSharpText({ record }, 256, 32, 512, 64, palette, 256, visibility, &surface)
-        || surface.pixels == font101SemiPixels) {
-        std::fprintf(stderr, "Font-101 Bold 700 override did not differ from selected SemiBold 600 at equal size\n");
-        return 1;
-    }
-    fallout::scene::setFont101PreviewBold(false, -1);
-    if (!renderSharpText({ record }, 256, 32, 512, 64, palette, 256, visibility, &surface)
-        || surface.pixels != font101SemiPixels || surface.pixels == font102Pixels) {
-        std::fprintf(stderr, "Font-101 default did not retain its SemiBold face distinct from regular font 102\n");
+        || surface.pixels != font101BoldPixels || surface.pixels == font101SemiPixels
+        || surface.pixels == font102Pixels) {
+        std::fprintf(stderr, "Font-101 Bold default did not match Bold preview or differ from SemiBold and regular font 102\n");
         return 1;
     }
 
@@ -327,10 +328,10 @@ int main()
         return 1;
     }
     fallout::scene::setFont101PreviewScale(1.29, -1);
-    fallout::scene::setFont101PreviewBold(false, -1);
+    fallout::scene::setFont101PreviewBold(true, -1);
     if (fallout::scene::font101PreviewScaleForWindow(-1) != 1.29
-        || fallout::scene::font101PreviewUsesBold(-1)) {
-        std::fprintf(stderr, "Production font-101 default did not select E=1.29 SemiBold 600\n");
+        || !fallout::scene::font101PreviewUsesBold(-1)) {
+        std::fprintf(stderr, "Production font-101 default did not select E=1.29 Bold 700\n");
         return 1;
     }
     const std::string statDescriptions[] = {

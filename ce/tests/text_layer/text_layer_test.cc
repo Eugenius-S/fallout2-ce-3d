@@ -85,8 +85,8 @@ int main()
     int failures = 0;
     failures += !check(fallout::scene::font101PreviewScaleForWindow(42) == 1.29
             && fallout::scene::font101PreviewCoverageHeight(9, 42) == 12
-            && fallout::scene::font101PreviewUsesBold(42) == false,
-        "selected production font-101 defaults are size 1.29 and SemiBold 600");
+            && fallout::scene::font101PreviewUsesBold(42),
+        "selected production font-101 defaults are size 1.29 and Bold 700");
     failures += !check(fallout::scene::font101PreviewScaleForRun(42, fallout::scene::TextSizeRole::Default) == 1.29
             && fallout::scene::font101PreviewScaleForRun(42, fallout::scene::TextSizeRole::CompactUi) == 1.22
             && fallout::scene::font101PreviewCoverageHeight(9, 42, fallout::scene::TextSizeRole::CompactUi) == 11,
@@ -117,13 +117,13 @@ int main()
     fallout::scene::setFont101PreviewScale(1.29, -1);
     failures += !check(fallout::scene::setFont101PreviewBold(false, 42)
             && !fallout::scene::font101PreviewUsesBold(42)
-            && !fallout::scene::font101PreviewUsesBold(43),
-        "semi-bold preview face is limited to its owner window");
+            && fallout::scene::font101PreviewUsesBold(43),
+        "SemiBold preview face is limited to its owner window");
     failures += !check(fallout::scene::setFont101PreviewBold(true, 42)
             && fallout::scene::font101PreviewUsesBold(42)
-            && !fallout::scene::font101PreviewUsesBold(43),
-        "Bold 700 preview override does not change the selected default elsewhere");
-    fallout::scene::setFont101PreviewBold(false, -1);
+            && fallout::scene::font101PreviewUsesBold(43),
+        "Bold preview override preserves the selected default elsewhere");
+    fallout::scene::setFont101PreviewBold(true, -1);
 
     // An opaque button-image copy restores the source background, not whatever
     // happened to be under the destination before the blit.

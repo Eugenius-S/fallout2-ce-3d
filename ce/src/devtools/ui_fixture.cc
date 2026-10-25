@@ -630,7 +630,7 @@ bool startUiFixtureWhenReady(bool startupReady, bool blockingState)
         }
         printf("UI_FIXTURE SETUP screen=character preview_scale=%.2f preview_weight=%s process_only=1\n",
             gFont101PreviewScale,
-            gFont101PreviewWeightRequested ? (gFont101PreviewBold ? "bold" : "semibold") : "selected-semibold");
+            gFont101PreviewWeightRequested ? (gFont101PreviewBold ? "bold" : "semibold") : "selected-bold");
         fflush(stdout);
     }
     if (key == -1) {

@@ -684,8 +684,8 @@ void testFont101SizePreviewExtendsCaptureOnly()
 {
     using namespace fallout;
     check(scene::font101PreviewScaleForWindow(12) == 1.29
-            && !scene::font101PreviewUsesBold(12),
-        "production font-101 defaults select 1.29 SemiBold");
+            && scene::font101PreviewUsesBold(12),
+        "production font-101 defaults select 1.29 Bold");
     std::vector<unsigned char> pixels(20 * 40, 0);
     textCaptureRegisterExternalBuffer(pixels.data(), pixels.size(), 20, 40, 20, false);
     textCaptureMarkWindowBuffer(pixels.data(), 12);

@@ -14,7 +14,7 @@ namespace scene {
 namespace {
 
 constexpr double kFont101SelectedScale = 1.29;
-constexpr bool kFont101SelectedBold = false;
+constexpr bool kFont101SelectedBold = true;
 double gFont101PreviewScale = kFont101SelectedScale;
 int gFont101PreviewOwnerWindow = -1;
 bool gFont101PreviewBold = kFont101SelectedBold;
