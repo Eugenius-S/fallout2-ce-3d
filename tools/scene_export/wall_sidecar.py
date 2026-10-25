@@ -602,18 +602,20 @@ def _solidity(walls, sprites, hpx, atlas, slab):
     return shares[len(shares) // 2] if shares else 0.0
 
 
-def _corner_core(batches, proj, sprites, pages, hpx, toward_camera, row, slab, other, extent, solid, atlas=None):
+def _corner_core(batches, proj, sprites, pages, hpx, toward_camera, row, slab, other, extent, solid, cap,
+                 atlas=None):
     """An opaque box just inside the square where two walls of a corner
     overlap. A corner piece's picture is often clear along its edge, where
     the game shows the other wall's picture behind it; the free camera would
     look through there into the hollow wall. Seen only through such texels,
-    it is one opaque colour of the wall's front."""
+    it is one opaque colour of the wall's front. Each arm stays below its
+    own wall's top (cap(slab)): a lower wall gets no fin."""
     # A mesh fence is clear on purpose: a corner gets a core only where a
     # solid wall stands, and it runs on only into solid walls (solid(slab)).
     if max(solid(slab), solid(other)) < CORE_SOLID or min(solid(slab), solid(other)) < CORE_SOLID / 2:
         return
     page, x, y, w, h, top = _picture(sprites, row, hpx)
-    z0, zc = row[5], row[9] - 0.006
+    z0 = row[5]
     tx, ty = _opaque_texel(atlas, page, x, y + top, w, h - top)
     # The corner square and CORE_REACH of each wall beyond it: the clear
     # edge of a corner piece runs on past the square. Within what the free
@@ -625,7 +627,7 @@ def _corner_core(batches, proj, sprites, pages, hpx, toward_camera, row, slab, o
         inner = b.band()[1 if inward > 0 else 0] + inward * (CORE_REACH if solid(a) >= CORE_SOLID else 0.0)
         inner = min(inner, hi) if inward > 0 else max(inner, lo)
         along = sorted((b.band()[0 if inward > 0 else 1], inner))
-        _box(batches, proj, pages, toward_camera, a.axis, along, a.band(), z0, zc, page, tx, ty)
+        _box(batches, proj, pages, toward_camera, a.axis, along, a.band(), z0, cap(a) - 0.006, page, tx, ty)
 
 
 CORE_REACH = 0.5  # how far a corner's core runs into each wall past the square
@@ -767,7 +769,7 @@ def encode_wall_sidecar(scene, skip_props=frozenset(), skip_rests=frozenset(), m
     for slab, other, lender in corners.cores:
         fly.object = owner(walls[lender][8])
         _corner_core(fly, proj, sprites, pages, hpx, toward_camera, walls[lender], slab, other, corners.extent,
-                     solid, atlas)
+                     solid, lambda wall: min(walls[index][9] for index in wall.rows), atlas)
     batches.object = game.object = fly.object = -1.0
     for index, row in enumerate(scene.get("trims") or []):
         _record(row, 11, f"trim {index}")

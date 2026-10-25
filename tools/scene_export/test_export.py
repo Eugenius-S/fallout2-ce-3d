@@ -542,6 +542,13 @@ class WallSidecarTests(unittest.TestCase):
             encode_wall_sidecar(scene, atlas=None if atlas is None else [atlas]))["batches"] if batch["fly_only"])
         self.assertGreater(fly(solid), fly(mesh))
         self.assertEqual(fly(None), fly(solid))  # without the atlas every wall counts as solid
+        # A lower wall gets no fin: the core's arm in it stays below its top.
+        scene["walls"][1][6], scene["walls"][1][9] = 0.9, 0.8
+        vertices = lambda atlas: {tuple(round(n, 4) for n in v[:3]) for batch in decode_wall_sidecar(
+            encode_wall_sidecar(scene, atlas=[atlas]))["batches"] if batch["fly_only"] for v in batch["vertices"]}
+        arm = [z for x, z, y in vertices(solid) - vertices(mesh) if y + 50.0 < 1.7]
+        self.assertTrue(arm)
+        self.assertLessEqual(max(arm), 0.8)
 
     def test_first_person_surfaces_are_for_the_fly_camera_only(self):
         # Backs and trims go into fly-only batches: what the game's camera
