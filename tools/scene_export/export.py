@@ -35,6 +35,9 @@ DEFAULT_MAP = "kladwtwn"
 # Map groups for --maps: every elevation each map has.
 MAP_GROUPS = {
     "klamath": ("kladwtwn", "klatrap", "klacanyn", "klagraz", "klamall", "klaratcv", "klatoxcv"),
+    # The starting vault: its screens (monitr, bvs, comp arts) carry live
+    # cycling colours, unlike Klamath's dead ones (task 050).
+    "vault15": ("vault15",),
     "den": ("denbus1", "denbus2", "denres1"),
 }
 EXPECTED_OUTPUT_FILES = {"scene.json", "provenance.json", "floor.bin", "walls.bin", "projection.bin", "baked.bin",
