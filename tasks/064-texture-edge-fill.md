@@ -47,7 +47,7 @@ atlas already extrudes edge pixels for seams.
 ## Acceptance
 
 - barrel4 from behind and sstove2 from behind show surface, not stripes or
-  holes, in runs/056-texture-edge-fill/ before | after (the eval's turned
+  holes, in runs/064-texture-edge-fill/ before | after (the eval's turned
   views are the fastest check: eval.py check --only).
 - The 16-view regression unchanged (the game camera never sees these faces).
 - The exporter tests still pass; a new one covers the fill choice.
