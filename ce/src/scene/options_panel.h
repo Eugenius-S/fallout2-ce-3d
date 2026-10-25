@@ -88,6 +88,7 @@ private:
     LabelResolver labelResolver_ = nullptr;
     int contentHeight_ = 480;
     int scroll_ = 0;
+    int sliderTrackOffset_ = 0;
     std::vector<unsigned char> content_;
     std::vector<unsigned char> background_;
     std::vector<unsigned char> backgroundTexture_;

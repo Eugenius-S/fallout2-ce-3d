@@ -1,0 +1,86 @@
+{
+  "success": true,
+  "reference": "Current-base controls established in 066; committed references unchanged, drift tracked in 058.",
+  "spots": [
+    {
+      "spot": "entrance",
+      "status": "pass",
+      "changed_pixels": 0
+    },
+    {
+      "spot": "corrals",
+      "status": "pass",
+      "changed_pixels": 0
+    },
+    {
+      "spot": "residents",
+      "status": "pass",
+      "changed_pixels": 0
+    },
+    {
+      "spot": "central-doors",
+      "status": "pass",
+      "changed_pixels": 0
+    },
+    {
+      "spot": "north-rooms",
+      "status": "pass",
+      "changed_pixels": 0
+    },
+    {
+      "spot": "map-edge",
+      "status": "pass",
+      "changed_pixels": 0
+    },
+    {
+      "spot": "klacanyn-e0",
+      "status": "pass",
+      "changed_pixels": 0
+    },
+    {
+      "spot": "klagraz-e0",
+      "status": "pass",
+      "changed_pixels": 0
+    },
+    {
+      "spot": "klamall-e0",
+      "status": "pass",
+      "changed_pixels": 0
+    },
+    {
+      "spot": "klaratcv-e0",
+      "status": "pass",
+      "changed_pixels": 0
+    },
+    {
+      "spot": "klaratcv-e1",
+      "status": "pass",
+      "changed_pixels": 0
+    },
+    {
+      "spot": "klaratcv-e2",
+      "status": "pass",
+      "changed_pixels": 0
+    },
+    {
+      "spot": "klatoxcv-e0",
+      "status": "pass",
+      "changed_pixels": 0
+    },
+    {
+      "spot": "klatoxcv-e1",
+      "status": "pass",
+      "changed_pixels": 0
+    },
+    {
+      "spot": "klatoxcv-e2",
+      "status": "pass",
+      "changed_pixels": 0
+    },
+    {
+      "spot": "klatrap-e0",
+      "status": "pass",
+      "changed_pixels": 0
+    }
+  ]
+}
