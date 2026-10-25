@@ -710,7 +710,8 @@ class SceneBuilder:
                     self.hidden.append(piece.board)
                 else:
                     self.hidden_sheets.append(piece.sheet)
-        fly_hidden = self.fly_hidden = set(fly_hidden) - set(self.hidden)
+        fly_hidden = set(fly_hidden) - set(self.hidden)
+        self.lift(pieces, solids, set(self.hidden) | set(self.set_boards), fly_hidden)
         self.hidden += sorted(fly_hidden)
         self.forced_boards |= fly_hidden
         self.keep_apart(things)
@@ -743,10 +744,14 @@ class SceneBuilder:
                         self.crossed.append(piece.board)
         self.shadows = [row for row in self.shadows if row[0] not in hidden]
         self.solids = solids
+
+    def lift(self, pieces, solids, hidden, fly_hidden):
+        """Loose things whose hex a solid covers go onto its top (self.lifts), as the game's view has
+        them: hidden, the boards its solids stand for. A baked card is lifted or skipped, not both:
+        one of fly_hidden that is lifted leaves it and stays a lifted card in flight too."""
         for piece in pieces:
             obj = piece.obj
-            if piece.board is None or piece.board in hidden - self.fly_hidden or not piece.stands \
-                    or not obj.flags & mapfile.OBJECT_NO_BLOCK:    # as the game's view has them
+            if piece.board is None or piece.board in hidden or not piece.stands or not obj.flags & mapfile.OBJECT_NO_BLOCK:
                 continue
             u, v = self.anchor(obj)
             for round_, cu, cv, half, z1 in solids:
@@ -754,10 +759,7 @@ class SceneBuilder:
                     abs(u - cu) <= half[0] + ON_TOP and abs(v - cv) <= half[1] + ON_TOP
                 if on:                                  # the same pixels, but z1 up: that much nearer to the camera
                     self.lifts.append([piece.board] + _round(proj.delta_to_ground(0, z1 * proj.HPX) + (z1,)))
-                    if piece.board in self.fly_hidden:  # a baked card is lifted or skipped, not both: it stays
-                        self.fly_hidden.discard(piece.board)        # a lifted card in flight too
-                        self.forced_boards.discard(piece.board)
-                        self.hidden.remove(piece.board)
+                    fly_hidden.discard(piece.board)
                     break
 
     # ------------------------------------------------------------------ objects
