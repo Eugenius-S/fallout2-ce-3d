@@ -487,6 +487,32 @@ class WallSidecarTests(unittest.TestCase):
         self.assertEqual(ends[2], (False, False))  # nor does one across it
         self.assertNotIn(3, ends)
 
+    def test_a_corner_closes_for_the_free_camera_only(self):
+        from unittest import mock
+        import wall_sidecar
+        # An L: the wall along u runs 0.4 past the far face of the one along v
+        # (u 3.0), which stops 0.25 short of the near face of the first (v 1.75).
+        along_u = [0, 1.0, 2.0, 3.4, 2.0, 0.0, 2.0, 0, 1, 1.8, 0.25, -1]
+        along_v = [1, 3.0, 0.0, 3.0, 1.5, 0.0, 2.0, 0, 1, 1.8, 0.25, -1]
+        keep, fills, moved = wall_sidecar._corner_fits([along_u, along_v], set(), (0.49, 0.74, 0.46))
+        self.assertAlmostEqual(keep[0][1], 2.0 / 2.4)
+        self.assertNotIn(1, keep)
+        spans = sorted((round(s0, 3), round(s1, 3), face) for _, _, s0, s1, _, face in fills)
+        self.assertEqual(spans, [(1.5, 1.75, False), (3.0, 3.0, True)])
+        self.assertEqual(len(moved), 2)
+        # What the game's camera draws is the same triangles as without the pass.
+        scene = self.sample_scene()
+        scene["walls"] = [along_u, along_v]
+        def game(data):
+            return sorted(tuple(round(n, 5) for n in vertex) for batch in data["batches"] if not batch["fly_only"]
+                          for vertex in batch["vertices"])
+        with mock.patch.object(wall_sidecar, "_corner_fits", return_value=({}, [], [])):
+            plain = decode_wall_sidecar(encode_wall_sidecar(scene))
+        closed = decode_wall_sidecar(encode_wall_sidecar(scene))
+        self.assertEqual(game(closed), game(plain))
+        fly = lambda data: sum(batch["triangles"] for batch in data["batches"] if batch["fly_only"])
+        self.assertGreater(fly(closed), fly(plain))
+
     def test_first_person_surfaces_are_for_the_fly_camera_only(self):
         # Backs and trims go into fly-only batches: what the game's camera
         # draws stays the same.
