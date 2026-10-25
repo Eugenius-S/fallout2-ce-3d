@@ -17,7 +17,7 @@ constexpr double kSunset = 18.0;
 // long shadows exist at all; a 2-unit wall casts at most 2 * tan(kSwing)
 // units of shadow.
 constexpr double kNoonHeight = 90.0; // degrees, noon
-constexpr double kSwing = 15.0; // degrees off vertical at dawn and dusk
+constexpr double kSwing = 30.0; // degrees off vertical at dawn and dusk (082 round 2: was 15)
 // The vertical plane the sun swings in, as the game camera's screen
 // horizontal: the GL ground direction (x, z) that moves a point across the
 // screen and never up or down it. From the donor projection (kladwtwn's

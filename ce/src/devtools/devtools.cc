@@ -2456,12 +2456,23 @@ bool handleKey(int key)
         return false;
     }
 
-    // Ctrl+T steps the game hour by one, the [3d] sun the owner reads
-    // shadows by: the options panel's plain T answers only while the panel
-    // is open (063), and the fly camera below would eat the key.
-    if (key == KEY_CTRL_T && scene::enabled()) {
+    // Ctrl+T steps the game hour forward, Alt+T backward, the [3d] sun the
+    // owner reads shadows by: the options panel's plain T answers only while
+    // the panel is open (063), and the fly camera below would eat the key.
+    // The day is kept, the step lands on the same minute. The status line
+    // shows the hour the sun now keeps: at night a step changes nothing
+    // visible, and without a readout it read as time standing still (082
+    // round 2).
+    if ((key == KEY_CTRL_T || key == KEY_ALT_T) && scene::enabled()) {
         const unsigned int ticks = gameTimeGetTime();
-        gameTimeSetTime(((ticks / 36000u + 1u) % 24u) * 36000u + ticks % 36000u);
+        const unsigned int day = ticks / 864000u; // 36000 ticks an hour, 24 a day
+        const unsigned int minute = ticks % 36000u;
+        unsigned int hour = ticks / 36000u % 24u;
+        hour = (hour + 24u + (key == KEY_CTRL_T ? 1u : 23u)) % 24u;
+        gameTimeSetTime(day * 864000u + hour * 36000u + minute);
+        char status[32];
+        snprintf(status, sizeof(status), "hour %u:%02u", hour, minute / 600u);
+        setStatus(status);
         return true;
     }
 

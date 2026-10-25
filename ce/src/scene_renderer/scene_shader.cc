@@ -262,8 +262,9 @@ float shadowDarken(float light) {
     if (uShadowOn && uShadowStrength > 0.0) {
         if (uLightMode == 1 || uLightMode == 2) {
             // The ground and the walls: crisp shadows, even inside, the flat
-            // shaded value on the faces the sun does not hit (082).
-            light *= 1.0 - uShadowStrength * 0.425 * sunShadow();
+            // shaded value on the faces the sun does not hit (082). 0.35 by
+            // the owner's eye (082 round 2): 0.425 read too saturated.
+            light *= 1.0 - uShadowStrength * 0.35 * sunShadow();
         } else if (uLightMode == 3) {
             light *= 1.0 - uShadowStrength * 0.3 * sunShadow();
         }

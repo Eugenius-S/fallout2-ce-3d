@@ -30,12 +30,12 @@ int main()
     int failures = 0;
     const unsigned int day = 3 * 24 * kHour; // some day of the game
 
-    // 082: one vertical plane, the tilt linear through the day: -15 degrees
-    // at 6:00, 0 at noon, +15 at 18:00.
+    // 082 round 2: one vertical plane, the tilt linear through the day: -30
+    // degrees at 6:00, 0 at noon, +30 at 18:00.
     const Sun dawn = sunAt(day + 6 * kHour, 1.0, true);
     failures += !check(!dawn.up, "6:00: not shining yet");
-    failures += !check(close(dawn.tilt, -15.0, 1e-9), "6:00: tilted -15 degrees");
-    failures += !check(close(dawn.height, 75.0, 1e-9), "6:00: 75 degrees above the horizon");
+    failures += !check(close(dawn.tilt, -30.0, 1e-9), "6:00: tilted -30 degrees");
+    failures += !check(close(dawn.height, 60.0, 1e-9), "6:00: 60 degrees above the horizon");
 
     const Sun noon = sunAt(day + 12 * kHour, 1.0, true);
     failures += !check(noon.up && close(noon.tilt, 0.0, 1e-9), "12:00: straight overhead");
@@ -47,14 +47,14 @@ int main()
 
     const Sun dusk = sunAt(day + 18 * kHour, 1.0, true);
     failures += !check(!dusk.up, "18:00: the day's end, no light");
-    failures += !check(close(dusk.tilt, 15.0, 1e-9), "18:00: tilted +15 degrees");
+    failures += !check(close(dusk.tilt, 30.0, 1e-9), "18:00: tilted +30 degrees");
 
     // Linear between, in one plane, always a unit vector.
     const Sun morning = sunAt(day + 7 * kHour, 1.0, true);
     const Sun evening = sunAt(day + 17 * kHour, 1.0, true);
-    failures += !check(morning.up && close(morning.tilt, -12.5, 1e-9), "7:00: linear tilt of -12.5 degrees");
-    failures += !check(evening.up && close(evening.tilt, 12.5, 1e-9), "17:00: linear tilt of +12.5 degrees");
-    failures += !check(close(morning.height, 77.5, 1e-9) && morning.height > 70.0 && morning.height < 90.0,
+    failures += !check(morning.up && close(morning.tilt, -25.0, 1e-9), "7:00: linear tilt of -25 degrees");
+    failures += !check(evening.up && close(evening.tilt, 25.0, 1e-9), "17:00: linear tilt of +25 degrees");
+    failures += !check(close(morning.height, 65.0, 1e-9) && morning.height > 60.0 && morning.height < 90.0,
         "7:00: low and high at once");
     failures += !check(morning.color[2] > 0.85f, "7:00: nearly white, the sun stays high");
     for (const Sun* sun : { &dawn, &morning, &noon, &evening, &dusk }) {
