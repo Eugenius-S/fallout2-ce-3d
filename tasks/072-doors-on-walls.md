@@ -2,8 +2,8 @@
 id: 072
 title: Doors sit on the 3D wall planes
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: claude
 suggested: claude
 claude-only: no
 user-check: yes
