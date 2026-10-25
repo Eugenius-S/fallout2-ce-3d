@@ -30,10 +30,16 @@ in `tools/shapes/eval/` (`eval.py shoot | sheets | score`).
   your work with the background test instance (`tools/dev-snapshot.ps1`,
   `fallout2-ce-test.exe`), the only process you may stop; one agent at a time.
 - Python is `py -3` (`python` is a Store stub).
-- One task per thread: after its PR, start a new thread for the next task.
-  Open a snapshot image only when numbers or JSON cannot answer the question,
-  one at a time; every image stays in the context and is paid for on each
-  later request.
+- Limits go on re-reading the context: every call pays for the whole
+  thread so far (measured in 079: 99% of the tokens). So:
+  - one task per thread; after its PR, or once the thread is long, start a
+    new one from the task's `Log`;
+  - few calls: put read-only commands in one call; `dev-snapshot.ps1`
+    waits for the test slot itself, so never poll for it;
+  - open a snapshot image only when numbers or JSON cannot answer, one at a
+    time, cropped or scaled down; every image stays in the thread.
+- Evidence in `runs/` is a few JPEG sheets or crops of at most 1 MB each
+  (CI refuses more); raw captures stay in `game/shots/`.
 - A task that changed what the game, a tool or a folder looks like ends with
   at most 4 outcome screenshots attached in the chat when the task is done
   (and committed under its `runs/NNN-slug/` folder), so the owner sees the

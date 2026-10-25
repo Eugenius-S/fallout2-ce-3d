@@ -331,8 +331,8 @@ game view of the donor's viewer (`viewer/render.js`, `geom.js`):
   verified by eye.
 
 The earlier accepted 25° camera (section 10) is replaced by this.
-Snapshots: `runs/p1-objects-20261018/devhero-20261018-212051-000.png`, after
-the walls: `devhero-20261018-212530-000.png`.
+Snapshots: `runs/p1-objects-20261018/devhero-20261018-212051-000.jpg`, after
+the walls: `devhero-20261018-212530-000.jpg`.
 
 ## 13. The mouse and the interface in 3D: 2026-10-18
 

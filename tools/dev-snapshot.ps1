@@ -26,6 +26,9 @@ param(
     [string]$Map = "kladwtwn",
     [int]$Elevation = 0,
     [int]$TimeoutSeconds = 90,
+    # How long to wait for another test game to finish before giving up.
+    [ValidateRange(0, 240)]
+    [int]$WaitMinutes = 30,
     [switch]$Probe,
     [switch]$DialogFixture,
     [switch]$DialogPageInspect,
@@ -116,8 +119,27 @@ if (-not (Test-Path -LiteralPath $fixedConfig)) { throw "Missing the fixed test 
 $exeDirectory = Join-Path $Root 'build\test-run'
 New-Item -ItemType Directory -Path $exeDirectory -Force | Out-Null
 $exe = Join-Path $exeDirectory 'fallout2-ce-test.exe'
-if (Get-Process fallout2-ce-test -ErrorAction SilentlyContinue) {
-    throw 'Another fallout2-ce-test.exe instance is already running.'
+# One test game at a time on this machine: wait here for the slot instead of
+# failing, so an agent spends one call on it, not a polling loop. The mutex
+# lines the waiters up; it is let go once the test game has exited, or by the
+# trap on any error, so a long-lived PowerShell host never keeps it.
+$slot = New-Object System.Threading.Mutex($false, 'Global\fallout2-ce-test-slot')
+$slotHeld = $false
+function Release-TestSlot {
+    if ($script:slotHeld) {
+        $script:slotHeld = $false
+        $slot.ReleaseMutex()
+        $slot.Dispose()
+    }
+}
+trap { Release-TestSlot; break }
+try { $slotHeld = $slot.WaitOne([TimeSpan]::FromMinutes($WaitMinutes)) }
+catch [System.Threading.AbandonedMutexException] { $slotHeld = $true }
+if (-not $slotHeld) { throw "The test slot stayed busy for $WaitMinutes minutes." }
+$slotDeadline = (Get-Date).AddMinutes($WaitMinutes)
+while (Get-Process fallout2-ce-test -ErrorAction SilentlyContinue) {
+    if ((Get-Date) -gt $slotDeadline) { throw "Another fallout2-ce-test.exe kept running for $WaitMinutes minutes." }
+    Start-Sleep -Seconds 2
 }
 $configPath = Join-Path $exeDirectory 'fallout2.cfg'
 if ($PreferencesProbe) {
@@ -389,6 +411,7 @@ try {
         }
         if (-not $process.WaitForExit(10000)) { throw 'The background test process did not exit.' }
     }
+    Release-TestSlot
 }
 if ($PreferencesProbe) {
     $probeLog = Get-Content -Raw -LiteralPath (Join-Path $OutputDirectory 'process.stdout.log')
