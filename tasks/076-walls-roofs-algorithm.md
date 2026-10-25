@@ -97,5 +97,5 @@ Done: the corners of plain buildings close for the free camera, by rule.
   point) was tried and dropped: at 24268 the corner piece shows the other
   wall's face there, and bricks came out sheared.
 Left: roofs and walls that stick out of them, a wall seen through
-another, the corner by a door: task 080.
+another, the corner by a door: task 081.
 Check: `py -3 tools/scene_export/corner_rays.py build/scene-cache/kladwtwn/0`.

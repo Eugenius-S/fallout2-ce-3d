@@ -1,5 +1,5 @@
 ---
-id: 080
+id: 081
 title: Roofs and overlapping walls in 3D: nothing sticks out, nothing shows through
 milestone: M1
 status: todo
@@ -35,7 +35,7 @@ next to a door reads whole.
 ## Acceptance
 
 - The owner's spots read clean from turned views, before | after in
-  `runs/080-roofs-and-overlaps/`.
+  `runs/081-roofs-and-overlaps/`.
 - The game's own view unchanged.
 
 ## Out of scope
