@@ -104,6 +104,7 @@ uniform float uShadowStrength;
 uniform float uShadowStep;
 uniform float uShadowBias;
 uniform float uShadowRange; // the map's depth span in GL units
+uniform float uShadowGround; // the sun elevation's cosine: ray distance to ground distance
 out vec4 outColor;
 // What a texel shines by itself for the glow (task 022): the colour a
 // full-bright texel keeps, premultiplied by its shown coverage; black
@@ -165,32 +166,47 @@ vec4 sceneLighting() {
     return vec4(1.0);
 }
 // The sun's shadow at this fragment: the shadowed share, 0 lit to 1 fully in.
-// Nine taps in a ring a uShadowStep wide (the [3d] shadow_pixel_size setting,
-// the edge softness) antialias the edge; the lookup itself stays unsnapped in
-// world space, so a wall face takes no stripes from the step grid (the sun is
-// static per hour and the lookups do not move with the camera). The shadow is
-// a rim like the game's painted ones (the owner's round 7): full density at
-// the blocker, fully zero a few meters past it (smoothstep over 0.75..3 GL
-// units, one unit = two hexes). A roof's far stain across a yard is gone with
-// it: those ground points sit many units past their blocker and melt whole.
-float shadowPast(vec2 xz, float y) {
+// The shadow map samples bilinear (LINEAR on the depth texture), the compare
+// is a smoothstep over the bias window, and the melt comes from ONE blocker
+// depth, the center tap's: nine per-tap nearest-texel fades came out as flat
+// layers (the owner's round 8). Nine taps in a ring a uShadowStep wide (the
+// [3d] shadow_pixel_size setting, the edge softness) antialias the edge; the
+// lookup itself stays unsnapped in world space, so a wall face takes no
+// stripes from the step grid (the sun is static per hour and the lookups do
+// not move with the camera). The shadow is a rim like the game's painted ones
+// (the owner's rounds 7 and 8): full density for the first two hexes past the
+// caster's foot, fully zero by five hexes ON THE GROUND at every sun height,
+// so uShadowGround (the sun elevation's cosine) scales the ray distance down
+// to the ground distance. A roof's far stain across a yard is gone with it:
+// those ground points sit many units past their blocker and melt whole.
+float shadowDepth(vec2 xz, float y) {
     vec4 s = uShadowMatrix * vec4(xz.x, y, xz.y, 1.0);
     vec3 p = s.xyz / s.w * 0.5 + 0.5;
     if (p.x < 0.0 || p.x > 1.0 || p.y < 0.0 || p.y > 1.0 || p.z >= 1.0) return -1.0;
-    float diff = p.z - (texture(uShadowMap, p.xy).r + uShadowBias);
-    return diff > 0.0 ? diff : -1.0;
+    return p.z - texture(uShadowMap, p.xy).r;
 }
 float sunShadow() {
-    const vec2 taps[9] = vec2[9](
+    // Two rings, the outer at uShadowStep and the inner at half of it turned
+    // 22.5 degrees: one ring quantizes the edge into about five flat steps a
+    // ring-radius apart (the owner's layers, measured as 7 px runs at zoom 2),
+    // the second ring halves the step spacing.
+    const vec2 taps[17] = vec2[17](
         vec2(0.0, 0.0),
         vec2(1.0, 0.0), vec2(0.7071, 0.7071), vec2(0.0, 1.0), vec2(-0.7071, 0.7071),
-        vec2(-1.0, 0.0), vec2(-0.7071, -0.7071), vec2(0.0, -1.0), vec2(0.7071, -0.7071));
+        vec2(-1.0, 0.0), vec2(-0.7071, -0.7071), vec2(0.0, -1.0), vec2(0.7071, -0.7071),
+        vec2(0.4619, 0.1913), vec2(0.1913, 0.4619), vec2(-0.1913, 0.4619), vec2(-0.4619, 0.1913),
+        vec2(-0.4619, -0.1913), vec2(-0.1913, -0.4619), vec2(0.1913, -0.4619), vec2(0.4619, -0.1913));
+    float past = shadowDepth(vWorld.xz, vWorld.y);
+    if (past <= uShadowBias) return 0.0; // lit, or outside the shadow box
+    float fade = 1.0 - smoothstep(1.0, 2.5, past * uShadowRange * uShadowGround);
+    if (fade <= 0.0) return 0.0;
     float sum = 0.0;
-    for (int i = 0; i < 9; i++) {
-        float past = shadowPast(vWorld.xz + taps[i] * uShadowStep, vWorld.y);
-        if (past >= 0.0) sum += 1.0 - smoothstep(0.75, 3.0, past * uShadowRange);
+    for (int i = 0; i < 17; i++) {
+        float diff = shadowDepth(vWorld.xz + taps[i] * uShadowStep, vWorld.y);
+        if (diff < 0.0) continue; // this tap falls outside the box: it is lit
+        sum += smoothstep(0.0, 2.0 * uShadowBias, diff);
     }
-    return sum / 9.0;
+    return sum / 17.0 * fade;
 }
 // The darkening inside a shadow, over the engine's own light: the game's
 // painted shadows read about as a half. Every fragment takes its own faded
@@ -334,6 +350,7 @@ int gSceneShadowMapLocation = -1;
 int gSceneShadowStrengthLocation = -1;
 int gSceneShadowStepLocation = -1;
 int gSceneShadowBiasLocation = -1;
+int gSceneShadowGroundLocation = -1;
 int gSceneShadowRangeLocation = -1;
 
 bool createSceneShader(std::string* error)
@@ -406,6 +423,7 @@ bool createSceneShader(std::string* error)
     gSceneShadowMapLocation = glGetUniformLocation(gSceneProgram, "uShadowMap");
     gSceneShadowStrengthLocation = glGetUniformLocation(gSceneProgram, "uShadowStrength");
     gSceneShadowStepLocation = glGetUniformLocation(gSceneProgram, "uShadowStep");
+gSceneShadowGroundLocation = glGetUniformLocation(gSceneProgram, "uShadowGround");
     gSceneShadowBiasLocation = glGetUniformLocation(gSceneProgram, "uShadowBias");
     gSceneShadowRangeLocation = glGetUniformLocation(gSceneProgram, "uShadowRange");
     if (gSceneMvpLocation < 0 || gSceneTextureLocation < 0

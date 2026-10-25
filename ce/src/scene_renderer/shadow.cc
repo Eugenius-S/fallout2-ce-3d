@@ -104,8 +104,11 @@ void ensureResources()
         glBindTexture(kTexture2D, gShadowMapTexture);
         glTexImage2D(kTexture2D, 0, kDepthComponent24, kShadowMapSize, kShadowMapSize, 0,
             kDepthComponent, kUnsignedInt, nullptr);
-        glTexParameteri(kTexture2D, kTextureMinFilter, kNearest);
-        glTexParameteri(kTexture2D, kTextureMagFilter, kNearest);
+        // Bilinear depth: the shader's soft compare turns the interpolation
+        // into edge antialiasing, and the melt's single blocker depth reads
+        // smooth instead of per-texel steps (062).
+        glTexParameteri(kTexture2D, kTextureMinFilter, kLinear);
+        glTexParameteri(kTexture2D, kTextureMagFilter, kLinear);
         glTexParameteri(kTexture2D, kTextureWrapS, kClampToEdge);
         glTexParameteri(kTexture2D, kTextureWrapT, kClampToEdge);
     }
@@ -206,8 +209,13 @@ bool bindStaticShadows(const float* sceneMvp)
     glUniform1f(gSceneShadowStepLocation, ring);
     glUniform1f(gSceneShadowBiasLocation, static_cast<float>(ring * 1.5 / (far - near)));
     // The map's depth span in GL units: the shader fades the shadow with the
-    // distance the sun's ray travels past its caster.
+    // distance the sun's ray travels past its caster. uShadowGround scales
+    // that ray distance to the ground distance, so the rim's hexes hold at
+    // every sun height (062).
     glUniform1f(gSceneShadowRangeLocation, static_cast<float>(far - near));
+    const float groundScale = static_cast<float>(
+        std::sqrt(std::max(1.0 - static_cast<double>(sun.direction[1]) * sun.direction[1], 0.0)));
+    glUniform1f(gSceneShadowGroundLocation, groundScale);
     glActiveTexture(kTexture0 + 5);
     glBindTexture(kTexture2D, gShadowMapTexture);
     glUniform1i(gSceneShadowMapLocation, 5);

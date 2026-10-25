@@ -75,3 +75,43 @@ steps or layers, and the night shows no sun shadow at all.
 Cloud shadows (069), the lamps' own look beyond what the night shot shows.
 
 ## Log
+
+### 2026-10-25 glm
+Done: the first pass over all four lines.
+- Length: the rim is measured on the ground now: full density to 2 hexes
+  (1.0 GL unit) past the caster's foot, zero by 5 hexes (2.5 units), at
+  every sun height: uShadowGround (the sun elevation's cosine) scales the
+  ray distance down, so sunrise and sunset lay the same short rim as noon
+  instead of a geometric shadow that outgrew the old ray window. That
+  window is also the "whole shadow one hour, a cut piece the next": at low
+  sun the old rim cut a long geometric shadow off mid-yard, at noon the
+  whole shadow fit inside it.
+- Layers: the depth map samples LINEAR, each tap compares through a
+  smoothstep over the bias window instead of a hard nearest-texel cut, the
+  melt comes from ONE blocker depth (the center tap) instead of nine
+  per-tap fades, and the ring grew to two radii, 17 taps: a numeric edge
+  profile showed the 9-tap ring quantizing the edge into about five flat
+  steps a ring-radius apart (7 px runs at zoom 2). The isolated
+  shadow-mask edge now reads a ~10 px transition; some 2-game-px
+  quantization remains in the profile numbers, the owner's eye judges
+  whether it still reads as layers.
+- Night: no code needed: sunAt() gives strength 0 outside 06:00..18:00, so
+  sun shadows cannot draw at 22 or 3 (the on/off pairs are byte-identical).
+  The dark bands in the night shot are not sun shadows: the lamps line
+  (020), out of scope here.
+- Cut-off pieces: the box measured innocent (a numeric walk of
+  shadowMatrix with the 17:00 and a dusk-4-degree sun keeps roofs and wall
+  tops inside the box; roof casters draw from all squares unconditionally),
+  and the hero-step triple (10-tile steps at 17:00) moves 7..20 k pixels
+  against a 266 k shadow mask: the hero card and his egg, no shadow pieces
+  appearing or vanishing.
+Check: build Release, ctest 14/14. Runs under runs/062-shadows-short-steady-smooth/:
+on/off pairs at hours 6, 8, 12, 17, 19, 22 and 3 (mask 341 k at 8:00,
+409 k at noon, 267 k at 17:00, 0 at 6, 19, 22 and 3), the hero-step triple,
+the fence zoom-2 on/off pair for the edge profile. The shadows-off
+regression: the same 13 drifted spots at the same counts as before this
+task, three at 0.
+Next: the owner's eye (user-check: yes). Knobs one line each: rim end 2.5,
+rim start 1.0, ring floor 2 texels, softness default 3. If layers remain,
+the next step is compare-mode PCF (sampler2DShadow), which needs
+sampler-object procedures in gl_procs.h.
