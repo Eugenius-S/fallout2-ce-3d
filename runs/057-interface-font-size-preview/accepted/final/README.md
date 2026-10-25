@@ -14,6 +14,7 @@ Captured on 2026-10-25 from source `a9674c33`, EXE SHA-256 `8c5b57d5754e491c4150
 | `pipboy-on/` | Russian | 1920x1440 | 3 | On | 2 runs, 12 glyphs |
 | `barter-en-x2-on/` | English | 1280x960 | 2 | On | Two white `$0` totals |
 | `character-en-x2-boxed-label/` | English | 1280x960 | 2 | On | Eight SPECIAL box runs |
+| `inventory-off-repeat/` | Russian | 1920x1440 | 3 | Off | Byte-identical repeat of `inventory-off/` |
 
 The dialogue and character OFF screenshots match the latest accepted task 056 frames exactly by RGBA byte comparison. The inventory screenshot has 432 differing pixels in a 60x9 physical-pixel rectangle at `(1218,1131)..(1277,1139)`, corresponding to logical `(406,377)..(425,379)` below the inventory window in the lower HUD. Its alpha channel is unchanged, all pixels outside this rectangle are identical, and no changed pixel uses the green font color. Both inventory fixture logs report 34 green font-101 runs and zero runs in other colors. A repeated capture from source `a9674c33` is byte-identical to this one. The current inventory image also matches the earlier task 056 `0e203738` image exactly; the same 432-pixel lower-HUD rectangle is the only difference between the two accepted task 056 inventory OFF images.
 
