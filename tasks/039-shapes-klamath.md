@@ -2,13 +2,13 @@
 id: 039
 title: All of Klamath looks decent from turned views
 milestone: M1
-status: doing
+status: done
 owner: glm
 suggested: claude
 claude-only: no
 user-check: yes
 depends-on: [037, 038]
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -98,3 +98,8 @@ Acceptance state: the score gate (98%) and the exceptions cap (3 of 46) are
 met; the regression 16/16 item is blocked by the pre-existing 13/16
 failures documented in task 054 (proven not from this branch by the
 reverted-build rerun), so the task stays open until 054 is resolved.
+
+### 2026-10-25 claude
+Closed at the merge: the score gate (98%) and the exceptions cap hold; the
+regression line moves to 058 with the stale references, and the follow-ups
+are 059, 060 and 061.
