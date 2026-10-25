@@ -194,3 +194,20 @@ owner's default view: bright-base ground bands with a median 48-gray
 drop), corrals17fix{,-off}.
 Next: the owner's eye on the relaunched game: what is left of the sun
 shadow is ground and card rims that fade; walls are painted-shaded only.
+
+### 2026-10-25 glm
+Round 5: the owner on round 4: "the wall shading on the shadow side is
+gone", then "the shadow is there, the dimming is not". The walls go back
+into the sun shadow (mode 2, 0.5 like the ground); the prism stays
+reverted. Measured without the prism (spawn view, 8:00, modes 2+3): a
+shaded wall face self-writes its own depth at its uv (the wall is the
+first caster along its own sun ray), so its measured distance past a
+blocker is near zero and the whole face takes the plateau: the dimming
+is FLAT by construction, which is also how the game's own painted
+shading reads. If a graded wall dimming is ever wanted it needs a
+surface-distance design (fade down the face from the shade line), noted
+as future work. His two verdicts say the flat dim is what he wants back.
+Check: build Release, ctest 14/14; spawn8-noprism-mode{2,3} under this
+runs folder (93.8% of the wall dim at full density, 6.2% melting at the
+edges); game relaunched on the restored build (exe 844b9315).
+Next: the owner's eye.

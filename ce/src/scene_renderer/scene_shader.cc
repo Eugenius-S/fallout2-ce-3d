@@ -232,19 +232,16 @@ float shadowDarken(float light) {
         return sunShadow();
     }
     if (uShadowOn && uShadowStrength > 0.0) {
-        if (uLightMode == 1) {
-            // The ground takes the rim: dense at the caster's foot, melted
-            // to zero a few hexes out.
+        if (uLightMode == 1 || uLightMode == 2) {
+            // The ground and the walls take the rim: dense at the caster,
+            // melted to zero a few hexes out. A shaded wall face measures
+            // the distance from the roof or the opposite wall that blocks
+            // its sun, so the face grades; only with the round-3 prism
+            // curtains did it collapse flat (reverted).
             light *= 1.0 - uShadowStrength * 0.5 * sunShadow();
         } else if (uLightMode == 3) {
             light *= 1.0 - uShadowStrength * 0.35 * sunShadow();
         }
-        // The walls (mode 2) take no sun shadow: their own surface writes
-        // the depth map, so the ray distance past a blocker is not
-        // measurable there and the whole shaded face came out one flat
-        // full-density mass with a hard edge (the owner's "straight
-        // shadows without a fade"). The walls keep the engine's painted
-        // shading; a surface-distance design can bring wall shadows back.
     }
     return light;
 }
