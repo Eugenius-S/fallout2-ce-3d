@@ -99,3 +99,36 @@ Done: the corners of plain buildings close for the free camera, by rule.
 Left: roofs and walls that stick out of them, a wall seen through
 another, the corner by a door: task 081.
 Check: `py -3 tools/scene_export/corner_rays.py build/scene-cache/kladwtwn/0`.
+
+### 2026-10-25 claude (round 2, the owner's yes/no)
+The owner turned down the STOP corner (a skewed jamb, then a grey post) and
+asked for corners that meet with no gap and nothing sticking out
+(`runs/inbox/2026-10-25-corners-yes-no.jpg`). The rule is now face by face:
+- At an L of two thick walls each wall's outer face (away from the other's
+  body) runs to the other's outer face and its inner face to the other's
+  inner face: the outer faces meet in one edge, the inner ones in another,
+  and no end face stands between them. At STOP the outer corner is one
+  wall's back and the other's front; 071 had stopped both faces of a wall
+  at one place and closed the rest with an end face, the jamb. Tops stop at
+  the inner faces; one cap covers the square where the walls cross.
+- The corner piece (a row running into that square) is left out for the
+  free camera: its picture draws both walls of the corner at an angle, and
+  on one wall's plane the other's bricks came out skewed. Each face is
+  filled from the last plain row to its edge in that face's own material
+  (front or back pictures), the columns nearest the median brightness and
+  fully opaque, so plinth and cornice bands run round the corner. Walls up
+  to 1.5 units keep their pieces (both ends may be corners).
+- A thick wall does not reach for a rail or a trim strip (some are wholly
+  clear: it made a stub); a trim lying wholly within reach of a thick wall
+  is left out (a ledge stood up out of a roof); where a wall's end is moved
+  next to a rail, or next to a wall that does not turn the corner back, it
+  gets an end face of its own; a wall reaching past the other end of a short
+  wall is that end's corner, not this one's.
+- Each arm of the core stays below its own wall's top (Codex review).
+- Check: `corner_rays.py` over all Klamath scenes: kladwtwn 3 corners with
+  2 grazing rays each; klagraz, klatrap, klacanyn, klatoxcv, klaratcv e0
+  and e1 none (one of 10 rays); klamall's left are its mesh fences (clear on
+  purpose) and 4 single rays; klaratcv e2 keeps two cave corners (66 and 20
+  rays of ~700), cave walls rather than buildings: left for 081. Game view
+  0 px on kladwtwn and klamall. Exporter tests 52/52.
+- Before | after refreshed in `runs/076-walls-roofs-algorithm/corners-before-after.jpg`.
