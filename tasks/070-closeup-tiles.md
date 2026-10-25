@@ -4,7 +4,7 @@ title: Tiles up close in the fly camera stop looking like pixel noise
 milestone: M1
 status: todo
 owner: none
-suggested: gpt
+suggested: glm
 claude-only: no
 user-check: yes
 depends-on: []

@@ -43,7 +43,7 @@ single spot.
 - This task takes over 040 (the eval's failing FRMs), 059 (panels and a
   box vanish from behind), 061 (holes in fitted solids) and 068 (the
   owner's 2026-10-24 spots: computer stands, the notice standee, the
-  buckets, a lost card, a floor tile back to 2D); close them with it.
+  buckets, a lost card, a floor tile back to 2D) (closed into it).
 - Where things stand: the design in
   [docs/2026-10-20-shapes-and-rotation-design.md](../docs/2026-10-20-shapes-and-rotation-design.md),
   fits in `tools/scene_export/solids.py` and the donor's `props.py`,

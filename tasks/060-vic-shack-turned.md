@@ -2,13 +2,13 @@
 id: 060
 title: Vic's shack from the back: roof gap, open corner, hanging sign
 milestone: M1
-status: todo
+status: done
 owner: none
 suggested: claude
 claude-only: no
 user-check: yes
 depends-on: [034, 038]
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -39,4 +39,4 @@ the VIC'S sign is closed, and the sign hangs on the wall.
 ## Log
 
 ### 2026-10-25 claude
-Folded into 076; close together with it.
+Folded into 076: closed here, the work goes on there.

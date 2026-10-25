@@ -42,9 +42,12 @@ patches for single spots.
   roofs to the outline and walls to the roof.
 - The game's own view stays pixel for pixel (`dev-snapshot.ps1 -Map
   kladwtwn|klamall` against the pre-071 shots: 0 px).
+- The camera ships limited to 45 degrees either way (077), but the owner
+  wants corners and walls to meet right by the algorithm, not by spot
+  fixes; views within 45 degrees come first.
 - The owner may add more from the same review.
 - This task takes over 060 (Vic's shack from the back: roof gap, open
-  corner, hanging sign); close it with it.
+  corner, hanging sign) (closed into it).
 
 ## Acceptance
 

@@ -2,13 +2,13 @@
 id: 059
 title: Panels and some boxes vanish from behind in turned views
 milestone: M1
-status: todo
+status: done
 owner: none
 suggested: claude
 claude-only: no
 user-check: no
 depends-on: [038]
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -38,4 +38,4 @@ vanished (bolcas2).
 ## Log
 
 ### 2026-10-25 claude
-Folded into 075; close together with it.
+Folded into 075: closed here, the work goes on there.

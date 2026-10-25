@@ -4,7 +4,8 @@ title: Regression references no longer match the unchanged renderer
 milestone: M1
 status: todo
 owner: none
-suggested: gpt
+suggested: glm
+priority: high
 claude-only: no
 user-check: no
 depends-on: []
