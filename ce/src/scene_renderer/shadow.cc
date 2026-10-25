@@ -104,11 +104,13 @@ void ensureResources()
         glBindTexture(kTexture2D, gShadowMapTexture);
         glTexImage2D(kTexture2D, 0, kDepthComponent24, kShadowMapSize, kShadowMapSize, 0,
             kDepthComponent, kUnsignedInt, nullptr);
-        // Bilinear depth: the shader's soft compare turns the interpolation
-        // into edge antialiasing, and the melt's single blocker depth reads
-        // smooth instead of per-texel steps (062).
-        glTexParameteri(kTexture2D, kTextureMinFilter, kLinear);
-        glTexParameteri(kTexture2D, kTextureMagFilter, kLinear);
+        // NEAREST, deliberately: bilinear depth mixes the caster's silhouette
+        // with the empty far depth, so the contact line reads a phantom far
+        // blocker and the shadow fades from its own middle instead of its
+        // object (the owner's round 2), and the interpolation breaks into
+        // contour layers inside. The disk of taps does the smoothing.
+        glTexParameteri(kTexture2D, kTextureMinFilter, kNearest);
+        glTexParameteri(kTexture2D, kTextureMagFilter, kNearest);
         glTexParameteri(kTexture2D, kTextureWrapS, kClampToEdge);
         glTexParameteri(kTexture2D, kTextureWrapT, kClampToEdge);
     }

@@ -115,3 +115,25 @@ Next: the owner's eye (user-check: yes). Knobs one line each: rim end 2.5,
 rim start 1.0, ring floor 2 texels, softness default 3. If layers remain,
 the next step is compare-mode PCF (sampler2DShadow), which needs
 sampler-object procedures in gl_procs.h.
+
+### 2026-10-25 glm
+Done: round 2, the owner's verdict on round 1 (his screenshots stayed in
+the chat): the fade appeared "from the center, not from the object" at some
+sun-to-wall angles, layers inside the shadows, stairs in places.
+- The center fade was REAL and it was the bilinear depth of round 1: near a
+  caster's silhouette the interpolation mixes the caster's depth with the
+  empty far depth, so the contact line read a phantom far blocker, went
+  light, and the shadow kept its density only in its middle. The map is
+  back to NEAREST (the v2-to-v3 diff confirms the repair: the changed
+  pixels sit 61% inside the shadow mask, at the contact lines).
+- The disk grows to three radii, 25 taps (1.0, 0.65 at 22.5 degrees, 0.35
+  at 11.25): the tap grid no longer quantizes the edge.
+- What the edge profile metric still shows (about 3 levels in 10 px, 4 px
+  runs) is the floor art's own texel grid, 2 x 2 screen pixels at scale 2:
+  a 10 px edge spans about five art texels and cannot read smoother than
+  that. So the default edge softness rises from 3 to 5 game pixels (the
+  owner asked for more smoothing), the knob stays in [3d].
+Check: build Release, ctest 14/14; the shadows-off regression keeps the
+same 13 drifted counts, three at 0; the final zoom-2 pair under
+runs/062-shadows-short-steady-smooth/ (fence-zoom2-final/-off, mask 610 k).
+Next: the owner's eye again.

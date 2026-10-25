@@ -166,10 +166,12 @@ vec4 sceneLighting() {
     return vec4(1.0);
 }
 // The sun's shadow at this fragment: the shadowed share, 0 lit to 1 fully in.
-// The shadow map samples bilinear (LINEAR on the depth texture), the compare
-// is a smoothstep over the bias window, and the melt comes from ONE blocker
-// depth, the center tap's: nine per-tap nearest-texel fades came out as flat
-// layers (the owner's round 8). Nine taps in a ring a uShadowStep wide (the
+// The map samples NEAREST (bilinear depth mixes the caster silhouette with
+// the empty far depth: a phantom far blocker ate the contact line and the
+// shadow faded from its middle, the owner's round 2), the compare is a
+// smoothstep over the bias window, and the melt comes from ONE blocker
+// depth, the center tap's: per-tap fades came out as flat layers. A disk of
+// taps a uShadowStep wide (the
 // [3d] shadow_pixel_size setting, the edge softness) antialias the edge; the
 // lookup itself stays unsnapped in world space, so a wall face takes no
 // stripes from the step grid (the sun is static per hour and the lookups do
@@ -186,27 +188,28 @@ float shadowDepth(vec2 xz, float y) {
     return p.z - texture(uShadowMap, p.xy).r;
 }
 float sunShadow() {
-    // Two rings, the outer at uShadowStep and the inner at half of it turned
-    // 22.5 degrees: one ring quantizes the edge into about five flat steps a
-    // ring-radius apart (the owner's layers, measured as 7 px runs at zoom 2),
-    // the second ring halves the step spacing.
-    const vec2 taps[17] = vec2[17](
-        vec2(0.0, 0.0),
-        vec2(1.0, 0.0), vec2(0.7071, 0.7071), vec2(0.0, 1.0), vec2(-0.7071, 0.7071),
-        vec2(-1.0, 0.0), vec2(-0.7071, -0.7071), vec2(0.0, -1.0), vec2(0.7071, -0.7071),
-        vec2(0.4619, 0.1913), vec2(0.1913, 0.4619), vec2(-0.1913, 0.4619), vec2(-0.4619, 0.1913),
-        vec2(-0.4619, -0.1913), vec2(-0.1913, -0.4619), vec2(0.1913, -0.4619), vec2(0.4619, -0.1913));
+    // A three-radius disk of 25 taps (1.0, 0.65 turned 22.5 degrees, 0.35
+    // turned 11.25): fewer rings quantize the edge into flat steps a
+    // ring-radius apart, the owner reads them as layers and stairs.
+    const vec2 taps[25] = vec2[25](
+        vec2(0.0000, 0.0000), vec2(1.0000, 0.0000), vec2(0.7071, 0.7071), vec2(0.0000, 1.0000),
+        vec2(-0.7071, 0.7071), vec2(-1.0000, 0.0000), vec2(-0.7071, -0.7071), vec2(-0.0000, -1.0000),
+        vec2(0.7071, -0.7071), vec2(0.6005, 0.2487), vec2(0.2487, 0.6005), vec2(-0.2487, 0.6005),
+        vec2(-0.6005, 0.2487), vec2(-0.6005, -0.2487), vec2(-0.2487, -0.6005), vec2(0.2487, -0.6005),
+        vec2(0.6005, -0.2487), vec2(0.3433, 0.0683), vec2(0.1944, 0.2910), vec2(-0.0683, 0.3433),
+        vec2(-0.2910, 0.1944), vec2(-0.3433, -0.0683), vec2(-0.1944, -0.2910), vec2(0.0683, -0.3433),
+        vec2(0.2910, -0.1944));
     float past = shadowDepth(vWorld.xz, vWorld.y);
     if (past <= uShadowBias) return 0.0; // lit, or outside the shadow box
     float fade = 1.0 - smoothstep(1.0, 2.5, past * uShadowRange * uShadowGround);
     if (fade <= 0.0) return 0.0;
     float sum = 0.0;
-    for (int i = 0; i < 17; i++) {
+    for (int i = 0; i < 25; i++) {
         float diff = shadowDepth(vWorld.xz + taps[i] * uShadowStep, vWorld.y);
         if (diff < 0.0) continue; // this tap falls outside the box: it is lit
         sum += smoothstep(0.0, 2.0 * uShadowBias, diff);
     }
-    return sum / 17.0 * fade;
+    return sum / 25.0 * fade;
 }
 // The darkening inside a shadow, over the engine's own light: the game's
 // painted shadows read about as a half. Every fragment takes its own faded
