@@ -1287,7 +1287,7 @@ void update()
             gDialogFixtureSpeakerTile, gDude->tile, talkResult);
         fflush(stdout);
         gameDialogEnter(speaker, 0);
-        if (!gameDialogWindowActive()) {
+        if (!gameDialogWindowActive() && !gDialogFixtureFinished) {
             printf("DIALOG_FIXTURE FAIL map=%s script=%s speaker=%d speaker_tile=%d elevation=%d hero=%d reason=dialog-window-did-not-open\n",
                 gMapHeader.name, gDialogFixtureScript, gDialogFixtureSpeakerId,
                 gDialogFixtureSpeakerTile, gDialogFixtureSpeakerElevation, gDude->tile);
@@ -2005,7 +2005,9 @@ void vanillaPresented()
                 if (ownerCount < 2) ownerIds[ownerCount++] = window.id;
             }
         }
-        if (ownerCount >= 2) {
+        // A full-screen backdrop can present while the dialogue is still
+        // being built. Old world text is not a completed dialogue fixture.
+        if (ownerCount >= 2 && gameDialogGetOptionCount() > 0) {
             if (gDialogLayoutCheckRequested) {
                 const int optionCount = gameDialogGetOptionCount();
                 const int lineHeight = fontGetLineHeight();
