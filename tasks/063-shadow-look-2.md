@@ -13,7 +13,7 @@ reviewed: yes
 
 ## Goal
 
-The owner's live review of the 046 build (2026-10-24; his notes are in
+The owner's live review of the 046 build (2026-10-24; their notes are in
 046's Log, his screenshots in
 runs/046-characters-in-shadow/review-2026-10-24/) sets the shadow look to
 reach:
@@ -42,7 +42,7 @@ whole hour per press.
 - The fence casts from baked solid geometry; the caster pass must sample
   the texture alpha and cut the holes out.
 - Open questions to check during the runs: where the straight card cutout
-  went (his words; which card is unconfirmed), and whether fire glows in
+  went (their words; which card is unconfirmed), and whether fire glows in
   Klamath with [3d] glow on (022 and 050 are in main; Klamath screens are
   dead art).
 
@@ -106,7 +106,7 @@ Overall much better. For the next pass:
   middle, right where the figure stands; asked whether that is real.
 
 ### 2026-10-24 owner (round 5, shot 24)
-The wanted shape in his words: along its whole length the shadow stays dense
+The wanted shape in their words: along its whole length the shadow stays dense
 first, and only then melts to zero. So: a solid core with no weakening right
 at the blocker, one melt window at the far end.
 
