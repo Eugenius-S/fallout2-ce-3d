@@ -37,3 +37,21 @@ that fits no task becomes a new task when the board runs dry.
   whether these things were never covered. Not now.
 - 2026-10-25 A table in the bathhouse sticks through its walls
   (`runs/inbox/2026-10-25-bathhouse-interior.png`). Not now.
+- 2026-10-25 The owner's live review after 071 round 4 and 072
+  (`runs/inbox/2026-10-25-review2-01..10.png`); still recording, the
+  owner is not done. The owner's verdict: fix the 3D-fication algorithm
+  itself, no hand-made cases.
+  - 01: the STOP corner still meets wrong.
+  - 02: a corner of the dark building on the left: a striped strip of
+    other material on the corner.
+  - 03: a wall shows through another wall (the light patch in the middle
+    of the dark wall).
+  - 04: a stove fell out through a house wall, and the wall's texture is
+    broken around it.
+  - 05, 06: the corner of the dark house: a light striped strip down the
+    corner.
+  - 07: holes where the stove is; another corner with stripes.
+  - 08: walls and triangular pieces stick out of the roofs in the 3D view.
+  - 09: clothes lines stick out over the roof.
+  - 10: a corner of the house is broken (an open door leaf and the
+    corner's material).
