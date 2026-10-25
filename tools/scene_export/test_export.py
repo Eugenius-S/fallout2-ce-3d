@@ -984,6 +984,17 @@ class ThingShapeTests(unittest.TestCase):
         self.assertEqual(["fly", "fly"], [face[3] for face in solids._forced(row, faces)])
         row[15] = 2
         self.assertEqual(["game", "game"], [face[3] for face in solids._forced(row, faces)])
+        row[14] = 1                                                      # by name: the game's camera keeps the card
+        self.assertEqual([], solids._forced(row, faces))
+
+    def test_a_solid_by_name_is_cut_in_place(self):
+        from vendor.fp import scene
+        crate = self.row(0, 0.0, 0.0, 1.0, 1.0)
+        crate[14] = 1
+        fake = self.scene([crate, self.row(0, 0.8, 0.1, 1.0, 1.0)])
+        scene.SceneBuilder.keep_apart(fake, [0, 1])
+        self.assertEqual([0, 2, 1], [row[15] for row in fake.props])
+        self.assertAlmostEqual(0.4, fake.props[0][5] + fake.props[0][7] / 2, places=3)
 
 if __name__ == "__main__":
     unittest.main()

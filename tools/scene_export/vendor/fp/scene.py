@@ -566,9 +566,10 @@ class SceneBuilder:
                 shrink(other, q)
         # The game's camera sees the card, and a solid only over it: one cut back would change
         # its view. So a solid that was cut stays as made for that camera, and the cut copy
-        # is the fly camera's (row[15]: 0 both cameras, 1 the fly camera, 2 the game's).
+        # is the fly camera's (row[15]: 0 both cameras, 1 the fly camera, 2 the game's). A
+        # solid by name is the fly camera's alone already: the game's camera keeps its card.
         for n, (row, cut) in enumerate(zip(list(self.props), rows)):
-            if cut != row and row[15] == 1:
+            if cut != row and (row[15] == 1 or row[14]):
                 self.props[n] = cut
             elif cut != row:
                 row[15], cut[15] = 2, 1
