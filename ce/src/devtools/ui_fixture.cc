@@ -24,6 +24,7 @@
 #include "../scripts.h"
 #include "../settings.h"
 #include "../svga.h"
+#include "../text_object.h"
 #include "../window_manager.h"
 #include "devtools.h"
 
@@ -39,6 +40,7 @@ enum class UiFixtureKind {
     Character,
     Barter,
     Log,
+    Bark,
 };
 
 enum class UiFixtureStage {
@@ -46,6 +48,9 @@ enum class UiFixtureStage {
     WaitingForScreen,
     WaitingForDialog,
     WaitingForBarter,
+    WaitingForBark,
+    WaitingForBarkReplacement,
+    WaitingForBarkExpiration,
     Capturing,
     Finished,
 };
@@ -64,6 +69,13 @@ bool gFont101PreviewActivated = false;
 double gFont101PreviewScale = 1.29;
 bool gFont101PreviewWeightRequested = false;
 bool gFont101PreviewBold = false;
+int gBarkBaselineCount = 0;
+int gBarkWaitFrames = 0;
+bool gBarkFirstCaptured = false;
+bool gBarkReplacementSeen = false;
+// CP1251 Russian bark fixtures.
+char gBarkFirstText[] = "\xD2\xFB \xEC\xE5\xED\xFF \xEF\xF3\xE3\xE0\xE5\xF8\xFC.";
+char gBarkReplacementText[] = "\xD1\xF2\xEE\xE9!";
 
 const char* fixtureName()
 {
@@ -73,6 +85,7 @@ const char* fixtureName()
     case UiFixtureKind::Character: return "character";
     case UiFixtureKind::Barter: return "barter";
     case UiFixtureKind::Log: return "log";
+    case UiFixtureKind::Bark: return "bark";
     default: return "none";
     }
 }
@@ -95,6 +108,81 @@ int expectedWindow()
     case UiFixtureKind::Character: return characterEditorGetWindow();
     case UiFixtureKind::Log: return gInterfaceBarWindow;
     default: return -1;
+    }
+}
+
+int outlinedTextCount(const char* text, std::size_t* ownedPixelCount = nullptr)
+{
+    int count = 0;
+    std::size_t pixels = 0;
+    int windowCount = 0;
+    TextWindowSnapshot first = {};
+    if (!textCaptureGetWindowSnapshot(0, &first, &windowCount)) return 0;
+    for (int index = 0; index < windowCount; index++) {
+        TextWindowSnapshot window = {};
+        if (!textCaptureGetWindowSnapshot(index, &window, nullptr) || window.hidden || window.pixels == nullptr) continue;
+        for (const scene::TextRecord& record : scene::textCaptureRecords(window.generation)) {
+            if (record.run.font == 101 && record.run.hasOutline && record.run.text == text) {
+                count++;
+                pixels += record.pixels.size();
+            }
+        }
+    }
+    if (ownedPixelCount != nullptr) *ownedPixelCount = pixels;
+    return count;
+}
+
+void runBarkFixtureFrame()
+{
+    gBarkWaitFrames++;
+    if (gBarkWaitFrames > 1800) {
+        fixtureFail("bark-lifecycle-timeout");
+        return;
+    }
+    if (gStage == UiFixtureStage::WaitingForBark) {
+        std::size_t firstOwnedPixels = 0;
+        if (outlinedTextCount(gBarkFirstText, &firstOwnedPixels) == 0) return;
+        if (!takeSnapshot()) {
+            fixtureFail("bark-first-snapshot-failed");
+            return;
+        }
+        gBarkFirstCaptured = true;
+        printf("UI_FIXTURE STEP screen=bark stage=visible hasOutline=1 ownedPixels=%zu text=first-ru-line\n", firstOwnedPixels);
+        fflush(stdout);
+        if (textObjectAdd(gDude, gBarkReplacementText, 101, COLOR_LIGHT_YELLOW, COLOR_BLACK, nullptr) == -1) {
+            fixtureFail("bark-replacement-add-failed");
+            return;
+        }
+        gStage = UiFixtureStage::WaitingForBarkReplacement;
+        gBarkWaitFrames = 0;
+        printf("UI_FIXTURE STEP screen=bark stage=replace old=long-ru new=short-ru\n");
+        fflush(stdout);
+        return;
+    }
+    if (gStage == UiFixtureStage::WaitingForBarkReplacement) {
+        if (outlinedTextCount(gBarkFirstText) != 0 || outlinedTextCount(gBarkReplacementText) == 0) return;
+        std::size_t replacementOwnedPixels = 0;
+        outlinedTextCount(gBarkReplacementText, &replacementOwnedPixels);
+        gBarkReplacementSeen = true;
+        gStage = UiFixtureStage::WaitingForBarkExpiration;
+        gBarkWaitFrames = 0;
+        printf("UI_FIXTURE STEP screen=bark stage=replaced hasOutline=1 ownedPixels=%zu text=short-ru-line\n", replacementOwnedPixels);
+        fflush(stdout);
+        return;
+    }
+    if (gStage == UiFixtureStage::WaitingForBarkExpiration
+        && textObjectsGetCount() <= gBarkBaselineCount
+        && outlinedTextCount(gBarkFirstText) == 0
+        && outlinedTextCount(gBarkReplacementText) == 0) {
+        if (!takeSnapshot()) {
+            fixtureFail("bark-expiration-snapshot-failed");
+            return;
+        }
+        printf("UI_FIXTURE PASS screen=bark first=%d replacement=%d cleared_runs=0\n",
+            gBarkFirstCaptured ? 1 : 0, gBarkReplacementSeen ? 1 : 0);
+        fflush(stdout);
+        gStage = UiFixtureStage::Finished;
+        _game_user_wants_to_quit = GAME_QUIT_REQUEST_EXIT;
     }
 }
 
@@ -529,9 +617,10 @@ bool parseUiFixtureOption(const char* arg)
     else if (strcmp(value, "character") == 0) gKind = UiFixtureKind::Character;
     else if (strcmp(value, "barter") == 0) gKind = UiFixtureKind::Barter;
     else if (strcmp(value, "log") == 0) gKind = UiFixtureKind::Log;
+    else if (strcmp(value, "bark") == 0) gKind = UiFixtureKind::Bark;
     else {
         gInvalidUiFixture = true;
-        fprintf(stderr, "devtools: invalid --dev-ui-fixture value (expected inventory, pipboy, character, barter, or log)\n");
+        fprintf(stderr, "devtools: invalid --dev-ui-fixture value (expected inventory, pipboy, character, barter, log, or bark)\n");
         fflush(stderr);
     }
     return true;
@@ -598,6 +687,22 @@ bool startUiFixtureWhenReady(bool startupReady, bool blockingState)
         printf("UI_FIXTURE START screen=barter route=Klamath-Sulik-real-dialog-key-B\n");
         fflush(stdout);
         return true;
+    }
+
+    if (gKind == UiFixtureKind::Bark) {
+        if (gDude == nullptr) {
+            fixtureFail("bark-fixture-requires-player-character");
+            return false;
+        }
+        gBarkBaselineCount = textObjectsGetCount();
+        if (textObjectAdd(gDude, gBarkFirstText, 101, COLOR_LIGHT_YELLOW, COLOR_BLACK, nullptr) == -1) {
+            fixtureFail("bark-first-add-failed");
+            return false;
+        }
+        gStage = UiFixtureStage::WaitingForBark;
+        printf("UI_FIXTURE START screen=bark source=textObjectAdd owner=player\n");
+        fflush(stdout);
+        return false;
     }
 
     gStage = UiFixtureStage::WaitingForScreen;
@@ -672,6 +777,10 @@ void uiFixtureDialogReady(const char* scriptName, int speakerId, int speakerTile
 
 void uiFixtureVanillaPresented()
 {
+    if (gKind == UiFixtureKind::Bark) {
+        runBarkFixtureFrame();
+        return;
+    }
     if (gStage != UiFixtureStage::WaitingForScreen && gStage != UiFixtureStage::WaitingForBarter) return;
     if (gKind == UiFixtureKind::Barter && gStage != UiFixtureStage::WaitingForBarter) return;
 

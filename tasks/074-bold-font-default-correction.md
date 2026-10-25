@@ -47,5 +47,10 @@ Check: task `074` is the first free ID after `073-glow-ladder`; no remote task/0
 
 ### 2026-10-25 gpt
 Done: selected Bold 700 by default, added modern-only injury-status color role, aligned PipBoy underlines to visible glyph ink, and added floating-bark outline capture, restoration, and padded-layout support. SharpText-off source colors, legacy outlines, line placement, and object placement remain on the original path.
-Next: commit and push this checkpoint, force source-stamp consumers to rebuild, then capture the three new visual scopes at owner resolution and finish the remaining regression/runtime evidence.
+Next: add and build the bounded bark lifecycle fixture, capture injury/PipBoy/bark evidence at 2310x1298 scale 2, then run the final SharpText-off regression and close remaining runtime evidence.
 Check: clean official MSVC Release build passed all 733 targets; CTest passed 15/15. Focused tests cover injury palette fades, underline span/gap/clipping at E1.29 and D1.22 with x2/x3, exact outline-pixel restoration/copying, and multiline bark layout.
+
+### 2026-10-25 gpt
+Done: added a bark-only dev fixture using real CP1251 Russian bark strings. It captures the longer outlined bark, replaces it with the shorter line, verifies the old run disappears while the replacement still owns outlined pixels, then captures the cleared frame after expiry. The fixture logs outline ownership and pixel counts.
+Next: review the narrow fixture diff, build it, and validate SharpText-on/off lifecycle captures.
+Check: no own `fallout2-ce-test.exe` process was active before runtime work; the owner GLM process remains untouched.
