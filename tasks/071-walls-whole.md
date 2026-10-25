@@ -79,3 +79,13 @@ fractions past 0 or 1 for that).
 Check: the exporter suite 50/50; the game's view still 0 pixels changed on
 kladwtwn, klamall and klaratcv. Round 1 against round 2 of both corners:
 `runs/071-walls-whole/corners-round-1-vs-2.png`.
+
+### 2026-10-25 claude (round 3)
+The owner: nothing may stick out. The feet of the wall pictures (the dirt
+painted at their base) hang below the ground, and the floor was drawn
+without writing depth, so a free camera saw them through it as a ragged
+skirt under every wall and corner. Under a fly camera the floor now writes
+depth (scene_draw.cc); the game's view keeps its old order.
+Check: the game's view 0 pixels changed (kladwtwn, klamall). The owner's
+spot before and after: `runs/071-walls-whole/owner-view-before-after.png`;
+four corners now: `corners-round-3.png`.
