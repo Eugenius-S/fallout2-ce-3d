@@ -411,6 +411,7 @@ void testTransparentImageBlitMasksOnlyOpaqueShape()
 void testTransparentInteriorImageViewMasksTrackedText()
 {
     using namespace fallout;
+    scene::setFont101PreviewScale(1.0, -1);
     const std::size_t allocationSize = 640 * 8;
     std::vector<unsigned char> source(allocationSize, 0);
     std::vector<unsigned char> destination(16, 1);
@@ -449,11 +450,13 @@ void testTransparentInteriorImageViewMasksTrackedText()
 
     textCaptureAllocationDestroyed(source.data());
     textCaptureAllocationDestroyed(destination.data());
+    scene::setFont101PreviewScale(1.29, -1);
 }
 
 void testTransparentInteriorImageViewRejectsOutOfRangeFootprint()
 {
     using namespace fallout;
+    scene::setFont101PreviewScale(1.0, -1);
     const std::size_t registeredSize = 640 * 4;
     std::vector<unsigned char> source(registeredSize + 64, 0);
     std::vector<unsigned char> destination(16, 1);
@@ -484,6 +487,7 @@ void testTransparentInteriorImageViewRejectsOutOfRangeFootprint()
 
     textCaptureAllocationDestroyed(source.data());
     textCaptureAllocationDestroyed(destination.data());
+    scene::setFont101PreviewScale(1.29, -1);
 }
 
 void testAllocationEdgeBounds()

@@ -183,10 +183,20 @@ int main()
         return 1;
     }
     const std::vector<unsigned char> font102Pixels = surface.pixels;
+    fallout::scene::setFont101PreviewBold(false, -1);
     record.run.font = 101;
+    if (!renderSharpText({ record }, 256, 32, 512, 64, palette, 256, visibility, &surface)) return 1;
+    const std::vector<unsigned char> font101SemiPixels = surface.pixels;
+    fallout::scene::setFont101PreviewBold(true, -1);
     if (!renderSharpText({ record }, 256, 32, 512, 64, palette, 256, visibility, &surface)
-        || surface.pixels != font103Pixels || surface.pixels == font102Pixels) {
-        std::fprintf(stderr, "Font 101 did not select the bold face while font 102 stayed regular\n");
+        || surface.pixels == font101SemiPixels) {
+        std::fprintf(stderr, "Font-101 Bold 700 override did not differ from selected SemiBold 600 at equal size\n");
+        return 1;
+    }
+    fallout::scene::setFont101PreviewBold(false, -1);
+    if (!renderSharpText({ record }, 256, 32, 512, 64, palette, 256, visibility, &surface)
+        || surface.pixels != font101SemiPixels || surface.pixels == font102Pixels) {
+        std::fprintf(stderr, "Font-101 default did not retain its SemiBold face distinct from regular font 102\n");
         return 1;
     }
 
@@ -197,6 +207,7 @@ int main()
     fitRecord.run.width = 40;
     fitRecord.run.lineHeight = 18;
     fitRecord.run.colorAndFlags = 255;
+    fallout::scene::setFont101PreviewScale(1.0, -1);
     if (!renderSharpText({ fitRecord }, 256, 32, 512, 64, palette, 256, visibility, &surface)) return 1;
     int top = surface.height;
     int bottom = -1;
