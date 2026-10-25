@@ -132,3 +132,15 @@ asked for corners that meet with no gap and nothing sticking out
   rays of ~700), cave walls rather than buildings: left for 081. Game view
   0 px on kladwtwn and klamall. Exporter tests 52/52.
 - Before | after refreshed in `runs/076-walls-roofs-algorithm/corners-before-after.jpg`.
+
+### 2026-10-25 claude (round 3, the owner's texture sheet)
+The owner read the STOP corner's source pictures and found the line: a
+sliver of the left wall's corner piece (row 660, 0.02 units over the plain
+row before it) and a light edge of the right wall's corner piece (1156,
+a 0.53 slab that is all corner). Corner pieces are now left out whole, a
+slab that is nothing but one too, and no fill takes a corner piece's
+columns. A fill takes its height from the row its columns come from, runs
+0.02 under the row it continues a hair deeper than that row's face (no
+crack, no flickering strip) and 0.003 past the corner's edge. The STOP
+corner reads as one brick wall turning; rays as before (kladwtwn 3 corners
+with 2 grazing rays), game view 0 px, tests 52/52.

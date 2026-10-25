@@ -422,6 +422,7 @@ def _corner_fits(walls, hidden, toward_camera, width=None, px=(1.0, 1.0)):
                 pairs[(id(a), out)], pairs[(id(b), b_out)] = (b, b_out), (a, out)
     corners = _Corners()
     corners.targets = list(targets.values())
+    pieces = set()  # the corner pieces left out
     # A rail or trim strip that lies wholly within reach of a thick wall's
     # line is the corner's trim (a ledge standing up out of the roof): the
     # free camera leaves it out.
@@ -490,8 +491,10 @@ def _corner_fits(walls, hidden, toward_camera, width=None, px=(1.0, 1.0)):
             if sb == sa:
                 continue
             for store, at in ((corners.keep, front_t), (corners.back_keep, back_t), (corners.top_keep, top_t)):
-                if out * (at - start) > 0 and index not in plain and index in near_end and not clear(index):
-                    at = start  # the corner piece
+                if start != end and index not in plain and index in near_end and not clear(index):
+                    store[index] = (1.0, 1.0)  # the corner piece, whole: the plain rows cover its overlap
+                    pieces.add(index)
+                    continue
                 cut = (at - sa) / (sb - sa)
                 lo, hi = store.get(index, (-math.inf, math.inf))
                 if (sb - sa) * out > 0:
@@ -533,6 +536,10 @@ def _corner_fits(walls, hidden, toward_camera, width=None, px=(1.0, 1.0)):
             # The square where the two walls cross: one cap over it.
             twin = pairs[(id(slab), out)][0]
             corners.caps.append((slab, lender, near(twin, out), far(twin, out)))
+    # No face takes its material from a corner piece.
+    plain_pool = lambda pool: [index for index in pool if index not in pieces] or pool
+    corners.fills = [(slab, plain_pool(pool), s0, s1, back) for slab, pool, s0, s1, back in corners.fills]
+    corners.ends = [(slab, out, at, plain_pool(pool)) for slab, out, at, pool in corners.ends]
     return corners
 
 
@@ -561,7 +568,7 @@ def _face_picture(sprites, row, hpx, back):
 
 
 def _typical_columns(atlas, sprites, hpx, walls, pool, back, n):
-    """(page, first column, last column, top row, bottom row) of the n
+    """(page, first column, last column, top row, bottom row, row) of the n
     picture columns of one face of the rows in `pool` whose brightness is
     nearest the median column of them all: the wall's plain stretch, not a
     window frame or a light post (task 076). Without the atlas, the middle
@@ -570,7 +577,7 @@ def _typical_columns(atlas, sprites, hpx, walls, pool, back, n):
     if atlas is None:
         page, x, y, w, h = pictures[pool[0]]
         k = min(n, w)
-        return page, x + (w - k) / 2, x + (w + k) / 2, y, y + h
+        return page, x + (w - k) / 2, x + (w + k) / 2, y, y + h, pool[0]
     shade, solid = {}, {}
     for index, (page, x, y, w, h) in pictures.items():
         block = atlas[page][int(y):int(y + h), x:x + w].astype(float)
@@ -589,7 +596,12 @@ def _typical_columns(atlas, sprites, hpx, walls, pool, back, n):
                 best = (miss, index, j, k)
     _, index, j, k = best
     page, x, y, w, h = pictures[index]
-    return page, x + j, x + j + k, y, y + h
+    return page, x + j, x + j + k, y, y + h, index
+
+
+FILL_SEAM = 0.02
+FILL_RECESS = 0.002
+FILL_EDGE = 0.003
 
 
 def _corner_fill(batches, proj, sprites, pages, hpx, px, walls, pool, slab, s0, s1, back, atlas=None):
@@ -597,13 +609,18 @@ def _corner_fill(batches, proj, sprites, pages, hpx, px, walls, pool, slab, s0, 
     front, or its back when `back`, in the most typical columns of that face
     of the rows in `pool` (_typical_columns). px: picture columns per unit
     along u and along v."""
-    page, c0, c1, y_top, y_bottom = _typical_columns(atlas, sprites, hpx, walls, pool, back,
+    page, c0, c1, y_top, y_bottom, lender = _typical_columns(atlas, sprites, hpx, walls, pool, back,
                                                      abs(s1 - s0) * px[slab.axis])
-    z0, zc = walls[pool[0]][5], walls[pool[0]][9]
-    lo, hi = sorted((s0, s1))
-    lo, hi = lo - CORNER_OVERLAP, hi + CORNER_OVERLAP
+    z0, zc = walls[lender][5], walls[lender][9]  # as high as the row the columns come from
+    # It runs FILL_SEAM under the row it continues, a hair deeper than that
+    # row's face, so the row hides the overlap (no flickering strip) and no
+    # crack opens between them; at s1 it reaches FILL_EDGE past the corner's
+    # edge, so the two walls' faces meet there without a crack.
+    sign = 1.0 if s1 > s0 else -1.0
+    lo, hi = sorted((s0 - sign * FILL_SEAM, s1 + sign * FILL_EDGE))
     p = slab.point
-    depth = slab.thick if back else 0.0
+    thick = walls[pool[0]][10]  # the row it continues: its back is this deep
+    depth = thick - FILL_RECESS if back else FILL_RECESS
     corners = [[*p(lo, depth), z0, c0, y_bottom], [*p(hi, depth), z0, c1, y_bottom],
                [*p(hi, depth), zc, c1, y_top], [*p(lo, depth), zc, c0, y_top]]
     _polygon(batches, proj, page, pages[page], corners, back)
@@ -612,9 +629,9 @@ def _corner_fill(batches, proj, sprites, pages, hpx, px, walls, pool, slab, s0, 
 def _corner_end(batches, proj, sprites, pages, hpx, px, toward_camera, walls, pool, slab, out, s, atlas=None):
     """The end face of `slab` at s across its thickness, in the most typical
     columns of its rows' fronts (_typical_columns)."""
-    page, c0, c1, y_top, y_bottom = _typical_columns(atlas, sprites, hpx, walls, pool, False,
+    page, c0, c1, y_top, y_bottom, lender = _typical_columns(atlas, sprites, hpx, walls, pool, False,
                                                      slab.thick * px[1 - slab.axis])
-    z0, zc = walls[pool[0]][5], walls[pool[0]][9]
+    z0, zc = walls[lender][5], walls[lender][9]  # as high as the row the columns come from
     p = slab.point
     near, far = -CORNER_OVERLAP, slab.thick + CORNER_OVERLAP
     corners = [[*p(s, near), z0, c0, y_bottom], [*p(s, far), z0, c1, y_bottom],
