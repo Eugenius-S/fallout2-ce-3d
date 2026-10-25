@@ -74,3 +74,8 @@ Check: replacement has not passed yet. The prior attempt used the pre-shift buil
 Done: added the requested replacement diagnostic and separate 300-frame replacement / 1200-frame expiry bounds. The first bounded run exposed a startup ordering bug: the scene callback could count frames before the bark fixture entered its first active stage. It now ignores Idle and Finished stages.
 Next: rebuild and rerun once the isolated tester queue is clear.
 Check: that run emitted `UI_FIXTURE FAIL` without a `START` line, so it is not lifecycle evidence.
+
+### 2026-10-25 gpt
+Done: at replacement frame 60 the scene shift was 0,0; the capture table contained 3 old-run copies and 63 replacement-run copies. Global TextObject count was 5 with startup baseline 1, so map activity makes it unsuitable as the removal assertion. Added an owner-specific active/marked count and a replacement-stage snapshot as soon as the new run is visible.
+Next: rebuild and inspect per-owner ticker state plus the replacement frame; then verify player bark expiry.
+Check: the diagnostic build reported positive outline-owned pixels for both strings, but did not prove replacement or cleanup. No lifecycle claim is accepted yet.

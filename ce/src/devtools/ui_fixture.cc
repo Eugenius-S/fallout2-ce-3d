@@ -71,6 +71,7 @@ double gFont101PreviewScale = 1.29;
 bool gFont101PreviewWeightRequested = false;
 bool gFont101PreviewBold = false;
 int gBarkBaselineCount = 0;
+int gBarkOwnerBaselineCount = 0;
 int gBarkWaitFrames = 0;
 bool gBarkFirstCaptured = false;
 bool gBarkReplacementSeen = false;
@@ -179,20 +180,34 @@ void runBarkFixtureFrame()
                 gBarkWaitFrames, gDude->tile, sceneOffsetX, sceneOffsetY,
                 outlinedTextCount(gBarkFirstText), outlinedTextCount(gBarkReplacementText),
                 textObjectsGetCount(), gBarkBaselineCount);
+            int activeOwnerObjects = 0;
+            int markedOwnerObjects = 0;
+            textObjectsGetOwnerCounts(gDude, &activeOwnerObjects, &markedOwnerObjects);
+            printf("UI_FIXTURE DIAG screen=bark owner_active=%d owner_marked=%d owner_baseline=%d\n",
+                activeOwnerObjects, markedOwnerObjects, gBarkOwnerBaselineCount);
             fflush(stdout);
         }
-        if (outlinedTextCount(gBarkFirstText) != 0 || outlinedTextCount(gBarkReplacementText) == 0) return;
         std::size_t replacementOwnedPixels = 0;
-        outlinedTextCount(gBarkReplacementText, &replacementOwnedPixels);
+        if (outlinedTextCount(gBarkReplacementText, &replacementOwnedPixels) == 0) return;
+        const int oldRunCopies = outlinedTextCount(gBarkFirstText);
+        gStage = UiFixtureStage::Capturing;
+        if (!takeSnapshot()) {
+            fixtureFail("bark-replacement-snapshot-failed");
+            return;
+        }
         gBarkReplacementSeen = true;
         gStage = UiFixtureStage::WaitingForBarkExpiration;
         gBarkWaitFrames = 0;
-        printf("UI_FIXTURE STEP screen=bark stage=replaced hasOutline=1 ownedPixels=%zu text=short-ru-line\n", replacementOwnedPixels);
+        printf("UI_FIXTURE STEP screen=bark stage=replaced hasOutline=1 ownedPixels=%zu old_run_copies=%d text=short-ru-line\n",
+            replacementOwnedPixels, oldRunCopies);
         fflush(stdout);
         return;
     }
+    int activeOwnerObjects = 0;
+    int markedOwnerObjects = 0;
+    textObjectsGetOwnerCounts(gDude, &activeOwnerObjects, &markedOwnerObjects);
     if (gStage == UiFixtureStage::WaitingForBarkExpiration
-        && textObjectsGetCount() <= gBarkBaselineCount
+        && activeOwnerObjects + markedOwnerObjects <= gBarkOwnerBaselineCount
         && outlinedTextCount(gBarkFirstText) == 0
         && outlinedTextCount(gBarkReplacementText) == 0) {
         gStage = UiFixtureStage::Capturing;
@@ -717,6 +732,10 @@ bool startUiFixtureWhenReady(bool startupReady, bool blockingState)
             return false;
         }
         gBarkBaselineCount = textObjectsGetCount();
+        int activeOwnerObjects = 0;
+        int markedOwnerObjects = 0;
+        textObjectsGetOwnerCounts(gDude, &activeOwnerObjects, &markedOwnerObjects);
+        gBarkOwnerBaselineCount = activeOwnerObjects + markedOwnerObjects;
         Rect refreshRect;
         if (textObjectAdd(gDude, gBarkFirstText, 101, COLOR_LIGHT_YELLOW, COLOR_BLACK, &refreshRect) == -1) {
             fixtureFail("bark-first-add-failed");

@@ -341,6 +341,21 @@ int textObjectsGetCount()
     return gTextObjectsCount;
 }
 
+void textObjectsGetOwnerCounts(Object* owner, int* activeCount, int* markedCount)
+{
+    if (activeCount != nullptr) *activeCount = 0;
+    if (markedCount != nullptr) *markedCount = 0;
+    for (int index = 0; index < gTextObjectsCount; index++) {
+        const TextObject* textObject = gTextObjects[index];
+        if (textObject->owner != owner) continue;
+        if ((textObject->flags & TEXT_OBJECT_MARKED_FOR_REMOVAL) != 0) {
+            if (markedCount != nullptr) (*markedCount)++;
+        } else if (activeCount != nullptr) {
+            (*activeCount)++;
+        }
+    }
+}
+
 // 0x4B07F8 text_object_bk
 static void textObjectsTicker()
 {
