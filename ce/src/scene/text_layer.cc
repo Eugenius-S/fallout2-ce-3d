@@ -125,10 +125,20 @@ double font101PreviewScaleForWindow(int ownerWindow)
     return gFont101PreviewScale;
 }
 
+double font101PreviewScaleForRun(int ownerWindow, TextSizeRole sizeRole)
+{
+    return sizeRole == TextSizeRole::CompactUi ? 1.22 : font101PreviewScaleForWindow(ownerWindow);
+}
+
 int font101PreviewCoverageHeight(int lineHeight, int ownerWindow)
 {
+    return font101PreviewCoverageHeight(lineHeight, ownerWindow, TextSizeRole::Default);
+}
+
+int font101PreviewCoverageHeight(int lineHeight, int ownerWindow, TextSizeRole sizeRole)
+{
     if (lineHeight <= 0) return 0;
-    const double scale = font101PreviewScaleForWindow(ownerWindow);
+    const double scale = font101PreviewScaleForRun(ownerWindow, sizeRole);
     if (scale <= 1.0) return lineHeight;
     return static_cast<int>(std::ceil((std::max(1.0, lineHeight - 0.5) * scale) + 0.5));
 }

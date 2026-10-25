@@ -2196,6 +2196,8 @@ static void _exit_inventory(bool shouldEnableIso)
 // 0x46FDF4 display_inventory
 static void _display_inventory(int stackOffset, int dragSlotIndex, int inventoryWindowType)
 {
+    ScopedTextSizeRole sizeRole(scene::TextSizeRole::CompactUi,
+        inventoryWindowType == INVENTORY_WINDOW_TYPE_NORMAL);
     unsigned char* windowBuffer = windowGetBuffer(gInventoryWindow);
     int pitch;
 
@@ -3462,6 +3464,7 @@ int objectGetCarriedQuantityByProtoId(Object* object, const ProtoId& protoId)
 // 0x471D5C display_stats
 static void inventoryRenderSummary()
 {
+    ScopedTextSizeRole sizeRole(scene::TextSizeRole::CompactUi);
     Stat summaryStats[7];
     memcpy(summaryStats, gSummaryStats, sizeof(summaryStats));
 
@@ -4353,6 +4356,7 @@ end:
 // 0x472EB8
 static void inventoryExamineItem(Object* critter, Object* item)
 {
+    ScopedTextSizeRole sizeRole(scene::TextSizeRole::CompactUi);
     int oldFont = fontGetCurrent();
     fontSetCurrent(101);
 

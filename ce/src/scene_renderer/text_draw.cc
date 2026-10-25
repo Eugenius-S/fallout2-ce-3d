@@ -291,7 +291,9 @@ bool renderSharpText(const std::vector<scene::TextRecord>& records,
         if (fitHeight <= 0) continue;
         // Leave half a logical pixel for bitmap rounding at both line edges.
         const double fitLineHeight = std::max(1.0, static_cast<double>(run.lineHeight) - 0.5);
-        const double sizePreview = run.font == 101 ? scene::font101PreviewScaleForWindow(record.ownerWindow) : 1.0;
+        const double sizePreview = run.font == 101
+            ? scene::font101PreviewScaleForRun(record.ownerWindow, run.sizeRole)
+            : 1.0;
         const double logicalScale = (fitLineHeight / fitHeight) * sizePreview;
         const double fontScaleX = logicalScale * sx;
         const double fontScaleY = logicalScale * sy;

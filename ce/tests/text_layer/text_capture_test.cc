@@ -757,6 +757,30 @@ void testFont101SizePreviewExtendsCaptureOnly()
             && shiftedRun->run.sharpTextOffsetY == -2
             && shiftedRun->bounds.y == 26 && shiftedRun->bounds.height == 12,
         "interface plaque tag shifts only modern text and expands capture upward to include old and shifted coverage");
+    {
+        ScopedTextSizeRole sizeRole(scene::TextSizeRole::CompactUi);
+        ScopedTextCaptureTag captureTag(TextCaptureTag::InterfacePlaqueOffset);
+        fontDrawText(pixels.data() + 24 * 20 + 8, "G", 1, 20, static_cast<ColorWithFlags>(7));
+    }
+    const auto compactRuns = scene::textCaptureRecords(generation);
+    const auto compactRun = std::find_if(compactRuns.begin(), compactRuns.end(), [](const scene::TextRecord& record) {
+        return record.run.text == "G";
+    });
+    check(compactRun != compactRuns.end()
+            && compactRun->run.sizeRole == scene::TextSizeRole::CompactUi
+            && compactRun->run.sharpTextOffsetY == -2
+            && compactRun->bounds.y == 22 && compactRun->bounds.height == 11,
+        "compact UI size metadata combines with plaque offset and uses 1.22 capture coverage");
+    fontDrawText(pixels.data() + 24 * 20 + 10, "H", 1, 20, static_cast<ColorWithFlags>(7));
+    const auto afterCompactScope = scene::textCaptureRecords(generation);
+    const auto defaultSizeRun = std::find_if(afterCompactScope.begin(), afterCompactScope.end(), [](const scene::TextRecord& record) {
+        return record.run.text == "H";
+    });
+    check(defaultSizeRun != afterCompactScope.end()
+            && defaultSizeRun->run.sizeRole == scene::TextSizeRole::Default
+            && defaultSizeRun->run.sharpTextOffsetY == 0
+            && defaultSizeRun->bounds.height == 12,
+        "compact UI size scope restores 1.29 default metadata and capture coverage");
     gCurrentFont = 102;
     {
         ScopedTextCaptureTag captureTag(TextCaptureTag::InterfacePlaqueOffset);

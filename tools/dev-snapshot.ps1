@@ -467,6 +467,10 @@ if ($UiFixture) {
     if ($Font101PreviewWeight -and $fixtureLog -notmatch ('(?m)^UI_FIXTURE PASS screen=character .* preview_weight=' + [regex]::Escape($Font101PreviewWeight) + '(?: |$)')) {
         throw "Character fixture did not confirm requested font-101 preview weight $Font101PreviewWeight."
     }
+    if ($SharpText -and ($UiFixture -in @('inventory', 'pipboy')) -and
+        $fixtureLog -notmatch '(?m)^UI_FIXTURE PASS screen=(inventory|pipboy) .*compact_size_role_runs=\d+ default_size_role_runs=0 run_scale=1\.22\.\.1\.22(?: |$)') {
+        throw "Sharp-on $UiFixture fixture did not prove 1.22 CompactUi role on every font-101 run."
+    }
     if ($SharpText -and ([int]$passLine.Groups[7].Value -le 0 -or [int]$passLine.Groups[8].Value -le 0)) {
         throw "Sharp-on UI fixture '$UiFixture' lacks visible overlay pixels from its target window."
     }

@@ -61,7 +61,8 @@ bool capture(TextLayer& layer, TextBufferId id, bool orphan,
     const std::vector<unsigned char>& before, const std::vector<unsigned char>& after,
     int width, int height, TextRect bounds, const char* text = "AB",
     int ownerWindow = -1, TextBufferId ownerGeneration = 0,
-    int verticalBoxY = 0, int verticalBoxHeight = 0, int sharpTextOffsetY = 0)
+    int verticalBoxY = 0, int verticalBoxHeight = 0, int sharpTextOffsetY = 0,
+    fallout::scene::TextSizeRole sizeRole = fallout::scene::TextSizeRole::Default)
 {
     const auto beforeView = view(before, width, height, width);
     const auto afterView = view(after, width, height, width);
@@ -72,6 +73,7 @@ bool capture(TextLayer& layer, TextBufferId id, bool orphan,
         capturedRun.verticalAlignmentBoxHeight = verticalBoxHeight;
     }
     capturedRun.sharpTextOffsetY = sharpTextOffsetY;
+    capturedRun.sizeRole = sizeRole;
     return layer.capture(id, orphan, capturedRun, bounds, beforeView, afterView,
         ownerWindow, ownerGeneration);
 }
@@ -85,6 +87,10 @@ int main()
             && fallout::scene::font101PreviewCoverageHeight(9, 42) == 12
             && fallout::scene::font101PreviewUsesBold(42) == false,
         "selected production font-101 defaults are size 1.29 and SemiBold 600");
+    failures += !check(fallout::scene::font101PreviewScaleForRun(42, fallout::scene::TextSizeRole::Default) == 1.29
+            && fallout::scene::font101PreviewScaleForRun(42, fallout::scene::TextSizeRole::CompactUi) == 1.22
+            && fallout::scene::font101PreviewCoverageHeight(9, 42, fallout::scene::TextSizeRole::CompactUi) == 11,
+        "compact UI size role resolves per run to 1.22 without changing the selected default");
     failures += !check(fallout::scene::setFont101PreviewScale(1.0, -1)
             && fallout::scene::font101PreviewCoverageHeight(9, -1) == 9
             && fallout::scene::font101PreviewCoverageHeight(1, -1) == 1,
@@ -92,8 +98,10 @@ int main()
     failures += !check(fallout::scene::setFont101PreviewScale(1.08, 42)
             && fallout::scene::font101PreviewScaleForWindow(42) == 1.08
             && fallout::scene::font101PreviewScaleForWindow(43) == 1.29
+            && fallout::scene::font101PreviewScaleForRun(42, fallout::scene::TextSizeRole::Default) == 1.08
+            && fallout::scene::font101PreviewScaleForRun(42, fallout::scene::TextSizeRole::CompactUi) == 1.22
             && fallout::scene::font101PreviewCoverageHeight(9, 42) == 10,
-        "1.08 preview is owner scoped and extends 9px coverage by one row");
+        "1.08 preview is owner scoped while compact UI remains 1.22 and default coverage extends one row");
     failures += !check(fallout::scene::setFont101PreviewScale(1.15, 42)
             && fallout::scene::font101PreviewCoverageHeight(9, 42) == 11,
         "1.15 preview extends 9px coverage by two rows");
@@ -125,7 +133,8 @@ int main()
         std::vector<unsigned char> sourceAfter = sourceBefore;
         sourceAfter[5] = 20;
         sourceAfter[6] = 21;
-        failures += !check(capture(layer, 1, true, sourceBefore, sourceAfter, 4, 3, { 0, 0, 4, 3 }, "AB", 4, 12),
+        failures += !check(capture(layer, 1, true, sourceBefore, sourceAfter, 4, 3, { 0, 0, 4, 3 }, "AB", 4, 12,
+                0, 0, 0, fallout::scene::TextSizeRole::CompactUi),
             "capture creates an orphan record");
 
         std::vector<unsigned char> destBefore(20, 77);
@@ -143,6 +152,8 @@ int main()
             "copy translates run geometry");
         failures += !check(layer.records().back().ownerWindow == 4 && layer.records().back().ownerGeneration == 12,
             "copy preserves owner provenance until a destination owner is assigned");
+        failures += !check(layer.records().back().run.sizeRole == fallout::scene::TextSizeRole::CompactUi,
+            "copy preserves semantic compact UI size role");
     }
 
     // Transparent source background leaves the destination's own background

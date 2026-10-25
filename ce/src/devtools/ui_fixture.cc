@@ -439,6 +439,10 @@ void captureWindow(const TextWindowSnapshot& window, const std::vector<scene::Te
     int yellowCount = 0;
     int redCount = 0;
     int otherCount = 0;
+    int compactSizeRoleCount = 0;
+    int defaultSizeRoleCount = 0;
+    double effectiveSizeMinimum = 100.0;
+    double effectiveSizeMaximum = 0.0;
     for (const scene::TextRecord& record : proof.records) {
         const Color color = static_cast<Color>(record.run.colorAndFlags & colorMask);
         if (color == COLOR_GREEN) greenCount++;
@@ -446,6 +450,17 @@ void captureWindow(const TextWindowSnapshot& window, const std::vector<scene::Te
         else if (color == COLOR_LIGHT_YELLOW) yellowCount++;
         else if (color == COLOR_RED) redCount++;
         else otherCount++;
+        if (record.run.sizeRole == scene::TextSizeRole::CompactUi) compactSizeRoleCount++;
+        else defaultSizeRoleCount++;
+        const double runScale = scene::font101PreviewScaleForRun(window.id, record.run.sizeRole);
+        effectiveSizeMinimum = std::min(effectiveSizeMinimum, runScale);
+        effectiveSizeMaximum = std::max(effectiveSizeMaximum, runScale);
+    }
+    if (settings.scene3d.sharp_text
+        && (gKind == UiFixtureKind::Inventory || gKind == UiFixtureKind::Pipboy)
+        && (compactSizeRoleCount != static_cast<int>(proof.records.size()) || defaultSizeRoleCount != 0)) {
+        fixtureFail("compact-ui-font-size-role-missing");
+        return;
     }
 
     gStage = UiFixtureStage::Capturing;
@@ -454,14 +469,16 @@ void captureWindow(const TextWindowSnapshot& window, const std::vector<scene::Te
         return;
     }
 
-    printf("UI_FIXTURE PASS screen=%s window=%d generation=%llu font=101 runs=%zu screen_runs=%zu visible_runs=%zu visible_coverage=%u overlay_runs=%zu overlay_pixels=%u font101_lineheight=%d..%d stat_box_runs=%d stat_box_lineheight=%d colors=original green=%d white=%d yellow=%d red=%d other=%d sharp_setting=%d active=%d drawn=%d preview_scale=%.2f preview_weight=%s",
+    printf("UI_FIXTURE PASS screen=%s window=%d generation=%llu font=101 runs=%zu screen_runs=%zu visible_runs=%zu visible_coverage=%u overlay_runs=%zu overlay_pixels=%u font101_lineheight=%d..%d stat_box_runs=%d stat_box_lineheight=%d colors=original green=%d white=%d yellow=%d red=%d other=%d sharp_setting=%d active=%d drawn=%d preview_scale=%.2f preview_weight=%s compact_size_role_runs=%d default_size_role_runs=%d run_scale=%.2f..%.2f",
         fixtureName(), window.id, static_cast<unsigned long long>(window.generation), evidence.size(),
         proof.records.size(), proof.visibleRecords.size(), proof.visibleCoverage, overlayEvidence.size(), proof.overlayPixels,
         proof.font101LineHeightMin, proof.font101LineHeightMax, proof.statBoxRuns, proof.statBoxLineHeight,
         greenCount, whiteCount, yellowCount, redCount, otherCount,
         settings.scene3d.sharp_text ? 1 : 0, frame.active ? 1 : 0, frame.drawn ? 1 : 0,
         scene::font101PreviewScaleForWindow(window.id),
-        scene::font101PreviewUsesBold(window.id) ? "bold" : "semibold");
+        scene::font101PreviewUsesBold(window.id) ? "bold" : "semibold",
+        compactSizeRoleCount, defaultSizeRoleCount,
+        effectiveSizeMinimum, effectiveSizeMaximum);
     if (gKind == UiFixtureKind::Barter) {
         printf(" speaker_script=%s speaker=%d speaker_tile=%d white_zero_totals=%d left=$0@%d right=$0@%d",
             gSpeakerScript, gSpeakerId, gSpeakerTile, whiteZeroCount, leftZeroX, rightZeroX);

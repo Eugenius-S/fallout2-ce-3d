@@ -40,9 +40,15 @@ struct TextValidationPixels {
     TextPixels pixels;
 };
 
+enum class TextSizeRole {
+    Default,
+    CompactUi,
+};
+
 struct TextRunInfo {
     std::string text;
     int font = 0;
+    TextSizeRole sizeRole = TextSizeRole::Default;
     unsigned int colorAndFlags = 0;
     TextColorRole colorRole = TextColorRole::Palette;
     int x = 0;
@@ -97,7 +103,9 @@ struct TextVisibilityMask {
 // single fixture window; -1 applies it to CPU-only renderer tests.
 bool setFont101PreviewScale(double scale, int ownerWindow);
 double font101PreviewScaleForWindow(int ownerWindow);
+double font101PreviewScaleForRun(int ownerWindow, TextSizeRole sizeRole);
 int font101PreviewCoverageHeight(int lineHeight, int ownerWindow);
+int font101PreviewCoverageHeight(int lineHeight, int ownerWindow, TextSizeRole sizeRole);
 bool setFont101PreviewBold(bool bold, int ownerWindow);
 bool font101PreviewUsesBold(int ownerWindow);
 

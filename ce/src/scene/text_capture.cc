@@ -103,6 +103,12 @@ TextCaptureTag& activeTextCaptureTag()
     return value;
 }
 
+scene::TextSizeRole& activeTextSizeRole()
+{
+    static thread_local scene::TextSizeRole value = scene::TextSizeRole::Default;
+    return value;
+}
+
 BufferRange* findRange(const void* pointer)
 {
     if (pointer == nullptr) return nullptr;
@@ -328,6 +334,18 @@ ScopedTextCaptureTag::~ScopedTextCaptureTag()
     activeTextCaptureTag() = previous_;
 }
 
+ScopedTextSizeRole::ScopedTextSizeRole(scene::TextSizeRole role, bool enabled)
+    : previous_(activeTextSizeRole())
+    , enabled_(enabled)
+{
+    if (enabled_) activeTextSizeRole() = role;
+}
+
+ScopedTextSizeRole::~ScopedTextSizeRole()
+{
+    if (enabled_) activeTextSizeRole() = previous_;
+}
+
 void textCaptureAllocationCreated(void* buffer, std::size_t size)
 {
     std::lock_guard<std::recursive_mutex> lock(captureMutex());
@@ -500,7 +518,7 @@ void textCaptureDrawText(unsigned char* buffer, const char* string, int length, 
     }
     const bool shadowed = (color & DRAW_TEXT_FLAG_SHADOWED) != 0;
     const int previewLineHeight = fontGetCurrent() == 101
-        ? scene::font101PreviewCoverageHeight(lineHeight, range->ownerWindow)
+        ? scene::font101PreviewCoverageHeight(lineHeight, range->ownerWindow, activeTextSizeRole())
         : lineHeight;
     const int sharpTextOffsetY = fontGetCurrent() == 101
             && activeTextCaptureTag() == TextCaptureTag::InterfacePlaqueOffset
@@ -532,6 +550,7 @@ void textCaptureDrawText(unsigned char* buffer, const char* string, int length, 
     scene::TextRunInfo run;
     run.text = std::move(acceptedText);
     run.font = fontGetCurrent();
+    run.sizeRole = run.font == 101 ? activeTextSizeRole() : scene::TextSizeRole::Default;
     run.colorAndFlags = static_cast<unsigned int>(color);
     run.sharpEligible = run.font == 101;
     const Color sourceColor = static_cast<Color>(static_cast<unsigned int>(color) & 0xFF);
