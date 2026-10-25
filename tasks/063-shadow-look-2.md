@@ -1,5 +1,5 @@
 ---
-id: 057
+id: 063
 title: Sun shadow look round 2
 milestone: M1
 status: doing
@@ -49,7 +49,7 @@ whole hour per press.
 ## Acceptance
 
 - Before and after dev shots of the corrals and the town at 17:00 and noon
-  under runs/057-shadow-look-2/: sharp contact, melt with distance, no
+  under runs/063-shadow-look-2/: sharp contact, melt with distance, no
   stairs, no stripes at any shadow_pixel_size, the fence shadow full of
   holes, sprites in shade visibly lighter.
 - The regression with shadows off stays at the 054 baseline.
@@ -83,7 +83,7 @@ Done: the shadow look after the owner's live review.
 - Sprites in shade dim to 0.35 of the factor (was 0.5); the ground keeps
   0.5. Characters stay readable in a wall's shadow.
 - T steps one game hour (was three); night hours still show no sun.
-Check: build Release, ctest 12/12. Shots under runs/057-shadow-look-2/:
+Check: build Release, ctest 12/12. Shots under runs/063-shadow-look-2/:
 the corrals at 17:00 and noon, a fence close-up at zoom 2, and size 1
 against the default 4. Vs the 046 shots 3.3% of the sunset frame changed
 (the shadow areas); the size change now moves 1.1% of the frame, the edge
@@ -122,7 +122,7 @@ the far end; the density right at the blocker he called good already).
   the edges come out crisper through the same one-texel AA floor.
 - The default edge softness drops from 4 to 2 game pixels (sharper borders,
   his round 4).
-Check: build Release, ctest 12/12. Round 2 shots under runs/057-shadow-look-2/
+Check: build Release, ctest 12/12. Round 2 shots under runs/063-shadow-look-2/
 (corrals-sunset-r2, corrals-noon-r2, corrals-fence-zoom-r2): 23% of the
 sunset frame moved against round 1, the shadows holding density where they
 melted before; the shadows-off regression is still line for line the morning
@@ -184,7 +184,7 @@ Done: round 3, the owner's round 6 notes.
   options panel's plain T answers only while the panel is open; its Shift+T
   still steps back).
 Check: build Release, ctest 12/12. Round 3 shots under
-runs/057-shadow-look-2/ (corrals-sunset-r3, corrals-noon-r3,
+runs/063-shadow-look-2/ (corrals-sunset-r3, corrals-noon-r3,
 corrals-fence-zoom-r3): 34% of the sunset frame moved against round 2 (the
 wider melt keeps shadows dense longer, the cards shade per pixel), 24% at
 noon, 57% at the fence zoom. The shadows-off regression: all 16 spots at

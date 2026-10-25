@@ -16,7 +16,7 @@ namespace internal {
 // map over the whole map ground, cast by the static scene: wall batches (backs
 // and ends included), all roof squares (hidden ones too) and the baked objects
 // big enough to cast. Every lit fragment samples it: the floor and the walls
-// at their texel, a card at its pixel's own place and height (057).
+// at their texel, a card at its pixel's own place and height (063).
 //
 // Set the casters once after walls and roofs load; the rest happens per frame
 // in bindStaticShadows from the scene draw.
@@ -24,7 +24,7 @@ namespace internal {
 // Takes the caster triangles walls.cc kept and the tall enough of them; both
 // null arguments are allowed. The buffer carries positions with UVs and one
 // draw range per atlas page, so the pass can bind the page and cut the art's
-// transparent holes out of the depth map (task 057).
+// transparent holes out of the depth map (task 063).
 struct WallCasterRange {
     unsigned int texture; // the page's GL texture
     int first; // first vertex of the range

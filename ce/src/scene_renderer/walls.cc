@@ -484,7 +484,7 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
     const float halfWall = wallHeight * 0.5f;
     // The caster triangles gather per atlas page, positions with UVs: the
     // shadow pass binds each page's texture and cuts the art's transparent
-    // holes out of the depth map (057). The buffer and ranges are built after
+    // holes out of the depth map (063). The buffer and ranges are built after
     // the wall batches own their GL textures, below.
     std::map<unsigned int, std::vector<float>> casterPages;
     for (const WallBatchData& batch : batches) {

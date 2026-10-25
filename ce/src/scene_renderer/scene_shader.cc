@@ -195,7 +195,7 @@ float sunShadow() {
 // The darkening inside a shadow, over the engine's own light: the game's
 // painted shadows read about as a half. Every fragment takes its own faded
 // share: the floor and the walls at their texel, a card at its pixel's own
-// place and height (057): a card no longer darkens whole from its anchor hex
+// place and height (063): a card no longer darkens whole from its anchor hex
 // (hex-chunk stairs on cards, a man darkened where no shadow lies on him),
 // and the edge antialiases on cards as it does on the ground. A card reads
 // lighter than the ground: a standing figure keeps its read.

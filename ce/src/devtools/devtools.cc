@@ -2432,7 +2432,7 @@ bool handleKey(int key)
 
     // Ctrl+T steps the game hour by one, the [3d] sun the owner reads
     // shadows by: the options panel's plain T answers only while the panel
-    // is open (057), and the fly camera below would eat the key.
+    // is open (063), and the fly camera below would eat the key.
     if (key == KEY_CTRL_T && scene::enabled()) {
         const unsigned int ticks = gameTimeGetTime();
         gameTimeSetTime(((ticks / 36000u + 1u) % 24u) * 36000u + ticks % 36000u);

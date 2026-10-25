@@ -216,7 +216,7 @@ bool bindStaticShadows(const float* sceneMvp)
     // The casters draw with the scene program itself, in its pick mode (a
     // flat colour, no lighting math) with the shadow matrix as uMvp. Textured
     // with a cutoff, so the art's transparent holes (a fence's gaps, a
-    // window's glass) cast no shadow (057); the discard sits in the shader's
+    // window's glass) cast no shadow (063); the discard sits in the shader's
     // shared textured path, before the pick branch.
     glBindFramebuffer(kFramebuffer, gShadowFbo);
     glViewport(0, 0, kShadowMapSize, kShadowMapSize);
