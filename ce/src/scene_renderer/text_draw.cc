@@ -256,6 +256,39 @@ void drawGlyph(SharpTextSurface& surface, const GlyphBitmap& glyph, int x, int b
 
 } // namespace
 
+bool sharpTextXHeightCenter(int lineHeight, int ownerWindow, double physicalScale, int* center)
+{
+    if (lineHeight <= 0 || physicalScale <= 0 || center == nullptr) return false;
+    const bool bold = scene::font101PreviewUsesBold(ownerWindow);
+    stbtt_fontinfo* font = getFont(bold);
+    if (font == nullptr) return false;
+    const FontVerticalBounds& bounds = getFontVerticalBounds(bold, font);
+    const int fitHeight = bounds.top - bounds.bottom;
+    if (!bounds.valid || fitHeight <= 0) return false;
+    const double size = scene::font101PreviewScaleForRun(ownerWindow, scene::TextSizeRole::Default);
+    // Use the same line fitting, baseline rounding and rasterized glyph as
+    // renderSharpText, including preview size and the selected weight.
+    const double scale = std::max(1.0, lineHeight - 0.5) / fitHeight * size;
+    const double baseline = size > 1.0 ? std::ceil(bounds.top * scale * physicalScale)
+        : std::round(bounds.top * scale * physicalScale);
+    const GlyphBitmap* glyph = getGlyph('x', static_cast<float>(scale * physicalScale),
+        static_cast<float>(scale * physicalScale), bold);
+    if (glyph == nullptr) return false;
+    int top = glyph->height;
+    int bottom = -1;
+    for (int y = 0; y < glyph->height; ++y) {
+        for (int x = 0; x < glyph->width; ++x) {
+            if (glyph->pixels[static_cast<std::size_t>(y) * glyph->width + x] == 0) continue;
+            top = std::min(top, y);
+            bottom = y;
+        }
+    }
+    if (bottom < top) return false;
+    const double inkCenter = baseline + glyph->yoff + (top + bottom + 1) * 0.5;
+    *center = static_cast<int>(std::lround(inkCenter / physicalScale - 0.5));
+    return true;
+}
+
 bool sharpTextLanguageSupported(const std::string& language)
 {
     // This renderer decodes captured bytes as CP1251. Do not erase original

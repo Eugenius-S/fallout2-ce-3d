@@ -18,6 +18,8 @@
 #include "../mouse.h"
 #include "../scripts.h"
 #include "../settings.h"
+#include "../scene_renderer/context.h"
+#include "../scene_renderer/text_draw.h"
 #include "../svga.h"
 #include "../text_font.h"
 #include "../window_manager.h"
@@ -104,11 +106,20 @@ double editNumber(const SettingValue& value)
     return 0.0;
 }
 
-int sliderTextCenterOffset()
+int sliderTextCenterOffset(int ownerWindow)
 {
     ScopedFont font(101);
-    const int width = std::max(1, fontGetStringWidth("x"));
     const int height = std::max(1, fontGetLineHeight());
+    int physicalWidth = 0;
+    int physicalHeight = 0;
+    int sharpCenter = 0;
+    if (settings.scene3d.sharp_text && scene_renderer::sharpTextLanguageSupported(settings.system.language)
+        && scene_renderer::sharpTextOutputSize(&physicalWidth, &physicalHeight)
+        && scene_renderer::sharpTextXHeightCenter(height, ownerWindow,
+            static_cast<double>(physicalHeight) / screenGetHeight(), &sharpCenter)) {
+        return kLabelTextOffset + sharpCenter;
+    }
+    const int width = std::max(1, fontGetStringWidth("x"));
     std::vector<unsigned char> probe(static_cast<size_t>(width) * height, 0);
     // Measure the lowercase body, without recording this off-screen probe as
     // interface text. Font line boxes include space above/below the letters.
@@ -151,7 +162,7 @@ bool OptionsPanel::initialize(int windowId, unsigned char* surface, const unsign
     pageY_ = pageY;
     model_ = std::make_unique<OptionsSettingsModel>();
     rows_ = optionsPanelRows(model_->edits(), "3d");
-    sliderTrackOffset_ = sliderTextCenterOffset();
+    sliderTrackOffset_ = sliderTextCenterOffset(windowId_);
     buildRowLayout();
     if (background == nullptr || surface_ == nullptr || backgroundHeight < kHeight || screenWidth_ < kWidth || screenHeight_ < kHeight) return false;
     background_.assign(background, background + static_cast<size_t>(kWidth) * kHeight);

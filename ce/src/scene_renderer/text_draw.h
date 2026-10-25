@@ -39,6 +39,8 @@ bool renderSharpText(const std::vector<scene::TextRecord>& records,
     const unsigned char* paletteRgb, int paletteEntries,
     const std::vector<scene::TextVisibilityMask>& logicalVisibility, SharpTextSurface* output);
 bool sharpTextLanguageSupported(const std::string& language);
+// Logical pixel row nearest the rendered font-101 lowercase x ink center.
+bool sharpTextXHeightCenter(int lineHeight, int ownerWindow, double physicalScale, int* center);
 
 } // namespace scene_renderer
 } // namespace fallout

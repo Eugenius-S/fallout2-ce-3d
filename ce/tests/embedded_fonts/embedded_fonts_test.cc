@@ -783,6 +783,42 @@ int main()
         std::fprintf(stderr, "Sharp text escaped the visibility mask\n");
         return 1;
     }
+    // Check layout metrics against actual rendered ink, across both weights,
+    // every preview size and the integer output scales used by the game.
+    fallout::scene::TextRecord xHeightRecord;
+    xHeightRecord.ownerWindow = -1;
+    xHeightRecord.run.text = "x";
+    xHeightRecord.run.font = 101;
+    xHeightRecord.run.lineHeight = 9;
+    xHeightRecord.run.width = 30;
+    xHeightRecord.run.colorAndFlags = 43;
+    visibility[0].bounds = { 0, 0, 256, 32 };
+    visibility[0].pixels.assign(256 * 32, 1);
+    for (bool bold : { false, true }) {
+        fallout::scene::setFont101PreviewBold(bold, -1);
+        for (double size : { 1.0, 1.08, 1.15, 1.22, 1.29 }) {
+            fallout::scene::setFont101PreviewScale(size, -1);
+            for (int scale : { 1, 2, 3, 4 }) {
+                int center = 0;
+                if (!fallout::scene_renderer::sharpTextXHeightCenter(9, -1, scale, &center)
+                    || !renderSharpText({ xHeightRecord }, 256, 32, 256 * scale, 32 * scale,
+                        palette, 256, visibility, &surface)) return 1;
+                int top = surface.height;
+                int bottom = -1;
+                for (int y = 0; y < surface.height; ++y) {
+                    for (int x = 0; x < surface.width; ++x) {
+                        if (surface.pixels[(static_cast<std::size_t>(y) * surface.width + x) * 4 + 3] == 0) continue;
+                        top = std::min(top, y);
+                        bottom = y;
+                    }
+                }
+                if (bottom < top || std::abs((center + 0.5) * scale - (top + bottom + 1) * 0.5) > scale * 0.5 + 0.01) {
+                    std::fprintf(stderr, "X-height center missed rendered ink: bold=%d size=%.2f scale=%d\n", bold, size, scale);
+                    return 1;
+                }
+            }
+        }
+    }
     std::printf("Both embedded fonts load; all 30 required glyphs rasterize\n");
     return 0;
 }
