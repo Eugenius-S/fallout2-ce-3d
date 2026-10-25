@@ -145,7 +145,7 @@ def _wall_back(batches, sprites, pages, row, hpx, keep=(0.0, 1.0)):
         return
     # The back runs from b to a: its stretch is the front's, seen from there.
     _upright(batches, sprites, pages, picture, ub - nu, vb - nv, ua - nu, va - nv, z0, zc, x + w, y, -w, h,
-             (1.0 - keep[1], 1.0 - keep[0]))
+             (1.0 - min(keep[1], 1.0), 1.0 - max(keep[0], 0.0)))
 
 
 def _wall_front(batches, proj, sprites, pages, row, toward_camera, continues, keep=(0.0, 1.0)):
@@ -170,7 +170,7 @@ def _wall_front(batches, proj, sprites, pages, row, toward_camera, continues, ke
     hpx = proj.hpx
     top = (z1 - zc) * hpx
     _upright(batches, sprites, pages, sprite, ua, va, ub, vb, z0, zc,
-             x, y + top, w, h - top, keep)
+             x, y + top, w, h - top, (max(keep[0], 0.0), min(keep[1], 1.0)))
     if top <= 0 or keep[1] <= keep[0]:
         return
     length = math.hypot(ub - ua, vb - va)
@@ -335,11 +335,21 @@ def _slabs(walls, hidden, toward_camera):
     return slabs
 
 
+class _Corners:
+    """What the corner pass changes for the free camera. keep {wall row: (from,
+    to)}: the stretch of the row it draws, as fractions from the row's a end
+    (beyond 0 or 1: only the row's top is cut there); fills [(slab, lender row,
+    s from, s to)]: blocks of the wall's own material; faces [(slab, outward,
+    s, row)]: an end face in the picture of the wall whose plane it lies in;
+    caps [(slab, row, s from, s to)]: the top at the corner, one flat piece;
+    moved [(slab, old end)]: the ends whose donor end strips no longer stand at
+    the wall's end."""
+
+    def __init__(self):
+        self.keep, self.fills, self.faces, self.caps, self.moved = {}, [], [], [], []
+
+
 def _corner_fits(walls, hidden, toward_camera):
-    """-> (keep, fills, moved): keep {wall row: (from, to) fractions from its a
-    end that the free camera draws}, fills [(slab, lender row, s from, s to,
-    outward, end face)] the blocks to add, moved [(slab, old end)] the ends
-    whose donor end strips no longer stand at the wall's end."""
     slabs = _slabs(walls, hidden, toward_camera)
     gap = lambda x, lo, hi: max(lo - x, 0.0, x - hi)
     far = lambda slab, out: slab.band()[1] if out > 0 else slab.band()[0]
@@ -356,80 +366,115 @@ def _corner_fits(walls, hidden, toward_camera):
                 continue
             b = min(met, key=lambda item: item[:2])[2]
             if b.lo < a0 - CORNER_REACH and b.hi > a1 + CORNER_REACH:
-                targets[(id(a), out)] = (a, out, near(b, out), False)  # a T: the stem stops at b
+                targets[(id(a), out)] = (a, out, near(b, out), None)  # a T: the stem stops at b
                 continue
             if b.hi <= a1 + CORNER_REACH and b.lo >= a0 - CORNER_REACH:
                 continue  # all of b lies at a's end: no corner to read
             b_out = 1 if b.hi <= a1 + CORNER_REACH else -1
             b_end = b.hi if b_out > 0 else b.lo
-            # The wall that runs on further past the other reaches across it.
+            # The wall that runs on further past the other reaches across it;
+            # its end face then lies in the other's plane.
             if out * (end - far(b, out)) >= b_out * (b_end - far(a, b_out)):
-                targets[(id(a), out)] = (a, out, far(b, out), True)
-                targets.setdefault((id(b), b_out), (b, b_out, near(a, b_out), False))
+                targets[(id(a), out)] = (a, out, far(b, out), b)
+                targets.setdefault((id(b), b_out), (b, b_out, near(a, b_out), None))
             else:
-                targets[(id(a), out)] = (a, out, near(b, out), False)
-                targets.setdefault((id(b), b_out), (b, b_out, far(a, b_out), True))
-    keep, fills, moved = {}, [], []
-    for slab, out, target, face in targets.values():
+                targets[(id(a), out)] = (a, out, near(b, out), None)
+                targets.setdefault((id(b), b_out), (b, b_out, far(a, b_out), a))
+    corners = _Corners()
+    for slab, out, target, other in targets.values():
         end = slab.hi if out > 0 else slab.lo
-        overrun = out * (end - target)
-        if abs(overrun) <= CORNER_SLACK:
-            continue
-        moved.append((slab, end))
         axis = slab.axis
         s_of = lambda row, at: row[1 + 2 * at + axis]  # the row's s at its a (0) or b (1) end
-        reach = lambda index: max(s_of(walls[index], 0), s_of(walls[index], 1)) if out > 0             else -min(s_of(walls[index], 0), s_of(walls[index], 1))
-        lender = max(slab.rows, key=reach)
-        if overrun > 0:
-            for index in slab.rows:
-                row = walls[index]
-                sa, sb = s_of(row, 0), s_of(row, 1)
-                lo, hi = keep.get(index, (0.0, 1.0))
-                cut = (target - sa) / (sb - sa) if sb != sa else 0.0
-                # Of the fractions, those on the slab's side of the target stay.
-                if (sb - sa) * out > 0:
-                    hi = min(hi, cut)
-                else:
-                    lo = max(lo, cut)
-                if (lo, hi) != (0.0, 1.0):
-                    keep[index] = (max(lo, 0.0), min(hi, 1.0))
-            if face:
-                fills.append((slab, lender, target, target, out, True))
-        else:
-            fills.append((slab, lender, end, target, out, face))
-    return keep, fills, moved
+        span = lambda index: sorted((s_of(walls[index], 0), s_of(walls[index], 1)))
+        lender = max(slab.rows, key=lambda index: span(index)[1] if out > 0 else -span(index)[0])
+        # Every row near this end stops at the target, its top included: a
+        # top runs on past its picture's edge and would stick out of the corner.
+        for index in slab.rows:
+            lo_s, hi_s = span(index)
+            if out * ((hi_s if out > 0 else lo_s) - target) < -2 * CORNER_REACH:
+                continue
+            row = walls[index]
+            sa, sb = s_of(row, 0), s_of(row, 1)
+            if sb == sa:
+                continue
+            cut = (target - sa) / (sb - sa)
+            lo, hi = corners.keep.get(index, (-math.inf, math.inf))
+            if (sb - sa) * out > 0:
+                hi = min(hi, cut)
+            else:
+                lo = max(lo, cut)
+            corners.keep[index] = (lo, hi)
+        overrun = out * (end - target)
+        if overrun < -CORNER_SLACK:
+            corners.fills.append((slab, lender, end, target))
+        if abs(overrun) > CORNER_SLACK:
+            corners.moved.append((slab, end))
+        if other is not None:
+            # The other wall's row nearest the corner lends the end face.
+            middle = sum(slab.band()) / 2
+            other_s = lambda index: (walls[index][1 + other.axis], walls[index][3 + other.axis])
+            face_row = min(other.rows, key=lambda index: gap(middle, *sorted(other_s(index))))
+            corners.faces.append((slab, out, target, face_row))
+        corners.caps.append((slab, lender, target - out * max(2 * slab.thick, 0.35), target))
+    return corners
 
 
-def _corner_fill(batches, proj, sprites, pages, hpx, toward_camera, row, slab, s0, s1, out, face):
-    """A block of the wall's own material between s0 and s1 along `slab`: its
-    front, back and top, and with `face` the end face at s1. Each shows a strip
-    of columns from the picture's edge at that end."""
+def _picture(sprites, row, hpx):
+    """(page, x, y, w, h, rows of its top band) of a wall row's picture."""
     page, x, y, w, h = (_int(value, "wall sprite rectangle") for value in sprites[_int(row[0], "wall sprite")][:5])
-    z0, z1, zc, thick = row[5], row[6], row[9], slab.thick
-    top = min(max((z1 - zc) * hpx, 0.0), h - 1.0)
-    sa, sb = row[1 + slab.axis], row[3 + slab.axis]
-    px = w / max(abs(sb - sa), 1e-6)
-    columns = lambda length: min(max(round(length * px), 1), w)
-    # The picture's edge at this end of the wall: its a end shows column x.
-    edge = lambda n: (x, x + n) if (abs(sa - s1) < abs(sb - s1)) else (x + w, x + w - n)
-    size = pages[page]
+    return page, x, y, w, h, min(max((row[6] - row[9]) * hpx, 0.0), h - 1.0)
+
+
+def _strip(row, axis, at, px, w, x, n):
+    """Columns (from, to) of the n at the picture's edge nearest s = at; the
+    row's a end shows column x."""
+    sa, sb = row[1 + axis], row[3 + axis]
+    n = min(max(round(n * px), 1), w)
+    return (x, x + n) if abs(sa - at) < abs(sb - at) else (x + w, x + w - n)
+
+
+def _corner_fill(batches, proj, sprites, pages, hpx, row, slab, s0, s1):
+    """A block of the wall's own material between s0 and s1 along `slab`: its
+    front and back, a strip of columns from the picture's edge at that end."""
+    page, x, y, w, h, top = _picture(sprites, row, hpx)
+    z0, zc, thick = row[5], row[9], slab.thick
+    px = w / max(abs(row[3 + slab.axis] - row[1 + slab.axis]), 1e-6)
+    c0, c1 = _strip(row, slab.axis, s1, px, w, x, abs(s1 - s0))
     lo, hi = sorted((s0, s1))
-    if hi - lo > CORNER_SLACK:
-        c0, c1 = edge(columns(hi - lo))
-        p = slab.point
-        for depth, away in ((0.0, False), (thick, True)):
-            corners = [[*p(lo, depth), z0, c0, y + h], [*p(hi, depth), z0, c1, y + h],
-                       [*p(hi, depth), zc, c1, y + top], [*p(lo, depth), zc, c0, y + top]]
-            _polygon(batches, proj, page, size, corners, away)
-        band = (y, y + top) if top >= 1 else (y + top, y + top + 1)
-        _polygon(batches, proj, page, size, [[*p(lo, 0.0), zc, c0, band[1]], [*p(hi, 0.0), zc, c1, band[1]],
-                                             [*p(hi, thick), zc, c1, band[0]], [*p(lo, thick), zc, c0, band[0]]])
-    if face:
-        c0, c1 = edge(columns(thick))
-        p = slab.point
-        corners = [[*p(s1, 0.0), z0, c0, y + h], [*p(s1, thick), z0, c1, y + h],
-                   [*p(s1, thick), zc, c1, y + top], [*p(s1, 0.0), zc, c0, y + top]]
-        _polygon(batches, proj, page, size, corners, out * toward_camera[slab.axis] < 0)
+    p = slab.point
+    for depth, away in ((0.0, False), (thick, True)):
+        corners = [[*p(lo, depth), z0, c0, y + h], [*p(hi, depth), z0, c1, y + h],
+                   [*p(hi, depth), zc, c1, y + top], [*p(lo, depth), zc, c0, y + top]]
+        _polygon(batches, proj, page, pages[page], corners, away)
+
+
+def _corner_face(batches, proj, sprites, pages, hpx, toward_camera, row, slab, out, s):
+    """The end face of `slab` at s, across its thickness, in the picture of the
+    wall `row` whose plane it lies in, so the two read as one face."""
+    page, x, y, w, h, top = _picture(sprites, row, hpx)
+    axis = 1 - slab.axis  # the face runs along the other wall
+    px = w / max(abs(row[3 + axis] - row[1 + axis]), 1e-6)
+    c0, c1 = _strip(row, axis, sum(slab.band()) / 2, px, w, x, slab.thick)
+    z0, zc = row[5], row[9]
+    p = slab.point
+    corners = [[*p(s, 0.0), z0, c0, y + h], [*p(s, slab.thick), z0, c1, y + h],
+               [*p(s, slab.thick), zc, c1, y + top], [*p(s, 0.0), zc, c0, y + top]]
+    _polygon(batches, proj, page, pages[page], corners, out * toward_camera[slab.axis] < 0)
+
+
+def _corner_cap(batches, proj, sprites, pages, hpx, row, slab, s0, s1):
+    """The wall's top over s0 .. s1 as one flat piece in its cap's colour, a
+    hair above the tops it covers: the sheared tops end in a slant at a
+    corner and leave a notch there."""
+    page, x, y, w, h, top = _picture(sprites, row, hpx)
+    if top < 1:
+        return
+    tx, ty = x + w / 2, y + top / 2
+    z = row[9] + 0.004
+    p = slab.point
+    lo, hi = sorted((s0, s1))
+    _polygon(batches, proj, page, pages[page], [[*p(lo, 0.0), z, tx, ty], [*p(hi, 0.0), z, tx, ty],
+                                                [*p(hi, slab.thick), z, tx, ty], [*p(lo, slab.thick), z, tx, ty]])
 
 
 def _moved_strip(trim, moved):
@@ -507,14 +552,14 @@ def encode_wall_sidecar(scene, skip_props=frozenset(), skip_rests=frozenset(), m
         _finite(row[10], f"wall {index} thickness")
     continuations = _continuations(walls)
     hidden_walls = set(scene.get("hiddenWalls") or [])
-    keep, fills, moved = _corner_fits(walls, hidden_walls, toward_camera)
+    corners = _corner_fits(walls, hidden_walls, toward_camera)
     for index, row in enumerate(walls):
         batches.object = game.object = fly.object = owner(row[8])
-        if row[10] > 0 and index in keep:
-            # A corner moved this wall's end: the game's camera keeps the row
+        if row[10] > 0 and index in corners.keep:
+            # A corner sets this wall's end: the game's camera keeps the row
             # whole, the free camera draws what stays.
             _wall_front(game, proj, sprites, pages, row, toward_camera, continuations[index])
-            _wall_front(fly, proj, sprites, pages, row, toward_camera, continuations[index], keep[index])
+            _wall_front(fly, proj, sprites, pages, row, toward_camera, continuations[index], corners.keep[index])
         elif row[10] > 0:
             _wall_front(batches, proj, sprites, pages, row, toward_camera, continuations[index])
         else:
@@ -529,14 +574,20 @@ def encode_wall_sidecar(scene, skip_props=frozenset(), skip_rests=frozenset(), m
     for index, row in enumerate(walls):
         if row[10] > 0 and index not in hidden_walls:
             fly.object = owner(row[8])
-            _wall_back(fly, sprites, pages, row, hpx, keep.get(index, (0.0, 1.0)))
-    for slab, lender, s0, s1, out, face in fills:
+            _wall_back(fly, sprites, pages, row, hpx, corners.keep.get(index, (0.0, 1.0)))
+    for slab, lender, s0, s1 in corners.fills:
         fly.object = owner(walls[lender][8])
-        _corner_fill(fly, proj, sprites, pages, hpx, toward_camera, walls[lender], slab, s0, s1, out, face)
+        _corner_fill(fly, proj, sprites, pages, hpx, walls[lender], slab, s0, s1)
+    for slab, out, at, lender in corners.faces:
+        fly.object = owner(walls[lender][8])
+        _corner_face(fly, proj, sprites, pages, hpx, toward_camera, walls[lender], slab, out, at)
+    for slab, lender, s0, s1 in corners.caps:
+        fly.object = owner(walls[lender][8])
+        _corner_cap(fly, proj, sprites, pages, hpx, walls[lender], slab, s0, s1)
     batches.object = game.object = fly.object = -1.0
     for index, row in enumerate(scene.get("trims") or []):
         _record(row, 11, f"trim {index}")
-        if _moved_strip(row, moved):
+        if _moved_strip(row, corners.moved):
             continue
         sprite = _int(row[0], "trim sprite index")
         if not 0 <= sprite < len(sprites):
