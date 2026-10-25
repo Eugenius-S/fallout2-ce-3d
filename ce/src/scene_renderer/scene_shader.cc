@@ -105,6 +105,7 @@ uniform float uShadowStep;
 uniform float uShadowBias;
 uniform float uShadowRange; // the map's depth span in GL units
 uniform float uShadowGround; // the sun elevation's cosine: ray distance to ground distance
+uniform int uShadowDebug; // 1: raw factor, 2: the fade term, 3: the coverage term (062 diagnostics)
 out vec4 outColor;
 // What a texel shines by itself for the glow (task 022): the colour a
 // full-bright texel keeps, premultiplied by its shown coverage; black
@@ -187,25 +188,31 @@ float shadowDepth(vec2 xz, float y) {
     if (p.x < 0.0 || p.x > 1.0 || p.y < 0.0 || p.y > 1.0 || p.z >= 1.0) return -1.0;
     return p.z - texture(uShadowMap, p.xy).r;
 }
-float sunShadow() {
-    // A three-radius disk of 25 taps (1.0, 0.65 turned 22.5 degrees, 0.35
-    // turned 11.25): fewer rings quantize the edge into flat steps a
-    // ring-radius apart, the owner reads them as layers and stairs.
-    const vec2 taps[25] = vec2[25](
-        vec2(0.0000, 0.0000), vec2(1.0000, 0.0000), vec2(0.7071, 0.7071), vec2(0.0000, 1.0000),
-        vec2(-0.7071, 0.7071), vec2(-1.0000, 0.0000), vec2(-0.7071, -0.7071), vec2(-0.0000, -1.0000),
-        vec2(0.7071, -0.7071), vec2(0.6005, 0.2487), vec2(0.2487, 0.6005), vec2(-0.2487, 0.6005),
-        vec2(-0.6005, 0.2487), vec2(-0.6005, -0.2487), vec2(-0.2487, -0.6005), vec2(0.2487, -0.6005),
-        vec2(0.6005, -0.2487), vec2(0.3433, 0.0683), vec2(0.1944, 0.2910), vec2(-0.0683, 0.3433),
-        vec2(-0.2910, 0.1944), vec2(-0.3433, -0.0683), vec2(-0.1944, -0.2910), vec2(0.0683, -0.3433),
-        vec2(0.2910, -0.1944));
+// A three-radius disk of 25 taps (1.0, 0.65 turned 22.5 degrees, 0.35
+// turned 11.25): fewer rings quantize the edge into flat steps a
+// ring-radius apart, the owner reads them as layers and stairs.
+const vec2 kShadowTaps[25] = vec2[25](
+    vec2(0.0000, 0.0000), vec2(1.0000, 0.0000), vec2(0.7071, 0.7071), vec2(0.0000, 1.0000),
+    vec2(-0.7071, 0.7071), vec2(-1.0000, 0.0000), vec2(-0.7071, -0.7071), vec2(-0.0000, -1.0000),
+    vec2(0.7071, -0.7071), vec2(0.6005, 0.2487), vec2(0.2487, 0.6005), vec2(-0.2487, 0.6005),
+    vec2(-0.6005, 0.2487), vec2(-0.6005, -0.2487), vec2(-0.2487, -0.6005), vec2(0.2487, -0.6005),
+    vec2(0.6005, -0.2487), vec2(0.3433, 0.0683), vec2(0.1944, 0.2910), vec2(-0.0683, 0.3433),
+    vec2(-0.2910, 0.1944), vec2(-0.3433, -0.0683), vec2(-0.1944, -0.2910), vec2(0.0683, -0.3433),
+    vec2(0.2910, -0.1944));
+float shadowFadeTerm()
+{
     float past = shadowDepth(vWorld.xz, vWorld.y);
-    if (past <= uShadowBias) return 0.0; // lit, or outside the shadow box
-    float fade = 1.0 - smoothstep(1.0, 2.5, past * uShadowRange * uShadowGround);
+    if (past <= 0.0) return 0.0;
+    return 1.0 - smoothstep(1.0, 2.5, past * uShadowRange * uShadowGround);
+}
+float sunShadow() {
+    float past = shadowDepth(vWorld.xz, vWorld.y);
+    if (past <= 0.0) return 0.0; // lit, or outside the shadow box
+    float fade = shadowFadeTerm();
     if (fade <= 0.0) return 0.0;
     float sum = 0.0;
     for (int i = 0; i < 25; i++) {
-        float diff = shadowDepth(vWorld.xz + taps[i] * uShadowStep, vWorld.y);
+        float diff = shadowDepth(vWorld.xz + kShadowTaps[i] * uShadowStep, vWorld.y);
         if (diff < 0.0) continue; // this tap falls outside the box: it is lit
         sum += smoothstep(0.0, 2.0 * uShadowBias, diff);
     }
@@ -219,6 +226,11 @@ float sunShadow() {
 // and the edge antialiases on cards as it does on the ground. A card reads
 // lighter than the ground: a standing figure keeps its read.
 float shadowDarken(float light) {
+    if (uShadowDebug == 1 && (uLightMode == 1 || uLightMode == 2 || uLightMode == 3)) {
+        // The raw factor as the light: a snapshot then shows the algorithm
+        // itself, not the composed scene (062 diagnostics).
+        return sunShadow();
+    }
     if (uShadowOn && uShadowStrength > 0.0) {
         if (uLightMode == 1 || uLightMode == 2) {
             light *= 1.0 - uShadowStrength * 0.5 * sunShadow();
@@ -278,6 +290,29 @@ void main() {
             // 128 steps, on its 5-bit colour rounded down (setIntensityTableColor).
             vec4 lit = fullBright ? vec4(1.0) : sceneLighting();
             lit.a = shadowDarken(lit.a);
+            if (uShadowDebug == 2) {
+                outEmissive = vec4(0.0);
+                outColor = vec4(vec3(shadowFadeTerm()), 1.0);
+                return;
+            }
+            if (uShadowDebug == 3) {
+                outEmissive = vec4(0.0);
+                float cover = 0.0;
+                for (int i = 0; i < 25; i++) {
+                    float diff = shadowDepth(vWorld.xz + kShadowTaps[i] * uShadowStep, vWorld.y);
+                    if (diff < 0.0) continue;
+                    cover += smoothstep(0.0, 2.0 * uShadowBias, diff);
+                }
+                outColor = vec4(vec3(cover / 25.0), 1.0);
+                return;
+            }
+            if (uShadowDebug == 1) {
+                // The pure factor, flat gray: no art, no engine light steps
+                // (062 diagnostics).
+                outEmissive = vec4(0.0);
+                outColor = vec4(vec3(lit.a), 1.0);
+                return;
+            }
             float steps = floor(lit.a * 128.0 + 0.0001);
             if (steps < 128.0) outColor.rgb = floor(floor(outColor.rgb * 31.0 + 0.5) * steps / 128.0) / 31.0;
             outColor.rgb *= lit.rgb;
@@ -354,6 +389,7 @@ int gSceneShadowStrengthLocation = -1;
 int gSceneShadowStepLocation = -1;
 int gSceneShadowBiasLocation = -1;
 int gSceneShadowGroundLocation = -1;
+int gSceneShadowDebugLocation = -1;
 int gSceneShadowRangeLocation = -1;
 
 bool createSceneShader(std::string* error)
@@ -427,6 +463,7 @@ bool createSceneShader(std::string* error)
     gSceneShadowStrengthLocation = glGetUniformLocation(gSceneProgram, "uShadowStrength");
     gSceneShadowStepLocation = glGetUniformLocation(gSceneProgram, "uShadowStep");
 gSceneShadowGroundLocation = glGetUniformLocation(gSceneProgram, "uShadowGround");
+    gSceneShadowDebugLocation = glGetUniformLocation(gSceneProgram, "uShadowDebug");
     gSceneShadowBiasLocation = glGetUniformLocation(gSceneProgram, "uShadowBias");
     gSceneShadowRangeLocation = glGetUniformLocation(gSceneProgram, "uShadowRange");
     if (gSceneMvpLocation < 0 || gSceneTextureLocation < 0

@@ -78,6 +78,7 @@ bool requestMapChange(const char* mapFileName, int elevation);
 
 bool panelOpen();
 bool handleKey(int key);
+int shadowDebugRequested(); // --dev-shadow-debug
 // The fly camera lands (a frame is presented without the 3D scene: combat,
 // dialog, a movie).
 void landFlight();

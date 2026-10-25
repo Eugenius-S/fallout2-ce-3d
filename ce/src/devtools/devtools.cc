@@ -127,6 +127,7 @@ int gTourFrames = 0;
 bool gStillSnapshot = false;
 bool gBackgroundGlow = false;
 bool gBackgroundShadows = false; // --dev-shadows: shadows stay on in a background run
+int gShadowDebug = 0; // --dev-shadow-debug=N: 1 factor, 2 fade, 3 coverage
 double gDevZoom = -1.0; // --dev-zoom=D: the background run's 3D zoom (default 1)
 int gDevAmbient = -1; // --dev-ambient: the map's ambient light held there (night views)
 double gDevHour = -1.0; // --dev-hour: the game hour set on the map, once
@@ -801,6 +802,19 @@ bool parseOption(const char* arg)
     if (strcmp(arg, "--dev-shadows") == 0) {
         gBackgroundShadows = true;
         debugPrint("DEVTOOLS: the shadows stay on in this background run\n");
+        return true;
+    }
+    if (strcmp(arg, "--dev-shadow-debug") == 0) {
+        gShadowDebug = 1;
+        gBackgroundShadows = true;
+        debugPrint("DEVTOOLS: the raw shadow factor renders in this run");
+        return true;
+    }
+    const char* shadowDebugPrefix = "--dev-shadow-debug=";
+    if (strncmp(arg, shadowDebugPrefix, strlen(shadowDebugPrefix)) == 0) {
+        gShadowDebug = atoi(arg + strlen(shadowDebugPrefix));
+        gBackgroundShadows = true;
+        debugPrint("DEVTOOLS: shadow debug view renders in this run");
         return true;
     }
     if (strcmp(arg, "--dev-fly") == 0) {
@@ -2429,6 +2443,11 @@ void landFlight()
 void gameReset()
 {
     gFlyRestorePending = false;
+}
+
+int shadowDebugRequested()
+{
+    return gShadowDebug;
 }
 
 bool handleKey(int key)

@@ -29,3 +29,7 @@ that fits no task becomes a new task when the board runs dry.
   050 (the wide halo) merged on 2026-10-25; Klamath screens are dead art, but
   the burning barrels should glow. Look again in the next build before
   calling it art.
+- 2026-10-25 The owner, on the night look: at night nothing changes
+  visually; there should be a moon of some kind (his words, for later: a
+  moon light at night, presumably a dim cool directional like the sun
+  line but weak).

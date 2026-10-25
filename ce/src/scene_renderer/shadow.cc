@@ -6,6 +6,7 @@
 
 #include "../scene/scene_lights.h"
 #include "../settings.h"
+#include "../devtools/devtools.h"
 #include "gl_api.h"
 #include "scene_internal.h"
 
@@ -218,6 +219,7 @@ bool bindStaticShadows(const float* sceneMvp)
     const float groundScale = static_cast<float>(
         std::sqrt(std::max(1.0 - static_cast<double>(sun.direction[1]) * sun.direction[1], 0.0)));
     glUniform1f(gSceneShadowGroundLocation, groundScale);
+    glUniform1i(gSceneShadowDebugLocation, devtools::shadowDebugRequested());
     glActiveTexture(kTexture0 + 5);
     glBindTexture(kTexture2D, gShadowMapTexture);
     glUniform1i(gSceneShadowMapLocation, 5);

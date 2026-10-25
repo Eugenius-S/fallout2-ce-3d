@@ -206,6 +206,7 @@ extern int gSceneShadowStepLocation;
 extern int gSceneShadowBiasLocation;
 extern int gSceneShadowRangeLocation;
 extern int gSceneShadowGroundLocation;
+extern int gSceneShadowDebugLocation;
 
 bool createSceneShader(std::string* error);
 void destroySceneShader();

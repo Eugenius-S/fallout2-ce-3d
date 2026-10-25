@@ -137,3 +137,34 @@ Check: build Release, ctest 14/14; the shadows-off regression keeps the
 same 13 drifted counts, three at 0; the final zoom-2 pair under
 runs/062-shadows-short-steady-smooth/ (fence-zoom2-final/-off, mask 610 k).
 Next: the owner's eye again.
+
+### 2026-10-25 glm
+Done: round 3, the owner's verdict on round 2 (straight shadows without a
+fade, stairs on the cut end, "you are fundamentally messing up somewhere").
+He is right, and the debug view found it.
+- New diagnostics, committed with the task: --dev-shadow-debug=N
+  (dev-snapshot -ShadowDebug N): 1 the raw factor, 2 the fade term alone,
+  3 the coverage term alone, drawn flat gray without art or the engine's
+  light steps. This is how I can look at the algorithm without eyes for
+  screenshots (this agent cannot open pictures; the numbers read the
+  view instead).
+- THE root cause of every "no fade / from the center / straight" round
+  since 063: the wall caster quads sit about 0.37 GL units ABOVE the
+  floor (the art's own placement), so the ground within
+  0.37/tan(elevation) of a wall was never blocked: at 17:00 that is a
+  1.35-unit lit gap between the object and its own shadow, and the shadow
+  floated off its object as a thin fading band (the round-2 "fade from
+  the center"). Noon hid it (0.2 units, inside the plateau). Measured
+  with mode 2+3 at 17:00: the minimum ground distance of any deep-shadow
+  pixel was 1.35 units, at noon 1.0 (the plateau edge); after the fix the
+  plateau holds 12% of the deep shadow and the melt spans 1.05..2.5.
+- Fix: every caster triangle is extruded into a prism down to the floor
+  (the triangle, its floor footprint and three side curtains, the art's
+  UVs kept so the transparent holes still cut); and the lit test lost the
+  compare bias it inherited (past <= 0, not past <= bias), which alone
+  kept a 0.23-unit contact ring lit.
+Check: build Release, ctest 14/14; the shadows-off regression keeps the
+13 drifted counts; the 17:00 on/off mask 381 k (the contact strip now
+shadows), 22:00 mask 0 (night unchanged). Shots: debug-17-fix-mode{2,3},
+fix-sunset-17{,-off}, fix-night-22{,-off} under this runs folder.
+Next: the owner's eye.

@@ -67,6 +67,9 @@ param(
     # -Shadows: keep the sun shadows on in this background run (they are
     # forced off by default, so captures stay byte-stable).
     [switch]$Shadows,
+    # -ShadowDebug:N: 1 the raw factor, 2 the fade term, 3 the coverage (062
+    # diagnostics); implies -Shadows.
+    [int]$ShadowDebug = 0,
     # -Hour H: set the game hour on the map (the sun snaps to it), so morning,
     # noon, sunset and night views come from one command.
     [ValidateRange(0, 24)]
@@ -201,6 +204,7 @@ if ($PreferencesProbe) {
 }
 if ($Glow) { $arguments += '--dev-glow' }
 if ($Shadows) { $arguments += '--dev-shadows' }
+if ($ShadowDebug) { $arguments += "--dev-shadow-debug=$ShadowDebug" }
 if ($Hour -ge 0) { $arguments += "--dev-hour=$Hour" }
 if ($Zoom -gt 0) { $arguments += "--dev-zoom=$Zoom" }
 if ($PreferencesProbe) {
