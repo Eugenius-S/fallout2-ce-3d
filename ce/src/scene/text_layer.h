@@ -40,9 +40,15 @@ struct TextValidationPixels {
     TextPixels pixels;
 };
 
+enum class TextSizeRole {
+    Default,
+    CompactUi,
+};
+
 struct TextRunInfo {
     std::string text;
     int font = 0;
+    TextSizeRole sizeRole = TextSizeRole::Default;
     unsigned int colorAndFlags = 0;
     TextColorRole colorRole = TextColorRole::Palette;
     int x = 0;
@@ -52,6 +58,12 @@ struct TextRunInfo {
     int width = 0;
     int cellWidth = 0;
     int lineHeight = 0;
+    // Optional fixed content box for per-run vertical centering. The box moves
+    // with the run when the record is copied to another buffer.
+    int verticalAlignmentBoxY = 0;
+    int verticalAlignmentBoxHeight = 0;
+    // Logical vertical shift for the modern glyph overlay only.
+    int sharpTextOffsetY = 0;
     bool sharpEligible = false;
     std::vector<int> characterX;
     std::vector<int> characterCellX;
@@ -86,6 +98,16 @@ struct TextVisibilityMask {
         return pixels[static_cast<std::size_t>(y - bounds.y) * bounds.width + (x - bounds.x)] != 0;
     }
 };
+
+// Process-local dev preview state. The owner window narrows the scale to a
+// single fixture window; -1 applies it to CPU-only renderer tests.
+bool setFont101PreviewScale(double scale, int ownerWindow);
+double font101PreviewScaleForWindow(int ownerWindow);
+double font101PreviewScaleForRun(int ownerWindow, TextSizeRole sizeRole);
+int font101PreviewCoverageHeight(int lineHeight, int ownerWindow);
+int font101PreviewCoverageHeight(int lineHeight, int ownerWindow, TextSizeRole sizeRole);
+bool setFont101PreviewBold(bool bold, int ownerWindow);
+bool font101PreviewUsesBold(int ownerWindow);
 
 struct TextRecord {
     TextBufferId buffer = 0;

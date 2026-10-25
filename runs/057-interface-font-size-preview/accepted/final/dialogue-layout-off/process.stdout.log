@@ -1,0 +1,15 @@
+scene: cache E:\Projects\fallout2-ce-3d-gpt\build\scene-cache\kladwtwn\0
+devtools: static wall+hero preview started for KLADWTWN.MAP elevation 0
+scene: preview policy=available gameState=0 gameMode=0x0 uiDisabled=0 isoDisabled=0 combat=0 dialog=0 movie=0
+DIALOG_FIXTURE START map=KLADWTWN.MAP elevation=0 script=Kcsulik.int speaker=26 speaker_tile=23478 hero=25075 talk_result=0
+scene: preview policy=game-mode gameState=0 gameMode=0x4 uiDisabled=0 isoDisabled=1 combat=0 dialog=0 movie=0
+DIALOG_LAYOUT_CHECK PLAN sharp_setting=0 options=7 visible=7 text_rows=8 line_height=10 required_group_gap=2
+DIALOG_LAYOUT_CHECK ROW index=0 text_top=5 text_bottom=15 button_left=129 button_top=335 button_right=508 button_bottom=348 gap_from_previous=0
+DIALOG_LAYOUT_CHECK ROW index=1 text_top=17 text_bottom=27 button_left=129 button_top=352 button_right=508 button_bottom=360 gap_from_previous=2
+DIALOG_LAYOUT_CHECK ROW index=2 text_top=29 text_bottom=39 button_left=129 button_top=364 button_right=508 button_bottom=372 gap_from_previous=2
+DIALOG_LAYOUT_CHECK ROW index=3 text_top=41 text_bottom=61 button_left=129 button_top=376 button_right=508 button_bottom=394 gap_from_previous=2
+DIALOG_LAYOUT_CHECK ROW index=4 text_top=63 text_bottom=73 button_left=129 button_top=398 button_right=508 button_bottom=406 gap_from_previous=2
+DIALOG_LAYOUT_CHECK ROW index=5 text_top=75 text_bottom=85 button_left=129 button_top=410 button_right=508 button_bottom=418 gap_from_previous=2
+DIALOG_LAYOUT_CHECK ROW index=6 text_top=87 text_bottom=97 button_left=129 button_top=422 button_right=508 button_bottom=430 gap_from_previous=2
+DIALOG_LAYOUT_CHECK PASS geometry=non-overlapping buttons=7 text_rows=8
+DIALOG_FIXTURE PASS map=KLADWTWN.MAP elevation=0 script=Kcsulik.int speaker=26 speaker_tile=23478 hero=25075 dialog_owners=2,4 eligible_runs=12

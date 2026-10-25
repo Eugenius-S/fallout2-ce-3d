@@ -30,8 +30,13 @@ param(
     [switch]$DialogFixture,
     [switch]$DialogPageInspect,
     [switch]$DialogCursorCheck,
+    [switch]$DialogLayoutCheck,
     [ValidateSet('inventory', 'pipboy', 'character', 'barter', 'log')]
     [string]$UiFixture,
+    [ValidateSet('1.00', '1.08', '1.15', '1.22', '1.29')]
+    [string]$Font101PreviewScale,
+    [ValidateSet('bold', 'semibold')]
+    [string]$Font101PreviewWeight,
     [string]$Tour,
     [switch]$Classic,
     [switch]$Preferences,
@@ -140,6 +145,15 @@ if ($UiFixture) {
         throw '-UiFixture requires -CaptureConsole and -OutputDirectory for fixture diagnostics.'
     }
 }
+if ($Font101PreviewScale) {
+    if ($UiFixture -ne 'character') { throw '-Font101PreviewScale requires -UiFixture character.' }
+    if (-not $SharpText) { throw '-Font101PreviewScale requires -SharpText.' }
+}
+if ($Font101PreviewWeight) {
+    if ($UiFixture -ne 'character') { throw '-Font101PreviewWeight requires -UiFixture character.' }
+    if (-not $SharpText) { throw '-Font101PreviewWeight requires -SharpText.' }
+    if (-not $Font101PreviewScale) { throw '-Font101PreviewWeight requires -Font101PreviewScale.' }
+}
 if ($DialogPageInspect) {
     if (-not $DialogFixture) { throw '-DialogPageInspect requires -DialogFixture.' }
     if ($SharpText) { throw '-DialogPageInspect must inspect the original pixel text with sharp text off.' }
@@ -150,6 +164,10 @@ if ($DialogCursorCheck) {
     if (-not $SharpText) { throw '-DialogCursorCheck requires -SharpText.' }
     if ($DialogPageInspect) { throw '-DialogCursorCheck cannot be combined with -DialogPageInspect.' }
     if ($Language -ne 'english') { throw '-DialogCursorCheck requires -Language english for readable diagnostics.' }
+}
+if ($DialogLayoutCheck) {
+    if (-not $DialogFixture) { throw '-DialogLayoutCheck requires -DialogFixture.' }
+    if ($DialogPageInspect -or $DialogCursorCheck) { throw '-DialogLayoutCheck cannot be combined with other dialog checks.' }
 }
 if ($ReuseTestConfig) {
     if (-not (Test-Path -LiteralPath $configPath -PathType Leaf)) { throw "No isolated config to reuse: $configPath" }
@@ -189,10 +207,13 @@ $runId = [guid]::NewGuid().ToString('N')
 $arguments = @('--dev-tools')
 if ($SharpText) { $arguments += '--dev-sharp-text=1' } else { $arguments += '--dev-sharp-text=0' }
 if ($UiFixture) { $arguments += "--dev-ui-fixture=$UiFixture" }
+if ($Font101PreviewScale) { $arguments += "--dev-font101-size-preview=$Font101PreviewScale" }
+if ($Font101PreviewWeight) { $arguments += "--dev-font101-weight-preview=$Font101PreviewWeight" }
 if ($UiFixture -eq 'log') { $arguments += '--dev-classic' }
 if ($DialogFixture) { $arguments += '--dev-dialog-fixture' }
 if ($DialogPageInspect) { $arguments += '--dev-dialog-page-inspect' }
 if ($DialogCursorCheck) { $arguments += '--dev-dialog-cursor-check' }
+if ($DialogLayoutCheck) { $arguments += '--dev-dialog-layout-check' }
 if ($PreferencesProbe) {
     $arguments += @('--dev-new-game', "--dev-map=$Map", "--dev-elevation=$Elevation", "--dev-preferences-probe=$PreferencesProbe")
 } else {
@@ -333,6 +354,13 @@ try {
                     (Select-String -LiteralPath $fixtureLog -Pattern '^DIALOG_CURSOR_CHECK FAIL ' -Quiet)) { $dialogFixtureFailed = $true; break }
                 if ($snapshots.Count -ge $shots -and (Test-Path -LiteralPath $fixtureLog) -and
                     (Select-String -LiteralPath $fixtureLog -Pattern '^DIALOG_CURSOR_CHECK PASS ' -Quiet)) { break }
+            } elseif ($DialogLayoutCheck) {
+                $fixtureLog = Join-Path $OutputDirectory 'process.stdout.log'
+                if ((Test-Path -LiteralPath $fixtureLog) -and
+                    (Select-String -LiteralPath $fixtureLog -Pattern '^DIALOG_LAYOUT_CHECK FAIL ' -Quiet)) { $dialogFixtureFailed = $true; break }
+                if ($snapshots.Count -ge $shots -and (Test-Path -LiteralPath $fixtureLog) -and
+                    (Select-String -LiteralPath $fixtureLog -Pattern '^DIALOG_LAYOUT_CHECK PASS ' -Quiet) -and
+                    (Select-String -LiteralPath $fixtureLog -Pattern '^DIALOG_FIXTURE PASS ' -Quiet)) { break }
             } elseif ($DialogFixture) {
                 $fixtureLog = Join-Path $OutputDirectory 'process.stdout.log'
                 if ((Test-Path -LiteralPath $fixtureLog) -and
@@ -450,6 +478,16 @@ if ($UiFixture) {
         [int]$passLine.Groups[6].Value -le 0) {
         throw "UI fixture '$UiFixture' lacks a visible target-window font-101 record and coverage proof."
     }
+    if ($Font101PreviewScale -and $fixtureLog -notmatch ('(?m)^UI_FIXTURE PASS screen=character .* preview_scale=' + [regex]::Escape($Font101PreviewScale) + '(?: |$)')) {
+        throw "Character fixture did not confirm requested font-101 preview scale $Font101PreviewScale."
+    }
+    if ($Font101PreviewWeight -and $fixtureLog -notmatch ('(?m)^UI_FIXTURE PASS screen=character .* preview_weight=' + [regex]::Escape($Font101PreviewWeight) + '(?: |$)')) {
+        throw "Character fixture did not confirm requested font-101 preview weight $Font101PreviewWeight."
+    }
+    if ($SharpText -and ($UiFixture -in @('inventory', 'pipboy')) -and
+        $fixtureLog -notmatch '(?m)^UI_FIXTURE PASS screen=(inventory|pipboy) .*compact_size_role_runs=\d+ default_size_role_runs=0 run_scale=1\.22\.\.1\.22(?: |$)') {
+        throw "Sharp-on $UiFixture fixture did not prove 1.22 CompactUi role on every font-101 run."
+    }
     if ($SharpText -and ([int]$passLine.Groups[7].Value -le 0 -or [int]$passLine.Groups[8].Value -le 0)) {
         throw "Sharp-on UI fixture '$UiFixture' lacks visible overlay pixels from its target window."
     }
@@ -511,6 +549,12 @@ if ($DialogCursorCheck) {
         $cursorPass.Groups[5].Value $cursorPass.Groups[6].Value $cursorPass.Groups[7].Value
     if ($LASTEXITCODE -ne 0) { throw 'Dialog cursor pixel in the decoded PNG does not match the engine cursor palette color.' }
     Write-Output $cursorLog
+}
+if ($DialogLayoutCheck) {
+    $layoutLog = Get-Content -Raw -LiteralPath (Join-Path $OutputDirectory 'process.stdout.log')
+    if ($dialogFixtureFailed -or $layoutLog -notmatch '(?m)^DIALOG_LAYOUT_CHECK PASS geometry=non-overlapping buttons=7 text_rows=8') {
+        throw "Dialog layout geometry check failed or timed out within $TimeoutSeconds s.`n$layoutLog"
+    }
 }
 if ($snapshots.Count -lt $shots) { throw "No snapshot within $TimeoutSeconds s." }
 foreach ($snapshot in $snapshots) {

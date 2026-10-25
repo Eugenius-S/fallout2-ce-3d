@@ -22,6 +22,7 @@ TextWindowSnapshot gTestWindow = {};
 TextCursorSnapshot gTestCursor = {};
 
 int fakeLineHeight() { return 2; }
+int fakePreviewLineHeight() { return 9; }
 int fakeCharacterWidth(int) { return 1; }
 int fakeLetterSpacing() { return 0; }
 int fakeMonospacedWidth() { return 1; }
@@ -410,6 +411,7 @@ void testTransparentImageBlitMasksOnlyOpaqueShape()
 void testTransparentInteriorImageViewMasksTrackedText()
 {
     using namespace fallout;
+    scene::setFont101PreviewScale(1.0, -1);
     const std::size_t allocationSize = 640 * 8;
     std::vector<unsigned char> source(allocationSize, 0);
     std::vector<unsigned char> destination(16, 1);
@@ -448,11 +450,13 @@ void testTransparentInteriorImageViewMasksTrackedText()
 
     textCaptureAllocationDestroyed(source.data());
     textCaptureAllocationDestroyed(destination.data());
+    scene::setFont101PreviewScale(1.29, -1);
 }
 
 void testTransparentInteriorImageViewRejectsOutOfRangeFootprint()
 {
     using namespace fallout;
+    scene::setFont101PreviewScale(1.0, -1);
     const std::size_t registeredSize = 640 * 4;
     std::vector<unsigned char> source(registeredSize + 64, 0);
     std::vector<unsigned char> destination(16, 1);
@@ -483,6 +487,7 @@ void testTransparentInteriorImageViewRejectsOutOfRangeFootprint()
 
     textCaptureAllocationDestroyed(source.data());
     textCaptureAllocationDestroyed(destination.data());
+    scene::setFont101PreviewScale(1.29, -1);
 }
 
 void testAllocationEdgeBounds()
@@ -675,6 +680,128 @@ void testCursorOcclusionPreservesOwnedText()
     gTestCursor = {};
 }
 
+void testFont101SizePreviewExtendsCaptureOnly()
+{
+    using namespace fallout;
+    check(scene::font101PreviewScaleForWindow(12) == 1.29
+            && !scene::font101PreviewUsesBold(12),
+        "production font-101 defaults select 1.29 SemiBold");
+    std::vector<unsigned char> pixels(20 * 40, 0);
+    textCaptureRegisterExternalBuffer(pixels.data(), pixels.size(), 20, 40, 20, false);
+    textCaptureMarkWindowBuffer(pixels.data(), 12);
+    scene::TextBufferId generation = textCaptureBufferId(pixels.data());
+    gTestWindow = {};
+    gTestWindow.id = 12;
+    gTestWindow.width = 20;
+    gTestWindow.height = 40;
+    gTestWindow.pitch = 20;
+    gTestWindow.pixels = pixels.data();
+    gTestWindow.generation = generation;
+    gCurrentFont = 101;
+    fontGetLineHeight = fakePreviewLineHeight;
+    fontDrawTextPtr = fakeFontDraw;
+
+    check(scene::setFont101PreviewScale(1.0, 12), "font-101 preview default scale is available");
+    fontDrawText(pixels.data() + 2 * 20 + 2, "A", 1, 20, static_cast<ColorWithFlags>(7));
+    auto records = scene::textCaptureRecords(generation);
+    check(records.size() == 1 && records.front().bounds.height == 9,
+        "default font-101 capture keeps the original line bounds");
+
+    textCaptureUnregisterExternalBuffer(pixels.data());
+    pixels.assign(pixels.size(), 0);
+    textCaptureRegisterExternalBuffer(pixels.data(), pixels.size(), 20, 40, 20, false);
+    textCaptureMarkWindowBuffer(pixels.data(), 12);
+    generation = textCaptureBufferId(pixels.data());
+    gTestWindow.generation = generation;
+    scene::setFont101PreviewScale(1.15, 12);
+    fontDrawText(pixels.data() + 2 * 20 + 2, "B", 1, 20, static_cast<ColorWithFlags>(7));
+    records = scene::textCaptureRecords(generation);
+    scene::TextVisibilityMask mask;
+    check(records.size() == 1 && records.front().bounds.height == 11
+            && records.front().pixels.size() == 1
+            && scene::textCaptureVisibilityMask(records.front(), 20, 40, &mask)
+            && mask.bounds.height == 11,
+        "font-101 preview extends only captured coverage, not legacy pixels or visibility logic");
+
+    scene::setFont101PreviewScale(1.29, 12);
+    {
+        ScopedTextCaptureTag captureTag(TextCaptureTag::SpecialStatDescription);
+        fontDrawText(pixels.data() + 14 * 20 + 2, "C", 1, 20, static_cast<ColorWithFlags>(7));
+    }
+    const auto aligned = scene::textCaptureRecords(generation);
+    const auto alignedRun = std::find_if(aligned.begin(), aligned.end(), [](const scene::TextRecord& record) {
+        return record.run.text == "C";
+    });
+    check(alignedRun != aligned.end() && alignedRun->run.verticalAlignmentBoxY == 10
+            && alignedRun->run.verticalAlignmentBoxHeight == 17
+            && alignedRun->bounds.y == 10 && alignedRun->bounds.height == 17,
+        "SPECIAL label captures its measured 17-row box above and below the original draw line");
+    fontDrawText(pixels.data() + 28 * 20 + 2, "D", 1, 20, static_cast<ColorWithFlags>(7));
+    const auto afterScope = scene::textCaptureRecords(generation);
+    const auto plainRun = std::find_if(afterScope.begin(), afterScope.end(), [](const scene::TextRecord& record) {
+        return record.run.text == "D";
+    });
+    check(plainRun != afterScope.end() && plainRun->run.verticalAlignmentBoxHeight == 0
+            && plainRun->bounds.y == 28 && plainRun->run.sharpTextOffsetY == 0,
+        "SPECIAL box capture tag does not leak to the next run");
+
+    {
+        ScopedTextCaptureTag captureTag(TextCaptureTag::InterfacePlaqueOffset);
+        fontDrawText(pixels.data() + 28 * 20 + 4, "E", 1, 20, static_cast<ColorWithFlags>(7));
+    }
+    const auto shiftedRuns = scene::textCaptureRecords(generation);
+    const auto shiftedRun = std::find_if(shiftedRuns.begin(), shiftedRuns.end(), [](const scene::TextRecord& record) {
+        return record.run.text == "E";
+    });
+    check(shiftedRun != shiftedRuns.end() && shiftedRun->run.y == 28
+            && shiftedRun->run.sharpTextOffsetY == -2
+            && shiftedRun->bounds.y == 26 && shiftedRun->bounds.height == 12,
+        "interface plaque tag shifts only modern text and expands capture upward to include old and shifted coverage");
+    {
+        ScopedTextSizeRole sizeRole(scene::TextSizeRole::CompactUi);
+        ScopedTextCaptureTag captureTag(TextCaptureTag::InterfacePlaqueOffset);
+        fontDrawText(pixels.data() + 24 * 20 + 8, "G", 1, 20, static_cast<ColorWithFlags>(7));
+    }
+    const auto compactRuns = scene::textCaptureRecords(generation);
+    const auto compactRun = std::find_if(compactRuns.begin(), compactRuns.end(), [](const scene::TextRecord& record) {
+        return record.run.text == "G";
+    });
+    check(compactRun != compactRuns.end()
+            && compactRun->run.sizeRole == scene::TextSizeRole::CompactUi
+            && compactRun->run.sharpTextOffsetY == -2
+            && compactRun->bounds.y == 22 && compactRun->bounds.height == 11,
+        "compact UI size metadata combines with plaque offset and uses 1.22 capture coverage");
+    fontDrawText(pixels.data() + 24 * 20 + 10, "H", 1, 20, static_cast<ColorWithFlags>(7));
+    const auto afterCompactScope = scene::textCaptureRecords(generation);
+    const auto defaultSizeRun = std::find_if(afterCompactScope.begin(), afterCompactScope.end(), [](const scene::TextRecord& record) {
+        return record.run.text == "H";
+    });
+    check(defaultSizeRun != afterCompactScope.end()
+            && defaultSizeRun->run.sizeRole == scene::TextSizeRole::Default
+            && defaultSizeRun->run.sharpTextOffsetY == 0
+            && defaultSizeRun->bounds.height == 12,
+        "compact UI size scope restores 1.29 default metadata and capture coverage");
+    gCurrentFont = 102;
+    {
+        ScopedTextCaptureTag captureTag(TextCaptureTag::InterfacePlaqueOffset);
+        fontDrawText(pixels.data() + 28 * 20 + 6, "F", 1, 20, static_cast<ColorWithFlags>(7));
+    }
+    const auto otherFontRuns = scene::textCaptureRecords(generation);
+    const auto otherFontRun = std::find_if(otherFontRuns.begin(), otherFontRuns.end(), [](const scene::TextRecord& record) {
+        return record.run.text == "F";
+    });
+    check(otherFontRun != otherFontRuns.end() && otherFontRun->run.sharpTextOffsetY == 0
+            && otherFontRun->bounds.y == 28,
+        "interface plaque offset tag leaves non-font-101 pixel text unchanged");
+    gCurrentFont = 101;
+
+    scene::setFont101PreviewScale(1.29, -1);
+    fontGetLineHeight = fakeLineHeight;
+    textCaptureUnregisterExternalBuffer(pixels.data());
+    gTestWindow = {};
+    gCurrentFont = 101;
+}
+
 } // namespace
 
 int main()
@@ -697,6 +824,7 @@ int main()
     testUnknownBuffersKeepPixelBehavior();
     testVisibilityClearsHiddenAndStaleOwners();
     testCursorOcclusionPreservesOwnedText();
+    testFont101SizePreviewExtendsCaptureOnly();
     if (failures == 0) std::printf("text_capture_tests: all passed\n");
     return failures == 0 ? 0 : 1;
 }

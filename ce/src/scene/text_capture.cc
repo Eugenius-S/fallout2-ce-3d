@@ -103,6 +103,12 @@ TextCaptureTag& activeTextCaptureTag()
     return value;
 }
 
+scene::TextSizeRole& activeTextSizeRole()
+{
+    static thread_local scene::TextSizeRole value = scene::TextSizeRole::Default;
+    return value;
+}
+
 BufferRange* findRange(const void* pointer)
 {
     if (pointer == nullptr) return nullptr;
@@ -328,6 +334,18 @@ ScopedTextCaptureTag::~ScopedTextCaptureTag()
     activeTextCaptureTag() = previous_;
 }
 
+ScopedTextSizeRole::ScopedTextSizeRole(scene::TextSizeRole role, bool enabled)
+    : previous_(activeTextSizeRole())
+    , enabled_(enabled)
+{
+    if (enabled_) activeTextSizeRole() = role;
+}
+
+ScopedTextSizeRole::~ScopedTextSizeRole()
+{
+    if (enabled_) activeTextSizeRole() = previous_;
+}
+
 void textCaptureAllocationCreated(void* buffer, std::size_t size)
 {
     std::lock_guard<std::recursive_mutex> lock(captureMutex());
@@ -499,7 +517,27 @@ void textCaptureDrawText(unsigned char* buffer, const char* string, int length, 
         return;
     }
     const bool shadowed = (color & DRAW_TEXT_FLAG_SHADOWED) != 0;
-    scene::TextRect bounds { x, y, std::max(1, width + (shadowed ? 1 : 0)), std::max(1, lineHeight + (shadowed ? 1 : 0)) };
+    const int previewLineHeight = fontGetCurrent() == 101
+        ? scene::font101PreviewCoverageHeight(lineHeight, range->ownerWindow, activeTextSizeRole())
+        : lineHeight;
+    const int sharpTextOffsetY = fontGetCurrent() == 101
+            && activeTextCaptureTag() == TextCaptureTag::InterfacePlaqueOffset
+        ? -2
+        : 0;
+    const bool centeredStatDescription = fontGetCurrent() == 101
+        && activeTextCaptureTag() == TextCaptureTag::SpecialStatDescription;
+    const int verticalBoxY = centeredStatDescription ? y - 4 : y;
+    const int verticalBoxHeight = centeredStatDescription ? 17 : 0;
+    const int textHeight = std::max(1, std::max(lineHeight, previewLineHeight) + (shadowed ? 1 : 0));
+    const int legacyBottom = y + std::max(1, lineHeight) + (shadowed ? 1 : 0);
+    const int shiftedTop = y + sharpTextOffsetY;
+    const int shiftedBottom = shiftedTop + textHeight;
+    const int boundsY = centeredStatDescription ? verticalBoxY : std::min(y, shiftedTop);
+    const int boundsHeight = centeredStatDescription
+        ? verticalBoxHeight + (shadowed ? 1 : 0)
+        : std::max(1, std::max(legacyBottom, shiftedBottom) - boundsY);
+    scene::TextRect bounds { x, boundsY, std::max(1, width + (shadowed ? 1 : 0)),
+        std::max(1, boundsHeight) };
     const scene::TextRect clipped = clippedRect(bounds, *range);
     PixelSnapshot before = snapshot(*range, clipped);
 
@@ -512,6 +550,7 @@ void textCaptureDrawText(unsigned char* buffer, const char* string, int length, 
     scene::TextRunInfo run;
     run.text = std::move(acceptedText);
     run.font = fontGetCurrent();
+    run.sizeRole = run.font == 101 ? activeTextSizeRole() : scene::TextSizeRole::Default;
     run.colorAndFlags = static_cast<unsigned int>(color);
     run.sharpEligible = run.font == 101;
     const Color sourceColor = static_cast<Color>(static_cast<unsigned int>(color) & 0xFF);
@@ -525,6 +564,9 @@ void textCaptureDrawText(unsigned char* buffer, const char* string, int length, 
     run.width = width;
     run.cellWidth = cellWidth;
     run.lineHeight = lineHeight;
+    run.verticalAlignmentBoxY = centeredStatDescription ? verticalBoxY : 0;
+    run.verticalAlignmentBoxHeight = verticalBoxHeight;
+    run.sharpTextOffsetY = sharpTextOffsetY;
     run.characterX.reserve(characterOffsets.size());
     for (int offset : characterOffsets) run.characterX.push_back(x + offset);
     run.characterCellX.reserve(cellOffsets.size());
@@ -777,6 +819,7 @@ bool textCaptureVisibilityMask(const TextRecord& record, int width, int height, 
     if (mask == nullptr || width <= 0 || height <= 0) return false;
     mask->bounds = {};
     mask->pixels.clear();
+
     std::lock_guard<std::recursive_mutex> lock(captureMutex());
     BufferRange* recordRange = nullptr;
     for (auto& item : ranges()) {

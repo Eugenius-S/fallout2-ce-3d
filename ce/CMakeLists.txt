@@ -304,6 +304,8 @@ set(FALLOUT_PLATFORM_SOURCES
     "src/devtools/ui_fixture.cc"
     "src/scene/preview_policy.cc"
     "src/scene/preview_policy.h"
+    "src/scene/dialogue_layout.cc"
+    "src/scene/dialogue_layout.h"
     "src/scene/scene_lights.cc"
     "src/scene/text_layer.cc"
     "src/scene/text_capture.cc"
@@ -441,6 +443,7 @@ if(BUILD_TESTING)
     add_subdirectory(tests/clean_edges_boundary_mask)
     add_subdirectory(tests/sun)
     add_subdirectory(tests/text_layer)
+    add_subdirectory(tests/dialogue_layout)
 endif()
 
 target_sources(${EXECUTABLE_NAME} PUBLIC

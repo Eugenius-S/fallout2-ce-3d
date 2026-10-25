@@ -17,6 +17,8 @@ enum class TextCaptureTag {
     None,
     Conversation,
     HudMessageLog,
+    SpecialStatDescription,
+    InterfacePlaqueOffset,
 };
 
 class ScopedTextCaptureTag {
@@ -29,6 +31,19 @@ public:
 
 private:
     TextCaptureTag previous_;
+};
+
+class ScopedTextSizeRole {
+public:
+    explicit ScopedTextSizeRole(scene::TextSizeRole role, bool enabled = true);
+    ~ScopedTextSizeRole();
+
+    ScopedTextSizeRole(const ScopedTextSizeRole&) = delete;
+    ScopedTextSizeRole& operator=(const ScopedTextSizeRole&) = delete;
+
+private:
+    scene::TextSizeRole previous_;
+    bool enabled_;
 };
 
 struct TextWindowSnapshot {

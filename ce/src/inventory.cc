@@ -45,6 +45,7 @@
 #include "random.h"
 #include "reaction.h"
 #include "scripts.h"
+#include "scene/text_capture.h"
 #include "settings.h"
 #include "sfall_script_hooks.h"
 #include "skill.h"
@@ -2195,6 +2196,8 @@ static void _exit_inventory(bool shouldEnableIso)
 // 0x46FDF4 display_inventory
 static void _display_inventory(int stackOffset, int dragSlotIndex, int inventoryWindowType)
 {
+    ScopedTextSizeRole sizeRole(scene::TextSizeRole::CompactUi,
+        inventoryWindowType == INVENTORY_WINDOW_TYPE_NORMAL);
     unsigned char* windowBuffer = windowGetBuffer(gInventoryWindow);
     int pitch;
 
@@ -3461,6 +3464,7 @@ int objectGetCarriedQuantityByProtoId(Object* object, const ProtoId& protoId)
 // 0x471D5C display_stats
 static void inventoryRenderSummary()
 {
+    ScopedTextSizeRole sizeRole(scene::TextSizeRole::CompactUi);
     Stat summaryStats[7];
     memcpy(summaryStats, gSummaryStats, sizeof(summaryStats));
 
@@ -3755,11 +3759,13 @@ static void inventoryRenderSummary()
                 color = COLOR_RED;
             }
 
+            ScopedTextCaptureTag weightPlaqueOffset(TextCaptureTag::InterfacePlaqueOffset);
             fontDrawText(windowBuffer + offset + 15, formattedText, 120, pitch, color);
         } else {
             int inventoryWeight = objectGetInventoryWeight(_stack[0]);
             snprintf(formattedText, sizeof(formattedText), "%s %d", messageListItem.text, inventoryWeight);
 
+            ScopedTextCaptureTag weightPlaqueOffset(TextCaptureTag::InterfacePlaqueOffset);
             fontDrawText(windowBuffer + offset + 30, formattedText, 80, pitch, COLOR_GREEN);
         }
     }
@@ -4350,6 +4356,7 @@ end:
 // 0x472EB8
 static void inventoryExamineItem(Object* critter, Object* item)
 {
+    ScopedTextSizeRole sizeRole(scene::TextSizeRole::CompactUi);
     int oldFont = fontGetCurrent();
     fontSetCurrent(101);
 

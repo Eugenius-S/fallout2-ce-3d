@@ -281,7 +281,8 @@ bool renderSharpText(const std::vector<scene::TextRecord>& records,
         const scene::TextVisibilityMask& visibility = logicalVisibility[recordIndex];
         if (visibility.pixels.size() != static_cast<std::size_t>(visibility.bounds.width) * visibility.bounds.height
             || run.text.empty() || run.lineHeight <= 0 || run.width <= 0) continue;
-        const bool bold = run.font == 101 || run.font == 103 || run.font == 104;
+        const bool bold = run.font == 101 ? scene::font101PreviewUsesBold(record.ownerWindow)
+            : run.font == 103 || run.font == 104;
         stbtt_fontinfo* font = getFont(bold);
         if (font == nullptr) return false;
         const FontVerticalBounds& verticalBounds = getFontVerticalBounds(bold, font);
@@ -290,10 +291,16 @@ bool renderSharpText(const std::vector<scene::TextRecord>& records,
         if (fitHeight <= 0) continue;
         // Leave half a logical pixel for bitmap rounding at both line edges.
         const double fitLineHeight = std::max(1.0, static_cast<double>(run.lineHeight) - 0.5);
-        const double logicalScale = fitLineHeight / fitHeight;
+        const double sizePreview = run.font == 101
+            ? scene::font101PreviewScaleForRun(record.ownerWindow, run.sizeRole)
+            : 1.0;
+        const double logicalScale = (fitLineHeight / fitHeight) * sizePreview;
         const double fontScaleX = logicalScale * sx;
         const double fontScaleY = logicalScale * sy;
-        const int baseline = static_cast<int>(std::lround((run.y + verticalBounds.top * logicalScale) * sy));
+        const double baselinePosition = (run.y + run.sharpTextOffsetY + verticalBounds.top * logicalScale) * sy;
+        int baseline = static_cast<int>(sizePreview > 1.0
+                ? std::ceil(baselinePosition)
+                : std::lround(baselinePosition));
 
         std::vector<unsigned int> codepoints;
         std::vector<double> advances;
@@ -344,6 +351,24 @@ bool renderSharpText(const std::vector<scene::TextRecord>& records,
             if (glyph == nullptr) return false;
             positioned.push_back({ glyph, anchorX });
             if (!monospaced) cursorX += logicalAdvance * proportionalCondense;
+        }
+        if (run.verticalAlignmentBoxHeight > 0) {
+            int inkTop = std::numeric_limits<int>::max();
+            int inkBottom = std::numeric_limits<int>::min();
+            for (const PositionedGlyph& glyph : positioned) {
+                for (int row = 0; row < glyph.bitmap->height; ++row) {
+                    const auto begin = glyph.bitmap->pixels.begin()
+                        + static_cast<std::size_t>(row) * glyph.bitmap->width;
+                    if (std::none_of(begin, begin + glyph.bitmap->width, [](unsigned char alpha) { return alpha != 0; })) continue;
+                    inkTop = std::min(inkTop, glyph.bitmap->yoff + row);
+                    inkBottom = std::max(inkBottom, glyph.bitmap->yoff + row + 1);
+                }
+            }
+            if (inkTop < inkBottom) {
+                const double boxCenter = (run.verticalAlignmentBoxY
+                    + run.verticalAlignmentBoxHeight * 0.5) * sy;
+                baseline = static_cast<int>(std::lround(boxCenter - (inkTop + inkBottom) * 0.5));
+            }
         }
         const bool shadowed = (run.colorAndFlags & DRAW_TEXT_FLAG_SHADOWED) != 0;
         if (shadowed) {

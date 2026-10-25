@@ -1,6 +1,7 @@
 #include "text_layer.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdarg>
 #include <cstdint>
 #include <cstdio>
@@ -11,6 +12,13 @@
 namespace fallout {
 namespace scene {
 namespace {
+
+constexpr double kFont101SelectedScale = 1.29;
+constexpr bool kFont101SelectedBold = false;
+double gFont101PreviewScale = kFont101SelectedScale;
+int gFont101PreviewOwnerWindow = -1;
+bool gFont101PreviewBold = kFont101SelectedBold;
+int gFont101PreviewWeightOwnerWindow = -1;
 
 bool validPixels(TextPixels pixels)
 {
@@ -102,6 +110,51 @@ void traceRun(const char* stage, TextBufferId buffer, const TextRunInfo& run, co
 }
 
 } // namespace
+
+bool setFont101PreviewScale(double scale, int ownerWindow)
+{
+    if (scale != 1.0 && scale != 1.08 && scale != 1.15 && scale != 1.22 && scale != 1.29) return false;
+    gFont101PreviewScale = scale;
+    gFont101PreviewOwnerWindow = ownerWindow;
+    return true;
+}
+
+double font101PreviewScaleForWindow(int ownerWindow)
+{
+    if (gFont101PreviewOwnerWindow >= 0 && ownerWindow != gFont101PreviewOwnerWindow) return kFont101SelectedScale;
+    return gFont101PreviewScale;
+}
+
+double font101PreviewScaleForRun(int ownerWindow, TextSizeRole sizeRole)
+{
+    return sizeRole == TextSizeRole::CompactUi ? 1.22 : font101PreviewScaleForWindow(ownerWindow);
+}
+
+int font101PreviewCoverageHeight(int lineHeight, int ownerWindow)
+{
+    return font101PreviewCoverageHeight(lineHeight, ownerWindow, TextSizeRole::Default);
+}
+
+int font101PreviewCoverageHeight(int lineHeight, int ownerWindow, TextSizeRole sizeRole)
+{
+    if (lineHeight <= 0) return 0;
+    const double scale = font101PreviewScaleForRun(ownerWindow, sizeRole);
+    if (scale <= 1.0) return lineHeight;
+    return static_cast<int>(std::ceil((std::max(1.0, lineHeight - 0.5) * scale) + 0.5));
+}
+
+bool setFont101PreviewBold(bool bold, int ownerWindow)
+{
+    gFont101PreviewBold = bold;
+    gFont101PreviewWeightOwnerWindow = ownerWindow;
+    return true;
+}
+
+bool font101PreviewUsesBold(int ownerWindow)
+{
+    if (gFont101PreviewWeightOwnerWindow >= 0 && ownerWindow != gFont101PreviewWeightOwnerWindow) return kFont101SelectedBold;
+    return gFont101PreviewBold;
+}
 
 TextLayer::TextLayer(std::size_t recordLimit)
     : recordLimit_(std::max<std::size_t>(recordLimit, 1))
@@ -236,6 +289,10 @@ void TextLayer::copy(TextBufferId source, TextBufferId destination, bool destina
         clone.ownerOffsetY = destinationOwnerWindow >= 0 ? 0 : sourceRecord.ownerOffsetY + static_cast<int>(shiftY);
         clone.run.x = static_cast<int>(static_cast<std::int64_t>(clone.run.x) + shiftX);
         clone.run.y = static_cast<int>(static_cast<std::int64_t>(clone.run.y) + shiftY);
+        if (clone.run.verticalAlignmentBoxHeight > 0) {
+            clone.run.verticalAlignmentBoxY = static_cast<int>(
+                static_cast<std::int64_t>(clone.run.verticalAlignmentBoxY) + shiftY);
+        }
         for (int& characterX : clone.run.characterX) characterX = static_cast<int>(static_cast<std::int64_t>(characterX) + shiftX);
         for (int& characterCellX : clone.run.characterCellX) characterCellX = static_cast<int>(static_cast<std::int64_t>(characterCellX) + shiftX);
 
