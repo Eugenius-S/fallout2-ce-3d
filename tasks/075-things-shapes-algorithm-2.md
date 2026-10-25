@@ -2,8 +2,8 @@
 id: 075
 title: Things in 3D: a second, serious pass on the shapes algorithm
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: claude
 suggested: claude
 claude-only: no
 user-check: yes
