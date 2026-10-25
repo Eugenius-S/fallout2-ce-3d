@@ -136,7 +136,7 @@ int outlinedTextCount(const char* text, std::size_t* ownedPixelCount = nullptr)
 void runBarkFixtureFrame()
 {
     gBarkWaitFrames++;
-    if (gBarkWaitFrames > 1800) {
+    if (gBarkWaitFrames > 300) {
         fixtureFail("bark-lifecycle-timeout");
         return;
     }
@@ -160,11 +160,25 @@ void runBarkFixtureFrame()
         tileWindowRefreshRect(&refreshRect, gDude->elevation);
         gStage = UiFixtureStage::WaitingForBarkReplacement;
         gBarkWaitFrames = 0;
-        printf("UI_FIXTURE STEP screen=bark stage=replace old=long-ru new=short-ru\n");
+        int sceneOffsetX = 0;
+        int sceneOffsetY = 0;
+        tileSceneShift(gDude->tile, &sceneOffsetX, &sceneOffsetY);
+        printf("UI_FIXTURE STEP screen=bark stage=replace old=long-ru new=short-ru tile=%d scene_shift=%d,%d objects=%d baseline=%d\n",
+            gDude->tile, sceneOffsetX, sceneOffsetY, textObjectsGetCount(), gBarkBaselineCount);
         fflush(stdout);
         return;
     }
     if (gStage == UiFixtureStage::WaitingForBarkReplacement) {
+        if (gBarkWaitFrames == 60) {
+            int sceneOffsetX = 0;
+            int sceneOffsetY = 0;
+            tileSceneShift(gDude->tile, &sceneOffsetX, &sceneOffsetY);
+            printf("UI_FIXTURE DIAG screen=bark stage=replacement-wait frames=%d tile=%d scene_shift=%d,%d old_runs=%d new_runs=%d objects=%d baseline=%d\n",
+                gBarkWaitFrames, gDude->tile, sceneOffsetX, sceneOffsetY,
+                outlinedTextCount(gBarkFirstText), outlinedTextCount(gBarkReplacementText),
+                textObjectsGetCount(), gBarkBaselineCount);
+            fflush(stdout);
+        }
         if (outlinedTextCount(gBarkFirstText) != 0 || outlinedTextCount(gBarkReplacementText) == 0) return;
         std::size_t replacementOwnedPixels = 0;
         outlinedTextCount(gBarkReplacementText, &replacementOwnedPixels);

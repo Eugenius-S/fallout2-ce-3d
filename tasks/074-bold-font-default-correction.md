@@ -66,6 +66,6 @@ Next: rebuild, confirm the real bark appears and is removed by the engine, then 
 Check: second attempt also ended without snapshots at the isolated harness deadline; it is diagnostic only. Only the task's `fallout2-ce-test.exe` PID was stopped, after confirming its exact worktree executable path.
 
 ### 2026-10-25 gpt
-Done: the first bark frame is now visible and reports 707 owned text pixels. The replacement stage exposed a second refresh mismatch: scene rendering applies `tileSceneShift`, but add/removal refresh rectangles did not. Scene-module refresh bounds now accept the same shift used by rendering, and both returned add bounds and ticker removal bounds use it. Added a shifted-bounds unit assertion.
-Next: rebuild and repeat the bark lifecycle capture.
-Check: the latest attempt captured the first Russian bark and reached replacement, but timed out before the replacement record appeared. No replacement or cleared-frame result is accepted yet.
+Done: the first bark frame is visible and reports 707 owned text pixels. The first replacement attempt timed out. Added scene-module refresh bounds that accept the renderer's `tileSceneShift` for add and removal rectangles, plus a shifted-bounds unit assertion.
+Next: rebuild with a bounded diagnostic for actual scene shift, old/new copied-run counts, and object count; keep the fixture wait to 300 frames.
+Check: replacement has not passed yet. The prior attempt used the pre-shift build, so it does not establish whether the shift caused the timeout.
