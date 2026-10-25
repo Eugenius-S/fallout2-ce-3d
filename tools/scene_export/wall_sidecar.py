@@ -343,7 +343,8 @@ class _Corners:
     to)}: the stretch of the row it draws, as fractions from the row's a end
     (beyond 0 or 1: only the row's top is cut there); fills [(slab, lender row,
     s from, s to)]: blocks of the wall's own material; faces [(slab, outward,
-    s, row)]: an end face in the picture of the wall whose plane it lies in;
+    s, row, rows)]: an end face in the plane of `row`, in the most typical
+    columns of `rows`;
     caps [(slab, row, s from, s to)]: the top at the corner, one flat piece;
     moved [(slab, old end)]: the ends whose donor end strips no longer stand at
     the wall's end; cores [(slab, other, row)]: the corner square's solid
@@ -430,14 +431,27 @@ def _corner_fits(walls, hidden, toward_camera, width=None, px=(1.0, 1.0)):
         if abs(overrun) > CORNER_SLACK:
             corners.moved.append((slab, end))
         if other is not None:
-            # The other wall's row nearest the corner lends the end face.
+            # The rows of both walls near the corner lend the end face its
+            # material (_corner_face takes their most typical columns); not
+            # a corner piece, which runs into the corner square: its picture
+            # draws the corner seen at an angle, and in the face's plane its
+            # bricks come out skewed (task 076).
             middle = sum(slab.band()) / 2
+            b0, b1 = slab.band()
             other_s = lambda index: (walls[index][1 + other.axis], walls[index][3 + other.axis])
-            by_gap = sorted(other.rows, key=lambda index: gap(middle, *sorted(other_s(index))))
-            fits = [index for index in by_gap if gap(middle, *sorted(other_s(index))) <= 2 * CORNER_REACH
+            clear = lambda index: max(other_s(index)) <= b0 + CORNER_SLACK or min(other_s(index)) >= b1 - CORNER_SLACK
+            by_gap = sorted(other.rows, key=lambda index: (not clear(index), gap(middle, *sorted(other_s(index)))))
+            fits = [index for index in by_gap if clear(index) and gap(middle, *sorted(other_s(index))) <= 2 * CORNER_REACH
                     and wide(index, max(slab.thick * px[other.axis] / 2, 4))]
+            # It ends this wall, so its own material comes first: the rows of
+            # its line near the corner (past a gap too), off the corner square.
+            o0, o1 = other.band()
+            own = [index for line in slabs if line.axis == slab.axis and abs(line.plane - slab.plane) < 0.01
+                   for index in line.rows
+                   if (max(span(index)) <= o0 + CORNER_SLACK or min(span(index)) >= o1 - CORNER_SLACK)
+                   and gap(target, *span(index)) <= 2 * CORNER_REACH and wide(index, max(slab.thick * px[other.axis] / 2, 4))]
             face_row = fits[0] if fits else by_gap[0]
-            corners.faces.append((slab, out, target, face_row))
+            corners.faces.append((slab, out, target, face_row, (own, fits)))
             if min(slab.thick, other.thick) >= CORE_THICK:
                 corners.cores.append((slab, other, lender))
         # The cap stays within what is left of the slab: a short corner piece
@@ -480,13 +494,50 @@ def _corner_fill(batches, proj, sprites, pages, hpx, px, row, slab, s0, s1):
         _polygon(batches, proj, page, pages[page], corners, away)
 
 
-def _corner_face(batches, proj, sprites, pages, hpx, px, toward_camera, row, slab, out, s):
-    """The end face of `slab` at s, across its thickness, in the picture of the
-    wall `row` whose plane it lies in, so the two read as one face."""
-    page, x, y, w, h, top = _picture(sprites, row, hpx)
+FACE_OTHER = 60  # the other wall's material differs from this wall's (summed RGB of median columns)
+
+
+def _typical_columns(atlas, sprites, hpx, walls, pools, n):
+    """(row, first column) of the n picture columns whose brightness is
+    nearest the median column of the rows near a corner: the walls' plain
+    stretch, not a window frame or a light post. pools: (this wall's rows,
+    the other wall's); the other's count too unless its material differs
+    (a concrete wall against a brick house). None without the atlas."""
+    if atlas is None or not (pools[0] or pools[1]):
+        return None
+    shade = {}
+    for index in pools[0] + pools[1]:
+        page, x, y, w, h, top = _picture(sprites, walls[index], hpx)
+        block = atlas[page][int(y + top):int(y + h), x:x + w].astype(float)
+        shade[index] = (block[:, :, :3].sum(axis=2) * (block[:, :, 3] >= 128)).mean(axis=0)
+    median = lambda rows: sorted(v for index in rows for v in shade[index])[sum(len(shade[i]) for i in rows) // 2]
+    own, other = pools
+    pool = own + other if not own or not other or abs(median(own) - median(other)) <= FACE_OTHER else own
+    target = median(pool)
+    shades = [shade[index] for index in pool]
+    best = None
+    for index, columns in zip(pool, shades):
+        k = min(n, len(columns))
+        for j in range(len(columns) - k + 1):
+            miss = abs(sum(columns[j:j + k]) / k - target)
+            if best is None or miss < best[0] - 1e-9:
+                best = (miss, index, j)
+    return best[1], best[2]
+
+
+def _corner_face(batches, proj, sprites, pages, hpx, px, toward_camera, row, slab, out, s, walls=None, pool=((), ()),
+                 atlas=None):
+    """The end face of `slab` at s, across its thickness, in the plane of the
+    wall `row`, so the two read as one face: the most typical columns of the
+    walls near the corner (_typical_columns), as a picture's edge is often a
+    light post; without the atlas, the middle of `row`'s picture."""
     axis = 1 - slab.axis  # the face runs along the other wall
-    c0, c1 = _strip(row, axis, sum(slab.band()) / 2, px[axis], w, x, slab.thick)
-    z0, zc = row[5], row[9]
+    z0, zc = row[5], row[9]  # as high as the wall whose plane it lies in
+    found = _typical_columns(atlas, sprites, hpx, walls, (list(pool[0]), list(pool[1])), round(slab.thick * px[axis]))
+    page, x, y, w, h, top = _picture(sprites, walls[found[0]] if found is not None else row, hpx)
+    n = min(max(round(slab.thick * px[axis]), 1), w)
+    c0 = x + found[1] if found is not None else x + (w - n) / 2
+    c1 = c0 + n
     p = slab.point
     near, far = -CORNER_OVERLAP, slab.thick + CORNER_OVERLAP
     corners = [[*p(s, near), z0, c0, y + h], [*p(s, far), z0, c1, y + h],
@@ -704,9 +755,10 @@ def encode_wall_sidecar(scene, skip_props=frozenset(), skip_rests=frozenset(), m
     for slab, lender, s0, s1 in corners.fills:
         fly.object = owner(walls[lender][8])
         _corner_fill(fly, proj, sprites, pages, hpx, px, walls[lender], slab, s0, s1)
-    for slab, out, at, lender in corners.faces:
+    for slab, out, at, lender, pool in corners.faces:
         fly.object = owner(walls[lender][8])
-        _corner_face(fly, proj, sprites, pages, hpx, px, toward_camera, walls[lender], slab, out, at)
+        _corner_face(fly, proj, sprites, pages, hpx, px, toward_camera, walls[lender], slab, out, at, walls, pool,
+                     atlas)
     for slab, lender, s0, s1 in corners.caps:
         fly.object = owner(walls[lender][8])
         _corner_cap(fly, proj, sprites, pages, hpx, walls[lender], slab, s0, s1)

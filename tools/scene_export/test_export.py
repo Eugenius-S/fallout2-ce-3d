@@ -498,7 +498,7 @@ class WallSidecarTests(unittest.TestCase):
         self.assertAlmostEqual(corners.keep[0][1], 2.0 / 2.4)
         self.assertGreater(corners.keep[1][1], 1.0)  # only its top is cut, at the first one's near face
         self.assertEqual([(round(s0, 3), round(s1, 3)) for _, _, s0, s1 in corners.fills], [(1.5, 1.75)])
-        self.assertEqual([(round(at, 3), lender) for _, _, at, lender in corners.faces], [(3.0, 1)])
+        self.assertEqual([(round(at, 3), lender) for _, _, at, lender, _ in corners.faces], [(3.0, 1)])
         self.assertEqual(len(corners.caps), 2)
         self.assertEqual(len(corners.moved), 2)
         # What the game's camera draws is the same triangles as without the pass.

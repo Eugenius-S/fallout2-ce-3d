@@ -83,6 +83,16 @@ Done: the corners of plain buildings close for the free camera, by rule.
 - Before | after in `runs/076-walls-roofs-algorithm/corners-before-after.jpg`
   (rows: 12666, 13050 and 17104 lose the light stripe, the STOP corner
   turned, 24268 from behind, the klamall fence corner stays a mesh).
+- The owner's look at the STOP corner (2026-10-25): the end face stuck out
+  as a skewed jamb. It took the corner piece's picture, which draws the
+  corner seen at an angle; the next try took a grey concrete wall's,
+  which is another building's. An end face now takes the most typical
+  columns (brightness nearest the median column) of its own wall's rows
+  near the corner, past a gap in its line too, off the corner square; the
+  other wall's rows join only when their material is alike (median
+  brightness within FACE_OTHER). Its height stays that of the wall whose
+  plane it lies in. The STOP corner reads as brick to the edge, the black
+  building's corner as its dark wall.
 - Screen sampling (texels from what the game drew at a face's screen
   point) was tried and dropped: at 24268 the corner piece shows the other
   wall's face there, and bricks came out sheared.
