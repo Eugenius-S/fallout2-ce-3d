@@ -8,6 +8,7 @@
 
 #include "debug.h"
 #include "memory_defs.h"
+#include "scene/text_capture.h"
 
 namespace fallout {
 
@@ -74,7 +75,9 @@ char* internal_strdup(const char* string)
 // 0x4C5AD0 mem_malloc
 void* internal_malloc(size_t size)
 {
-    return gMallocProc(size);
+    void* ptr = gMallocProc(size);
+    textCaptureAllocationCreated(ptr, size);
+    return ptr;
 }
 
 // 0x4C5AD8 my_malloc
@@ -111,7 +114,9 @@ static void* memoryBlockMallocImpl(size_t size)
 // 0x4C5B50 mem_realloc
 void* internal_realloc(void* ptr, size_t size)
 {
-    return gReallocProc(ptr, size);
+    void* resized = gReallocProc(ptr, size);
+    textCaptureAllocationResized(ptr, resized, size);
+    return resized;
 }
 
 // 0x4C5B58 my_realloc
@@ -184,6 +189,7 @@ static bool memoryBlockGetAllocationSize(size_t dataSize, size_t* allocationSize
 // 0x4C5C24 mem_free
 void internal_free(void* ptr)
 {
+    textCaptureAllocationDestroyed(ptr);
     gFreeProc(ptr);
 }
 

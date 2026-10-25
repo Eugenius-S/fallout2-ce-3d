@@ -40,6 +40,7 @@
 #include "queue.h"
 #include "random.h"
 #include "scripts.h"
+#include "scene/text_capture.h"
 #include "settings.h"
 #include "skill.h"
 #include "stat.h"
@@ -838,6 +839,11 @@ bool gameDialogWindowActive()
     return _gdialog_state == GAME_DIALOG_ACTIVE;
 }
 
+int gameDialogGetReplyTextOffset()
+{
+    return dialogReplyTextOffset;
+}
+
 // gdialogEnter
 // 0x444D3C
 void gameDialogEnter(Object* speaker, int mode)
@@ -1211,6 +1217,7 @@ void gameDialogRenderSupplementaryMessage(const char* msg)
     int textOffset = 0;
 
     // NOTE: Uninline.
+    ScopedTextCaptureTag captureTag(TextCaptureTag::Conversation);
     text_to_rect_wrapped(windowBuffer,
         &_replyRect,
         msg,
@@ -2396,6 +2403,7 @@ void gameDialogOptionOnMouseExit(int index)
     _optionRect.right = 388;
 
     // NOTE: Uninline.
+    ScopedTextCaptureTag captureTag(TextCaptureTag::Conversation);
     text_to_rect_wrapped(windowGetBuffer(gameDialogOptionsWindow),
         &_optionRect,
         dialogOptionEntry->text,
@@ -2424,6 +2432,7 @@ void gameDialogRenderReply()
     _demo_copy_title(gameDialogReplyWindow);
 
     // NOTE: Uninline.
+    ScopedTextCaptureTag captureTag(TextCaptureTag::Conversation);
     text_to_rect_wrapped(windowGetBuffer(gameDialogReplyWindow),
         &_replyRect,
         dialogReplyText,
@@ -2567,6 +2576,7 @@ void _gdProcessUpdate()
             }
 
             // NOTE: Uninline.
+            ScopedTextCaptureTag captureTag(TextCaptureTag::Conversation);
             text_to_rect_wrapped(windowGetBuffer(gameDialogOptionsWindow),
                 &_optionRect,
                 dialogOptionEntry->text,

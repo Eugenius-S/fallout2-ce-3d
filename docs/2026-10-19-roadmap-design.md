@@ -16,8 +16,8 @@ easily on modern computers and big screens, and be friendlier to use.
 - Glow on lasers, plasma, signs, fire and the like.
 - Building shadows; sprites darken in shadow and brighten in light.
 - A sun that moves across the sky with game time; cloud shadows.
-- Sharp text at the window's real resolution in a modern font while the game
-  itself is scaled x2 or x3.
+- Small green NPC conversation replies and player answers at the window's real
+  resolution; other interface text stays pixel-rendered.
 - Clean map edges: cut straight, black background.
 - Camera zoom.
 - Every new setting in the options menu, each feature can be switched off.
@@ -66,7 +66,8 @@ docs translated; CI that builds the game.
    with its switch.
 4. Light: game light sources as lights, sprites lit and tinted; the sun by game
    time with building shadows, sprites darkened in shadow; glow; cloud shadows.
-5. Sharp interface text at window resolution.
+5. Sharp text for small green NPC conversation replies and player answers;
+   other interface text stays pixel-rendered.
 
 **M2** Landmark buildings in 3D. **M3** The whole game: all maps, combat,
 transitions, interiors. **M4** Install, onboarding, macOS. **M5** The later

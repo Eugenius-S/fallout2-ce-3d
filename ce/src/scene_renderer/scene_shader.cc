@@ -277,11 +277,14 @@ void main() {
             }
             // What shines by itself: the marked texels (252, 254) always, plus
             // whatever the lit picture shows bright (a fire, a slime pool
-            // under its own light); the glow blurs this buffer.
+            // under its own light); the glow blurs this buffer. The alpha
+            // carries which texels are the marked ones: the wide halo spreads
+            // only those, so daylight surfaces never feed it.
             float mark = texel.a * 255.0;
-            vec3 emission = mark > 251.5 && mark < 254.5 ? texel.rgb * outColor.a : vec3(0.0);
-            vec3 bright = outColor.rgb * smoothstep(0.85, 0.97, max(max(outColor.r, outColor.g), outColor.b));
-            outEmissive = vec4(max(emission, bright), 1.0);
+            bool marked = mark > 251.5 && mark < 254.5;
+            vec3 emission = marked ? texel.rgb * outColor.a : vec3(0.0);
+            vec3 bright = outColor.rgb * smoothstep(0.88, 0.98, max(max(outColor.r, outColor.g), outColor.b));
+            outEmissive = vec4(max(emission, bright), marked ? 1.0 : 0.0);
         }
     }
 }

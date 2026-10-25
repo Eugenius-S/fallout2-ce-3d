@@ -290,6 +290,7 @@ struct QolSettings {
 
 struct Scene3dSettings {
     bool enabled = true;
+    bool sharp_text = true;
     bool lights = true;
     bool sun = true;
     bool shadows = true;

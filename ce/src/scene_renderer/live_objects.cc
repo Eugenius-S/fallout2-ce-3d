@@ -32,6 +32,7 @@ namespace {
 // Frame textures are cached by (fid, frame, rotation, variant) across frames.
 constexpr size_t kMaxObjectTextures = 4096;
 constexpr float kFlatObjectHeight = 0.01f;
+constexpr int kHexRowStep = 200; // one hex row south, the plane in front of a card
 std::unordered_map<unsigned long long, unsigned int> gObjectTextures;
 std::vector<DepthVertex> gObjectVertices;
 unsigned int gObjectVbo = 0;
@@ -256,7 +257,16 @@ bool addStaticObject(const StaticObjectFrame& frame, std::string* error)
     } else {
         faceFlyCamera(corners);
     }
-    const double row = flat ? 0.0 : spriteRowPlane(cardProjection(), frame.tile, frame.stack);
+    // A sprite hung in the air, its art wholly above its anchor with no
+    // footprint on the ground (smoke over a burning barrel), draws in front
+    // of the scenery one row south of it: the classic game paints it after
+    // that row's things, so its puffs cover the barrel's rim instead of
+    // hiding behind the drum. Its card takes that next row's plane, one
+    // stack step nearer than the row's own things.
+    double row = flat ? 0.0 : spriteRowPlane(cardProjection(), frame.tile, frame.stack);
+    if (!flat && frame.artYOffset + frame.height <= -2) {
+        row = spriteRowPlane(cardProjection(), frame.tile + kHexRowStep, 1);
+    }
 
     const unsigned long long key = objectArtKey(frame.fid, frame.frame, frame.rotation, frame.variant);
     auto cached = gObjectTextures.find(key);
