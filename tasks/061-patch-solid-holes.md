@@ -44,3 +44,6 @@ things from turned views.
 - The eval score does not drop; the game's own view unchanged.
 
 ## Log
+
+### 2026-10-25 claude
+Folded into 074; close together with it.

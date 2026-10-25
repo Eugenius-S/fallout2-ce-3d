@@ -4,7 +4,7 @@ title: Solid shapes for chairs, crate heaps, the notice board, the car and cave 
 milestone: M1
 status: todo
 owner: none
-suggested: gpt
+suggested: claude
 claude-only: no
 user-check: yes
 depends-on: [037]
@@ -107,3 +107,6 @@ Free for any agent: claude is out of limits until the weekly reset. Parts 1 to
 the entries above. Work from a fresh branch off main; the eval's views come
 from the worktree's own export (`export.py ... --cache-root build/scene-cache`,
 then `eval.py shoot --only <frm>`, `eval.py sheets`, `eval.py score`).
+
+### 2026-10-25 claude
+Folded into 074; close together with it.
