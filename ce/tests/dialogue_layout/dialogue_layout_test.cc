@@ -55,6 +55,52 @@ int main()
     CHECK(dialogueOptionGroupGap(oneChoice, 112, true) == 0);
     CHECK(dialogueOptionGroupGap({}, 112, true) == 0);
 
+    // The production orchestration uses the same callback contract: the fake
+    // adapter returns legacy fit estimates and the exact draw end for a top.
+    const std::vector<int> sevenEstimateHeights = { 12, 12, 12, 12, 12, 12, 22 };
+    const std::vector<int> sevenDrawHeights = { 10, 10, 10, 10, 10, 10, 20 };
+    auto sevenEstimate = [&](std::size_t index, int top) { return top + sevenEstimateHeights[index]; };
+    auto sevenDraw = [&](std::size_t index, int top) { return top + sevenDrawHeights[index]; };
+    const DialogueLayout sevenOff = layoutDialogueOptions(7, 5, 112, false, sevenEstimate, sevenDraw);
+    const DialogueLayout sevenOn = layoutDialogueOptions(7, 5, 112, true, sevenEstimate, sevenDraw);
+    CHECK(sevenOff.groupGap == 0);
+    CHECK(sevenOn.groupGap == 2);
+    for (std::size_t index = 0; index < 7; index++) {
+        CHECK(sevenOff.options[index].accepted);
+        CHECK(sevenOff.options[index].top == 5 + static_cast<int>(index) * 12);
+        CHECK(sevenOn.options[index].accepted);
+        CHECK(sevenOn.options[index].top == 5 + static_cast<int>(index) * 14);
+    }
+
+    const DialogueLayout denseLayout = layoutDialogueOptions(7, 5, 112, true,
+        [](std::size_t index, int top) { return top + (index == 6 ? 32 : 12); },
+        [](std::size_t index, int top) { return top + (index == 6 ? 30 : 10); });
+    CHECK(denseLayout.groupGap == 0);
+    CHECK(denseLayout.options.back().top == 77);
+
+    int skippedDrawCalls = 0;
+    const DialogueLayout skippedLayout = layoutDialogueOptions(3, 5, 112, true,
+        [](std::size_t index, int top) { return index == 1 ? 200 : top + 12; },
+        [&](std::size_t, int top) { skippedDrawCalls++; return top + 10; });
+    CHECK(skippedLayout.options[0].accepted);
+    CHECK(!skippedLayout.options[1].accepted);
+    CHECK(skippedLayout.options[2].accepted);
+    CHECK(skippedLayout.options[2].top == 19);
+    CHECK(skippedDrawCalls == 2);
+
+    const DialogueLayout clippedWordLayout = layoutDialogueOptions(2, 5, 112, true,
+        [](std::size_t index, int top) { return top + (index == 0 ? 12 : 53); },
+        [](std::size_t index, int top) { return top + (index == 0 ? 10 : 94); });
+    CHECK(clippedWordLayout.groupGap == 1);
+    CHECK(clippedWordLayout.options[1].top == 18);
+
+    const DialogueLayout oneLayout = layoutDialogueOptions(1, 5, 112, true,
+        [](std::size_t, int top) { return top + 12; },
+        [](std::size_t, int top) { return top + 10; });
+    CHECK(oneLayout.options[0].accepted);
+    CHECK(oneLayout.options[0].top == 5);
+    CHECK(oneLayout.groupGap == 0);
+
     std::puts("dialogue_layout_tests: all passed");
     return 0;
 }

@@ -2550,30 +2550,23 @@ void _gdProcessUpdate()
         }
     }
 
-    const int optionRectTop = _optionRect.top;
     const int lineHeight = fontGetLineHeight();
-    Rect baselineRect = { _optionRect.left, _optionRect.top, _optionRect.right, _optionRect.bottom };
-    std::vector<scene::DialogueOptionLayoutProbe> optionLayout;
-    optionLayout.reserve(gameDialogOptionEntriesLength);
-    for (int index = 0; index < gameDialogOptionEntriesLength; index++) {
-        GameDialogOptionEntry* dialogOptionEntry = &(dialogOptionEntries[index]);
-        const int estimate = _text_num_lines(dialogOptionEntry->text, baselineRect.right - baselineRect.left) * lineHeight + baselineRect.top + 2;
-        if (estimate < baselineRect.bottom) {
-            Rect drawRect = baselineRect;
-            const int drawnBottom = gameDialogDrawText(nullptr, &drawRect, dialogOptionEntry->text,
+    const scene::DialogueLayout optionLayout = scene::layoutDialogueOptions(
+        gameDialogOptionEntriesLength,
+        _optionRect.top,
+        _optionRect.bottom,
+        settings.scene3d.sharp_text,
+        [lineHeight](std::size_t index, int top) {
+            GameDialogOptionEntry* dialogOptionEntry = &(dialogOptionEntries[index]);
+            return _text_num_lines(dialogOptionEntry->text, _optionRect.right - _optionRect.left) * lineHeight + top + 2;
+        },
+        [lineHeight](std::size_t index, int top) {
+            GameDialogOptionEntry* dialogOptionEntry = &(dialogOptionEntries[index]);
+            Rect drawRect = { _optionRect.left, top, _optionRect.right, _optionRect.bottom };
+            return gameDialogDrawText(nullptr, &drawRect, dialogOptionEntry->text,
                 nullptr, lineHeight, 393, COLOR_GREEN | DRAW_TEXT_FLAG_NO_BG, 0);
-            optionLayout.push_back({ true, estimate, drawnBottom });
-            baselineRect.top = drawnBottom + 2;
-        } else {
-            optionLayout.push_back({ false, estimate, baselineRect.top });
-        }
-    }
+        });
 
-    const int optionGap = scene::dialogueOptionGroupGap(optionLayout, _optionRect.bottom,
-        settings.scene3d.sharp_text);
-    _optionRect.top = optionRectTop;
-
-    int visibleOptionCount = 0;
     for (int index = 0; index < gameDialogOptionEntriesLength; index++) {
         GameDialogOptionEntry* dialogOptionEntry = &(dialogOptionEntries[index]);
         if (hasEmpathy) {
@@ -2593,13 +2586,10 @@ void _gdProcessUpdate()
             }
         }
 
-        const scene::DialogueOptionLayoutProbe& layout = optionLayout[index];
+        const scene::DialogueOptionPlacement& layout = optionLayout.options[index];
         if (layout.accepted) {
-            if (visibleOptionCount > 0) {
-                _optionRect.top += optionGap;
-            }
-
-            int y = _optionRect.top;
+            _optionRect.top = layout.top;
+            int y = layout.top;
             dialogOptionEntry->top = y;
 
             if (index == 0) {
@@ -2625,7 +2615,6 @@ void _gdProcessUpdate()
             } else {
                 debugPrint("\nError: Can't create button!");
             }
-            visibleOptionCount++;
         } else {
             // TODO: seems odd that we would suppress the error the first time
             if (!skippedOnce) {

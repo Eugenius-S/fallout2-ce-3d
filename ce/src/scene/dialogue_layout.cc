@@ -30,5 +30,40 @@ int dialogueOptionGroupGap(const std::vector<DialogueOptionLayoutProbe>& options
     return acceptedCount > 1 ? std::max(0, gap) : 0;
 }
 
+DialogueLayout layoutDialogueOptions(std::size_t optionCount, int top, int bottom,
+    bool enabled,
+    const std::function<int(std::size_t, int)>& estimateBottom,
+    const std::function<int(std::size_t, int)>& drawBottom)
+{
+    std::vector<DialogueOptionLayoutProbe> probes;
+    probes.reserve(optionCount);
+
+    int baselineTop = top;
+    for (std::size_t index = 0; index < optionCount; index++) {
+        const int estimatedBottom = estimateBottom(index, baselineTop);
+        const bool accepted = estimatedBottom < bottom;
+        const int drawnBottom = accepted ? drawBottom(index, baselineTop) : baselineTop;
+        probes.push_back({ accepted, estimatedBottom, drawnBottom, baselineTop });
+        if (accepted) {
+            baselineTop = drawnBottom + 2;
+        }
+    }
+
+    DialogueLayout layout;
+    layout.options.resize(optionCount);
+    layout.groupGap = dialogueOptionGroupGap(probes, bottom, enabled);
+
+    int visibleOptionCount = 0;
+    for (std::size_t index = 0; index < optionCount; index++) {
+        const DialogueOptionLayoutProbe& probe = probes[index];
+        if (!probe.accepted) continue;
+
+        layout.options[index] = { true, probe.top + visibleOptionCount * layout.groupGap };
+        visibleOptionCount++;
+    }
+
+    return layout;
+}
+
 } // namespace scene
 } // namespace fallout
