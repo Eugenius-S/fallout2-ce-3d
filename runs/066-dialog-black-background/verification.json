@@ -1,0 +1,40 @@
+[
+  {
+    "image": "dialogue-owner.jpg",
+    "resolution": "2310x1298",
+    "view": "vanilla-framebuffer",
+    "nonblack_bbox": [
+      514,
+      68,
+      1794,
+      1028
+    ],
+    "exe_sha256": "691c4a17bc94940c9e88ce883fd6035bdf9360bbfb941f08302636d7138de775",
+    "nonblack_pixels_outside_dialogue": 0
+  },
+  {
+    "image": "dialogue-1080.jpg",
+    "resolution": "1920x1080",
+    "view": "vanilla-framebuffer",
+    "nonblack_bbox": [
+      320,
+      60,
+      1600,
+      1020
+    ],
+    "exe_sha256": "691c4a17bc94940c9e88ce883fd6035bdf9360bbfb941f08302636d7138de775",
+    "nonblack_pixels_outside_dialogue": 0
+  },
+  {
+    "image": "street-after-goodbye.jpg",
+    "resolution": "1920x1080",
+    "view": "static-wall-plus-hero-preview",
+    "nonblack_bbox": [
+      0,
+      0,
+      1920,
+      1080
+    ],
+    "exe_sha256": "691c4a17bc94940c9e88ce883fd6035bdf9360bbfb941f08302636d7138de775"
+  }
+]
