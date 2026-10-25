@@ -191,6 +191,7 @@ int gPickProbeExitWaitFrames = 0;
 char gToolsCommit[32] = "-";
 
 bool gPanelOpen = false;
+bool gPanelSnapshotPending = false;
 std::vector<std::string> gMaps; // file names, e.g. "kladwtwn.map"
 std::vector<int> gFiltered;     // indices into gMaps
 char gFilter[17] = {};
@@ -719,7 +720,7 @@ bool parseOption(const char* arg)
         return true;
     }
     if (strcmp(arg, "--dev-panel-snapshot") == 0) {
-        gPanelOpen = gEnabled;
+        gPanelSnapshotPending = gEnabled;
         return true;
     }
     if (parsePreferencesProbeOption(arg)) {
@@ -1207,6 +1208,11 @@ void update()
     }
     if (startUiFixtureWhenReady(sceneStartupReady(), inBlockingGameState())) {
         gDialogFixtureRequested = true;
+    }
+    if (gPanelSnapshotPending && sceneStartupReady() && !inBlockingGameState()) {
+        rebuildMapList();
+        gPanelOpen = true;
+        gPanelSnapshotPending = false;
     }
     if (gPreferencesSnapshotPending && sceneStartupReady() && !inBlockingGameState()) {
         gPreferencesSnapshotPending = false;

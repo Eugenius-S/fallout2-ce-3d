@@ -79,7 +79,7 @@ const std::vector<Translation>& catalog()
         { "On", cp1251(u8"Вкл") },
         { "Off", cp1251(u8"Выкл") },
         { "DEV TOOLS  (Alt+D close)", cp1251(u8"ИНСТРУМЕНТЫ (Alt+D: закрыть)") },
-        { "map: %s e%d (want e%d)", cp1251(u8"карта: %s ур.%d (выбран %d)") },
+        { "map: %s e%d (want e%d)", cp1251(u8"карта: %s, %d>%d") },
         { "render: %s  light: off", cp1251(u8"рендер: %s  свет: выкл") },
         { "filter: %s_", cp1251(u8"поиск: %s_") },
         { "(no maps match)", cp1251(u8"(карты не найдены)") },

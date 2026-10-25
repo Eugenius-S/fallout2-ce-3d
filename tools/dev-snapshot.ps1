@@ -104,6 +104,14 @@ function Get-TestConfigValue([string]$Path, [string]$Section, [string]$Key) {
     }
     throw "Missing [$Section].$Key in $Path"
 }
+if ($DevPanel) {
+    if ($Preferences -or $PreferencesProbe -or $DialogFixture -or $UiFixture -or $Probe -or $Tour) {
+        throw '-DevPanel cannot be combined with other UI fixtures, Probe, or Tour.'
+    }
+    # Static 3D captures redraw the world without UI. Use the framebuffer so
+    # the developer panel is present in the saved picture.
+    $Classic = $true
+}
 $Root = Split-Path -Parent $PSScriptRoot
 $GameDir = Join-Path $Root 'game'
 if (-not (Test-Path -LiteralPath $GameDir)) {
@@ -624,8 +632,13 @@ foreach ($snapshot in $snapshots) {
         New-Item -ItemType Directory -Path $OutputDirectory -Force | Out-Null
         $metadata = Get-Content -Raw -LiteralPath $snapshot.FullName | ConvertFrom-Json
         Copy-Item -LiteralPath $snapshot.FullName -Destination $OutputDirectory
-        # The image lies next to its sidecar (the JSON keeps the bare name).
-        Copy-Item -LiteralPath (Join-Path $snapshot.Directory $metadata.image) -Destination $OutputDirectory
+        # Scene captures live beside the sidecar; vanilla framebuffer PNGs
+        # use shots/game even though their sidecars are under shots/dev.
+        $imagePath = Join-Path $snapshot.Directory $metadata.image
+        if (-not (Test-Path -LiteralPath $imagePath -PathType Leaf)) {
+            $imagePath = Join-Path (Join-Path $GameDir 'shots\game') $metadata.image
+        }
+        Copy-Item -LiteralPath $imagePath -Destination $OutputDirectory
     }
     Write-Output ("SNAPSHOT: " + $snapshot.FullName)
     Get-Content $snapshot.FullName
