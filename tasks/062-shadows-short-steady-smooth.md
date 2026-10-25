@@ -168,3 +168,29 @@ Check: build Release, ctest 14/14; the shadows-off regression keeps the
 shadows), 22:00 mask 0 (night unchanged). Shots: debug-17-fix-mode{2,3},
 fix-sunset-17{,-off}, fix-night-22{,-off} under this runs folder.
 Next: the owner's eye.
+
+### 2026-10-25 glm
+Done: round 4, the owner's verdict on round 3 ("absolutely the same, stairs
+on the shadows, the fade does not work on them at all").
+- Read from HIS screenshots (the files sit in the chat cache; this agent
+  reads them as data, pixel by pixel): the default 8:00 view is dominated
+  by shaded WALL FACES, and the debug modes on the same view showed why
+  they can never fade: a wall's own surface writes the depth map, so the
+  ray distance past a blocker is not measurable on it; the whole shaded
+  face rendered as one flat full-density mass (93% of the deep shadow at
+  fade = 1) with the quad-row edges reading as stairs. The prism of round
+  3 made it flatter still (the curtains put the blocker at the ground
+  everywhere).
+- The prism is reverted; the walls (light mode 2) no longer take the sun
+  shadow at all: they keep the engine's painted shading, and the flat
+  dark masses are gone from the 3D view. The rim fade stays where it can
+  be measured and seen: the ground (mode 1) and the sprite cards (mode
+  3). Wall shadows need a surface-distance design (fade along the face
+  from the shade line) before they can come back; that is future work,
+  not this task.
+Check: build Release, ctest 14/14; the shadows-off regression keeps the
+13 drifted counts; pairs under this runs folder: spawn8fix{,-off} (the
+owner's default view: bright-base ground bands with a median 48-gray
+drop), corrals17fix{,-off}.
+Next: the owner's eye on the relaunched game: what is left of the sun
+shadow is ground and card rims that fade; walls are painted-shaded only.

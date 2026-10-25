@@ -504,43 +504,13 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
             }
             if (!casts) continue;
             std::vector<float>& page = casterPages[batch.page];
-            // The prism to the floor (062): the art's quads sit above the
-            // ground (about 0.37 GL units up), so at a low sun the contact
-            // zone stayed lit and the shadow floated off its object. The
-            // prism keeps the triangle's UVs, so the art's transparent holes
-            // still cut through the sides.
-            float top[3][5];
-            float floorLevel[3][5];
             for (int corner = 0; corner < 3; corner++) {
                 const DepthVertex& vertex = batch.vertices[index + corner].vertex;
-                top[corner][0] = vertex.x;
-                top[corner][1] = vertex.y;
-                top[corner][2] = vertex.z;
-                top[corner][3] = vertex.u;
-                top[corner][4] = vertex.v;
-                floorLevel[corner][0] = vertex.x;
-                floorLevel[corner][1] = 0.0f;
-                floorLevel[corner][2] = vertex.z;
-                floorLevel[corner][3] = vertex.u;
-                floorLevel[corner][4] = vertex.v;
-            }
-            const int faces[8][3] = {
-                { 0, 1, 2 }, // the triangle itself
-                { 0, 2, 1 }, // its footprint on the floor
-                { 0, 1, 4 }, { 0, 4, 3 }, // side curtains per edge
-                { 1, 2, 5 }, { 1, 5, 4 },
-                { 2, 0, 3 }, { 2, 3, 5 },
-            };
-            for (const auto& face : faces) {
-                for (int corner = 0; corner < 3; corner++) {
-                    const int which = face[corner];
-                    const float* source = which < 3 ? top[which] : floorLevel[which - 3];
-                    page.push_back(source[0]);
-                    page.push_back(source[1]);
-                    page.push_back(source[2]);
-                    page.push_back(source[3]);
-                    page.push_back(source[4]);
-                }
+                page.push_back(vertex.x);
+                page.push_back(vertex.y);
+                page.push_back(vertex.z);
+                page.push_back(vertex.u);
+                page.push_back(vertex.v);
             }
         }
     }
