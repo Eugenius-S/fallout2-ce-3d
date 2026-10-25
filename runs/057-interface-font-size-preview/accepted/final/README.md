@@ -6,7 +6,7 @@ Captured on 2026-10-25 from source `a9674c33`, EXE SHA-256 `8c5b57d5754e491c4150
 | --- | --- | ---: | ---: | --- | --- |
 | `character-off/` | Russian | 1920x1440 | 3 | Off | Character plaque control |
 | `character-on/` | Russian | 1920x1440 | 3 | On | 91 runs, 761 glyphs, eight SPECIAL box runs |
-| `inventory-off/` | Russian | 1920x1440 | 3 | Off | Pixel-identical to task 056 reference |
+| `inventory-off/` | Russian | 1920x1440 | 3 | Off | Inventory window exact; 432 lower HUD pixels differ from the latest task 056 frame |
 | `inventory-on/` | Russian | 1920x1440 | 3 | On | 36 runs, 218 glyphs |
 | `dialogue-off/` | Russian | 1920x1440 | 3 | Off | Pixel-identical to task 056 reference |
 | `dialogue-on/` | Russian | 1920x1440 | 3 | On | 13 runs, 422 glyphs |
@@ -15,10 +15,10 @@ Captured on 2026-10-25 from source `a9674c33`, EXE SHA-256 `8c5b57d5754e491c4150
 | `barter-en-x2-on/` | English | 1280x960 | 2 | On | Two white `$0` totals |
 | `character-en-x2-boxed-label/` | English | 1280x960 | 2 | On | Eight SPECIAL box runs |
 
-The Russian OFF character capture is also pixel-identical to the task 056 reference. Comparisons decode both images as RGBA and report exact equality:
+The dialogue and character OFF screenshots match the latest accepted task 056 frames exactly by RGBA byte comparison. The inventory screenshot has 432 differing pixels in a 60x9 physical-pixel rectangle at `(1218,1131)..(1277,1139)`, corresponding to logical `(406,377)..(425,379)` below the inventory window in the lower HUD. Its alpha channel is unchanged, all pixels outside this rectangle are identical, and no changed pixel uses the green font color. Both inventory fixture logs report 34 green font-101 runs and zero runs in other colors. A repeated capture from source `a9674c33` is byte-identical to this one. The current inventory image also matches the earlier task 056 `0e203738` image exactly; the same 432-pixel lower-HUD rectangle is the only difference between the two accepted task 056 inventory OFF images.
 
-- Inventory: `runs/057-interface-font-size-preview/accepted/final/inventory-off/scr00103.png` and `runs/056-interface-text-colors/runtime/ru-x3-inventory-off-b99d12c3/scr00087.png`.
-- Dialogue: `runs/057-interface-font-size-preview/accepted/final/dialogue-off/scr00105.png` and `runs/056-interface-text-colors/runtime/ru-x3-dialog-off-b99d12c3/scr00088.png`.
-- Character: `runs/057-interface-font-size-preview/accepted/final/character-off/scr00101.png` and `runs/056-interface-text-colors/runtime/ru-x3-character-off-b99d12c3/scr00089.png`.
+- Inventory: `runs/057-interface-font-size-preview/accepted/final/inventory-off/scr00103.png` vs `runs/056-interface-text-colors/accepted-b99d12c3-20261024/ru-x3-inventory-off/scr00087.png`; earlier exact frame: `runs/056-interface-text-colors/accepted-20261024/ru-x3-inventory-off/scr00079.png`.
+- Dialogue: `runs/057-interface-font-size-preview/accepted/final/dialogue-off/scr00105.png` vs `runs/056-interface-text-colors/accepted-b99d12c3-20261024/ru-x3-dialog-off/scr00088.png`.
+- Character: `runs/057-interface-font-size-preview/accepted/final/character-off/scr00101.png` vs `runs/056-interface-text-colors/accepted-b99d12c3-20261024/ru-x3-character-off/scr00089.png`.
 
-All Russian x3 character fixture logs report font-101 line height `10..10` logical pixels. The corrected character plaque captures use the scoped two-pixel modern overlay lift; SharpText OFF remains pixel-identical to the task 056 baseline.
+All Russian x3 character fixture logs report font-101 line height `10..10` logical pixels. The corrected character plaque captures use the scoped two-pixel modern overlay lift. Dialogue and character OFF frames are pixel-identical to their latest task 056 references; the inventory window is unchanged and the documented lower HUD exception lies outside its text.
