@@ -43,6 +43,7 @@ param(
     [string]$Tour,
     [switch]$Classic,
     [switch]$Preferences,
+    [switch]$DevPanel,
     [ValidateSet('Top', 'Bottom')]
     [string]$PreferencesPosition = 'Top',
     [switch]$NoPreview,
@@ -102,6 +103,14 @@ function Get-TestConfigValue([string]$Path, [string]$Section, [string]$Key) {
         elseif ($currentSection -eq $Section -and $line -match $keyPattern) { return $Matches[1] }
     }
     throw "Missing [$Section].$Key in $Path"
+}
+if ($DevPanel) {
+    if ($Preferences -or $PreferencesProbe -or $DialogFixture -or $UiFixture -or $Probe -or $Tour) {
+        throw '-DevPanel cannot be combined with other UI fixtures, Probe, or Tour.'
+    }
+    # Static 3D captures redraw the world without UI. Use the framebuffer so
+    # the developer panel is present in the saved picture.
+    $Classic = $true
 }
 $Root = Split-Path -Parent $PSScriptRoot
 $GameDir = Join-Path $Root 'game'
@@ -235,6 +244,7 @@ if ($Font101PreviewScale) { $arguments += "--dev-font101-size-preview=$Font101Pr
 if ($Font101PreviewWeight) { $arguments += "--dev-font101-weight-preview=$Font101PreviewWeight" }
 if ($UiFixture -eq 'log') { $arguments += '--dev-classic' }
 if ($DialogFixture) { $arguments += '--dev-dialog-fixture' }
+if ($DevPanel) { $arguments += '--dev-panel-snapshot' }
 if ($DialogPageInspect) { $arguments += '--dev-dialog-page-inspect' }
 if ($DialogCursorCheck) { $arguments += '--dev-dialog-cursor-check' }
 if ($DialogLayoutCheck) { $arguments += '--dev-dialog-layout-check' }
@@ -622,8 +632,13 @@ foreach ($snapshot in $snapshots) {
         New-Item -ItemType Directory -Path $OutputDirectory -Force | Out-Null
         $metadata = Get-Content -Raw -LiteralPath $snapshot.FullName | ConvertFrom-Json
         Copy-Item -LiteralPath $snapshot.FullName -Destination $OutputDirectory
-        # The image lies next to its sidecar (the JSON keeps the bare name).
-        Copy-Item -LiteralPath (Join-Path $snapshot.Directory $metadata.image) -Destination $OutputDirectory
+        # Scene captures live beside the sidecar; vanilla framebuffer PNGs
+        # use shots/game even though their sidecars are under shots/dev.
+        $imagePath = Join-Path $snapshot.Directory $metadata.image
+        if (-not (Test-Path -LiteralPath $imagePath -PathType Leaf)) {
+            $imagePath = Join-Path (Join-Path $GameDir 'shots\game') $metadata.image
+        }
+        Copy-Item -LiteralPath $imagePath -Destination $OutputDirectory
     }
     Write-Output ("SNAPSHOT: " + $snapshot.FullName)
     Get-Content $snapshot.FullName

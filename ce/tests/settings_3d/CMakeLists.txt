@@ -34,6 +34,7 @@ endif()
 add_executable(settings_3d_tests
     ../../src/settings.cc
     ../../src/scene/scene_settings.cc
+    ../../src/scene/menu_text.cc
     settings_3d_test.cc
 )
 target_include_directories(settings_3d_tests PRIVATE

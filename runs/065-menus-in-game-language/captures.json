@@ -1,0 +1,34 @@
+[
+  {
+    "kind": "options",
+    "language": "russian",
+    "raw_resolution": "1920x2160",
+    "image": "options-russian.jpg",
+    "raw_png": "scr00212.png",
+    "exe_sha256": "e75147e684bb62469d8389a402a5514fd9b7a3fd553251500a0eb899cb4040a2"
+  },
+  {
+    "kind": "options",
+    "language": "english",
+    "raw_resolution": "1920x2160",
+    "image": "options-english.jpg",
+    "raw_png": "scr00213.png",
+    "exe_sha256": "e75147e684bb62469d8389a402a5514fd9b7a3fd553251500a0eb899cb4040a2"
+  },
+  {
+    "kind": "devpanel",
+    "language": "russian",
+    "raw_resolution": "1920x1080",
+    "image": "devpanel-russian.jpg",
+    "raw_png": "scr00216.png",
+    "exe_sha256": "b16c4a08a8a72f4f07e790247f0210be41cd548d5ee7a04231a7c557b56ab191"
+  },
+  {
+    "kind": "devpanel",
+    "language": "english",
+    "raw_resolution": "1920x1080",
+    "image": "devpanel-english.jpg",
+    "raw_png": "scr00217.png",
+    "exe_sha256": "b16c4a08a8a72f4f07e790247f0210be41cd548d5ee7a04231a7c557b56ab191"
+  }
+]
