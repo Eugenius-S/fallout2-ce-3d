@@ -491,15 +491,18 @@ class WallSidecarTests(unittest.TestCase):
         from unittest import mock
         import wall_sidecar
         # An L: the wall along u runs 0.4 past the far face of the one along v
-        # (u 3.0), which stops 0.25 short of the near face of the first (v 1.75).
+        # (u 3.0), which stops 0.5 short of the first's front (v 2.0). Both
+        # fronts face out of the corner: each runs to the other's front, the
+        # backs and tops stop at the other's back; nothing ends in between.
         along_u = [0, 1.0, 2.0, 3.4, 2.0, 0.0, 2.0, 0, 1, 1.8, 0.25, -1]
         along_v = [1, 3.0, 0.0, 3.0, 1.5, 0.0, 2.0, 0, 1, 1.8, 0.25, -1]
         corners = wall_sidecar._corner_fits([along_u, along_v], set(), (0.49, 0.74, 0.46))
-        self.assertAlmostEqual(corners.keep[0][1], 2.0 / 2.4)
-        self.assertGreater(corners.keep[1][1], 1.0)  # only its top is cut, at the first one's near face
-        self.assertEqual([(round(s0, 3), round(s1, 3)) for _, _, s0, s1 in corners.fills], [(1.5, 1.75)])
-        self.assertEqual([(round(at, 3), lender) for _, _, at, lender in corners.faces], [(3.0, 1)])
-        self.assertEqual(len(corners.caps), 2)
+        self.assertAlmostEqual(corners.keep[0][1], 2.0 / 2.4)  # the front to u 3.0
+        self.assertAlmostEqual(corners.back_keep[0][1], 1.75 / 2.4)  # the back and top to u 2.75
+        self.assertAlmostEqual(corners.top_keep[0][1], 1.75 / 2.4)
+        self.assertEqual([(round(s0, 3), round(s1, 3), back) for _, _, s0, s1, back in corners.fills],
+                         [(1.5, 2.0, False), (1.5, 1.75, True)])
+        self.assertEqual(len(corners.caps), 3)  # each end's, and the square's
         self.assertEqual(len(corners.moved), 2)
         # What the game's camera draws is the same triangles as without the pass.
         scene = self.sample_scene()
@@ -513,6 +516,41 @@ class WallSidecarTests(unittest.TestCase):
         self.assertEqual(game(closed), game(plain))
         fly = lambda data: sum(batch["triangles"] for batch in data["batches"] if batch["fly_only"])
         self.assertGreater(fly(closed), fly(plain))
+
+    def test_a_corner_block_takes_a_wide_picture_not_the_end_strip(self):
+        import wall_sidecar
+        # The wall along v ends in a 2-column strip short of the corner: the
+        # faces that fill the shortfall take the 16-column row behind it, not
+        # the strip stretched into stripes.
+        along_u = [0, 1.0, 2.0, 3.4, 2.0, 0.0, 2.0, 0, 1, 1.8, 0.25, -1]
+        along_v = [1, 3.0, 0.0, 3.0, 1.45, 0.0, 2.0, 0, 1, 1.8, 0.25, -1]
+        strip = [2, 3.0, 1.45, 3.0, 1.5, 0.0, 2.0, 0, 1, 1.8, 0.25, -1]
+        walls = [along_u, along_v, strip]
+        width = lambda index: (16, 16, 2)[index]
+        corners = wall_sidecar._corner_fits(walls, set(), (0.49, 0.74, 0.46), width, (48.0, 32.0))
+        self.assertEqual([pool for _, pool, _, _, _ in corners.fills], [[1], [1]])
+
+    def test_a_corner_core_stands_in_solid_walls_only(self):
+        import numpy as np
+        # The L of the test above gets an opaque core inside the corner for
+        # the free camera; a clear mesh (half its texels clear) gets none.
+        scene = self.sample_scene()
+        scene["walls"] = [[0, 1.0, 2.0, 3.4, 2.0, 0.0, 2.0, 0, 1, 1.8, 0.25, -1],
+                          [1, 3.0, 0.0, 3.0, 1.5, 0.0, 2.0, 0, 1, 1.8, 0.25, -1]]
+        solid = np.full((100, 100, 4), 255, np.uint8)
+        mesh = solid.copy()
+        mesh[::2, :, 3] = 0
+        fly = lambda atlas: sum(batch["triangles"] for batch in decode_wall_sidecar(
+            encode_wall_sidecar(scene, atlas=None if atlas is None else [atlas]))["batches"] if batch["fly_only"])
+        self.assertGreater(fly(solid), fly(mesh))
+        self.assertEqual(fly(None), fly(solid))  # without the atlas every wall counts as solid
+        # A lower wall gets no fin: the core's arm in it stays below its top.
+        scene["walls"][1][6], scene["walls"][1][9] = 0.9, 0.8
+        vertices = lambda atlas: {tuple(round(n, 4) for n in v[:3]) for batch in decode_wall_sidecar(
+            encode_wall_sidecar(scene, atlas=[atlas]))["batches"] if batch["fly_only"] for v in batch["vertices"]}
+        arm = [z for x, z, y in vertices(solid) - vertices(mesh) if y + 50.0 < 1.7]
+        self.assertTrue(arm)
+        self.assertLessEqual(max(arm), 0.8)
 
     def test_first_person_surfaces_are_for_the_fly_camera_only(self):
         # Backs and trims go into fly-only batches: what the game's camera
