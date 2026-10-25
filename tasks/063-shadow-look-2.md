@@ -2,13 +2,13 @@
 id: 063
 title: Sun shadow look round 2
 milestone: M1
-status: doing
+status: done
 owner: glm
 suggested: glm
 claude-only: no
 user-check: yes
 depends-on: [045, 046]
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -219,3 +219,16 @@ frame). The snapshot blind spot is an inbox line.
 Next: the owner's eye on the relaunched game. Knobs, one line each: the
 rim end (3), the rim start (0.75), the ring floor (2 texels), the softness
 default (3).
+
+### 2026-10-25 claude
+Review: merged main in (the options panel groups, the snapshot switches and
+scene_draw's includes as unions), renumbered from 057 (the font task holds
+it), built Release, ctest 14/14, the exporter suite green. Merged as done;
+the owner's next round (the shadow ends a few meters past its caster, holds
+still, no layers, nothing at night) is task 065.
+The devshot "shadow blind spot" was a wrong A/B: a background run sets
+[3d] shadows from `--dev-shadows` and ignores the config's value
+(devtools.cc, applyFixedScreenOptions). `tools/dev-snapshot.ps1 -Shadows
+-Hour 17` renders them: the same view at 17:00 with and without the switch
+differs in 389 thousand pixels (19% of the frame), the building's band, the
+fence lattice and the pen's patches all there.
