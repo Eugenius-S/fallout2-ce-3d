@@ -104,6 +104,11 @@ void ensureResources()
         glBindTexture(kTexture2D, gShadowMapTexture);
         glTexImage2D(kTexture2D, 0, kDepthComponent24, kShadowMapSize, kShadowMapSize, 0,
             kDepthComponent, kUnsignedInt, nullptr);
+        // NEAREST, deliberately: bilinear depth mixes the caster's silhouette
+        // with the empty far depth, so the contact line reads a phantom far
+        // blocker and the shadow fades from its own middle instead of its
+        // object (the owner's round 2), and the interpolation breaks into
+        // contour layers inside. The disk of taps does the smoothing.
         glTexParameteri(kTexture2D, kTextureMinFilter, kNearest);
         glTexParameteri(kTexture2D, kTextureMagFilter, kNearest);
         glTexParameteri(kTexture2D, kTextureWrapS, kClampToEdge);
@@ -206,8 +211,13 @@ bool bindStaticShadows(const float* sceneMvp)
     glUniform1f(gSceneShadowStepLocation, ring);
     glUniform1f(gSceneShadowBiasLocation, static_cast<float>(ring * 1.5 / (far - near)));
     // The map's depth span in GL units: the shader fades the shadow with the
-    // distance the sun's ray travels past its caster.
+    // distance the sun's ray travels past its caster. uShadowGround scales
+    // that ray distance to the ground distance, so the rim's hexes hold at
+    // every sun height (062).
     glUniform1f(gSceneShadowRangeLocation, static_cast<float>(far - near));
+    const float groundScale = static_cast<float>(
+        std::sqrt(std::max(1.0 - static_cast<double>(sun.direction[1]) * sun.direction[1], 0.0)));
+    glUniform1f(gSceneShadowGroundLocation, groundScale);
     glActiveTexture(kTexture0 + 5);
     glBindTexture(kTexture2D, gShadowMapTexture);
     glUniform1i(gSceneShadowMapLocation, 5);
