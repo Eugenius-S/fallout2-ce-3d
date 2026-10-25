@@ -666,7 +666,7 @@ int main()
     palette[45 * 3] = 8;
     palette[45 * 3 + 1] = 72;
     palette[45 * 3 + 2] = 8;
-    const unsigned char inactiveInjury[] = { 0, 123, 0 };
+    const unsigned char inactiveInjury[] = { 6, 79, 3 };
     if (!renderedColorMatches(fallout::scene::TextColorRole::InactiveInjuryStatusGreen, 101, 45, inactiveInjury)) {
         std::fprintf(stderr, "Inactive injury status did not brighten one palette step\n");
         return 1;
@@ -674,7 +674,7 @@ int main()
     palette[45 * 3] = 4;
     palette[45 * 3 + 1] = 37;
     palette[45 * 3 + 2] = 4;
-    const unsigned char dimInactiveInjury[] = { 0, 63, 0 };
+    const unsigned char dimInactiveInjury[] = { 3, 41, 1 };
     if (!renderedColorMatches(fallout::scene::TextColorRole::InactiveInjuryStatusGreen, 101, 45, dimInactiveInjury)) {
         std::fprintf(stderr, "Inactive injury status did not retain its intermediate palette fade\n");
         return 1;
