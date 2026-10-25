@@ -718,6 +718,10 @@ bool parseOption(const char* arg)
         gEnabled = true;
         return true;
     }
+    if (strcmp(arg, "--dev-panel-snapshot") == 0) {
+        gPanelOpen = gEnabled;
+        return true;
+    }
     if (parsePreferencesProbeOption(arg)) {
         if (!gEnabled) {
             printf("PREFERENCES_PROBE FAIL: --dev-tools must precede the probe option\n");

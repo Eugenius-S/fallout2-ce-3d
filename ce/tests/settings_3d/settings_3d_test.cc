@@ -12,6 +12,7 @@ namespace fallout {
 Config gGameConfig = {};
 static const char* gConfiguredThreeDValue = nullptr;
 static const char* gConfiguredCleanEdgesValue = nullptr;
+static const char* gConfiguredLanguage = nullptr;
 static bool gInterruptWalkConfigPresent = true;
 static bool gInterruptWalkConfigValue = false;
 
@@ -25,6 +26,10 @@ bool gameConfigExit(bool) { return true; }
 
 bool configGetString(Config*, const char* section, const char* key, char** value)
 {
+    if (std::strcmp(section, "system") == 0 && std::strcmp(key, "language") == 0 && gConfiguredLanguage != nullptr) {
+        *value = const_cast<char*>(gConfiguredLanguage);
+        return true;
+    }
     if (std::strcmp(section, "3d") == 0 && std::strcmp(key, "enabled") == 0 && gConfiguredThreeDValue != nullptr) {
         *value = const_cast<char*>(gConfiguredThreeDValue);
         return true;
@@ -325,5 +330,21 @@ int main()
     const std::string status = scene::menuStatusText("snapshot: example.png", "russian");
     if (!check(status != "snapshot: example.png" && status.find("example.png") != std::string::npos,
             "localized status keeps dynamic filenames intact")) return 1;
+    const auto englishDescriptors = settingsGetDescriptors();
+    gConfiguredLanguage = "russian";
+    if (!check(initializeWith(nullptr), "initialize real descriptors in Russian")) return 1;
+    for (std::size_t i = 0; i < englishDescriptors.size(); ++i) {
+        if (englishDescriptors[i].section != "3d") continue;
+        if (!check(settingsGetDescriptors()[i].fallbackLabel != englishDescriptors[i].fallbackLabel
+                && settingsGetDescriptors()[i].fallbackDescription != englishDescriptors[i].fallbackDescription,
+                "settings initialization localizes all real 3D labels and descriptions")) return 1;
+    }
+    gConfiguredLanguage = "english";
+    if (!check(initializeWith(nullptr), "initialize real descriptors in English again")) return 1;
+    for (std::size_t i = 0; i < englishDescriptors.size(); ++i) {
+        if (!check(settingsGetDescriptors()[i].fallbackLabel == englishDescriptors[i].fallbackLabel
+                && settingsGetDescriptors()[i].fallbackDescription == englishDescriptors[i].fallbackDescription,
+                "language changes do not retain Russian descriptor metadata")) return 1;
+    }
     return 0;
 }

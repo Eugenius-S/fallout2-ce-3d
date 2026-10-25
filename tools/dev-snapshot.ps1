@@ -43,6 +43,7 @@ param(
     [string]$Tour,
     [switch]$Classic,
     [switch]$Preferences,
+    [switch]$DevPanel,
     [ValidateSet('Top', 'Bottom')]
     [string]$PreferencesPosition = 'Top',
     [switch]$NoPreview,
@@ -235,6 +236,7 @@ if ($Font101PreviewScale) { $arguments += "--dev-font101-size-preview=$Font101Pr
 if ($Font101PreviewWeight) { $arguments += "--dev-font101-weight-preview=$Font101PreviewWeight" }
 if ($UiFixture -eq 'log') { $arguments += '--dev-classic' }
 if ($DialogFixture) { $arguments += '--dev-dialog-fixture' }
+if ($DevPanel) { $arguments += '--dev-panel-snapshot' }
 if ($DialogPageInspect) { $arguments += '--dev-dialog-page-inspect' }
 if ($DialogCursorCheck) { $arguments += '--dev-dialog-cursor-check' }
 if ($DialogLayoutCheck) { $arguments += '--dev-dialog-layout-check' }
