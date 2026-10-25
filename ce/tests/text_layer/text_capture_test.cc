@@ -273,20 +273,26 @@ void testSemanticGreenCaptureRoles()
     fontDrawText(source.data() + 18, "ab", 8, 64, static_cast<ColorWithFlags>(COLOR_GREEN));
     fontDrawText(source.data() + 20, "ab", 8, 64, static_cast<ColorWithFlags>(COLOR_GRASS_GREEN));
     fontDrawText(source.data() + 22, "ab", 8, 64, static_cast<ColorWithFlags>(COLOR_OLIVE));
+    {
+        ScopedTextCaptureTag captureTag(TextCaptureTag::CharacterStatsPlaque);
+        fontDrawText(source.data() + 24, "ab", 8, 64, static_cast<ColorWithFlags>(COLOR_DARK_GREEN_2));
+    }
 
     const auto captured = scene::textCaptureRecords(sourceId);
-    check(captured.size() == 12, "all font-101 semantic-color test runs are captured");
-    bool rolesMatch = captured.size() == 12;
+    check(captured.size() == 13, "all font-101 semantic-color test runs are captured");
+    bool rolesMatch = captured.size() == 13;
     for (std::size_t index = 0; index < std::size(greenColors) && rolesMatch; ++index) {
         rolesMatch = captured[index].run.colorRole == scene::TextColorRole::InterfaceGreen;
     }
-    if (captured.size() == 12) {
+    if (captured.size() == 13) {
         rolesMatch = rolesMatch
             && captured[7].run.colorRole == scene::TextColorRole::HudMessageLogGreen
             && captured[8].run.colorRole == scene::TextColorRole::Palette
             && captured[9].run.colorRole == scene::TextColorRole::InterfaceGreen
             && captured[10].run.colorRole == scene::TextColorRole::Palette
-            && captured[11].run.colorRole == scene::TextColorRole::Palette;
+            && captured[11].run.colorRole == scene::TextColorRole::Palette
+            && captured[12].run.colorRole == scene::TextColorRole::InactiveInjuryStatusGreen
+            && captured[12].run.sharpTextOffsetY == -2;
     }
     check(rolesMatch, "semantic greens are tagged, HUD role is scoped, and olive/yellow-green stay original");
 
@@ -781,6 +787,16 @@ void testFont101SizePreviewExtendsCaptureOnly()
             && defaultSizeRun->run.sharpTextOffsetY == 0
             && defaultSizeRun->bounds.height == 12,
         "compact UI size scope restores 1.29 default metadata and capture coverage");
+    fontDrawText(pixels.data() + 2 * 20 + 12, "I", 1, 20,
+        static_cast<ColorWithFlags>(7 | DRAW_TEXT_FLAG_UNDERLINED));
+    const auto underlinedRuns = scene::textCaptureRecords(generation);
+    const auto underlinedRun = std::find_if(underlinedRuns.begin(), underlinedRuns.end(), [](const scene::TextRecord& record) {
+        return record.run.text == "I";
+    });
+    check(underlinedRun != underlinedRuns.end() && underlinedRun->bounds.y == 2
+            && underlinedRun->bounds.height >= scene::font101PreviewCoverageHeight(9, 12) + 2
+            && (underlinedRun->run.colorAndFlags & DRAW_TEXT_FLAG_UNDERLINED) != 0,
+        "font-101 underline capture includes the sharp glyph row and one-pixel gap at E size");
     gCurrentFont = 102;
     {
         ScopedTextCaptureTag captureTag(TextCaptureTag::InterfacePlaqueOffset);

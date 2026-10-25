@@ -202,13 +202,18 @@ void getTextColor(const scene::TextRunInfo& run, const unsigned char* paletteRgb
     const double factor = std::clamp(
         (paletteRgb[sourceIndex * 3 + maximumChannel] - paletteRgb[sourceIndex * 3 + minimumChannel]) / baseRange,
         0.0, 1.0);
-    static constexpr unsigned char targetColors[2][3] = {
+    static constexpr unsigned char targetColors[3][3] = {
         { 0x3F, 0xB4, 0x19 },
         { 0x4B, 0xD5, 0x1F },
+        { 0x00, 0x7B, 0x00 },
     };
-    const unsigned char* target = targetColors[run.colorRole == scene::TextColorRole::HudMessageLogGreen ? 1 : 0];
+    const int targetIndex = run.colorRole == scene::TextColorRole::HudMessageLogGreen ? 1
+        : run.colorRole == scene::TextColorRole::InactiveInjuryStatusGreen ? 2 : 0;
+    const unsigned char* target = targetColors[targetIndex];
     for (int channel = 0; channel < 3; ++channel) {
-        const double mappedBase = target[channel] * (base[1] / fullGreen);
+        const double mappedBase = run.colorRole == scene::TextColorRole::InactiveInjuryStatusGreen
+            ? target[channel]
+            : target[channel] * (base[1] / fullGreen);
         const double value = std::clamp(paletteRgb[sourceIndex * 3 + channel]
                 + factor * (mappedBase - base[channel]),
             0.0, 255.0);
@@ -371,6 +376,41 @@ bool renderSharpText(const std::vector<scene::TextRecord>& records,
             }
         }
         const bool shadowed = (run.colorAndFlags & DRAW_TEXT_FLAG_SHADOWED) != 0;
+        const bool underlined = (run.colorAndFlags & DRAW_TEXT_FLAG_UNDERLINED) != 0;
+        int inkLeft = physicalWidth;
+        int inkTop = physicalHeight;
+        int inkRight = 0;
+        int inkBottom = 0;
+        if (underlined) {
+            for (const PositionedGlyph& glyph : positioned) {
+                for (int by = 0; by < glyph.bitmap->height; ++by) {
+                    for (int bx = 0; bx < glyph.bitmap->width; ++bx) {
+                        if (glyph.bitmap->pixels[static_cast<std::size_t>(by) * glyph.bitmap->width + bx] == 0) continue;
+                        const int px = glyph.x + glyph.bitmap->xoff + bx;
+                        const int py = baseline + glyph.bitmap->yoff + by;
+                        inkLeft = std::min(inkLeft, px);
+                        inkTop = std::min(inkTop, py);
+                        inkRight = std::max(inkRight, px + 1);
+                        inkBottom = std::max(inkBottom, py + 1);
+                    }
+                }
+            }
+        }
+        if (run.hasOutline && run.outlineColor < static_cast<unsigned int>(paletteEntries)) {
+            const unsigned char* outlineRgb = paletteRgb + run.outlineColor * 3;
+            const int radiusX = std::max(1, static_cast<int>(std::ceil(sx)));
+            const int radiusY = std::max(1, static_cast<int>(std::ceil(sy)));
+            for (const PositionedGlyph& glyph : positioned) {
+                if (glyph.bitmap->pixels.empty()) continue;
+                for (int offsetY = -radiusY; offsetY <= radiusY; ++offsetY) {
+                    for (int offsetX = -radiusX; offsetX <= radiusX; ++offsetX) {
+                        if (offsetX == 0 && offsetY == 0) continue;
+                        drawGlyph(*output, *glyph.bitmap, glyph.x, baseline, offsetX, offsetY,
+                            outlineRgb, visibility, logicalWidth, logicalHeight, sx, sy);
+                    }
+                }
+            }
+        }
         if (shadowed) {
             const int shadowX = std::max(1, static_cast<int>(std::lround(sx)));
             const int shadowY = std::max(1, static_cast<int>(std::lround(sy)));
@@ -383,11 +423,11 @@ bool renderSharpText(const std::vector<scene::TextRecord>& records,
             if (!glyph.bitmap->pixels.empty()) drawGlyph(*output, *glyph.bitmap, glyph.x, baseline, 0, 0,
                 rgb, visibility, logicalWidth, logicalHeight, sx, sy);
         }
-        if ((run.colorAndFlags & DRAW_TEXT_FLAG_UNDERLINED) != 0) {
-            const int y = static_cast<int>(std::lround((run.y + run.lineHeight - 1) * sy));
-            const int left = std::max(0, static_cast<int>(std::lround(run.x * sx)));
-            const int right = std::min(physicalWidth, static_cast<int>(std::lround((run.x + run.width) * sx)));
-            for (int px = left; px < right && y >= 0 && y < physicalHeight; ++px) {
+        if (underlined) {
+            const int y = inkBottom + static_cast<int>(std::ceil(sy));
+            const int left = std::max(0, inkLeft);
+            const int right = std::min(physicalWidth, inkRight);
+            for (int px = left; inkBottom > inkTop && px < right && y >= 0 && y < physicalHeight; ++px) {
                 const int logicalX = std::min(logicalWidth - 1, static_cast<int>(px / sx));
                 const int logicalY = std::min(logicalHeight - 1, static_cast<int>(y / sy));
                 if (visibility.visibleAt(logicalX, logicalY)) {

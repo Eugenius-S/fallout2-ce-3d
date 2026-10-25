@@ -10,6 +10,7 @@
 #include "memory.h"
 #include "object.h"
 #include "settings.h"
+#include "scene/text_capture.h"
 #include "svga.h"
 #include "text_font.h"
 #include "tile.h"
@@ -37,6 +38,7 @@ typedef struct TextObject {
     int y;
     int width;
     int height;
+    scene::FloatingTextOutlineLayout dataLayout;
     unsigned char* data;
 } TextObject;
 
@@ -221,7 +223,10 @@ int textObjectAdd(Object* object, char* string, int font, ColorWithFlags color, 
         textObject->height += 2;
     }
 
-    int size = textObject->width * textObject->height;
+    textObject->dataLayout = scene::floatingTextOutlineLayout(textObject->width, textObject->height,
+        fontGetLineHeight(), textObject->linesCount, outlineColor != COLOR_INVALID,
+        font == 101 && outlineColor != COLOR_INVALID);
+    int size = textObject->dataLayout.bufferWidth * textObject->dataLayout.bufferHeight;
     textObject->data = (unsigned char*)internal_malloc(size);
     if (textObject->data == nullptr) {
         fontSetCurrent(oldFont);
@@ -229,13 +234,6 @@ int textObjectAdd(Object* object, char* string, int font, ColorWithFlags color, 
     }
 
     memset(textObject->data, 0, size);
-
-    unsigned char* dest = textObject->data;
-    int skip = textObject->width * (fontGetLineHeight() + 1);
-
-    if (outlineColor != COLOR_INVALID) {
-        dest += textObject->width;
-    }
 
     for (int index = 0; index < textObject->linesCount; index++) {
         char* beginning = string + beginnings[index];
@@ -248,15 +246,25 @@ int textObjectAdd(Object* object, char* string, int font, ColorWithFlags color, 
         *ending = '\0';
 
         int width = fontGetStringWidth(beginning);
-        fontDrawText(dest + (textObject->width - width) / 2, beginning, textObject->width, textObject->width, color);
+        unsigned char* dest = textObject->data + textObject->dataLayout.lineStartOffset(index)
+            + (textObject->width - width) / 2;
+        if (font == 101 && outlineColor != COLOR_INVALID) {
+            ScopedTextCaptureTag barkTag(TextCaptureTag::FloatingCharacterBark,
+                static_cast<ColorWithFlags>(outlineColor & COLOR_LAST), textObject->dataLayout.sharpLineOffset(index));
+            fontDrawText(dest, beginning, textObject->width,
+                textObject->dataLayout.bufferWidth, color);
+        } else {
+            fontDrawText(dest, beginning, textObject->width,
+                textObject->dataLayout.bufferWidth, color);
+        }
 
         *ending = c;
 
-        dest += skip;
     }
 
     if (outlineColor != COLOR_INVALID) {
-        bufferOutline(textObject->data, textObject->width, textObject->height, textObject->width, static_cast<Color>(outlineColor & COLOR_LAST));
+        bufferOutline(textObject->data, textObject->dataLayout.bufferWidth, textObject->dataLayout.bufferHeight,
+            textObject->dataLayout.bufferWidth, static_cast<Color>(outlineColor & COLOR_LAST));
     }
 
     if (object != nullptr) {
@@ -308,17 +316,15 @@ void textObjectsRenderInRect(Rect* rect)
         textObject->x += sceneX;
         textObject->y += sceneY;
 
-        Rect textObjectRect;
-        textObjectRect.left = textObject->x;
-        textObjectRect.top = textObject->y;
-        textObjectRect.right = textObject->width + textObject->x - 1;
-        textObjectRect.bottom = textObject->height + textObject->y - 1;
-        if (rectIntersection(&textObjectRect, rect, &textObjectRect) == 0) {
-            blitBufferToBufferTrans(textObject->data + textObject->width * (textObjectRect.top - textObject->y) + (textObjectRect.left - textObject->x),
-                textObjectRect.right - textObjectRect.left + 1,
-                textObjectRect.bottom - textObjectRect.top + 1,
-                textObject->width,
-                gTextObjectsWindowBuffer + gTextObjectsWindowWidth * textObjectRect.top + textObjectRect.left,
+        const scene::TextRect clipped = textObject->dataLayout.clipBounds(textObject->x, textObject->y,
+            { rect->left, rect->top, rect->right - rect->left + 1, rect->bottom - rect->top + 1 });
+        if (clipped.width > 0 && clipped.height > 0) {
+            const std::size_t sourceOffset = textObject->dataLayout.sourceOffset(clipped, textObject->x, textObject->y);
+            blitBufferToBufferTrans(textObject->data + sourceOffset,
+                clipped.width,
+                clipped.height,
+                textObject->dataLayout.bufferWidth,
+                gTextObjectsWindowBuffer + gTextObjectsWindowWidth * clipped.y + clipped.x,
                 gTextObjectsWindowWidth);
         }
     }
@@ -349,11 +355,8 @@ static void textObjectsTicker()
             textObject->x += textObject->sx;
             textObject->y += textObject->sy;
 
-            Rect textObjectRect;
-            textObjectRect.left = textObject->x;
-            textObjectRect.top = textObject->y;
-            textObjectRect.right = textObject->width + textObject->x - 1;
-            textObjectRect.bottom = textObject->height + textObject->y - 1;
+            const scene::TextRect dirty = textObject->dataLayout.renderBounds(textObject->x, textObject->y);
+            Rect textObjectRect { dirty.x, dirty.y, dirty.x + dirty.width - 1, dirty.y + dirty.height - 1 };
 
             if (textObjectsRemoved) {
                 rectUnion(&dirtyRect, &textObjectRect, &dirtyRect);

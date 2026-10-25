@@ -2637,7 +2637,7 @@ static void characterEditorDrawDerivedStats()
 
     blitBufferToBuffer(_editorBackgroundFrmImage.getData() + 640 * y + 194, 118, 108, 640, gCharacterEditorWindowBuffer + 640 * y + 194, 640);
 
-    ScopedTextCaptureTag healthPlaqueOffset(TextCaptureTag::InterfacePlaqueOffset);
+    ScopedTextCaptureTag healthPlaqueOffset(TextCaptureTag::CharacterStatsPlaque);
 
     // Hit Points
     if (characterEditorSelectedItem == EDITOR_HIT_POINTS) {

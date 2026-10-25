@@ -6,6 +6,8 @@
 #include <string>
 #include <vector>
 
+#include "../color.h"
+
 namespace fallout {
 namespace scene {
 
@@ -20,6 +22,28 @@ struct TextRect {
     int height = 0;
 };
 
+struct FloatingTextOutlineLayout {
+    int legacyWidth = 0;
+    int legacyHeight = 0;
+    int bufferWidth = 0;
+    int bufferHeight = 0;
+    int offsetX = 0;
+    int offsetY = 0;
+    int legacyTopMargin = 0;
+    int lineHeight = 0;
+    int linePitch = 0;
+    int lineOffset = 0;
+
+    TextRect renderBounds(int x, int y) const;
+    TextRect clipBounds(int x, int y, TextRect clip) const;
+    std::size_t sourceOffset(TextRect clipped, int x, int y) const;
+    std::size_t lineStartOffset(int line) const;
+    int sharpLineOffset(int line) const;
+};
+
+FloatingTextOutlineLayout floatingTextOutlineLayout(int legacyWidth, int legacyHeight,
+    int lineHeight, int lines, bool hasOutline, bool modernOutline);
+
 struct TextPixels {
     const unsigned char* data = nullptr;
     int width = 0;
@@ -33,6 +57,7 @@ enum class TextColorRole : std::uint8_t {
     Palette,
     InterfaceGreen,
     HudMessageLogGreen,
+    InactiveInjuryStatusGreen,
 };
 
 struct TextValidationPixels {
@@ -51,6 +76,8 @@ struct TextRunInfo {
     TextSizeRole sizeRole = TextSizeRole::Default;
     unsigned int colorAndFlags = 0;
     TextColorRole colorRole = TextColorRole::Palette;
+    unsigned int outlineColor = 0;
+    bool hasOutline = false;
     int x = 0;
     int y = 0;
     // Accepted logical advance and mono cell grid remain unchanged when a
@@ -149,6 +176,8 @@ public:
     bool capture(TextBufferId buffer, bool orphan, const TextRunInfo& run,
         TextRect bounds, TextPixels before, TextPixels after,
         int ownerWindow = -1, TextBufferId ownerGeneration = 0);
+    bool hasOutlinedRuns(TextBufferId buffer) const;
+    bool refreshOutlinedRuns(TextBufferId buffer, TextPixels before, TextPixels after);
 
     // Call after a blit with a snapshot of the source at blit time and the
     // destination values just before and after it. The rectangle maps
