@@ -961,6 +961,10 @@ class ThingShapeTests(unittest.TestCase):
         self.assertEqual(1.0, first[8])                                  # cut across u only
         slices = self.scene([self.row(0, 0.0, 0.0, 1.0, 1.0), self.row(0, 0.8, 0.1, 1.0, 1.0)])
         scene.SceneBuilder.keep_apart(slices, [0, 0])                          # slices of one thing stay
+        held = self.scene([self.row(0, 0.0, 0.0, 2.0, 2.0), self.row(0, 0.1, 0.1, 1.0, 1.0)])
+        scene.SceneBuilder.keep_apart(held, [0, 1])                            # one holds the other along u
+        big, small = held.props[2:]
+        self.assertAlmostEqual(big[5] + big[7] / 2, small[5] - small[7] / 2, places=3)
         self.assertEqual(2, len(slices.props))
         self.assertEqual(1.0, slices.props[0][7])
 
@@ -987,14 +991,17 @@ class ThingShapeTests(unittest.TestCase):
         row[14] = 1                                                      # by name: the game's camera keeps the card
         self.assertEqual([], solids._forced(row, faces))
 
-    def test_a_solid_by_name_is_cut_in_place(self):
+    def test_a_cut_solid_by_name_keeps_its_axis_for_its_rests(self):
+        import solids
         from vendor.fp import scene
         crate = self.row(0, 0.0, 0.0, 1.0, 1.0)
         crate[14] = 1
         fake = self.scene([crate, self.row(0, 0.8, 0.1, 1.0, 1.0)])
         scene.SceneBuilder.keep_apart(fake, [0, 1])
-        self.assertEqual([0, 2, 1], [row[15] for row in fake.props])
-        self.assertAlmostEqual(0.4, fake.props[0][5] + fake.props[0][7] / 2, places=3)
+        self.assertEqual([2, 2, 1, 1], [row[15] for row in fake.props])
+        self.assertEqual((0.0, 0.0), tuple(fake.props[0][5:7]))       # as made: its rests' axis
+        self.assertEqual([], solids._forced(fake.props[0], [(0, [], False, "both")]))
+        self.assertAlmostEqual(0.4, fake.props[2][5] + fake.props[2][7] / 2, places=3)
 
 if __name__ == "__main__":
     unittest.main()

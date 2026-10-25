@@ -555,21 +555,25 @@ class SceneBuilder:
                 if min(overlap) <= APART:
                     continue
                 axis = int(overlap[1] < overlap[0])
-                half = overlap[axis] / 2
-                for box, them in ((p, q), (q, p)):          # each gives way on the side that faces the other
-                    side = MIN_BOX if box is p and not row[4] or box is q and not other[4] else 2 * MIN_DRUM
-                    if box[axis] + box[axis + 2] < them[axis] + them[axis + 2]:
-                        box[axis + 2] = max(box[axis + 2] - half, box[axis] + side)
-                    else:
-                        box[axis] = min(box[axis] + half, box[axis + 2] - side)
+                # Each gives way on the side that faces the other, to the plane halfway between
+                # those sides (half the overlap, or more when one holds the other along the axis).
+                (near, near_row), (far, far_row) = sorted(((p, row), (q, other)), key=lambda pair: pair[0][axis] + pair[0][axis + 2])
+                plane = (near[axis + 2] + far[axis]) / 2
+
+                def side(r):
+                    return 2 * MIN_DRUM if r[4] else MIN_BOX
+
+                near[axis + 2] = max(min(near[axis + 2], plane), near[axis] + side(near_row))
+                far[axis] = min(max(far[axis], plane), far[axis + 2] - side(far_row))
                 shrink(row, p)
                 shrink(other, q)
         # The game's camera sees the card, and a solid only over it: one cut back would change
         # its view. So a solid that was cut stays as made for that camera, and the cut copy
         # is the fly camera's (row[15]: 0 both cameras, 1 the fly camera, 2 the game's). A
-        # solid by name is the fly camera's alone already: the game's camera keeps its card.
+        # solid by name keeps its card in the game's view: its copy as made draws nowhere
+        # (solids._forced) and only names the axis its rests stand on.
         for n, (row, cut) in enumerate(zip(list(self.props), rows)):
-            if cut != row and (row[15] == 1 or row[14]):
+            if cut != row and row[15] == 1:
                 self.props[n] = cut
             elif cut != row:
                 row[15], cut[15] = 2, 1
@@ -610,17 +614,22 @@ class SceneBuilder:
         things = []                                     # the thing (group) of each row of self.props
         # A detail joined to a bigger piece of its name (props.groups) changes what the game's camera
         # sees of both: for it they stay as they were made apart (seen 2), and the thing they make up
-        # is the fly camera's (seen 1). A thing that is the same either way is both cameras' (0).
+        # is the fly camera's (seen 1). A thing that is the same either way is both cameras' (0), and
+        # so are the pieces of a joined thing that made no solid.
         standing = [piece for piece in pieces if piece.stands]
         joined = props.groups(standing)
         apart = props.groups(standing, details=False)
         keys = {frozenset(map(id, group)) for group in joined}
         alone = {frozenset(map(id, group)) for group in apart}
-        todo = [(group, 2) for group in apart if frozenset(map(id, group)) not in keys] \
-            + [(group, 0 if frozenset(map(id, group)) in alone else 1) for group in joined]
+        whole = {id(piece): frozenset(map(id, group)) for group in joined for piece in group}
+        todo = [(group, 0 if frozenset(map(id, group)) in alone else 1) for group in joined] \
+            + [(group, None) for group in apart if frozenset(map(id, group)) not in keys]
+        made = set()                                    # joined things that became the fly camera's solids
         fly_hidden = []                                 # boards that only a fly camera's solid stands for
         for thing, (group, seen) in enumerate(todo):
             first = group[0]
+            if seen is None:
+                seen = 2 if whole[id(first)] in made else 0
             blocking = any(not piece.obj.flags & mapfile.OBJECT_NO_BLOCK for piece in group)
             # A box by name (tools/scene_export/shapes/overrides.json): chairs and
             # crates the fit takes for plants.
@@ -691,6 +700,7 @@ class SceneBuilder:
                     else:
                         self.blocks.append(_round((u + pu - half[0], v + pv - half[1], u + pu + half[0], v + pv + half[1])))
             if seen == 1:
+                made.add(frozenset(map(id, group)))
                 fly_hidden += [piece.board for piece in group if piece.board is not None]
                 continue
             self.shape_use["drum" if round_ else "box"] += 1
