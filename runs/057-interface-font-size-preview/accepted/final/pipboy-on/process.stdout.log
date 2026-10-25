@@ -1,0 +1,8 @@
+scene: cache E:\Projects\fallout2-ce-3d-gpt\build\scene-cache\kladwtwn\0
+devtools: static wall+hero preview started for KLADWTWN.MAP elevation 0
+scene: preview policy=available gameState=0 gameMode=0x0 uiDisabled=0 isoDisabled=0 combat=0 dialog=0 movie=0
+UI_FIXTURE SETUP screen=pipboy start_pipboy=2 process_only=1
+UI_FIXTURE START screen=pipboy engine_key=112
+scene: preview policy=game-mode gameState=0 gameMode=0x400 uiDisabled=0 isoDisabled=1 combat=0 dialog=0 movie=0
+UI_FIXTURE STEP screen=pipboy window=3 generation=71964 input=STATUS-500
+UI_FIXTURE PASS screen=pipboy window=3 generation=71964 font=101 runs=2 screen_runs=2 visible_runs=2 visible_coverage=1157 overlay_runs=2 overlay_pixels=2651 font101_lineheight=10..10 stat_box_runs=0 stat_box_lineheight=0 colors=original green=2 white=0 yellow=0 red=0 other=0 sharp_setting=1 active=1 drawn=1 preview_scale=1.29 preview_weight=semibold sample=—“¿“”—
