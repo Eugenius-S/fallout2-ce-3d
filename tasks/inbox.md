@@ -68,3 +68,9 @@ that fits no task becomes a new task when the board runs dry.
   work of 076/083 (`_corner_fits`, `_corner_core`) or to glm's build;
   place not named yet. Seen in a build glm ran (its shadow work), so first
   check whether main shows it too before fixing anything.
+- 2026-10-25 Two sun options in the [3d] settings, after 082 lands (it
+  rewrites `ce/src/scene/sun.cc`): (1) the darkness of building shadows as a
+  slider (none on main or in PR #104 today); (2) how far the sun swings from
+  overhead, default 30 degrees each way (morning -30, evening +30; this
+  replaces 082's 15), adjustable by the player. Both small: one uniform and
+  one angle read by `sun.cc`, plus two settings entries.
