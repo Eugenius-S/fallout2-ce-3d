@@ -50,7 +50,7 @@ constexpr int kSliderX = 355;
 constexpr int kSliderRight = 540;
 constexpr int kSliderValueX = 500;
 constexpr int kSliderValueWidth = 85;
-constexpr int kSliderTrackOffset = 22;
+constexpr int kLabelTextOffset = 4;
 constexpr int kSliderHitTolerance = 7;
 constexpr int kFrameNarrowInset = 16;
 constexpr int kScrollbarWidth = 12;
@@ -104,10 +104,31 @@ double editNumber(const SettingValue& value)
     return 0.0;
 }
 
+int sliderTextCenterOffset()
+{
+    ScopedFont font(101);
+    const int width = std::max(1, fontGetStringWidth("x"));
+    const int height = std::max(1, fontGetLineHeight());
+    std::vector<unsigned char> probe(static_cast<size_t>(width) * height, 0);
+    // Measure the lowercase body, without recording this off-screen probe as
+    // interface text. Font line boxes include space above/below the letters.
+    fontDrawTextPtr(probe.data(), "x", width, width, COLOR_GREEN | DRAW_TEXT_FLAG_NO_BG);
+    int top = height;
+    int bottom = -1;
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            if (probe[static_cast<size_t>(y) * width + x] == 0) continue;
+            top = std::min(top, y);
+            bottom = y;
+        }
+    }
+    return kLabelTextOffset + (bottom >= top ? (top + bottom + 1) / 2 : height / 2);
+}
+
 void drawRightAlignedControlText(unsigned char* panel, int rowY, int left, int right, const char* text, Color color)
 {
     const int width = std::min(fontGetStringWidth(text), right - left);
-    fontDrawText(panel + kWidth * (rowY + 4) + right - width, text, width, kWidth, color);
+    fontDrawText(panel + kWidth * (rowY + kLabelTextOffset) + right - width, text, width, kWidth, color);
 }
 
 } // namespace
@@ -130,6 +151,7 @@ bool OptionsPanel::initialize(int windowId, unsigned char* surface, const unsign
     pageY_ = pageY;
     model_ = std::make_unique<OptionsSettingsModel>();
     rows_ = optionsPanelRows(model_->edits(), "3d");
+    sliderTrackOffset_ = sliderTextCenterOffset();
     buildRowLayout();
     if (background == nullptr || surface_ == nullptr || backgroundHeight < kHeight || screenWidth_ < kWidth || screenHeight_ < kHeight) return false;
     background_.assign(background, background + static_cast<size_t>(kWidth) * kHeight);
@@ -347,7 +369,7 @@ int OptionsPanel::sliderTrackTargetX(double ratio) const
     const double clampedRatio = std::clamp(ratio, 0.0, 1.0);
     return sliderTrackLeft() + static_cast<int>(std::round(clampedRatio * (sliderTrackRight() - sliderTrackLeft())));
 }
-int OptionsPanel::sliderTrackY(int index) const { return rowTop(index) + kSliderTrackOffset; }
+int OptionsPanel::sliderTrackY(int index) const { return rowTop(index) + sliderTrackOffset_; }
 
 void OptionsPanel::buildRowLayout()
 {
@@ -595,7 +617,7 @@ void OptionsPanel::drawRows()
         const std::string displayLabel = localizedLabel != nullptr && localizedLabel[0] != '\0'
             ? localizedLabel
             : (descriptor.fallbackLabel.empty() ? descriptor.id : descriptor.fallbackLabel);
-        fontDrawText(panel + kWidth * (rowY + 4) + kLabelX + inset, displayLabel.c_str(), 270, kWidth, color);
+        fontDrawText(panel + kWidth * (rowY + kLabelTextOffset) + kLabelX + inset, displayLabel.c_str(), 270, kWidth, color);
 
         char valueText[128] = {};
         switch (row.control) {
