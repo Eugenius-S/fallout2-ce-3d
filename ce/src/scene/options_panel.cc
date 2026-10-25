@@ -1,5 +1,6 @@
 #include "options_panel.h"
 #include "text_capture.h"
+#include "menu_text.h"
 
 #include <algorithm>
 #include <array>
@@ -25,6 +26,11 @@ namespace fallout {
 namespace scene {
 
 namespace {
+
+const char* localized(const char* text)
+{
+    return menuText(text, settings.system.language);
+}
 
 constexpr int kWidth = 640;
 constexpr int kHeight = 480;
@@ -556,7 +562,7 @@ void OptionsPanel::draw()
     }
     rowFrameBackground_.assign(panel, panel + static_cast<size_t>(kWidth) * panelHeight);
     fontSetCurrent(104);
-    fontDrawText(panel + kWidth * 62 + 52 + frameInset(), "3D OPTIONS", 520, kWidth, COLOR_GREEN);
+    fontDrawText(panel + kWidth * 62 + 52 + frameInset(), localized("3D OPTIONS"), 520, kWidth, COLOR_GREEN);
     fontSetCurrent(101);
     drawRows();
     refresh();
@@ -570,7 +576,7 @@ void OptionsPanel::drawRows()
     for (const GroupLayout& group : groupLayouts_) {
         const int groupY = group.top - kPanelTop;
         fontSetCurrent(101);
-        fontDrawText(panel + kWidth * (groupY + 1) + kLabelX + inset, group.title.c_str(), 270, kWidth, COLOR_GREEN);
+        fontDrawText(panel + kWidth * (groupY + 1) + kLabelX + inset, localized(group.title.c_str()), 270, kWidth, COLOR_GREEN);
     }
     for (int index : displayOrder_) {
         const OptionsPanelRow& row = rows_[index];
@@ -595,7 +601,7 @@ void OptionsPanel::drawRows()
         switch (row.control) {
         case OptionsPanelControl::Toggle: {
             bool value = std::get<bool>(row.edit->value);
-            std::snprintf(valueText, sizeof(valueText), "[%c] %s", value ? 'X' : ' ', value ? "On" : "Off");
+            std::snprintf(valueText, sizeof(valueText), "[%c] %s", value ? 'X' : ' ', localized(value ? "On" : "Off"));
             drawRightAlignedControlText(panel, rowY, kToggleX - inset, kToggleX + kToggleWidth - inset, valueText, color);
             break;
         }
@@ -622,7 +628,7 @@ void OptionsPanel::drawRows()
             break;
         }
         case OptionsPanelControl::Value:
-            if (const auto* value = std::get_if<bool>(&row.edit->value)) std::snprintf(valueText, sizeof(valueText), "%s", *value ? "On" : "Off");
+            if (const auto* value = std::get_if<bool>(&row.edit->value)) std::snprintf(valueText, sizeof(valueText), "%s", localized(*value ? "On" : "Off"));
             else if (const auto* value = std::get_if<int>(&row.edit->value)) std::snprintf(valueText, sizeof(valueText), "%d", *value);
             else if (const auto* value = std::get_if<double>(&row.edit->value)) std::snprintf(valueText, sizeof(valueText), "%.2f", *value);
             else if (const auto* value = std::get_if<std::string>(&row.edit->value)) std::snprintf(valueText, sizeof(valueText), "%s", value->c_str());

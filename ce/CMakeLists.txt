@@ -327,6 +327,8 @@ set(FALLOUT_PLATFORM_SOURCES
     "src/scene/scene_view.cc"
     "src/scene/scene_view.h"
     "src/scene/scene_settings.cc"
+    "src/scene/menu_text.cc"
+    "src/scene/menu_text.h"
     "src/scene/scene_settings.h"
     "src/devtools/devtools.h"
     "src/devtools/fixed_screen_options.h"

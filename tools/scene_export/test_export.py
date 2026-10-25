@@ -530,6 +530,97 @@ class WallSidecarTests(unittest.TestCase):
         corners = wall_sidecar._corner_fits(walls, set(), (0.49, 0.74, 0.46), width, (48.0, 32.0))
         self.assertEqual([pool for _, pool, _, _, _ in corners.fills], [[1], [1]])
 
+    @staticmethod
+    def decor_corner():
+        """An L whose wall along u ends in a corner piece (u 2.6 .. 3.4) that
+        runs into the square where the walls cross: walls, sprites (16 x 60
+        pictures side by side), projection, corners."""
+        import wall_sidecar
+        proj = Projection(donor_proj.as_json())
+        walls = [[0, 1.0, 2.0, 2.6, 2.0, 0.0, 2.0, 0, 1, 1.8, 0.25, -1],
+                 [1, 2.6, 2.0, 3.4, 2.0, 0.0, 2.0, 0, 1, 1.8, 0.25, -1],
+                 [2, 3.0, 0.0, 3.0, 1.5, 0.0, 2.0, 0, 1, 1.8, 0.25, -1]]
+        sprites = [[0, 20 * index, 0, 16, 60, 0, 0] for index in range(3)]
+        corners = wall_sidecar._corner_fits(walls, set(), proj.toward, lambda index: 16, (48.0, 32.0))
+        return walls, sprites, proj, corners
+
+    def test_a_decor_corner_folds_onto_both_fronts_seen_as_the_game_draws_it(self):
+        from unittest import mock
+        import wall_sidecar
+        walls, sprites, proj, corners = self.decor_corner()
+        self.assertEqual(list(corners.pieces), [1])
+        slab, out, twin, twin_out, start = corners.pieces[1]
+        self.assertAlmostEqual(start, 2.6)
+        faces = []
+        with mock.patch.object(wall_sidecar, "_polygon", lambda batches, proj, page, size, corners: faces.append(corners)):
+            wall_sidecar._corner_decor(None, proj, sprites, [[100, 100]], proj.toward, walls[1], slab, out, twin, twin_out)
+        self.assertGreater(len(faces), 1)
+        lift = wall_sidecar.DECOR_LIFT
+        x, y, w, h = sprites[1][1:5]
+        e0 = proj.ground_to_px(2.6, 2.0, 0.0)
+        e1 = proj.ground_to_px(3.4, 2.0, 0.0)
+        spans = []
+        for face in faces:
+            for u, v, z, tx, ty in face:
+                # On a front: the u wall's (v 2.0) up to the corner's edge, or
+                # the v wall's (u 3.0) up to it, a hair out of the face.
+                on_u = abs(v - (2.0 + lift)) < 1e-6 and u <= 3.0 + lift + 1e-6
+                on_v = abs(u - (3.0 + lift)) < 1e-6 and v <= 2.0 + lift + 1e-6
+                self.assertTrue(on_u or on_v, (u, v))
+                # The game's camera sees the texel where the game drew it.
+                column, rows = tx - x, h - (ty - y)
+                sx, sy = proj.ground_to_px(u, v, z)
+                self.assertAlmostEqual(sx, e0[0] + (e1[0] - e0[0]) * column / w, places=4)
+                self.assertAlmostEqual(sy, e0[1] + (e1[1] - e0[1]) * column / w - rows, places=4)
+            spans.append((min(tx for *_, tx, _ in face) - x, max(tx for *_, tx, _ in face) - x))
+        # Every column of the picture lands somewhere: no gap opens in it.
+        reach = 0.0
+        for lo, hi in sorted(spans):
+            self.assertLessEqual(lo, reach + 1e-6)
+            reach = max(reach, hi)
+        self.assertAlmostEqual(reach, w)
+
+    def test_only_a_dull_corner_piece_unlike_its_wall_counts_as_decor(self):
+        import numpy as np
+        import wall_sidecar
+        walls, sprites, proj, corners = self.decor_corner()
+        hpx = donor_proj.as_json()["hpx"]
+        def decor(piece):
+            atlas = np.full((100, 100, 4), 255, np.uint8)
+            atlas[:, :, :3] = 120  # plain gray walls
+            atlas[:60, 20:36, :3] = piece
+            return wall_sidecar._decor_pieces([atlas], sprites, hpx, walls, corners)
+        self.assertEqual(decor((120, 120, 120)), [])  # the plain wall turning the corner
+        self.assertEqual(decor((70, 70, 70)), [1])  # a darker pilaster
+        self.assertEqual(decor((150, 80, 60)), [])  # bricks: the wall's own material
+        stripes = np.full((60, 16, 3), 120, np.uint8)
+        stripes[:, ::2] = 40
+        self.assertEqual(decor(stripes), [1])  # same shade, but a pattern the wall lacks
+        self.assertEqual(wall_sidecar._decor_pieces(None, sprites, hpx, walls, corners), [])
+
+    def test_a_front_up_to_decor_repeats_its_last_columns(self):
+        from unittest import mock
+        import wall_sidecar
+        walls, sprites, proj, corners = self.decor_corner()
+        hpx = donor_proj.as_json()["hpx"]
+        slab, pool, s0, s1, back = next(fill for fill in corners.fills if fill[0] is corners.pieces[1][0]
+                                        and not fill[4])
+        faces = []
+        with mock.patch.object(wall_sidecar, "_polygon", lambda batches, proj, page, size, corners, away=False:
+                               faces.append(corners)):
+            wall_sidecar._corner_fill(None, proj, sprites, [[100, 100]], hpx, (48.0, 32.0), walls, pool, slab,
+                                      s0, s1, back, None, True)
+        # 0.4 + seam + edge along u at 48 columns a unit: one whole run of
+        # the row's last 16 columns (its b end at u 2.6 shows column 16), then
+        # the start of the next.
+        self.assertEqual(len(faces), 2)
+        first, second = ([tx for _, _, _, tx, _ in face] for face in faces)
+        self.assertAlmostEqual(first[0], 0)
+        self.assertAlmostEqual(first[1], 16)
+        self.assertAlmostEqual(second[0], 0)
+        self.assertLess(second[1], 16)
+        self.assertAlmostEqual(faces[0][1][0], faces[1][0][0])  # the runs meet
+
     def test_a_corner_core_stands_in_solid_walls_only(self):
         import numpy as np
         # The L of the test above gets an opaque core inside the corner for

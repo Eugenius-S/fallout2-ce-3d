@@ -360,6 +360,8 @@ class _Corners:
         self.keep, self.back_keep, self.top_keep = {}, {}, {}
         self.fills, self.caps, self.moved, self.cores, self.ends = [], [], [], [], []
         self.extent = {}  # {id(slab): (from, to)} what the free camera keeps of a slab a corner moved
+        self.pieces = {}  # {wall row: (slab, out, twin, twin's out, start)} the corner pieces left out
+        self.pools = {}  # {(id(slab), out): the plain rows near that end}
 
 
 def _corner_fits(walls, hidden, toward_camera, width=None, px=(1.0, 1.0)):
@@ -480,6 +482,7 @@ def _corner_fits(walls, hidden, toward_camera, width=None, px=(1.0, 1.0)):
             # A wall that is nothing but a corner piece is left out whole;
             # its faces are filled from its far end in its line's material.
             start = slab.lo if out > 0 else slab.hi
+        left_out = set()
         # Every row near this end stops at its faces' ends, its top included: a
         # top runs on past its picture's edge and would stick out of the corner.
         for index in slab.rows:
@@ -494,6 +497,7 @@ def _corner_fits(walls, hidden, toward_camera, width=None, px=(1.0, 1.0)):
                 if start != end and index not in plain and index in near_end and not clear(index):
                     store[index] = (1.0, 1.0)  # the corner piece, whole: the plain rows cover its overlap
                     pieces.add(index)
+                    left_out.add(index)
                     continue
                 cut = (at - sa) / (sb - sa)
                 lo, hi = store.get(index, (-math.inf, math.inf))
@@ -510,6 +514,9 @@ def _corner_fits(walls, hidden, toward_camera, width=None, px=(1.0, 1.0)):
                        if (max(span(index)) <= o0 + CORNER_SLACK or min(span(index)) >= o1 - CORNER_SLACK)
                        and gap(end, *span(index)) <= 2 * CORNER_REACH and wide(index, 4)],
                       key=lambda index: gap(start, *span(index))) or [lender]
+        corners.pools[(id(slab), out)] = pool
+        for index in left_out:
+            corners.pieces[index] = (slab, out, *pairs[(id(slab), out)], start)
         for at, back in ((front_t, False), (back_t, True)):
             if out * (start - at) < -CORNER_SLACK:
                 corners.fills.append((slab, pool, start, at, back))
@@ -540,6 +547,7 @@ def _corner_fits(walls, hidden, toward_camera, width=None, px=(1.0, 1.0)):
     plain_pool = lambda pool: [index for index in pool if index not in pieces] or pool
     corners.fills = [(slab, plain_pool(pool), s0, s1, back) for slab, pool, s0, s1, back in corners.fills]
     corners.ends = [(slab, out, at, plain_pool(pool)) for slab, out, at, pool in corners.ends]
+    corners.pools = {key: plain_pool(pool) for key, pool in corners.pools.items()}
     return corners
 
 
@@ -604,26 +612,52 @@ FILL_RECESS = 0.002
 FILL_EDGE = 0.003
 
 
-def _corner_fill(batches, proj, sprites, pages, hpx, px, walls, pool, slab, s0, s1, back, atlas=None):
+REPEAT_COLUMNS = (8, 16)  # a front up to a corner's decor repeats this many of its last plain columns
+
+
+def _corner_fill(batches, proj, sprites, pages, hpx, px, walls, pool, slab, s0, s1, back, atlas=None, repeat=False):
     """One face of a block of the wall between s0 and s1 along `slab`: its
     front, or its back when `back`, in the most typical columns of that face
     of the rows in `pool` (_typical_columns). px: picture columns per unit
-    along u and along v."""
-    page, c0, c1, y_top, y_bottom, lender = _typical_columns(atlas, sprites, hpx, walls, pool, back,
-                                                     abs(s1 - s0) * px[slab.axis])
-    z0, zc = walls[lender][5], walls[lender][9]  # as high as the row the columns come from
+    along u and along v. `repeat` (a front up to a corner's decor, task
+    083): the last REPEAT_COLUMNS columns of the nearest row wide enough,
+    over and over, so the wall runs on as it stands up to the decor."""
     # It runs FILL_SEAM under the row it continues, a hair deeper than that
     # row's face, so the row hides the overlap (no flickering strip) and no
     # crack opens between them; at s1 it reaches FILL_EDGE past the corner's
     # edge, so the two walls' faces meet there without a crack.
     sign = 1.0 if s1 > s0 else -1.0
-    lo, hi = sorted((s0 - sign * FILL_SEAM, s1 + sign * FILL_EDGE))
+    start, stop = s0 - sign * FILL_SEAM, s1 + sign * FILL_EDGE
     p = slab.point
     thick = walls[pool[0]][10]  # the row it continues: its back is this deep
     depth = thick - FILL_RECESS if back else FILL_RECESS
-    corners = [[*p(lo, depth), z0, c0, y_bottom], [*p(hi, depth), z0, c1, y_bottom],
-               [*p(hi, depth), zc, c1, y_top], [*p(lo, depth), zc, c0, y_top]]
-    _polygon(batches, proj, page, pages[page], corners, back)
+    wide = [index for index in pool if _face_picture(sprites, walls[index], hpx, False)[3] >= REPEAT_COLUMNS[0]]
+    if repeat and wide and not back:
+        lender = wide[0]
+        page, x, y_top, w, h = _face_picture(sprites, walls[lender], hpx, False)
+        y_bottom = y_top + h
+        # Columns from the one a span further in to the edge nearest the corner.
+        edge, inner = _strip(walls[lender], slab.axis, s0, 1.0, w, x, min(REPEAT_COLUMNS[1], w))
+        span = abs(edge - inner) / px[slab.axis]
+        length = abs(stop - start)
+        tiles = [(start + sign * span * n, start + sign * min(length, span * (n + 1)))
+                 for n in range(math.ceil(length / span))]
+    else:
+        page, c0, c1, y_top, y_bottom, lender = _typical_columns(atlas, sprites, hpx, walls, pool, back,
+                                                         abs(s1 - s0) * px[slab.axis])
+        tiles = None
+    z0, zc = walls[lender][5], walls[lender][9]  # as high as the row the columns come from
+    if tiles is None:
+        lo, hi = sorted((start, stop))
+        corners = [[*p(lo, depth), z0, c0, y_bottom], [*p(hi, depth), z0, c1, y_bottom],
+                   [*p(hi, depth), zc, c1, y_top], [*p(lo, depth), zc, c0, y_top]]
+        _polygon(batches, proj, page, pages[page], corners, back)
+        return
+    for a, b in tiles:
+        c1 = inner + (edge - inner) * abs(b - a) / span
+        corners = [[*p(a, depth), z0, inner, y_bottom], [*p(b, depth), z0, c1, y_bottom],
+                   [*p(b, depth), zc, c1, y_top], [*p(a, depth), zc, inner, y_top]]
+        _polygon(batches, proj, page, pages[page], corners, back)
 
 
 def _corner_end(batches, proj, sprites, pages, hpx, px, toward_camera, walls, pool, slab, out, s, atlas=None):
@@ -662,6 +696,162 @@ def _corner_cap(batches, proj, sprites, pages, hpx, row, slab, s0, s1):
     lo, hi = sorted((s0, s1))
     _polygon(batches, proj, page, pages[page], [[*p(lo, 0.0), z, tx, ty], [*p(hi, 0.0), z, tx, ty],
                                                 [*p(hi, slab.thick), z, tx, ty], [*p(lo, slab.thick), z, tx, ty]])
+
+
+DECOR_LIFT = 0.004  # a folded corner picture stands this far out of the faces it lies on, over their fill
+
+
+def _front_end(slab, out, twin, twin_out):
+    """Where the front of `slab` ends at its corner with `twin` (_corner_fits):
+    on the corner's outside at the other's outer face, else at its inner one."""
+    outer = -slab.side * twin_out > 0
+    band = twin.band()
+    return (band[1] if out > 0 else band[0]) if outer else (band[0] if out > 0 else band[1])
+
+
+def _corner_decor(batches, proj, sprites, pages, toward_camera, row, slab, out, twin, twin_out, lift=DECOR_LIFT):
+    """A corner piece with decor (task 083), folded onto the two walls'
+    fronts: each column of its picture lies on the front the game's camera
+    sees at that point of the screen (the nearer of the two where both
+    stand), a hair out of it, so the decor sits on the corner. Each point
+    samples the texel the game drew it on: from the game's camera it is the
+    picture pixel for pixel. Below the cap line only: the caps cover the
+    tops."""
+    page, x, y, w, h = (_int(value, "wall sprite rectangle") for value in sprites[_int(row[0], "wall sprite")][:5])
+    ua, va, ub, vb, z0, zc = row[1], row[2], row[3], row[4], row[5], row[9]
+    e0, e1 = proj.ground_to_px(ua, va, z0), proj.ground_to_px(ub, vb, z0)
+    dx = e1[0] - e0[0]
+    if abs(dx) < 1e-9 or zc <= z0:
+        return
+    slope = (e1[1] - e0[1]) / dx
+
+    def texel(point):
+        """(column, px above the picture's bottom line) the game drew `point` on."""
+        qx, qy = proj.ground_to_px(*point)
+        return (qx - e0[0]) * w / dx, e0[1] + slope * (qx - e0[0]) - qy
+
+    fronts = []
+    for wall, wall_out, other, other_out in ((slab, out, twin, twin_out), (twin, twin_out, slab, out)):
+        x0 = proj.ground_to_px(*wall.point(0.0, -lift), 0.0)[0]
+        rate = proj.ground_to_px(*wall.point(1.0, -lift), 0.0)[0] - x0
+        if abs(rate) > 1e-9:
+            # s on this front where the screen shows column k; the front runs
+            # from its own wall up to its end at the corner
+            at = lambda k, wall=wall, x0=x0, rate=rate: (e0[0] + dx * k / w - x0) / rate
+            end = _front_end(wall, wall_out, other, other_out)
+            if abs(end - other.plane) < 1e-9:
+                end -= other.side * lift  # the fronts meet out of the faces as far as they stand
+            fronts.append((wall, wall_out, end, at))
+    # Exactly to its end: past it the other front shows (the nearer of two
+    # standing fronts is the right one only where both truly stand).
+    stands = lambda front, k: front[1] * (front[3](k) - front[2]) <= 1e-9
+    nearness = lambda front, k: sum(p * t for p, t in zip(front[0].point(front[3](k), -lift), toward_camera))
+    # Columns where a front ends or the two cross split the picture.
+    cuts = {0.0, float(w)}
+    for front in fronts:
+        f0, f1 = front[3](0.0), front[3](1.0)
+        if abs(f1 - f0) > 1e-12:
+            cuts.add((front[2] - f0) / (f1 - f0))
+    if len(fronts) == 2:
+        d0, d1 = (nearness(fronts[0], k) - nearness(fronts[1], k) for k in (0.0, 1.0))
+        if abs(d1 - d0) > 1e-12:
+            cuts.add(d0 / (d0 - d1))
+    cuts = sorted(k for k in cuts if 0.0 <= k <= w)
+    for k0, k1 in zip(cuts, cuts[1:]):
+        if k1 - k0 < 1e-6:
+            continue
+        mid = (k0 + k1) / 2
+        seen = [front for front in fronts if stands(front, mid)]
+        if not seen:
+            continue  # neither front stands there: open air
+        wall, _, _, at = max(seen, key=lambda front: nearness(front, mid))
+        p, q = wall.point(at(k0), -lift), wall.point(at(k1), -lift)
+        face = [(*p, z0), (*q, z0), (*q, zc), (*p, zc)]
+        for side in (lambda t: texel(t)[1], lambda t: h - texel(t)[1]):
+            face = _clip(face, side)
+        if len(face) < 3:
+            continue
+        corners = []
+        for point in face:
+            column, rows = texel(point)
+            corners.append([*point, x + min(max(column, 0.0), w), y + h - min(max(rows, 0.0), h)])
+        _polygon(batches, proj, page, pages[page], corners)
+
+
+DECOR_DULL = 12.0  # a corner piece more colourful than this (mean channel spread) is brick or boards
+DECOR_SHADE = 8.0  # a corner piece this much darker or lighter than the plain wall carries decor
+DECOR_PATTERN = 0.3  # ... or this share of its columns matches no plain column (_odd_columns)
+DECOR_SHIFT = 12  # rows a plain column may slide up or down to match
+
+
+def _gray(block):
+    """Brightness of each texel of an RGBA block, NaN where it is clear."""
+    import numpy as np
+    return np.where(block[:, :, 3] >= 128, block[:, :, :3].sum(axis=2) / 3, np.nan)
+
+
+def _column_misses(plain, columns, rows):
+    """For each of `columns` (rows x n, NaN clear), its least mean brightness
+    gap to a column of `plain`, slid up to DECOR_SHIFT rows either way; a
+    clear texel against an opaque one counts as the widest gap. `rows`
+    picks the plain columns each may not match (None: any)."""
+    import numpy as np
+    height = min(plain.shape[0], columns.shape[0]) - 2 * DECOR_SHIFT
+    if height < 4:
+        return None
+    q = columns[DECOR_SHIFT:DECOR_SHIFT + height, None, :]
+    best = np.full(columns.shape[1], np.inf)
+    for shift in range(2 * DECOR_SHIFT + 1):
+        seg = plain[shift:shift + height, :, None]
+        gap = np.abs(seg - q)
+        gap = np.where(np.isnan(seg) & np.isnan(q), 0.0, np.where(np.isnan(gap), 255.0, gap)).mean(axis=0)
+        if rows is not None:
+            gap[rows] = np.inf
+        best = np.minimum(best, gap.min(axis=0))
+    return best
+
+
+def _odd_columns(plain, piece):
+    """Share of the piece's columns that match no column of the plain wall
+    within twice as far as the plain wall's columns match each other."""
+    import numpy as np
+    picks = np.arange(0, plain.shape[1], 3)
+    near = np.abs(np.arange(plain.shape[1])[:, None] - picks[None, :]) <= 2
+    spread = _column_misses(plain, plain[:, picks], near)
+    misses = _column_misses(plain, piece, None)
+    if spread is None or misses is None:
+        return 0.0
+    return float(np.mean(misses > 2 * np.median(spread)))
+
+
+def _decor_pieces(atlas, sprites, hpx, walls, corners):
+    """The corner pieces whose picture carries decor (task 083): a dull piece
+    darker or lighter than the plain rows near its end, or with columns
+    unlike any of theirs. A colourful piece is brick or boards, the wall's
+    own material, and keeps the plain fill. Without the atlas, none."""
+    if atlas is None:
+        return []
+    import numpy as np
+
+    def block(index):
+        page, x, y, w, h = _face_picture(sprites, walls[index], hpx, False)
+        return atlas[page][int(y):int(y + h), x:x + w].astype(float)
+
+    found = []
+    for index, (slab, out, *_) in sorted(corners.pieces.items()):
+        piece = block(index)
+        plains = [b for b in map(block, corners.pools.get((id(slab), out), ())) if b.shape[1] >= 4]
+        if piece.shape[1] < 4 or not plains:
+            continue
+        opaque = piece[piece[:, :, 3] >= 128][:, :3]
+        if not len(opaque) or np.mean(opaque.max(axis=1) - opaque.min(axis=1)) > DECOR_DULL:
+            continue
+        height = min(b.shape[0] for b in plains)
+        plain = np.concatenate([b[:height] for b in plains], axis=1)
+        shade = opaque.mean() - plain[plain[:, :, 3] >= 128][:, :3].mean()
+        if abs(shade) >= DECOR_SHADE or _odd_columns(_gray(plain), _gray(piece)) >= DECOR_PATTERN:
+            found.append(index)
+    return found
 
 
 def _opaque_texel(atlas, page, x, y, w, h):
@@ -849,9 +1039,18 @@ def encode_wall_sidecar(scene, skip_props=frozenset(), skip_rests=frozenset(), m
         if row[10] > 0 and index not in hidden_walls:
             fly.object = owner(row[8])
             _wall_back(fly, sprites, pages, row, hpx, corners.back_keep.get(index, (0.0, 1.0)))
+    decor = _decor_pieces(atlas, sprites, hpx, walls, corners)
+    # Both fronts of a corner with decor run on as they stand up to it.
+    decor_ends = {key for index in decor for slab, out, twin, twin_out, _ in [corners.pieces[index]]
+                  for key in ((id(slab), out), (id(twin), twin_out))}
     for slab, pool, s0, s1, back in corners.fills:
         fly.object = owner(walls[pool[0]][8])
-        _corner_fill(fly, proj, sprites, pages, hpx, px, walls, pool, slab, s0, s1, back, atlas)
+        _corner_fill(fly, proj, sprites, pages, hpx, px, walls, pool, slab, s0, s1, back, atlas,
+                     (id(slab), 1 if s1 > s0 else -1) in decor_ends)
+    for index in decor:
+        slab, out, twin, twin_out, _ = corners.pieces[index]
+        fly.object = owner(walls[index][8])
+        _corner_decor(fly, proj, sprites, pages, toward_camera, walls[index], slab, out, twin, twin_out)
     for slab, out, at, pool in corners.ends:
         fly.object = owner(walls[pool[0]][8])
         _corner_end(fly, proj, sprites, pages, hpx, px, toward_camera, walls, pool, slab, out, at, atlas)

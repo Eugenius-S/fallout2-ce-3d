@@ -31,6 +31,13 @@ that task 034's merge retook, then retake or fix.
   drums, which render visibly wider; floors, walls and the slime are
   pixel-identical, and two runs the same day are byte-identical to each
   other, so the state is deterministic today.
+- Task 066 (2026-10-25) saw 13 mismatches and 3 passes; its base-engine
+  control at `04dbdf88` reproduces all 13, and the 066 captures match that
+  control exactly. Per-spot counts:
+  `runs/066-dialog-black-background/baseline-comparison.json`. The entrance
+  metadata also changed its triangle/page counts, so the audit must cover
+  renderer and scene-cache changes, not only the shaders. (Folded in from
+  the duplicate task 084.)
 - The scene caches are byte-identical to the game's mod-cache copies, the
   game data files have no new timestamps, and the exe is main's code, so
   the cause is either the environment (the GPU driver changed?) or a merge
