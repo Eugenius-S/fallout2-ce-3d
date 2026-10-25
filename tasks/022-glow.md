@@ -123,7 +123,7 @@ object sprites (fire, slime decals, the sofa's plaid) stay at full light in
 the dark (alpha 254: lit and glowing), floor and wall texels darken as
 everything does (alpha 252: glowing only), the shoreline does not glow at
 all. Evidence: the tox cave's slime pools now shine as the 2D picture does
-(runs/022-glow/klatoxcv-e1-slime-before.png | after, slime-glow | slime-plain
+(runs/022-glow/klatoxcv-e1-slime-before.jpg | after, slime-glow | slime-plain
 for the bleed); klatoxcv-e1's reference was retaken for it. Energy bolts need
 no new mask entries: plasmab.frm draws with palette indices 232-239, inside
 the marked ranges (the game data has no laser beam FRM at all).
@@ -168,7 +168,7 @@ Evidence: the tox cave slime blooms against the dark cave
 (runs/022-glow/slime-glow | slime-plain; the delta is 14.7k pixels, the
 town's daylit view changes by 1.5k, mostly under 8); klatoxcv-e0 and
 klatoxcv-e1 references retaken for the lit slime, before | after in
-runs/022-glow/klatoxcv-e0-slime-before.png | after and the e1 pair; the 2D
+runs/022-glow/klatoxcv-e0-slime-before.jpg | after and the e1 pair; the 2D
 classic shows the same bright pools.
 Check: build, ctest 11/11, exporter tests 44/44, regression tests 12/12,
 regression 16/16 with 0 changed pixels. reviewed stays no (two references

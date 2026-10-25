@@ -88,7 +88,7 @@ skirt under every wall and corner. Under a fly camera the floor now writes
 depth (scene_draw.cc); the game's view keeps its old order.
 Check: the game's view 0 pixels changed (kladwtwn, klamall). The owner's
 spot before and after: `runs/071-walls-whole/owner-view-before-after.png`;
-four corners now: `corners-round-3.png`.
+four corners now: `corners-round-3.jpg`.
 
 ### 2026-10-25 claude (round 4)
 The owner's live review (`runs/inbox/2026-10-25-corner-*.png|webp`): white

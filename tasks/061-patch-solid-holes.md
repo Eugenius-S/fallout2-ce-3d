@@ -23,7 +23,7 @@ things from turned views.
 - The owner's request of 2026-10-23: research how to glue the holes over;
   "the barrels and the dam are almost fine, if the holes in the models
   were patched with something". Evidence: runs/057-solid-holes/
-  owner-holes-patch.png (njunk2 fans apart with a hole in its middle,
+  owner-holes-patch.jpg (njunk2 fans apart with a hole in its middle,
   njunk5 and njunk6 show the ground through the heap, sstove2 is close),
   and the same sheets in runs/039-shapes-klamath/.
 - Candidate directions to weigh (the design doc's "one algorithm" holds:

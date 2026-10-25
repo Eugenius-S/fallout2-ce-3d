@@ -11,16 +11,39 @@ concurrency:
 permissions:
   contents: read
 jobs:
+  runs-size:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        # Full history without file contents: the check reads sizes only.
+        with:
+          fetch-depth: 0
+          filter: blob:none
+          sparse-checkout: tools
+      - run: python3 tools/check_runs_size.py origin/${{ github.base_ref }}
   windows-game:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+        # runs/ holds only evidence: skip its hundreds of megabytes.
+        with:
+          sparse-checkout: |
+            /*
+            !/runs/
+          sparse-checkout-cone-mode: false
       - run: powershell -NoProfile -ExecutionPolicy Bypass -File tools/configure-build.ps1 Release
       - run: ctest --test-dir build --output-on-failure
   exporter:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        # runs/ holds only evidence: skip its hundreds of megabytes.
+        with:
+          sparse-checkout: |
+            /*
+            !/runs/
+          sparse-checkout-cone-mode: false
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -33,6 +56,12 @@ jobs:
         suite: [ground_pick, preview_policy, sprite_card, game_view, map_clip, embedded_fonts, fixed_screen_options, snapshot_rows, settings_3d, sun, text_layer]
     steps:
       - uses: actions/checkout@v4
+        # runs/ holds only evidence: skip its hundreds of megabytes.
+        with:
+          sparse-checkout: |
+            /*
+            !/runs/
+          sparse-checkout-cone-mode: false
       - run: cmake -S ce/tests/${{ matrix.suite }} -B build-tests -DCMAKE_BUILD_TYPE=Release
       - run: cmake --build build-tests --target settings_3d_tests
         if: matrix.suite == 'settings_3d'
