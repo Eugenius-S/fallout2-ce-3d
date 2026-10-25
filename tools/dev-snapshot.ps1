@@ -30,6 +30,7 @@ param(
     [switch]$DialogFixture,
     [switch]$DialogPageInspect,
     [switch]$DialogCursorCheck,
+    [switch]$DialogLayoutCheck,
     [ValidateSet('inventory', 'pipboy', 'character', 'barter', 'log')]
     [string]$UiFixture,
     [ValidateSet('1.00', '1.08', '1.15', '1.22', '1.29')]
@@ -157,6 +158,10 @@ if ($DialogCursorCheck) {
     if ($DialogPageInspect) { throw '-DialogCursorCheck cannot be combined with -DialogPageInspect.' }
     if ($Language -ne 'english') { throw '-DialogCursorCheck requires -Language english for readable diagnostics.' }
 }
+if ($DialogLayoutCheck) {
+    if (-not $DialogFixture) { throw '-DialogLayoutCheck requires -DialogFixture.' }
+    if ($DialogPageInspect -or $DialogCursorCheck) { throw '-DialogLayoutCheck cannot be combined with other dialog checks.' }
+}
 if ($ReuseTestConfig) {
     if (-not (Test-Path -LiteralPath $configPath -PathType Leaf)) { throw "No isolated config to reuse: $configPath" }
 } else {
@@ -201,6 +206,7 @@ if ($UiFixture -eq 'log') { $arguments += '--dev-classic' }
 if ($DialogFixture) { $arguments += '--dev-dialog-fixture' }
 if ($DialogPageInspect) { $arguments += '--dev-dialog-page-inspect' }
 if ($DialogCursorCheck) { $arguments += '--dev-dialog-cursor-check' }
+if ($DialogLayoutCheck) { $arguments += '--dev-dialog-layout-check' }
 if ($PreferencesProbe) {
     $arguments += @('--dev-new-game', "--dev-map=$Map", "--dev-elevation=$Elevation", "--dev-preferences-probe=$PreferencesProbe")
 } else {
@@ -331,6 +337,13 @@ try {
                     (Select-String -LiteralPath $fixtureLog -Pattern '^DIALOG_CURSOR_CHECK FAIL ' -Quiet)) { $dialogFixtureFailed = $true; break }
                 if ($snapshots.Count -ge $shots -and (Test-Path -LiteralPath $fixtureLog) -and
                     (Select-String -LiteralPath $fixtureLog -Pattern '^DIALOG_CURSOR_CHECK PASS ' -Quiet)) { break }
+            } elseif ($DialogLayoutCheck) {
+                $fixtureLog = Join-Path $OutputDirectory 'process.stdout.log'
+                if ((Test-Path -LiteralPath $fixtureLog) -and
+                    (Select-String -LiteralPath $fixtureLog -Pattern '^DIALOG_LAYOUT_CHECK FAIL ' -Quiet)) { $dialogFixtureFailed = $true; break }
+                if ($snapshots.Count -ge $shots -and (Test-Path -LiteralPath $fixtureLog) -and
+                    (Select-String -LiteralPath $fixtureLog -Pattern '^DIALOG_LAYOUT_CHECK PASS ' -Quiet) -and
+                    (Select-String -LiteralPath $fixtureLog -Pattern '^DIALOG_FIXTURE PASS ' -Quiet)) { break }
             } elseif ($DialogFixture) {
                 $fixtureLog = Join-Path $OutputDirectory 'process.stdout.log'
                 if ((Test-Path -LiteralPath $fixtureLog) -and
@@ -515,6 +528,12 @@ if ($DialogCursorCheck) {
         $cursorPass.Groups[5].Value $cursorPass.Groups[6].Value $cursorPass.Groups[7].Value
     if ($LASTEXITCODE -ne 0) { throw 'Dialog cursor pixel in the decoded PNG does not match the engine cursor palette color.' }
     Write-Output $cursorLog
+}
+if ($DialogLayoutCheck) {
+    $layoutLog = Get-Content -Raw -LiteralPath (Join-Path $OutputDirectory 'process.stdout.log')
+    if ($dialogFixtureFailed -or $layoutLog -notmatch '(?m)^DIALOG_LAYOUT_CHECK PASS geometry=non-overlapping buttons=7 text_rows=8') {
+        throw "Dialog layout geometry check failed or timed out within $TimeoutSeconds s.`n$layoutLog"
+    }
 }
 if ($snapshots.Count -lt $shots) { throw "No snapshot within $TimeoutSeconds s." }
 foreach ($snapshot in $snapshots) {

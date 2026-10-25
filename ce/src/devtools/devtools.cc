@@ -140,6 +140,7 @@ int gDialogPageInspectStage = 0;
 std::vector<std::string> gDialogPageInspectInitialText;
 bool gDialogCursorCheckRequested = false;
 int gDialogCursorCheckStage = 0;
+bool gDialogLayoutCheckRequested = false;
 bool gDialogCursorCheckCursorMoveInProgress = false;
 std::vector<std::string> gDialogCursorCheckInitialText;
 scene::TextRecord gDialogCursorCheckRecord;
@@ -751,6 +752,10 @@ bool parseOption(const char* arg)
     }
     if (strcmp(arg, "--dev-dialog-cursor-check") == 0) {
         gDialogCursorCheckRequested = true;
+        return true;
+    }
+    if (strcmp(arg, "--dev-dialog-layout-check") == 0) {
+        gDialogLayoutCheckRequested = true;
         return true;
     }
     if (parseUiFixtureOption(arg)) return true;
@@ -1931,6 +1936,55 @@ void vanillaPresented()
             }
         }
         if (ownerCount >= 2) {
+            if (gDialogLayoutCheckRequested) {
+                const int optionCount = gameDialogGetOptionCount();
+                const int lineHeight = fontGetLineHeight();
+                std::vector<GameDialogOptionLayout> layouts;
+                layouts.reserve(optionCount);
+                int visibleOptions = 0;
+                int textRows = 0;
+                for (int index = 0; index < optionCount; index++) {
+                    GameDialogOptionLayout layout = {};
+                    if (gameDialogGetOptionLayout(index, &layout)) {
+                        visibleOptions++;
+                        textRows += std::max(1, (layout.textBottom - layout.textTop + lineHeight - 1) / lineHeight);
+                        layouts.push_back(layout);
+                    }
+                }
+
+                const int expectedOptionCount = 7;
+                const int expectedTextRows = 8;
+                const int requiredGroupGap = settings.scene3d.sharp_text ? 4 : 2;
+                bool layoutValid = visibleOptions == expectedOptionCount && textRows == expectedTextRows;
+                printf("DIALOG_LAYOUT_CHECK PLAN sharp_setting=%d options=%d visible=%d text_rows=%d line_height=%d required_group_gap=%d\n",
+                    settings.scene3d.sharp_text ? 1 : 0, optionCount, visibleOptions, textRows, lineHeight, requiredGroupGap);
+                for (std::size_t row = 0; row < layouts.size(); row++) {
+                    const GameDialogOptionLayout& layout = layouts[row];
+                    const int gapFromPrevious = row == 0 ? 0 : layout.textTop - layouts[row - 1].textBottom;
+                    if (row > 0 && gapFromPrevious < requiredGroupGap) layoutValid = false;
+                    if (layout.buttonRight <= layout.buttonLeft || layout.buttonBottom <= layout.buttonTop
+                        || (row > 0 && layouts[row - 1].buttonBottom > layout.buttonTop)) {
+                        layoutValid = false;
+                    }
+                    printf("DIALOG_LAYOUT_CHECK ROW index=%d text_top=%d text_bottom=%d button_left=%d button_top=%d button_right=%d button_bottom=%d gap_from_previous=%d\n",
+                        layout.index, layout.textTop, layout.textBottom,
+                        layout.buttonLeft, layout.buttonTop, layout.buttonRight, layout.buttonBottom, gapFromPrevious);
+                }
+
+                if (layoutValid) {
+                    printf("DIALOG_LAYOUT_CHECK PASS geometry=non-overlapping buttons=%d text_rows=%d\n",
+                        visibleOptions, textRows);
+                } else {
+                    printf("DIALOG_LAYOUT_CHECK FAIL geometry=invalid buttons=%d text_rows=%d\n",
+                        visibleOptions, textRows);
+                }
+                fflush(stdout);
+                gDialogLayoutCheckRequested = false;
+                if (!layoutValid) {
+                    gDialogFixtureFinished = true;
+                    return;
+                }
+            }
             if (uiFixtureUsesDialogBarter()) {
                 uiFixtureDialogReady(gDialogFixtureScript, gDialogFixtureSpeakerId,
                     gDialogFixtureSpeakerTile, runCount);
