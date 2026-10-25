@@ -89,3 +89,20 @@ depth (scene_draw.cc); the game's view keeps its old order.
 Check: the game's view 0 pixels changed (kladwtwn, klamall). The owner's
 spot before and after: `runs/071-walls-whole/owner-view-before-after.png`;
 four corners now: `corners-round-3.png`.
+
+### 2026-10-25 claude (round 4)
+The owner's live review (`runs/inbox/2026-10-25-corner-*.png|webp`): white
+stripes, an asphalt-like strip, a crack by the crate, the STOP corner
+crooked. Fixed in `wall_sidecar.py`: end faces and fills took their column
+scale from the lending row's own length, so a short corner piece stretched
+one or two columns over the whole face (the stripes); they now take the
+projection's columns per unit (48 along u, 32 along v). Added faces reach
+0.01 into their neighbours, so no crack shows between them. A corner cap no
+longer runs past a short corner piece whose other end is set too (the STOP
+corner's overhang), the donor's end strips at moved ends are found with a
+wider tolerance, a corner row's picture above its top is dropped for the
+free camera (the other wall's top drawn in it), and the caps take the colour
+of the wall's own top at that point. Left as art: the corner's dark edge line
+painted in the corner piece.
+Check: exporter suite 50/50; the game's view 0 pixels changed on kladwtwn and
+klamall; `runs/071-walls-whole/corners-round-4-crate-stop.png`.

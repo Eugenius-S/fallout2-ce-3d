@@ -29,3 +29,11 @@ that fits no task becomes a new task when the board runs dry.
   050 (the wide halo) merged on 2026-10-25; Klamath screens are dead art, but
   the burning barrels should glow. Look again in the next build before
   calling it art.
+- 2026-10-25 The 3D furniture looks gone in the owner's live game: the
+  bathhouse shelves read flat (`runs/inbox/2026-10-25-bathhouse-shelves-flat.png`,
+  `2026-10-25-bathhouse-interior.png`), though glm's eval shots had them in
+  3D; the stove the owner sent glm the day before belongs here too. First
+  check whether the owner's build or cache lost the solids (040, 039), or
+  whether these things were never covered. Not now.
+- 2026-10-25 A table in the bathhouse sticks through its walls
+  (`runs/inbox/2026-10-25-bathhouse-interior.png`). Not now.

@@ -18,7 +18,11 @@ in the wall instead of floating as a card.
 
 ## Context
 
-- The owner asked for it on 2026-10-24. The PLANE mechanism from 037 pins
+- The owner asked for it on 2026-10-24 and showed it on 2026-10-25 in
+  their live game: an open door stands out of its wall at an angle
+  (`runs/inbox/2026-10-25-open-door-buckner.webp`, the Buckner house; also
+  `2026-10-25-door-ajar-on-wall.png`), and closed doors sit crooked on their
+  walls (`2026-10-25-bathhouse-interior.png`). The PLANE mechanism from 037 pins
   signs to walls already; doors need the same, with their open and closed
   frames.
 
