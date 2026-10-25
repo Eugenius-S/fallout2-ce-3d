@@ -28,6 +28,8 @@ from projection_sidecar import VERSION as PROJECTION_SIDECAR_VERSION  # noqa: E4
 from projection_sidecar import decode_projection_sidecar, encode_projection_sidecar  # noqa: E402
 from wall_sidecar import VERSION as WALL_SIDECAR_VERSION  # noqa: E402
 from wall_sidecar import decode_wall_sidecar, encode_wall_sidecar  # noqa: E402
+from shadow_sidecar import VERSION as SHADOW_SIDECAR_VERSION  # noqa: E402
+from shadow_sidecar import decode_shadow_sidecar, encode_shadow_sidecar  # noqa: E402
 
 EXPORTER_VERSION = "1.10.0"
 DONOR_REVISION = "0da1cd449f1dc7f2f6986ff7e8728a4b6ae20584"
@@ -35,9 +37,13 @@ DEFAULT_MAP = "kladwtwn"
 # Map groups for --maps: every elevation each map has.
 MAP_GROUPS = {
     "klamath": ("kladwtwn", "klatrap", "klacanyn", "klagraz", "klamall", "klaratcv", "klatoxcv"),
+    # The starting vault: its screens (monitr, bvs, comp arts) carry live
+    # cycling colours, unlike Klamath's dead ones (task 050).
+    "vault15": ("vault15",),
+    "den": ("denbus1", "denbus2", "denres1"),
 }
 EXPECTED_OUTPUT_FILES = {"scene.json", "provenance.json", "floor.bin", "walls.bin", "projection.bin", "baked.bin",
-                         "tiles.png", "light.png", "rock.png"}
+                         "shadows.bin", "tiles.png", "light.png", "rock.png"}
 
 
 def choose_source(key, sources):
@@ -387,12 +393,15 @@ def export_scene(gf, game_root: Path, map_name: str, elevation: int, out_dir: Pa
     projection_payload = encode_projection_sidecar(scene)
     (out_dir / "projection.bin").write_bytes(projection_payload)
     decode_projection_sidecar(projection_payload)
+    shadow_payload = encode_shadow_sidecar(scene, builder.atlas.images, builder.map.objects[elevation])
+    (out_dir / "shadows.bin").write_bytes(shadow_payload)
+    shadow_count = len(decode_shadow_sidecar(shadow_payload))
 
     vendor_files = sorted((HERE / "vendor").rglob("*.py"))
     vendor_hashes = {p.relative_to(HERE / "vendor").as_posix(): sha256_file(p) for p in vendor_files}
     adapter_hashes = {name: sha256_file(HERE / name) for name in
                       ("export.py", "floor_sidecar.py", "wall_sidecar.py", "projection_sidecar.py", "baked_sidecar.py",
-                       "scene_check.py", "solids.py")}
+                       "shadow_sidecar.py", "scene_check.py", "solids.py")}
     archives = [{"name": name, "path": source.path.relative_to(game_root).as_posix()
                  if source.path.is_relative_to(game_root) else str(source.path),
                  "size": source.path.stat().st_size, "sha256": sha256_file(source.path)}
@@ -445,6 +454,8 @@ def export_scene(gf, game_root: Path, map_name: str, elevation: int, out_dir: Pa
                           "sha256": artifact_hashes["baked.bin"], "objects": baked_count},
         "projection_sidecar": {"file": "projection.bin", "format_version": PROJECTION_SIDECAR_VERSION,
                                "sha256": artifact_hashes["projection.bin"], "float64_values": 10},
+        "shadow_sidecar": {"file": "shadows.bin", "format_version": SHADOW_SIDECAR_VERSION,
+                           "sha256": artifact_hashes["shadows.bin"], "sprites": shadow_count},
         "archives": archives,
         "resources_read": gf._reads,
         "artifacts_sha256": artifact_hashes,

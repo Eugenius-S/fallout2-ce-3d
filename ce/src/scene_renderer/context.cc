@@ -55,6 +55,9 @@ unsigned int gProgram = 0;
 unsigned int gVao = 0;
 unsigned int gVbo = 0;
 unsigned int gTexture = 0;
+unsigned int gSharpTextTexture = 0;
+int gSharpTextTextureWidth = 0;
+int gSharpTextTextureHeight = 0;
 int gTextureUniformLocation = -1;
 int gRectUniformLocation = -1;
 
@@ -121,6 +124,7 @@ void drawTextureQuad(unsigned int texture, int dstX, int dstY, int dstW, int dst
         return;
     }
 
+    glActiveTexture(kTexture0);
     glBindTexture(kTexture2D, texture);
 
     float nx = static_cast<float>(windowX + dstX * windowW / gLogicalWidth);
@@ -273,6 +277,7 @@ bool init(SDL_Window* window, int logicalWidth, int logicalHeight)
     glVertexAttribPointer(1, 2, 0x1406, 0, 4 * sizeof(float), reinterpret_cast<const void*>(2 * sizeof(float)));
 
     glGenTextures(1, &gTexture);
+    glGenTextures(1, &gSharpTextTexture);
 
     // The framebuffer size is physical pixels; SDL_GetWindowSize returns
     // DPI-virtualized points, which letterboxes the image into a corner.
@@ -295,6 +300,12 @@ void shutdown()
         if (gTexture != 0) {
             glDeleteTextures(1, &gTexture);
             gTexture = 0;
+        }
+        if (gSharpTextTexture != 0) {
+            glDeleteTextures(1, &gSharpTextTexture);
+            gSharpTextTexture = 0;
+            gSharpTextTextureWidth = 0;
+            gSharpTextTextureHeight = 0;
         }
         if (gVbo != 0) {
             glDeleteBuffers(1, &gVbo);
@@ -354,6 +365,51 @@ void drawOverlay(const unsigned char* rgba, int width, int height, int pitch, in
     glBlendFunc(1 /* GL_ONE */, kOneMinusSrcAlpha);
     drawQuad(width, height, pitch, rgba, dstX, dstY, dstW, dstH);
     glDisable(kBlend);
+}
+
+bool sharpTextOutputSize(int* width, int* height)
+{
+    if (!gInitialized || width == nullptr || height == nullptr) return false;
+    SDL_GL_GetDrawableSize(gWindow, &gWindowWidth, &gWindowHeight);
+    int x = 0;
+    int y = 0;
+    return fitRect(gLogicalWidth, gLogicalHeight, gWindowWidth, gWindowHeight, &x, &y, width, height);
+}
+
+bool uploadSharpTextOverlay(const unsigned char* rgba, int width, int height, int pitch)
+{
+    if (!gInitialized || rgba == nullptr || width <= 0 || height <= 0 || pitch < width * 4
+        || pitch % 4 != 0 || gSharpTextTexture == 0) return false;
+    while (glGetError() != 0) {
+    }
+    glActiveTexture(kTexture0);
+    if (width != gSharpTextTextureWidth || height != gSharpTextTextureHeight) {
+        glBindTexture(kTexture2D, gSharpTextTexture);
+        glTexImage2D(kTexture2D, 0, kRgba8, width, height, 0, kRGBA, kUnsignedByte, nullptr);
+        glTexParameteri(kTexture2D, kTextureMinFilter, kNearest);
+        glTexParameteri(kTexture2D, kTextureMagFilter, kNearest);
+        glTexParameteri(kTexture2D, kTextureWrapS, kClampToEdge);
+        glTexParameteri(kTexture2D, kTextureWrapT, kClampToEdge);
+        gSharpTextTextureWidth = width;
+        gSharpTextTextureHeight = height;
+    }
+    glBindTexture(kTexture2D, gSharpTextTexture);
+    glPixelStorei(kUnpackRowLength, pitch / 4);
+    glTexSubImage2D(kTexture2D, 0, 0, 0, width, height, kRGBA, kUnsignedByte, rgba);
+    glPixelStorei(kUnpackRowLength, 0);
+    return glGetError() == 0;
+}
+
+bool drawSharpTextOverlay()
+{
+    if (!gInitialized || gSharpTextTexture == 0 || gSharpTextTextureWidth <= 0 || gSharpTextTextureHeight <= 0) return false;
+    while (glGetError() != 0) {
+    }
+    glEnable(kBlend);
+    glBlendFunc(1 /* GL_ONE */, kOneMinusSrcAlpha);
+    drawTextureQuad(gSharpTextTexture, 0, 0, gLogicalWidth, gLogicalHeight);
+    glDisable(kBlend);
+    return glGetError() == 0;
 }
 
 void swap()

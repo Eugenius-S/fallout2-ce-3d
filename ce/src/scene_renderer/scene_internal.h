@@ -195,6 +195,16 @@ extern int gSceneLightWindowLocation;
 extern int gSceneSeeThroughLocation;
 extern int gSceneSeeThroughObjectsLocation;
 extern int gSceneEggPassLocation;
+// The sun's shadow (shadow.cc): on, the world-to-map matrix, the depth map
+// (unit 5), the sun's strength, the AA ring's span in GL units, the compare
+// bias and the map's depth span.
+extern int gSceneShadowOnLocation;
+extern int gSceneShadowMatrixLocation;
+extern int gSceneShadowMapLocation;
+extern int gSceneShadowStrengthLocation;
+extern int gSceneShadowStepLocation;
+extern int gSceneShadowBiasLocation;
+extern int gSceneShadowRangeLocation;
 
 bool createSceneShader(std::string* error);
 void destroySceneShader();
@@ -220,6 +230,9 @@ void setRoofSquares(std::vector<RoofSquare> squares);
 void destroyRoofs();
 // With the scene program in use and the game view's matrix set.
 void drawRoofs(int viewportX, int viewportY, int viewportWidth, int viewportHeight);
+// All roof squares (hidden ones included) as the shadow pass's casters; the
+// shadow VAO roofs.cc owns, built on demand.
+void roofShadowCasters(unsigned int* vao, int* vertexCount);
 // Binds the egg's mask (unit 1) and sets its rect and the viewport; false when
 // no egg is shown.
 bool bindEgg(int viewportX, int viewportY, int viewportWidth, int viewportHeight);
@@ -230,6 +243,8 @@ bool lightShown();
 float lightAmbient();
 // Sets the hex a sprite is lit at (uLightAnchor).
 void setLightAnchor(int tile);
+// The ground point a sprite's hex is lit at; false off the grid.
+bool lightAnchorGround(int tile, double* x, double* z);
 // Places the lights, uploads their reach (unit 3) and the light per hex
 // (unit 4) if they changed and sets the light uniforms; false when the scene
 // shows no light.

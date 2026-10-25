@@ -15,6 +15,7 @@
 #include "input.h"
 #include "interface.h"
 #include "memory.h"
+#include "scene/text_capture.h"
 #include "settings.h"
 #include "svga.h"
 #include "text_font.h"
@@ -365,6 +366,7 @@ static void displayMonitorRefresh()
     int oldFont = fontGetCurrent();
     fontSetCurrent(DISPLAY_MONITOR_FONT);
 
+    ScopedTextCaptureTag captureTag(TextCaptureTag::HudMessageLog);
     for (int index = 0; index < _max_disp; index++) {
         int stringIndex = (_disp_curr + gDisplayMonitorLinesCapacity + index - _max_disp) % gDisplayMonitorLinesCapacity;
         fontDrawText(buf + index * _intface_full_width * fontGetLineHeight(), gDisplayMonitorLines[stringIndex], DISPLAY_MONITOR_WIDTH, _intface_full_width, COLOR_GREEN);

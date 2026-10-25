@@ -4,7 +4,7 @@
   "map": "KLAGRAZ.MAP",
   "elevation": 0,
   "still_snapshot": true,
-  "snapshot_run": "18bf41ced8b54578a022d376ada32e94",
+  "snapshot_run": "1606d60e52a9444e87daba1842d9a55a",
   "view_tile": 24727,
   "preview_requested": true,
   "scene_3d_enabled": true,
@@ -44,7 +44,7 @@
     ]
   },
   "camera": "fixed eye=(62.64466,46.23085,85.46700), target=(13.45833,0.00000,11.68750), fov_y=25.0, near=0.1, far=400.0, screen_right=-cross(forward,world_up)",
-  "wall_triangles": 544,
+  "wall_triangles": 438,
   "wall_pages": 1,
   "hero": {
     "tile": 21937,
@@ -56,6 +56,18 @@
       4.6875
     ]
   },
+  "egg": {
+    "shown": true,
+    "rect": [
+      -36,
+      42,
+      129,
+      98
+    ],
+    "zoom": 1.0,
+    "wall_rows_marked": 21,
+    "wall_rows_any": true
+  },
   "objects": {
     "drawn": 3685,
     "skipped": 0
@@ -63,16 +75,35 @@
   "preview_availability": "available",
   "renderer": "scene-gl",
   "light": "off",
+  "sun": {
+    "setting": true,
+    "daylight": true,
+    "game_time": 302400,
+    "up": true,
+    "height": 35.267,
+    "azimuth": 171.0,
+    "direction": [
+      -0.80642,
+      0.57739,
+      0.12772
+    ],
+    "color": [
+      1.0,
+      0.96,
+      0.88
+    ],
+    "strength": 1.0
+  },
   "resolution": "1920x1080",
   "logical_resolution": "960x540",
   "scale": 2,
   "windowed": true,
   "drawable": "1920x1080",
-  "ce_commit": "c174b340",
+  "ce_commit": "32f0fe2b",
   "tools_commit": "-",
-  "exe_sha256": "56666cb851b12256092c99b5f409d772e3e6d1bed0aed59f1ee2814bcd731251",
-  "taken": "20261020-153146",
-  "capture_image": "devhero-20261020-153146-000.png",
+  "exe_sha256": "ddc03416aa937b3bff789b7fb92ea636760523efd0da660f9dbbd9f5880636f4",
+  "taken": "20261022-093147",
+  "capture_image": "devhero-20261022-093147-000.png",
   "spot": {
     "name": "klagraz-e0",
     "map": "klagraz",

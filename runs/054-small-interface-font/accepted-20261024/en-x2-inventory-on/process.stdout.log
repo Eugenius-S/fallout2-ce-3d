@@ -1,0 +1,6 @@
+scene: cache E:\Projects\fallout2-ce-3d-gpt\build\scene-cache\kladwtwn\0
+devtools: static wall+hero preview started for KLADWTWN.MAP elevation 0
+scene: preview policy=available gameState=0 gameMode=0x0 uiDisabled=0 isoDisabled=0 combat=0 dialog=0 movie=0
+UI_FIXTURE START screen=inventory engine_key=105
+scene: preview policy=game-mode gameState=0 gameMode=0x1000 uiDisabled=0 isoDisabled=1 combat=0 dialog=0 movie=0
+UI_FIXTURE PASS screen=inventory window=5 generation=70814 font=101 runs=34 screen_runs=34 visible_runs=34 visible_coverage=11630 overlay_runs=34 overlay_pixels=10715 colors=original green=34 white=0 yellow=0 red=0 other=0 sharp_setting=1 active=1 drawn=1 sample=Нарг

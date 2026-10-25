@@ -16,6 +16,7 @@
 #include "mouse.h"
 #include "palette.h"
 #include "svga.h"
+#include "scene/text_capture.h"
 #include "text_font.h"
 #include "win32.h"
 #include "window_manager_private.h"
@@ -339,13 +340,13 @@ int windowCreate(int x, int y, int width, int height, ColorWithFlags color, int 
         internal_free(window);
         return -1;
     }
-
     int id = 1;
     while (windowGetWindow(id) != nullptr) {
         id++;
     }
 
     window->id = id;
+    textCaptureMarkWindowBuffer(window->buffer, id);
 
     if ((flags & WINDOW_USE_DEFAULTS) != 0) {
         flags |= _window_flags;
@@ -450,6 +451,7 @@ void windowFree(int win)
     }
 
     if (window->buffer != nullptr) {
+        textCaptureForgetWindow(win, window->buffer);
         internal_free(window->buffer);
     }
 
@@ -1214,6 +1216,31 @@ bool windowShownMask(int win, unsigned char* mask, int width, int height)
             fill(above->rect, 0);
         }
     }
+    return true;
+}
+
+Window* windowGetDrawOrderWindow(int index, int* count)
+{
+    if (count != nullptr) *count = gWindowSystemInitialized ? gWindowsLength : 0;
+    if (!gWindowSystemInitialized || index < 0 || index >= gWindowsLength) return nullptr;
+    return gWindows[index];
+}
+
+bool textCaptureGetWindowSnapshot(int index, TextWindowSnapshot* snapshot, int* count)
+{
+    if (snapshot == nullptr) return false;
+    Window* window = windowGetDrawOrderWindow(index, count);
+    if (window == nullptr) return false;
+    snapshot->id = window->id;
+    snapshot->x = window->rect.left;
+    snapshot->y = window->rect.top;
+    snapshot->width = window->width;
+    snapshot->height = window->height;
+    snapshot->pitch = window->width;
+    snapshot->hidden = (window->flags & WINDOW_HIDDEN) != 0;
+    snapshot->transparent = (window->flags & WINDOW_TRANSPARENT) != 0;
+    snapshot->pixels = window->buffer;
+    snapshot->generation = textCaptureBufferId(window->buffer);
     return true;
 }
 

@@ -45,3 +45,18 @@ target_include_directories(settings_3d_tests PRIVATE
 )
 target_compile_definitions(settings_3d_tests PRIVATE SDL_MAIN_HANDLED)
 add_test(NAME settings_3d_tests COMMAND settings_3d_tests)
+
+add_executable(options_panel_model_tests
+    ../../src/options_panel_model.cc
+    ../../src/options_schema.cc
+    options_panel_model_test.cc
+)
+target_include_directories(options_panel_model_tests PRIVATE
+    ../../src
+    ${sdl2_SOURCE_DIR}/include
+    ${sdl2_BINARY_DIR}/include
+    ${zlib_SOURCE_DIR}
+    ${zlib_BINARY_DIR}
+)
+target_compile_definitions(options_panel_model_tests PRIVATE SDL_MAIN_HANDLED)
+add_test(NAME options_panel_model_tests COMMAND options_panel_model_tests)

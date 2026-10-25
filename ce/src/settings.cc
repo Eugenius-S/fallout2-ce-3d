@@ -436,12 +436,31 @@ void initSettingsRegistry(bool isMapper)
     };
     registerThreeDBoolean("enabled", settings.scene3d.enabled, "Enable 3D scene",
         "Show the 3D world view where a scene is available.", SettingApplyPolicy::OnClose);
+    registerThreeDBoolean("sharp_text", settings.scene3d.sharp_text, "Sharp interface text",
+        "Draw small interface text with a high-resolution font.", SettingApplyPolicy::OnClose);
     registerThreeDBoolean("clean_edges", settings.scene3d.clean_edges, "Clean map edges",
         "Cut the 3D scene to the map boundary, leaving black beyond it.", SettingApplyPolicy::OnClose);
     registerThreeDBoolean("sun", settings.scene3d.sun, "Sun",
         "A sun that follows game time on maps under the sky: low and warm in the morning and evening, "
         "none at night or underground.",
         SettingApplyPolicy::OnClose);
+    registerThreeDBoolean("shadows", settings.scene3d.shadows, "Sun shadows",
+        "Buildings and big things cast sharp sun shadows on the floor and the walls in the 3D view.",
+        SettingApplyPolicy::OnClose);
+    registerSetting("3d", "shadow_pixel_size", settings.scene3d.shadow_pixel_size, clamp(1.0, 16.0));
+    SettingDescriptor& shadowPixelDescriptor = settingDescriptors.back();
+    shadowPixelDescriptor.category = SettingCategory::Uncategorized;
+    shadowPixelDescriptor.applyPolicy = SettingApplyPolicy::OnClose;
+    shadowPixelDescriptor.subsection = "3D";
+    shadowPixelDescriptor.fallbackLabel = "Shadow edge softness";
+    shadowPixelDescriptor.fallbackDescription =
+        "How wide, in game pixels, a shadow's edge softens over; the shadow itself stays crisp.";
+    shadowPixelDescriptor.numericRange = SettingNumericRange { 1.0, 16.0, 1.0 };
+    settingsRegistry.back().descriptor = shadowPixelDescriptor;
+    settingsRegistry.back().write = [](bool onlyAdd) {
+        if (onlyAdd && settingsKeyExists("3d", "shadow_pixel_size")) return;
+        settingsWrite("3d", "shadow_pixel_size", onlyAdd ? 3.0 : settings.scene3d.shadow_pixel_size);
+    };
     registerThreeDBoolean("glow", settings.scene3d.glow, "Glow",
         "Things that shine in Fallout 2 (fire, monitors, signs) bleed light softly in the 3D view.",
         SettingApplyPolicy::OnClose);
@@ -452,6 +471,7 @@ void initSettingsRegistry(bool isMapper)
     glowStrengthDescriptor.subsection = "3D";
     glowStrengthDescriptor.fallbackLabel = "Glow strength";
     glowStrengthDescriptor.fallbackDescription = "How far the glow of shining things spreads and brightens.";
+    glowStrengthDescriptor.numericRange = SettingNumericRange { 0.0, 3.0, 0.1 };
     settingsRegistry.back().descriptor = glowStrengthDescriptor;
     settingsRegistry.back().write = [](bool onlyAdd) {
         if (onlyAdd && settingsKeyExists("3d", "glow_strength")) return;
@@ -493,6 +513,8 @@ void initSettingsRegistry(bool isMapper)
     zoomDescriptor.subsection = "3D";
     zoomDescriptor.fallbackLabel = "Camera zoom";
     zoomDescriptor.fallbackDescription = "How much the 3D view is zoomed. Kept between sessions.";
+    zoomDescriptor.numericRange = SettingNumericRange { 0.1, 10.0, 0.1 };
+    settingsRegistry.back().descriptor = zoomDescriptor;
     settingsRegistry.back().write = [](bool onlyAdd) {
         if (onlyAdd && settingsKeyExists("3d", "zoom")) return;
         settingsWrite("3d", "zoom", settings.scene3d.zoom);
@@ -505,6 +527,8 @@ void initSettingsRegistry(bool isMapper)
     zoomMinDescriptor.subsection = "3D";
     zoomMinDescriptor.fallbackLabel = "Camera zoom limit (smallest)";
     zoomMinDescriptor.fallbackDescription = "The smallest 3D view zoom the mouse wheel reaches.";
+    zoomMinDescriptor.numericRange = SettingNumericRange { 0.1, 10.0, 0.1 };
+    settingsRegistry.back().descriptor = zoomMinDescriptor;
     settingsRegistry.back().write = [](bool onlyAdd) {
         if (onlyAdd && settingsKeyExists("3d", "zoom_min")) return;
         settingsWrite("3d", "zoom_min", settings.scene3d.zoom_min);
@@ -517,6 +541,8 @@ void initSettingsRegistry(bool isMapper)
     zoomMaxDescriptor.subsection = "3D";
     zoomMaxDescriptor.fallbackLabel = "Camera zoom limit (largest)";
     zoomMaxDescriptor.fallbackDescription = "The largest 3D view zoom the mouse wheel reaches.";
+    zoomMaxDescriptor.numericRange = SettingNumericRange { 0.1, 10.0, 0.1 };
+    settingsRegistry.back().descriptor = zoomMaxDescriptor;
     settingsRegistry.back().write = [](bool onlyAdd) {
         if (onlyAdd && settingsKeyExists("3d", "zoom_max")) return;
         settingsWrite("3d", "zoom_max", settings.scene3d.zoom_max);

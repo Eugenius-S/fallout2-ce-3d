@@ -50,6 +50,12 @@ struct SettingChoice {
     std::string fallbackLabel;
 };
 
+struct SettingNumericRange {
+    double minimum;
+    double maximum;
+    std::optional<double> step;
+};
+
 struct SettingDescriptor {
     std::string id;
     std::string source = "fallout2.cfg";
@@ -71,6 +77,7 @@ struct SettingDescriptor {
     std::string fallbackDescription;
     std::string asset;
     std::vector<SettingChoice> choices;
+    std::optional<SettingNumericRange> numericRange;
     std::optional<SettingValue> vanillaValue;
 };
 
@@ -283,8 +290,11 @@ struct QolSettings {
 
 struct Scene3dSettings {
     bool enabled = true;
+    bool sharp_text = true;
     bool lights = true;
     bool sun = true;
+    bool shadows = true;
+    double shadow_pixel_size = 3.0;
     bool glow = true;
     double glow_strength = 1.0;
     bool camera_rotation = false;

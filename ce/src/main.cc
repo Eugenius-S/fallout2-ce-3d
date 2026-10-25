@@ -99,6 +99,7 @@ int falloutMain(int argc, char** argv)
 
     mainParseCommandLineArguments(argc, argv);
     devtools::applyBackgroundGlow();
+    devtools::applyBackgroundShadows();
     devtools::applyBackgroundZoom();
     devtools::prepareStillSnapshot();
 

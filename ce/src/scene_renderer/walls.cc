@@ -2,12 +2,15 @@
 
 #include <algorithm>
 #include <cmath>
+#include <map>
 #include <stdio.h>
 
 #include <lodepng.h>
 
 #include "gl_api.h"
 #include "scene_internal.h"
+#include "shadow.h"
+#include "board_shadows.h"
 #include "../tile.h"
 
 namespace fallout {
@@ -33,6 +36,7 @@ struct BakedObject {
     // solid made by name stands for in flight only.
     enum Mode { Skip, Lift, Flat, Plane, FlyFlat, FlySkip } mode;
     float offset[3]; // GL x, y, z when lifted; a plane's point x, its direction, z
+    bool noCast = false; // a plant's crown: its cards throw no shadow (task 045's follow-up)
 };
 
 unsigned int gWallTriangleCount = 0;
@@ -40,6 +44,10 @@ std::unordered_map<unsigned long long, BakedObject> gBakedObjects;
 int gSoloTile = -1;
 int gSoloRadius = 0;
 std::filesystem::path gWallsDirectory; // what loadStaticWalls last loaded, for a new solo
+
+// The shadow pass's caster triangles (task 045), one buffer over all batches.
+unsigned int gShadowVao = 0;
+unsigned int gShadowVbo = 0;
 
 int soloHexDistance(int tile1, int tile2)
 {
@@ -82,7 +90,11 @@ namespace internal {
 
 void destroyStaticWalls()
 {
+    setShadowWallCasters(0, 0.0f, {});
+    unloadBoardShadows();
     if (gContext != nullptr) {
+        if (gShadowVbo != 0) glDeleteBuffers(1, &gShadowVbo);
+        if (gShadowVao != 0) glDeleteVertexArrays(1, &gShadowVao);
         for (WallBatch& batch : gWallBatches) {
             if (batch.texture != 0 && batch.ownsTexture) glDeleteTextures(1, &batch.texture);
             if (batch.vbo != 0) glDeleteBuffers(1, &batch.vbo);
@@ -91,6 +103,8 @@ void destroyStaticWalls()
     }
     gWallBatches.clear();
     gWallTriangleCount = 0;
+    gShadowVao = 0;
+    gShadowVbo = 0;
     gWallsLoaded = false;
     gBakedObjects.clear();
     if (gContext != nullptr && gWallSeeThroughTexture != 0) glDeleteTextures(1, &gWallSeeThroughTexture);
@@ -377,12 +391,9 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
             batch.vertices = std::move(kept);
         }
     }
-    offset += static_cast<size_t>(objectCount) * kObjectSize;
-    if (offset != sidecar.size() || observedTriangles != totalTriangles) {
-        return fail("walls.bin has trailing data or a mismatched triangle count");
-    }
 
-    // Objects walls.bin draws; live sprite cards skip them.
+    // Objects walls.bin draws; live sprite cards skip them. Parsed before the
+    // shadow casters: a plant's crown is marked here and must not cast.
     constexpr size_t kBakedHeaderSize = 12;
     constexpr size_t kBakedEntrySize = 24;
     constexpr unsigned int kMaxBakedEntries = 1000000;
@@ -391,11 +402,12 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
         return fail("baked.bin is missing or unreadable; re-run the scene exporter");
     }
     if (baked.size() < kBakedHeaderSize || baked[0] != 'F' || baked[1] != '2' || baked[2] != 'B' || baked[3] != 'K'
-        || readU16(baked.data() + 4) < 2 || readU16(baked.data() + 4) > 5
+        || readU16(baked.data() + 4) < 2 || readU16(baked.data() + 4) > 6
         || readU16(baked.data() + 6) != kBakedHeaderSize) {
         return fail("baked.bin has an invalid header");
     }
-    const unsigned int bakedVersion = readU16(baked.data() + 4); // 3 adds Flat, 4 Plane and FlyFlat, 5 FlySkip
+    const unsigned int bakedVersion = readU16(baked.data() + 4); // 3 adds Flat, 4 Plane and FlyFlat, 5 FlySkip,
+                                                                 // 6 the no-cast flag in the mode's high bit
     const unsigned int bakedCount = readU32(baked.data() + 8);
     if (bakedCount > kMaxBakedEntries || baked.size() != kBakedHeaderSize + bakedCount * kBakedEntrySize) {
         return fail("baked.bin has a bad length");
@@ -404,7 +416,8 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
     for (unsigned int index = 0; index < bakedCount; index++) {
         const unsigned char* entry = baked.data() + kBakedHeaderSize + index * kBakedEntrySize;
         const int tile = static_cast<int>(readU32(entry));
-        const unsigned int mode = readU32(entry + 8);
+        const unsigned int rawMode = readU32(entry + 8);
+        const unsigned int mode = rawMode & 0x7FFFFFFFu; // the high bit: a plant's crown throws no shadow
         const float du = readF32(entry + 12);
         const float dv = readF32(entry + 16);
         const float dz = readF32(entry + 20);
@@ -416,7 +429,94 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
         }
         // Lifts are donor (u, v, z); GL is (u, z, v).
         bakedObjects[bakedObjectKey(tile, static_cast<int>(readU32(entry + 4)))]
-            = { static_cast<BakedObject::Mode>(mode), { du, dz, dv } };
+            = { static_cast<BakedObject::Mode>(mode), { du, dz, dv }, rawMode > mode };
+    }
+
+    // The shadow casters (task 045): the walls (object type 3) always, with
+    // their backs and ends; other baked objects when they span two hexes or
+    // stand taller than half a wall. Doors are tall, so they come along.
+    // Half a wall comes from the walls themselves, so the rule needs no
+    // constant from the exporter.
+    std::vector<float> rowMinX(objectCount, 0.0f), rowMaxX(objectCount, 0.0f);
+    std::vector<float> rowMinY(objectCount, 0.0f), rowMaxY(objectCount, 0.0f);
+    std::vector<float> rowMinZ(objectCount, 0.0f), rowMaxZ(objectCount, 0.0f);
+    std::vector<unsigned char> rowType(objectCount, 0);
+    std::vector<bool> rowSeen(objectCount, false);
+    std::vector<unsigned int> rowByIndex(objectCount, 0); // the object's fid per walls.bin row
+    std::vector<int> rowTileOf(objectCount, -1); // the object's tile per walls.bin row
+    {
+        for (const auto& [key, row] : objectRows) {
+            rowByIndex[row] = static_cast<unsigned int>(key & 0xFFFFFFFFu);
+            rowTileOf[row] = static_cast<int>(key >> 32);
+        }
+        for (unsigned int row = 0; row < objectCount && row < rowByIndex.size(); row++) {
+            rowType[row] = static_cast<unsigned char>((rowByIndex[row] >> 24) & 0xF);
+        }
+    }
+    for (const WallBatchData& batch : batches) {
+        for (size_t index = 0; index + 2 < batch.vertices.size(); index += 3) {
+            const float object = batch.vertices[index].object;
+            if (object < 0.0f) continue;
+            const size_t row = static_cast<size_t>(object);
+            for (int corner = 0; corner < 3; corner++) {
+                const DepthVertex& vertex = batch.vertices[index + corner].vertex;
+                if (!rowSeen[row]) {
+                    rowSeen[row] = true;
+                    rowMinX[row] = rowMaxX[row] = vertex.x;
+                    rowMinY[row] = rowMaxY[row] = vertex.y;
+                    rowMinZ[row] = rowMaxZ[row] = vertex.z;
+                } else {
+                    rowMinX[row] = std::min(rowMinX[row], vertex.x);
+                    rowMaxX[row] = std::max(rowMaxX[row], vertex.x);
+                    rowMinY[row] = std::min(rowMinY[row], vertex.y);
+                    rowMaxY[row] = std::max(rowMaxY[row], vertex.y);
+                    rowMinZ[row] = std::min(rowMinZ[row], vertex.z);
+                    rowMaxZ[row] = std::max(rowMaxZ[row], vertex.z);
+                }
+            }
+        }
+    }
+    float wallHeight = 0.0f;
+    for (unsigned int row = 0; row < objectCount; row++) {
+        if (rowType[row] == 3 && rowSeen[row]) wallHeight = std::max(wallHeight, rowMaxY[row]);
+    }
+    if (wallHeight <= 0.0f) wallHeight = 3.2f; // a wall with no walls on the map
+    const float halfWall = wallHeight * 0.5f;
+    // The caster triangles gather per atlas page, positions with UVs: the
+    // shadow pass binds each page's texture and cuts the art's transparent
+    // holes out of the depth map (063). The buffer and ranges are built after
+    // the wall batches own their GL textures, below.
+    std::map<unsigned int, std::vector<float>> casterPages;
+    for (const WallBatchData& batch : batches) {
+        for (size_t index = 0; index + 2 < batch.vertices.size(); index += 3) {
+            const float object = batch.vertices[index].object;
+            bool casts = false;
+            if (object < 0.0f) {
+                casts = true; // walls' own unattributed triangles
+            } else {
+                const size_t row = static_cast<size_t>(object);
+                casts = rowType[row] == 3
+                    || (rowMaxX[row] - rowMinX[row]) >= 2.0f || (rowMaxZ[row] - rowMinZ[row]) >= 2.0f
+                    || (rowMaxY[row] - rowMinY[row]) >= halfWall;
+                // A plant's crown throws no shadow (045's follow-up), whatever its size.
+                const auto known = gBakedObjects.find(bakedObjectKey(rowTileOf[row], static_cast<int>(rowByIndex[row])));
+                if (known != gBakedObjects.end() && known->second.noCast) casts = false;
+            }
+            if (!casts) continue;
+            std::vector<float>& page = casterPages[batch.page];
+            for (int corner = 0; corner < 3; corner++) {
+                const DepthVertex& vertex = batch.vertices[index + corner].vertex;
+                page.push_back(vertex.x);
+                page.push_back(vertex.y);
+                page.push_back(vertex.z);
+                page.push_back(vertex.u);
+                page.push_back(vertex.v);
+            }
+        }
+    }
+    offset += static_cast<size_t>(objectCount) * kObjectSize;
+    if (offset != sidecar.size() || observedTriangles != totalTriangles) {
+        return fail("walls.bin has trailing data or a mismatched triangle count");
     }
 
     while (glGetError() != 0) {
@@ -465,6 +565,45 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
     }
     glPixelStorei(kUnpackAlignment, 4);
     glBindVertexArray(0);
+    if (!casterPages.empty()) {
+        std::vector<float> casterData;
+        struct PageRange {
+            unsigned int page;
+            int first;
+            int count;
+        };
+        std::vector<PageRange> pageRanges;
+        for (auto& [page, vertices] : casterPages) {
+            pageRanges.push_back({ page, static_cast<int>(casterData.size() / 5),
+                static_cast<int>(vertices.size() / 5) });
+            casterData.insert(casterData.end(), vertices.begin(), vertices.end());
+        }
+        if (gShadowVao == 0) glGenVertexArrays(1, &gShadowVao);
+        if (gShadowVbo == 0) glGenBuffers(1, &gShadowVbo);
+        glBindVertexArray(gShadowVao);
+        glBindBuffer(kArrayBuffer, gShadowVbo);
+        glBufferData(kArrayBuffer,
+            static_cast<long long>(casterData.size() * sizeof(float)), casterData.data(), kStaticDraw);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, 0x1406 /* GL_FLOAT */, 0, 5 * sizeof(float), nullptr);
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 2, 0x1406 /* GL_FLOAT */, 0, 5 * sizeof(float),
+            reinterpret_cast<const void*>(3 * sizeof(float)));
+        glBindVertexArray(0);
+        std::vector<WallCasterRange> ranges;
+        for (const PageRange& pageRange : pageRanges) {
+            unsigned int texture = 0;
+            for (const WallBatch& batch : gWallBatches) {
+                if (batch.page == pageRange.page && batch.texture != 0) {
+                    texture = batch.texture;
+                    break;
+                }
+            }
+            if (texture == 0) continue; // the page's texture never loaded
+            ranges.push_back({ texture, pageRange.first, pageRange.count });
+        }
+        setShadowWallCasters(gShadowVao, wallHeight, std::move(ranges));
+    }
     if (objectCount > 0) {
         const unsigned int rows = (objectCount + kSeeThroughRowWidth - 1) / kSeeThroughRowWidth;
         gWallSeeThrough.assign(static_cast<size_t>(rows) * kSeeThroughRowWidth, 0);
@@ -482,6 +621,7 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
     gWallTriangleCount = totalTriangles;
     gBakedObjects = std::move(bakedObjects);
     gWallsLoaded = true;
+    loadBoardShadows(cacheDirectory, nullptr); // optional: a cache without it keeps the painted shadows
     if (error != nullptr) error->clear();
     gWallsDirectory = cacheDirectory;
     return true;

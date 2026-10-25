@@ -169,6 +169,19 @@ int main()
     }
     if (!check(lights != nullptr && std::get<bool>(lights->defaultValue) && settings.scene3d.lights
             && lights->fallbackLabel == "Light", "[3d].lights is registered, default on, with a menu label")) return 1;
+    const SettingDescriptor* zoom = findDescriptor("3d.zoom");
+    const SettingDescriptor* zoomMin = findDescriptor("3d.zoom_min");
+    const SettingDescriptor* zoomMax = findDescriptor("3d.zoom_max");
+    if (!check(zoom != nullptr && zoomMin != nullptr && zoomMax != nullptr,
+            "camera zoom descriptors are registered")) return 1;
+    for (const SettingDescriptor* numericSetting : { zoom, zoomMin, zoomMax }) {
+        if (!check(numericSetting->applyPolicy == SettingApplyPolicy::OnClose
+                && numericSetting->numericRange.has_value()
+                && numericSetting->numericRange->minimum == 0.1
+                && numericSetting->numericRange->maximum == 10.0
+                && numericSetting->numericRange->step == 0.1,
+                "camera zoom descriptors expose OnClose policy and slider bounds")) return 1;
+    }
     if (!check(settingsGetThreeDRevision() == 0, "unrelated config read does not change the 3D section revision")) return 1;
 
     scene::SettingsLifecycle unrelatedRevision;
@@ -273,5 +286,9 @@ int main()
     settingsWriteToConfig(false);
     if (!check(gConfiguredThreeDValue != nullptr && std::strcmp(gConfiguredThreeDValue, "0") == 0,
             "normal settings save writes the current disabled value")) return 1;
+    std::string zoomError;
+    if (!check(settingsSetValue(*zoom, SettingValue(1.25), &zoomError) && settings.scene3d.zoom == 1.25,
+            "camera zoom applies immediately through its registered OnClose descriptor")) return 1;
+    if (!check(settingsSetValue(*zoom, SettingValue(1.0), &zoomError), "camera zoom test restores the default")) return 1;
     return 0;
 }
