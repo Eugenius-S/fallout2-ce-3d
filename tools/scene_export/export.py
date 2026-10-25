@@ -38,6 +38,7 @@ MAP_GROUPS = {
     # The starting vault: its screens (monitr, bvs, comp arts) carry live
     # cycling colours, unlike Klamath's dead ones (task 050).
     "vault15": ("vault15",),
+    "den": ("denbus1", "denbus2", "denres1"),
 }
 EXPECTED_OUTPUT_FILES = {"scene.json", "provenance.json", "floor.bin", "walls.bin", "projection.bin", "baked.bin",
                          "tiles.png", "light.png", "rock.png"}

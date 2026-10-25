@@ -5,6 +5,7 @@
   "shape": "flat",
   "big": false,
   "note": "small rocks",
+  "town": "klamath",
   "count": 2387,
   "instance": [
    "kladwtwn",
@@ -20,6 +21,7 @@
   "shape": "card",
   "big": false,
   "note": "",
+  "town": "klamath",
   "count": 2191,
   "instance": [
    "kladwtwn",
@@ -35,6 +37,7 @@
   "shape": "card",
   "big": true,
   "note": "",
+  "town": "klamath",
   "count": 404,
   "instance": [
    "kladwtwn",
@@ -50,6 +53,7 @@
   "shape": "card",
   "big": true,
   "note": "",
+  "town": "klamath",
   "count": 293,
   "instance": [
    "kladwtwn",
@@ -65,6 +69,7 @@
   "shape": "card",
   "big": true,
   "note": "",
+  "town": "klamath",
   "count": 280,
   "instance": [
    "kladwtwn",
@@ -80,6 +85,7 @@
   "shape": "flat",
   "big": false,
   "note": "",
+  "town": "klamath",
   "count": 279,
   "instance": [
    "kladwtwn",
@@ -95,6 +101,7 @@
   "shape": "card",
   "big": false,
   "note": "",
+  "town": "klamath",
   "count": 241,
   "instance": [
    "kladwtwn",
@@ -110,6 +117,7 @@
   "shape": "card",
   "big": false,
   "note": "",
+  "town": "klamath",
   "count": 203,
   "instance": [
    "kladwtwn",
@@ -125,6 +133,7 @@
   "shape": "card",
   "big": false,
   "note": "",
+  "town": "klamath",
   "count": 182,
   "instance": [
    "kladwtwn",
@@ -140,6 +149,7 @@
   "shape": "card",
   "big": false,
   "note": "a low bush",
+  "town": "klamath",
   "count": 176,
   "instance": [
    "kladwtwn",
@@ -155,6 +165,7 @@
   "shape": "card",
   "big": false,
   "note": "a low bush",
+  "town": "klamath",
   "count": 147,
   "instance": [
    "kladwtwn",
@@ -170,6 +181,7 @@
   "shape": "card",
   "big": false,
   "note": "",
+  "town": "klamath",
   "count": 45,
   "instance": [
    "kladwtwn",
@@ -185,6 +197,7 @@
   "shape": "card",
   "big": false,
   "note": "a low heap of rocks",
+  "town": "klamath",
   "count": 54,
   "instance": [
    "kladwtwn",
@@ -200,6 +213,7 @@
   "shape": "flat",
   "big": false,
   "note": "",
+  "town": "klamath",
   "count": 112,
   "instance": [
    "kladwtwn",
@@ -215,6 +229,7 @@
   "shape": "card",
   "big": false,
   "note": "a low mound with weeds",
+  "town": "klamath",
   "count": 96,
   "instance": [
    "kladwtwn",
@@ -230,6 +245,7 @@
   "shape": "flat",
   "big": false,
   "note": "",
+  "town": "klamath",
   "count": 89,
   "instance": [
    "kladwtwn",
@@ -245,6 +261,7 @@
   "shape": "card",
   "big": false,
   "note": "a low heap of rocks",
+  "town": "klamath",
   "count": 87,
   "instance": [
    "kladwtwn",
@@ -260,6 +277,7 @@
   "shape": "flat",
   "big": false,
   "note": "",
+  "town": "klamath",
   "count": 86,
   "instance": [
    "kladwtwn",
@@ -275,6 +293,7 @@
   "shape": "card",
   "big": false,
   "note": "",
+  "town": "klamath",
   "count": 63,
   "instance": [
    "kladwtwn",
@@ -290,6 +309,7 @@
   "shape": "flat",
   "big": false,
   "note": "",
+  "town": "klamath",
   "count": 31,
   "instance": [
    "kladwtwn",
@@ -305,6 +325,7 @@
   "shape": "sheet",
   "big": false,
   "note": "the notice board (owner: crumpled from the air)",
+  "town": "klamath",
   "count": 1,
   "instance": [
    "kladwtwn",
@@ -320,6 +341,7 @@
   "shape": "drum",
   "big": false,
   "note": "the hydrant (owner: a hole)",
+  "town": "klamath",
   "count": 9,
   "instance": [
    "kladwtwn",
@@ -335,6 +357,7 @@
   "shape": "drum",
   "big": false,
   "note": "a cable spool",
+  "town": "klamath",
   "count": 11,
   "instance": [
    "kladwtwn",
@@ -350,6 +373,7 @@
   "shape": "drum",
   "big": false,
   "note": "the round table (owner: its stem is a card)",
+  "town": "klamath",
   "count": 10,
   "instance": [
    "kladwtwn",
@@ -365,6 +389,7 @@
   "shape": "plane",
   "big": true,
   "note": "a door (owner: stays on its wall, never turns)",
+  "town": "klamath",
   "count": 7,
   "instance": [
    "kladwtwn",
@@ -380,6 +405,7 @@
   "shape": "plane",
   "big": false,
   "note": "a fence gate (owner: as doors)",
+  "town": "klamath",
   "count": 2,
   "instance": [
    "kladwtwn",
@@ -395,6 +421,7 @@
   "shape": "drum",
   "big": false,
   "note": "the stove (owner: its top flickers)",
+  "town": "klamath",
   "count": 2,
   "instance": [
    "kladwtwn",
@@ -410,6 +437,7 @@
   "shape": "box+back",
   "big": true,
   "note": "the bed (owner: an extra face; the headboard on its plane)",
+  "town": "klamath",
   "count": 10,
   "instance": [
    "kladwtwn",
@@ -425,6 +453,7 @@
   "shape": "flat",
   "big": false,
   "note": "a sleeping bag",
+  "town": "klamath",
   "count": 10,
   "instance": [
    "kladwtwn",
@@ -440,6 +469,7 @@
   "shape": "box+back",
   "big": false,
   "note": "a chair (owner: a box and a back)",
+  "town": "klamath",
   "count": 12,
   "instance": [
    "kladwtwn",
@@ -455,6 +485,7 @@
   "shape": "box",
   "big": false,
   "note": "a low seat",
+  "town": "klamath",
   "count": 5,
   "instance": [
    "kladwtwn",
@@ -470,6 +501,7 @@
   "shape": "box",
   "big": false,
   "note": "a crate",
+  "town": "klamath",
   "count": 21,
   "instance": [
    "kladwtwn",
@@ -485,6 +517,7 @@
   "shape": "boxes",
   "big": false,
   "note": "a heap of crates (owner: a stray piece)",
+  "town": "klamath",
   "count": 20,
   "instance": [
    "kladwtwn",
@@ -500,6 +533,7 @@
   "shape": "box",
   "big": false,
   "note": "a desk",
+  "town": "klamath",
   "count": 1,
   "instance": [
    "kladwtwn",
@@ -515,6 +549,7 @@
   "shape": "box",
   "big": true,
   "note": "a locker",
+  "town": "klamath",
   "count": 6,
   "instance": [
    "klamall",
@@ -530,6 +565,7 @@
   "shape": "drum",
   "big": false,
   "note": "",
+  "town": "klamath",
   "count": 42,
   "instance": [
    "kladwtwn",
@@ -545,6 +581,7 @@
   "shape": "box",
   "big": true,
   "note": "a wrecked car",
+  "town": "klamath",
   "count": 4,
   "instance": [
    "kladwtwn",
@@ -560,6 +597,7 @@
   "shape": "flat",
   "big": false,
   "note": "a small flat thing on the floor",
+  "town": "klamath",
   "count": 19,
   "instance": [
    "kladwtwn",
@@ -575,6 +613,7 @@
   "shape": "box",
   "big": true,
   "note": "a big shelf",
+  "town": "klamath",
   "count": 6,
   "instance": [
    "klamall",
@@ -590,6 +629,7 @@
   "shape": "sheet",
   "big": true,
   "note": "a cave brace: a beam on posts",
+  "town": "klamath",
   "count": 23,
   "instance": [
    "klaratcv",
@@ -597,6 +637,294 @@
    18675,
    747,
    33555412
+  ]
+ },
+ {
+  "frm": "weed26.frm",
+  "name": "Weed",
+  "shape": "card",
+  "big": false,
+  "note": "",
+  "town": "den",
+  "count": 55,
+  "instance": [
+   "denbus1",
+   0,
+   9509,
+   107,
+   33554765
+  ]
+ },
+ {
+  "frm": "weed24.frm",
+  "name": "Weed",
+  "shape": "card",
+  "big": false,
+  "note": "",
+  "town": "den",
+  "count": 21,
+  "instance": [
+   "denbus1",
+   0,
+   11070,
+   301,
+   33554763
+  ]
+ },
+ {
+  "frm": "barrel.frm",
+  "name": "Burning Metal Barrel",
+  "shape": "drum",
+  "big": false,
+  "note": "the burning barrel",
+  "town": "den",
+  "count": 33,
+  "instance": [
+   "denbus1",
+   0,
+   13086,
+   529,
+   33554444
+  ]
+ },
+ {
+  "frm": "ss112.frm",
+  "name": "Chair",
+  "shape": "box+back",
+  "big": false,
+  "note": "a chair",
+  "town": "den",
+  "count": 20,
+  "instance": [
+   "denbus1",
+   0,
+   18274,
+   1569,
+   33555112
+  ]
+ },
+ {
+  "frm": "eggs6.frm",
+  "name": "Small rocks",
+  "shape": "flat",
+  "big": false,
+  "note": "small rocks",
+  "town": "den",
+  "count": 19,
+  "instance": [
+   "denbus1",
+   0,
+   17739,
+   1468,
+   33555325
+  ]
+ },
+ {
+  "frm": "doorb05.frm",
+  "name": "Door",
+  "shape": "plane",
+  "big": true,
+  "note": "a door, as doors",
+  "town": "den",
+  "count": 14,
+  "instance": [
+   "denbus1",
+   0,
+   19462,
+   1773,
+   33555401
+  ]
+ },
+ {
+  "frm": "weed25.frm",
+  "name": "Weed",
+  "shape": "card",
+  "big": false,
+  "note": "",
+  "town": "den",
+  "count": 15,
+  "instance": [
+   "denbus2",
+   0,
+   10492,
+   716,
+   33554764
+  ]
+ },
+ {
+  "frm": "brl2000.frm",
+  "name": "Metal Barrel",
+  "shape": "drum",
+  "big": false,
+  "note": "a metal barrel",
+  "town": "den",
+  "count": 14,
+  "instance": [
+   "denbus1",
+   0,
+   21743,
+   2189,
+   33554478
+  ]
+ },
+ {
+  "frm": "eggs5.frm",
+  "name": "Small rocks",
+  "shape": "flat",
+  "big": false,
+  "note": "small rocks",
+  "town": "den",
+  "count": 14,
+  "instance": [
+   "denbus1",
+   0,
+   18047,
+   1513,
+   33555324
+  ]
+ },
+ {
+  "frm": "weed09.frm",
+  "name": "Rocks",
+  "shape": "card",
+  "big": false,
+  "note": "a low mound of rocks",
+  "town": "den",
+  "count": 14,
+  "instance": [
+   "denbus1",
+   0,
+   12075,
+   430,
+   33554748
+  ]
+ },
+ {
+  "frm": "brl1000.frm",
+  "name": "Metal Barrel",
+  "shape": "drum",
+  "big": false,
+  "note": "a metal barrel",
+  "town": "den",
+  "count": 12,
+  "instance": [
+   "denbus2",
+   0,
+   9269,
+   461,
+   33554477
+  ]
+ },
+ {
+  "frm": "car1.frm",
+  "name": "Car",
+  "shape": "box",
+  "big": true,
+  "note": "a car, the big one the task asked for",
+  "town": "den",
+  "count": 12,
+  "instance": [
+   "denbus1",
+   0,
+   22351,
+   2260,
+   33554483
+  ]
+ },
+ {
+  "frm": "tirs002.frm",
+  "name": "Tire",
+  "shape": "drum",
+  "big": false,
+  "note": "a stack of tires",
+  "town": "den",
+  "count": 12,
+  "instance": [
+   "denbus1",
+   0,
+   15286,
+   1079,
+   33554681
+  ]
+ },
+ {
+  "frm": "cac2000.frm",
+  "name": "Cactus",
+  "shape": "card",
+  "big": false,
+  "note": "a cactus",
+  "town": "den",
+  "count": 11,
+  "instance": [
+   "denbus2",
+   0,
+   15488,
+   1649,
+   33554482
+  ]
+ },
+ {
+  "frm": "char05.frm",
+  "name": "Couch",
+  "shape": "box+back",
+  "big": false,
+  "note": "a couch",
+  "town": "den",
+  "count": 11,
+  "instance": [
+   "denbus1",
+   0,
+   22738,
+   2291,
+   33554501
+  ]
+ },
+ {
+  "frm": "char06.frm",
+  "name": "Couch",
+  "shape": "box+back",
+  "big": false,
+  "note": "a couch",
+  "town": "den",
+  "count": 10,
+  "instance": [
+   "denbus1",
+   0,
+   22340,
+   2255,
+   33554502
+  ]
+ },
+ {
+  "frm": "ss118.frm",
+  "name": "Chair",
+  "shape": "box+back",
+  "big": false,
+  "note": "a chair",
+  "town": "den",
+  "count": 10,
+  "instance": [
+   "denbus1",
+   0,
+   18676,
+   1648,
+   33555118
+  ]
+ },
+ {
+  "frm": "weed08.frm",
+  "name": "Junk",
+  "shape": "card",
+  "big": false,
+  "note": "junk",
+  "town": "den",
+  "count": 11,
+  "instance": [
+   "denbus1",
+   0,
+   18940,
+   1703,
+   33554747
   ]
  }
 ]

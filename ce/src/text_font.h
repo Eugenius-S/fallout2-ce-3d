@@ -44,10 +44,13 @@ extern FontManagerGetLetterSpacingProc* fontGetLetterSpacing;
 extern FontManagerGetBufferSizeProc* fontGetBufferSize;
 extern FontManagerGetMonospacedCharacterWidth* fontGetMonospacedCharacterWidth;
 
+int fontGetCurrentGlyphCount();
+void textCaptureDrawText(unsigned char* buffer, const char* string, int length, int pitch, ColorWithFlags color);
+
 inline void fontDrawText(unsigned char* buffer, const char* string, int length, int pitch, ColorWithFlags color)
 {
     if (fontDrawTextPtr != nullptr) {
-        fontDrawTextPtr(buffer, string, length, pitch, color);
+        textCaptureDrawText(buffer, string, length, pitch, color);
     }
 }
 

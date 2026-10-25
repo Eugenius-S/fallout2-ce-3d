@@ -1,0 +1,4 @@
+UI_FIXTURE START screen=log engine_key=47
+UI_FIXTURE WAIT screen=log callback=entered frame=0 window=2 generation=28769 eligible=1 owner_runs=1 screen_runs=1 visible_runs=1 date_runs=0 baseline_date_runs=0 coverage=2870 frame_active=1 frame_drawn=1 overlay_runs=1
+UI_FIXTURE WAIT screen=log callback=entered frame=1 window=2 generation=28769 eligible=2 owner_runs=2 screen_runs=2 visible_runs=2 date_runs=1 baseline_date_runs=0 coverage=4030 frame_active=1 frame_drawn=1 overlay_runs=2
+UI_FIXTURE PASS screen=log window=2 generation=28769 font=101 runs=1 screen_runs=2 visible_runs=2 visible_coverage=4030 overlay_runs=1 overlay_pixels=3450 colors=original green=2 white=0 yellow=0 red=0 other=0 sharp_setting=1 active=1 drawn=1 baseline_date_runs=0 matching_date_runs=1 real_date_log=•July: 25/2241 8:24
