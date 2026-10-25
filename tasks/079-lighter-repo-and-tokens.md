@@ -2,8 +2,8 @@
 id: 079
 title: A lighter repository and fewer tokens spent on reading
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: claude
 suggested: claude
 priority: high
 claude-only: no
