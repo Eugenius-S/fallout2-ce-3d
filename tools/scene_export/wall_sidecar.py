@@ -474,6 +474,11 @@ def _corner_fits(walls, hidden, toward_camera, width=None, px=(1.0, 1.0)):
         if (id(slab), out) in pairs and plain and any(not clear(index) for index in near_end) \
                 and slab.hi - slab.lo > 2 * CORNER_REACH:
             start = max((span(index)[1] if out > 0 else span(index)[0] for index in plain), key=lambda t: out * t)
+        elif (id(slab), out) in pairs and not any(clear(index) for index in slab.rows) \
+                and slab.hi - slab.lo <= 2 * CORNER_REACH:
+            # A wall that is nothing but a corner piece is left out whole;
+            # its faces are filled from its far end in its line's material.
+            start = slab.lo if out > 0 else slab.hi
         # Every row near this end stops at its faces' ends, its top included: a
         # top runs on past its picture's edge and would stick out of the corner.
         for index in slab.rows:
