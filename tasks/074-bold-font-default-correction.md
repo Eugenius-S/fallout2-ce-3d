@@ -2,7 +2,7 @@
 id: 074
 title: Correct font-101 default weight to Bold 700
 milestone: M1
-status: doing
+status: done
 owner: gpt
 suggested: gpt
 claude-only: no
@@ -82,7 +82,7 @@ Next: rebuild and inspect the single replacement frame, then verify natural expi
 Check: prior diagnostic builds showed a scene shift of 0,0; replacement and cleanup remain unverified.
 
 ### 2026-10-25 gpt
-Done: source `b2b11252` passes the bark lifecycle fixture at 2310x1298 scale 2: the long Russian bark has 1955 visible mask pixels; the short replacement has 595 and `old_visible_runs=0`; expiry leaves `cleared_runs=0`. The wrapper accepted all three source-matched sidecars after its CRLF-aware PASS check. Character and PipBoy fixtures also passed at this source; their pixel hashes match the earlier accepted frames. Mainstream source-bark images, sidecars, stdout and EXE SHA-256 are preserved under `runs/074-bold-font-default-correction/runtime-b2b1/`.
+Done: source `b2b11252` passes the bark lifecycle fixture at 2310x1298 scale 2: the long Russian bark has 1955 visible mask pixels; the short replacement has 595 and `old_visible_runs=0`; expiry leaves `cleared_runs=0`. The wrapper accepted all three source-matched sidecars after its CRLF-aware PASS check. Character and PipBoy fixtures also passed at this source; their pixel hashes match the earlier accepted frames. Full-size source-bark images, sidecars, stdout and EXE SHA-256 are preserved under `runs/074-bold-font-default-correction/runtime-b2b1/`.
 Next: run the full SharpText-off 16-spot regression without updating references, then finish task evidence and PR.
 Check: official Release incremental build and CTest passed 15/15 at source `b2b11252`; owner GLM game was not focused, stopped, or restarted.
 
@@ -90,3 +90,15 @@ Check: official Release incremental build and CTest passed 15/15 at source `b2b1
 Done: started the SharpText-off regression without updating references. The first three spots (`entrance`, `corrals`, `residents`) passed with 0 changed pixels, each from source `b2b11252` and EXE SHA-256 `b42652371149fd364a573aba284cf1497cdf267118d88a18056148fabd3ce704`.
 Next: rerun the full 16-spot regression after the other worktree's test process releases the global slot.
 Check: this attempt stopped at `central-doors` when the harness detected another `fallout2-ce-test.exe`; it is incomplete and not counted as a full regression pass. No other process was stopped.
+
+### 2026-10-25 gpt
+Done: the complete SharpText-off regression passed all 16 spots with 0 changed pixels and no reference updates.
+Next: root review and merge.
+Check: run `runs/regression/20261025-144410-708-33728`; every capture sidecar identifies source `b2b11252` and EXE SHA-256 `b42652371149fd364a573aba284cf1497cdf267118d88a18056148fabd3ce704`. The other worktree's tester had exited before launch; no process was stopped.
+
+### Final runtime evidence
+
+- All UI captures: 2310x1298, scale 2, source `b2b11252`, EXE SHA-256 `b42652371149fd364a573aba284cf1497cdf267118d88a18056148fabd3ce704`.
+- Character injury color: `runs/074-bold-font-default-correction/runtime-b2b1/character-on/scr00199.png` (PNG SHA-256 `BF269D316F5D8A53156A1C199444F0F4A6786B0C879950509BD96C1DA3EC7C32`).
+- PipBoy underline: `runs/074-bold-font-default-correction/runtime-b2b1/pipboy-on/scr00200.png` (PNG SHA-256 `60987C39333853CD184B6A0E35C430EC841C2E8ED9B3CBD1386EEF55A1EE571A`).
+- Bark lifecycle, with source sidecars, logs, and stdout/stderr in `runs/074-bold-font-default-correction/runtime-b2b1/bark-on-wrapper/`: first `devhero-20261025-143840-000.png`; replacement `devhero-20261025-143841-000.png`; cleared `devhero-20261025-143844-000.png`. The fixture verified the old bark is absent from the replacement's visible mask and both fixture barks are absent after expiry.
