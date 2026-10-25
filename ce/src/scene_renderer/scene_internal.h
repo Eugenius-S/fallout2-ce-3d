@@ -196,16 +196,16 @@ extern int gSceneSeeThroughLocation;
 extern int gSceneSeeThroughObjectsLocation;
 extern int gSceneEggPassLocation;
 // The sun's shadow (shadow.cc): on, the world-to-map matrix, the depth map
-// (unit 5), the sun's strength, the AA ring's span in GL units, the compare
-// bias and the map's depth span.
+// (unit 5), the sun's strength, the sun's direction, the map's texel in GL
+// units, the AA ring's span in GL units and the compare bias.
 extern int gSceneShadowOnLocation;
 extern int gSceneShadowMatrixLocation;
 extern int gSceneShadowMapLocation;
 extern int gSceneShadowStrengthLocation;
+extern int gSceneShadowLightLocation;
+extern int gSceneShadowTexelLocation;
 extern int gSceneShadowStepLocation;
 extern int gSceneShadowBiasLocation;
-extern int gSceneShadowRangeLocation;
-extern int gSceneShadowGroundLocation;
 extern int gSceneShadowDebugLocation;
 
 bool createSceneShader(std::string* error);

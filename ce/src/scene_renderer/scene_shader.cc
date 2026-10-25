@@ -94,18 +94,19 @@ uniform vec2 uLightSqu; // ground (u, v) to game pixels
 uniform vec2 uLightSqv;
 uniform vec2 uLightOrigin;
 // The sun's shadow map (shadow.cc): 1 on, the world-to-map matrix, the map
-// itself (unit 5), the sun's strength now, the AA ring's span in GL units
-// (the [3d] shadow_pixel_size setting, the edge softness) and the compare
-// bias in map depth.
+// itself (unit 5), the sun's strength now, the sun's direction (the face
+// test), the map's texel in GL units, the AA ring's span in GL units (the
+// [3d] shadow_pixel_size setting, the edge softness) and the compare bias in
+// map depth.
 uniform bool uShadowOn;
 uniform mat4 uShadowMatrix;
 uniform sampler2D uShadowMap;
 uniform float uShadowStrength;
+uniform vec3 uShadowLight; // towards the sun, GL (x, y up, z)
+uniform float uShadowTexel; // the map's texel in GL units
 uniform float uShadowStep;
 uniform float uShadowBias;
-uniform float uShadowRange; // the map's depth span in GL units
-uniform float uShadowGround; // the sun elevation's cosine: ray distance to ground distance
-uniform int uShadowDebug; // 1: raw factor, 2: the fade term, 3: the coverage term (062 diagnostics)
+uniform int uShadowDebug; // 1: raw factor, 2: the face test, 3: the coverage term (062 diagnostics)
 out vec4 outColor;
 // What a texel shines by itself for the glow (task 022): the colour a
 // full-bright texel keeps, premultiplied by its shown coverage; black
@@ -167,26 +168,33 @@ vec4 sceneLighting() {
     return vec4(1.0);
 }
 // The sun's shadow at this fragment: the shadowed share, 0 lit to 1 fully in.
+// Crisp by design (082): one even density inside, an edge about one map texel
+// soft, no distance melt (the sun never stands lower than 75 degrees, a
+// 2-unit wall casts at most 0.54 units of shadow, there is nothing to melt).
 // The map samples NEAREST (bilinear depth mixes the caster silhouette with
 // the empty far depth: a phantom far blocker ate the contact line and the
-// shadow faded from its middle, the owner's round 2), the compare is a
-// smoothstep over the bias window, and the melt comes from ONE blocker
-// depth, the center tap's: per-tap fades came out as flat layers. A disk of
-// taps a uShadowStep wide (the
-// [3d] shadow_pixel_size setting, the edge softness) antialias the edge; the
-// lookup itself stays unsnapped in world space, so a wall face takes no
-// stripes from the step grid (the sun is static per hour and the lookups do
-// not move with the camera). The shadow is a rim like the game's painted ones
-// (the owner's rounds 7 and 8): full density for the first two hexes past the
-// caster's foot, fully zero by five hexes ON THE GROUND at every sun height,
-// so uShadowGround (the sun elevation's cosine) scales the ray distance down
-// to the ground distance. A roof's far stain across a yard is gone with it:
-// those ground points sit many units past their blocker and melt whole.
+// shadow faded from its middle, the owner's round 2); the disk of taps a
+// uShadowStep wide (the [3d] shadow_pixel_size setting, the edge softness)
+// antialiases the edge.
 float shadowDepth(vec2 xz, float y) {
     vec4 s = uShadowMatrix * vec4(xz.x, y, xz.y, 1.0);
     vec3 p = s.xyz / s.w * 0.5 + 0.5;
     if (p.x < 0.0 || p.x > 1.0 || p.y < 0.0 || p.y > 1.0 || p.z >= 1.0) return -1.0;
     return p.z - texture(uShadowMap, p.xy).r;
+}
+// The face's outward normal from the screen derivatives, towards the camera
+// side, as the point lights read it (sceneLighting).
+vec3 shadowFaceNormal() {
+    vec3 n = normalize(cross(dFdx(vWorld), dFdy(vWorld)));
+    if (dot(n, uTowardCamera) < 0.0) n = -n;
+    return n;
+}
+// A basis of the face's own plane, so the taps spread across the face and
+// never into the body behind it.
+void shadowFaceBasis(vec3 n, out vec3 t1, out vec3 t2) {
+    vec3 helper = abs(n.y) < 0.99 ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0);
+    t1 = normalize(cross(helper, n));
+    t2 = cross(n, t1);
 }
 // A three-radius disk of 25 taps (1.0, 0.65 turned 22.5 degrees, 0.35
 // turned 11.25): fewer rings quantize the edge into flat steps a
@@ -199,24 +207,42 @@ const vec2 kShadowTaps[25] = vec2[25](
     vec2(0.6005, -0.2487), vec2(0.3433, 0.0683), vec2(0.1944, 0.2910), vec2(-0.0683, 0.3433),
     vec2(-0.2910, 0.1944), vec2(-0.3433, -0.0683), vec2(-0.1944, -0.2910), vec2(0.0683, -0.3433),
     vec2(0.2910, -0.1944));
-float shadowFadeTerm()
-{
-    float past = shadowDepth(vWorld.xz, vWorld.y);
-    if (past <= 0.0) return 0.0;
-    return 1.0 - smoothstep(1.0, 2.5, past * uShadowRange * uShadowGround);
-}
-float sunShadow() {
-    float past = shadowDepth(vWorld.xz, vWorld.y);
-    if (past <= 0.0) return 0.0; // lit, or outside the shadow box
-    float fade = shadowFadeTerm();
-    if (fade <= 0.0) return 0.0;
+// MSVC caps one raw string literal, so the fragment shader continues as an
+// adjacent literal; the compiler concatenates them.
+)"
+R"(// The 25-tap disk (a three-radius ring, 1.0, 0.65 turned 22.5 degrees, 0.35
+// turned 11.25: fewer rings quantize the edge into flat steps a ring-radius
+// apart, the owner reads them as layers and stairs) against the map, from
+// the point the face was lifted to.
+float shadowCoverage(vec3 base, vec3 t1, vec3 t2) {
     float sum = 0.0;
     for (int i = 0; i < 25; i++) {
-        float diff = shadowDepth(vWorld.xz + kShadowTaps[i] * uShadowStep, vWorld.y);
+        vec3 q = base + (t1 * kShadowTaps[i].x + t2 * kShadowTaps[i].y) * uShadowStep;
+        float diff = shadowDepth(q.xz, q.y);
         if (diff < 0.0) continue; // this tap falls outside the box: it is lit
         sum += smoothstep(0.0, 2.0 * uShadowBias, diff);
     }
-    return sum / 25.0 * fade;
+    return sum / 25.0;
+}
+float sunShadow() {
+    vec3 n = shadowFaceNormal();
+    // A face turned away from the sun is in its own shadow: no map lookup,
+    // the shaded value (082). This is what striped the walls before: half of
+    // the ground-plane taps fell inside the wall's own body and counted as
+    // shadowed, changing from one map texel column to the next. The epsilon
+    // swallows the cross product's rounding: at noon every vertical face
+    // stands at N.L = 0 exactly, and without it the quads split by a
+    // rounding sign into a flat shaded half and a lit, map-reading half.
+    if (dot(n, uShadowLight) <= 0.001) return 1.0;
+    // Otherwise read the map from a point lifted off the surface along its
+    // normal by 1.5 map texels, the taps spread in the face's own plane: no
+    // tap lands inside the wall's own body, and the compare bias stays small
+    // because the offset already clears the surface.
+    vec3 base = vWorld + n * (1.5 * uShadowTexel);
+    if (shadowDepth(base.xz, base.y) <= 0.0) return 0.0; // lit, or outside the shadow box
+    vec3 t1, t2;
+    shadowFaceBasis(n, t1, t2);
+    return shadowCoverage(base, t1, t2);
 }
 // The darkening inside a shadow, over the engine's own light: the game's
 // painted shadows read about as a half. Every fragment takes its own faded
@@ -224,7 +250,9 @@ float sunShadow() {
 // place and height (063): a card no longer darkens whole from its anchor hex
 // (hex-chunk stairs on cards, a man darkened where no shadow lies on him),
 // and the edge antialiases on cards as it does on the ground. A card reads
-// lighter than the ground: a standing figure keeps its read.
+// lighter than the ground: a standing figure keeps its read. A face turned
+// from the sun takes the flat shaded value, the painted look (062 round 5,
+// now by the face test instead of its own depth in the map, 082).
 float shadowDarken(float light) {
     if (uShadowDebug == 1 && (uLightMode == 1 || uLightMode == 2 || uLightMode == 3)) {
         // The raw factor as the light: a snapshot then shows the algorithm
@@ -233,11 +261,8 @@ float shadowDarken(float light) {
     }
     if (uShadowOn && uShadowStrength > 0.0) {
         if (uLightMode == 1 || uLightMode == 2) {
-            // The ground and the walls take the rim: dense at the caster,
-            // melted to zero a few hexes out. A shaded wall face measures
-            // the distance from the roof or the opposite wall that blocks
-            // its sun, so the face grades; only with the round-3 prism
-            // curtains did it collapse flat (reverted).
+            // The ground and the walls: crisp shadows, even inside, the flat
+            // shaded value on the faces the sun does not hit (082).
             light *= 1.0 - uShadowStrength * 0.425 * sunShadow();
         } else if (uLightMode == 3) {
             light *= 1.0 - uShadowStrength * 0.3 * sunShadow();
@@ -296,19 +321,22 @@ void main() {
             vec4 lit = fullBright ? vec4(1.0) : sceneLighting();
             lit.a = shadowDarken(lit.a);
             if (uShadowDebug == 2) {
+                // The face test itself: white where the sun hits the face and
+                // the map is read, black where the face takes the flat
+                // shaded value (082 diagnostics). Same epsilon as the gate.
                 outEmissive = vec4(0.0);
-                outColor = vec4(vec3(shadowFadeTerm()), 1.0);
+                outColor = vec4(vec3(dot(shadowFaceNormal(), uShadowLight) > 0.001 ? 1.0 : 0.0), 1.0);
                 return;
             }
             if (uShadowDebug == 3) {
+                // The raw coverage: the map against the lifted base and the
+                // face-plane taps, no face gate (062 diagnostics).
                 outEmissive = vec4(0.0);
-                float cover = 0.0;
-                for (int i = 0; i < 25; i++) {
-                    float diff = shadowDepth(vWorld.xz + kShadowTaps[i] * uShadowStep, vWorld.y);
-                    if (diff < 0.0) continue;
-                    cover += smoothstep(0.0, 2.0 * uShadowBias, diff);
-                }
-                outColor = vec4(vec3(cover / 25.0), 1.0);
+                vec3 n = shadowFaceNormal();
+                vec3 base = vWorld + n * (1.5 * uShadowTexel);
+                vec3 t1, t2;
+                shadowFaceBasis(n, t1, t2);
+                outColor = vec4(vec3(shadowCoverage(base, t1, t2)), 1.0);
                 return;
             }
             if (uShadowDebug == 1) {
@@ -391,11 +419,11 @@ int gSceneShadowOnLocation = -1;
 int gSceneShadowMatrixLocation = -1;
 int gSceneShadowMapLocation = -1;
 int gSceneShadowStrengthLocation = -1;
+int gSceneShadowLightLocation = -1;
+int gSceneShadowTexelLocation = -1;
 int gSceneShadowStepLocation = -1;
-int gSceneShadowBiasLocation = -1;
-int gSceneShadowGroundLocation = -1;
 int gSceneShadowDebugLocation = -1;
-int gSceneShadowRangeLocation = -1;
+int gSceneShadowBiasLocation = -1;
 
 bool createSceneShader(std::string* error)
 {
@@ -466,11 +494,11 @@ bool createSceneShader(std::string* error)
     gSceneShadowMatrixLocation = glGetUniformLocation(gSceneProgram, "uShadowMatrix");
     gSceneShadowMapLocation = glGetUniformLocation(gSceneProgram, "uShadowMap");
     gSceneShadowStrengthLocation = glGetUniformLocation(gSceneProgram, "uShadowStrength");
+    gSceneShadowLightLocation = glGetUniformLocation(gSceneProgram, "uShadowLight");
+    gSceneShadowTexelLocation = glGetUniformLocation(gSceneProgram, "uShadowTexel");
     gSceneShadowStepLocation = glGetUniformLocation(gSceneProgram, "uShadowStep");
-gSceneShadowGroundLocation = glGetUniformLocation(gSceneProgram, "uShadowGround");
     gSceneShadowDebugLocation = glGetUniformLocation(gSceneProgram, "uShadowDebug");
     gSceneShadowBiasLocation = glGetUniformLocation(gSceneProgram, "uShadowBias");
-    gSceneShadowRangeLocation = glGetUniformLocation(gSceneProgram, "uShadowRange");
     if (gSceneMvpLocation < 0 || gSceneTextureLocation < 0
         || gSceneTexturedLocation < 0 || gSceneColorLocation < 0 || gSceneCutoffLocation < 0
         || gSceneDepthAtLocation < 0 || gSceneTranslucentLocation < 0 || gSceneTintLocation < 0

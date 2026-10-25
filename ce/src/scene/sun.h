@@ -5,13 +5,15 @@ namespace fallout {
 namespace scene {
 
 // The sun over a map under the sky, by game time (36000 ticks an hour). It
-// rises at 6:00 and sets at 18:00, crossing the sky from one side to the
-// other; its strength follows the ambient light the map scripts set, so the
+// shines from 6:00 to 18:00 in one fixed vertical plane (082): straight
+// overhead at noon, kSwing degrees off vertical at the day's ends, linear
+// between; its strength follows the ambient light the map scripts set, so the
 // game's own day and night decide how bright it is.
 struct Sun {
     bool up = false; // it shines (strength above 0)
-    double height = 0.0; // degrees above the horizon
-    double azimuth = 0.0; // degrees in the GL ground plane, from +x towards +z
+    double tilt = 0.0; // degrees off vertical in its plane: - at dawn, + at dusk
+    double height = 0.0; // degrees above the horizon (90 - |tilt|)
+    double azimuth = 0.0; // degrees in the GL ground plane, from +x towards +z: where the sun leans
     float direction[3] = { 0.0f, 1.0f, 0.0f }; // towards the sun, GL (x, y up, z)
     float color[3] = { 1.0f, 1.0f, 1.0f };
     float strength = 0.0f; // 0 none, 1 full

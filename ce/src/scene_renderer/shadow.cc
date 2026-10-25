@@ -16,7 +16,12 @@ namespace internal {
 
 namespace {
 
-constexpr unsigned int kShadowMapSize = 4096;
+// 8192: the box spans the whole map plus the caster pad, about 123 GL units,
+// so one texel is 0.015 units, under one game pixel at the camera (hpx is
+// about 51): the NEAREST stair is invisible and the edge reads about one
+// map texel soft, the owner's crisp (082). 4096 left the stair at 1.5 game
+// pixels, visible on diagonal edges.
+constexpr unsigned int kShadowMapSize = 8192;
 constexpr unsigned int kFramebuffer = 0x8D40;
 constexpr unsigned int kDepthAttachment = 0x8D00;
 constexpr unsigned int kDepthComponent24 = 0x81A6;
@@ -193,32 +198,25 @@ bool bindStaticShadows(const float* sceneMvp)
     shadowMatrix(sun.direction, pad, matrix);
 
     // The AA ring: uShadowStep GL units per [3d] shadow_pixel_size game
-    // pixel (hpx is the projection's pixels per GL unit), but at least two
-    // depth map texels wide: the nine taps must straddle texel boundaries or
-    // the edge still reads a stair (the owner's rounds 6 and 7; 1.25 texels
-    // were not enough). The compare bias covers the ring's span and the
-    // depth map's slope error; it is set in the map's 0..1 depth, whose
-    // range the matrix uses. Set before the passes: the casters draw with
-    // them.
+    // pixel (hpx is the projection's pixels per GL unit), but at least one
+    // depth map texel wide, so the taps straddle texel boundaries and
+    // antialias the NEAREST stair. The compare bias covers the depth slope
+    // error of the blockers within one map texel; it stays small because the
+    // shader lifts the lookup off the surface along its normal (082). Set
+    // before the passes: the casters draw with them.
     const double hpx = gHeroProjection.hpx > 0.0 ? gHeroProjection.hpx : 32.0;
     const float step = static_cast<float>(settings.scene3d.shadow_pixel_size / hpx);
     const double near = 1.0;
     const double far = 2.0 * kEyeDistance + 2.0 * gMaxCasterHeight + 20.0;
     const float texel = static_cast<float>(2.0 * (50.0 + pad) / kShadowMapSize);
-    const float ring = std::max(step, texel * 2.0f);
+    const float ring = std::max(step, texel);
     glUniform1i(gSceneShadowOnLocation, 1);
     glUniformMatrix4fv(gSceneShadowMatrixLocation, 1, 0, matrix);
     glUniform1f(gSceneShadowStrengthLocation, sun.strength);
+    glUniform3f(gSceneShadowLightLocation, sun.direction[0], sun.direction[1], sun.direction[2]);
+    glUniform1f(gSceneShadowTexelLocation, texel);
     glUniform1f(gSceneShadowStepLocation, ring);
-    glUniform1f(gSceneShadowBiasLocation, static_cast<float>(ring * 1.5 / (far - near)));
-    // The map's depth span in GL units: the shader fades the shadow with the
-    // distance the sun's ray travels past its caster. uShadowGround scales
-    // that ray distance to the ground distance, so the rim's hexes hold at
-    // every sun height (062).
-    glUniform1f(gSceneShadowRangeLocation, static_cast<float>(far - near));
-    const float groundScale = static_cast<float>(
-        std::sqrt(std::max(1.0 - static_cast<double>(sun.direction[1]) * sun.direction[1], 0.0)));
-    glUniform1f(gSceneShadowGroundLocation, groundScale);
+    glUniform1f(gSceneShadowBiasLocation, 0.5f * texel / static_cast<float>(far - near));
     glUniform1i(gSceneShadowDebugLocation, devtools::shadowDebugRequested());
     glActiveTexture(kTexture0 + 5);
     glBindTexture(kTexture2D, gShadowMapTexture);

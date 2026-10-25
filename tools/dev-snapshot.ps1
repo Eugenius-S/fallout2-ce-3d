@@ -67,7 +67,8 @@ param(
     # -Shadows: keep the sun shadows on in this background run (they are
     # forced off by default, so captures stay byte-stable).
     [switch]$Shadows,
-    # -ShadowDebug:N: 1 the raw factor, 2 the fade term, 3 the coverage (062
+    # -ShadowDebug:N: 1 the raw factor, 2 the face test (the sun hits the
+    # face or it takes the flat shaded value), 3 the coverage (062
     # diagnostics); implies -Shadows.
     [int]$ShadowDebug = 0,
     # -Hour H: set the game hour on the map (the sun snaps to it), so morning,
