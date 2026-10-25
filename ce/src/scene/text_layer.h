@@ -35,6 +35,7 @@ struct FloatingTextOutlineLayout {
     int lineOffset = 0;
 
     TextRect renderBounds(int x, int y) const;
+    TextRect refreshBounds(int x, int y, int sceneOffsetX, int sceneOffsetY) const;
     TextRect clipBounds(int x, int y, TextRect clip) const;
     std::size_t sourceOffset(TextRect clipped, int x, int y) const;
     std::size_t lineStartOffset(int line) const;

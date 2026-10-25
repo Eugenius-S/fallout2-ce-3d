@@ -148,6 +148,11 @@ TextRect FloatingTextOutlineLayout::renderBounds(int x, int y) const
     return { x - offsetX, y - offsetY, bufferWidth, bufferHeight };
 }
 
+TextRect FloatingTextOutlineLayout::refreshBounds(int x, int y, int sceneOffsetX, int sceneOffsetY) const
+{
+    return renderBounds(x + sceneOffsetX, y + sceneOffsetY);
+}
+
 TextRect FloatingTextOutlineLayout::clipBounds(int x, int y, TextRect clip) const
 {
     return intersection(renderBounds(x, y), clip);

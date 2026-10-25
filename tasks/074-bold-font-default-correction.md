@@ -64,3 +64,8 @@ Check: first attempt reached `UI_FIXTURE START` but made no snapshots and ended 
 Done: identified that the active 3D Full-view presentation returns before `vanillaPresented`, so the bark-only lifecycle stage never advanced. Added a bark-gated fixture callback after the scene overlay swap and a temporary capturing stage to prevent reentrant snapshots; ordinary fixtures and modal/dialog hooks are unchanged.
 Next: rebuild, confirm the real bark appears and is removed by the engine, then capture final source-matched character/PipBoy/bark images.
 Check: second attempt also ended without snapshots at the isolated harness deadline; it is diagnostic only. Only the task's `fallout2-ce-test.exe` PID was stopped, after confirming its exact worktree executable path.
+
+### 2026-10-25 gpt
+Done: the first bark frame is now visible and reports 707 owned text pixels. The replacement stage exposed a second refresh mismatch: scene rendering applies `tileSceneShift`, but add/removal refresh rectangles did not. Scene-module refresh bounds now accept the same shift used by rendering, and both returned add bounds and ticker removal bounds use it. Added a shifted-bounds unit assertion.
+Next: rebuild and repeat the bark lifecycle capture.
+Check: the latest attempt captured the first Russian bark and reached replacement, but timed out before the replacement record appeared. No replacement or cleared-frame result is accepted yet.

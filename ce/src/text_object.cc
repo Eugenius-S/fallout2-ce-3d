@@ -277,7 +277,11 @@ int textObjectAdd(Object* object, char* string, int font, ColorWithFlags color, 
     textObjectFindPlacement(textObject);
 
     if (rect != nullptr) {
-        const scene::TextRect refreshBounds = textObject->dataLayout.renderBounds(textObject->x, textObject->y);
+        int sceneOffsetX;
+        int sceneOffsetY;
+        tileSceneShift(textObject->tile, &sceneOffsetX, &sceneOffsetY);
+        const scene::TextRect refreshBounds = textObject->dataLayout.refreshBounds(
+            textObject->x, textObject->y, sceneOffsetX, sceneOffsetY);
         rect->left = refreshBounds.x;
         rect->top = refreshBounds.y;
         rect->right = refreshBounds.x + refreshBounds.width - 1;
@@ -356,7 +360,11 @@ static void textObjectsTicker()
             textObject->x += textObject->sx;
             textObject->y += textObject->sy;
 
-            const scene::TextRect dirty = textObject->dataLayout.renderBounds(textObject->x, textObject->y);
+            int sceneOffsetX;
+            int sceneOffsetY;
+            tileSceneShift(textObject->tile, &sceneOffsetX, &sceneOffsetY);
+            const scene::TextRect dirty = textObject->dataLayout.refreshBounds(
+                textObject->x, textObject->y, sceneOffsetX, sceneOffsetY);
             Rect textObjectRect { dirty.x, dirty.y, dirty.x + dirty.width - 1, dirty.y + dirty.height - 1 };
 
             if (textObjectsRemoved) {
