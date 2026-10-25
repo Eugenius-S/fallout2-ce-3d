@@ -8,7 +8,7 @@ suggested: glm
 claude-only: no
 user-check: yes
 depends-on: []
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -43,3 +43,30 @@ build writes lands in subfolders of the game folder.
 - `dev-snapshot.ps1`, the regression and its tests pass with the new paths.
 
 ## Log
+
+## Log
+
+### 2026-10-23 glm
+Done: everything our build writes lands in subfolders now. New
+ce/src/dev_output.{h,cc}: outputDirectory() creates and returns "logs",
+"shots/dev/<date>" and "shots/game"; an empty result degrades to the bare
+game-folder path, so a failed folder creation cannot break a snapshot.
+Writers moved: devhero/devwall/devfloor/devwalk PNGs and their devshot JSON
+sidecars (the sidecar keeps the bare image name, so gallery_pairs.py and
+check.py read them unchanged), the classic scrNNNNN.png in input.cc (both
+the game's own screenshot key and the devtools vanilla branch write through
+it), devprobe.log, devperf.log, scene.log and scene-context.log.
+Readers moved: tools/dev-snapshot.ps1 scans shots/dev recursively beside the
+root (the run id still filters), takes the image next to its sidecar and the
+probe log from logs/ (root fallback). docs/p1-devtools.md names the new
+paths. The old litter in the game folder root is gone: 1455 stray dev shots
+sorted by date into shots/dev/, 49 scr PNGs into shots/game/ (each name
+collision got a timestamp suffix, nothing overwritten), the seven old logs
+into logs/; debug.log stays, it is upstream's.
+Check: a live dev-snapshot run left the root untouched
+(game/shots/dev/2026-10-23/devshot-...json + image, game/logs/scene-context.log);
+Release build, ctest 11/11, regression python tests 12/12, exporter tests OK.
+Note: the full 16-spot regression run is not re-run here, it is the
+pre-existing 13/16 of task 054.
+A classic-mode run double-checks the vanilla branch: scr00191.png landed in
+shots/game/, its devshot sidecar in shots/dev/2026-10-23/, the root clean.

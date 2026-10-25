@@ -25,6 +25,7 @@
 #include "../cycle.h"
 #include "../db.h"
 #include "../debug.h"
+#include "../dev_output.h"
 #include "../dialog.h"
 #include "../draw.h"
 #include "../input.h"
@@ -77,6 +78,12 @@ namespace fallout {
 namespace devtools {
 
 namespace {
+
+// Our log files live in logs/, not next to the exe.
+std::string devLogPath(const char* name)
+{
+    return (dev_output::outputDirectory("logs") / name).string();
+}
 
 // --- state -----------------------------------------------------------------
 
@@ -1292,7 +1299,7 @@ void update()
         const bool busyBefore = animationIsBusy(gDude) == -1;
         _gmouse_handle_event(gPickProbeClick[0], gPickProbeClick[1], MOUSE_EVENT_LEFT_BUTTON_UP);
         if (gPickProbeExitPending) {
-            if (FILE* log = fopen("devprobe.log", "a")) {
+            if (FILE* log = fopen(devLogPath("devprobe.log").c_str(), "a")) {
                 fprintf(log, "exit click dispatched: map=%s hero=%d->%d busy=%d->%d at (%d,%d)\n",
                     gMapHeader.name, heroTileBefore, gDude->tile, busyBefore, animationIsBusy(gDude) == -1,
                     gPickProbeClick[0], gPickProbeClick[1]);
@@ -1300,7 +1307,7 @@ void update()
             }
         }
         if (edgeClick) {
-            if (FILE* log = fopen("devprobe.log", "a")) {
+            if (FILE* log = fopen(devLogPath("devprobe.log").c_str(), "a")) {
                 fprintf(log, "outside click: fresh=%d cursor=%d hero=%d->%d busy=%d->%d\n",
                     tileUnderMouse(gPickProbeClick[0], gPickProbeClick[1]),
                     gGameMouseHexCursor != nullptr ? gGameMouseHexCursor->tile : -1, heroTileBefore, gDude->tile,
@@ -1310,7 +1317,7 @@ void update()
             gPickProbeOutsideClick = false;
         }
         gPickProbeClick[0] = gPickProbeClick[1] = -1;
-        if (FILE* log = fopen("devprobe.log", "a")) {
+        if (FILE* log = fopen(devLogPath("devprobe.log").c_str(), "a")) {
             fprintf(log, "probe click: hero busy=%d tile=%d\n", animationIsBusy(gDude) == -1 ? 1 : 0, gDude->tile);
             fclose(log);
         }
@@ -1320,21 +1327,21 @@ void update()
         if (strncmp(gMapHeader.name, "KLADWTWN.MAP", sizeof(gMapHeader.name)) == 0
             && gMapHeader.index == 9 && gDude->tile == 25142
             && gDude->elevation == ELEVATION_FIRST) {
-            if (FILE* log = fopen("devprobe.log", "a")) {
+            if (FILE* log = fopen(devLogPath("devprobe.log").c_str(), "a")) {
                 fprintf(log, "exit transition passed: map=%s index=%d elevation=%d tile=%d after=%d frames\n",
                     gMapHeader.name, gMapHeader.index, gDude->elevation, gDude->tile, gPickProbeExitWaitFrames);
                 fclose(log);
             }
             finishPickProbe();
         } else if (strcmp(gMapHeader.name, "KLADWTWN.MAP") == 0) {
-            if (FILE* log = fopen("devprobe.log", "a")) {
+            if (FILE* log = fopen(devLogPath("devprobe.log").c_str(), "a")) {
                 fprintf(log, "outside probe failed: wrong exit arrival map=%s index=%d elevation=%d tile=%d\n",
                     gMapHeader.name, gMapHeader.index, gDude->elevation, gDude->tile);
                 fclose(log);
             }
             finishPickProbe();
         } else if (gPickProbeExitWaitFrames % 60 == 0) {
-            if (FILE* log = fopen("devprobe.log", "a")) {
+            if (FILE* log = fopen(devLogPath("devprobe.log").c_str(), "a")) {
                 fprintf(log, "exit transition waiting: map=%s elevation=%d hero=%d busy=%d frames=%d\n",
                     gMapHeader.name, gDude->elevation, gDude->tile, animationIsBusy(gDude) == -1,
                     gPickProbeExitWaitFrames);
@@ -1342,7 +1349,7 @@ void update()
             }
         }
         if (gPickProbeExitPending && gPickProbeExitWaitFrames >= 1800) {
-            if (FILE* log = fopen("devprobe.log", "a")) {
+            if (FILE* log = fopen(devLogPath("devprobe.log").c_str(), "a")) {
                 fprintf(log, "outside probe failed: exit transition timed out at map=%s elevation=%d hero=%d\n",
                     gMapHeader.name, gDude->elevation, gDude->tile);
                 fclose(log);
@@ -1623,7 +1630,7 @@ bool staticWalkPreviewActive()
 
 void finishPickProbe()
 {
-    if (FILE* log = fopen("devprobe.log", "a")) {
+    if (FILE* log = fopen(devLogPath("devprobe.log").c_str(), "a")) {
         fprintf(log, "probe done: hero tile=%d busy=%d scene=%s\n", gDude->tile, animationIsBusy(gDude) == -1 ? 1 : 0,
             scene::availability());
         fclose(log);
@@ -1641,7 +1648,7 @@ void runPickProbe()
     const int stage = gPickProbeStage++;
     FILE* log = nullptr;
     auto note = [&](const char* format, auto... values) {
-        if (log == nullptr) log = fopen("devprobe.log", "a");
+        if (log == nullptr) log = fopen(devLogPath("devprobe.log").c_str(), "a");
         if (log != nullptr) fprintf(log, format, values...);
     };
     if (stage == 30) {
@@ -1893,7 +1900,7 @@ void scenePresented(const scene::RefreshResult& refreshed)
     const double elapsed = static_cast<double>(now - windowStart) / frequency;
     if (elapsed >= 2.0) {
         // A file: the Windows build has no console to print to.
-        if (FILE* log = fopen("devperf.log", "a")) {
+        if (FILE* log = fopen(devLogPath("devperf.log").c_str(), "a")) {
             fprintf(log, "3d fps=%.1f objects=%u update_ms=%.2f shadow=%s shadow_ms=%.2f\n",
                 windowFrames / elapsed, scene_renderer::staticObjectCount(),
                 windowUpdateSeconds * 1000.0 / windowFrames, shadowRendered ? "on" : "off",
@@ -2772,14 +2779,20 @@ bool takeSnapshot()
     int capturedWidth = 0;
     int capturedHeight = 0;
     try {
-        const fs::path outputDirectory = fs::current_path();
+        // Dev snapshots and their sidecars land in shots/dev/<date>/, the
+        // classic screenshot in shots/game/; the root keeps only the game's
+        // own files. An empty folder degrades to the bare game-folder paths.
+        char dateStamp[11] = {};
+        snprintf(dateStamp, sizeof(dateStamp), "%.4s-%.2s-%.2s", stamp, stamp + 4, stamp + 6);
+        const fs::path devShots = dev_output::outputDirectory("shots/dev", dateStamp);
+        const fs::path gameShots = dev_output::outputDirectory("shots/game");
         if (preview) {
             for (int suffix = 0; suffix < 1000; suffix++) {
                 char stem[64];
                 snprintf(stem, sizeof(stem), "%s-%s-%03d",
                     staticWalkPreviewActive() ? "devwalk" : heroPreview ? "devhero" : wallPreview ? "devwall" : "devfloor", stamp, suffix);
-                fs::path candidateImage = outputDirectory / (std::string(stem) + ".png");
-                fs::path candidateSidecar = outputDirectory / (std::string("devshot-") + stamp + "-" +
+                fs::path candidateImage = devShots / (std::string(stem) + ".png");
+                fs::path candidateSidecar = devShots / (std::string("devshot-") + stamp + "-" +
                     (suffix < 10 ? "00" : suffix < 100 ? "0" : "") + std::to_string(suffix) + ".json");
                 if (!fs::exists(candidateImage) && !fs::exists(candidateSidecar)) {
                     imagePath = candidateImage;
@@ -2805,13 +2818,13 @@ bool takeSnapshot()
             char name[16];
             for (; index < 100000; index++) {
                 snprintf(name, sizeof(name), "scr%.5d.png", index);
-                if (!fs::exists(outputDirectory / name)) break;
+                if (!fs::exists(gameShots / name)) break;
             }
             if (index == 100000) {
                 setStatus("snapshot: no screenshot filename available");
                 return false;
             }
-            imagePath = outputDirectory / name;
+            imagePath = gameShots / name;
             imageFile = name;
             if (scene_renderer::isActive()) {
                 // As the window shows it, the same size as scene snapshots.
@@ -2843,10 +2856,10 @@ bool takeSnapshot()
             }
             char sidecar[64];
             snprintf(sidecar, sizeof(sidecar), "devshot-%s.json", stamp);
-            sidecarPath = outputDirectory / sidecar;
+            sidecarPath = devShots / sidecar;
             for (int suffix = 1; fs::exists(sidecarPath) && suffix < 1000; suffix++) {
                 snprintf(sidecar, sizeof(sidecar), "devshot-%s-%03d.json", stamp, suffix);
-                sidecarPath = outputDirectory / sidecar;
+                sidecarPath = devShots / sidecar;
             }
         }
     } catch (const std::exception& exception) {

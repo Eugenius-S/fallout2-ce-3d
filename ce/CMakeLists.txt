@@ -97,6 +97,8 @@ set(FALLOUT_ENGINE_SOURCES
     "src/dialog.h"
     "src/dictionary.cc"
     "src/dictionary.h"
+    "src/dev_output.cc"
+    "src/dev_output.h"
     "src/dinput.cc"
     "src/dinput.h"
     "src/display_monitor.cc"

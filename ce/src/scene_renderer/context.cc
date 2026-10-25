@@ -1,5 +1,7 @@
 #include "context.h"
 
+#include "../dev_output.h"
+
 #include <stdio.h>
 
 #include "gl_api.h"
@@ -152,7 +154,7 @@ void contextLog(const char* message)
 {
     fprintf(stderr, "scene_renderer: %s\n", message);
     fflush(stderr);
-    if (FILE* log = fopen("scene-context.log", "a")) {
+    if (FILE* log = fopen((dev_output::outputDirectory("logs") / "scene-context.log").string().c_str(), "a")) {
         fprintf(log, "scene_renderer: %s\n", message);
         fclose(log);
     }

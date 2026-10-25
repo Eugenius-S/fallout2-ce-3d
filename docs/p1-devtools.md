@@ -32,7 +32,7 @@ config from `tools\test-config\fallout2.cfg` (the owner's `game\fallout2.cfg`
 is never read or written), off screen, without taking focus, takes one
 snapshot and closes only its own process. With `-Probe`
 (`--dev-pick-probe`) the game cursor is put on the scene residents, and
-`game\devprobe.log` records what the game finds under it; then a click on
+`game\logs\devprobe.log` records what the game finds under it; then a click on
 the floor (the hero walks) and a click on the nearest person (a dialog).
 Two snapshots: the hex cursor and the action icon.
 
@@ -121,7 +121,7 @@ transition is refused with a status in the panel.
 
 ## A snapshot
 
-F9/SNAP writes `devshot-YYYYMMDD-HHMMSS.json` + `scrNNNNN.png` into `game/`:
+F9/SNAP writes `devshot-YYYYMMDD-HHMMSS.json` + `scrNNNNN.png` into `game\shots\dev\<date>\` and `game\shots\game\` (the game folder root keeps only the game's own files):
 the map, floor, renderer, light, internal resolution, drawable, CE commit,
 SHA-256 of the running EXE, time.
 
@@ -135,7 +135,7 @@ SHA-256 of the running EXE, time.
 | Return to Klamat | PASS | `runs/p1-back-wtwn.png` (KLADWTWN through the stock .SAV mechanism) |
 | Hero/camera/picking | PASS | the hero at the entrance, the camera centered; a click → the hex cursor: `runs/p1-pick-click.png` |
 | Refusal of a nonexistent name | PASS | `--dev-map=zzzz` → stays on the save's map: `runs/p1-badmap-refused.png`; an empty filter + GO = no-op: `runs/p1-dev-back-klamat.png` |
-| A snapshot with metadata | PASS | `game/devshot-20261018-111259.json` (map/elev/renderer/light/res/commit/sha256) |
+| A snapshot with metadata | PASS | `game/shots/dev/2026-10-18/devshot-20261018-111259.json` (map/elev/renderer/light/res/commit/sha256; the 2026-10-18 capture sat in the root, the folder layout came later) |
 
 ## Limits
 
@@ -208,8 +208,8 @@ Floor acceptance (a successful run, 2026-10-18 12:14):
   (runs/p1f-refusal.png);
 - a successful transition: KLADWTWN → arcaves → "2" → GO → the follow-up in
   the game loop → actual e1 (runs/p1f-arcaves.png, runs/p1f-e1-done.png);
-- a snapshot with the full metadata: game/devshot-20261018-121404.json +
-  game/scr00001.png (ARCAVES.MAP, elevation 1, camera, renderer, light,
+- a snapshot with the full metadata: game/shots/dev/2026-10-18/devshot-20261018-121404.json +
+  game/shots/game/scr00001.png (the 2026-10-18 capture sat in the root) (ARCAVES.MAP, elevation 1, camera, renderer, light,
   resolutions, ce_commit 01d73df, tools_commit cbeffec, exe SHA-256).
 
 Dev mode status: closed per the reviewer's conditions (a successful
