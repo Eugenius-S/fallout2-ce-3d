@@ -55,3 +55,8 @@ that fits no task becomes a new task when the board runs dry.
   - 09: clothes lines stick out over the roof.
   - 10: a corner of the house is broken (an open door leaf and the
     corner's material).
+- 2026-10-25 Dialogue answer options: use a hanging indent. Keep bullet
+  markers to the left of the text column, and align every wrapped continuation
+  line with the first text character after the bullet, rather than with the
+  bullet itself. The text should have a straight left edge independent of
+  the markers. Not now; backlog only.

@@ -1,4 +1,5 @@
 #include "settings.h"
+#include "scene/menu_text.h"
 #include "scene/scene_settings.h"
 #include "config.h"
 
@@ -290,5 +291,39 @@ int main()
     if (!check(settingsSetValue(*zoom, SettingValue(1.25), &zoomError) && settings.scene3d.zoom == 1.25,
             "camera zoom applies immediately through its registered OnClose descriptor")) return 1;
     if (!check(settingsSetValue(*zoom, SettingValue(1.0), &zoomError), "camera zoom test restores the default")) return 1;
+    for (const auto& item : settingsGetDescriptors()) {
+        if (item.section != "3d") continue;
+        if (!check(scene::hasMenuTranslation(item.fallbackLabel.c_str()),
+                (item.id + " needs a Russian menu label").c_str())) return 1;
+        if (!check(scene::hasMenuTranslation(item.fallbackDescription.c_str()),
+                (item.id + " needs a Russian menu description").c_str())) return 1;
+    }
+    if (!check(std::string(scene::menuText("On", "RuSsIaN")) == "\xC2\xEA\xEB",
+            "Russian menu text uses CP1251 and case-insensitive language selection")) return 1;
+    if (!check(static_cast<unsigned char>(scene::menuText("Sharp interface text", "russian")[1]) == 0xB8,
+            "Russian yo is encoded for the existing game fonts")) return 1;
+    if (!check(std::string(scene::menuText("On", "german")) == "On"
+            && std::string(scene::menuText("Missing translation", "russian")) == "Missing translation"
+            && !scene::hasMenuTranslation("Missing translation"),
+            "unknown languages and missing translations keep the English fallback")) return 1;
+    auto localizedDescriptors = settingsGetDescriptors();
+    scene::localizeMenuDescriptors(localizedDescriptors, "russian");
+    for (std::size_t i = 0; i < localizedDescriptors.size(); ++i) {
+        const auto& original = settingsGetDescriptors()[i];
+        if (original.section != "3d") continue;
+        if (!check(localizedDescriptors[i].fallbackLabel != original.fallbackLabel
+                && localizedDescriptors[i].fallbackDescription != original.fallbackDescription
+                && localizedDescriptors[i].id == original.id,
+                "Russian labels and descriptions change without changing setting IDs")) return 1;
+    }
+    scene::localizeMenuDescriptors(localizedDescriptors, "english");
+    for (std::size_t i = 0; i < localizedDescriptors.size(); ++i) {
+        if (!check(localizedDescriptors[i].fallbackLabel == settingsGetDescriptors()[i].fallbackLabel
+                && localizedDescriptors[i].fallbackDescription == settingsGetDescriptors()[i].fallbackDescription,
+                "reinitialization restores exact English metadata")) return 1;
+    }
+    const std::string status = scene::menuStatusText("snapshot: example.png", "russian");
+    if (!check(status != "snapshot: example.png" && status.find("example.png") != std::string::npos,
+            "localized status keeps dynamic filenames intact")) return 1;
     return 0;
 }

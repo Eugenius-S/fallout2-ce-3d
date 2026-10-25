@@ -62,6 +62,7 @@
 #include "../scene_renderer/static_scene.h"
 #include "../scene_renderer/text_present.h"
 #include "../settings.h"
+#include "../scene/menu_text.h"
 #include "../svga.h"
 #include "../text_font.h"
 #include "../tile.h"
@@ -540,9 +541,14 @@ bool hitTest(const Rect2& r, int x, int y)
     return x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h;
 }
 
+const char* uiText(const char* text)
+{
+    return scene::menuText(text, settings.system.language);
+}
+
 void setStatus(const char* text)
 {
-    snprintf(gStatus, sizeof(gStatus), "%s", text);
+    snprintf(gStatus, sizeof(gStatus), uiText("%s"), text);
 }
 
 bool disableStaticFloorPreview(const char* status)
@@ -670,11 +676,11 @@ int findFreeTileOnElevation(int center, int elevation, int maxDistance)
 static bool applyElevationChange(int elevation)
 {
     if (elevation < 0 || elevation >= ELEVATION_COUNT) {
-        snprintf(gStatus, sizeof(gStatus), "no such elevation: %d", elevation);
+        snprintf(gStatus, sizeof(gStatus), uiText("no such elevation: %d"), elevation);
         return false;
     }
     if (!elevationPresent(elevation)) {
-        snprintf(gStatus, sizeof(gStatus), "elevation %d absent on this map", elevation);
+        snprintf(gStatus, sizeof(gStatus), uiText("elevation %d absent on this map"), elevation);
         return false;
     }
 
@@ -685,7 +691,7 @@ static bool applyElevationChange(int elevation)
         targetTile = gMapHeader.enteringTile;
     }
     if (targetTile == -1) {
-        snprintf(gStatus, sizeof(gStatus), "no free tile on elevation %d", elevation);
+        snprintf(gStatus, sizeof(gStatus), uiText("no free tile on elevation %d"), elevation);
         return false;
     }
 
@@ -1410,11 +1416,11 @@ void update()
         gPendingElevation = false;
         if (gPendingElevationValue != static_cast<int>(gElevation)) {
             if (!elevationPresent(gPendingElevationValue)) {
-                snprintf(gStatus, sizeof(gStatus), "elevation %d absent on this map",
+                snprintf(gStatus, sizeof(gStatus), uiText("elevation %d absent on this map"),
                     gPendingElevationValue);
             } else if (applyElevationChange(gPendingElevationValue)) {
                 gStartupTargetAwaitingFinal = true;
-                snprintf(gStatus, sizeof(gStatus), "moving to elevation %d", gPendingElevationValue);
+                snprintf(gStatus, sizeof(gStatus), uiText("moving to elevation %d"), gPendingElevationValue);
                 return; // let the scheduled transition settle before preview activation
             }
         }
@@ -1585,12 +1591,12 @@ bool requestMapChange(const char* mapFileName, int elevation)
     }
 
     if (mapId == -1) {
-        snprintf(gStatus, sizeof(gStatus), "no such map: %s", base);
+        snprintf(gStatus, sizeof(gStatus), uiText("no such map: %s"), base);
         return false;
     }
 
     if (elevation < 0 || elevation >= ELEVATION_COUNT) {
-        snprintf(gStatus, sizeof(gStatus), "no such elevation: %d", elevation);
+        snprintf(gStatus, sizeof(gStatus), uiText("no such elevation: %d"), elevation);
         return false;
     }
 
@@ -1601,7 +1607,7 @@ bool requestMapChange(const char* mapFileName, int elevation)
         // Elevation change within one map: presence is known from the
         // current header - refuse up front when absent.
         if (elevation != static_cast<int>(gElevation) && !elevationPresent(elevation)) {
-            snprintf(gStatus, sizeof(gStatus), "elevation %d absent on %s", elevation, base);
+            snprintf(gStatus, sizeof(gStatus), uiText("elevation %d absent on %s"), elevation, base);
             return false;
         }
         if (!applyElevationChange(elevation)) {
@@ -1612,7 +1618,7 @@ bool requestMapChange(const char* mapFileName, int elevation)
         if (elevation == static_cast<int>(gElevation)) {
             setStatus("already on this elevation");
         } else {
-            snprintf(gStatus, sizeof(gStatus), "moving to elevation %d", elevation);
+            snprintf(gStatus, sizeof(gStatus), uiText("moving to elevation %d"), elevation);
         }
         return true;
     }
@@ -1622,12 +1628,12 @@ bool requestMapChange(const char* mapFileName, int elevation)
     // game resources). The follow-up correction below stays as a backstop.
     int probe = probeTargetElevation(base, elevation);
     if (probe == 1) {
-        snprintf(gStatus, sizeof(gStatus), "elevation %d absent on %s", elevation, base);
+        snprintf(gStatus, sizeof(gStatus), uiText("elevation %d absent on %s"), elevation, base);
         return false;
     }
     if (probe == -1) {
         // Unknown - stay on the current map instead of guessing.
-        snprintf(gStatus, sizeof(gStatus), "cannot read map header: %s", base);
+        snprintf(gStatus, sizeof(gStatus), uiText("cannot read map header: %s"), base);
         return false;
     }
 
@@ -1646,7 +1652,7 @@ bool requestMapChange(const char* mapFileName, int elevation)
     gPendingElevation = true;
     gPendingMapId = mapId;
     gPendingElevationValue = elevation;
-    snprintf(gStatus, sizeof(gStatus), "traveling to %s e%d", base, elevation);
+    snprintf(gStatus, sizeof(gStatus), uiText("traveling to %s e%d"), base, elevation);
     return true;
 }
 
@@ -2755,22 +2761,22 @@ void draw(unsigned char* surface, int width, int height, int pitch)
     char line[128];
     int y = kPanelY + 4;
 
-    snprintf(line, sizeof(line), "DEV TOOLS  (Alt+D close)");
+    snprintf(line, sizeof(line), "%s", uiText("DEV TOOLS  (Alt+D close)"));
     fontDrawText(surface + pitch * y + kPanelX + 6, line, kPanelW - 12, pitch, DT_TITLE_COLOR);
     y += lineHeight + 1;
 
     char mapName[32];
     currentMapName(mapName, sizeof(mapName));
-    snprintf(line, sizeof(line), "map: %s e%d (want e%d)", mapName,
+    snprintf(line, sizeof(line), uiText("map: %s e%d (want e%d)"), mapName,
         static_cast<int>(gElevation), gSelectedElevation);
     fontDrawText(surface + pitch * y + kPanelX + 6, line, kPanelW - 12, pitch, DT_TEXT_COLOR);
     y += lineHeight;
 
-    snprintf(line, sizeof(line), "render: %s  light: off", activeRendererName());
+    snprintf(line, sizeof(line), uiText("render: %s  light: off"), activeRendererName());
     fontDrawText(surface + pitch * y + kPanelX + 6, line, kPanelW - 12, pitch, DT_ACTIVE_COLOR);
     y += lineHeight + 1;
 
-    snprintf(line, sizeof(line), "filter: %s_", gFilter);
+    snprintf(line, sizeof(line), uiText("filter: %s_"), gFilter);
     fontDrawText(surface + pitch * y + kPanelX + 6, line, kPanelW - 12, pitch, DT_TEXT_COLOR);
     y += lineHeight + 1;
 
@@ -2787,13 +2793,13 @@ void draw(unsigned char* surface, int width, int height, int pitch)
         fontDrawText(surface + pitch * (y + row * rowHeight) + kPanelX + 6, line, kPanelW - 12, pitch, color);
     }
     if (gFiltered.empty()) {
-        fontDrawText(surface + pitch * y + kPanelX + 6, "(no maps match)", kPanelW - 12, pitch, DT_ERROR_COLOR);
+        fontDrawText(surface + pitch * y + kPanelX + 6, uiText("(no maps match)"), kPanelW - 12, pitch, DT_ERROR_COLOR);
     }
     y += kListRows * rowHeight + 1;
 
     // Elevation row: the click zone starts where the labels start.
     int elevX = kPanelX + 6 + 40;
-    snprintf(line, sizeof(line), "elev:");
+    snprintf(line, sizeof(line), "%s", uiText("elev:"));
     fontDrawText(surface + pitch * y + kPanelX + 6, line, 40, pitch, DT_TEXT_COLOR);
     gElevRect = textButton(elevX, y, ELEVATION_COUNT * 24, lineHeight + 2);
     for (int e = 0; e < ELEVATION_COUNT; e++) {
@@ -2810,13 +2816,14 @@ void draw(unsigned char* surface, int width, int height, int pitch)
     gNextRect = textButton(kPanelX + 4 + bw, y, bw, lineHeight + 2);
     gGoRect = textButton(kPanelX + 4 + 2 * bw, y, bw, lineHeight + 2);
     gSnapRect = textButton(kPanelX + 4 + 3 * bw, y, bw, lineHeight + 2);
-    fontDrawText(surface + pitch * y + gPrevRect.x + 2, "<prev", bw - 4, pitch, DT_TEXT_COLOR);
-    fontDrawText(surface + pitch * y + gNextRect.x + 2, "next>", bw - 4, pitch, DT_TEXT_COLOR);
-    fontDrawText(surface + pitch * y + gGoRect.x + 2, "GO", bw - 4, pitch, DT_ACTIVE_COLOR);
-    fontDrawText(surface + pitch * y + gSnapRect.x + 2, "SNAP", bw - 4, pitch, DT_TEXT_COLOR);
+    fontDrawText(surface + pitch * y + gPrevRect.x + 2, uiText("<prev"), bw - 4, pitch, DT_TEXT_COLOR);
+    fontDrawText(surface + pitch * y + gNextRect.x + 2, uiText("next>"), bw - 4, pitch, DT_TEXT_COLOR);
+    fontDrawText(surface + pitch * y + gGoRect.x + 2, uiText("GO"), bw - 4, pitch, DT_ACTIVE_COLOR);
+    fontDrawText(surface + pitch * y + gSnapRect.x + 2, uiText("SNAP"), bw - 4, pitch, DT_TEXT_COLOR);
     y += lineHeight + 2;
 
-    snprintf(line, sizeof(line), "%s", gStatus);
+    const std::string localizedStatus = scene::menuStatusText(gStatus, settings.system.language);
+    snprintf(line, sizeof(line), "%s", localizedStatus.c_str());
     fontDrawText(surface + pitch * y + kPanelX + 6, line, kPanelW - 12, pitch, COLOR_LIGHT_GREY);
     gZonesValid = true;
 }
@@ -2826,7 +2833,7 @@ void currentMapName(char* buffer, size_t size)
     if (gMapHeader.name[0] != '\0') {
         snprintf(buffer, size, "%s", gMapHeader.name);
     } else {
-        snprintf(buffer, size, "(none)");
+        snprintf(buffer, size, "%s", uiText("(none)"));
     }
 }
 
@@ -3142,7 +3149,7 @@ bool takeSnapshot()
         return false;
     }
 
-    snprintf(gStatus, sizeof(gStatus), "snapshot: %s", sidecarPath.filename().string().c_str());
+    snprintf(gStatus, sizeof(gStatus), uiText("snapshot: %s"), sidecarPath.filename().string().c_str());
     return true;
 }
 

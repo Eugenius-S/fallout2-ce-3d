@@ -5,6 +5,7 @@
 #include "game_config.h"
 #include "platform_compat.h"
 #include "sound.h"
+#include "scene/menu_text.h"
 
 #include <algorithm>
 #include <cassert>
@@ -605,6 +606,7 @@ bool settingsInit(bool isMapper, int argc, char** argv)
         }
     }
 
+    scene::localizeMenuDescriptors(settingDescriptors, settings.system.language);
     return true;
 }
 
