@@ -746,7 +746,7 @@ void testFont101SizePreviewExtendsCaptureOnly()
         "SPECIAL box capture tag does not leak to the next run");
 
     {
-        ScopedTextCaptureTag captureTag(TextCaptureTag::CharacterPlaqueOffset);
+        ScopedTextCaptureTag captureTag(TextCaptureTag::InterfacePlaqueOffset);
         fontDrawText(pixels.data() + 28 * 20 + 4, "E", 1, 20, static_cast<ColorWithFlags>(7));
     }
     const auto shiftedRuns = scene::textCaptureRecords(generation);
@@ -756,10 +756,10 @@ void testFont101SizePreviewExtendsCaptureOnly()
     check(shiftedRun != shiftedRuns.end() && shiftedRun->run.y == 28
             && shiftedRun->run.sharpTextOffsetY == -2
             && shiftedRun->bounds.y == 26 && shiftedRun->bounds.height == 12,
-        "character plaque tag shifts only modern text and expands capture upward to include old and shifted coverage");
+        "interface plaque tag shifts only modern text and expands capture upward to include old and shifted coverage");
     gCurrentFont = 102;
     {
-        ScopedTextCaptureTag captureTag(TextCaptureTag::CharacterPlaqueOffset);
+        ScopedTextCaptureTag captureTag(TextCaptureTag::InterfacePlaqueOffset);
         fontDrawText(pixels.data() + 28 * 20 + 6, "F", 1, 20, static_cast<ColorWithFlags>(7));
     }
     const auto otherFontRuns = scene::textCaptureRecords(generation);
@@ -768,7 +768,7 @@ void testFont101SizePreviewExtendsCaptureOnly()
     });
     check(otherFontRun != otherFontRuns.end() && otherFontRun->run.sharpTextOffsetY == 0
             && otherFontRun->bounds.y == 28,
-        "character plaque offset tag leaves non-font-101 pixel text unchanged");
+        "interface plaque offset tag leaves non-font-101 pixel text unchanged");
     gCurrentFont = 101;
 
     scene::setFont101PreviewScale(1.29, -1);

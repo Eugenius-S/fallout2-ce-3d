@@ -45,6 +45,7 @@
 #include "random.h"
 #include "reaction.h"
 #include "scripts.h"
+#include "scene/text_capture.h"
 #include "settings.h"
 #include "sfall_script_hooks.h"
 #include "skill.h"
@@ -3755,11 +3756,13 @@ static void inventoryRenderSummary()
                 color = COLOR_RED;
             }
 
+            ScopedTextCaptureTag weightPlaqueOffset(TextCaptureTag::InterfacePlaqueOffset);
             fontDrawText(windowBuffer + offset + 15, formattedText, 120, pitch, color);
         } else {
             int inventoryWeight = objectGetInventoryWeight(_stack[0]);
             snprintf(formattedText, sizeof(formattedText), "%s %d", messageListItem.text, inventoryWeight);
 
+            ScopedTextCaptureTag weightPlaqueOffset(TextCaptureTag::InterfacePlaqueOffset);
             fontDrawText(windowBuffer + offset + 30, formattedText, 80, pitch, COLOR_GREEN);
         }
     }

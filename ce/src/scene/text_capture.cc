@@ -503,7 +503,7 @@ void textCaptureDrawText(unsigned char* buffer, const char* string, int length, 
         ? scene::font101PreviewCoverageHeight(lineHeight, range->ownerWindow)
         : lineHeight;
     const int sharpTextOffsetY = fontGetCurrent() == 101
-            && activeTextCaptureTag() == TextCaptureTag::CharacterPlaqueOffset
+            && activeTextCaptureTag() == TextCaptureTag::InterfacePlaqueOffset
         ? -2
         : 0;
     const bool centeredStatDescription = fontGetCurrent() == 101

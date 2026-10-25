@@ -18,7 +18,7 @@ enum class TextCaptureTag {
     Conversation,
     HudMessageLog,
     SpecialStatDescription,
-    CharacterPlaqueOffset,
+    InterfacePlaqueOffset,
 };
 
 class ScopedTextCaptureTag {
