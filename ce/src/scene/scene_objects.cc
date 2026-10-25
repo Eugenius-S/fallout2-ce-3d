@@ -152,25 +152,20 @@ void addObjectCard(Object* object, void* context)
         pass.skipped++;
         return;
     }
-    // A door standing open under a free camera draws its closed leaf, swung
-    // round its hinge by the renderer (072); the game's own view keeps the
-    // frame it shows.
+    // Under a free camera a door standing wide open is not drawn: the game's
+    // picture of the open leaf, laid on the wall's plane, reads as a crooked
+    // panel. A door caught between frames keeps its picture on the plane (072).
     float doorPlane[3];
-    float doorOpen = 0.0f;
-    FrmImage openImage;
     if (object->frame > 0 && scene_renderer::staticFlyCameraActive()
         && scene_renderer::staticObjectPlane(object->tile, object->fid, doorPlane)) {
         CacheEntry* handle = nullptr;
         Art* art = artLock(objectFid, &handle);
         const int frames = art != nullptr ? artGetFrameCount(art) : 0;
         if (handle != nullptr) artUnlock(handle);
-        if (frames > 1 && openImage.lock(objectFid, object->frame, object->rotation)) {
-            doorOpen = static_cast<float>(object->frame) / static_cast<float>(frames - 1);
-        }
+        if (frames > 1 && object->frame == frames - 1) return;
     }
-    const int artFrame = doorOpen > 0.0f ? 0 : object->frame;
     FrmImage image;
-    if (!image.lock(FrmId(object), artFrame, object->rotation)) {
+    if (!image.lock(FrmId(object), object->frame, object->rotation)) {
         pass.skipped++;
         return;
     }
@@ -188,14 +183,14 @@ void addObjectCard(Object* object, void* context)
     if (settings.scene3d.shadows) {
         int bodyWidth = 0, bodyHeight = 0;
         body = scene_renderer::staticObjectShadowFreeArt(object->tile, static_cast<unsigned int>(object->fid),
-            artFrame, object->rotation, &bodyWidth, &bodyHeight, &bodyX, &bodyY);
+            object->frame, object->rotation, &bodyWidth, &bodyHeight, &bodyX, &bodyY);
         if (body != nullptr) {
             width = bodyWidth;
             height = bodyHeight;
         }
     }
     const int variant = body != nullptr ? 1 : 0;
-    const bool cached = scene_renderer::staticObjectArtCached(object->fid, artFrame, object->rotation, variant);
+    const bool cached = scene_renderer::staticObjectArtCached(object->fid, object->frame, object->rotation, variant);
     if (!cached && body == nullptr) {
         const unsigned char* indices = image.getData();
         if (indices == nullptr) {
@@ -213,7 +208,7 @@ void addObjectCard(Object* object, void* context)
         }
     }
     scene_renderer::StaticObjectFrame frame = {
-        object->tile, object->fid, artFrame, static_cast<int>(object->rotation), object->x, object->y,
+        object->tile, object->fid, object->frame, static_cast<int>(object->rotation), object->x, object->y,
         body != nullptr ? bodyX : image.getXOffset(), body != nullptr ? bodyY : image.getYOffset(), width, height,
         (object->flags & OBJECT_FLAT) != OBJECT_NONE || scene_renderer::staticObjectFlat(object->tile, object->fid),
         cached ? nullptr : (body != nullptr ? body : pass.rgba.data()),
@@ -221,13 +216,6 @@ void addObjectCard(Object* object, void* context)
                                       : pass.rgba.size()),
     };
     frame.variant = variant;
-    if (doorOpen > 0.0f) {
-        frame.doorOpen = doorOpen;
-        frame.openXOffset = openImage.getXOffset();
-        frame.openYOffset = openImage.getYOffset();
-        frame.openWidth = openImage.getWidth();
-        frame.openHeight = openImage.getHeight();
-    }
     frame.stack = stack;
     frame.pickId = pickId;
     frame.pickOnly = pickOnly;
