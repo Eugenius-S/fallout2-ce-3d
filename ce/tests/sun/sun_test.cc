@@ -25,22 +25,22 @@ int main()
     const unsigned int day = 3 * 24 * kHour; // some day of the game
 
     const Sun dawn = sunAt(day + 6 * kHour, 1.0, true);
-    failures += !check(!dawn.up && std::fabs(dawn.height) < 1e-6, "6:00: on the horizon, not shining yet");
+    failures += !check(!dawn.up, "6:00: not shining yet");
 
     const Sun morning = sunAt(day + 7 * kHour, 1.0, true);
-    failures += !check(morning.up && morning.height > 2.0 && morning.height < 8.0, "7:00: low");
-    failures += !check(morning.color[2] < 0.8f, "7:00: warm");
+    failures += !check(morning.up && morning.height > 70.0 && morning.height < 90.0, "7:00: low");
+    failures += !check(morning.color[2] > 0.85f, "7:00: nearly white, the sun stays high (062)");
 
     const Sun noon = sunAt(day + 12 * kHour, 1.0, true);
-    failures += !check(noon.up && std::fabs(noon.height - 15.0) < 1e-6, "12:00: at its highest");
+    failures += !check(noon.up && std::fabs(noon.height - 90.0) < 1e-6, "12:00: at its highest");
     failures += !check(std::fabs(noon.strength - 1.0f) < 1e-6f, "12:00 full ambient: full strength");
-    failures += !check(noon.color[2] < 0.8f, "12:00: warm, the sun never climbs high (062)");
+    failures += !check(noon.color[2] > 0.85f, "12:00: nearly white, the sun stays high (062)");
     const double length = std::sqrt(noon.direction[0] * noon.direction[0] + noon.direction[1] * noon.direction[1]
         + noon.direction[2] * noon.direction[2]);
     failures += !check(std::fabs(length - 1.0) < 1e-5, "the direction is a unit vector");
 
     const Sun evening = sunAt(day + 17 * kHour, 1.0, true);
-    failures += !check(evening.up && evening.height < 20.0, "17:00: low again");
+    failures += !check(evening.up && evening.height > 70.0, "17:00: still high (062)");
     failures += !check(std::fabs(evening.azimuth - morning.azimuth - 150.0) < 1e-6,
         "it crosses the sky: 7:00 and 17:00 are 150 degrees apart");
 

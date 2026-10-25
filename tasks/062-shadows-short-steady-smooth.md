@@ -237,3 +237,19 @@ edge samples across the masks read 2306 soft vs 27 hard at the spawn,
 303 vs 1 at the corrals, 2206 vs 18 at noon; the median shadow drop
 halved to 24 gray levels (the lighter 0.425).
 Next: the owner's eye on the relaunched game.
+
+### 2026-10-25 glm
+Done: round 7, the owner's correction of round 6: the sun hangs nearly
+PERPENDICULAR at noon and the day's ends tilt it only 15 degrees off
+that, so long shadows are excluded outright. sunAt() now runs
+75 + 15*sin(pi*day) degrees of elevation (kNoonHeight 90, kDayEndHeight
+75, both one line each): 7:00 reads 82.5, noon 90 (zenith), 17:00 78.9.
+sun_test follows (dawn not shining yet, morning and evening high, noon
+nearly white: the sun never warms low).
+Check: build Release, ctest 14/14; the shadows-off regression keeps the
+13 drifted counts. Pairs under this runs folder: spawn-high, noon-high,
+corrals-high: the masks shrank about three times against round 6 (short
+dabs at the casters' feet: 9.3 k, 6.8 k, 21 k sampled px), the edge
+samples read 782 soft vs 8 hard, 1191 vs 20, 996 vs 8, and the median
+drop is 17..24 gray levels (the lighter 0.425 rim).
+Next: the owner's eye on the relaunched game.

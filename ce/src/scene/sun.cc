@@ -12,10 +12,11 @@ constexpr double kPi = 3.14159265358979323846;
 constexpr double kTicksPerHour = 36000.0;
 constexpr double kSunrise = 6.0;
 constexpr double kSunset = 18.0;
-// The sun swings low, at most this many degrees up at noon, over the whole
-// day arc (the owner's 062 round 6: a long geometric shadow everywhere, so
-// the rim's melt always cuts it and no hard straight shadow edge shows).
-constexpr double kNoonHeight = 15.0; // degrees
+// The sun stays HIGH (the owner's 062 round 7): at noon it stands nearly
+// overhead and the day's ends tilt it only kSwing degrees off that, so no
+// long shadows exist at all; every shadow is a short dab the rim softens.
+constexpr double kNoonHeight = 90.0; // degrees, noon
+constexpr double kDayEndHeight = 75.0; // degrees, at dawn and dusk
 // Where the sun stands at noon, degrees in the GL ground plane; it rises 90
 // degrees before and sets 90 degrees after. To be tuned on the shadows (045).
 constexpr double kNoonAzimuth = 225.0;
@@ -44,7 +45,7 @@ Sun sunAt(unsigned int gameTime, double ambient, bool daylight)
     Sun sun;
     const double hour = std::fmod(gameTime / kTicksPerHour, 24.0);
     const double day = (hour - kSunrise) / (kSunset - kSunrise); // 0 sunrise, 1 sunset
-    sun.height = kNoonHeight * std::sin(kPi * day);
+    sun.height = kDayEndHeight + (kNoonHeight - kDayEndHeight) * std::sin(kPi * day);
     sun.azimuth = kNoonAzimuth + (day - 0.5) * 180.0;
     const double height = sun.height * kPi / 180.0;
     const double azimuth = sun.azimuth * kPi / 180.0;
