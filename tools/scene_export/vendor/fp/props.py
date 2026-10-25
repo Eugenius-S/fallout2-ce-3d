@@ -373,6 +373,7 @@ def fit(alpha, left, top, force=False):
 
 # ------------------------------------------------------------------ composites
 SEAM_PX = 12            # sprites that meet along a straight vertical line this long are slices of one picture
+WITHIN = 0.95           # share of a sprite inside the bounds of a bigger one of its name: a detail of that thing
 
 
 class Piece:
@@ -387,21 +388,27 @@ class Piece:
         self.obj, self.index, self.rgba, self.x, self.y, self.order, self.name = obj, index, rgba, x, y, order, name
         self.board, self.sheet = board, sheet
         columns = np.flatnonzero((index != 0).any(axis=0))
+        rows = np.flatnonzero((index != 0).any(axis=1))
         self.left, self.right = x + int(columns[0]), x + int(columns[-1]) + 1
+        self.bounds = self.left, y + int(rows[0]), self.right, y + int(rows[-1]) + 1     # of its opaque pixels
+        self.pixels = int((index != 0).sum())
 
     def edge(self, right):
         """World rows in which the sprite's last (or first) column is opaque."""
         return self.y + np.flatnonzero(self.index[:, (self.right - 1 if right else self.left) - self.x])
 
 
-def groups(pieces):
+def groups(pieces, details=True):
     """Sort pieces into things: [[Piece]].
 
     Big scenery was cut into slices, one map object each (long tables, bunk
     beds, machines): two sprites belong together when one ends in the screen
     column where the other begins and their edge columns touch for SEAM_PX rows
     - nothing but a cut is that straight. So do objects of one name on one hex
-    (the housing and the wheel of Vault 13's door).
+    (the housing and the wheel of Vault 13's door), and objects of one name
+    whose smaller sprite lies within the bigger one's bounds (a bed's rail or a
+    bookshelf's lower half painted as an object of its own): fitted alone, such
+    a detail became a plank in mid-air (details=False: not the details).
     """
     parent = list(range(len(pieces)))
 
@@ -422,10 +429,38 @@ def groups(pieces):
     for same in places.values():
         for i in same[1:]:
             parent[find(i)] = find(same[0])
+    named = {}
+    for i, piece in enumerate(pieces if details else ()):
+        named.setdefault(piece.name, []).append(i)
+    for same in named.values():
+        for i in same:
+            for j in same:
+                if pieces[j].pixels < pieces[i].pixels or (pieces[j].pixels == pieces[i].pixels and j <= i):
+                    continue
+                little, big = pieces[i], pieces[j]           # is the smaller one a detail of the bigger?
+                if detail(little, big):
+                    parent[find(i)] = find(j)
     out = {}
     for i, piece in enumerate(pieces):
         out.setdefault(find(i), []).append(piece)
     return [sorted(group, key=lambda piece: piece.order) for group in out.values()]
+
+
+def detail(little, big):
+    """Whether a piece lies within the bounds of a bigger one of its name, a detail of that thing."""
+    x0, y0, x1, y1 = big.bounds
+    if little.name != big.name or little.sheet is not None or big.sheet is not None or little.bounds[0] >= x1 or little.bounds[2] <= x0 \
+            or little.bounds[1] >= y1 or little.bounds[3] <= y0:
+        return False
+    ys, xs = np.nonzero(little.index)
+    xs, ys = xs + little.x, ys + little.y
+    return bool(np.mean((xs >= x0) & (xs < x1) & (ys >= y0) & (ys < y1)) >= WITHIN)
+
+
+def lead(group):
+    """The piece of a group that all the others are details of (a bed and its rail), or None."""
+    big = max(group, key=lambda piece: piece.pixels)
+    return big if all(piece is big or detail(piece, big) for piece in group) else None
 
 
 def compose(pieces):

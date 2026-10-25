@@ -54,6 +54,8 @@ WALK_THROUGH = 160  # px: a thing that stops no one is a solid all the same if i
 # exceptions, at most a tenth of a map group's distinct FRMs).
 _OVERRIDES = json.loads((Path(__file__).resolve().parents[2] / "shapes" / "overrides.json").read_text(encoding="utf-8"))
 FORCED = {name: kind for kind in ("box", "drum") for name in _OVERRIDES.get(kind, {})}
+MIN_DRUM = 0.1      # units: the radius a drum keeps when a wall or another thing cuts it back
+APART = 0.02        # units: solids of two things that overlap less in plan are left as they are
 MIN_BOX = 0.1       # units: what is left of a box that is cut back at a wall, at least
 ON_TOP = 0.05       # units outside a solid's footprint that still count as on it
 AT_SOLID = 0.3      # an invisible blocker this close to a solid is part of it (units)
@@ -499,6 +501,79 @@ class SceneBuilder:
                     high[axis] = min(high[axis], max(slab[0], low[axis] + MIN_BOX))
         return ((low[0] + high[0]) / 2, (low[1] + high[1]) / 2), high[0] - low[0], high[1] - low[1]
 
+    def keep_apart(self, things):
+        """Solids that reach into a wall or into another thing are cut back (things: the thing of
+        every row of self.props; rows of one thing are slices of one solid and stay as they are).
+
+        A solid is the hull of what its sprite shows, a little larger than the thing. A drum
+        beside a wall came out through it (a round stove in a corner), and two things side by
+        side overlapped in plan and showed through each other from the air (a dresser and the
+        crates against it). A box is cut back at the slabs of the walls as it is made
+        (out_of_walls); a drum here, on the side of its own hex. Two solids whose heights meet
+        are each cut back by half of their overlap, across the axis where they overlap less. A
+        drum is cut as its square and becomes the largest drum within what is left: it keeps
+        its near side and moves off the cut, so it still shows the sprite it was made of.
+        """
+        rows = [list(row) for row in self.props]        # the fly camera's; the game's camera keeps self.props
+        fly = [row[15] != 2 for row in rows]
+
+        def extent(row):
+            cu, cv, a, b = row[5:9]
+            half = (a / proj.BB_PX, a / proj.BB_PX) if row[4] else (a / 2, b / 2)
+            return [cu - half[0], cv - half[1], cu + half[0], cv + half[1]]
+
+        def shrink(row, cut):
+            """Cut a row back to the extent `cut`."""
+            if row[4]:
+                row[5:7] = _round(((cut[0] + cut[2]) / 2, (cut[1] + cut[3]) / 2))
+                row[7] = round(min(cut[2] - cut[0], cut[3] - cut[1]) / 2 * proj.BB_PX, 4)
+                row[8] = round(row[7] * props.K, 4)
+            else:
+                row[5:9] = _round(((cut[0] + cut[2]) / 2, (cut[1] + cut[3]) / 2, cut[2] - cut[0], cut[3] - cut[1]))
+
+        for row, seen in zip(rows, fly):
+            if not row[4] or not seen:
+                continue
+            for u0, v0, u1, v1 in self.boxes:
+                radius = row[7] / proj.BB_PX
+                if math.hypot(row[5] - min(max(row[5], u0), u1), row[6] - min(max(row[6], v0), v1)) >= radius:
+                    continue
+                axis = int(u1 - u0 > v1 - v0)                   # across the slab
+                slab, home, cut = ((u0, u1), (v0, v1))[axis], row[1 + axis], extent(row)
+                if home > (slab[0] + slab[1]) / 2:              # its hex is past the slab: keep that side
+                    cut[axis] = min(max(cut[axis], slab[1]), cut[axis + 2] - 2 * MIN_DRUM)
+                else:
+                    cut[axis + 2] = max(min(cut[axis + 2], slab[0]), cut[axis] + 2 * MIN_DRUM)
+                shrink(row, cut)
+        for i, row in enumerate(rows):
+            for j in range(i + 1, len(rows)):
+                other = rows[j]
+                if not fly[i] or not fly[j] or things[i] == things[j] or row[9] >= other[10] or other[9] >= row[10]:
+                    continue
+                p, q = extent(row), extent(other)
+                overlap = [min(p[2], q[2]) - max(p[0], q[0]), min(p[3], q[3]) - max(p[1], q[1])]
+                if min(overlap) <= APART:
+                    continue
+                axis = int(overlap[1] < overlap[0])
+                half = overlap[axis] / 2
+                for box, them in ((p, q), (q, p)):          # each gives way on the side that faces the other
+                    side = MIN_BOX if box is p and not row[4] or box is q and not other[4] else 2 * MIN_DRUM
+                    if box[axis] + box[axis + 2] < them[axis] + them[axis + 2]:
+                        box[axis + 2] = max(box[axis + 2] - half, box[axis] + side)
+                    else:
+                        box[axis] = min(box[axis] + half, box[axis + 2] - side)
+                shrink(row, p)
+                shrink(other, q)
+        # The game's camera sees the card, and a solid only over it: one cut back would change
+        # its view. So a solid that was cut stays as made for that camera, and the cut copy
+        # is the fly camera's (row[15]: 0 both cameras, 1 the fly camera, 2 the game's).
+        for n, (row, cut) in enumerate(zip(list(self.props), rows)):
+            if cut != row and row[15] == 1:
+                self.props[n] = cut
+            elif cut != row:
+                row[15], cut[15] = 2, 1
+                self.props.append(cut)
+
     def solid_of(self, index, left, top, force=False):
         """-> (the floor's shade in a sprite, props.fit of the rest); cached, sprites repeat."""
         key = (index.shape, index.tobytes(), left, top, force)
@@ -523,7 +598,7 @@ class SceneBuilder:
         self.props, self.rests, self.lifts, self.casts = [], [], [], []
         self.hidden, self.hidden_sheets = [], []        # boards / walls that first person does not draw
         self.blocks, self.posts, self.prop_blobs = [], [], []
-        self.forced_boards = set()                      # boards of solids by name: their cards shade the light
+        self.forced_boards = set()                      # boards the fly camera alone draws as solids: their cards shade the light
         self.propped = set()                            # objects that stop the player as solids, or not at all
         pieces = [self.piece(obj, frm, order, board=n) for n, (obj, frm, order) in enumerate(self.card_info) if n not in self.set_boards]
         formed = set(self.hidden_walls)                 # ... nor of the sheets that a form stands for
@@ -531,7 +606,19 @@ class SceneBuilder:
                    for face, frm, _ in self.panels if id(face) in self.sheet_rows and not face.obj.flags & mapfile.OBJECT_NO_BLOCK
                    and self.sheet_rows[id(face)] not in formed]
         solids = []
-        for group in props.groups([piece for piece in pieces if piece.stands]):
+        things = []                                     # the thing (group) of each row of self.props
+        # A detail joined to a bigger piece of its name (props.groups) changes what the game's camera
+        # sees of both: for it they stay as they were made apart (seen 2), and the thing they make up
+        # is the fly camera's (seen 1). A thing that is the same either way is both cameras' (0).
+        standing = [piece for piece in pieces if piece.stands]
+        joined = props.groups(standing)
+        apart = props.groups(standing, details=False)
+        keys = {frozenset(map(id, group)) for group in joined}
+        alone = {frozenset(map(id, group)) for group in apart}
+        todo = [(group, 2) for group in apart if frozenset(map(id, group)) not in keys] \
+            + [(group, 0 if frozenset(map(id, group)) in alone else 1) for group in joined]
+        fly_hidden = []                                 # boards that only a fly camera's solid stands for
+        for thing, (group, seen) in enumerate(todo):
             first = group[0]
             blocking = any(not piece.obj.flags & mapfile.OBJECT_NO_BLOCK for piece in group)
             # A box by name (tools/scene_export/shapes/overrides.json): chairs and
@@ -554,7 +641,7 @@ class SceneBuilder:
             cu, cv = u + du, v + dv
             body = rgba * ~shade[..., None]
             sprite = self.cropped(body, left, top)
-            if shade.any() and not forced:             # a solid by name: its card keeps the shade
+            if shade.any() and not forced and seen != 1:   # a solid by name: its card keeps the shade
                 self.casts.append([self.cropped(rgba * shade[..., None], left, top)] + _round((u, v)))
             above, below = fit.rest(shape)
             window = body[shape.top - top:shape.top - top + shape.h, shape.left - left:shape.left - left + shape.w]
@@ -563,7 +650,7 @@ class SceneBuilder:
                 """The pixels `mask` as a card standing on the solid's axis, its screen point `base` at height
                 z; top: the height its upper edge is drawn out to (0: as high as the pixels are)."""
                 bx, by = int(round(base[0])), int(round(base[1]))
-                self.rests.append([self.cropped(window * mask[..., None], shape.left - bx, shape.top - by)] + _round((cu, cv, z, top)))
+                self.rests.append([self.cropped(window * mask[..., None], shape.left - bx, shape.top - by)] + _round((cu, cv, z, top)) + [seen])
 
             round_ = fit.kind == "drum"
             if round_:
@@ -575,16 +662,22 @@ class SceneBuilder:
                 parts = fit.boxes(shape)
             if below.sum() >= props.MIN_REST:           # a stem: the game's camera saw its upper end hidden by the
                 rest(below, (fit.centre[0], fit.centre[1] + fit.z1 * proj.HPX), 0.0, fit.z0)    # solid; it reaches it
-            board = first.board if len(group) == 1 and first.board is not None else -1
+            # A thing of several pieces keeps its own depth (board -1), unless all but one are details
+            # of that one (a bed's rail): then it is that piece's thing and takes its card's depth.
+            main = first if len(group) == 1 else props.lead(group)
+            board = main.board if main is not None and main.board is not None else -1
             for (pu, pv), a, b, z0, z1, wall_u, wall_v in parts:
                 if not round_:
                     (pu, pv), a, b = self.out_of_walls(u + pu, v + pv, a, b)
                     pu, pv = pu - u, pv - v
                 self.props.append([sprite] + _round((u, v)) + [board, int(round_)]
                                   + _round((u + pu, v + pv, a, b, z0, z1, wall_u, wall_v)) + [self.name_id(first.obj.pid)]
-                                  + [int(bool(forced))])
+                                  + [int(bool(forced)), seen])
+                things.append(thing)
                 half = (radius, radius) if round_ else (a / 2, b / 2)
                 area = math.pi * radius ** 2 if round_ else a * b
+                if seen == 1:                           # the game's view and the player go by the pieces apart
+                    continue
                 if not forced:                          # a solid by name lifts nothing: the game's view keeps its cards
                     solids.append((round_, u + pu, v + pv, half, z1))
                 if forced:
@@ -596,6 +689,9 @@ class SceneBuilder:
                         self.posts.append(_round((u + pu, v + pv, radius)))
                     else:
                         self.blocks.append(_round((u + pu - half[0], v + pv - half[1], u + pu + half[0], v + pv + half[1])))
+            if seen == 1:
+                fly_hidden += [piece.board for piece in group if piece.board is not None]
+                continue
             self.shape_use["drum" if round_ else "box"] += 1
             for piece in group:
                 self.propped.add(id(piece.obj))
@@ -603,6 +699,10 @@ class SceneBuilder:
                     self.hidden.append(piece.board)
                 else:
                     self.hidden_sheets.append(piece.sheet)
+        fly_hidden = self.fly_hidden = set(fly_hidden) - set(self.hidden)
+        self.hidden += sorted(fly_hidden)
+        self.forced_boards |= fly_hidden
+        self.keep_apart(things)
         # A card shows the sprite without the shade a solid's card gets; and what was a painted
         # shadow of a card that is a solid now is among the casts.
         self.hidden += sorted(self.set_boards)
@@ -634,7 +734,8 @@ class SceneBuilder:
         self.solids = solids
         for piece in pieces:
             obj = piece.obj
-            if piece.board is None or piece.board in hidden or not piece.stands or not obj.flags & mapfile.OBJECT_NO_BLOCK:
+            if piece.board is None or piece.board in hidden - self.fly_hidden or not piece.stands \
+                    or not obj.flags & mapfile.OBJECT_NO_BLOCK:    # as the game's view has them
                 continue
             u, v = self.anchor(obj)
             for round_, cu, cv, half, z1 in solids:
@@ -912,13 +1013,14 @@ class SceneBuilder:
             # units along u and v around (cu, cv), a drum (round 1) the cylinder over the floor
             # ellipse that is a x b px on screen. Both reach from height z0 to z1; a box's far
             # sides go on up: the one along u to wallU, the one along v to wallV.
-            "props": self.props,                            # [sprite, u, v, board, round, cu, cv, a, b, z0, z1, wallU, wallV, name, forced]
-            "rests": self.rests,                            # [sprite, u, v, z, top]: upright cards standing at height z
+            "props": self.props,                            # [sprite, u, v, board, round, cu, cv, a, b, z0, z1, wallU, wallV, name, forced, seen]
+            "rests": self.rests,                            # [sprite, u, v, z, top, seen]: upright cards standing at height z
             "lifts": self.lifts,                            # [board, du, dv, z]: boards that stand on a solid: moved, and z up
             "crossed": self.crossed,                        # boards that stand as two crossed sheets (plants)
             "plants": self.plants,                          # boards of plants: cast no real shadow (baked.bin's flag)
             "casts": self.casts,                            # [sprite, u, v]: shade to lie on the floor, like `shadows`
             "hidden": sorted(self.hidden),                  # boards ...
+            "flyBoards": sorted(self.forced_boards),        # (of them, those the game's view keeps as cards)
             "hiddenWalls": sorted(self.hidden_sheets + self.hidden_walls),      # ... walls ...
             "hiddenRoof": sorted(self.hidden_roof),         # ... and roof squares that a solid or a form stands for there
             # A form shows `sprite`, whose top-left pixel is ground point (u, v), by projection from the
