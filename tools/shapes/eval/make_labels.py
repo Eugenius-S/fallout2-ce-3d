@@ -1,7 +1,11 @@
 """Writes labels.json from the list below and the inventory's first instance
 of each FRM (build/shapes-eval/inventory.json, tools/shapes/inventory.py).
 Run once; after the owner's approval labels.json is frozen. Nothing from
-klatoxcv: a fight starts there at once and the fly camera lands."""
+klatoxcv: a fight starts there at once and the fly camera lands.
+The Den rows (task 048) take their instances from inventory-den.json
+(tools/shapes/inventory.py --group den); their labels follow the Klamath
+rules: plants and low heaps are cards, shelves and crates boxes, chairs and
+couches boxes with a back, barrels and tire stacks drums."""
 import json
 from pathlib import Path
 
@@ -11,7 +15,7 @@ ROOT = HERE.parents[2]
 # Plants and low heaps are cards: turned to the camera they read right from
 # every side (the first 18 sheets, 2026-10-20); crossed sheets would show
 # their cross from above.
-# frm, shape, big (at least two hexes across or taller than half a wall), note
+# frm, shape, big (at least two hexes across or taller than half a wall), note[, town]
 LABELS = [
     ("eggs7.frm", "flat", False, "small rocks"),
     ("weed01.frm", "card", False, ""),
@@ -53,16 +57,40 @@ LABELS = [
     ("cab1.frm", "flat", False, "a small flat thing on the floor"),
     ("bigshlf1.frm", "box", True, "a big shelf"),
     ("cavbrac1.frm", "sheet", True, "a cave brace: a beam on posts"),
+    ("weed26.frm", "card", False, "", "den"),
+    ("weed24.frm", "card", False, "", "den"),
+    ("barrel.frm", "drum", False, "the burning barrel", "den"),
+    ("ss112.frm", "box+back", False, "a chair", "den"),
+    ("eggs6.frm", "flat", False, "small rocks", "den"),
+    ("doorb05.frm", "plane", True, "a door, as doors", "den"),
+    ("weed25.frm", "card", False, "", "den"),
+    ("brl2000.frm", "drum", False, "a metal barrel", "den"),
+    ("eggs5.frm", "flat", False, "small rocks", "den"),
+    ("weed09.frm", "card", False, "a low mound of rocks", "den"),
+    ("brl1000.frm", "drum", False, "a metal barrel", "den"),
+    ("car1.frm", "box", True, "a car, the big one the task asked for", "den"),
+    ("tirs002.frm", "drum", False, "a stack of tires", "den"),
+    ("cac2000.frm", "card", False, "a cactus", "den"),
+    ("char05.frm", "box+back", False, "a couch", "den"),
+    ("char06.frm", "box+back", False, "a couch", "den"),
+    ("ss118.frm", "box+back", False, "a chair", "den"),
+    ("weed08.frm", "card", False, "junk", "den"),
 ]
 
 
 def main():
-    inventory = {row["frm"]: row for row in json.loads((ROOT / "build/shapes-eval/inventory.json").read_text())}
+    inventories = {"klamath": {row["frm"]: row for row in
+                               json.loads((ROOT / "build/shapes-eval/inventory.json").read_text())}}
+    den = ROOT / "build/shapes-eval/inventory-den.json"
+    if den.is_file():
+        inventories["den"] = {row["frm"]: row for row in json.loads(den.read_text())}
     rows = []
-    for frm, shape, big, note in LABELS:
-        row = inventory[frm]
+    for label in LABELS:
+        frm, shape, big, note = label[0], label[1], label[2], label[3]
+        town = label[4] if len(label) > 4 else "klamath"
+        row = inventories[town][frm]
         rows.append({"frm": frm, "name": row["name"], "shape": shape, "big": big, "note": note,
-                     "count": row["count"], "instance": row["instances"][0]})
+                     "town": town, "count": row["count"], "instance": row["instances"][0]})
     (HERE / "labels.json").write_text(json.dumps(rows, indent=1) + "\n", encoding="utf-8")
     print(len(rows), "labels")
 
