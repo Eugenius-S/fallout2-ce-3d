@@ -171,3 +171,38 @@ tools/effect_glow_levels.py --sign-low after sign-low captures.
 Check: both sequences, Python compilation, diff and runs size checks pass.
 Production values and the owner's other pending visual picks are not applied.
 Next: finish visual calibration, then integrate main as described above.
+
+### 2026-10-26 gpt: suppress white bloom and fold in the owner's FX picks
+
+Owner resumed after observing that white bloom overwhelms the source details.
+Final picks from chat: laser/plasma pistol/plasma rifle/electric 0.7, legacy
+plasma bolt 1.5, flamethrower/rocket 1, all explosions 0.7. Electricity's earlier
+3 was explicitly corrected to 0.7. No final sign pick; compare those at 0.4.
+
+Done: post.cc splits blurred bloom into neutral min(R,G,B) and its chromatic
+remainder, retaining 15% of the neutral share in both bloom scales. The scene
+picture is composited with full share 1, so intrinsic emission and local lights
+remain unchanged. Suppression happens after blur, also catching neutral white
+created by mixing neighboring colored source pixels. One global slider remains.
+
+effect_emission.h and scene_shader.cc encode the selected FX looks at common
+default 2. Calibration reproduces the reviewed RGBA8 target's clamp BEFORE
+selected_strength/2 scaling; scaling the raw gain first would change the look.
+PLASMAB retains its cycling-only core mask through an explicit cycling field.
+Signs keep their previous per-kind material while their selection is pending.
+
+Evidence: white-projectiles.jpg, white-fire-electric-rocket.jpg,
+white-explosions.jpg, white-signs.jpg, previous chosen look left/new result right.
+tools/effect_white_review.py validates all 13 source/frame/camera states,
+pixel-identical OFF images against previous captures, and lower added neutral
+light for every example. Raw captures: build/effects086/white-balanced.
+white-measurements.json records source hashes, executable hashes, added neutral
+values and near-white pixel counts. Surface illumination is unchanged exactly.
+
+Check: Release game/mapper, 16 CTests, 64 exporter and 12 regression unit tests.
+All 16 ordinary views matched current-base controls during white implementation
+(white-regression-summary.json); the final correction only changed calibrated
+FX tags and was verified by the final 13 OFF comparisons. Diff, Python and runs
+size checks pass. Owner game/config have not been installed/restarted/modified.
+Next: inspect the new white suppression, finalize signs and integrate the newer
+main before PR/merge as above. Task stays doing; this is saved branch work.

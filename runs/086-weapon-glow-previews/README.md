@@ -1,6 +1,40 @@
 # 086: native effect emission, local light and glow
 
-The current outcome is night-projectiles.jpg, night-fire-electric-rocket.jpg,
+## White suppression and chosen effect calibration
+
+white-projectiles.jpg, white-fire-electric-rocket.jpg, white-explosions.jpg
+and white-signs.jpg compare the previous chosen look (left) with reduced white
+bloom (right). The compositor retains 15% of the neutral RGB component after
+blur and keeps its chromatic remainder. Applying this after blur also catches
+white created by adjacent colored source pixels mixing. The scene picture,
+self-lit source cores and local illumination are not dimmed.
+
+The owner's selected former common strengths are now internal per-kind
+calibration at the unchanged COMMON default 2, with one player slider:
+
+| Kind | Selected former strength |
+| --- | --- |
+| Laser, plasma pistol/rifle, electricity | 0.7 |
+| Legacy plasma bolt | 1.5 |
+| Flamethrower, rocket in flight | 1.0 |
+| All four explosions | 0.7 |
+
+The RGBA8 emission target clamps before blur. The calibrated material therefore
+reproduces that clamp before applying selected_strength / 2; scaling its raw
+gain before the clamp would produce a different look. Signs have no final pick:
+their white-suppression comparison provisionally uses 0.4 in both columns.
+
+Raw captures: build/effects086/white-balanced. tools/effect_white_review.py
+validates matching source/camera state, pixel-identical OFF images versus the
+previous build, reduced added neutral light for all 13 examples, and source
+hashes in white-measurements.json. The runtime build and 16 CTests pass;
+64 exporter tests and 12 regression tests pass. All 16 ordinary views matched
+the controls before the final effect-only clamp correction; the final 13 OFF
+comparisons additionally verify unchanged sources and surface lighting.
+
+## Earlier calibration ladders
+
+The earlier outcome is night-projectiles.jpg, night-fire-electric-rocket.jpg,
 night-explosions.jpg and night-signs.jpg. Each row compares the owner's requested
 COMMON glow strengths 0.7 / 0.8 / 1.0 / 1.3 / 1.5 / 1.8, left to right. Source compensation and
 local lights are identical across columns; the global default remains 2.

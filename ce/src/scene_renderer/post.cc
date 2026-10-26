@@ -79,9 +79,16 @@ constexpr const char* kAddFragmentShader = R"(#version 330 core
 in vec2 vTexcoord;
 uniform sampler2D uTexture;
 uniform float uStrength;
+uniform float uNeutralShare;
 out vec4 outColor;
 void main() {
-    outColor = vec4(texture(uTexture, vTexcoord).rgb * uStrength, 1.0);
+    vec3 glow = texture(uTexture, vTexcoord).rgb;
+    // Suppress the shared white component after blur: otherwise adjacent
+    // colored source pixels can mix back into a large white blob. Keep the
+    // chromatic remainder and the original scene picture unchanged.
+    float neutral = min(min(glow.r, glow.g), glow.b);
+    glow -= vec3(neutral * (1.0 - uNeutralShare));
+    outColor = vec4(glow * uStrength, 1.0);
 }
 )";
 
@@ -200,7 +207,7 @@ void destroyTargets()
 
 // Draws a fullscreen quad sampling `texture` with the given program; dx/dy
 // are the blur direction in texels, bright 1.0 or the bright-pass threshold.
-void drawPostQuad(unsigned int texture, unsigned int program, float dx, float dy, float strength, float bright = 1.0f)
+void drawPostQuad(unsigned int texture, unsigned int program, float dx, float dy, float strength, float bright = 1.0f, float neutralShare = 1.0f)
 {
     glUseProgram(program);
     glActiveTexture(kTexture0);
@@ -209,6 +216,7 @@ void drawPostQuad(unsigned int texture, unsigned int program, float dx, float dy
     glUniform2f(glGetUniformLocation(program, "uDirection"), dx, dy);
     glUniform1f(glGetUniformLocation(program, "uStrength"), strength);
     glUniform1f(glGetUniformLocation(program, "uBright"), bright);
+    glUniform1f(glGetUniformLocation(program, "uNeutralShare"), neutralShare);
     glBindVertexArray(gQuadVao);
     glDrawArrays(kTriangles, 0, 6);
 }
@@ -400,8 +408,8 @@ void compositeGlow()
     drawPostQuad(gSceneTexture, gProgramAdd, 0.0f, 0.0f, 1.0f);
     const double strength = std::max(settings.scene3d.glow_strength, 0.0);
     glBlendFunc(kOne, kOne);
-    drawPostQuad(gGlowA, gProgramAdd, 0.0f, 0.0f, static_cast<float>(0.55 * strength));
-    drawPostQuad(gGlowA8, gProgramAdd, 0.0f, 0.0f, static_cast<float>(1.5 * strength));
+    drawPostQuad(gGlowA, gProgramAdd, 0.0f, 0.0f, static_cast<float>(0.55 * strength), 1.0f, 0.15f);
+    drawPostQuad(gGlowA8, gProgramAdd, 0.0f, 0.0f, static_cast<float>(1.5 * strength), 1.0f, 0.15f);
     glDisable(kBlend);
     glBindVertexArray(0);
     glUseProgram(0);

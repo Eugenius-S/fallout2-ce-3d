@@ -109,7 +109,7 @@ Emitter findEmitter(Object* object)
         brightest = std::max(brightest, brightness(indices[at]));
     }
     const int threshold = brightest * 9 / 10;
-    const EffectEmission effect = effectEmission(object->fid);
+    const EffectEmission effect = effectEmission(object->fid); // shared core mask, including cycling-only PLASMAB
     if (effect.distance == 0 && !animated && brightest < 150) return emitter;
     double sumX = 0.0;
     double sumY = 0.0;

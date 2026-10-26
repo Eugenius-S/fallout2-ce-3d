@@ -137,7 +137,7 @@ void addObjectCard(Object* object, void* context)
     // walls.bin draws it: its card is only picked, and the game's count of
     // sprites on its hex does not include it.
     const bool pickOnly = scene_renderer::staticObjectBaked(object->tile, object->fid);
-    const EffectEmission emission = effectEmission(object->fid);
+    const EffectEmission emission = effectEmission(object->fid); // calibrated material tag, independent of local light
     if (pickOnly && emission.sign) scene_renderer::markStaticWallEmissive(object->tile, object->fid);
     // The game shows the hero through walls and scenery he stands behind.
     const bool seeThrough = objectSeeThroughAroundDude(object);
