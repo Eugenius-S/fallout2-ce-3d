@@ -20,7 +20,9 @@ ROWS_PER_PAGE spots), each row a spot and each turn a before | after pair,
 and changed.jpg (then changed-2.jpg, ...) with only the spots whose views
 differ, a red frame round each changed pair, or a note that none did.
 --reuse keeps a side's shots when the same side, stops, exe and scene
-provenance were shot before. Judging the views stays with the eye.
+provenance were shot before. A run whose sidecars show another map, tile or
+no 3D scene, or a spot whose turns are one picture, stops the tour. Judging
+the views stays with the eye.
 """
 from __future__ import annotations
 
@@ -91,6 +93,37 @@ def scene_folder(kind, path, map_name, elevation):
     return game / "mod-cache" / "scene" / map_name / str(elevation)
 
 
+def check_views(folder, map_name, elevation, spots, turns):
+    """Each view's sidecar shows the 3D scene of the asked map elevation at
+    the spot, and a spot's turns differ (the fly camera took off): a scene
+    that failed to start falls back to the game's own picture."""
+    from PIL import Image, ImageChops
+    sidecars = {}
+    for path in folder.glob("*.json"):
+        data = json.loads(path.read_text(encoding="utf-8"))
+        sidecars[data.get("image")] = data
+    shots = sorted(folder.glob("*.png"))[1:]
+    problems = []
+    for index, spot in enumerate(spots):
+        part = shots[index * len(turns):(index + 1) * len(turns)]
+        for turn, shot in zip(turns, part):
+            data = sidecars.get(shot.name, {})
+            where = f"{map_name} e{elevation} tile {spot['tile']} turn {turn:+d}"
+            if (str(data.get("map", "")).lower().removesuffix(".map") != map_name
+                    or data.get("elevation") != elevation or data.get("view_tile") != spot["tile"]):
+                problems.append(f"{where}: shot at {data.get('map')} e{data.get('elevation')} "
+                                f"tile {data.get('view_tile')}")
+            elif not (data.get("scene_3d_enabled") and data.get("scene_view") == "full"
+                      and data.get("renderer") == "scene-gl"):
+                problems.append(f"{where}: no 3D scene ({data.get('renderer')}, {data.get('scene_view')})")
+        images = [Image.open(shot).convert("RGB") for shot in part]
+        if len(images) > 1 and all(ImageChops.difference(images[0], other).getbbox() is None
+                                   for other in images[1:]):
+            problems.append(f"{map_name} e{elevation} tile {spot['tile']}: every turn is the same picture")
+    if problems:
+        raise SystemExit("views not taken in the 3D scene:\n  " + "\n  ".join(problems))
+
+
 def shoot(name, side, turns, distance, groups, reuse):
     kind, path = side_kind(side)
     root = path if kind == "checkout" else ROOT
@@ -126,6 +159,7 @@ def shoot(name, side, turns, distance, groups, reuse):
         shots = sorted(folder.glob("*.png"))
         if len(shots) != len(stops) + 1:
             raise SystemExit(f"{name} {map_name} e{elevation}: {len(shots) - 1} views for {len(stops)} stops")
+        check_views(folder, map_name, elevation, spots, turns)
         stamp_file.write_text(json.dumps(stamp, indent=1) + "\n", encoding="utf-8")
         print(f"{name} {map_name} e{elevation}: {len(stops)} views", flush=True)
 
