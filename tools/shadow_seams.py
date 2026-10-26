@@ -2,8 +2,10 @@
 
 Reads a -ShadowDebug:1 snapshot (the raw factor, 0 lit, 1 fully in shadow,
 flat gray; what takes no sun shadow - roofs, the interface - reads magenta
-and is left out, so its outline against the ground is not a seam). The
-shadow class is the factor at 0.5 and up. Inside the
+and is left out, so its outline against the ground is not a seam; a face
+turned from the sun reads blue and is left out the same way: the ground
+seen lit between two shaded fence rails is light, not a hole in a shadow).
+The shadow class is the factor at 0.5 and up. Inside the
 central box (past the picture's border and the interface) it counts:
 
 - holes: lit pixels the shadow should hold - the lit components of at most
@@ -39,6 +41,8 @@ def factor(path):
     with Image.open(path) as image:
         rgb = np.asarray(image.convert("RGB"), dtype=np.float32) / 255.0
     ignore = (rgb[..., 0] > 0.9) & (rgb[..., 1] < 0.1) & (rgb[..., 2] > 0.9)
+    # Blue: a face turned from the sun, the flat shaded value, no cast shadow.
+    ignore |= (rgb[..., 0] < 0.1) & (rgb[..., 1] < 0.1) & (rgb[..., 2] > 0.9)
     return 0.299 * rgb[..., 0] + 0.587 * rgb[..., 1] + 0.114 * rgb[..., 2], ignore
 
 

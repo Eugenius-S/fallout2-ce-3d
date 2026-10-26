@@ -185,3 +185,11 @@ Cloud shadows (023), the night look, the sun's path (082).
   - a door card on a wall turned from the sun still reads lit at noon (one
     factor at its feet, the ground there is lit); not counted by the metric
     but visible.
+
+### 2026-10-27 claude
+Paused for the night with round 2 work in progress (uncommitted code from
+after 504d2970, saved as a WIP commit, not yet measured or regression
+checked). Open question to the owner: count the lit 1 px wall and rail caps
+as seams and shade them with their wall, and close small alpha holes in
+fence and foliage art when building the shadow map while keeping real gaps.
+Next: get the answer, finish round 2, measure, then ctest and the regression.

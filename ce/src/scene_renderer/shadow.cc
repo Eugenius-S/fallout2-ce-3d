@@ -59,7 +59,7 @@ int gShadowDilateIdLocation = -1;
 
 // Mechanism 1 (082 round 6): one fullscreen pass copies the depth map into
 // the filled map, filling an empty texel when occupied texels stand on both
-// sides 4 texels apart along one of the four axes (the two diagonals
+// sides within 4 texels along one of the four axes (the two diagonals
 // included). The value is the farther of the two, closer to the ground; its
 // id travels along. The outer contour never grows: a fill needs both sides,
 // so holes wider than 8 texels (fence lattices, true openings) stay. 4, not
@@ -83,18 +83,23 @@ void main() {
     float depth = texelFetch(uDepthMap, p, 0).r;
     float id = texelFetch(uIdMap, p, 0).r;
     if (depth >= 0.999) {
-        ivec2 offsets[8] = ivec2[8](
-            ivec2(4, 0), ivec2(-4, 0), ivec2(0, 4), ivec2(0, -4),
-            ivec2(4, 4), ivec2(4, -4), ivec2(-4, 4), ivec2(-4, -4));
+        ivec2 steps[4] = ivec2[4](ivec2(1, 0), ivec2(0, 1), ivec2(1, 1), ivec2(1, -1));
         float best = -1.0;
         float bestId = 0.0;
-        for (int i = 0; i < 8; i++) {
-            ivec2 a = p + offsets[i];
-            ivec2 b = p - offsets[i];
-            if (any(lessThan(a, ivec2(0))) || any(greaterThanEqual(a, size))
-                || any(lessThan(b, ivec2(0))) || any(greaterThanEqual(b, size))) continue;
-            float da = texelFetch(uDepthMap, a, 0).r;
-            float db = texelFetch(uDepthMap, b, 0).r;
+        for (int i = 0; i < 4; i++) {
+            // The nearest occupied texel within 4 on each side (090): a probe
+            // at exactly 4 stepped over a fence rail thinner than that and
+            // left the gap between two rails' shadows open, a dotted lit line.
+            float da = 1.0, db = 1.0;
+            ivec2 a = p, b = p;
+            for (int k = 1; k <= 4 && da >= 0.999; k++) {
+                a = clamp(p + steps[i] * k, ivec2(0), size - 1);
+                da = texelFetch(uDepthMap, a, 0).r;
+            }
+            for (int k = 1; k <= 4 && db >= 0.999; k++) {
+                b = clamp(p - steps[i] * k, ivec2(0), size - 1);
+                db = texelFetch(uDepthMap, b, 0).r;
+            }
             if (da >= 0.999 || db >= 0.999) continue;
             float d = max(da, db);
             if (d > best) {
@@ -394,6 +399,12 @@ bool bindStaticShadows(const float* sceneMvp)
     glUniform3f(gSceneShadowLightLocation, sun.direction[0], sun.direction[1], sun.direction[2]);
     glUniform1f(gSceneShadowStepLocation, ring);
     glUniform1f(gSceneShadowBiasLocation, 0.25f * texel / static_cast<float>(far - near));
+    // Contact (090): a blocker within kShadowContact texels of depth of the
+    // receiver stands on it and casts nothing there; the ground seen through
+    // the stepped transparent foot of a wall's sprite lies just behind its
+    // face, under the wall, and read the face as its blocker.
+    constexpr double kShadowContact = 16.0;
+    glUniform1f(gSceneShadowContactLocation, static_cast<float>(kShadowContact * texel / (far - near)));
     glUniform1i(gSceneShadowDebugLocation, devtools::shadowDebugRequested());
     glActiveTexture(kTexture0 + 5);
     glBindTexture(kTexture2D, gShadowFilledTexture);

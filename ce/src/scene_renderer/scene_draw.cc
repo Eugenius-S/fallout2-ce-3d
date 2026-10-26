@@ -84,8 +84,9 @@ void drawStaticPreview(bool withWalls, bool withHero)
         glUniform1i(gSceneLightModeLocation, lit && tile >= 0 ? 3 : 0);
         if (lit && tile >= 0) setLightAnchor(tile);
     };
-    auto shadowAtFeet = [&](float x, float z) {
+    auto shadowAtFeet = [&](float x, float z, bool ground = false, float groundY = 0.0f) {
         glUniform2f(gSceneShadowAnchorLocation, x, z);
+        glUniform2f(gSceneShadowGroundLocation, ground ? 1.0f : 0.0f, groundY);
     };
     if (withWalls && gWallSeeThroughTexture != 0 && (wallEgg || lit)) {
         flushWallObjectTable();
@@ -125,7 +126,7 @@ void drawStaticPreview(bool withWalls, bool withHero)
         for (const ObjectDraw& draw : gObjectDraws) {
             if (draw.pickOnly || !draw.flat || draw.tint[0] >= 0.0f) continue;
             lightSprite(draw.tile);
-            shadowAtFeet(draw.anchorX, draw.anchorZ);
+            shadowAtFeet(draw.anchorX, draw.anchorZ, draw.groundShadow, draw.groundY);
             glBindTexture(kTexture2D, draw.texture);
             glDrawArrays(kTriangles, draw.firstVertex, 6);
         }
@@ -162,7 +163,7 @@ void drawStaticPreview(bool withWalls, bool withHero)
             if (draw.pickOnly || draw.flat || draw.tint[0] >= 0.0f) continue;
             glUniform1i(gSceneSeeThroughLocation, egg && draw.seeThrough ? 2 : 0);
             lightSprite(draw.tile);
-            shadowAtFeet(draw.anchorX, draw.anchorZ);
+            shadowAtFeet(draw.anchorX, draw.anchorZ, draw.groundShadow, draw.groundY);
             glBindTexture(kTexture2D, draw.texture);
             glDrawArrays(kTriangles, draw.firstVertex, 6);
         }
