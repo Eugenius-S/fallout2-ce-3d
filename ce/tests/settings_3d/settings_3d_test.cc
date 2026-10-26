@@ -172,7 +172,7 @@ int main()
             && !std::get<bool>(unlimited->defaultValue)
             && !settings.scene3d.camera_rotation_unlimited
             && unlimited->applyPolicy == SettingApplyPolicy::OnClose
-            && unlimited->fallbackLabel.find("own risk") != std::string::npos,
+            && unlimited->fallbackLabel.find("not recommended") != std::string::npos,
             "rotation and unrestricted rotation are independent default-off menu options")) return 1;
     double angle = 0.0;
     for (int i = 0; i < 100; ++i) angle = scene::cameraTurnTarget(angle, 1, false);

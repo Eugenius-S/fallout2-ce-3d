@@ -7,10 +7,10 @@ Agreed with the project owner on 2026-10-20.
 1. The game's view stays exactly the 2D game, pixel for pixel. Nothing below
    may change it; the regression guards it.
 2. Camera rotation is an option, off by default: `[3d] camera_rotation`, in the
-   menu as experimental. Updated by the owner on 2026-10-25 (077): it turns
+   menu as "Camera rotation". Updated by the owner on 2026-10-25 (077): it turns
    in 45-degree steps around the vertical axis at the game camera's pitch,
    limited to -45..+45 degrees. `[3d] camera_rotation_unlimited`, off by
-   default and marked "own risk", lifts the limit. The dev fly camera stays
+   default and marked "not recommended", lifts the limit. The dev fly camera stays
    unlimited; view quality beyond the limit is not promised.
 3. Seen from a turned camera, things look decent by an algorithm, not by
    fixing chairs one by one: at least 70% of the eval set and at least 70% of

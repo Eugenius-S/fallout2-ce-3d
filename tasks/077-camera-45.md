@@ -15,8 +15,8 @@ reviewed: yes
 ## Goal
 
 The released game turns its camera at most 45 degrees either way from the
-game's own view; a menu option off by default, marked as at the player's
-own risk, lifts the limit.
+game's own view; a default-off menu option marked "not recommended" lifts
+the limit.
 
 ## Context
 
@@ -66,3 +66,8 @@ Committed older references were not retaken; their known drift stays in 058.
 Not checked: real keyboard input/animation in the owner's game; endpoint
 math and actual menu controls were tested, angles rendered in isolated runs.
 Next: owner's visual check; no game restart or installation performed.
+
+UX copy update: the owner requested plain labels and "not recommended"
+instead of "own risk". Removed "experimental" from Camera rotation and
+rewrote both RU/EN tooltips around the actual action and visible consequence.
+Rebuilt, passed settings_3d_tests, recaptured the Russian menu crop.

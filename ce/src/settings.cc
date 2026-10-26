@@ -478,13 +478,13 @@ void initSettingsRegistry(bool isMapper)
         if (onlyAdd && settingsKeyExists("3d", "glow_strength")) return;
         settingsWrite("3d", "glow_strength", settings.scene3d.glow_strength);
     };
-    registerThreeDBoolean("camera_rotation", settings.scene3d.camera_rotation, "Camera rotation (experimental)",
-        "[ and ] turn the 3D camera in steps of 45 degrees, limited to 45 degrees either way. "
-        "A turned view is for looking only: the game takes no clicks until the camera is back.",
+    registerThreeDBoolean("camera_rotation", settings.scene3d.camera_rotation, "Camera rotation",
+        "[ and ] turn the camera up to 45 degrees left or right. "
+        "Return to the original view to control the game with the mouse.",
         SettingApplyPolicy::OnClose);
     registerThreeDBoolean("camera_rotation_unlimited", settings.scene3d.camera_rotation_unlimited,
-        "Unlimited camera rotation (own risk)",
-        "Allow a full camera turn at your own risk. Beyond 45 degrees, missing backs and imperfect corners may be visible.",
+        "Unlimited camera rotation (not recommended)",
+        "Remove the 45-degree limit. Objects and walls may render incorrectly at larger angles.",
         SettingApplyPolicy::OnClose);
 
     registerSetting("3d", "lights", settings.scene3d.lights);

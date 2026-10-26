@@ -104,7 +104,7 @@ quarter turns round (legacy snapshot units). `-TurnDegrees D`
 snapshot overrides bypass player settings; the dev fly camera is unlimited.
 For players, `[3d] camera_rotation` enables [ and ] in 45-degree steps,
 clamped to -45..+45. `[3d] camera_rotation_unlimited` (off by default,
-marked own risk in the Camera menu) permits a full turn. Turning rotation
+marked not recommended in the Camera menu) permits a full turn. Turning rotation
 off returns to the game view; turning unlimited off clamps any current turn
 back into the safe range.
 `-Solo R` (`--dev-solo=TILE,R`, TILE is `-ViewTile`) draws only the things
