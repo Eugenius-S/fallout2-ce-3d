@@ -290,3 +290,41 @@ floor. His spec, recorded verbatim in spirit:
 - Limit: at most two attempts per mechanism; if gaps remain after two,
   log the -ShadowDebug 4/5 measurements at those places and stop - no
   third variant, no new special rules.
+
+## Round 6 results (2026-10-26, the three mechanisms, commits 44d4556c + eca434b5)
+
+- The routing checks first: -ShadowDebug 5 at the joints and on the floor
+  read an empty map (the fill owns them); at the sign the differences sat at
+  1-2 texels (self-shadowing, the id channel's domain). Done as specified.
+- Mechanism 1, the gap fill: one fullscreen pass after the depth pass copies
+  the map into an RG16 texture, filling an empty texel when occupied texels
+  stand 2 texels apart on both sides along one of the four axes (the farther
+  of the two wins, closer to the ground). The receivers read the filled map.
+  The outer contour does not grow; the corral lattice stayed a lattice.
+- Mechanism 2, the caster ids: the depth pass writes the caster's object row
+  + 1 into an R16 channel (the scene pick colours untouched); the fill
+  carries the id along; the compare skips taps holding the drawn piece's own
+  number. Walls take the number from their vertices (aObject), sprites do
+  not cast, so their uniform stays 0.
+- Mechanism 3: a sprite's shadow factor is one number, read at the card's
+  bottom center lifted 0.12 off the ground, the 25-tap disk in the ground
+  plane. The 063 per-pixel read is reversed for uLightMode 3. The 8-frame
+  strip at the spawn (h6.25 to h8): the hero is lit, then darkens whole -
+  no lit rim, no hex steps, the change takes one edge step.
+- The r5 rules are removed: with the fill in, the flat-card-solid and the
+  bottom-0.35 band measured unnecessary (the corner, the walkway canopy
+  band, the wall base all hold with the plain alpha cutoff). The pass-1
+  floor copies stay: they close the lifted-quad gap at the ground, different
+  geometry, as the spec allowed.
+- Measurements on the final build: shadow_stripes PASS 0.0000 / flatness
+  1.0000 at 7, 12, 17; ground edge 3-4 px; ctest 14/14 including the
+  original-view regression.
+- Attempt count: one per mechanism; the two-attempt limit was not reached.
+- GOTCHA: a devshot process can linger after its snapshot and drop a second
+  (-001) shot into the same directory minutes later - the stray ran at
+  wrapped midnight (game_time 1, the sun down) and poisoned one h17 metric
+  read. Check the shot's json game_time before measuring.
+- The sheet: runs/082-sun-overhead-crisp/round6/round6-sheet.jpg (was: the
+  owner's four screenshots; now: this build). His sofa spot is indoors and
+  was not located on the tour; the floor-squares row shows the same
+  roof-seam mechanism at the corrals/walkway ground instead.
