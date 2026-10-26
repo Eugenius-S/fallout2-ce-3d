@@ -79,3 +79,47 @@ eye: a seam metric reads 0 at every checked view.
 Cloud shadows (023), the night look, the sun's path (082).
 
 ## Log
+
+### 2026-10-26 claude: the metric and the baseline on main (c05a0f34)
+
+- `tools/shadow_seams.py` reads a `-ShadowDebug 1` snapshot (the debug view
+  now paints non-receivers magenta, the metric leaves them out) and counts,
+  in picture pixels: holes (small lit islands and lit lines up to 2 px wide
+  inside the shadow), specks (small shadowed islands in the light), dips
+  (shadow pixels past the 4 px AA edge that miss the full factor) and grains
+  (lit pixels past the edge that read some shadow). `--overlay` marks them:
+  red holes, yellow dips, blue specks, cyan grains.
+- On the owner's spots the overlays mark what the owner saw: window dots and
+  piece joints on shaded faces, the light line at wall bases, the fence
+  rails breaking up, the hatched wall rectangle.
+- Baseline, the owner's six tiles at 7, 12 and 17 h, game view, plus the fly
+  view at 24292 (two identical runs gave identical counts):
+
+| view | holes | specks | dips | grains | total |
+|---|---|---|---|---|---|
+| 25075 h7 | 6045 | 544 | 651 | 27 | 7267 |
+| 25075 h12 | 3517 | 122 | 0 | 0 | 3639 |
+| 25075 h17 | 4079 | 1177 | 333 | 30 | 5619 |
+| 24292 h7 | 6426 | 630 | 9 | 317 | 7382 |
+| 24292 h12 | 3409 | 58 | 0 | 0 | 3467 |
+| 24292 h17 | 3967 | 613 | 0 | 16 | 4596 |
+| 24292 h7 fly | 10051 | 1105 | 955 | 108 | 12219 |
+| 24292 h12 fly | 9270 | 251 | 278 | 0 | 9799 |
+| 24292 h17 fly | 8701 | 930 | 610 | 1745 | 11986 |
+| 23481 h7 | 8653 | 806 | 557 | 354 | 10370 |
+| 23481 h12 | 4200 | 93 | 0 | 0 | 4293 |
+| 23481 h17 | 3883 | 1092 | 2 | 15 | 4992 |
+| 19265 h7 | 5019 | 369 | 5483 | 8 | 10879 |
+| 19265 h12 | 5394 | 660 | 6606 | 0 | 12660 |
+| 19265 h17 | 5323 | 670 | 6278 | 7 | 12278 |
+| 17104 h7 | 5346 | 89 | 0 | 74 | 5509 |
+| 17104 h12 | 4987 | 172 | 0 | 0 | 5159 |
+| 17104 h17 | 3482 | 639 | 0 | 244 | 4365 |
+| 20690 h7 | 7252 | 646 | 9 | 402 | 8309 |
+| 20690 h12 | 3819 | 109 | 2617 | 0 | 6545 |
+| 20690 h17 | 3502 | 494 | 2396 | 121 | 6513 |
+
+- Found in the code: `shadowMatrix` gave uv and depth in 0..1 while the
+  caster pass uses it as the clip-space projection, so the casters filled
+  only the map's upper right quarter (a 4096 map in effect) and
+  `uShadowTexel` was 2 to 2.8 times smaller than the real texel.
