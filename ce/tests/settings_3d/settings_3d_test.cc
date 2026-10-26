@@ -330,6 +330,10 @@ int main()
     }
     if (!check(std::string(scene::menuText("On", "RuSsIaN")) == "\xC2\xEA\xEB",
             "Russian menu text uses CP1251 and case-insensitive language selection")) return 1;
+    if (!check(std::string(scene::menuText("Camera rotation", "russian")).find("-45\xB0") != std::string::npos
+            && std::string(scene::menuText("Camera rotation", "russian")).find("+45\xB0") != std::string::npos
+            && std::string(scene::menuText("Camera rotation", "russian")).find('?') == std::string::npos,
+            "camera range preserves signs and degree symbols in the game's encoding")) return 1;
     if (!check(static_cast<unsigned char>(scene::menuText("Sharp interface text", "russian")[1]) == 0xB8,
             "Russian yo is encoded for the existing game fonts")) return 1;
     if (!check(std::string(scene::menuText("On", "german")) == "On"

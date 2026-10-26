@@ -74,3 +74,12 @@ Rebuilt, passed settings_3d_tests, recaptured the Russian menu crop.
 The final Russian label is "Full turn (not recommended)"; the longer
 "Unlimited rotation" wording was clipped, so the snapshot verifies the
 complete warning fits the label column.
+
+### 2026-10-26 gpt: range label follow-up
+Done: owner's exact Russian wording now states the -45 to +45 degree range
+in the first menu label. Added degree-sign encoding and a CP1251-compatible
+minus fallback; the native game encoding has no U+2212 glyph.
+Check: Release build, settings_3d_tests (signs/degrees/no replacement marks),
+real sharp-text preferences capture in `build/camera077/menu-range`.
+Updated `runs/077-camera-45/options-russian.jpg`; the full label fits.
+Next: no behavior change; existing 16-view regression remains applicable.
