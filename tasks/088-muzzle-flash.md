@@ -2,8 +2,8 @@
 id: 088
 title: A shot flashes at the gun's muzzle, one flash per bullet in a burst
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: gpt
 suggested: gpt
 priority: normal
 claude-only: no
@@ -59,3 +59,32 @@ the picture blink together.
 New art, weapon balance, projectile trails, per-weapon menu controls.
 
 ## Log
+
+### 2026-10-26 gpt: claimed after completing 086
+
+Owner explicitly requested 088 after 086 merged as PR 122. Claimed on
+task/088-muzzle-flash from main 261eaa2e. Worktree:
+E:/Projects/fallout2-ce-3d-gpt-065 (reused, main checkout never switched).
+No implementation changes yet. This chat is exceptionally long; the repository
+AGENTS rule requests a fresh chat per task to avoid repeated context cost.
+
+Next bounded step: inspect native firing animations/prototypes with the local
+read-only f2lib exporter APIs, inventory actual weapon/projectile kinds and
+identify muzzle-flash pixels/frames for two rotations. Do not invent timing
+tables or change combat. Then add a no-save shooter/frame fixture and reuse
+086's source/local-light/bloom pipeline behind the one common glow setting.
+The original view and glow-off regression must remain unchanged. Energy and
+other non-bullet kinds require own-glow vs extra-small-flash comparisons.
+
+Useful existing modules: ce/src/scene/effect_emission.h, scene_lights.cc,
+scene_objects.cc (shownObjectArt aligns source extraction with the camera),
+ce/src/devtools/weapon_effect_fixture.{cc,h}, tools/dev-snapshot.ps1.
+Use the isolated background instance and the global test mutex; never restart
+or install into the owner's game without a separate request. Python is py -3.
+Build helper on this host: TEMP/fallout065-build.ps1, Release. Klamath and Den
+caches in this worktree are real fresh folders, not the old borrowed junctions.
+Run the full fly tour against a built main checkout for renderer changes;
+E:/Projects/fallout2-ce-3d-gpt-086-base currently holds main 317e3fef and must be
+advanced/rebuilt before using it as a 261eaa2e baseline. Windows PowerShell
+subprocesses may need process-only PSModulePath pointing at the Windows
+PowerShell v1.0/Modules folder. No system environment changes are needed.
