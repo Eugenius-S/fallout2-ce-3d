@@ -54,10 +54,12 @@ ShownArt shownArt(Object* object, bool flat)
     if (!settings.scene3d.sprite_sides || flat || (type != OBJ_TYPE_CRITTER && type != OBJ_TYPE_ITEM && type != OBJ_TYPE_MISC)) return own;
     const int rotation = scene_renderer::staticShownRotation(object->rotation);
     if (rotation == object->rotation) return own;
-    // Art stored a file per side (.fr0 .. .fr5) names its side in the fid.
+    // Art stored a file per side (.fr0 .. .fr5) names its side in the fid; a
+    // side without its file keeps the game's own art.
     if (frmId.hasRotation() && frmId.rotation() != ROTATION_NE) {
         constexpr int kRotationBits = 0x70000000;
-        return { (object->fid & ~kRotationBits) | ((rotation + 1) << 28), rotation };
+        const FrmId side((object->fid & ~kRotationBits) | ((rotation + 1) << 28));
+        return side.exist() ? ShownArt { side.fid(), rotation } : own;
     }
     CacheEntry* handle = nullptr;
     Art* art = artLock(frmId, &handle);
