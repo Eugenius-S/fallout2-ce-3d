@@ -1,6 +1,7 @@
 #include "options_panel.h"
 #include "text_capture.h"
 #include "menu_text.h"
+#include "scene_view.h"
 
 #include <algorithm>
 #include <array>
@@ -113,7 +114,7 @@ int sliderTextCenterOffset(int ownerWindow)
     int physicalWidth = 0;
     int physicalHeight = 0;
     int sharpCenter = 0;
-    if (settings.scene3d.sharp_text && scene_renderer::sharpTextLanguageSupported(settings.system.language)
+    if (sharpTextWanted() && scene_renderer::sharpTextLanguageSupported(settings.system.language)
         && scene_renderer::sharpTextOutputSize(&physicalWidth, &physicalHeight)
         && scene_renderer::sharpTextXHeightCenter(height, ownerWindow,
             static_cast<double>(physicalHeight) / screenGetHeight(), &sharpCenter)) {
