@@ -2,8 +2,8 @@
 id: 078
 title: A fixed fly tour shoots every map before and after each scene change
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: claude
 suggested: glm
 priority: high
 claude-only: no

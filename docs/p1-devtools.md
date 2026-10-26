@@ -98,6 +98,13 @@ A map tour stop may end in `:solo:turn:distance`
 (`kladwtwn:0:15123:1:90:3.5`): the things within `solo` hexes of the view
 tile alone, from the fly camera `turn` degrees round and `distance` units
 away; the shapes eval shoots a whole map in one run this way.
+The fly tour (`py -3 tools/tour/tour.py --before SIDE [--after SIDE]`, task
+078) shoots every spot of `tools/tour/spots.json` from the fly camera at
+-45, 0 and +45 degrees, one run per map elevation and side, frozen (`-Still`)
+in full daylight, and writes `before | after` sheets to `build/tour/sheets/`
+(`changed.jpg` holds only the spots that changed). A side is a built checkout
+or a scene cache folder; a cache side runs this checkout's build with
+`dev-snapshot.ps1 -SceneCache DIR`.
 `-Turn N` (`--dev-camera-turn=N`) takes the snapshot with the 3D camera N
 quarter turns round (legacy snapshot units). `-TurnDegrees D`
 (`--dev-camera-degrees=D`) accepts an exact angle, e.g. -45 or 45. Both
