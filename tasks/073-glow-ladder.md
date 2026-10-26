@@ -80,3 +80,15 @@ exactly, 0 changed pixels. Old committed references were not changed (058).
 Next: OWNER PICK REQUIRED: level 1=0.5, 2=1, 3=2, 4=4, 5=8. Apply their
 choice as the default, update checks, complete the PR. Task remains doing;
 no default was guessed. The owner's game/config were not restarted/installed.
+
+### 2026-10-26 owner selection
+Approved reference looks (actual glow_strength values, not level numbers):
+- Barrel: level 2, strength 1.
+- Working computer: level 3, strength 2.
+- Campfire: level 4, strength 4.
+Owner also confirmed that the wall screen and slime have no visible glow.
+These approvals select different strengths by object kind. The implementation
+currently has one global scalar, so assigning one new default cannot reproduce
+all three approved looks. Do not substitute a single compromise value.
+Next: resolve the per-kind implementation scope before changing defaults;
+the dark-screen/pool issue remains recorded in inbox. Keep 073 doing.

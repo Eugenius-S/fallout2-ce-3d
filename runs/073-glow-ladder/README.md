@@ -1,7 +1,8 @@
 # 073: glow strength choices
 
 Columns: OFF, then levels 1..5 at glow_strength 0.5, 1, 2, 4, 8.
-Current default 1 is level 2. The owner's choice is pending; default unchanged.
+Current default 1 is level 2. Owner approved barrel strength 1, working computer 2, campfire 4.
+These need per-kind calibration; the current global default is unchanged.
 Near/wide weights remain 0.55/1.5. No new emission marks or objects were added.
 
 All rows: 1920x1080, scale 2, zoom 2, ambient 16384, hour 0. Every level in a
@@ -41,3 +42,5 @@ strengths and unchanged scene metadata. Checks: Release build, 15 CTests,
 
 All 16 ordinary views match current-base controls from 066 exactly (0 pixels).
 Old committed references remain unchanged; their drift is tracked in 058.
+
+Owner confirmed the lack of glow on the sampled wall screen and slime.
