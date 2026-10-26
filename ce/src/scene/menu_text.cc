@@ -18,10 +18,17 @@ std::string cp1251(const char* utf8)
         if (code >= 0xC0 && code < 0xE0 && *bytes != 0) {
             code = ((code & 0x1F) << 6) | (*bytes++ & 0x3F);
         }
+        else if (code >= 0xE0 && code < 0xF0 && bytes[0] != 0 && bytes[1] != 0) {
+            code = ((code & 0x0F) << 12) | ((bytes[0] & 0x3F) << 6) | (bytes[1] & 0x3F);
+            bytes += 2;
+        }
         if (code < 0x80) result += static_cast<char>(code);
         else if (code >= 0x410 && code <= 0x44F) result += static_cast<char>(code - 0x410 + 0xC0);
         else if (code == 0x401) result += static_cast<char>(0xA8);
         else if (code == 0x451) result += static_cast<char>(0xB8);
+        else if (code == 0xB0) result += static_cast<char>(0xB0);
+        // CP1251 has no mathematical minus; use the game's existing minus glyph.
+        else if (code == 0x2212) result += '-';
         else result += '?';
     }
     return result;
@@ -61,7 +68,7 @@ const std::vector<Translation>& catalog()
         { "Things that shine in Fallout 2 (fire, monitors, signs) bleed light softly in the 3D view.", cp1251(u8"Огонь, мониторы, вывески и другие источники света получают мягкое свечение в 3D.") },
         { "Glow strength", cp1251(u8"Сила свечения") },
         { "How far the glow of shining things spreads and brightens.", cp1251(u8"Насколько далеко распространяется свечение и насколько оно яркое.") },
-        { "Camera rotation", cp1251(u8"Поворот камеры") },
+        { "Camera rotation", cp1251(u8"Поворот камеры от −45° до +45°") },
         { "[ and ] turn the camera up to 45 degrees left or right. Return to the original view to control the game with the mouse.", cp1251(u8"Клавиши [ и ] поворачивают камеру в пределах 45 градусов влево и вправо. Верните камеру в исходное положение, чтобы управлять игрой мышью.") },
         { "Unlimited camera rotation (not recommended)", cp1251(u8"Полный оборот (не рекомендуется)") },
         { "Remove the 45-degree limit. Objects and walls may render incorrectly at larger angles.", cp1251(u8"Снимает ограничение в 45 градусов. При большем повороте объекты и стены могут отображаться с ошибками.") },
