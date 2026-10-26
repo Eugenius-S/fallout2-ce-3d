@@ -2,7 +2,7 @@
 id: 082
 title: The sun swings 15 degrees either side of overhead; shadows crisp, no stripes on walls
 milestone: M1
-status: doing
+status: done
 owner: glm
 suggested: glm
 priority: high
@@ -328,3 +328,27 @@ floor. His spec, recorded verbatim in spirit:
   owner's four screenshots; now: this build). His sofa spot is indoors and
   was not located on the tour; the floor-squares row shows the same
   roof-seam mechanism at the corrals/walkway ground instead.
+
+## Landed (2026-10-26 claude)
+
+The owner's call: land round 6 as it is, on main's repaired geometry, and
+move the seams to a new task (090, Claude).
+
+- origin/main merged in (075, 076, 081, 083 geometry, #98, #114 and the
+  rest). Conflicts were the debug flags (devtools.cc, dev-snapshot.ps1:
+  both sides kept), the menu groups (options_panel.cc: shadow_density and
+  sun_swing beside main's camera_rotation_unlimited and sprite_sides), the
+  inbox (main's, plus the moon line) and this file. walls.cc merged clean:
+  main's corners and roofs with round 6's caster ids.
+- main's settings test asks a Russian label for every [3d] line: the two
+  knobs got theirs (Плотность теней, Размах солнца).
+- Checks on the merged build: ctest 15/15; the regression (classic view)
+  0 changed pixels on all 16 views; shadow_stripes at the long building
+  (-ViewTile 24292, game view): PASS 0.0000 with flatness 1.0000 at 7, 12
+  and 17 h (106,887 / 163,144 / 50,964 face pixels), ground edge 4 / 4 /
+  3 px.
+- Moved to 090: the owner's round 6 finds (the grid under the BUCKETS
+  sign, the lit corner strip, the hatching on the bathhouse wall, lit dots
+  along shadow edges, specks by the brahmin, light floor tile joints). The
+  seam metric is built there first; its values on this landed state are
+  090's starting point.
