@@ -203,3 +203,33 @@ take). Commit 40b66fd2.
   reports "uniforms are missing" and NO snapshot is taken (silent 90 s
   timeouts). Diagnostics must keep every uniform referenced.
 - ctest 14/14. Before|after sheet: runs/082-sun-overhead-crisp/round3/.
+
+## Round 5 continuation (2026-10-26, the strip and the corner hunt)
+
+- New diagnostics: -ShadowDebug 4 now reads the center tap's diff in texel
+  units (0.05 light per 2*uShadowBias, signed); -ShadowDebug 5 buckets it
+  (0, then brighter every texel-equivalent a blocker stands in front).
+  The old gain (diff * 8) was invisible: diff lives in normalized depth,
+  one map texel is about 1/250 of it.
+- Measurement at the building spot, h7: the lit band's texels read EMPTY
+  (10+ texels behind, that is the cleared far depth). A 2.0-world solidify
+  probe of the walls' bottom band changed nothing there - the band's rays
+  do not cross the wall plane at all.
+- The occluder over that ground is the walkway canopy, a flat elevated
+  wall-batch card: its art's soft border does not write depth, so its
+  shadow detaches from its edge (the lit strip) and does not wrap its
+  corner (the owner's open corner).
+- Fixes (walls.cc): a flat elevated caster (top - lowest < 0.01, above the
+  floor) writes the map solid; a vertical caster solidifies its bottom
+  0.35 via a per-vertex 0.5 + depth-below-band-top attribute (the contour
+  lands exactly at the band top for any triangle size). The scene's own
+  draws leave the attribute at 0 and discard as before. The morning's
+  six-texel floor-copy lift is reverted: the coplanar theory did not hold.
+- tools: crop_box.py, image_diff.py, patch_pixel.py (the eye-review kit).
+- Verification: ctest 14/14; shadow_stripes PASS 0.0000 / flatness 1.0000
+  at 7, 12, 17; ground edge 3-4 px; the corrals' fence lattice intact by
+  eye; the wall base hugs its shadow at 7 and 17 by eye.
+- OPEN, needs the owner's eye: the wide lit band along the walkway at h7
+  measures as genuinely sunlit ground (factor 0, the map empty along the
+  whole ray to the sun) - our computed sun diverges there from the
+  painted-original look. Shots: build/082-shots/r5-flat/.
