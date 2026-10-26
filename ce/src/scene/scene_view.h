@@ -24,6 +24,11 @@ bool showsCurrentMap();
 bool enable(View view, std::string* message);
 // Back to the game's own picture. False when the scene was off already.
 bool disable();
+// Ctrl+F10's original view: the scene off and the game's own pixel text,
+// until the scene comes back on. False when the scene was off already.
+bool showOriginal();
+// The sharp text setting, unless the original view is shown.
+bool sharpTextWanted();
 
 // Follows the game to another map or elevation: the old scene is dropped and
 // the new one loaded. A map without a scene, or with a broken one, stays 2D

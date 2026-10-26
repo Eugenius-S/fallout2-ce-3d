@@ -2616,8 +2616,12 @@ bool handleKey(int key)
             else setStatus("3D scene on (Ctrl+F10 to return)");
             return true;
         }
+        // The game as it was: its own picture and its own pixel text.
         if (scene::requestedView() != scene::View::Off) {
-            disableStaticFloorPreview("3D scene off");
+            if (scene::showOriginal()) {
+                gStartupFloorPreviewFramesRemaining = 0;
+                setStatus("original game view (Ctrl+F10 to return)");
+            }
             return true;
         }
         // Back to the whole 3D scene, as the game starts it.

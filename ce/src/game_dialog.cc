@@ -43,6 +43,7 @@
 #include "scripts.h"
 #include "scene/dialogue_backdrop.h"
 #include "scene/dialogue_layout.h"
+#include "scene/scene_view.h"
 #include "scene/text_capture.h"
 #include "settings.h"
 #include "skill.h"
@@ -2556,7 +2557,7 @@ void _gdProcessUpdate()
         gameDialogOptionEntriesLength,
         _optionRect.top,
         _optionRect.bottom,
-        settings.scene3d.sharp_text,
+        scene::sharpTextWanted(),
         [lineHeight](std::size_t index, int top) {
             GameDialogOptionEntry* dialogOptionEntry = &(dialogOptionEntries[index]);
             return _text_num_lines(dialogOptionEntry->text, _optionRect.right - _optionRect.left) * lineHeight + top + 2;
