@@ -17,6 +17,7 @@ layout(location = 3) in float aObject; // walls.bin: the object row it shows, -1
 // The wall casters' floor copies draw solid: only they set this vertex
 // attribute, every other VAO leaves it at 0.
 layout(location = 4) in float aShadowSolid;
+layout(location = 5) in float aCasterId; // the depth pass: the caster's object row + 1
 uniform mat4 uMvp;
 uniform int uDepthAt;
 // Whether the egg cuts what is drawn: 0 no, 1 the walls whose object row is
@@ -28,6 +29,8 @@ out vec2 vTexcoord;
 out vec3 vWorld;
 out vec2 vWorldXZ;
 out float vShadowSolid;
+out float vCasterId; // the depth pass writes it into the map's id channel
+out float vSelfId; // the screen piece's own object row + 1, for the compare
 flat out int vSeeThrough;
 flat out float vFullLight;
 void main() {
@@ -36,6 +39,8 @@ void main() {
     vWorld = aPosition;
     vWorldXZ = aPosition.xz;
     vShadowSolid = aShadowSolid;
+    vCasterId = aCasterId;
+    vSelfId = aObject + 1.0;
     vSeeThrough = uSeeThrough == 2 ? 1 : 0;
     vFullLight = 0.0;
     if ((uSeeThrough == 1 || uLightMode == 2) && aObject >= 0.0) {
@@ -56,6 +61,8 @@ in vec2 vTexcoord;
 in vec3 vWorld;
 in vec2 vWorldXZ;
 in float vShadowSolid;
+in float vCasterId;
+in float vSelfId;
 flat in int vSeeThrough;
 flat in float vFullLight;
 uniform sampler2D uTexture;
@@ -114,6 +121,15 @@ uniform float uShadowTexel; // the map's texel in GL units
 uniform float uShadowStep;
 uniform float uShadowBias;
 uniform int uShadowDebug; // 1: raw factor, 2: the face test, 3: the coverage term (062 diagnostics)
+// 082 round 6: 1 while the depth map renders (the pick colour carries the
+// caster's object number for the map's id channel); whose own texels count
+// as empty at the compare (the wall draws read vSelfId, the rest take
+// uShadowSelfId, 0 = nobody); and the feet point a whole sprite takes its
+// shadow factor at, in world (x, z) on the ground.
+uniform int uShadowPass;
+uniform int uShadowSelfFromVertex;
+uniform float uShadowSelfId;
+uniform vec2 uShadowAnchor;
 out vec4 outColor;
 // What a texel shines by itself for the glow (task 022): the colour a
 // full-bright texel keeps, premultiplied by its shown coverage; black
@@ -189,6 +205,14 @@ float shadowDepth(vec2 xz, float y) {
     if (p.x < 0.0 || p.x > 1.0 || p.y < 0.0 || p.y > 1.0 || p.z >= 1.0) return -1.0;
     return p.z - texture(uShadowMap, p.xy).r;
 }
+// The caster's object number the map holds at this lookup (0 = none), read at
+// the same texel the depth compare uses (082 round 6, mechanism 2).
+float shadowMapId(vec2 xz, float y) {
+    vec4 s = uShadowMatrix * vec4(xz.x, y, xz.y, 1.0);
+    vec3 p = s.xyz / s.w * 0.5 + 0.5;
+    if (p.x < 0.0 || p.x > 1.0 || p.y < 0.0 || p.y > 1.0 || p.z >= 1.0) return 0.0;
+    return texture(uShadowMap, p.xy).g * 1024.0;
+}
 // The face's outward normal from the screen derivatives, towards the camera
 // side, as the point lights read it (sceneLighting).
 vec3 shadowFaceNormal() {
@@ -221,17 +245,21 @@ R"(// The 25-tap disk (a three-radius ring, 1.0, 0.65 turned 22.5 degrees, 0.35
 // turned 11.25: fewer rings quantize the edge into flat steps a ring-radius
 // apart, the owner reads them as layers and stairs) against the map, from
 // the point the face was lifted to.
-float shadowCoverage(vec3 base, vec3 t1, vec3 t2) {
+float shadowCoverage(vec3 base, vec3 t1, vec3 t2, float selfId) {
     float sum = 0.0;
     for (int i = 0; i < 25; i++) {
         vec3 q = base + (t1 * kShadowTaps[i].x + t2 * kShadowTaps[i].y) * uShadowStep;
+        // The piece's own texels count as empty: an object must not shadow
+        // itself (082 round 6, mechanism 2).
+        float id = shadowMapId(q.xz, q.y);
+        if (id > 0.5 && abs(id - selfId) < 0.5) continue;
         float diff = shadowDepth(q.xz, q.y);
         if (diff < 0.0) continue; // this tap falls outside the box: it is lit
         sum += smoothstep(0.0, 2.0 * uShadowBias, diff);
     }
     return sum / 25.0;
 }
-float sunShadow() {
+float sunShadow(float selfId) {
     vec3 n = shadowFaceNormal();
     // A face turned away from the sun is in its own shadow: no map lookup,
     // the shaded value (082). This is what striped the walls before: half of
@@ -249,7 +277,23 @@ float sunShadow() {
     if (shadowDepth(base.xz, base.y) <= 0.0) return 0.0; // lit, or outside the shadow box
     vec3 t1, t2;
     shadowFaceBasis(n, t1, t2);
-    return shadowCoverage(base, t1, t2);
+    return shadowCoverage(base, t1, t2, selfId);
+}
+// The whole sprite darkens at its feet (082 round 6, deliberately reversing
+// 063's per-pixel read): one factor at the card's bottom center, lifted a
+// little off the ground, the disk spread in the ground plane. The sprite's
+// own number is excluded at the taps, else it would shadow itself at the
+// feet; the edge read stays crisp, the sprite darkens over about one texel
+// of travel as its feet cross it.
+float sunShadowAtAnchor(float selfId) {
+    vec3 base = vec3(uShadowAnchor.x, 0.12, uShadowAnchor.y) + vec3(0.0, 1.0, 0.0) * (1.5 * uShadowTexel);
+    if (shadowDepth(base.xz, base.y) <= 0.0) return 0.0; // lit, or outside the shadow box
+    return shadowCoverage(base, vec3(1.0, 0.0, 0.0), vec3(0.0, 0.0, 1.0), selfId);
+}
+// Whose own texels count as empty for this draw: the wall pieces carry their
+// object row in the vertices, everything else reads the uniform (0: nobody).
+float shadowSelfId() {
+    return uShadowSelfFromVertex != 0 ? vSelfId : uShadowSelfId;
 }
 // The darkening inside a shadow, over the engine's own light: the game's
 // painted shadows read about as a half. Every fragment takes its own faded
@@ -261,10 +305,11 @@ float sunShadow() {
 // from the sun takes the flat shaded value, the painted look (062 round 5,
 // now by the face test instead of its own depth in the map, 082).
 float shadowDarken(float light) {
+    float selfId = shadowSelfId();
     if (uShadowDebug == 1 && (uLightMode == 1 || uLightMode == 2 || uLightMode == 3)) {
         // The raw factor as the light: a snapshot then shows the algorithm
         // itself, not the composed scene (062 diagnostics).
-        return sunShadow();
+        return uLightMode == 3 ? sunShadowAtAnchor(selfId) : sunShadow(selfId);
     }
     if (uShadowDebug == 4 && (uLightMode == 1 || uLightMode == 2 || uLightMode == 3)) {
         // The center tap's signed difference, 0.05 of light per 2*uShadowBias
@@ -300,9 +345,12 @@ float shadowDarken(float light) {
             // the owner's eye (082 round 2): 0.425 read too saturated; the
             // [3d] shadow_density setting scales it, 0 turns the cast
             // shadows off.
-            light *= 1.0 - uShadowStrength * uShadowDensity * 0.35 * sunShadow();
+            light *= 1.0 - uShadowStrength * uShadowDensity * 0.35 * sunShadow(selfId);
         } else if (uLightMode == 3) {
-            light *= 1.0 - uShadowStrength * uShadowDensity * 0.3 * sunShadow();
+            // A sprite darkens whole at its feet (082 round 6): the old
+            // per-pixel read (063) left lit contour gaps between a character
+            // in shadow and its shadow.
+            light *= 1.0 - uShadowStrength * uShadowDensity * 0.3 * sunShadowAtAnchor(selfId);
         }
     }
     return light;
@@ -336,7 +384,10 @@ void main() {
         // discard as always.
         if (vShadowSolid < 0.5 && texel.a < uCutoff) discard;
         if (uPick != 0) {
-            outColor = uColor;
+            // The depth pass writes the caster's object number into the map's
+            // id channel (082 round 6, mechanism 2); the mouse pick keeps its
+            // flat id colour.
+            outColor = uShadowPass != 0 ? vec4(vCasterId / 1024.0, 0.0, 0.0, 1.0) : uColor;
             outEmissive = vec4(0.0);
         } else if (uTranslucent != 0) {
             // _dark_translucent_trans_buf_to_buf: a texel's gray level (0..7,
@@ -379,7 +430,7 @@ void main() {
                 vec3 base = vWorld + n * (1.5 * uShadowTexel);
                 vec3 t1, t2;
                 shadowFaceBasis(n, t1, t2);
-                outColor = vec4(vec3(shadowCoverage(base, t1, t2)), 1.0);
+                outColor = vec4(vec3(shadowCoverage(base, t1, t2, shadowSelfId())), 1.0);
                 return;
             }
             if (uShadowDebug == 1) {
@@ -468,6 +519,10 @@ int gSceneShadowTexelLocation = -1;
 int gSceneShadowStepLocation = -1;
 int gSceneShadowDebugLocation = -1;
 int gSceneShadowBiasLocation = -1;
+int gSceneShadowPassLocation = -1;
+int gSceneShadowSelfFromVertexLocation = -1;
+int gSceneShadowSelfIdLocation = -1;
+int gSceneShadowAnchorLocation = -1;
 
 bool createSceneShader(std::string* error)
 {
@@ -544,6 +599,10 @@ bool createSceneShader(std::string* error)
     gSceneShadowStepLocation = glGetUniformLocation(gSceneProgram, "uShadowStep");
     gSceneShadowDebugLocation = glGetUniformLocation(gSceneProgram, "uShadowDebug");
     gSceneShadowBiasLocation = glGetUniformLocation(gSceneProgram, "uShadowBias");
+    gSceneShadowPassLocation = glGetUniformLocation(gSceneProgram, "uShadowPass");
+    gSceneShadowSelfFromVertexLocation = glGetUniformLocation(gSceneProgram, "uShadowSelfFromVertex");
+    gSceneShadowSelfIdLocation = glGetUniformLocation(gSceneProgram, "uShadowSelfId");
+    gSceneShadowAnchorLocation = glGetUniformLocation(gSceneProgram, "uShadowAnchor");
     if (gSceneMvpLocation < 0 || gSceneTextureLocation < 0
         || gSceneTexturedLocation < 0 || gSceneColorLocation < 0 || gSceneCutoffLocation < 0
         || gSceneDepthAtLocation < 0 || gSceneTranslucentLocation < 0 || gSceneTintLocation < 0

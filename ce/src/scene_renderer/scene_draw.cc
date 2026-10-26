@@ -71,11 +71,18 @@ void drawStaticPreview(bool withWalls, bool withHero)
     // sample it (uShadowOn). It restores the framebuffer and the viewport.
     const bool shadowed = withWalls && bindStaticShadows(mvp);
     glUniform1i(gSceneShadowOnLocation, shadowed ? 1 : 0);
+    // Nobody's own texels count as empty, until a draw says otherwise (the
+    // wall pieces take the number from their vertices, 082 round 6).
+    glUniform1i(gSceneShadowSelfFromVertexLocation, 0);
+    glUniform1f(gSceneShadowSelfIdLocation, 0.0f);
     glUniform1i(gSceneLightModeLocation, 0);
     auto lightSprite = [&](int tile) {
         // tile -1: painted at full light (OBJECT_TRANS_WALL), or not known.
         glUniform1i(gSceneLightModeLocation, lit && tile >= 0 ? 3 : 0);
         if (lit && tile >= 0) setLightAnchor(tile);
+    };
+    auto shadowAtFeet = [&](float x, float z) {
+        glUniform2f(gSceneShadowAnchorLocation, x, z);
     };
     if (withWalls && gWallSeeThroughTexture != 0 && (wallEgg || lit)) {
         flushWallObjectTable();
@@ -112,6 +119,7 @@ void drawStaticPreview(bool withWalls, bool withHero)
         for (const ObjectDraw& draw : gObjectDraws) {
             if (draw.pickOnly || !draw.flat || draw.tint[0] >= 0.0f) continue;
             lightSprite(draw.tile);
+            shadowAtFeet(draw.anchorX, draw.anchorZ);
             glBindTexture(kTexture2D, draw.texture);
             glDrawArrays(kTriangles, draw.firstVertex, 6);
         }
@@ -128,12 +136,16 @@ void drawStaticPreview(bool withWalls, bool withHero)
         glUniform1i(gSceneSeeThroughLocation, wallEgg ? 1 : 0);
         glUniform1i(gSceneEggPassLocation, wallEgg ? 1 : 0);
         glUniform1i(gSceneLightModeLocation, lit ? 2 : 0);
+        // The walls' own texels count as empty at the compare: their object
+        // row rides in the vertices (082 round 6, mechanism 2).
+        glUniform1i(gSceneShadowSelfFromVertexLocation, 1);
         for (const WallBatch& batch : gWallBatches) {
             if (batch.flyOnly ? !flying : batch.gameOnly && flying) continue;
             glBindVertexArray(batch.vao);
             glBindTexture(kTexture2D, batch.texture);
             glDrawArrays(kTriangles, 0, static_cast<int>(batch.triangleCount * 3));
         }
+        glUniform1i(gSceneShadowSelfFromVertexLocation, 0);
         glDisable(kCullFace);
     }
     if (withObjects) {
@@ -144,6 +156,7 @@ void drawStaticPreview(bool withWalls, bool withHero)
             if (draw.pickOnly || draw.flat || draw.tint[0] >= 0.0f) continue;
             glUniform1i(gSceneSeeThroughLocation, egg && draw.seeThrough ? 2 : 0);
             lightSprite(draw.tile);
+            shadowAtFeet(draw.anchorX, draw.anchorZ);
             glBindTexture(kTexture2D, draw.texture);
             glDrawArrays(kTriangles, draw.firstVertex, 6);
         }
@@ -153,6 +166,8 @@ void drawStaticPreview(bool withWalls, bool withHero)
     if (withHero && gHeroLoaded) {
         StaticHeroInfo hero;
         lightSprite(staticHeroInfo(&hero) ? hero.tile : -1);
+        double hx = 0.0, hz = 0.0;
+        if (lightAnchorGround(hero.tile, &hx, &hz)) shadowAtFeet(static_cast<float>(hx), static_cast<float>(hz));
         glUniform1f(gSceneCutoffLocation, 0.5f);
         glBindVertexArray(gHeroVao);
         glBindTexture(kTexture2D, gHeroTexture);

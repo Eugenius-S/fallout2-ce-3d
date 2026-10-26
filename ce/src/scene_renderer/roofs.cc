@@ -1,5 +1,7 @@
 #include "static_scene.h"
 
+#include <algorithm>
+#include <cstdio>
 #include <cstring>
 
 #include "gl_api.h"
@@ -111,6 +113,18 @@ void roofShadowCasters(unsigned int* vao, int* vertexCount)
         glBindVertexArray(0);
         gRoofShadowVertexCount = static_cast<int>(positions.size() / 3);
         gRoofShadowStale = false;
+        // One-shot load diagnostics (082 round 6), alongside the walls'
+        // CASTERS print: the shadow map's content vs the receivers' lookups.
+        float rx0 = 1e9f, rx1 = -1e9f, rz0 = 1e9f, rz1 = -1e9f;
+        for (size_t p = 0; p + 2 < positions.size(); p += 3) {
+            rx0 = std::min(rx0, positions[p]);
+            rx1 = std::max(rx1, positions[p]);
+            rz0 = std::min(rz0, positions[p + 2]);
+            rz1 = std::max(rz1, positions[p + 2]);
+        }
+        fprintf(stderr, "ROOF CASTERS: squares %zu, vertices %d, y %.2f, x %.2f..%.2f, z %.2f..%.2f\n",
+            gRoofSquares.size(), gRoofShadowVertexCount, y, rx0, rx1, rz0, rz1);
+        fflush(stderr);
     }
     if (gRoofShadowVertexCount == 0) return;
     *vao = gRoofShadowVao;

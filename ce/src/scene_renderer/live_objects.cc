@@ -295,13 +295,22 @@ bool addStaticObject(const StaticObjectFrame& frame, std::string* error)
         }
         gObjectTextures.emplace(key, texture);
     }
-    gObjectDraws.push_back({ texture, static_cast<int>(gObjectVertices.size()), flat,
-        { frame.tint[0], frame.tint[1], frame.tint[2] }, frame.glassGray, frame.pickId, frame.pickOnly,
-        frame.seeThrough, frame.fullLight ? -1 : frame.tile });
     // A thing standing on a solid moves onto it, and so does its row plane.
     float lift[3] = { 0.0f, 0.0f, 0.0f };
     const bool lifted = staticObjectLift(frame.tile, frame.fid, lift);
     const double liftedRow = row + lift[2];
+    // The card's feet on the ground: the bottom-center of a standing card,
+    // the middle of a flat one. The whole-sprite sun shadow reads the map
+    // there (082 round 6, mechanism 3).
+    const float anchorX = static_cast<float>(flat
+        ? (corners[0].x + corners[1].x + corners[2].x + corners[3].x) * 0.25 + lift[0]
+        : (corners[1].x + corners[2].x) * 0.5 + lift[0]);
+    const float anchorZ = static_cast<float>(flat
+        ? (corners[0].z + corners[1].z + corners[2].z + corners[3].z) * 0.25 + lift[2]
+        : (corners[1].z + corners[2].z) * 0.5 + lift[2]);
+    gObjectDraws.push_back({ texture, static_cast<int>(gObjectVertices.size()), flat,
+        { frame.tint[0], frame.tint[1], frame.tint[2] }, frame.glassGray, frame.pickId, frame.pickOnly,
+        frame.seeThrough, frame.fullLight ? -1 : frame.tile, anchorX, anchorZ });
     const int order[6] = { 0, 1, 2, 0, 2, 3 };
     for (int index : order) {
         SpriteCardVertex corner = corners[index];

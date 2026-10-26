@@ -570,6 +570,11 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
                         solid = 0.85f - (vertex.y - drop);
                     }
                     page.push_back(solid);
+                    // The caster's object number for the map's id channel
+                    // (082 round 6, mechanism 2): rows count from 1, 0 means
+                    // no id - the scene's reads of these texels never exclude
+                    // them. Unattributed caster triangles carry no id.
+                    page.push_back(object >= 0.0f ? object + 1.0f : 0.0f);
                 }
             }
         }
@@ -634,8 +639,8 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
         };
         std::vector<PageRange> pageRanges;
         for (auto& [page, vertices] : casterPages) {
-            pageRanges.push_back({ page, static_cast<int>(casterData.size() / 6),
-                static_cast<int>(vertices.size() / 6) });
+            pageRanges.push_back({ page, static_cast<int>(casterData.size() / 7),
+                static_cast<int>(vertices.size() / 7) });
             casterData.insert(casterData.end(), vertices.begin(), vertices.end());
         }
         if (gShadowVao == 0) glGenVertexArrays(1, &gShadowVao);
@@ -645,13 +650,16 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
         glBufferData(kArrayBuffer,
             static_cast<long long>(casterData.size() * sizeof(float)), casterData.data(), kStaticDraw);
         glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 3, 0x1406 /* GL_FLOAT */, 0, 6 * sizeof(float), nullptr);
+        glVertexAttribPointer(0, 3, 0x1406 /* GL_FLOAT */, 0, 7 * sizeof(float), nullptr);
         glEnableVertexAttribArray(1);
-        glVertexAttribPointer(1, 2, 0x1406, 0, 6 * sizeof(float),
+        glVertexAttribPointer(1, 2, 0x1406, 0, 7 * sizeof(float),
             reinterpret_cast<const void*>(3 * sizeof(float)));
         glEnableVertexAttribArray(4);
-        glVertexAttribPointer(4, 1, 0x1406, 0, 6 * sizeof(float),
+        glVertexAttribPointer(4, 1, 0x1406, 0, 7 * sizeof(float),
             reinterpret_cast<const void*>(5 * sizeof(float)));
+        glEnableVertexAttribArray(5);
+        glVertexAttribPointer(5, 1, 0x1406, 0, 7 * sizeof(float),
+            reinterpret_cast<const void*>(6 * sizeof(float)));
         glBindVertexArray(0);
         std::vector<WallCasterRange> ranges;
         for (const PageRange& pageRange : pageRanges) {
@@ -665,6 +673,18 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
             if (texture == 0) continue; // the page's texture never loaded
             ranges.push_back({ texture, pageRange.first, pageRange.count });
         }
+        // One-shot load diagnostics (082 round 6): what the caster buffer
+        // holds, printed before the ranges move into the shadow module.
+        float minX = 1e9f, maxX = -1e9f, minZ = 1e9f, maxZ = -1e9f;
+        for (size_t v = 0; v + 2 < casterData.size(); v += 7) {
+            minX = std::min(minX, casterData[v]);
+            maxX = std::max(maxX, casterData[v]);
+            minZ = std::min(minZ, casterData[v + 2]);
+            maxZ = std::max(maxZ, casterData[v + 2]);
+        }
+        fprintf(stderr, "CASTERS: pages %zu, ranges %zu, vertices %zu, x %.2f..%.2f, z %.2f..%.2f\n",
+            casterPages.size(), ranges.size(), casterData.size() / 7, minX, maxX, minZ, maxZ);
+        fflush(stderr);
         setShadowWallCasters(gShadowVao, wallHeight, std::move(ranges));
     }
     if (objectCount > 0) {
