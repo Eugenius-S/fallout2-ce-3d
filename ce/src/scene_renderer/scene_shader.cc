@@ -14,8 +14,12 @@ layout(location = 0) in vec3 aPosition;
 layout(location = 1) in vec2 aTexcoord;
 layout(location = 2) in vec3 aDepthAt; // the point whose depth this vertex takes
 layout(location = 3) in float aObject; // walls.bin: the object row it shows, -1: none
+// walls.bin: the plane its face's depth points span; zero (live cards, whose
+// points are on their own lines of sight already): the point as it is.
+layout(location = 5) in vec3 aDepthNormal;
 uniform mat4 uMvp;
 uniform int uDepthAt;
+uniform vec3 uEye; // the game view's eye: every line of sight goes through it
 // Whether the egg cuts what is drawn: 0 no, 1 the walls whose object row is
 // set in uSeeThroughObjects (the hero stands behind them), 2 the whole draw.
 uniform int uSeeThrough;
@@ -40,7 +44,15 @@ void main() {
         if (uLightMode == 2) vFullLight = entry.g;
     }
     if (uDepthAt != 0) {
-        vec4 q = uMvp * vec4(aDepthAt, 1.0);
+        // The exporter reached the depth point along the game's parallel ray;
+        // under the view's perspective it is moved, within its plane, onto
+        // this vertex's line of sight, so two things on one pixel compare
+        // their planes there (a solid and a card of one hex row, 067).
+        vec3 at = aDepthAt;
+        vec3 sight = aPosition - uEye;
+        float across = dot(aDepthNormal, sight);
+        if (abs(across) > 1e-6) at = aPosition + sight * (dot(aDepthNormal, aDepthAt - aPosition) / across);
+        vec4 q = uMvp * vec4(at, 1.0);
         gl_Position.z = q.z / q.w * gl_Position.w;
     }
 }
@@ -308,6 +320,7 @@ int gSceneTexturedLocation = -1;
 int gSceneColorLocation = -1;
 int gSceneCutoffLocation = -1;
 int gSceneDepthAtLocation = -1;
+int gSceneEyeLocation = -1;
 int gSceneTranslucentLocation = -1;
 int gSceneTintLocation = -1;
 int gSceneGlassGrayLocation = -1;
@@ -378,6 +391,7 @@ bool createSceneShader(std::string* error)
     gSceneColorLocation = glGetUniformLocation(gSceneProgram, "uColor");
     gSceneCutoffLocation = glGetUniformLocation(gSceneProgram, "uCutoff");
     gSceneDepthAtLocation = glGetUniformLocation(gSceneProgram, "uDepthAt");
+    gSceneEyeLocation = glGetUniformLocation(gSceneProgram, "uEye");
     gSceneTranslucentLocation = glGetUniformLocation(gSceneProgram, "uTranslucent");
     gSceneTintLocation = glGetUniformLocation(gSceneProgram, "uTint");
     gSceneGlassGrayLocation = glGetUniformLocation(gSceneProgram, "uGlassGray");
@@ -419,7 +433,7 @@ bool createSceneShader(std::string* error)
     gSceneShadowRangeLocation = glGetUniformLocation(gSceneProgram, "uShadowRange");
     if (gSceneMvpLocation < 0 || gSceneTextureLocation < 0
         || gSceneTexturedLocation < 0 || gSceneColorLocation < 0 || gSceneCutoffLocation < 0
-        || gSceneDepthAtLocation < 0 || gSceneTranslucentLocation < 0 || gSceneTintLocation < 0
+        || gSceneDepthAtLocation < 0 || gSceneEyeLocation < 0 || gSceneTranslucentLocation < 0 || gSceneTintLocation < 0
         || gSceneGlassGrayLocation < 0 || gScenePickLocation < 0 || gSceneEggLocation < 0
         || gSceneEggMaskLocation < 0 || gSceneEggRectLocation < 0 || gSceneViewportLocation < 0
         || gSceneLogicalLocation < 0 || gSceneSeeThroughLocation < 0 || gSceneSeeThroughObjectsLocation < 0

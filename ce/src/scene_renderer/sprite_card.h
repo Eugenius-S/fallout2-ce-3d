@@ -69,6 +69,15 @@ bool flatSpriteCard(const SpriteCardProjection& projection, const SpriteCardArt&
 // each other and walls as the game's painting does.
 double spriteRowPlane(const SpriteCardProjection& projection, int tile, int stack);
 
+// The unit normal of the plane a face's three depth points span: the plane it
+// takes its depth from (a hex row's plane for a solid, a wall's front for its
+// slab). Zero when the points span no plane. The exporter reaches those points
+// along the game's parallel view ray; the game's view has a mild perspective,
+// so the renderer moves each one onto its own pixel's line of sight within
+// this plane (067): a solid hides a card by their planes on that pixel, as a
+// live card's depth already does.
+void depthPlaneNormal(const double points[3][3], double normal[3]);
+
 // The yaw on the scene ground (atan2(z, x), as a fly camera's) of the way a
 // sprite in `rotation` faces: 0..5 are NE, E, SE, SW, W, NW on the game's
 // screen. The ground's hexes are a little squashed: neighbouring facings lie

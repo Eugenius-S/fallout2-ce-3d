@@ -156,6 +156,7 @@ extern int gSceneTexturedLocation;
 extern int gSceneColorLocation;
 extern int gSceneCutoffLocation;
 extern int gSceneDepthAtLocation;
+extern int gSceneEyeLocation;
 extern int gSceneTranslucentLocation;
 extern int gSceneTintLocation;
 extern int gSceneGlassGrayLocation;
