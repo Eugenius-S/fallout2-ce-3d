@@ -60,3 +60,17 @@ that fits no task becomes a new task when the board runs dry.
   line with the first text character after the bullet, rather than with the
   bullet itself. The text should have a straight left edge independent of
   the markers. Not now; backlog only.
+- 2026-10-25 A brick house corner in flight (owner's shot
+  `runs/inbox/2026-10-25-corner-wall-floats.png`): the lower stretch of both
+  walls near the corner is missing, so the brick bottom floats above the
+  street, and a flat brown box (the corner core) stands under it alone; the
+  bricks above also look see-through near the edge. Belongs to the corner
+  work of 076/083 (`_corner_fits`, `_corner_core`) or to glm's build;
+  place not named yet. Seen in a build glm ran (its shadow work), so first
+  check whether main shows it too before fixing anything.
+- 2026-10-25 Two sun options in the [3d] settings, after 082 lands (it
+  rewrites `ce/src/scene/sun.cc`): (1) the darkness of building shadows as a
+  slider (none on main or in PR #104 today); (2) how far the sun swings from
+  overhead, default 30 degrees each way (morning -30, evening +30; this
+  replaces 082's 15), adjustable by the player. The owner gave glm these
+  instructions for 082 directly; check what 082 lands before cutting a task.
