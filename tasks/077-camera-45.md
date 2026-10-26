@@ -71,3 +71,6 @@ UX copy update: the owner requested plain labels and "not recommended"
 instead of "own risk". Removed "experimental" from Camera rotation and
 rewrote both RU/EN tooltips around the actual action and visible consequence.
 Rebuilt, passed settings_3d_tests, recaptured the Russian menu crop.
+The final Russian label is "Full turn (not recommended)"; the longer
+"Unlimited rotation" wording was clipped, so the snapshot verifies the
+complete warning fits the label column.

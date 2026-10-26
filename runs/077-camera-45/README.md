@@ -9,7 +9,7 @@ source commit is the claim commit; captures used the working implementation.
 `options-russian.jpg`: Camera section of the real preferences panel, Russian,
 sharp text, 1920x2160 at scale 2, cropped to (320,1680)-(1600,2080).
 Both toggles are off by default. The unrestricted option is marked not recommended.
-Final menu crop uses `build/camera077/menu-ux` after the owner's copy revision.
+Final menu crop uses `build/camera077/menu-final` after the owner's copy revision.
 
 Reproduce:
 

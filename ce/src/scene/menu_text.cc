@@ -63,7 +63,7 @@ const std::vector<Translation>& catalog()
         { "How far the glow of shining things spreads and brightens.", cp1251(u8"Насколько далеко распространяется свечение и насколько оно яркое.") },
         { "Camera rotation", cp1251(u8"Поворот камеры") },
         { "[ and ] turn the camera up to 45 degrees left or right. Return to the original view to control the game with the mouse.", cp1251(u8"Клавиши [ и ] поворачивают камеру в пределах 45 градусов влево и вправо. Верните камеру в исходное положение, чтобы управлять игрой мышью.") },
-        { "Unlimited camera rotation (not recommended)", cp1251(u8"Поворот без ограничений (не рекомендуется)") },
+        { "Unlimited camera rotation (not recommended)", cp1251(u8"Полный оборот (не рекомендуется)") },
         { "Remove the 45-degree limit. Objects and walls may render incorrectly at larger angles.", cp1251(u8"Снимает ограничение в 45 градусов. При большем повороте объекты и стены могут отображаться с ошибками.") },
         { "Light", cp1251(u8"Освещение") },
         { "Light the 3D scene with the game's light.", cp1251(u8"Освещать 3D-сцену игровым светом.") },
