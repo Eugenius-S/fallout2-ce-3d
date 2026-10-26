@@ -132,6 +132,7 @@ double gDevGlowStrength = -1.0;
 bool gDevCyclePalette = false;
 int gGlowLadderStep = -1;
 bool gBackgroundShadows = false; // --dev-shadows: shadows stay on in a background run
+bool gDevNoSpriteSides = false; // --dev-no-sprite-sides: sprites keep their own side (087's "before")
 bool gDevOpenDoors = false; // --dev-open-doors: every door of the map stands open, once
 bool gDevOpenDoorsDone = false;
 double gDevZoom = -1.0; // --dev-zoom=D: the background run's 3D zoom (default 1)
@@ -846,6 +847,12 @@ bool parseOption(const char* arg)
         gDevOpenDoors = true;
         return true;
     }
+    // --dev-no-sprite-sides: a turned camera sees the game's side of every
+    // sprite, as before 087.
+    if (strcmp(arg, "--dev-no-sprite-sides") == 0) {
+        gDevNoSpriteSides = true;
+        return true;
+    }
     if (strcmp(arg, "--dev-shadows") == 0) {
         gBackgroundShadows = true;
         debugPrint("DEVTOOLS: the shadows stay on in this background run\n");
@@ -1048,6 +1055,7 @@ void applyFixedScreenOptions()
         settings.scene3d.glow = gBackgroundGlow;
         if (gDevGlowStrength >= 0.0) settings.scene3d.glow_strength = gDevGlowStrength;
         settings.scene3d.shadows = gBackgroundShadows;
+        if (gDevNoSpriteSides) settings.scene3d.sprite_sides = false;
     }
     debugPrint("DEVTOOLS: fixed screen %dx%d scale %d, windowed, glow %d%s\n",
         gFixedScreenOptions.width, gFixedScreenOptions.height, gFixedScreenOptions.scale,
@@ -1065,6 +1073,7 @@ void applyBackgroundGlow()
 void applyBackgroundShadows()
 {
     if (backgroundCaptureActive()) settings.scene3d.shadows = gBackgroundShadows;
+    if (gDevNoSpriteSides) settings.scene3d.sprite_sides = false;
 }
 
 // Runs after the command line is parsed (applyFixedScreenOptions is earlier),
