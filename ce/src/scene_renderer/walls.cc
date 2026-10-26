@@ -735,6 +735,12 @@ void markStaticWallFullLight(int tile, int fid)
     if (found != gWallObjectRows.end()) gWallFullLight[found->second] = 1;
 }
 
+void markStaticWallEmissive(int tile, int fid)
+{
+    const auto found = gWallObjectRows.find(bakedObjectKey(tile, fid));
+    if (found != gWallObjectRows.end()) gWallFullLight[found->second] = 3;
+}
+
 void markStaticWallSeeThrough(int tile, int fid)
 {
     const auto found = gWallObjectRows.find(bakedObjectKey(tile, fid));
@@ -754,7 +760,7 @@ void flushWallObjectTable()
     std::vector<unsigned char> table(gWallSeeThrough.size() * 2);
     for (size_t row = 0; row < gWallSeeThrough.size(); row++) {
         table[row * 2] = gWallSeeThrough[row];
-        table[row * 2 + 1] = gWallFullLight[row] != 0 ? 255 : 0;
+        table[row * 2 + 1] = gWallFullLight[row] == 3 ? 64 : (gWallFullLight[row] == 2 ? 128 : (gWallFullLight[row] != 0 ? 255 : 0));
     }
     if (table == gWallObjectTable) return;
     gWallObjectTable = std::move(table);

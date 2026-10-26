@@ -1,0 +1,90 @@
+{
+  "before_commit": "ea4bba3f",
+  "spots": 43,
+  "angles": [
+    -45,
+    0,
+    45
+  ],
+  "views_per_build": 129,
+  "changed_spots": 0,
+  "groups": [
+    {
+      "map_elevation": "klacanyn-e0",
+      "views": 6,
+      "before_exe": "a585b89c7d44abe02833e18d9ff310c5ba9c2b8fe617c4fbb3eabf1780d2d423",
+      "after_exe": "e78c181bb43a3d91391c39e6492679e032bfc06a8372fa61f74fcd9ea4c74f53",
+      "scene_provenance": "4af5b207de7b10bf425c17c516443385eb7f9913648d0d4f0c5a6902e39194be"
+    },
+    {
+      "map_elevation": "kladwtwn-e0",
+      "views": 57,
+      "before_exe": "a585b89c7d44abe02833e18d9ff310c5ba9c2b8fe617c4fbb3eabf1780d2d423",
+      "after_exe": "e78c181bb43a3d91391c39e6492679e032bfc06a8372fa61f74fcd9ea4c74f53",
+      "scene_provenance": "b418049058e282d22e70414ded1d615f6977440e48f1f41b92b7f9acf94e1dcb"
+    },
+    {
+      "map_elevation": "klagraz-e0",
+      "views": 6,
+      "before_exe": "a585b89c7d44abe02833e18d9ff310c5ba9c2b8fe617c4fbb3eabf1780d2d423",
+      "after_exe": "e78c181bb43a3d91391c39e6492679e032bfc06a8372fa61f74fcd9ea4c74f53",
+      "scene_provenance": "2dd1d2d212b48928b4387cde8ad7a96b22f3b414ee767a9a70024a17756068d8"
+    },
+    {
+      "map_elevation": "klamall-e0",
+      "views": 21,
+      "before_exe": "a585b89c7d44abe02833e18d9ff310c5ba9c2b8fe617c4fbb3eabf1780d2d423",
+      "after_exe": "e78c181bb43a3d91391c39e6492679e032bfc06a8372fa61f74fcd9ea4c74f53",
+      "scene_provenance": "e7c28ecc130577f52dfe1c69067c3bbc06f2246dcd81e34783716a1cc939b171"
+    },
+    {
+      "map_elevation": "klaratcv-e0",
+      "views": 6,
+      "before_exe": "a585b89c7d44abe02833e18d9ff310c5ba9c2b8fe617c4fbb3eabf1780d2d423",
+      "after_exe": "e78c181bb43a3d91391c39e6492679e032bfc06a8372fa61f74fcd9ea4c74f53",
+      "scene_provenance": "a22232f51e722174863a6aa3dc048ebb7c5474164eacae3dfb22fc47f1733830"
+    },
+    {
+      "map_elevation": "klaratcv-e1",
+      "views": 6,
+      "before_exe": "a585b89c7d44abe02833e18d9ff310c5ba9c2b8fe617c4fbb3eabf1780d2d423",
+      "after_exe": "e78c181bb43a3d91391c39e6492679e032bfc06a8372fa61f74fcd9ea4c74f53",
+      "scene_provenance": "59352180e13fbd81ae6f4560ec0225db7a3ed7b998ce04d1c4932fd44ba0ca57"
+    },
+    {
+      "map_elevation": "klaratcv-e2",
+      "views": 3,
+      "before_exe": "a585b89c7d44abe02833e18d9ff310c5ba9c2b8fe617c4fbb3eabf1780d2d423",
+      "after_exe": "e78c181bb43a3d91391c39e6492679e032bfc06a8372fa61f74fcd9ea4c74f53",
+      "scene_provenance": "1c8db14712948cb8288e01f5d5cb978dc76156d37407e9aab8355895696afdc5"
+    },
+    {
+      "map_elevation": "klatoxcv-e0",
+      "views": 6,
+      "before_exe": "a585b89c7d44abe02833e18d9ff310c5ba9c2b8fe617c4fbb3eabf1780d2d423",
+      "after_exe": "e78c181bb43a3d91391c39e6492679e032bfc06a8372fa61f74fcd9ea4c74f53",
+      "scene_provenance": "8e5136d79e5f71641bc1e8fcfcda3234735b602c43104d2aa235cf7b1a6322c5"
+    },
+    {
+      "map_elevation": "klatoxcv-e1",
+      "views": 6,
+      "before_exe": "a585b89c7d44abe02833e18d9ff310c5ba9c2b8fe617c4fbb3eabf1780d2d423",
+      "after_exe": "e78c181bb43a3d91391c39e6492679e032bfc06a8372fa61f74fcd9ea4c74f53",
+      "scene_provenance": "879bdb5e2d0fe1b6508efb03783749e4283d5c815b581c563b6bdcbad28444c4"
+    },
+    {
+      "map_elevation": "klatoxcv-e2",
+      "views": 3,
+      "before_exe": "a585b89c7d44abe02833e18d9ff310c5ba9c2b8fe617c4fbb3eabf1780d2d423",
+      "after_exe": "e78c181bb43a3d91391c39e6492679e032bfc06a8372fa61f74fcd9ea4c74f53",
+      "scene_provenance": "aedc1b604b13c7886bf72ec31518bc7a8aa9ca87571ff9a4683e991a4e69c0d8"
+    },
+    {
+      "map_elevation": "klatrap-e0",
+      "views": 9,
+      "before_exe": "a585b89c7d44abe02833e18d9ff310c5ba9c2b8fe617c4fbb3eabf1780d2d423",
+      "after_exe": "e78c181bb43a3d91391c39e6492679e032bfc06a8372fa61f74fcd9ea4c74f53",
+      "scene_provenance": "60d12c78fe41639367f4236fd82591baeca9dfa706cd422e6589c50a2cee3e28"
+    }
+  ]
+}

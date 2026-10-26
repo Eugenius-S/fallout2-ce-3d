@@ -357,3 +357,7 @@ move the seams to a new task (090, Claude).
   VAO in walls.cc). Re-checked: ctest 15/15, regression 0 px on 16 views,
   shadow_stripes unchanged (PASS 0.0000, flatness 1.0000, edge 4/4/3 px).
 - 062 lands inside this PR (its evidence PNGs over 1 MB became JPEGs).
+- A third merge took 086 (#122): the shadow darkening keeps its
+  effect-core guard, the debug views stay; the fragment shader is split
+  into one more raw string (MSVC's literal limit). ctest 16/16,
+  regression 0 px on 16 views, shadow_stripes unchanged.

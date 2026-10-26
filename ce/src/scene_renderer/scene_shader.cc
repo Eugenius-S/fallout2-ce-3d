@@ -191,7 +191,7 @@ vec4 pointLights(vec3 w, vec3 n, bool facing) {
 vec4 sceneLighting() {
     if (uLightMode == 1) return pointLights(vWorld, vec3(0.0, 1.0, 0.0), false);
     if (uLightMode == 2) {
-        if (vFullLight > 0.5) return vec4(1.0);
+        if (vFullLight > 0.75) return vec4(1.0);
         vec3 n = normalize(cross(dFdx(vWorld), dFdy(vWorld)));
         if (dot(n, uTowardCamera) < 0.0) n = -n;
         return pointLights(vWorld, n, true);
@@ -365,7 +365,8 @@ float shadowDarken(float light) {
     }
     return light;
 }
-// _intensity_mask_buf_to_buf: inside the egg a nonzero mask value is the
+)"
+R"(// _intensity_mask_buf_to_buf: inside the egg a nonzero mask value is the
 // surface's share in 128ths; 0 outside it and where the surface stays whole.
 float eggShare() {
     vec2 game = (gl_FragCoord.xy - uViewport.xy) / uViewport.zw * uLogical;
@@ -444,12 +445,18 @@ void main() {
             // A sprite's animated colours (alpha 254, the exporter's sprite
             // marker) stay at full light; alpha 252 only glows, the tiles and
             // walls darken as everything does.
-            bool fullBright = abs(texel.a * 255.0 - 254.0) < 0.5;
+            float mark = texel.a * 255.0;
+            bool calibratedSign = vFullLight > 0.2 && vFullLight < 0.3;
+            bool signTube = (calibratedSign || (vFullLight > 0.4 && vFullLight < 0.6))
+                && texel.r >= 0.5 && texel.r > texel.b * 1.5 && texel.r >= texel.g;
+            bool calibratedCore = (mark > 239.5 && mark < 245.5) || (calibratedSign && signTube);
+            bool effectCore = calibratedCore || (mark > 247.5 && mark < 250.5) || signTube;
+            bool fullBright = abs(mark - 254.0) < 0.5 || effectCore;
             outColor.a = 1.0;
             // _dark_trans_buf_to_buf: the engine darkens a texel by its light in
             // 128 steps, on its 5-bit colour rounded down (setIntensityTableColor).
             vec4 lit = fullBright ? vec4(1.0) : sceneLighting();
-            lit.a = shadowDarken(lit.a);
+            if (!effectCore) lit.a = shadowDarken(lit.a);
             if (uShadowDebug == 2) {
                 // The face test itself: white where the sun hits the face and
                 // the map is read, black where the face takes the flat
@@ -497,8 +504,7 @@ void main() {
             // under its own light); the glow blurs this buffer. The alpha
             // carries which texels are the marked ones: the wide halo spreads
             // only those, so daylight surfaces never feed it.
-            float mark = texel.a * 255.0;
-            bool marked = mark > 251.5 && mark < 254.5;
+            bool marked = (mark > 251.5 && mark < 254.5) || effectCore;
             vec3 emission = marked ? texel.rgb * outColor.a : vec3(0.0);
             vec3 bright = outColor.rgb * smoothstep(0.88, 0.98, max(max(outColor.r, outColor.g), outColor.b));
             vec3 glow = max(emission, bright);
@@ -510,7 +516,26 @@ void main() {
             float coldShare = smoothstep(0.25, 0.65, glow.b / max(peak, 0.0001));
             float compensation = clamp(0.2126 * peak / max(luminance, 0.0001), 0.5, 1.0);
             glow *= mix(1.0, compensation, coldShare);
+            // Small noncycling effects need more halo energy than PLASMAB's
+            // fully cycling core. This remains behind the single global slider.
+            float effectGain = signTube ? 4.0 : (mark < 248.5 ? 8.0 : (mark < 249.5 ? 4.0 : 2.0));
+            // The reviewed emission target is RGBA8: it clamps BEFORE blur.
+            // Preserve that clamp before scaling to common strength 2; simply
+            // multiplying the old gain by the ratio would change its colors.
+            if (calibratedCore) {
+                float referenceGain = signTube ? 4.0 : (mark < 240.5 ? 8.0 : (mark < 241.5 ? 1.0
+                    : (mark < 242.5 ? 8.0 : 4.0)));
+                float chosenRatio = signTube ? 0.2 : (mark < 240.5 ? 0.35 : (mark < 241.5 ? 0.75
+                    : (mark < 243.5 ? 0.5 : (mark < 244.5 ? 0.35 : 0.2))));
+                glow = clamp(glow * referenceGain, 0.0, 1.0) * chosenRatio;
+            } else if (effectCore) {
+                glow *= effectGain;
+            }
             outEmissive = vec4(glow, marked ? 1.0 : 0.0);
+            // Roofs blend over the scene last. Their opaque pixels must also
+            // erase the emission below; alpha zero would leave a hidden sign's
+            // halo visible through the roof in the second render target.
+            if (uLightMode == 4) outEmissive = vec4(0.0, 0.0, 0.0, outColor.a);
         }
     }
 }

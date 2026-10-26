@@ -1,0 +1,808 @@
+[
+  {
+    "source": {
+      "name": "laser",
+      "fid": 83886085,
+      "art": "lazrpis.frm",
+      "frame": 5,
+      "frames": 6,
+      "rotation": 1
+    },
+    "capture": "ladders/laser",
+    "crop": [
+      600,
+      200,
+      1320,
+      880
+    ],
+    "changed_pixels_over_8": [
+      0,
+      6054,
+      7003,
+      7728
+    ],
+    "image_sha256": [
+      "0ed843439167669db72eb75e1c4c4bf8338466d29dc9b7a36a089b9a93662a41",
+      "fed300f55c4762c9aaaf53348cec91bcbddb8c1013b39c331080a0e8d781e50f",
+      "69bba2b144b785d674e623a8cc891a23a8d0067eb35df88fc0fc9dc01942fc4d",
+      "c6f3bfe89ea4fa0f5080991b62eb1e53c2ff41912a95485ba12c70ebe47bd455"
+    ],
+    "effect": {
+      "name": "laser",
+      "fid": 83886085,
+      "frame": 5,
+      "frames": 6,
+      "tile": 25075,
+      "rotation": 1,
+      "no_save": true,
+      "screen_rect": [
+        463,
+        181,
+        496,
+        185
+      ],
+      "art_offset": [
+        0,
+        -35
+      ],
+      "size": [
+        34,
+        5
+      ],
+      "focused": true,
+      "camera_eye": [
+        -10.204508,
+        2.911451,
+        16.193239
+      ],
+      "camera_yaw": -2.158799,
+      "camera_pitch": -0.480597,
+      "camera_fov": 25.0
+    },
+    "exe_sha256": "2016af54f6d56153300fda6170a18813f6fa30836009dc58a2054316fe755176"
+  },
+  {
+    "source": {
+      "name": "plasma-bolt",
+      "fid": 83886086,
+      "art": "plasmab.frm",
+      "frame": 0,
+      "frames": 1,
+      "rotation": 1
+    },
+    "capture": "ladders/plasma-bolt",
+    "crop": [
+      600,
+      200,
+      1320,
+      880
+    ],
+    "changed_pixels_over_8": [
+      0,
+      24671,
+      28219,
+      31107
+    ],
+    "image_sha256": [
+      "9daa6e58593b87edeedf53d235da0e3e67293ad5a81e96cae6292d1a2e36e1fb",
+      "20bbedee53ef99bace3b2878774838a0a4eacacad5539c0af344b1d15e8dbaf4",
+      "8cf009c91eb01b941a7f27f92e03e3573cc17cd8a0d1b47a47b24290775189a9",
+      "1b0cde415070bd661469c3f1b7fa90eafba848f3e4b35ec60c26fd39b835a887"
+    ],
+    "effect": {
+      "name": "plasma-bolt",
+      "fid": 83886086,
+      "frame": 0,
+      "frames": 1,
+      "tile": 25075,
+      "rotation": 1,
+      "no_save": true,
+      "screen_rect": [
+        474,
+        171,
+        485,
+        180
+      ],
+      "art_offset": [
+        0,
+        -40
+      ],
+      "size": [
+        12,
+        10
+      ],
+      "focused": true,
+      "camera_eye": [
+        -10.574214,
+        2.71082,
+        15.63868
+      ],
+      "camera_yaw": -2.158799,
+      "camera_pitch": -0.480597,
+      "camera_fov": 25.0
+    },
+    "exe_sha256": "2016af54f6d56153300fda6170a18813f6fa30836009dc58a2054316fe755176"
+  },
+  {
+    "source": {
+      "name": "plasma-pistol",
+      "fid": 83886087,
+      "art": "plazpis.frm",
+      "frame": 2,
+      "frames": 6,
+      "rotation": 1
+    },
+    "capture": "ladders/plasma-pistol",
+    "crop": [
+      600,
+      200,
+      1320,
+      880
+    ],
+    "changed_pixels_over_8": [
+      0,
+      6180,
+      6922,
+      7448
+    ],
+    "image_sha256": [
+      "889d09a44ffe9d204216de732b9d07cbabb406e804419a2ab103b4dc24da3cb9",
+      "293b9555fd2faf96b19b96bd19436b474c363ce461219b37fd5636638e94b024",
+      "861721f7179f123b7f2c90eb421f7a1e0a75fb71061605094fef3e4b9be0c046",
+      "07e826aef9e24ef71e6d76dabc3219de02d4119bc61217caf400e5db374ee697"
+    ],
+    "effect": {
+      "name": "plasma-pistol",
+      "fid": 83886087,
+      "frame": 2,
+      "frames": 6,
+      "tile": 25075,
+      "rotation": 1,
+      "no_save": true,
+      "screen_rect": [
+        466,
+        180,
+        494,
+        185
+      ],
+      "art_offset": [
+        0,
+        -35
+      ],
+      "size": [
+        29,
+        6
+      ],
+      "focused": true,
+      "camera_eye": [
+        -10.55602,
+        2.598194,
+        15.681596
+      ],
+      "camera_yaw": -2.158799,
+      "camera_pitch": -0.480597,
+      "camera_fov": 25.0
+    },
+    "exe_sha256": "2016af54f6d56153300fda6170a18813f6fa30836009dc58a2054316fe755176"
+  },
+  {
+    "source": {
+      "name": "plasma-rifle",
+      "fid": 83886088,
+      "art": "plzmrif.frm",
+      "frame": 3,
+      "frames": 4,
+      "rotation": 1
+    },
+    "capture": "ladders/plasma-rifle",
+    "crop": [
+      600,
+      200,
+      1320,
+      880
+    ],
+    "changed_pixels_over_8": [
+      0,
+      9026,
+      10755,
+      12054
+    ],
+    "image_sha256": [
+      "91b8bac2752980ca4ba5bb52255ad1d913b807e87487beccd1f91b98bab9354a",
+      "51337fad52baae581c9f16142273ebbdee1b352881078e6359bdb2addc9538d3",
+      "7df626dab97eaf6ee5ec81b6158bdf19e93393500ac87a7c8e8633303409a48a",
+      "c7f05013b87850de08b0cc8451d0c4909251def11f3960189d51e64bfa1b1d19"
+    ],
+    "effect": {
+      "name": "plasma-rifle",
+      "fid": 83886088,
+      "frame": 3,
+      "frames": 4,
+      "tile": 25075,
+      "rotation": 1,
+      "no_save": true,
+      "screen_rect": [
+        471,
+        183,
+        489,
+        190
+      ],
+      "art_offset": [
+        0,
+        -30
+      ],
+      "size": [
+        19,
+        8
+      ],
+      "focused": true,
+      "camera_eye": [
+        -10.582026,
+        2.495424,
+        15.642586
+      ],
+      "camera_yaw": -2.158799,
+      "camera_pitch": -0.480597,
+      "camera_fov": 25.0
+    },
+    "exe_sha256": "2016af54f6d56153300fda6170a18813f6fa30836009dc58a2054316fe755176"
+  },
+  {
+    "source": {
+      "name": "electric",
+      "fid": 83886094,
+      "art": "elect.frm",
+      "frame": 3,
+      "frames": 6,
+      "rotation": 1
+    },
+    "capture": "ladders/electric",
+    "crop": [
+      600,
+      200,
+      1320,
+      880
+    ],
+    "changed_pixels_over_8": [
+      0,
+      3646,
+      4247,
+      4836
+    ],
+    "image_sha256": [
+      "27380b4bc56eb4f8121fd2cb3320d5eaf5dde9f15cb5a59564a70f1e0622e0b7",
+      "f94a4ad9c9f641f85764119fd960087b33d672378e8cb8568d1775cdf24a2787",
+      "2f7be47692dd49bda97489f1c8a47c50b579e9804b6b5503c43d68ce1408e21e",
+      "28c02a55a6b384215ec7b245ade321894ee4748d35bc2d1b6349a30753abd881"
+    ],
+    "effect": {
+      "name": "electric",
+      "fid": 83886094,
+      "frame": 3,
+      "frames": 6,
+      "tile": 25075,
+      "rotation": 1,
+      "no_save": true,
+      "screen_rect": [
+        467,
+        173,
+        493,
+        185
+      ],
+      "art_offset": [
+        0,
+        -35
+      ],
+      "size": [
+        27,
+        13
+      ],
+      "focused": true,
+      "camera_eye": [
+        -10.582026,
+        2.642285,
+        15.642586
+      ],
+      "camera_yaw": -2.158799,
+      "camera_pitch": -0.480597,
+      "camera_fov": 25.0
+    },
+    "exe_sha256": "2016af54f6d56153300fda6170a18813f6fa30836009dc58a2054316fe755176"
+  },
+  {
+    "source": {
+      "name": "flamethrower",
+      "fid": 83886106,
+      "art": "fthro.frm",
+      "frame": 0,
+      "frames": 6,
+      "rotation": 1
+    },
+    "capture": "ladders/flamethrower",
+    "crop": [
+      600,
+      200,
+      1320,
+      880
+    ],
+    "changed_pixels_over_8": [
+      0,
+      8515,
+      9494,
+      10286
+    ],
+    "image_sha256": [
+      "1ffac69792d0ac02de3075b618a9bde175b2f4282eaa577ef0cab82b9f897fcc",
+      "ef9bdc2dd67984f446070429528454e3ca765fdfe10cafa075ef151aab136460",
+      "21da8729c67de7fa8ab50c38e8c9903ee028560ce4318a1addd3a018433cfe10",
+      "e265cf707eb8bccbb1e177f3709e9935828f6f16122f3d061b41d82469b917cc"
+    ],
+    "effect": {
+      "name": "flamethrower",
+      "fid": 83886106,
+      "frame": 0,
+      "frames": 6,
+      "tile": 25075,
+      "rotation": 1,
+      "no_save": true,
+      "screen_rect": [
+        472,
+        172,
+        488,
+        185
+      ],
+      "art_offset": [
+        0,
+        -35
+      ],
+      "size": [
+        17,
+        14
+      ],
+      "focused": true,
+      "camera_eye": [
+        -10.582026,
+        2.652076,
+        15.642586
+      ],
+      "camera_yaw": -2.158799,
+      "camera_pitch": -0.480597,
+      "camera_fov": 25.0
+    },
+    "exe_sha256": "2016af54f6d56153300fda6170a18813f6fa30836009dc58a2054316fe755176"
+  },
+  {
+    "source": {
+      "name": "rocket",
+      "fid": 83886089,
+      "art": "rocket.frm",
+      "frame": 1,
+      "frames": 5,
+      "rotation": 1
+    },
+    "capture": "ladders/rocket",
+    "crop": [
+      600,
+      200,
+      1320,
+      880
+    ],
+    "changed_pixels_over_8": [
+      0,
+      8857,
+      9793,
+      10539
+    ],
+    "image_sha256": [
+      "25582b27ff6abfa077e9e91d122dc589e6ed49f4c8995a54fcc269139c0c52b5",
+      "5de679f137008bed03657855f9d1879c8d439b75bec439dab30f5b3266414b47",
+      "5b6560638a828527d042e21498083cd6bba9189a6b671cf4bca68aee3cf6351d",
+      "4330bdd47fc7b2daf7d6252c1ab9a3d7bff67e4d9652e67038ef047445a64433"
+    ],
+    "effect": {
+      "name": "rocket",
+      "fid": 83886089,
+      "frame": 1,
+      "frames": 5,
+      "tile": 25075,
+      "rotation": 1,
+      "no_save": true,
+      "screen_rect": [
+        442,
+        159,
+        519,
+        215
+      ],
+      "art_offset": [
+        1,
+        -5
+      ],
+      "size": [
+        78,
+        57
+      ],
+      "focused": true,
+      "camera_eye": [
+        -7.195573,
+        5.675946,
+        20.73789
+      ],
+      "camera_yaw": -2.158799,
+      "camera_pitch": -0.480597,
+      "camera_fov": 25.0
+    },
+    "exe_sha256": "2016af54f6d56153300fda6170a18813f6fa30836009dc58a2054316fe755176"
+  },
+  {
+    "source": {
+      "name": "fire-explosion",
+      "fid": 83886109,
+      "art": "expa.frm",
+      "frame": 2,
+      "frames": 7,
+      "rotation": 0
+    },
+    "capture": "ladders/fire-explosion",
+    "crop": [
+      600,
+      200,
+      1320,
+      880
+    ],
+    "changed_pixels_over_8": [
+      0,
+      31579,
+      35225,
+      38360
+    ],
+    "image_sha256": [
+      "99a564bf9a3a34bf83ca98a6889d33343c6472ddd532e35465fa3de424d3c2e9",
+      "a240364a6db09bfaf417c336e7612323c6b71b9138ddabbac063afb03dea06c1",
+      "99ef611232ad77347feae205eea62c34244b739112a1f2d597923d6965613383",
+      "38d995b976d7be5f7842dddc0a93a93349366b473c66970feab3269e28c56d8f"
+    ],
+    "effect": {
+      "name": "fire-explosion",
+      "fid": 83886109,
+      "frame": 2,
+      "frames": 7,
+      "tile": 25075,
+      "rotation": 0,
+      "no_save": true,
+      "screen_rect": [
+        452,
+        159,
+        508,
+        220
+      ],
+      "art_offset": [
+        0,
+        0
+      ],
+      "size": [
+        57,
+        62
+      ],
+      "focused": true,
+      "camera_eye": [
+        -7.761875,
+        5.087375,
+        19.872812
+      ],
+      "camera_yaw": -2.158799,
+      "camera_pitch": -0.480597,
+      "camera_fov": 25.0
+    },
+    "exe_sha256": "2016af54f6d56153300fda6170a18813f6fa30836009dc58a2054316fe755176"
+  },
+  {
+    "source": {
+      "name": "plasma-explosion",
+      "fid": 83886111,
+      "art": "expp.frm",
+      "frame": 2,
+      "frames": 9,
+      "rotation": 0
+    },
+    "capture": "ladders/plasma-explosion",
+    "crop": [
+      600,
+      200,
+      1320,
+      880
+    ],
+    "changed_pixels_over_8": [
+      0,
+      19593,
+      23788,
+      27279
+    ],
+    "image_sha256": [
+      "376b63639e4429d0e6a72ccad19d906a73ce4a85dbd11406464193bde06f3e44",
+      "0a1f1a1dea50302cabed75208883dfdbd9e97ad7453a085396c59f1346d0ca40",
+      "aa8c56378a66a416c336ede98ab56760d695cb05d0460ee1e940beaf98300b7c",
+      "37cc53f49199e9c47444f46de61bda7eadfbc1b65a7f13ae1a65d2bff353b9f9"
+    ],
+    "effect": {
+      "name": "plasma-explosion",
+      "fid": 83886111,
+      "frame": 2,
+      "frames": 9,
+      "tile": 25075,
+      "rotation": 0,
+      "no_save": true,
+      "screen_rect": [
+        464,
+        185,
+        496,
+        220
+      ],
+      "art_offset": [
+        0,
+        0
+      ],
+      "size": [
+        33,
+        36
+      ],
+      "focused": true,
+      "camera_eye": [
+        -9.765211,
+        2.949854,
+        16.867807
+      ],
+      "camera_yaw": -2.158799,
+      "camera_pitch": -0.480597,
+      "camera_fov": 25.0
+    },
+    "exe_sha256": "2016af54f6d56153300fda6170a18813f6fa30836009dc58a2054316fe755176"
+  },
+  {
+    "source": {
+      "name": "emp-explosion",
+      "fid": 83886082,
+      "art": "empxpld.frm",
+      "frame": 3,
+      "frames": 5,
+      "rotation": 0
+    },
+    "capture": "ladders/emp-explosion",
+    "crop": [
+      600,
+      200,
+      1320,
+      880
+    ],
+    "changed_pixels_over_8": [
+      0,
+      19793,
+      23084,
+      26065
+    ],
+    "image_sha256": [
+      "bbe6c9c9a37ee8b8cacd4046d120f543b463c8fdb2c614bfab82a84018bd585b",
+      "279e994364ea587dc322f172e57fdda2fd456e6ef4e72d8c74246532121c534e",
+      "2db1a21db3a71ef851728cff7100db8da5239d063f0bc6853dd1c062fbbe5b42",
+      "55a17cf20db6cf746255516f7714f54a4268adb2117c18b052d447fdbbaab688"
+    ],
+    "effect": {
+      "name": "emp-explosion",
+      "fid": 83886082,
+      "frame": 3,
+      "frames": 5,
+      "tile": 25075,
+      "rotation": 0,
+      "no_save": true,
+      "screen_rect": [
+        455,
+        193,
+        504,
+        220
+      ],
+      "art_offset": [
+        0,
+        0
+      ],
+      "size": [
+        50,
+        28
+      ],
+      "focused": true,
+      "camera_eye": [
+        -9.094251,
+        3.494829,
+        17.858624
+      ],
+      "camera_yaw": -2.158799,
+      "camera_pitch": -0.480597,
+      "camera_fov": 25.0
+    },
+    "exe_sha256": "2016af54f6d56153300fda6170a18813f6fa30836009dc58a2054316fe755176"
+  },
+  {
+    "source": {
+      "name": "rocket-explosion",
+      "fid": 83886090,
+      "art": "roktxpd.frm",
+      "frame": 2,
+      "frames": 6,
+      "rotation": 0
+    },
+    "capture": "ladders/rocket-explosion",
+    "crop": [
+      600,
+      200,
+      1320,
+      880
+    ],
+    "changed_pixels_over_8": [
+      0,
+      21835,
+      25773,
+      28979
+    ],
+    "image_sha256": [
+      "c56d7260317967cd15dbb27eaec5249b0f23be5f65b9b9c38c7af5517b4ac9f2",
+      "8836bd573d1b86302c6fce92a57563585c40faf39ec147e49e878f38ab65236d",
+      "950e768ef47d5ebb440d6ae62935fdd1245b2d3679706328ece26381c663e59b",
+      "6bd38598fdf9a3abdbb9a707c6f71b1b12791afbf93b809ce8f0f6f2a0b5d945"
+    ],
+    "effect": {
+      "name": "rocket-explosion",
+      "fid": 83886090,
+      "frame": 2,
+      "frames": 6,
+      "tile": 25075,
+      "rotation": 0,
+      "no_save": true,
+      "screen_rect": [
+        453,
+        154,
+        506,
+        220
+      ],
+      "art_offset": [
+        0,
+        0
+      ],
+      "size": [
+        54,
+        67
+      ],
+      "focused": true,
+      "camera_eye": [
+        -7.368805,
+        5.498436,
+        20.446793
+      ],
+      "camera_yaw": -2.158799,
+      "camera_pitch": -0.480597,
+      "camera_fov": 25.0
+    },
+    "exe_sha256": "2016af54f6d56153300fda6170a18813f6fa30836009dc58a2054316fe755176"
+  },
+  {
+    "source": {
+      "name": "sign40",
+      "art": "SIGN40.FRM",
+      "fid": 33556182,
+      "frame": 0,
+      "existing": true
+    },
+    "capture": "sign-native/sign40",
+    "crop": [
+      852,
+      44,
+      1264,
+      380
+    ],
+    "changed_pixels_over_8": [
+      0,
+      25285,
+      31952,
+      36930
+    ],
+    "image_sha256": [
+      "9de07e430b9168bdde40c1ff113a24581deb5db79155cc72d98333119164b6dd",
+      "42a02c24cf4ee1f3f37d3f79ae58cf1561d64e27958a9adb4e46b16f99b39bc5",
+      "7081df65580930f82ab85f97217b9f45ea572779d06ab436306c5bc25f6bef0f",
+      "0d1a5a981bc5a6a7ce2e43e309e8945872f4c4734a2a1e01fc904229e67e7269"
+    ],
+    "effect": {
+      "name": "sign40",
+      "fid": 33556182,
+      "frame": 0,
+      "frames": 1,
+      "tile": 16274,
+      "rotation": 0,
+      "no_save": false,
+      "existing_object": true,
+      "screen_rect": [
+        465,
+        135,
+        540,
+        262
+      ],
+      "art_offset": [
+        23,
+        42
+      ],
+      "size": [
+        76,
+        128
+      ],
+      "focused": false,
+      "camera_eye": [
+        -7.809302,
+        4.917965,
+        -1.213953
+      ],
+      "camera_yaw": -2.158799,
+      "camera_pitch": -0.480597,
+      "camera_fov": 25.0
+    },
+    "exe_sha256": "aa7f609ef8dd1ededa3275cbf87e24a6f764ed46209be382e98c40ced4882f9e"
+  },
+  {
+    "source": {
+      "name": "sign41",
+      "art": "SIGN41.FRM",
+      "fid": 33556183,
+      "frame": 0,
+      "existing": true
+    },
+    "capture": "sign-native-small/sign41",
+    "crop": [
+      784,
+      152,
+      1024,
+      388
+    ],
+    "changed_pixels_over_8": [
+      0,
+      2341,
+      3380,
+      4368
+    ],
+    "image_sha256": [
+      "7fba3ee12632e9e41acae73803cf1e6dbb3718144858e1842a09345d4c2be40e",
+      "a5cc2c952b0949e22501ac017cda64132f627345bb654037e08f198af5c775aa",
+      "61dc726d742cb5a00998d3833ee285527b08143f53382a2610119b9449bc18ac",
+      "23846998595c3631feddd244216bd5268dc15e32c5bdb4ce81b294330c7315ce"
+    ],
+    "effect": {
+      "name": "sign41",
+      "fid": 33556183,
+      "frame": 0,
+      "frames": 12,
+      "tile": 17080,
+      "rotation": 0,
+      "no_save": false,
+      "existing_object": true,
+      "screen_rect": [
+        431,
+        109,
+        475,
+        229
+      ],
+      "art_offset": [
+        -27,
+        9
+      ],
+      "size": [
+        45,
+        121
+      ],
+      "focused": false,
+      "camera_eye": [
+        0.423062,
+        9.835931,
+        8.634594
+      ],
+      "camera_yaw": -2.158799,
+      "camera_pitch": -0.480597,
+      "camera_fov": 25.0
+    },
+    "exe_sha256": "aa7f609ef8dd1ededa3275cbf87e24a6f764ed46209be382e98c40ced4882f9e"
+  }
+]

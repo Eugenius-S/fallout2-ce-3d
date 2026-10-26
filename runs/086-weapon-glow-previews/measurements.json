@@ -1,0 +1,362 @@
+[
+  {
+    "effect": {
+      "name": "laser",
+      "fid": 83886085,
+      "frame": 5,
+      "frames": 6,
+      "tile": 25075,
+      "rotation": 1,
+      "no_save": true,
+      "screen_rect": [
+        463,
+        181,
+        496,
+        185
+      ],
+      "art_offset": [
+        0,
+        -35
+      ],
+      "size": [
+        34,
+        5
+      ],
+      "focused": true,
+      "camera_eye": [
+        -10.204508,
+        2.911451,
+        16.193239
+      ],
+      "camera_yaw": -2.158799,
+      "camera_pitch": -0.480597,
+      "camera_fov": 25.0
+    },
+    "changed_pixels_over_8": 6054,
+    "mean_rgb_difference": [
+      0.3708925653594771,
+      0.1757577614379085,
+      0.17774305555555556
+    ],
+    "exe_sha256": "311a346d0fe30bd6ad9588e5535bd2793ba41dab40207bc28d2530dc1048958f",
+    "capture_files": [
+      "build\\effects086\\final\\laser\\devshot-20261026-134033-000.json",
+      "build\\effects086\\final\\laser\\devshot-20261026-134033-001.json"
+    ]
+  },
+  {
+    "effect": {
+      "name": "plasma-bolt",
+      "fid": 83886086,
+      "frame": 0,
+      "frames": 1,
+      "tile": 25075,
+      "rotation": 1,
+      "no_save": true,
+      "screen_rect": [
+        474,
+        171,
+        485,
+        180
+      ],
+      "art_offset": [
+        0,
+        -40
+      ],
+      "size": [
+        12,
+        10
+      ],
+      "focused": true,
+      "camera_eye": [
+        -10.574214,
+        2.71082,
+        15.63868
+      ],
+      "camera_yaw": -2.158799,
+      "camera_pitch": -0.480597,
+      "camera_fov": 25.0
+    },
+    "changed_pixels_over_8": 24671,
+    "mean_rgb_difference": [
+      3.8903349673202614,
+      2.9509436274509806,
+      2.550986519607843
+    ],
+    "exe_sha256": "311a346d0fe30bd6ad9588e5535bd2793ba41dab40207bc28d2530dc1048958f",
+    "capture_files": [
+      "build\\effects086\\final\\plasma-bolt\\devshot-20261026-134045-000.json",
+      "build\\effects086\\final\\plasma-bolt\\devshot-20261026-134045-001.json"
+    ]
+  },
+  {
+    "effect": {
+      "name": "plasma-pistol",
+      "fid": 83886087,
+      "frame": 2,
+      "frames": 6,
+      "tile": 25075,
+      "rotation": 1,
+      "no_save": true,
+      "screen_rect": [
+        466,
+        180,
+        494,
+        185
+      ],
+      "art_offset": [
+        0,
+        -35
+      ],
+      "size": [
+        29,
+        6
+      ],
+      "focused": true,
+      "camera_eye": [
+        -10.55602,
+        2.598194,
+        15.681596
+      ],
+      "camera_yaw": -2.158799,
+      "camera_pitch": -0.480597,
+      "camera_fov": 25.0
+    },
+    "changed_pixels_over_8": 6180,
+    "mean_rgb_difference": [
+      0.2643096405228758,
+      0.3516830065359477,
+      0.015923202614379087
+    ],
+    "exe_sha256": "311a346d0fe30bd6ad9588e5535bd2793ba41dab40207bc28d2530dc1048958f",
+    "capture_files": [
+      "build\\effects086\\final\\plasma-pistol\\devshot-20261026-134057-000.json",
+      "build\\effects086\\final\\plasma-pistol\\devshot-20261026-134057-001.json"
+    ]
+  },
+  {
+    "effect": {
+      "name": "plasma-rifle",
+      "fid": 83886088,
+      "frame": 3,
+      "frames": 4,
+      "tile": 25075,
+      "rotation": 1,
+      "no_save": true,
+      "screen_rect": [
+        471,
+        183,
+        489,
+        190
+      ],
+      "art_offset": [
+        0,
+        -30
+      ],
+      "size": [
+        19,
+        8
+      ],
+      "focused": true,
+      "camera_eye": [
+        -10.582026,
+        2.495424,
+        15.642586
+      ],
+      "camera_yaw": -2.158799,
+      "camera_pitch": -0.480597,
+      "camera_fov": 25.0
+    },
+    "changed_pixels_over_8": 9026,
+    "mean_rgb_difference": [
+      0.46918504901960784,
+      0.3910375816993464,
+      0.49518995098039215
+    ],
+    "exe_sha256": "311a346d0fe30bd6ad9588e5535bd2793ba41dab40207bc28d2530dc1048958f",
+    "capture_files": [
+      "build\\effects086\\final\\plasma-rifle\\devshot-20261026-134109-000.json",
+      "build\\effects086\\final\\plasma-rifle\\devshot-20261026-134109-001.json"
+    ]
+  },
+  {
+    "effect": {
+      "name": "fire-explosion",
+      "fid": 83886109,
+      "frame": 2,
+      "frames": 7,
+      "tile": 25075,
+      "rotation": 0,
+      "no_save": true,
+      "screen_rect": [
+        452,
+        159,
+        508,
+        220
+      ],
+      "art_offset": [
+        0,
+        0
+      ],
+      "size": [
+        57,
+        62
+      ],
+      "focused": true,
+      "camera_eye": [
+        -7.761875,
+        5.087375,
+        19.872812
+      ],
+      "camera_yaw": -2.158799,
+      "camera_pitch": -0.480597,
+      "camera_fov": 25.0
+    },
+    "changed_pixels_over_8": 31579,
+    "mean_rgb_difference": [
+      1.4586499183006536,
+      2.0046058006535947,
+      2.245077614379085
+    ],
+    "exe_sha256": "311a346d0fe30bd6ad9588e5535bd2793ba41dab40207bc28d2530dc1048958f",
+    "capture_files": [
+      "build\\effects086\\final\\fire-explosion\\devshot-20261026-134121-000.json",
+      "build\\effects086\\final\\fire-explosion\\devshot-20261026-134121-001.json"
+    ]
+  },
+  {
+    "effect": {
+      "name": "plasma-explosion",
+      "fid": 83886111,
+      "frame": 2,
+      "frames": 9,
+      "tile": 25075,
+      "rotation": 0,
+      "no_save": true,
+      "screen_rect": [
+        464,
+        185,
+        496,
+        220
+      ],
+      "art_offset": [
+        0,
+        0
+      ],
+      "size": [
+        33,
+        36
+      ],
+      "focused": true,
+      "camera_eye": [
+        -9.765211,
+        2.949854,
+        16.867807
+      ],
+      "camera_yaw": -2.158799,
+      "camera_pitch": -0.480597,
+      "camera_fov": 25.0
+    },
+    "changed_pixels_over_8": 19593,
+    "mean_rgb_difference": [
+      0.9059763071895425,
+      0.8586846405228759,
+      0.8088378267973856
+    ],
+    "exe_sha256": "311a346d0fe30bd6ad9588e5535bd2793ba41dab40207bc28d2530dc1048958f",
+    "capture_files": [
+      "build\\effects086\\final\\plasma-explosion\\devshot-20261026-134132-000.json",
+      "build\\effects086\\final\\plasma-explosion\\devshot-20261026-134133-000.json"
+    ]
+  },
+  {
+    "effect": {
+      "name": "emp-explosion",
+      "fid": 83886082,
+      "frame": 3,
+      "frames": 5,
+      "tile": 25075,
+      "rotation": 0,
+      "no_save": true,
+      "screen_rect": [
+        455,
+        193,
+        504,
+        220
+      ],
+      "art_offset": [
+        0,
+        0
+      ],
+      "size": [
+        50,
+        28
+      ],
+      "focused": true,
+      "camera_eye": [
+        -9.094251,
+        3.494829,
+        17.858624
+      ],
+      "camera_yaw": -2.158799,
+      "camera_pitch": -0.480597,
+      "camera_fov": 25.0
+    },
+    "changed_pixels_over_8": 19793,
+    "mean_rgb_difference": [
+      0.9041544117647059,
+      0.9765665849673203,
+      0.9791196895424836
+    ],
+    "exe_sha256": "311a346d0fe30bd6ad9588e5535bd2793ba41dab40207bc28d2530dc1048958f",
+    "capture_files": [
+      "build\\effects086\\final\\emp-explosion\\devshot-20261026-134144-000.json",
+      "build\\effects086\\final\\emp-explosion\\devshot-20261026-134145-000.json"
+    ]
+  },
+  {
+    "effect": {
+      "name": "rocket-explosion",
+      "fid": 83886090,
+      "frame": 2,
+      "frames": 6,
+      "tile": 25075,
+      "rotation": 0,
+      "no_save": true,
+      "screen_rect": [
+        453,
+        154,
+        506,
+        220
+      ],
+      "art_offset": [
+        0,
+        0
+      ],
+      "size": [
+        54,
+        67
+      ],
+      "focused": true,
+      "camera_eye": [
+        -7.368805,
+        5.498436,
+        20.446793
+      ],
+      "camera_yaw": -2.158799,
+      "camera_pitch": -0.480597,
+      "camera_fov": 25.0
+    },
+    "changed_pixels_over_8": 21835,
+    "mean_rgb_difference": [
+      0.9217687908496732,
+      1.2170057189542485,
+      1.5198835784313725
+    ],
+    "exe_sha256": "311a346d0fe30bd6ad9588e5535bd2793ba41dab40207bc28d2530dc1048958f",
+    "capture_files": [
+      "build\\effects086\\final\\rocket-explosion\\devshot-20261026-134156-000.json",
+      "build\\effects086\\final\\rocket-explosion\\devshot-20261026-134157-000.json"
+    ]
+  }
+]
