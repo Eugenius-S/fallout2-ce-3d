@@ -79,3 +79,11 @@ that fits no task becomes a new task when the board runs dry.
   main's own cache (hydrants in corrals, klatoxcv-e1 22777 px, klamall-e0
   3235 px). The references drifted from main; find which merge changed the
   game's view and retake them with a before | after.
+- 2026-10-26 (073) Glow strength does not produce a visible halo on the
+  sampled klatoxcv e1 green pool (view 19091) or vault15 e0 monitr7 screen
+  (view 13275, solo 1). At strength 8, just 6 and 4 pixels respectively in
+  the comparison crops change by more than 8/255 against OFF; the working
+  comp9 computer changes 18245. The monitr7 source art contains blue pixels,
+  but the isolated rendered screen is black. Check the source, palette,
+  baked/overlap and emission-mask paths before adding any new glow marks.
+  Evidence: runs/073-glow-ladder/measurements.json, screens.jpg, slime.jpg.
