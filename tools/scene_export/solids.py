@@ -224,10 +224,11 @@ def solid_faces(proj, sprites, boards, row):
     return _forced(row, faces)
 
 
-def rest_card(proj, sprites, row):
+def rest_card(proj, sprites, row, plane=None):
     """(page, corners) of one scene.rests row as a game-view card: corners
     [u, v, z, atlas x, atlas y, home u, home v, home z], home = the way along
-    the game's view ray to its hex row's depth plane."""
+    the game's view ray to its depth plane: `plane` (by its solid's card's),
+    else the hex row's at its axis."""
     s, u, v = row[:3]
     page, x, y, w, h, ox, oy = sprites[s]
     top, bottom = oy, oy + h
@@ -242,7 +243,8 @@ def rest_card(proj, sprites, row):
     down_u, down_v = proj.delta_to_ground(0, 1)
     right_u, right_v = proj.ground_dir(1, 0)
     base_u, base_v = u + du, v + dv
-    plane = row_plane(proj, u, v)
+    if plane is None:
+        plane = row_plane(proj, u, v)
     corners = []
     for i, j in ((0, 1), (1, 1), (1, 0), (0, 0)):
         along = (ox + i * w) / proj.bbpx

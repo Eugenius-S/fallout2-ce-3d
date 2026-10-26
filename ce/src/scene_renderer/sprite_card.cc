@@ -180,6 +180,22 @@ double spriteRowPlane(const SpriteCardProjection& projection, int tile, int stac
     return z + nudge;
 }
 
+void depthPlaneNormal(const double points[3][3], double normal[3])
+{
+    double a[3], b[3];
+    for (int axis = 0; axis < 3; axis++) {
+        a[axis] = points[1][axis] - points[0][axis];
+        b[axis] = points[2][axis] - points[0][axis];
+    }
+    const double cross[3] = { a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0] };
+    const double length = std::sqrt(cross[0] * cross[0] + cross[1] * cross[1] + cross[2] * cross[2]);
+    const double scale = std::sqrt(a[0] * a[0] + a[1] * a[1] + a[2] * a[2]) * std::sqrt(b[0] * b[0] + b[1] * b[1] + b[2] * b[2]);
+    // Points on one line (or one point) span no plane: the sine of the angle
+    // between the two edges is all but zero.
+    const bool flat = !(length > 1e-6 * scale) || !std::isfinite(length);
+    for (int axis = 0; axis < 3; axis++) normal[axis] = flat ? 0.0 : cross[axis] / length;
+}
+
 bool spriteRotationYaw(const SpriteCardProjection& projection, int rotation, double* yaw)
 {
     // The screen step to the neighbouring hex in each direction.

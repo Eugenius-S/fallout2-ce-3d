@@ -17,7 +17,10 @@ layout(location = 3) in float aObject; // walls.bin: the object row it shows, -1
 // The wall casters' floor copies draw solid: only they set this vertex
 // attribute, every other VAO leaves it at 0.
 layout(location = 4) in float aShadowSolid;
-layout(location = 5) in float aCasterId; // the depth pass: the caster's object row + 1
+layout(location = 6) in float aCasterId; // the depth pass: the caster's object row + 1
+// walls.bin: the plane its face's depth points span; zero (live cards, whose
+// points are on their own lines of sight already): the point as it is.
+layout(location = 5) in vec3 aDepthNormal;
 uniform mat4 uMvp;
 uniform int uDepthAt;
 // Whether the egg cuts what is drawn: 0 no, 1 the walls whose object row is
@@ -33,6 +36,8 @@ out float vCasterId; // the depth pass writes it into the map's id channel
 out float vSelfId; // the screen piece's own object row + 1, for the compare
 flat out int vSeeThrough;
 flat out float vFullLight;
+flat out int vDepthOnPlane;
+flat out vec4 vDepthPlane; // normal, and its dot with the plane's points
 void main() {
     gl_Position = uMvp * vec4(aPosition, 1.0);
     vTexcoord = aTexcoord;
@@ -49,6 +54,8 @@ void main() {
         if (uSeeThrough == 1) vSeeThrough = entry.r > 0.5 ? 1 : 0;
         if (uLightMode == 2) vFullLight = entry.g;
     }
+    vDepthOnPlane = uDepthAt != 0 && dot(aDepthNormal, aDepthNormal) > 0.5 ? 1 : 0;
+    vDepthPlane = vec4(aDepthNormal, dot(aDepthNormal, aDepthAt));
     if (uDepthAt != 0) {
         vec4 q = uMvp * vec4(aDepthAt, 1.0);
         gl_Position.z = q.z / q.w * gl_Position.w;
@@ -65,6 +72,9 @@ in float vCasterId;
 in float vSelfId;
 flat in int vSeeThrough;
 flat in float vFullLight;
+flat in int vDepthOnPlane;
+flat in vec4 vDepthPlane;
+uniform mat4 uMvp;
 uniform sampler2D uTexture;
 uniform int uTextured;
 uniform vec4 uColor;
@@ -364,7 +374,33 @@ float eggShare() {
     if (e.x < 0.0 || e.y < 0.0 || e.x >= 1.0 || e.y >= 1.0) return 0.0;
     return min(floor(texture(uEggMask, e).r * 255.0 + 0.5), 128.0);
 }
+// The depth of the face's depth plane (vDepthPlane) on this fragment's own
+// line of sight. The exporter reached the depth points along the game's
+// parallel ray; under the view's perspective that lands on another pixel, off
+// by more than neighbouring hex rows' planes are apart. Here a solid, a wall
+// and a card on one pixel compare their planes there, as a live card's depth
+// point already lies on its own line of sight (067: a cabinet and a person of
+// one hex row). It is worked out per fragment, not between the face's
+// corners, so the faces of one solid tie exactly and the first one drawn
+// keeps the pixel.
+float planeDepth() {
+    vec2 ndc = (gl_FragCoord.xy - uViewport.xy) / uViewport.zw * 2.0 - 1.0;
+    vec4 rowX = vec4(uMvp[0][0], uMvp[1][0], uMvp[2][0], uMvp[3][0]);
+    vec4 rowY = vec4(uMvp[0][1], uMvp[1][1], uMvp[2][1], uMvp[3][1]);
+    vec4 rowZ = vec4(uMvp[0][2], uMvp[1][2], uMvp[2][2], uMvp[3][2]);
+    vec4 rowW = vec4(uMvp[0][3], uMvp[1][3], uMvp[2][3], uMvp[3][3]);
+    // The point p on the plane whose clip x and y over w are this pixel's:
+    // a.p = 0, b.p = 0, normal.p = offset.
+    vec4 a = rowX - ndc.x * rowW;
+    vec4 b = rowY - ndc.y * rowW;
+    mat3 m = transpose(mat3(a.xyz, b.xyz, vDepthPlane.xyz));
+    float det = determinant(m);
+    if (abs(det) < 1e-12) return gl_FragCoord.z;
+    vec3 p = inverse(m) * vec3(-a.w, -b.w, vDepthPlane.w);
+    return dot(rowZ, vec4(p, 1.0)) / dot(rowW, vec4(p, 1.0)) * 0.5 + 0.5;
+}
 void main() {
+    gl_FragDepth = vDepthOnPlane != 0 ? planeDepth() : gl_FragCoord.z;
     if (uClipEnabled != 0) {
         if (dot(uClipPlane0.xy, vWorldXZ) + uClipPlane0.z < -0.00001
             || dot(uClipPlane1.xy, vWorldXZ) + uClipPlane1.z < -0.00001

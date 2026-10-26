@@ -77,6 +77,7 @@ std::vector<unsigned char> gWallObjectTable; // as uploaded: R, G per row
 struct WallVertex {
     DepthVertex vertex;
     float object; // row in walls.bin's object table, -1: none
+    float depthNormal[3]; // the plane its face's depth points span (depthPlaneNormal)
 };
 
 unsigned long long bakedObjectKey(int tile, int fid)
@@ -308,6 +309,21 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
                 || !std::isfinite(vertex.depthY) || !std::isfinite(vertex.depthZ)
                 || vertex.u < 0.0f || vertex.u > 1.0f || vertex.v < 0.0f || vertex.v > 1.0f) {
                 return fail("walls.bin contains non-finite positions or out-of-range UVs");
+            }
+        }
+        for (size_t index = 0; index + 2 < batch.vertices.size(); index += 3) {
+            double points[3][3], normal[3];
+            for (int corner = 0; corner < 3; corner++) {
+                const DepthVertex& vertex = batch.vertices[index + corner].vertex;
+                points[corner][0] = vertex.depthX;
+                points[corner][1] = vertex.depthY;
+                points[corner][2] = vertex.depthZ;
+            }
+            depthPlaneNormal(points, normal);
+            for (int corner = 0; corner < 3; corner++) {
+                for (int axis = 0; axis < 3; axis++) {
+                    batch.vertices[index + corner].depthNormal[axis] = static_cast<float>(normal[axis]);
+                }
             }
         }
         offset += static_cast<size_t>(vertexBytes);
@@ -603,6 +619,8 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
         glVertexAttribPointer(2, 3, 0x1406, 0, sizeof(WallVertex), reinterpret_cast<const void*>(5 * sizeof(float)));
         glEnableVertexAttribArray(3);
         glVertexAttribPointer(3, 1, 0x1406, 0, sizeof(WallVertex), reinterpret_cast<const void*>(8 * sizeof(float)));
+        glEnableVertexAttribArray(5);
+        glVertexAttribPointer(5, 3, 0x1406, 0, sizeof(WallVertex), reinterpret_cast<const void*>(9 * sizeof(float)));
         if (source.rgba.empty()) {
             for (const WallBatch& other : gWallBatches) {
                 if (other.ownsTexture && other.page == source.page) batch.texture = other.texture;
@@ -652,8 +670,8 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
         glEnableVertexAttribArray(4);
         glVertexAttribPointer(4, 1, 0x1406, 0, 7 * sizeof(float),
             reinterpret_cast<const void*>(5 * sizeof(float)));
-        glEnableVertexAttribArray(5);
-        glVertexAttribPointer(5, 1, 0x1406, 0, 7 * sizeof(float),
+        glEnableVertexAttribArray(6);
+        glVertexAttribPointer(6, 1, 0x1406, 0, 7 * sizeof(float),
             reinterpret_cast<const void*>(6 * sizeof(float)));
         glBindVertexArray(0);
         std::vector<WallCasterRange> ranges;

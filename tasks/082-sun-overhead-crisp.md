@@ -352,3 +352,8 @@ move the seams to a new task (090, Claude).
   along shadow edges, specks by the brahmin, light floor tile joints). The
   seam metric is built there first; its values on this landed state are
   090's starting point.
+- A second merge took 067 (#121): its depth-plane attribute took vertex
+  location 5, so the caster id moved to location 6 (shader and the caster
+  VAO in walls.cc). Re-checked: ctest 15/15, regression 0 px on 16 views,
+  shadow_stripes unchanged (PASS 0.0000, flatness 1.0000, edge 4/4/3 px).
+- 062 lands inside this PR (its evidence PNGs over 1 MB became JPEGs).

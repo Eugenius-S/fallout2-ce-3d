@@ -120,6 +120,23 @@ int main()
     CHECK(spriteTurnSteps(-sign * 361.0 * kDegree, rotationSign, 0) == 0);
     CHECK(spriteShownRotation(5, 1) == 0 && spriteShownRotation(0, 5) == 5 && spriteShownRotation(2, 3) == 5);
 
+    // A face's depth points span the plane it takes its depth from: a hex
+    // row's upright plane (GL z constant) for a solid, a wall's front for its
+    // slab; points on one line span none.
+    double normal[3];
+    const double onRow[3][3] = { { 1.0, 0.2, 7.5 }, { 2.5, 1.9, 7.5 }, { 1.2, 1.4, 7.5 } };
+    depthPlaneNormal(onRow, normal);
+    CHECK(NEAR(normal[0], 0.0) && NEAR(normal[1], 0.0) && NEAR(std::abs(normal[2]), 1.0));
+    const double onWall[3][3] = { { 0.0, 0.0, 0.0 }, { 3.0, 0.0, 4.0 }, { 0.0, 2.0, 0.0 } };
+    depthPlaneNormal(onWall, normal);
+    CHECK(NEAR(std::abs(normal[0]), 0.8) && NEAR(normal[1], 0.0) && NEAR(std::abs(normal[2]), 0.6));
+    const double onLine[3][3] = { { 0.0, 0.0, 0.0 }, { 1.0, 1.0, 1.0 }, { 2.0, 2.0, 2.0 } };
+    depthPlaneNormal(onLine, normal);
+    CHECK(normal[0] == 0.0 && normal[1] == 0.0 && normal[2] == 0.0);
+    const double onePoint[3][3] = { { 4.0, 1.0, 2.0 }, { 4.0, 1.0, 2.0 }, { 4.0, 1.0, 2.0 } };
+    depthPlaneNormal(onePoint, normal);
+    CHECK(normal[0] == 0.0 && normal[1] == 0.0 && normal[2] == 0.0);
+
     // Off-grid tiles and empty frames are refused.
     art = { -1, 0, 0, 0, 0, 30, 60 };
     CHECK(!standingSpriteCard(projection, art, corners, nullptr, nullptr));
