@@ -2,7 +2,7 @@
 id: 062
 title: Sun shadows end a few meters past their caster, hold still and blend smoothly
 milestone: M1
-status: doing
+status: done
 owner: glm
 suggested: glm
 claude-only: no
@@ -253,3 +253,9 @@ dabs at the casters' feet: 9.3 k, 6.8 k, 21 k sampled px), the edge
 samples read 782 soft vs 8 hard, 1191 vs 20, 996 vs 8, and the median
 drop is 17..24 gray levels (the lighter 0.425 rim).
 Next: the owner's eye on the relaunched game.
+
+## Landed (2026-10-26 claude)
+
+Landed inside 082 (PR #104, one PR as 082 asked): the sun model it built on
+was replaced there, its evidence PNGs over 1 MB became JPEGs. PR #91 closes
+with it.
