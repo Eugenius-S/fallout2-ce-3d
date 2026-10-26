@@ -567,6 +567,15 @@ class WallSidecarTests(unittest.TestCase):
             shared = {0: [n for vertex in (a, b, c, a, c, d) for n in vertex]}
             wall_sidecar._cut_by_roofs(shared, wall_sidecar._Roofs(height, {(2, 2): (0, 0)}, tiles))
             self.assertEqual(not [v for v in shared[0][1::wall_sidecar.FLOATS] if v > height + 0.01], cut)
+        # a wall lying on a square's edge is cut, not doubled
+        edge = lambda u, y: (u - off, y, 2.0 - off, u - 1.0, y, u, y, 2.0, 0.0)
+        a, b, c, d = edge(1.0, 0.0), edge(3.0, 0.0), edge(3.0, 2.5), edge(1.0, 2.5)
+        shared = {0: [n for vertex in (a, b, c, a, c, d) for n in vertex]}
+        wall_sidecar._cut_by_roofs(shared, wall_sidecar._Roofs(height, {(2, 2): (0, 0)}, clear))
+        points = [shared[0][i:i + wall_sidecar.FLOATS] for i in range(0, len(shared[0]), wall_sidecar.FLOATS)]
+        area = sum(abs((q[0] - p[0]) * (r[1] - p[1]) - (r[0] - p[0]) * (q[1] - p[1])) / 2
+                   for p, q, r in zip(points[0::3], points[1::3], points[2::3]))
+        self.assertAlmostEqual(area, 2 * 2.5 - (2.5 - height - wall_sidecar.ROOF_SLACK), places=4)
 
     def test_a_corner_picture_running_out_past_the_crossing_still_makes_a_corner(self):
         import wall_sidecar

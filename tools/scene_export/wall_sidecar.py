@@ -1105,11 +1105,18 @@ def _under_roofs(triangle, roofs):
     above = [polygon for polygon in above if len(polygon) >= 3]
     extent = lambda polygon, axis: (min(p[axis] for p in polygon) + GL_MAP_OFFSET, max(p[axis] for p in polygon) + GL_MAP_OFFSET)
     centre = lambda polygon, axis: sum(p[axis] for p in polygon) / len(polygon) + GL_MAP_OFFSET
+
+    def cut(polygons, axis, k):
+        # only a polygon on both sides: one lying in the plane would come out twice
+        return [part for polygon in polygons
+                for part in (_split([polygon], lambda p: p[axis] + GL_MAP_OFFSET - k)
+                             if extent(polygon, axis)[0] < k < extent(polygon, axis)[1] else [polygon])]
+
     for axis in (0, 2):
         cuts = sorted({k + edge for polygon in above for k in _roof_cells(*extent(polygon, axis))
                        for edge in (-ROOF_RIM, 0.0, ROOF_RIM)})
         for k in cuts:
-            above = _split(above, lambda p, k=k, axis=axis: p[axis] + GL_MAP_OFFSET - k)
+            above = cut(above, axis, k)
     if roofs.tiles is not None:
         for axis, other in ((0, 2), (2, 0)):
             parts = []
@@ -1122,7 +1129,7 @@ def _under_roofs(triangle, roofs):
                 pieces = [polygon]
                 for a, b in zip(steps, steps[1:]):
                     if cover(a) != cover(b):
-                        pieces = _split(pieces, lambda p, k=(a + b) / 2, axis=axis: p[axis] + GL_MAP_OFFSET - k)
+                        pieces = cut(pieces, axis, (a + b) / 2)
                 parts.extend(pieces)
             above = parts
     kept = [below] if len(below) >= 3 else []
