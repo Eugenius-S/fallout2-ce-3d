@@ -102,7 +102,8 @@ The fly tour (`py -3 tools/tour/tour.py --before SIDE [--after SIDE]`, task
 078) shoots every spot of `tools/tour/spots.json` from the fly camera at
 -45, 0 and +45 degrees, one run per map elevation and side, frozen (`-Still`)
 in full daylight, and writes `before | after` sheets to `build/tour/sheets/`
-(`changed.jpg` holds only the spots that changed). A side is a built checkout
+(`changed.jpg`, then `changed-2.jpg`..., holds only the spots that changed,
+or says none did). A side is a built checkout
 or a scene cache folder; a cache side runs this checkout's build with
 `dev-snapshot.ps1 -SceneCache DIR`.
 `-Turn N` (`--dev-camera-turn=N`) takes the snapshot with the 3D camera N

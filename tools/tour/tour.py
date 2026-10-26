@@ -17,13 +17,15 @@ map tour (dev-snapshot -Tour), as the shapes eval shoots.
 Shots go to build/tour/<before|after>/<map>-e<elevation>/, sheets to
 build/tour/sheets/ (or --out): one JPEG per map elevation (pages of
 ROWS_PER_PAGE spots), each row a spot and each turn a before | after pair,
-and changed.jpg with only the spots whose views differ, a red frame round
-each changed pair. --reuse keeps a side's shots when the same side and stop
-list were shot before. Judging the views stays with the eye.
+and changed.jpg (then changed-2.jpg, ...) with only the spots whose views
+differ, a red frame round each changed pair, or a note that none did.
+--reuse keeps a side's shots when the same side, stops, exe and scene
+provenance were shot before. Judging the views stays with the eye.
 """
 from __future__ import annotations
 
 import argparse
+import hashlib
 import io
 import json
 import shutil
@@ -68,6 +70,27 @@ def side_kind(side):
     raise SystemExit(f"{side}: neither a built checkout nor a scene cache")
 
 
+def file_hash(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else None
+
+
+def scene_folder(kind, path, map_name, elevation):
+    """Where the side's scenes of one map elevation come from: the cache
+    side itself, else the checkout's build/scene-cache, else the game's
+    mod-cache (dev-snapshot.ps1's order)."""
+    if kind == "cache":
+        return path / map_name / str(elevation)
+    own = path / "build" / "scene-cache"
+    if own.is_dir():
+        return own / map_name / str(elevation)
+    game = path / "game"
+    if not game.is_dir():
+        main = subprocess.run(["git", "-C", str(path), "worktree", "list", "--porcelain"],
+                              capture_output=True, text=True).stdout.splitlines()[0]
+        game = Path(main.removeprefix("worktree ")) / "game"
+    return game / "mod-cache" / "scene" / map_name / str(elevation)
+
+
 def shoot(name, side, turns, distance, groups, reuse):
     kind, path = side_kind(side)
     root = path if kind == "checkout" else ROOT
@@ -77,7 +100,10 @@ def shoot(name, side, turns, distance, groups, reuse):
         stops = [f"{map_name}:{elevation}:{spot['tile']}:-1:{turn}:{spot.get('distance', distance)}"
                  for spot in spots for turn in turns]
         folder = OUT / name / f"{map_name}-e{elevation}"
-        stamp = {"side": str(path), "kind": kind, "stops": stops}
+        # A rebuilt exe or a re-exported scene makes the old shots stale.
+        stamp = {"side": str(path), "kind": kind, "stops": stops,
+                 "exe": file_hash(root / "build" / "fallout2-ce.exe"),
+                 "scene": file_hash(scene_folder(kind, path, map_name, elevation) / "provenance.json")}
         stamp_file = folder / "tour.json"
         if (reuse and stamp_file.is_file() and json.loads(stamp_file.read_text(encoding="utf-8")) == stamp
                 and len(list(folder.glob("*.png"))) == len(stops) + 1):
@@ -214,9 +240,15 @@ def sheets(turns, groups, out):
         for number, page in enumerate(pages, 1):
             suffix = f"-{number}" if len(pages) > 1 else ""
             save_page(page, out / f"{map_name}-e{elevation}{suffix}.jpg")
+    # changed.jpg always exists: the first page, or a note that nothing changed.
     for start in range(0, len(changed_rows), ROWS_PER_PAGE):
-        suffix = f"-{start // ROWS_PER_PAGE + 1}" if len(changed_rows) > ROWS_PER_PAGE else ""
+        suffix = f"-{start // ROWS_PER_PAGE + 1}" if start else ""
         save_page(changed_rows[start:start + ROWS_PER_PAGE], out / f"changed{suffix}.jpg")
+    if not changed_rows:
+        from PIL import Image, ImageDraw
+        note = Image.new("RGB", (900, 40), (24, 24, 24))
+        ImageDraw.Draw(note).text((8, 10), f"fly tour: no spot changed of {total}", fill=(255, 230, 0), font=font(16))
+        note.save(out / "changed.jpg", quality=90)
     print(f"{changed} of {total} spots changed; sheets in {out}")
 
 
