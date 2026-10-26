@@ -2,8 +2,8 @@
 id: 058
 title: Regression references no longer match the unchanged renderer
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: claude
 suggested: glm
 priority: high
 claude-only: no
