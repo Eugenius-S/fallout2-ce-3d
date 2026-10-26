@@ -99,7 +99,14 @@ A map tour stop may end in `:solo:turn:distance`
 tile alone, from the fly camera `turn` degrees round and `distance` units
 away; the shapes eval shoots a whole map in one run this way.
 `-Turn N` (`--dev-camera-turn=N`) takes the snapshot with the 3D camera N
-quarter turns round, as `[3d] camera_rotation` turns it with [ and ].
+quarter turns round (legacy snapshot units). `-TurnDegrees D`
+(`--dev-camera-degrees=D`) accepts an exact angle, e.g. -45 or 45. Both
+snapshot overrides bypass player settings; the dev fly camera is unlimited.
+For players, `[3d] camera_rotation` enables [ and ] in 45-degree steps,
+clamped to -45..+45. `[3d] camera_rotation_unlimited` (off by default,
+marked not recommended in the Camera menu) permits a full turn. Turning rotation
+off returns to the game view; turning unlimited off clamps any current turn
+back into the safe range.
 `-Solo R` (`--dev-solo=TILE,R`, TILE is `-ViewTile`) draws only the things
 within R hexes of it, without walls or roofs (the hero stays: the fly camera needs it): one thing seen alone
 from every side (the shapes eval, `tools/shapes/eval/eval.py`).

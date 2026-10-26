@@ -61,6 +61,9 @@ param(
     [double]$FlyDistance = -1,
     # -Turn N: the 3D camera N quarter turns round ([3d] camera_rotation).
     [int]$Turn = 0,
+    # Exact snapshot angle in degrees, bypassing player settings like -Turn.
+    [ValidateRange(-360, 360)]
+    [double]$TurnDegrees = 0,
     # -Solo R: only the things within R hexes of -ViewTile, no walls or roofs.
     [int]$Solo = -1,
     [string]$OutputDirectory,
@@ -284,6 +287,7 @@ if ($FlyTurn -ne 0) { $arguments += "--dev-fly-turn=$FlyTurn" }
 if ($FlyPitch -gt 0) { $arguments += "--dev-fly-pitch=$FlyPitch" }
 if ($FlyDistance -gt 0) { $arguments += "--dev-fly-distance=$FlyDistance" }
 if ($Turn -ne 0) { $arguments += "--dev-camera-turn=$Turn" }
+if ($TurnDegrees -ne 0) { $arguments += "--dev-camera-degrees=$($TurnDegrees.ToString([System.Globalization.CultureInfo]::InvariantCulture))" }
 if ($Solo -ge 0 -and $PSBoundParameters.ContainsKey('ViewTile')) { $arguments += "--dev-solo=$ViewTile,$Solo" }
 if ($Still) {
     if ($Probe) { throw '-Still cannot be combined with the interactive -Probe.' }

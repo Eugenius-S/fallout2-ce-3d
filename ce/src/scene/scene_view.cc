@@ -1,4 +1,5 @@
 #include "scene_view.h"
+#include "camera_turn.h"
 
 #include "../dev_output.h"
 
@@ -496,15 +497,18 @@ namespace {
 double gTurnAt = 0.0; // degrees round, where the camera is
 double gTurnTo = 0.0; // and where it goes
 bool gTurnOwnsCamera = false;
+bool gTurnDevOverride = false;
 Uint64 gTurnLast = 0;
 scene_renderer::StaticFlyCamera gTurnPose = {};
-constexpr double kTurnSpeed = 360.0; // degrees a second: a quarter turn in a quarter of a second
+constexpr double kTurnSpeed = 360.0; // degrees a second
 
 void landCameraTurn()
 {
     gTurnAt = gTurnTo = 0.0;
     if (gTurnOwnsCamera) scene_renderer::setStaticFlyCamera(nullptr);
     gTurnOwnsCamera = false;
+    gTurnDevOverride = false;
+    gTurnLast = 0;
 }
 
 } // namespace
@@ -514,13 +518,19 @@ bool turnCamera(int steps)
     if (!settings.scene3d.camera_rotation || steps == 0) return false;
     if (activeView() != View::Full || !shouldPresent()) return false;
     if (scene_renderer::staticFlyCameraActive() && !gTurnOwnsCamera) return false; // the dev fly camera
-    gTurnTo += 90.0 * steps;
+    gTurnDevOverride = false;
+    if (!settings.scene3d.camera_rotation_unlimited) {
+        gTurnAt = limitedCameraTurn(gTurnAt);
+        gTurnTo = limitedCameraTurn(gTurnTo);
+    }
+    gTurnTo = cameraTurnTarget(gTurnTo, steps, settings.scene3d.camera_rotation_unlimited);
     return true;
 }
 
-void setCameraTurnNow(int steps)
+void setCameraTurnNow(double degrees)
 {
-    gTurnAt = gTurnTo = 90.0 * steps;
+    gTurnDevOverride = true;
+    gTurnAt = gTurnTo = degrees;
     gTurnLast = 0;
 }
 
@@ -533,9 +543,14 @@ void updateCameraTurn()
 {
     if (!gTurnOwnsCamera && gTurnAt == 0.0 && gTurnTo == 0.0) return;
     if (activeView() != View::Full || !shouldPresent()
+        || (!gTurnDevOverride && !settings.scene3d.camera_rotation)
         || (scene_renderer::staticFlyCameraActive() && !gTurnOwnsCamera)) {
         landCameraTurn();
         return;
+    }
+    if (!gTurnDevOverride && !settings.scene3d.camera_rotation_unlimited) {
+        gTurnAt = limitedCameraTurn(gTurnAt);
+        gTurnTo = limitedCameraTurn(gTurnTo);
     }
     const Uint64 now = SDL_GetPerformanceCounter();
     const double seconds = gTurnLast == 0 ? 0.0
