@@ -57,7 +57,10 @@ untouched.
   squares need not match the wall lines). The free camera now cuts wall
   faces at the roof height over roof squares (`_cut_by_roofs`); the game
   keeps its triangles whole in the game-only batch. Points above a roof on
-  kladwtwn: 1164 -> 0.
+  kladwtwn: 1164 -> 0. The engine draws a roof cell's rim 6/88 past its
+  square; a wall there is cut only where the rim's texel is opaque (most
+  Klamath rims are clear, and the game shows the wall through them: cutting
+  the whole rim took the top off a klamall mesh fence).
 - 10, the corner by a door: a corner picture (a post) ran on past the
   crossing out of the corner reach, so the corner pass saw no corner and
   the piece stood out into the street as a fin. A last row that crosses the

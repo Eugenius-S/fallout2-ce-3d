@@ -540,23 +540,33 @@ class WallSidecarTests(unittest.TestCase):
         import wall_sidecar
         # Task 081: a wall face 2.5 high from u 1 to 3 at v 2.5; only square
         # (2, 2) has a roof. The game's camera keeps both triangles whole; the
-        # free camera keeps all of it but the part over that square above the
-        # roof height.
+        # free camera keeps all of it but the part over that square, its rim
+        # included, above the roof height.
         off, height = wall_sidecar.GL_MAP_OFFSET, 1.88
+        opaque, clear = [[255] * 100] * 100, [[0] * 100] * 100  # the roof cell's texels, rim included
         corner = lambda u, y: (u - off, y, 2.5 - off, u - 1.0, y, u, y, 2.5, 0.0)
         a, b, c, d = corner(1.0, 0.0), corner(3.0, 0.0), corner(3.0, 2.5), corner(1.0, 2.5)
         shared = {0: [n for vertex in (a, b, c, a, c, d) for n in vertex]}
         game, fly = {}, {}
-        wall_sidecar._cut_by_roofs(shared, (height, {(2, 2)}), game, fly)
+        wall_sidecar._cut_by_roofs(shared, wall_sidecar._Roofs(height, {(2, 2): (0, 0)}, opaque), game, fly)
         self.assertEqual(shared, {})
         self.assertEqual(len(game[0]), 6 * wall_sidecar.FLOATS)
         points = [fly[0][i:i + wall_sidecar.FLOATS] for i in range(0, len(fly[0]), wall_sidecar.FLOATS)]
-        self.assertFalse([p for p in points if p[1] > height + 0.01 and p[0] + off > 2.0 + 1e-6])
-        self.assertTrue([p for p in points if p[1] > 2.4 and p[0] + off < 2.0])
+        rim = wall_sidecar.ROOF_RIM
+        self.assertFalse([p for p in points if p[1] > height + 0.01 and p[0] + off > 2.0 - rim + 1e-6])
+        self.assertTrue([p for p in points if p[1] > 2.4 and p[0] + off < 2.0 - rim])
         self.assertTrue(all(abs(p[3] - (p[0] + off - 1.0)) < 1e-6 for p in points))  # values follow the cut
         area = sum(abs((q[0] - p[0]) * (r[1] - p[1]) - (r[0] - p[0]) * (q[1] - p[1])) / 2
                    for p, q, r in zip(points[0::3], points[1::3], points[2::3]))
-        self.assertAlmostEqual(area, 2 * 2.5 - (2.5 - height - wall_sidecar.ROOF_SLACK), places=4)
+        self.assertAlmostEqual(area, 2 * 2.5 - (1 + rim) * (2.5 - height - wall_sidecar.ROOF_SLACK), places=4)
+        # a wall in the rim, just off the square, is under the roof the engine
+        # draws where the rim's texels are opaque, and stays where they are clear
+        near = lambda v, y: (1.97 - off, y, v - off, v, y, 1.97, y, v, 0.0)
+        a, b, c, d = near(2.2, 0.0), near(2.8, 0.0), near(2.8, 2.5), near(2.2, 2.5)
+        for tiles, cut in ((opaque, True), (clear, False)):
+            shared = {0: [n for vertex in (a, b, c, a, c, d) for n in vertex]}
+            wall_sidecar._cut_by_roofs(shared, wall_sidecar._Roofs(height, {(2, 2): (0, 0)}, tiles))
+            self.assertEqual(not [v for v in shared[0][1::wall_sidecar.FLOATS] if v > height + 0.01], cut)
 
     def test_a_corner_picture_running_out_past_the_crossing_still_makes_a_corner(self):
         import wall_sidecar

@@ -1020,60 +1020,113 @@ def _box(batches, proj, pages, toward_camera, axis, along, across, z0, z1, page,
 
 
 # Roofs (task 081). The engine lays each roof square flat at the roof
-# height, and the game draws roofs over the walls. What a wall's picture
-# shows above that height inside a roof square (an inner wall's rise face,
-# a band of top trim) is hidden under the roof in the game's view, but stuck
-# out of the roof for the free camera. The free camera keeps each wall face
-# only below the roof there; the game's camera keeps it whole.
+# height, with its cell's rim past each side, and the game draws roofs over
+# the walls. What a wall's picture shows above that height under a roof (an
+# inner wall's rise face, a band of top trim) is hidden in the game's view,
+# but stuck out of the roof for the free camera. The free camera keeps each
+# wall face only below the roof there; the game's camera keeps it whole.
 ROOF_SLACK = 0.001  # a face this little over the roof is under it (the corner caps lie a hair under)
+ROOF_CELL, ROOF_MARGIN = 88, 6  # a roof square's texels and its rim's (floor_sidecar, floor.cc)
+ROOF_RIM = ROOF_MARGIN / ROOF_CELL  # how far past its square the engine draws a roof cell's rim
 
 
-def _roof_grid(scene):
-    """(roof height, {(col, row)} of the roof squares), or None without roofs."""
+class _Roofs:
+    """The roof squares of a scene at the roof height. A point is under a
+    roof in its square, or in the rim of a square next to it where that
+    cell's texel is opaque (`tiles`: the tiles atlas alpha; without it the
+    rims count as clear)."""
+
+    def __init__(self, height, cells, tiles=None):
+        self.height, self.cells, self.tiles = height, cells, tiles
+
+    def near(self, lo_u, hi_u, lo_v, hi_v):
+        return any((col, row) in self.cells for col in _roof_cells(lo_u, hi_u) for row in _roof_cells(lo_v, hi_v))
+
+    def covers(self, u, v):
+        if (math.floor(u), math.floor(v)) in self.cells:
+            return True
+        if self.tiles is None:
+            return False
+        for col in _roof_cells(u, u):
+            for row in _roof_cells(v, v):
+                cell = self.cells.get((col, row))
+                if cell is None:
+                    continue
+                x = min(max(int(cell[0] + ROOF_MARGIN + (u - col) * ROOF_CELL), cell[0]), cell[0] + ROOF_CELL + 2 * ROOF_MARGIN - 1)
+                y = min(max(int(cell[1] + ROOF_MARGIN + (v - row) * ROOF_CELL), cell[1]), cell[1] + ROOF_CELL + 2 * ROOF_MARGIN - 1)
+                if 0 <= y < len(self.tiles) and 0 <= x < len(self.tiles[y]) and self.tiles[y][x] >= 128:
+                    return True
+        return False
+
+
+def _roof_grid(scene, tiles=None):
+    """The scene's _Roofs, or None without roofs. tiles: the tiles atlas alpha
+    (rows of 0..255), for the rims."""
     import base64
     projection = scene.get("proj") or {}
     data = scene.get("roof")
     if not isinstance(data, str) or "roofPx" not in projection:
         return None
     try:
-        cells = struct.unpack("<10000H", base64.b64decode(data, validate=True))
+        indices = struct.unpack("<10000H", base64.b64decode(data, validate=True))
     except (ValueError, struct.error):
         return None
-    squares = {(index % 100, index // 100) for index, cell in enumerate(cells) if cell}
-    if not squares:
+    atlas = (scene.get("tiles") or {}).get("cells") or []
+    cells = {(index % 100, index // 100): tuple(atlas[cell - 1]) if cell <= len(atlas) else (0, 0)
+             for index, cell in enumerate(indices) if cell}
+    if not cells:
         return None
-    return _finite(projection["roofPx"], "roof height") / _finite(projection["hpx"], "scene projection hpx"), squares
+    height = _finite(projection["roofPx"], "roof height") / _finite(projection["hpx"], "scene projection hpx")
+    return _Roofs(height, cells, tiles if atlas else None)
+
+
+def _roof_cells(lo, hi):
+    """The columns (or rows) whose roof square, rim included, reaches into lo..hi."""
+    return range(math.floor(lo - ROOF_RIM), math.floor(hi + ROOF_RIM) + 1)
 
 
 def _over_roof(triangle, roofs):
-    """Might a part of this triangle (three vertices of FLOATS) stand over a roof square?"""
-    height, squares = roofs
-    if max(vertex[1] for vertex in triangle) <= height + ROOF_SLACK:
+    """Might a part of this triangle (three vertices of FLOATS) stand over a roof?"""
+    if max(vertex[1] for vertex in triangle) <= roofs.height + ROOF_SLACK:
         return False
     us, vs = [vertex[0] + GL_MAP_OFFSET for vertex in triangle], [vertex[2] + GL_MAP_OFFSET for vertex in triangle]
-    return any((col, row) in squares for col in range(math.floor(min(us)), math.floor(max(us)) + 1)
-               for row in range(math.floor(min(vs)), math.floor(max(vs)) + 1))
+    return roofs.near(min(us), max(us), min(vs), max(vs))
 
 
 def _under_roofs(triangle, roofs):
     """The polygons (lists of vertices) of a triangle that stay for the free
-    camera: all of it but what stands over a roof square above its height.
-    Every vertex value is affine on the triangle, so cuts interpolate it."""
-    height, squares = roofs
+    camera: all of it but what stands under a roof (_Roofs.covers) above its
+    height. Every vertex value is affine on the triangle, so cuts interpolate
+    it. The pieces are cut at the squares' and the rims' edges, and in a rim
+    where its texels turn from clear to opaque along the piece."""
+    height = roofs.height
     below = _clip(triangle, lambda p: height + ROOF_SLACK - p[1])
     above = [_clip(triangle, lambda p: p[1] - height - ROOF_SLACK)]
     above = [polygon for polygon in above if len(polygon) >= 3]
+    extent = lambda polygon, axis: (min(p[axis] for p in polygon) + GL_MAP_OFFSET, max(p[axis] for p in polygon) + GL_MAP_OFFSET)
+    centre = lambda polygon, axis: sum(p[axis] for p in polygon) / len(polygon) + GL_MAP_OFFSET
     for axis in (0, 2):
-        cuts = sorted({k for polygon in above for k in range(math.floor(min(p[axis] for p in polygon) + GL_MAP_OFFSET) + 1,
-                                                             math.ceil(max(p[axis] for p in polygon) + GL_MAP_OFFSET))})
+        cuts = sorted({k + edge for polygon in above for k in _roof_cells(*extent(polygon, axis))
+                       for edge in (-ROOF_RIM, 0.0, ROOF_RIM)})
         for k in cuts:
             above = _split(above, lambda p, k=k, axis=axis: p[axis] + GL_MAP_OFFSET - k)
+    if roofs.tiles is not None:
+        for axis, other in ((0, 2), (2, 0)):
+            parts = []
+            for polygon in above:
+                lo, hi = extent(polygon, axis)
+                at = centre(polygon, other)
+                cover = lambda s: roofs.covers(s, at) if axis == 0 else roofs.covers(at, s)
+                count = max(1, math.ceil((hi - lo) * ROOF_CELL))  # a sample a texel
+                steps = [lo + (hi - lo) * (i + 0.5) / count for i in range(count)]
+                pieces = [polygon]
+                for a, b in zip(steps, steps[1:]):
+                    if cover(a) != cover(b):
+                        pieces = _split(pieces, lambda p, k=(a + b) / 2, axis=axis: p[axis] + GL_MAP_OFFSET - k)
+                parts.extend(pieces)
+            above = parts
     kept = [below] if len(below) >= 3 else []
-    for polygon in above:
-        u = sum(p[0] for p in polygon) / len(polygon) + GL_MAP_OFFSET
-        v = sum(p[2] for p in polygon) / len(polygon) + GL_MAP_OFFSET
-        if (math.floor(u), math.floor(v)) not in squares:
-            kept.append(polygon)
+    kept.extend(polygon for polygon in above if not roofs.covers(centre(polygon, 0), centre(polygon, 2)))
     return kept
 
 
@@ -1114,7 +1167,7 @@ def _moved_strip(trim, moved):
     return False
 
 
-def encode_wall_sidecar(scene, skip_props=frozenset(), skip_rests=frozenset(), map_objects=None, atlas=None):
+def encode_wall_sidecar(scene, skip_props=frozenset(), skip_rests=frozenset(), map_objects=None, atlas=None, tiles=None):
     """Build the donor game view's wall triangles for one scene: what the game's
     camera sees of walls (fronts and tops) and the sheets that have no
     thickness. Backs and slab ends (wallRest, trims) are first-person only in
@@ -1123,7 +1176,7 @@ def encode_wall_sidecar(scene, skip_props=frozenset(), skip_rests=frozenset(), m
     upper parts are left out.) map_objects: the elevation's objects in map file
     order (the rows' serial numbers); the faces of each object name it in the
     table. atlas: the packed RGBA pages (alpha), so a corner's core takes an
-    opaque texel."""
+    opaque texel. tiles: the tiles atlas alpha, for the roofs' rims."""
     if scene.get("format") != 6 or not one_map_elevation(scene):
         raise ValueError("wall sidecar expects one map elevation in scene format 6")
     pages_data = scene.get("pages")
@@ -1241,7 +1294,7 @@ def encode_wall_sidecar(scene, skip_props=frozenset(), skip_rests=frozenset(), m
         _upright(fly, sprites, pages, sprite, *row[1:7], sprites[sprite][1] + row[7], sprites[sprite][2] + row[8],
                  row[9], row[10])
 
-    roofs = _roof_grid(scene)
+    roofs = _roof_grid(scene, tiles)
     if roofs is not None:
         _cut_by_roofs(fly, roofs)
         _cut_by_roofs(batches, roofs, game, fly)
