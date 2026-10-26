@@ -41,4 +41,13 @@ own risk, lifts the limit.
 
 What the turned views look like (075, 076).
 
+## Implementation
+
+INPUT: [ and ] request signed steps; two Camera menu toggles control rotation.
+TRANSFORM: add 45 degrees per step, clamp the target to -45..+45 unless unlimited.
+MEANING: held input cannot cross the safe endpoints; opposite input returns to zero.
+OUTPUT: the existing animated orbit and look-only mode; zero restores the game view.
+DIRECT CHECK: endpoint/reversal/full-turn tests, -45/0/+45 captures, 16 unchanged views.
+Dev snapshot angles and the free fly camera bypass the player limit.
+
 ## Log

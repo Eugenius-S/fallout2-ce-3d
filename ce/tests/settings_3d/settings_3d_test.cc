@@ -371,5 +371,15 @@ int main()
                 && settingsGetDescriptors()[i].fallbackDescription == englishDescriptors[i].fallbackDescription,
                 "language changes do not retain Russian descriptor metadata")) return 1;
     }
+    const auto* unlimitedSetting = findDescriptor("3d.camera_rotation_unlimited");
+    const auto* rotationSetting = findDescriptor("3d.camera_rotation");
+    if (!check(settingsSetValue(*unlimitedSetting, SettingValue(true), &error)
+            && settings.scene3d.camera_rotation_unlimited && !settings.scene3d.camera_rotation,
+            "own-risk menu toggle does not enable rotation by itself")) return 1;
+    if (!check(settingsSetValue(*rotationSetting, SettingValue(true), &error)
+            && settings.scene3d.camera_rotation
+            && settingsSetValue(*unlimitedSetting, SettingValue(false), &error)
+            && !settings.scene3d.camera_rotation_unlimited && settings.scene3d.camera_rotation,
+            "revoking unlimited through the real registry keeps limited rotation enabled")) return 1;
     return 0;
 }
