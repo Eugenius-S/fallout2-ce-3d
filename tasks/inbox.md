@@ -75,7 +75,3 @@ that fits no task becomes a new task when the board runs dry.
   overhead, default 30 degrees each way (morning -30, evening +30; this
   replaces 082's 15), adjustable by the player. The owner gave glm these
   instructions for 082 directly; check what 082 lands before cutting a task.
-- 2026-10-26 (seen in 081) `tools/regression.ps1` fails 13 of 16 spots on
-  main's own cache (hydrants in corrals, klatoxcv-e1 22777 px, klamall-e0
-  3235 px). The references drifted from main; find which merge changed the
-  game's view and retake them with a before | after.

@@ -1,15 +1,21 @@
 # Regression snapshots
 
-From the repository root, with an existing Release build and exported cache:
+From the repository root, with an existing Release build:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/regression.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/regression.ps1 -Spot entrance
 ```
 
-The runner takes 16 independent background snapshots through
-`tools/dev-snapshot.ps1`. It never builds, exports resources, starts the owner's
-game or sends input to a window. Only its own `fallout2-ce-test.exe` PID is
+The runner first exports the selected spots' maps with this checkout's
+exporter into `build/scene-cache` (the cache `dev-snapshot.ps1` reads), so a
+run tests the exporter and the build of one commit, never a cache another
+build left behind; it never writes the game's `mod-cache`. Task 058 found the
+references of 8543064e taken from such a stale cache. Then it takes 16
+independent background snapshots through `tools/dev-snapshot.ps1`; a capture
+that shows no snapshot within the timeout gets one more try (the first error
+stays as `capture-error-1.txt`). It never builds, starts the owner's game or
+sends input to a window. Only its own `fallout2-ce-test.exe` PID is
 stopped; the script waits for that process to exit before the next capture.
 The test process receives a fixed 1920x1080 screen size and scale 2 from
 `spots.json`. It runs as `build/test-run/fallout2-ce-test.exe` with the fixed
