@@ -2,8 +2,8 @@
 id: 077
 title: The camera turns up to 45 degrees; more only by the player's choice
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: gpt
 suggested: glm
 priority: normal
 claude-only: no
