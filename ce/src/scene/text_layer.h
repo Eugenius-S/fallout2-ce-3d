@@ -6,6 +6,8 @@
 #include <string>
 #include <vector>
 
+#include "../color.h"
+
 namespace fallout {
 namespace scene {
 
@@ -20,6 +22,29 @@ struct TextRect {
     int height = 0;
 };
 
+struct FloatingTextOutlineLayout {
+    int legacyWidth = 0;
+    int legacyHeight = 0;
+    int bufferWidth = 0;
+    int bufferHeight = 0;
+    int offsetX = 0;
+    int offsetY = 0;
+    int legacyTopMargin = 0;
+    int lineHeight = 0;
+    int linePitch = 0;
+    int lineOffset = 0;
+
+    TextRect renderBounds(int x, int y) const;
+    TextRect refreshBounds(int x, int y, int sceneOffsetX, int sceneOffsetY) const;
+    TextRect clipBounds(int x, int y, TextRect clip) const;
+    std::size_t sourceOffset(TextRect clipped, int x, int y) const;
+    std::size_t lineStartOffset(int line) const;
+    int sharpLineOffset(int line) const;
+};
+
+FloatingTextOutlineLayout floatingTextOutlineLayout(int legacyWidth, int legacyHeight,
+    int lineHeight, int lines, bool hasOutline, bool modernOutline);
+
 struct TextPixels {
     const unsigned char* data = nullptr;
     int width = 0;
@@ -33,6 +58,7 @@ enum class TextColorRole : std::uint8_t {
     Palette,
     InterfaceGreen,
     HudMessageLogGreen,
+    InactiveInjuryStatusGreen,
 };
 
 struct TextValidationPixels {
@@ -40,11 +66,19 @@ struct TextValidationPixels {
     TextPixels pixels;
 };
 
+enum class TextSizeRole {
+    Default,
+    CompactUi,
+};
+
 struct TextRunInfo {
     std::string text;
     int font = 0;
+    TextSizeRole sizeRole = TextSizeRole::Default;
     unsigned int colorAndFlags = 0;
     TextColorRole colorRole = TextColorRole::Palette;
+    unsigned int outlineColor = 0;
+    bool hasOutline = false;
     int x = 0;
     int y = 0;
     // Accepted logical advance and mono cell grid remain unchanged when a
@@ -52,6 +86,12 @@ struct TextRunInfo {
     int width = 0;
     int cellWidth = 0;
     int lineHeight = 0;
+    // Optional fixed content box for per-run vertical centering. The box moves
+    // with the run when the record is copied to another buffer.
+    int verticalAlignmentBoxY = 0;
+    int verticalAlignmentBoxHeight = 0;
+    // Logical vertical shift for the modern glyph overlay only.
+    int sharpTextOffsetY = 0;
     bool sharpEligible = false;
     std::vector<int> characterX;
     std::vector<int> characterCellX;
@@ -86,6 +126,16 @@ struct TextVisibilityMask {
         return pixels[static_cast<std::size_t>(y - bounds.y) * bounds.width + (x - bounds.x)] != 0;
     }
 };
+
+// Process-local dev preview state. The owner window narrows the scale to a
+// single fixture window; -1 applies it to CPU-only renderer tests.
+bool setFont101PreviewScale(double scale, int ownerWindow);
+double font101PreviewScaleForWindow(int ownerWindow);
+double font101PreviewScaleForRun(int ownerWindow, TextSizeRole sizeRole);
+int font101PreviewCoverageHeight(int lineHeight, int ownerWindow);
+int font101PreviewCoverageHeight(int lineHeight, int ownerWindow, TextSizeRole sizeRole);
+bool setFont101PreviewBold(bool bold, int ownerWindow);
+bool font101PreviewUsesBold(int ownerWindow);
 
 struct TextRecord {
     TextBufferId buffer = 0;
@@ -127,6 +177,8 @@ public:
     bool capture(TextBufferId buffer, bool orphan, const TextRunInfo& run,
         TextRect bounds, TextPixels before, TextPixels after,
         int ownerWindow = -1, TextBufferId ownerGeneration = 0);
+    bool hasOutlinedRuns(TextBufferId buffer) const;
+    bool refreshOutlinedRuns(TextBufferId buffer, TextPixels before, TextPixels after);
 
     // Call after a blit with a snapshot of the source at blit time and the
     // destination values just before and after it. The rectangle maps

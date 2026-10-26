@@ -1,0 +1,82 @@
+{
+  "captures": [
+    {
+      "variant": "russian",
+      "resolution": "1920x2160",
+      "sharp_text": {
+        "setting": false,
+        "active": false,
+        "drawn": false,
+        "runs": 0,
+        "glyphs": 0,
+        "restored_pixels": 0,
+        "prepare_ms": 0.0
+      },
+      "exe_sha256": "f65e0b4895e0d13548159217642b69607d7c0a87401ea8a3909d8d5c601983a2",
+      "raw_png": "scr00219.png"
+    },
+    {
+      "variant": "english",
+      "resolution": "1920x2160",
+      "sharp_text": {
+        "setting": false,
+        "active": false,
+        "drawn": false,
+        "runs": 0,
+        "glyphs": 0,
+        "restored_pixels": 0,
+        "prepare_ms": 0.0
+      },
+      "exe_sha256": "f65e0b4895e0d13548159217642b69607d7c0a87401ea8a3909d8d5c601983a2",
+      "raw_png": "scr00220.png"
+    },
+    {
+      "variant": "russian-sharp",
+      "resolution": "1920x2160",
+      "sharp_text": {
+        "setting": true,
+        "active": true,
+        "drawn": true,
+        "runs": 84,
+        "glyphs": 668,
+        "restored_pixels": 14765,
+        "prepare_ms": 8.963
+      },
+      "exe_sha256": "d6ff19aa3f434495419ba54db39c5f259e60ccd191a4b8a8ae4d702c52db2173",
+      "raw_png": "scr00222.png"
+    }
+  ],
+  "tracks_before": [
+    1496.5,
+    1632.5,
+    1900.5,
+    1980.5,
+    2060.5
+  ],
+  "tracks_after": [
+    1468.5,
+    1604.5,
+    1872.5,
+    1952.5,
+    2032.5
+  ],
+  "physical_track_shift": [
+    -28.0,
+    -28.0,
+    -28.0,
+    -28.0,
+    -28.0
+  ],
+  "sharp_first_track_y": 1474.5,
+  "sharp_first_label_body_center_y": 1475.0,
+  "sharp_center_error_physical_pixels": 0.5,
+  "unchanged_labels": true,
+  "unchanged_values": true,
+  "sharp_first_label_body_bounds": [
+    1470,
+    1480
+  ],
+  "sharp_first_label_body_glyph_count": 16,
+  "unchanged_sharp_labels": true,
+  "unchanged_sharp_values": true
+}

@@ -18,7 +18,8 @@
 # Prints the snapshot JSON; the image lies next to it in game/.
 # Scenes come from build/scene-cache when that folder exists (a worktree
 # exports there with export.py --cache-root build/scene-cache), so a game
-# running from game/ keeps its own mod-cache.
+# running from game/ keeps its own mod-cache. -SceneCache DIR reads them from
+# DIR instead (the fly tour's cache sides, tools/tour/tour.py).
 #
 # F2CE_NO_EGG=1 in the environment hides the hero's see-through circle, so an
 # egg on/off capture pair shows exactly what the circle cuts.
@@ -26,15 +27,24 @@ param(
     [string]$Map = "kladwtwn",
     [int]$Elevation = 0,
     [int]$TimeoutSeconds = 90,
+    # How long to wait for another test game to finish before giving up.
+    [ValidateRange(0, 240)]
+    [int]$WaitMinutes = 30,
     [switch]$Probe,
     [switch]$DialogFixture,
     [switch]$DialogPageInspect,
     [switch]$DialogCursorCheck,
-    [ValidateSet('inventory', 'pipboy', 'character', 'barter', 'log')]
+    [switch]$DialogLayoutCheck,
+    [ValidateSet('inventory', 'pipboy', 'character', 'barter', 'log', 'bark')]
     [string]$UiFixture,
+    [ValidateSet('1.00', '1.08', '1.15', '1.22', '1.29')]
+    [string]$Font101PreviewScale,
+    [ValidateSet('bold', 'semibold')]
+    [string]$Font101PreviewWeight,
     [string]$Tour,
     [switch]$Classic,
     [switch]$Preferences,
+    [switch]$DevPanel,
     [ValidateSet('Top', 'Bottom')]
     [string]$PreferencesPosition = 'Top',
     [switch]$NoPreview,
@@ -52,18 +62,31 @@ param(
     [double]$FlyDistance = -1,
     # -Turn N: the 3D camera N quarter turns round ([3d] camera_rotation).
     [int]$Turn = 0,
+    # Exact snapshot angle in degrees, bypassing player settings like -Turn.
+    [ValidateRange(-360, 360)]
+    [double]$TurnDegrees = 0,
     # -Solo R: only the things within R hexes of -ViewTile, no walls or roofs.
     [int]$Solo = -1,
     [string]$OutputDirectory,
+    [string]$SceneCache,
     [ValidateSet('english', 'russian')]
     [string]$Language,
     [ValidateSet('save', 'cancel', 'escape', 'defaults', 'verify')]
     [string]$PreferencesProbe,
     [switch]$ReuseTestConfig,
     [switch]$CaptureConsole,
+    # -OpenDoors: every door on the map stands open (its last frame).
+    [switch]$OpenDoors,
     # -Glow: keep the glow on in this background run (it is forced off by
     # default, so captures stay byte-stable).
     [switch]$Glow,
+    # Implies -Glow. Five comparison levels can include values above the old limit.
+    [ValidateRange(0, 8)]
+    [double]$GlowStrength = -1,
+    # Restore cycle.cc's rest-phase cycling colors before freezing the still view.
+    [switch]$CyclePalette,
+    # One frozen scene, six captures: off, then 0.5/1/2/4/8.
+    [switch]$GlowLadder,
     # -Shadows: keep the sun shadows on in this background run (they are
     # forced off by default, so captures stay byte-stable).
     [switch]$Shadows,
@@ -71,6 +94,9 @@ param(
     # face or it takes the flat shaded value), 3 the coverage (062
     # diagnostics); implies -Shadows.
     [int]$ShadowDebug = 0,
+    # -NoSpriteSides: a turned camera sees the game's side of every sprite
+    # (before 087).
+    [switch]$NoSpriteSides,
     # -Hour H: set the game hour on the map (the sun snaps to it), so morning,
     # noon, sunset and night views come from one command.
     [ValidateRange(0, 24)]
@@ -88,6 +114,13 @@ param(
     [int]$Scale = 2
 )
 $ErrorActionPreference = 'Stop'
+if ($GlowLadder) {
+    if ($Glow -or $GlowStrength -ge 0 -or $Preferences -or $Classic -or $Probe -or $Tour -or $DialogFixture -or $UiFixture -or $DevPanel -or $PreferencesProbe) {
+        throw '-GlowLadder requires an ordinary scene capture without other glow overrides or fixtures.'
+    }
+    $Still = $true
+    $CyclePalette = $true
+}
 function Get-TestConfigValue([string]$Path, [string]$Section, [string]$Key) {
     $currentSection = ''
     $keyPattern = '^\s*' + [regex]::Escape($Key) + '\s*=\s*(.*?)\s*$'
@@ -96,6 +129,14 @@ function Get-TestConfigValue([string]$Path, [string]$Section, [string]$Key) {
         elseif ($currentSection -eq $Section -and $line -match $keyPattern) { return $Matches[1] }
     }
     throw "Missing [$Section].$Key in $Path"
+}
+if ($DevPanel) {
+    if ($Preferences -or $PreferencesProbe -or $DialogFixture -or $UiFixture -or $Probe -or $Tour) {
+        throw '-DevPanel cannot be combined with other UI fixtures, Probe, or Tour.'
+    }
+    # Static 3D captures redraw the world without UI. Use the framebuffer so
+    # the developer panel is present in the saved picture.
+    $Classic = $true
 }
 $Root = Split-Path -Parent $PSScriptRoot
 $GameDir = Join-Path $Root 'game'
@@ -113,8 +154,27 @@ if (-not (Test-Path -LiteralPath $fixedConfig)) { throw "Missing the fixed test 
 $exeDirectory = Join-Path $Root 'build\test-run'
 New-Item -ItemType Directory -Path $exeDirectory -Force | Out-Null
 $exe = Join-Path $exeDirectory 'fallout2-ce-test.exe'
-if (Get-Process fallout2-ce-test -ErrorAction SilentlyContinue) {
-    throw 'Another fallout2-ce-test.exe instance is already running.'
+# One test game at a time on this machine: wait here for the slot instead of
+# failing, so an agent spends one call on it, not a polling loop. The mutex
+# lines the waiters up; it is let go once the test game has exited, or by the
+# trap on any error, so a long-lived PowerShell host never keeps it.
+$slot = New-Object System.Threading.Mutex($false, 'Global\fallout2-ce-test-slot')
+$slotHeld = $false
+function Release-TestSlot {
+    if ($script:slotHeld) {
+        $script:slotHeld = $false
+        $slot.ReleaseMutex()
+        $slot.Dispose()
+    }
+}
+trap { Release-TestSlot; break }
+try { $slotHeld = $slot.WaitOne([TimeSpan]::FromMinutes($WaitMinutes)) }
+catch [System.Threading.AbandonedMutexException] { $slotHeld = $true }
+if (-not $slotHeld) { throw "The test slot stayed busy for $WaitMinutes minutes." }
+$slotDeadline = (Get-Date).AddMinutes($WaitMinutes)
+while (Get-Process fallout2-ce-test -ErrorAction SilentlyContinue) {
+    if ((Get-Date) -gt $slotDeadline) { throw "Another fallout2-ce-test.exe kept running for $WaitMinutes minutes." }
+    Start-Sleep -Seconds 2
 }
 $configPath = Join-Path $exeDirectory 'fallout2.cfg'
 if ($PreferencesProbe) {
@@ -144,6 +204,15 @@ if ($UiFixture) {
         throw '-UiFixture requires -CaptureConsole and -OutputDirectory for fixture diagnostics.'
     }
 }
+if ($Font101PreviewScale) {
+    if ($UiFixture -ne 'character') { throw '-Font101PreviewScale requires -UiFixture character.' }
+    if (-not $SharpText) { throw '-Font101PreviewScale requires -SharpText.' }
+}
+if ($Font101PreviewWeight) {
+    if ($UiFixture -ne 'character') { throw '-Font101PreviewWeight requires -UiFixture character.' }
+    if (-not $SharpText) { throw '-Font101PreviewWeight requires -SharpText.' }
+    if (-not $Font101PreviewScale) { throw '-Font101PreviewWeight requires -Font101PreviewScale.' }
+}
 if ($DialogPageInspect) {
     if (-not $DialogFixture) { throw '-DialogPageInspect requires -DialogFixture.' }
     if ($SharpText) { throw '-DialogPageInspect must inspect the original pixel text with sharp text off.' }
@@ -154,6 +223,10 @@ if ($DialogCursorCheck) {
     if (-not $SharpText) { throw '-DialogCursorCheck requires -SharpText.' }
     if ($DialogPageInspect) { throw '-DialogCursorCheck cannot be combined with -DialogPageInspect.' }
     if ($Language -ne 'english') { throw '-DialogCursorCheck requires -Language english for readable diagnostics.' }
+}
+if ($DialogLayoutCheck) {
+    if (-not $DialogFixture) { throw '-DialogLayoutCheck requires -DialogFixture.' }
+    if ($DialogPageInspect -or $DialogCursorCheck) { throw '-DialogLayoutCheck cannot be combined with other dialog checks.' }
 }
 if ($ReuseTestConfig) {
     if (-not (Test-Path -LiteralPath $configPath -PathType Leaf)) { throw "No isolated config to reuse: $configPath" }
@@ -193,10 +266,14 @@ $runId = [guid]::NewGuid().ToString('N')
 $arguments = @('--dev-tools')
 if ($SharpText) { $arguments += '--dev-sharp-text=1' } else { $arguments += '--dev-sharp-text=0' }
 if ($UiFixture) { $arguments += "--dev-ui-fixture=$UiFixture" }
+if ($Font101PreviewScale) { $arguments += "--dev-font101-size-preview=$Font101PreviewScale" }
+if ($Font101PreviewWeight) { $arguments += "--dev-font101-weight-preview=$Font101PreviewWeight" }
 if ($UiFixture -eq 'log') { $arguments += '--dev-classic' }
 if ($DialogFixture) { $arguments += '--dev-dialog-fixture' }
+if ($DevPanel) { $arguments += '--dev-panel-snapshot' }
 if ($DialogPageInspect) { $arguments += '--dev-dialog-page-inspect' }
 if ($DialogCursorCheck) { $arguments += '--dev-dialog-cursor-check' }
+if ($DialogLayoutCheck) { $arguments += '--dev-dialog-layout-check' }
 if ($PreferencesProbe) {
     $arguments += @('--dev-new-game', "--dev-map=$Map", "--dev-elevation=$Elevation", "--dev-preferences-probe=$PreferencesProbe")
 } else {
@@ -204,8 +281,13 @@ if ($PreferencesProbe) {
         '--dev-new-game', "--dev-map=$Map", "--dev-elevation=$Elevation", "--dev-snapshot-run=$runId")
 }
 if ($Glow) { $arguments += '--dev-glow' }
+if ($GlowStrength -ge 0) { $arguments += "--dev-glow-strength=$($GlowStrength.ToString([System.Globalization.CultureInfo]::InvariantCulture))" }
+if ($CyclePalette) { $arguments += '--dev-cycle-palette' }
+if ($GlowLadder) { $arguments += '--dev-glow-ladder' }
 if ($Shadows) { $arguments += '--dev-shadows' }
 if ($ShadowDebug) { $arguments += "--dev-shadow-debug=$ShadowDebug" }
+if ($NoSpriteSides) { $arguments += '--dev-no-sprite-sides' }
+if ($OpenDoors) { $arguments += '--dev-open-doors' }
 if ($Hour -ge 0) { $arguments += "--dev-hour=$Hour" }
 if ($Zoom -gt 0) { $arguments += "--dev-zoom=$Zoom" }
 if ($PreferencesProbe) {
@@ -233,6 +315,7 @@ if ($FlyTurn -ne 0) { $arguments += "--dev-fly-turn=$FlyTurn" }
 if ($FlyPitch -gt 0) { $arguments += "--dev-fly-pitch=$FlyPitch" }
 if ($FlyDistance -gt 0) { $arguments += "--dev-fly-distance=$FlyDistance" }
 if ($Turn -ne 0) { $arguments += "--dev-camera-turn=$Turn" }
+if ($TurnDegrees -ne 0) { $arguments += "--dev-camera-degrees=$($TurnDegrees.ToString([System.Globalization.CultureInfo]::InvariantCulture))" }
 if ($Solo -ge 0 -and $PSBoundParameters.ContainsKey('ViewTile')) { $arguments += "--dev-solo=$ViewTile,$Solo" }
 if ($Still) {
     if ($Probe) { throw '-Still cannot be combined with the interactive -Probe.' }
@@ -253,12 +336,13 @@ if ($PreferencesProbe) {
     $shots = 1 + @("$Tour".Split(',') | Where-Object { $_.Trim() }).Count
     $arguments += "--dev-map-tour=$Tour"
 } else {
-    if ($UiFixture) { $shots = 1 }
+    if ($UiFixture) { $shots = if ($UiFixture -eq 'bark') { 2 } else { 1 } }
     elseif ($DialogPageInspect) { $shots = 0 }
     elseif ($DialogCursorCheck) { $shots = 1 }
     elseif ($DialogFixture) { $shots = 1 }
     else { $arguments += '--dev-snapshot-once' }
 }
+if ($GlowLadder) { $shots = 6 }
 
 $started = Get-Date
 $previousBackground = $env:F2CE_DEV_BACKGROUND
@@ -267,8 +351,11 @@ $env:F2CE_DEV_BACKGROUND = '1'
 $previousAudio = $env:SDL_AUDIODRIVER
 $env:SDL_AUDIODRIVER = 'dummy'
 $previousSceneCache = $env:F2CE_SCENE_CACHE
-$sceneCache = Join-Path $Root 'build\scene-cache'
-if (Test-Path -LiteralPath $sceneCache -PathType Container) { $env:F2CE_SCENE_CACHE = $sceneCache }
+$worktreeCache = Join-Path $Root 'build\scene-cache'
+if ($SceneCache) {
+    if (-not (Test-Path -LiteralPath $SceneCache -PathType Container)) { throw "No scene cache at $SceneCache" }
+    $env:F2CE_SCENE_CACHE = (Resolve-Path -LiteralPath $SceneCache).Path
+} elseif (Test-Path -LiteralPath $worktreeCache -PathType Container) { $env:F2CE_SCENE_CACHE = $worktreeCache }
 $process = $null
 $probeHarnessStoppedProcess = $false
 $snapshots = @()
@@ -338,6 +425,13 @@ try {
                     (Select-String -LiteralPath $fixtureLog -Pattern '^DIALOG_CURSOR_CHECK FAIL ' -Quiet)) { $dialogFixtureFailed = $true; break }
                 if ($snapshots.Count -ge $shots -and (Test-Path -LiteralPath $fixtureLog) -and
                     (Select-String -LiteralPath $fixtureLog -Pattern '^DIALOG_CURSOR_CHECK PASS ' -Quiet)) { break }
+            } elseif ($DialogLayoutCheck) {
+                $fixtureLog = Join-Path $OutputDirectory 'process.stdout.log'
+                if ((Test-Path -LiteralPath $fixtureLog) -and
+                    (Select-String -LiteralPath $fixtureLog -Pattern '^DIALOG_LAYOUT_CHECK FAIL ' -Quiet)) { $dialogFixtureFailed = $true; break }
+                if ($snapshots.Count -ge $shots -and (Test-Path -LiteralPath $fixtureLog) -and
+                    (Select-String -LiteralPath $fixtureLog -Pattern '^DIALOG_LAYOUT_CHECK PASS ' -Quiet) -and
+                    (Select-String -LiteralPath $fixtureLog -Pattern '^DIALOG_FIXTURE PASS ' -Quiet)) { break }
             } elseif ($DialogFixture) {
                 $fixtureLog = Join-Path $OutputDirectory 'process.stdout.log'
                 if ((Test-Path -LiteralPath $fixtureLog) -and
@@ -363,6 +457,7 @@ try {
         }
         if (-not $process.WaitForExit(10000)) { throw 'The background test process did not exit.' }
     }
+    Release-TestSlot
 }
 if ($PreferencesProbe) {
     $probeLog = Get-Content -Raw -LiteralPath (Join-Path $OutputDirectory 'process.stdout.log')
@@ -437,6 +532,39 @@ if ($PreferencesProbe) {
 }
 if ($UiFixture) {
     $fixtureLog = Get-Content -Raw -LiteralPath (Join-Path $OutputDirectory 'process.stdout.log')
+    if ($UiFixture -eq 'bark') {
+        if ($dialogFixtureFailed -or $fixtureLog -notmatch '(?m)^UI_FIXTURE PASS screen=bark first=1 replacement=1 cleared_runs=0\r?$') {
+            throw "Bark fixture failed to replace and expire its outlined text.`n$fixtureLog"
+        }
+        $visibleBarkLine = [regex]::Match($fixtureLog, '(?m)^UI_FIXTURE STEP screen=bark stage=visible hasOutline=1 visiblePixels=(\d+) ')
+        $replacementBarkLine = [regex]::Match($fixtureLog, '(?m)^UI_FIXTURE STEP screen=bark stage=replaced hasOutline=1 visiblePixels=(\d+) ')
+        if (-not $visibleBarkLine.Success -or [int]$visibleBarkLine.Groups[1].Value -le 0 -or
+            -not $replacementBarkLine.Success -or [int]$replacementBarkLine.Groups[1].Value -le 0) {
+            throw 'Bark fixture did not prove visible pixels for both outlined Russian runs.'
+        }
+        if (-not $probeHarnessStoppedProcess -or $snapshots.Count -lt 2) {
+            throw 'Bark fixture must capture the visible bark and its cleared frame in the isolated helper process.'
+        }
+        $ordered = @($snapshots | Sort-Object LastWriteTime)
+        $barkMetadata = Get-Content -Raw -LiteralPath $ordered[0].FullName | ConvertFrom-Json
+        $clearMetadata = Get-Content -Raw -LiteralPath $ordered[-1].FullName | ConvertFrom-Json
+        $expectedResolution = "${ScreenWidth}x${ScreenHeight}"
+        $expectedLogicalResolution = "$([int]($ScreenWidth / $Scale))x$([int]($ScreenHeight / $Scale))"
+        foreach ($metadata in @($barkMetadata, $clearMetadata)) {
+            if ($metadata.snapshot_run -ne $runId -or $metadata.resolution -ne $expectedResolution -or
+                $metadata.logical_resolution -ne $expectedLogicalResolution -or $metadata.scale -ne $Scale) {
+                throw 'Bark fixture metadata does not match the requested dimensions and scale.'
+            }
+        }
+        if ($SharpText) {
+            if (-not $barkMetadata.sharp_text.setting -or -not $barkMetadata.sharp_text.active -or
+                -not $barkMetadata.sharp_text.drawn -or $barkMetadata.sharp_text.runs -le 0) {
+                throw 'Sharp-on bark snapshot lacks a drawn font-101 pass.'
+            }
+        } elseif ($barkMetadata.sharp_text.setting -or $barkMetadata.sharp_text.active -or $barkMetadata.sharp_text.drawn) {
+            throw 'Sharp-off bark snapshot unexpectedly reports active SharpText.'
+        }
+    } else {
     if ($dialogFixtureFailed -or $fixtureLog -notmatch ('(?m)^UI_FIXTURE PASS screen=' + [regex]::Escape($UiFixture) + ' ')) {
         throw "UI fixture '$UiFixture' failed or timed out within $TimeoutSeconds s.`n$fixtureLog"
     }
@@ -455,6 +583,16 @@ if ($UiFixture) {
         [int]$passLine.Groups[6].Value -le 0) {
         throw "UI fixture '$UiFixture' lacks a visible target-window font-101 record and coverage proof."
     }
+    if ($Font101PreviewScale -and $fixtureLog -notmatch ('(?m)^UI_FIXTURE PASS screen=character .* preview_scale=' + [regex]::Escape($Font101PreviewScale) + '(?: |$)')) {
+        throw "Character fixture did not confirm requested font-101 preview scale $Font101PreviewScale."
+    }
+    if ($Font101PreviewWeight -and $fixtureLog -notmatch ('(?m)^UI_FIXTURE PASS screen=character .* preview_weight=' + [regex]::Escape($Font101PreviewWeight) + '(?: |$)')) {
+        throw "Character fixture did not confirm requested font-101 preview weight $Font101PreviewWeight."
+    }
+    if ($SharpText -and ($UiFixture -in @('inventory', 'pipboy')) -and
+        $fixtureLog -notmatch '(?m)^UI_FIXTURE PASS screen=(inventory|pipboy) .*compact_size_role_runs=\d+ default_size_role_runs=0 run_scale=1\.22\.\.1\.22(?: |$)') {
+        throw "Sharp-on $UiFixture fixture did not prove 1.22 CompactUi role on every font-101 run."
+    }
     if ($SharpText -and ([int]$passLine.Groups[7].Value -le 0 -or [int]$passLine.Groups[8].Value -le 0)) {
         throw "Sharp-on UI fixture '$UiFixture' lacks visible overlay pixels from its target window."
     }
@@ -471,6 +609,7 @@ if ($UiFixture) {
         }
     } elseif ($uiMetadata.sharp_text.setting -or $uiMetadata.sharp_text.active -or $uiMetadata.sharp_text.drawn) {
         throw "Sharp-off UI fixture '$UiFixture' unexpectedly reports active sharp text."
+    }
     }
 }
 if ($DialogFixture -and -not $DialogPageInspect -and -not $DialogCursorCheck) {
@@ -517,14 +656,25 @@ if ($DialogCursorCheck) {
     if ($LASTEXITCODE -ne 0) { throw 'Dialog cursor pixel in the decoded PNG does not match the engine cursor palette color.' }
     Write-Output $cursorLog
 }
+if ($DialogLayoutCheck) {
+    $layoutLog = Get-Content -Raw -LiteralPath (Join-Path $OutputDirectory 'process.stdout.log')
+    if ($dialogFixtureFailed -or $layoutLog -notmatch '(?m)^DIALOG_LAYOUT_CHECK PASS geometry=non-overlapping buttons=7 text_rows=8') {
+        throw "Dialog layout geometry check failed or timed out within $TimeoutSeconds s.`n$layoutLog"
+    }
+}
 if ($snapshots.Count -lt $shots) { throw "No snapshot within $TimeoutSeconds s." }
 foreach ($snapshot in $snapshots) {
     if ($OutputDirectory) {
         New-Item -ItemType Directory -Path $OutputDirectory -Force | Out-Null
         $metadata = Get-Content -Raw -LiteralPath $snapshot.FullName | ConvertFrom-Json
         Copy-Item -LiteralPath $snapshot.FullName -Destination $OutputDirectory
-        # The image lies next to its sidecar (the JSON keeps the bare name).
-        Copy-Item -LiteralPath (Join-Path $snapshot.Directory $metadata.image) -Destination $OutputDirectory
+        # Scene captures live beside the sidecar; vanilla framebuffer PNGs
+        # use shots/game even though their sidecars are under shots/dev.
+        $imagePath = Join-Path $snapshot.Directory $metadata.image
+        if (-not (Test-Path -LiteralPath $imagePath -PathType Leaf)) {
+            $imagePath = Join-Path (Join-Path $GameDir 'shots\game') $metadata.image
+        }
+        Copy-Item -LiteralPath $imagePath -Destination $OutputDirectory
     }
     Write-Output ("SNAPSHOT: " + $snapshot.FullName)
     Get-Content $snapshot.FullName

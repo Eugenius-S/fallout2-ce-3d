@@ -38,6 +38,7 @@ std::vector<DepthVertex> gObjectVertices;
 unsigned int gObjectVbo = 0;
 unsigned int gHeroVbo = 0;
 StaticHeroInfo gHeroInfo = {};
+int gTurnSteps = 0; // rotations a turned camera moves the shown sides by (087)
 
 unsigned long long objectArtKey(int fid, int frame, int rotation, int variant)
 {
@@ -45,6 +46,20 @@ unsigned long long objectArtKey(int fid, int frame, int rotation, int variant)
         | ((static_cast<unsigned long long>(static_cast<unsigned int>(frame)) & 0xFFFFFF) << 9)
         | (static_cast<unsigned int>(rotation) & 0xFF) << 1
         | static_cast<unsigned int>(variant & 1);
+}
+
+// Once a frame: how many rotations the camera's turn from the game's view
+// moves the sides it sees of a turning sprite.
+void updateTurnSteps()
+{
+    double turn, firstYaw, nextYaw;
+    if (!flyCameraTurn(&turn) || !spriteRotationYaw(cardProjection(), 0, &firstYaw)
+        || !spriteRotationYaw(cardProjection(), 1, &nextYaw)) {
+        gTurnSteps = 0;
+        return;
+    }
+    const int sign = std::remainder(nextYaw - firstYaw, 2.0 * 3.14159265358979323846) > 0.0 ? 1 : -1;
+    gTurnSteps = spriteTurnSteps(turn, sign, gTurnSteps);
 }
 
 void destroyStaticObjectTextures()
@@ -214,6 +229,11 @@ bool staticHeroInfo(StaticHeroInfo* info)
     return true;
 }
 
+int staticShownRotation(int rotation)
+{
+    return spriteShownRotation(rotation, gTurnSteps);
+}
+
 bool staticObjectArtCached(int fid, int frame, int rotation, int variant)
 {
     return gObjectTextures.count(objectArtKey(fid, frame, rotation, variant)) != 0;
@@ -223,6 +243,7 @@ void beginStaticObjects()
 {
     gObjectVertices.clear();
     gObjectDraws.clear();
+    updateTurnSteps();
     // Bound the cache; a frame's texture is uploaded again on demand.
     if (gObjectTextures.size() > kMaxObjectTextures) destroyStaticObjectTextures();
 }

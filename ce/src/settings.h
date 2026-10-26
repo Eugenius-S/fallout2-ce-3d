@@ -298,8 +298,10 @@ struct Scene3dSettings {
     double shadow_density = 1.0; // scales the shadow darkening; 0 turns the cast shadows off
     double sun_swing = 30.0; // degrees off vertical at dawn and dusk (082)
     bool glow = true;
-    double glow_strength = 1.0;
+    double glow_strength = 2.0;
     bool camera_rotation = false;
+    bool camera_rotation_unlimited = false;
+    bool sprite_sides = true;
     double zoom = 1.0;
     double zoom_min = 0.5;
     double zoom_max = 2.0;

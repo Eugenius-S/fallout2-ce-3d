@@ -60,12 +60,20 @@ TextRunInfo run(const char* text, int x, int y)
 bool capture(TextLayer& layer, TextBufferId id, bool orphan,
     const std::vector<unsigned char>& before, const std::vector<unsigned char>& after,
     int width, int height, TextRect bounds, const char* text = "AB",
-    int ownerWindow = -1, TextBufferId ownerGeneration = 0)
+    int ownerWindow = -1, TextBufferId ownerGeneration = 0,
+    int verticalBoxY = 0, int verticalBoxHeight = 0, int sharpTextOffsetY = 0,
+    fallout::scene::TextSizeRole sizeRole = fallout::scene::TextSizeRole::Default)
 {
     const auto beforeView = view(before, width, height, width);
     const auto afterView = view(after, width, height, width);
     TextRunInfo capturedRun = run(text, bounds.x, bounds.y);
     capturedRun.width = bounds.width;
+    if (verticalBoxHeight > 0) {
+        capturedRun.verticalAlignmentBoxY = verticalBoxY;
+        capturedRun.verticalAlignmentBoxHeight = verticalBoxHeight;
+    }
+    capturedRun.sharpTextOffsetY = sharpTextOffsetY;
+    capturedRun.sizeRole = sizeRole;
     return layer.capture(id, orphan, capturedRun, bounds, beforeView, afterView,
         ownerWindow, ownerGeneration);
 }
@@ -75,6 +83,102 @@ bool capture(TextLayer& layer, TextBufferId id, bool orphan,
 int main()
 {
     int failures = 0;
+    const auto barkLayout = fallout::scene::floatingTextOutlineLayout(120, 22, 9, 2, true, true);
+    const auto plainLayout = fallout::scene::floatingTextOutlineLayout(120, 22, 9, 2, true, false);
+    const auto barkClip = barkLayout.clipBounds(100, 50, { 100, 50, 8, 8 });
+    const auto barkRefreshBounds = barkLayout.renderBounds(100, 50);
+    const auto shiftedBarkRefreshBounds = barkLayout.refreshBounds(100, 50, 7, -3);
+    failures += !check(barkLayout.bufferWidth == 124 && barkLayout.bufferHeight == 30
+            && barkRefreshBounds.x == 98 && barkRefreshBounds.y == 48
+            && barkRefreshBounds.width == 124 && barkRefreshBounds.height == 30
+            && shiftedBarkRefreshBounds.x == 105 && shiftedBarkRefreshBounds.y == 45
+            && shiftedBarkRefreshBounds.width == 124 && shiftedBarkRefreshBounds.height == 30
+            && barkLayout.linePitch == 10 && barkLayout.sharpLineOffset(1) == 3
+            && barkLayout.lineStartOffset(1) == static_cast<std::size_t>(13 * 124 + 2)
+            && barkLayout.sourceOffset(barkClip, 100, 50) == static_cast<std::size_t>(2 * 124 + 2)
+            && plainLayout.bufferWidth == 120 && plainLayout.bufferHeight == 22
+            && plainLayout.lineStartOffset(1) == static_cast<std::size_t>(11 * 120),
+        "floating bark layout reserves modern coverage without moving legacy line placement");
+    failures += !check(fallout::scene::font101PreviewScaleForWindow(42) == 1.29
+            && fallout::scene::font101PreviewCoverageHeight(9, 42) == 12
+            && fallout::scene::font101PreviewUsesBold(42),
+        "selected production font-101 defaults are size 1.29 and Bold 700");
+    failures += !check(fallout::scene::font101PreviewScaleForRun(42, fallout::scene::TextSizeRole::Default) == 1.29
+            && fallout::scene::font101PreviewScaleForRun(42, fallout::scene::TextSizeRole::CompactUi) == 1.22
+            && fallout::scene::font101PreviewCoverageHeight(9, 42, fallout::scene::TextSizeRole::CompactUi) == 11,
+        "compact UI size role resolves per run to 1.22 without changing the selected default");
+    failures += !check(fallout::scene::setFont101PreviewScale(1.0, -1)
+            && fallout::scene::font101PreviewCoverageHeight(9, -1) == 9
+            && fallout::scene::font101PreviewCoverageHeight(1, -1) == 1,
+        "explicit 1.00 preview preserves original line coverage");
+    failures += !check(fallout::scene::setFont101PreviewScale(1.08, 42)
+            && fallout::scene::font101PreviewScaleForWindow(42) == 1.08
+            && fallout::scene::font101PreviewScaleForWindow(43) == 1.29
+            && fallout::scene::font101PreviewScaleForRun(42, fallout::scene::TextSizeRole::Default) == 1.08
+            && fallout::scene::font101PreviewScaleForRun(42, fallout::scene::TextSizeRole::CompactUi) == 1.22
+            && fallout::scene::font101PreviewCoverageHeight(9, 42) == 10,
+        "1.08 preview is owner scoped while compact UI remains 1.22 and default coverage extends one row");
+    failures += !check(fallout::scene::setFont101PreviewScale(1.15, 42)
+            && fallout::scene::font101PreviewCoverageHeight(9, 42) == 11,
+        "1.15 preview extends 9px coverage by two rows");
+    failures += !check(fallout::scene::setFont101PreviewScale(1.22, 42)
+            && fallout::scene::font101PreviewCoverageHeight(9, 42) == 11,
+        "1.22 preview extends 9px coverage by two rows");
+    failures += !check(fallout::scene::setFont101PreviewScale(1.29, 42)
+            && fallout::scene::font101PreviewCoverageHeight(9, 42) == 12,
+        "1.29 preview extends 9px coverage by three rows");
+    failures += !check(!fallout::scene::setFont101PreviewScale(1.2, 42)
+            && fallout::scene::font101PreviewScaleForWindow(42) == 1.29,
+        "unsupported preview scale leaves the active value unchanged");
+    fallout::scene::setFont101PreviewScale(1.29, -1);
+    failures += !check(fallout::scene::setFont101PreviewBold(false, 42)
+            && !fallout::scene::font101PreviewUsesBold(42)
+            && fallout::scene::font101PreviewUsesBold(43),
+        "SemiBold preview face is limited to its owner window");
+    failures += !check(fallout::scene::setFont101PreviewBold(true, 42)
+            && fallout::scene::font101PreviewUsesBold(42)
+            && fallout::scene::font101PreviewUsesBold(43),
+        "Bold preview override preserves the selected default elsewhere");
+    fallout::scene::setFont101PreviewBold(true, -1);
+
+    {
+        TextLayer layer;
+        std::vector<unsigned char> before(25, 0);
+        std::vector<unsigned char> after = before;
+        after[12] = 10;
+        TextRunInfo outlinedRun = run("A", 2, 2);
+        outlinedRun.hasOutline = true;
+        outlinedRun.outlineColor = 0;
+        outlinedRun.sharpEligible = true;
+        failures += !check(layer.capture(900, true, outlinedRun, { 1, 1, 3, 3 },
+                view(before, 5, 5, 5), view(after, 5, 5, 5)),
+            "outlined run is captured before legacy morphology");
+        const std::vector<unsigned char> beforeOutline = after;
+        after[7] = 1;
+        after[11] = 1;
+        after[13] = 1;
+        after[17] = 1;
+        failures += !check(layer.refreshOutlinedRuns(900, view(beforeOutline, 5, 5, 5), view(after, 5, 5, 5))
+                && layer.records().front().pixels.size() == 5,
+            "post-morphology refresh records only exact glyph and outline pixels");
+        const auto restored = layer.restorationPixels(900, view(after, 5, 5, 5), true, true);
+        std::vector<unsigned char> restoredBuffer = after;
+        for (const auto& pixel : restored) restoredBuffer[pixel.y * 5 + pixel.x] = pixel.paletteIndex;
+        failures += !check(restored.size() == 5 && restoredBuffer == before,
+            "SharpText restoration removes the original glyph and every legacy outline pixel");
+        std::vector<unsigned char> destinationBefore(25, 60);
+        const auto destinationAfter = blit(after, 5, 5, destinationBefore, 5, 5,
+            { 0, 0, 5, 5 }, 0, 0, true, 0);
+        layer.copy(900, 901, false, { 0, 0, 5, 5 }, 0, 0, true, 0,
+            view(after, 5, 5, 5), view(destinationBefore, 5, 5, 5), view(destinationAfter, 5, 5, 5));
+        const auto copied = layer.records();
+        const auto restoredCopy = layer.restorationPixels(901, view(destinationAfter, 5, 5, 5), false, true);
+        std::vector<unsigned char> destinationRestored = destinationAfter;
+        for (const auto& pixel : restoredCopy) destinationRestored[pixel.y * 5 + pixel.x] = pixel.paletteIndex;
+        failures += !check(copied.size() == 2 && copied.back().run.hasOutline && copied.back().run.outlineColor == 0
+                && restoredCopy.size() == 5 && destinationRestored == destinationBefore,
+            "outlined glyph ownership and exact restoration survive transparent buffer copies");
+    }
 
     // An opaque button-image copy restores the source background, not whatever
     // happened to be under the destination before the blit.
@@ -84,7 +188,8 @@ int main()
         std::vector<unsigned char> sourceAfter = sourceBefore;
         sourceAfter[5] = 20;
         sourceAfter[6] = 21;
-        failures += !check(capture(layer, 1, true, sourceBefore, sourceAfter, 4, 3, { 0, 0, 4, 3 }, "AB", 4, 12),
+        failures += !check(capture(layer, 1, true, sourceBefore, sourceAfter, 4, 3, { 0, 0, 4, 3 }, "AB", 4, 12,
+                0, 0, 0, fallout::scene::TextSizeRole::CompactUi),
             "capture creates an orphan record");
 
         std::vector<unsigned char> destBefore(20, 77);
@@ -102,6 +207,8 @@ int main()
             "copy translates run geometry");
         failures += !check(layer.records().back().ownerWindow == 4 && layer.records().back().ownerGeneration == 12,
             "copy preserves owner provenance until a destination owner is assigned");
+        failures += !check(layer.records().back().run.sizeRole == fallout::scene::TextSizeRole::CompactUi,
+            "copy preserves semantic compact UI size role");
     }
 
     // Transparent source background leaves the destination's own background
@@ -154,7 +261,7 @@ int main()
         after[6] = 9;
         after[7] = 10;
         after[8] = 11;
-        capture(layer, 5, false, before, after, 5, 3, { 0, 0, 5, 3 });
+        capture(layer, 5, false, before, after, 5, 3, { 0, 0, 5, 3 }, "AB", -1, 0, -2, 4, -2);
         std::vector<unsigned char> destBefore(6, 4);
         const auto destAfter = blit(after, 5, 3, destBefore, 3, 2,
             { 1, 1, 3, 1 }, -1, 0, false, 0);
@@ -165,6 +272,11 @@ int main()
             "clipped copy keeps the visible pixel fragment");
         failures += !check(layer.records().back().bounds.x == 0 && layer.records().back().bounds.width == 2,
             "clipped fragment has clipped bounds");
+        failures += !check(layer.records().back().run.y == -1
+                && layer.records().back().run.verticalAlignmentBoxY == -3
+                && layer.records().back().run.verticalAlignmentBoxHeight == 4
+                && layer.records().back().run.sharpTextOffsetY == -2,
+            "copy translates the centered box and preserves the relative modern text offset");
     }
 
     // Bounds overlap because both runs include blank advance/line-height area,

@@ -1,0 +1,137 @@
+{
+  "control_engine_source": "04dbdf88",
+  "control_method": "Restore game_dialog.cc and devtools.cc to origin/main, rebuild with the same toolchain and scene cache. The unused backdrop module remains linked.",
+  "channel_tolerance": 0,
+  "max_changed_fraction": 0,
+  "all_pass": true,
+  "spots": [
+    {
+      "spot": "entrance",
+      "status": "pass",
+      "patched_vs_control_changed_pixels": 0,
+      "control_vs_stored_reference_changed_pixels": 501,
+      "control_exe_sha256": "da1498c155c9596fc16a7f00a7f6792a35db441d819bd5c428415b77f91faa7e",
+      "patched_exe_sha256": "0bd19490fe312e7145279ab4902fefbde5559a1ca31fe69d82727d6eea43620f"
+    },
+    {
+      "spot": "corrals",
+      "status": "pass",
+      "patched_vs_control_changed_pixels": 0,
+      "control_vs_stored_reference_changed_pixels": 361,
+      "control_exe_sha256": "da1498c155c9596fc16a7f00a7f6792a35db441d819bd5c428415b77f91faa7e",
+      "patched_exe_sha256": "0bd19490fe312e7145279ab4902fefbde5559a1ca31fe69d82727d6eea43620f"
+    },
+    {
+      "spot": "residents",
+      "status": "pass",
+      "patched_vs_control_changed_pixels": 0,
+      "control_vs_stored_reference_changed_pixels": 380,
+      "control_exe_sha256": "da1498c155c9596fc16a7f00a7f6792a35db441d819bd5c428415b77f91faa7e",
+      "patched_exe_sha256": "0bd19490fe312e7145279ab4902fefbde5559a1ca31fe69d82727d6eea43620f"
+    },
+    {
+      "spot": "central-doors",
+      "status": "pass",
+      "patched_vs_control_changed_pixels": 0,
+      "control_vs_stored_reference_changed_pixels": 133,
+      "control_exe_sha256": "da1498c155c9596fc16a7f00a7f6792a35db441d819bd5c428415b77f91faa7e",
+      "patched_exe_sha256": "0bd19490fe312e7145279ab4902fefbde5559a1ca31fe69d82727d6eea43620f"
+    },
+    {
+      "spot": "north-rooms",
+      "status": "pass",
+      "patched_vs_control_changed_pixels": 0,
+      "control_vs_stored_reference_changed_pixels": 396,
+      "control_exe_sha256": "da1498c155c9596fc16a7f00a7f6792a35db441d819bd5c428415b77f91faa7e",
+      "patched_exe_sha256": "0bd19490fe312e7145279ab4902fefbde5559a1ca31fe69d82727d6eea43620f"
+    },
+    {
+      "spot": "map-edge",
+      "status": "pass",
+      "patched_vs_control_changed_pixels": 0,
+      "control_vs_stored_reference_changed_pixels": 1085,
+      "control_exe_sha256": "da1498c155c9596fc16a7f00a7f6792a35db441d819bd5c428415b77f91faa7e",
+      "patched_exe_sha256": "691c4a17bc94940c9e88ce883fd6035bdf9360bbfb941f08302636d7138de775"
+    },
+    {
+      "spot": "klacanyn-e0",
+      "status": "pass",
+      "patched_vs_control_changed_pixels": 0,
+      "control_vs_stored_reference_changed_pixels": 0,
+      "control_exe_sha256": "da1498c155c9596fc16a7f00a7f6792a35db441d819bd5c428415b77f91faa7e",
+      "patched_exe_sha256": "691c4a17bc94940c9e88ce883fd6035bdf9360bbfb941f08302636d7138de775"
+    },
+    {
+      "spot": "klagraz-e0",
+      "status": "pass",
+      "patched_vs_control_changed_pixels": 0,
+      "control_vs_stored_reference_changed_pixels": 74,
+      "control_exe_sha256": "da1498c155c9596fc16a7f00a7f6792a35db441d819bd5c428415b77f91faa7e",
+      "patched_exe_sha256": "691c4a17bc94940c9e88ce883fd6035bdf9360bbfb941f08302636d7138de775"
+    },
+    {
+      "spot": "klamall-e0",
+      "status": "pass",
+      "patched_vs_control_changed_pixels": 0,
+      "control_vs_stored_reference_changed_pixels": 3235,
+      "control_exe_sha256": "da1498c155c9596fc16a7f00a7f6792a35db441d819bd5c428415b77f91faa7e",
+      "patched_exe_sha256": "691c4a17bc94940c9e88ce883fd6035bdf9360bbfb941f08302636d7138de775"
+    },
+    {
+      "spot": "klaratcv-e0",
+      "status": "pass",
+      "patched_vs_control_changed_pixels": 0,
+      "control_vs_stored_reference_changed_pixels": 0,
+      "control_exe_sha256": "da1498c155c9596fc16a7f00a7f6792a35db441d819bd5c428415b77f91faa7e",
+      "patched_exe_sha256": "691c4a17bc94940c9e88ce883fd6035bdf9360bbfb941f08302636d7138de775"
+    },
+    {
+      "spot": "klaratcv-e1",
+      "status": "pass",
+      "patched_vs_control_changed_pixels": 0,
+      "control_vs_stored_reference_changed_pixels": 821,
+      "control_exe_sha256": "da1498c155c9596fc16a7f00a7f6792a35db441d819bd5c428415b77f91faa7e",
+      "patched_exe_sha256": "691c4a17bc94940c9e88ce883fd6035bdf9360bbfb941f08302636d7138de775"
+    },
+    {
+      "spot": "klaratcv-e2",
+      "status": "pass",
+      "patched_vs_control_changed_pixels": 0,
+      "control_vs_stored_reference_changed_pixels": 3848,
+      "control_exe_sha256": "da1498c155c9596fc16a7f00a7f6792a35db441d819bd5c428415b77f91faa7e",
+      "patched_exe_sha256": "691c4a17bc94940c9e88ce883fd6035bdf9360bbfb941f08302636d7138de775"
+    },
+    {
+      "spot": "klatoxcv-e0",
+      "status": "pass",
+      "patched_vs_control_changed_pixels": 0,
+      "control_vs_stored_reference_changed_pixels": 836,
+      "control_exe_sha256": "da1498c155c9596fc16a7f00a7f6792a35db441d819bd5c428415b77f91faa7e",
+      "patched_exe_sha256": "691c4a17bc94940c9e88ce883fd6035bdf9360bbfb941f08302636d7138de775"
+    },
+    {
+      "spot": "klatoxcv-e1",
+      "status": "pass",
+      "patched_vs_control_changed_pixels": 0,
+      "control_vs_stored_reference_changed_pixels": 22777,
+      "control_exe_sha256": "da1498c155c9596fc16a7f00a7f6792a35db441d819bd5c428415b77f91faa7e",
+      "patched_exe_sha256": "691c4a17bc94940c9e88ce883fd6035bdf9360bbfb941f08302636d7138de775"
+    },
+    {
+      "spot": "klatoxcv-e2",
+      "status": "pass",
+      "patched_vs_control_changed_pixels": 0,
+      "control_vs_stored_reference_changed_pixels": 0,
+      "control_exe_sha256": "da1498c155c9596fc16a7f00a7f6792a35db441d819bd5c428415b77f91faa7e",
+      "patched_exe_sha256": "691c4a17bc94940c9e88ce883fd6035bdf9360bbfb941f08302636d7138de775"
+    },
+    {
+      "spot": "klatrap-e0",
+      "status": "pass",
+      "patched_vs_control_changed_pixels": 0,
+      "control_vs_stored_reference_changed_pixels": 2130,
+      "control_exe_sha256": "da1498c155c9596fc16a7f00a7f6792a35db441d819bd5c428415b77f91faa7e",
+      "patched_exe_sha256": "691c4a17bc94940c9e88ce883fd6035bdf9360bbfb941f08302636d7138de775"
+    }
+  ]
+}

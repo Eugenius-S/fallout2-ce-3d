@@ -1,18 +1,26 @@
 #include "scene/text_capture.h"
+#include "scene/floating_text.h"
 
 #include <algorithm>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <iterator>
 #include <string>
 #include <vector>
 
 #include "text_font.h"
+#include "draw.h"
+#include "geometry.h"
+#include "memory.h"
 
 namespace fallout {
 
+void tileSceneShift(int tile, int* dx, int* dy);
+
 FontManagerDrawTextProc* fontDrawTextPtr = nullptr;
 FontManagerGetLineHeightProc* fontGetLineHeight = nullptr;
+FontManagerGetStringWidthProc* fontGetStringWidth = nullptr;
 FontManagerGetCharacterWidthProc* fontGetCharacterWidth = nullptr;
 FontManagerGetLetterSpacingProc* fontGetLetterSpacing = nullptr;
 FontManagerGetMonospacedCharacterWidth* fontGetMonospacedCharacterWidth = nullptr;
@@ -20,13 +28,87 @@ int gCurrentFont = 101;
 Color _colorTable[COLOR_PALETTE_SIZE_15BIT] = {};
 TextWindowSnapshot gTestWindow = {};
 TextCursorSnapshot gTestCursor = {};
+int gFloatingTextOutlineCalls = 0;
+Color gFloatingTextOutlineColor = COLOR_BLACK;
+int gFloatingTextBlitCalls = 0;
+int gFloatingTextLastBlitWidth = 0;
+int gFloatingTextLastBlitHeight = 0;
+int gFloatingTextLastSourcePitch = 0;
+int gFloatingTextLastDestinationPitch = 0;
+int gFloatingTextShiftX = 0;
+int gFloatingTextShiftY = 0;
 
 int fakeLineHeight() { return 2; }
+int fakePreviewLineHeight() { return 9; }
 int fakeCharacterWidth(int) { return 1; }
 int fakeLetterSpacing() { return 0; }
 int fakeMonospacedWidth() { return 1; }
 int wideCharacterWidth(int character) { return character == 'w' ? 3 : 1; }
 int fivePixelMonospacedWidth() { return 5; }
+int fakeStringWidth(const char* string) { return static_cast<int>(std::strlen(string)); }
+
+void* internal_malloc(std::size_t size)
+{
+    void* buffer = std::malloc(size);
+    if (buffer != nullptr) {
+        textCaptureAllocationCreated(buffer, size);
+        textCaptureMarkBufferOwned(buffer);
+    }
+    return buffer;
+}
+
+void internal_free(void* buffer)
+{
+    if (buffer != nullptr) {
+        textCaptureAllocationDestroyed(buffer);
+        std::free(buffer);
+    }
+}
+
+void bufferOutline(unsigned char* buffer, int width, int height, int pitch, Color color)
+{
+    gFloatingTextOutlineCalls++;
+    gFloatingTextOutlineColor = color;
+    std::vector<unsigned char> original(buffer, buffer + pitch * height);
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+            if (original[y * pitch + x] != 0) continue;
+            for (int dy = -1; dy <= 1; dy++) {
+                for (int dx = -1; dx <= 1; dx++) {
+                    const int neighborX = x + dx;
+                    const int neighborY = y + dy;
+                    if (neighborX >= 0 && neighborX < width && neighborY >= 0 && neighborY < height
+                        && original[neighborY * pitch + neighborX] != 0) {
+                        buffer[y * pitch + x] = static_cast<unsigned char>(color);
+                    }
+                }
+            }
+        }
+    }
+}
+
+void blitBufferToBufferTrans(const unsigned char* source, int width, int height, int sourcePitch,
+    unsigned char* destination, int destinationPitch)
+{
+    gFloatingTextBlitCalls++;
+    gFloatingTextLastBlitWidth = width;
+    gFloatingTextLastBlitHeight = height;
+    gFloatingTextLastSourcePitch = sourcePitch;
+    gFloatingTextLastDestinationPitch = destinationPitch;
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+            if (source[x] != 0) destination[x] = source[x];
+        }
+        source += sourcePitch;
+        destination += destinationPitch;
+    }
+}
+
+void tileSceneShift(int, int* dx, int* dy)
+{
+    *dx = gFloatingTextShiftX;
+    *dy = gFloatingTextShiftY;
+}
 
 int fontGetCurrent()
 {
@@ -272,20 +354,26 @@ void testSemanticGreenCaptureRoles()
     fontDrawText(source.data() + 18, "ab", 8, 64, static_cast<ColorWithFlags>(COLOR_GREEN));
     fontDrawText(source.data() + 20, "ab", 8, 64, static_cast<ColorWithFlags>(COLOR_GRASS_GREEN));
     fontDrawText(source.data() + 22, "ab", 8, 64, static_cast<ColorWithFlags>(COLOR_OLIVE));
+    {
+        ScopedTextCaptureTag captureTag(TextCaptureTag::CharacterStatsPlaque);
+        fontDrawText(source.data() + 24, "ab", 8, 64, static_cast<ColorWithFlags>(COLOR_DARK_GREEN_2));
+    }
 
     const auto captured = scene::textCaptureRecords(sourceId);
-    check(captured.size() == 12, "all font-101 semantic-color test runs are captured");
-    bool rolesMatch = captured.size() == 12;
+    check(captured.size() == 13, "all font-101 semantic-color test runs are captured");
+    bool rolesMatch = captured.size() == 13;
     for (std::size_t index = 0; index < std::size(greenColors) && rolesMatch; ++index) {
         rolesMatch = captured[index].run.colorRole == scene::TextColorRole::InterfaceGreen;
     }
-    if (captured.size() == 12) {
+    if (captured.size() == 13) {
         rolesMatch = rolesMatch
             && captured[7].run.colorRole == scene::TextColorRole::HudMessageLogGreen
             && captured[8].run.colorRole == scene::TextColorRole::Palette
             && captured[9].run.colorRole == scene::TextColorRole::InterfaceGreen
             && captured[10].run.colorRole == scene::TextColorRole::Palette
-            && captured[11].run.colorRole == scene::TextColorRole::Palette;
+            && captured[11].run.colorRole == scene::TextColorRole::Palette
+            && captured[12].run.colorRole == scene::TextColorRole::InactiveInjuryStatusGreen
+            && captured[12].run.sharpTextOffsetY == -2;
     }
     check(rolesMatch, "semantic greens are tagged, HUD role is scoped, and olive/yellow-green stay original");
 
@@ -410,6 +498,7 @@ void testTransparentImageBlitMasksOnlyOpaqueShape()
 void testTransparentInteriorImageViewMasksTrackedText()
 {
     using namespace fallout;
+    scene::setFont101PreviewScale(1.0, -1);
     const std::size_t allocationSize = 640 * 8;
     std::vector<unsigned char> source(allocationSize, 0);
     std::vector<unsigned char> destination(16, 1);
@@ -448,11 +537,13 @@ void testTransparentInteriorImageViewMasksTrackedText()
 
     textCaptureAllocationDestroyed(source.data());
     textCaptureAllocationDestroyed(destination.data());
+    scene::setFont101PreviewScale(1.29, -1);
 }
 
 void testTransparentInteriorImageViewRejectsOutOfRangeFootprint()
 {
     using namespace fallout;
+    scene::setFont101PreviewScale(1.0, -1);
     const std::size_t registeredSize = 640 * 4;
     std::vector<unsigned char> source(registeredSize + 64, 0);
     std::vector<unsigned char> destination(16, 1);
@@ -483,6 +574,7 @@ void testTransparentInteriorImageViewRejectsOutOfRangeFootprint()
 
     textCaptureAllocationDestroyed(source.data());
     textCaptureAllocationDestroyed(destination.data());
+    scene::setFont101PreviewScale(1.29, -1);
 }
 
 void testAllocationEdgeBounds()
@@ -675,6 +767,219 @@ void testCursorOcclusionPreservesOwnedText()
     gTestCursor = {};
 }
 
+void testFont101SizePreviewExtendsCaptureOnly()
+{
+    using namespace fallout;
+    check(scene::font101PreviewScaleForWindow(12) == 1.29
+            && scene::font101PreviewUsesBold(12),
+        "production font-101 defaults select 1.29 Bold");
+    std::vector<unsigned char> pixels(20 * 40, 0);
+    textCaptureRegisterExternalBuffer(pixels.data(), pixels.size(), 20, 40, 20, false);
+    textCaptureMarkWindowBuffer(pixels.data(), 12);
+    scene::TextBufferId generation = textCaptureBufferId(pixels.data());
+    gTestWindow = {};
+    gTestWindow.id = 12;
+    gTestWindow.width = 20;
+    gTestWindow.height = 40;
+    gTestWindow.pitch = 20;
+    gTestWindow.pixels = pixels.data();
+    gTestWindow.generation = generation;
+    gCurrentFont = 101;
+    fontGetLineHeight = fakePreviewLineHeight;
+    fontDrawTextPtr = fakeFontDraw;
+
+    check(scene::setFont101PreviewScale(1.0, 12), "font-101 preview default scale is available");
+    fontDrawText(pixels.data() + 2 * 20 + 2, "A", 1, 20, static_cast<ColorWithFlags>(7));
+    auto records = scene::textCaptureRecords(generation);
+    check(records.size() == 1 && records.front().bounds.height == 9,
+        "default font-101 capture keeps the original line bounds");
+
+    textCaptureUnregisterExternalBuffer(pixels.data());
+    pixels.assign(pixels.size(), 0);
+    textCaptureRegisterExternalBuffer(pixels.data(), pixels.size(), 20, 40, 20, false);
+    textCaptureMarkWindowBuffer(pixels.data(), 12);
+    generation = textCaptureBufferId(pixels.data());
+    gTestWindow.generation = generation;
+    scene::setFont101PreviewScale(1.15, 12);
+    fontDrawText(pixels.data() + 2 * 20 + 2, "B", 1, 20, static_cast<ColorWithFlags>(7));
+    records = scene::textCaptureRecords(generation);
+    scene::TextVisibilityMask mask;
+    check(records.size() == 1 && records.front().bounds.height == 11
+            && records.front().pixels.size() == 1
+            && scene::textCaptureVisibilityMask(records.front(), 20, 40, &mask)
+            && mask.bounds.height == 11,
+        "font-101 preview extends only captured coverage, not legacy pixels or visibility logic");
+
+    scene::setFont101PreviewScale(1.29, 12);
+    {
+        ScopedTextCaptureTag captureTag(TextCaptureTag::SpecialStatDescription);
+        fontDrawText(pixels.data() + 14 * 20 + 2, "C", 1, 20, static_cast<ColorWithFlags>(7));
+    }
+    const auto aligned = scene::textCaptureRecords(generation);
+    const auto alignedRun = std::find_if(aligned.begin(), aligned.end(), [](const scene::TextRecord& record) {
+        return record.run.text == "C";
+    });
+    check(alignedRun != aligned.end() && alignedRun->run.verticalAlignmentBoxY == 10
+            && alignedRun->run.verticalAlignmentBoxHeight == 17
+            && alignedRun->bounds.y == 10 && alignedRun->bounds.height == 17,
+        "SPECIAL label captures its measured 17-row box above and below the original draw line");
+    fontDrawText(pixels.data() + 28 * 20 + 2, "D", 1, 20, static_cast<ColorWithFlags>(7));
+    const auto afterScope = scene::textCaptureRecords(generation);
+    const auto plainRun = std::find_if(afterScope.begin(), afterScope.end(), [](const scene::TextRecord& record) {
+        return record.run.text == "D";
+    });
+    check(plainRun != afterScope.end() && plainRun->run.verticalAlignmentBoxHeight == 0
+            && plainRun->bounds.y == 28 && plainRun->run.sharpTextOffsetY == 0,
+        "SPECIAL box capture tag does not leak to the next run");
+
+    {
+        ScopedTextCaptureTag captureTag(TextCaptureTag::InterfacePlaqueOffset);
+        fontDrawText(pixels.data() + 28 * 20 + 4, "E", 1, 20, static_cast<ColorWithFlags>(7));
+    }
+    const auto shiftedRuns = scene::textCaptureRecords(generation);
+    const auto shiftedRun = std::find_if(shiftedRuns.begin(), shiftedRuns.end(), [](const scene::TextRecord& record) {
+        return record.run.text == "E";
+    });
+    check(shiftedRun != shiftedRuns.end() && shiftedRun->run.y == 28
+            && shiftedRun->run.sharpTextOffsetY == -2
+            && shiftedRun->bounds.y == 26 && shiftedRun->bounds.height == 12,
+        "interface plaque tag shifts only modern text and expands capture upward to include old and shifted coverage");
+    {
+        ScopedTextSizeRole sizeRole(scene::TextSizeRole::CompactUi);
+        ScopedTextCaptureTag captureTag(TextCaptureTag::InterfacePlaqueOffset);
+        fontDrawText(pixels.data() + 24 * 20 + 8, "G", 1, 20, static_cast<ColorWithFlags>(7));
+    }
+    const auto compactRuns = scene::textCaptureRecords(generation);
+    const auto compactRun = std::find_if(compactRuns.begin(), compactRuns.end(), [](const scene::TextRecord& record) {
+        return record.run.text == "G";
+    });
+    check(compactRun != compactRuns.end()
+            && compactRun->run.sizeRole == scene::TextSizeRole::CompactUi
+            && compactRun->run.sharpTextOffsetY == -2
+            && compactRun->bounds.y == 22 && compactRun->bounds.height == 11,
+        "compact UI size metadata combines with plaque offset and uses 1.22 capture coverage");
+    fontDrawText(pixels.data() + 24 * 20 + 10, "H", 1, 20, static_cast<ColorWithFlags>(7));
+    const auto afterCompactScope = scene::textCaptureRecords(generation);
+    const auto defaultSizeRun = std::find_if(afterCompactScope.begin(), afterCompactScope.end(), [](const scene::TextRecord& record) {
+        return record.run.text == "H";
+    });
+    check(defaultSizeRun != afterCompactScope.end()
+            && defaultSizeRun->run.sizeRole == scene::TextSizeRole::Default
+            && defaultSizeRun->run.sharpTextOffsetY == 0
+            && defaultSizeRun->bounds.height == 12,
+        "compact UI size scope restores 1.29 default metadata and capture coverage");
+    fontDrawText(pixels.data() + 2 * 20 + 12, "I", 1, 20,
+        static_cast<ColorWithFlags>(7 | DRAW_TEXT_FLAG_UNDERLINED));
+    const auto underlinedRuns = scene::textCaptureRecords(generation);
+    const auto underlinedRun = std::find_if(underlinedRuns.begin(), underlinedRuns.end(), [](const scene::TextRecord& record) {
+        return record.run.text == "I";
+    });
+    check(underlinedRun != underlinedRuns.end() && underlinedRun->bounds.y == 2
+            && underlinedRun->bounds.height >= scene::font101PreviewCoverageHeight(9, 12) + 2
+            && (underlinedRun->run.colorAndFlags & DRAW_TEXT_FLAG_UNDERLINED) != 0,
+        "font-101 underline capture includes the sharp glyph row and one-pixel gap at E size");
+    gCurrentFont = 102;
+    {
+        ScopedTextCaptureTag captureTag(TextCaptureTag::InterfacePlaqueOffset);
+        fontDrawText(pixels.data() + 28 * 20 + 6, "F", 1, 20, static_cast<ColorWithFlags>(7));
+    }
+    const auto otherFontRuns = scene::textCaptureRecords(generation);
+    const auto otherFontRun = std::find_if(otherFontRuns.begin(), otherFontRuns.end(), [](const scene::TextRecord& record) {
+        return record.run.text == "F";
+    });
+    check(otherFontRun != otherFontRuns.end() && otherFontRun->run.sharpTextOffsetY == 0
+            && otherFontRun->bounds.y == 28,
+        "interface plaque offset tag leaves non-font-101 pixel text unchanged");
+    gCurrentFont = 101;
+
+    scene::setFont101PreviewScale(1.29, -1);
+    fontGetLineHeight = fakeLineHeight;
+    textCaptureUnregisterExternalBuffer(pixels.data());
+    gTestWindow = {};
+    gCurrentFont = 101;
+}
+
+void testFloatingTextEngineAdapter()
+{
+    using namespace fallout;
+
+    const int previousFont = gCurrentFont;
+    FontManagerGetLineHeightProc* previousLineHeight = fontGetLineHeight;
+    FontManagerGetStringWidthProc* previousStringWidth = fontGetStringWidth;
+    FontManagerDrawTextProc* previousDrawText = fontDrawTextPtr;
+    gCurrentFont = 101;
+    fontGetLineHeight = fakePreviewLineHeight;
+    fontGetStringWidth = fakeStringWidth;
+    fontDrawTextPtr = fakeFontDraw;
+
+    char text[] = "ab cd";
+    const short lineStarts[] = { 0, 3, 5 };
+    const ColorWithFlags outlineColor = static_cast<ColorWithFlags>(73);
+    const ColorWithFlags textColor = static_cast<ColorWithFlags>(41);
+    scene::FloatingTextOutlineLayout layout;
+    unsigned char* data = nullptr;
+    const int outlineCalls = gFloatingTextOutlineCalls;
+    const int drawCallsBefore = drawCalls;
+    check(scene::floatingTextCreateData(text, lineStarts, 2, 101, textColor,
+              outlineColor, 8, 24, &layout, &data),
+        "floating text adapter creates its padded font-101 buffer");
+    const int lineOffset = scene::font101PreviewCoverageHeight(9, -1) - 9;
+    check(layout.bufferWidth == 12 && layout.bufferHeight == 26 + 2 * lineOffset,
+        "floating text adapter preserves the outlined buffer layout");
+    check(data != nullptr && drawCalls == drawCallsBefore + 2,
+        "floating text adapter draws each wrapped line once");
+    check(gFloatingTextOutlineCalls == outlineCalls + 1
+            && gFloatingTextOutlineColor == static_cast<Color>(outlineColor & COLOR_LAST),
+        "floating text adapter applies the requested outline color");
+    check(std::strcmp(text, "ab cd") == 0,
+        "floating text adapter restores the wrapped input string");
+
+    if (data != nullptr) {
+        const auto records = scene::textCaptureRecords(textCaptureBufferId(data));
+        const auto firstLine = std::find_if(records.begin(), records.end(), [](const scene::TextRecord& record) {
+            return record.run.text == "ab";
+        });
+        const auto secondLine = std::find_if(records.begin(), records.end(), [](const scene::TextRecord& record) {
+            return record.run.text == "cd";
+        });
+        check(firstLine != records.end() && firstLine->run.hasOutline
+                && firstLine->run.outlineColor == static_cast<unsigned int>(outlineColor & COLOR_LAST)
+                && firstLine->run.sharpTextOffsetY == 0,
+            "floating text adapter scopes the first font-101 outline capture");
+        check(secondLine != records.end() && secondLine->run.hasOutline
+                && secondLine->run.outlineColor == static_cast<unsigned int>(outlineColor & COLOR_LAST)
+                && secondLine->run.sharpTextOffsetY == lineOffset,
+            "floating text adapter applies the per-line font-101 capture offset");
+
+        std::vector<unsigned char> destination(32 * 32, 0);
+        const int blitCalls = gFloatingTextBlitCalls;
+        scene::floatingTextRenderInRect(layout, data, 4, 5, Rect { 6, 7, 8, 9 },
+            destination.data(), 32);
+        check(gFloatingTextBlitCalls == blitCalls + 1
+                && gFloatingTextLastBlitWidth == 3 && gFloatingTextLastBlitHeight == 3
+                && gFloatingTextLastSourcePitch == layout.bufferWidth
+                && gFloatingTextLastDestinationPitch == 32,
+            "floating text adapter clips before the transparent blit");
+
+        gFloatingTextShiftX = 7;
+        gFloatingTextShiftY = -4;
+        const Rect refresh = scene::floatingTextRefreshRect(layout, 100, 50, 42);
+        check(refresh.left == 100 + 7 - layout.offsetX
+                && refresh.top == 50 - 4 - layout.offsetY
+                && refresh.right == refresh.left + layout.bufferWidth - 1
+                && refresh.bottom == refresh.top + layout.bufferHeight - 1,
+            "floating text adapter includes scene shift and padded bounds in refresh rectangles");
+        gFloatingTextShiftX = 0;
+        gFloatingTextShiftY = 0;
+        internal_free(data);
+    }
+
+    gCurrentFont = previousFont;
+    fontGetLineHeight = previousLineHeight;
+    fontGetStringWidth = previousStringWidth;
+    fontDrawTextPtr = previousDrawText;
+}
+
 } // namespace
 
 int main()
@@ -697,6 +1002,8 @@ int main()
     testUnknownBuffersKeepPixelBehavior();
     testVisibilityClearsHiddenAndStaleOwners();
     testCursorOcclusionPreservesOwnedText();
+    testFont101SizePreviewExtendsCaptureOnly();
+    testFloatingTextEngineAdapter();
     if (failures == 0) std::printf("text_capture_tests: all passed\n");
     return failures == 0 ? 0 : 1;
 }

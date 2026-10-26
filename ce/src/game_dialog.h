@@ -7,6 +7,16 @@
 
 namespace fallout {
 
+struct GameDialogOptionLayout {
+    int index;
+    int textTop;
+    int textBottom;
+    int buttonLeft;
+    int buttonTop;
+    int buttonRight;
+    int buttonBottom;
+};
+
 extern Object* gGameDialogSpeaker;
 extern bool gGameDialogSpeakerIsPartyMember;
 extern HeadFrmId gGameDialogHeadFrmId;
@@ -45,6 +55,8 @@ void gameDialogEndBarter();
 bool gameDialogIsBarterWindowExpanded();
 int gameDialogGetWindow();
 int gameDialogGetBackgroundWindow();
+int gameDialogGetOptionCount();
+int gameDialogGetOptionLayout(int index, GameDialogOptionLayout* layout);
 void gameDialogSetPartyMemberCcMsgIds(const ProtoId& protoId, int startMsgId, int endMsgId);
 void gameDialogResetPartyMemberCcMsgIds();
 

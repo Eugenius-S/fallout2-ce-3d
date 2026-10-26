@@ -24,6 +24,8 @@
 #include "../scripts.h"
 #include "../settings.h"
 #include "../svga.h"
+#include "../text_object.h"
+#include "../tile.h"
 #include "../window_manager.h"
 #include "devtools.h"
 
@@ -39,6 +41,7 @@ enum class UiFixtureKind {
     Character,
     Barter,
     Log,
+    Bark,
 };
 
 enum class UiFixtureStage {
@@ -46,6 +49,9 @@ enum class UiFixtureStage {
     WaitingForScreen,
     WaitingForDialog,
     WaitingForBarter,
+    WaitingForBark,
+    WaitingForBarkReplacement,
+    WaitingForBarkExpiration,
     Capturing,
     Finished,
 };
@@ -59,6 +65,19 @@ int gSpeakerTile = -1;
 int gInitialDateLogCount = 0;
 bool gPipboyStatusRequested = false;
 int gLogDiagnosticFrames = 0;
+bool gFont101PreviewRequested = false;
+bool gFont101PreviewActivated = false;
+double gFont101PreviewScale = 1.29;
+bool gFont101PreviewWeightRequested = false;
+bool gFont101PreviewBold = false;
+int gBarkBaselineCount = 0;
+int gBarkWaitFrames = 0;
+bool gBarkFirstCaptured = false;
+bool gBarkReplacementSeen = false;
+bool gBarkCallbackSuppressed = false;
+// CP1251 Russian bark fixtures.
+char gBarkFirstText[] = "\xD2\xFB \xEC\xE5\xED\xFF \xEF\xF3\xE3\xE0\xE5\xF8\xFC.";
+char gBarkReplacementText[] = "\xD1\xF2\xEE\xE9!";
 
 const char* fixtureName()
 {
@@ -68,6 +87,7 @@ const char* fixtureName()
     case UiFixtureKind::Character: return "character";
     case UiFixtureKind::Barter: return "barter";
     case UiFixtureKind::Log: return "log";
+    case UiFixtureKind::Bark: return "bark";
     default: return "none";
     }
 }
@@ -90,6 +110,97 @@ int expectedWindow()
     case UiFixtureKind::Character: return characterEditorGetWindow();
     case UiFixtureKind::Log: return gInterfaceBarWindow;
     default: return -1;
+    }
+}
+
+int visibleOutlinedTextCount(const char* text, std::size_t* visiblePixelCount = nullptr);
+
+class ScopedBarkCallbackSuppression {
+public:
+    ScopedBarkCallbackSuppression() { gBarkCallbackSuppressed = true; }
+    ~ScopedBarkCallbackSuppression() { gBarkCallbackSuppressed = false; }
+};
+
+void runBarkFixtureFrame()
+{
+    if (gBarkCallbackSuppressed || gStage == UiFixtureStage::Idle || gStage == UiFixtureStage::Capturing
+        || gStage == UiFixtureStage::Finished) return;
+    gBarkWaitFrames++;
+    const int stageFrameLimit = gStage == UiFixtureStage::WaitingForBarkExpiration ? 1200 : 300;
+    if (gBarkWaitFrames > stageFrameLimit) {
+        fixtureFail("bark-lifecycle-timeout");
+        return;
+    }
+    if (gStage == UiFixtureStage::WaitingForBark) {
+        std::size_t firstVisiblePixels = 0;
+        if (visibleOutlinedTextCount(gBarkFirstText, &firstVisiblePixels) == 0) return;
+        gStage = UiFixtureStage::Capturing;
+        if (!takeSnapshot()) {
+            fixtureFail("bark-first-snapshot-failed");
+            return;
+        }
+        gBarkFirstCaptured = true;
+        printf("UI_FIXTURE STEP screen=bark stage=visible hasOutline=1 visiblePixels=%zu text=first-ru-line\n", firstVisiblePixels);
+        fflush(stdout);
+        gStage = UiFixtureStage::WaitingForBarkReplacement;
+        gBarkWaitFrames = 0;
+        Rect refreshRect;
+        {
+            ScopedBarkCallbackSuppression suppressCallbacks;
+            if (textObjectAdd(gDude, gBarkReplacementText, 101, COLOR_LIGHT_YELLOW, COLOR_BLACK, &refreshRect) == -1) {
+                fixtureFail("bark-replacement-add-failed");
+                return;
+            }
+            tileWindowRefreshRect(&refreshRect, gDude->elevation);
+        }
+        int sceneOffsetX = 0;
+        int sceneOffsetY = 0;
+        tileSceneShift(gDude->tile, &sceneOffsetX, &sceneOffsetY);
+        printf("UI_FIXTURE STEP screen=bark stage=replace old=long-ru new=short-ru tile=%d scene_shift=%d,%d objects=%d baseline=%d\n",
+            gDude->tile, sceneOffsetX, sceneOffsetY, textObjectsGetCount(), gBarkBaselineCount);
+        fflush(stdout);
+        return;
+    }
+    if (gStage == UiFixtureStage::WaitingForBarkReplacement) {
+        if (gBarkWaitFrames == 60) {
+            int sceneOffsetX = 0;
+            int sceneOffsetY = 0;
+            tileSceneShift(gDude->tile, &sceneOffsetX, &sceneOffsetY);
+            printf("UI_FIXTURE DIAG screen=bark stage=replacement-wait frames=%d tile=%d scene_shift=%d,%d old_runs=%d new_runs=%d objects=%d baseline=%d\n",
+                gBarkWaitFrames, gDude->tile, sceneOffsetX, sceneOffsetY,
+                visibleOutlinedTextCount(gBarkFirstText), visibleOutlinedTextCount(gBarkReplacementText),
+                textObjectsGetCount(), gBarkBaselineCount);
+            fflush(stdout);
+        }
+        std::size_t replacementVisiblePixels = 0;
+        if (visibleOutlinedTextCount(gBarkReplacementText, &replacementVisiblePixels) == 0) return;
+        const int oldVisibleRuns = visibleOutlinedTextCount(gBarkFirstText);
+        gStage = UiFixtureStage::Capturing;
+        if (!takeSnapshot()) {
+            fixtureFail("bark-replacement-snapshot-failed");
+            return;
+        }
+        gBarkReplacementSeen = true;
+        gStage = UiFixtureStage::WaitingForBarkExpiration;
+        gBarkWaitFrames = 0;
+        printf("UI_FIXTURE STEP screen=bark stage=replaced hasOutline=1 visiblePixels=%zu old_visible_runs=%d text=short-ru-line\n",
+            replacementVisiblePixels, oldVisibleRuns);
+        fflush(stdout);
+        return;
+    }
+    if (gStage == UiFixtureStage::WaitingForBarkExpiration
+        && visibleOutlinedTextCount(gBarkFirstText) == 0
+        && visibleOutlinedTextCount(gBarkReplacementText) == 0) {
+        gStage = UiFixtureStage::Capturing;
+        if (!takeSnapshot()) {
+            fixtureFail("bark-expiration-snapshot-failed");
+            return;
+        }
+        printf("UI_FIXTURE PASS screen=bark first=%d replacement=%d cleared_runs=0\n",
+            gBarkFirstCaptured ? 1 : 0, gBarkReplacementSeen ? 1 : 0);
+        fflush(stdout);
+        gStage = UiFixtureStage::Finished;
+        _game_user_wants_to_quit = GAME_QUIT_REQUEST_EXIT;
     }
 }
 
@@ -140,6 +251,10 @@ struct ScreenProof {
     std::vector<scene::TextRecord> overlayRecords;
     unsigned int visibleCoverage = 0;
     unsigned int overlayPixels = 0;
+    int font101LineHeightMin = 0;
+    int font101LineHeightMax = 0;
+    int statBoxRuns = 0;
+    int statBoxLineHeight = 0;
 };
 
 struct OpaqueOverlaySample {
@@ -251,6 +366,14 @@ ScreenProof screenProof(const TextWindowSnapshot& window,
         if (record.ownerWindow != window.id || record.ownerGeneration != window.generation
             || record.run.font != 101 || !record.run.sharpEligible) continue;
         proof.records.push_back(record);
+        if (proof.font101LineHeightMin == 0 || record.run.lineHeight < proof.font101LineHeightMin) {
+            proof.font101LineHeightMin = record.run.lineHeight;
+        }
+        proof.font101LineHeightMax = std::max(proof.font101LineHeightMax, record.run.lineHeight);
+        if (record.run.verticalAlignmentBoxHeight > 0) {
+            proof.statBoxRuns++;
+            proof.statBoxLineHeight = record.run.lineHeight;
+        }
 
         scene::TextVisibilityMask mask;
         if (!scene::textCaptureVisibilityMask(record, surfaceWidth, surfaceHeight, &mask)) continue;
@@ -267,6 +390,35 @@ ScreenProof screenProof(const TextWindowSnapshot& window,
         }
     }
     return proof;
+}
+
+int visibleOutlinedTextCount(const char* text, std::size_t* visiblePixelCount)
+{
+    if (text == nullptr || gSdlSurface == nullptr || gSdlSurface->pixels == nullptr) return 0;
+    const scene_renderer::PreparedSharpTextFrame& frame = scene_renderer::preparedSharpTextFrame();
+    int windowCount = 0;
+    TextWindowSnapshot first = {};
+    if (!textCaptureGetWindowSnapshot(0, &first, &windowCount)) return 0;
+
+    int count = 0;
+    std::size_t pixels = 0;
+    for (int index = 0; index < windowCount; index++) {
+        TextWindowSnapshot window = {};
+        if (!textCaptureGetWindowSnapshot(index, &window, nullptr) || window.hidden || window.pixels == nullptr) continue;
+        const ScreenProof proof = screenProof(window, frame);
+        for (const scene::TextRecord& record : proof.visibleRecords) {
+            if (record.run.font != 101 || !record.run.hasOutline || record.run.text != text) continue;
+            scene::TextVisibilityMask mask;
+            if (!scene::textCaptureVisibilityMask(record, gSdlSurface->w, gSdlSurface->h, &mask)) continue;
+            const std::size_t visiblePixels = static_cast<std::size_t>(std::count_if(mask.pixels.begin(), mask.pixels.end(),
+                [](unsigned char pixel) { return pixel != 0; }));
+            if (visiblePixels == 0) continue;
+            count++;
+            pixels += visiblePixels;
+        }
+    }
+    if (visiblePixelCount != nullptr) *visiblePixelCount = pixels;
+    return count;
 }
 
 void captureWindow(const TextWindowSnapshot& window, const std::vector<scene::TextRecord>& runs)
@@ -400,6 +552,10 @@ void captureWindow(const TextWindowSnapshot& window, const std::vector<scene::Te
     }
 
     if (sharpActive && gKind == UiFixtureKind::Character) {
+        if (proof.statBoxRuns <= 0) {
+            fixtureFail("special-stat-box-record-missing");
+            return;
+        }
         for (const scene::TextRecord& record : proof.overlayRecords) {
             if (record.run.colorRole != scene::TextColorRole::Palette
                 || static_cast<Color>(record.run.colorAndFlags & colorMask) != COLOR_BLACK) continue;
@@ -418,6 +574,10 @@ void captureWindow(const TextWindowSnapshot& window, const std::vector<scene::Te
     int yellowCount = 0;
     int redCount = 0;
     int otherCount = 0;
+    int compactSizeRoleCount = 0;
+    int defaultSizeRoleCount = 0;
+    double effectiveSizeMinimum = 100.0;
+    double effectiveSizeMaximum = 0.0;
     for (const scene::TextRecord& record : proof.records) {
         const Color color = static_cast<Color>(record.run.colorAndFlags & colorMask);
         if (color == COLOR_GREEN) greenCount++;
@@ -425,6 +585,17 @@ void captureWindow(const TextWindowSnapshot& window, const std::vector<scene::Te
         else if (color == COLOR_LIGHT_YELLOW) yellowCount++;
         else if (color == COLOR_RED) redCount++;
         else otherCount++;
+        if (record.run.sizeRole == scene::TextSizeRole::CompactUi) compactSizeRoleCount++;
+        else defaultSizeRoleCount++;
+        const double runScale = scene::font101PreviewScaleForRun(window.id, record.run.sizeRole);
+        effectiveSizeMinimum = std::min(effectiveSizeMinimum, runScale);
+        effectiveSizeMaximum = std::max(effectiveSizeMaximum, runScale);
+    }
+    if (settings.scene3d.sharp_text
+        && (gKind == UiFixtureKind::Inventory || gKind == UiFixtureKind::Pipboy)
+        && (compactSizeRoleCount != static_cast<int>(proof.records.size()) || defaultSizeRoleCount != 0)) {
+        fixtureFail("compact-ui-font-size-role-missing");
+        return;
     }
 
     gStage = UiFixtureStage::Capturing;
@@ -433,11 +604,16 @@ void captureWindow(const TextWindowSnapshot& window, const std::vector<scene::Te
         return;
     }
 
-    printf("UI_FIXTURE PASS screen=%s window=%d generation=%llu font=101 runs=%zu screen_runs=%zu visible_runs=%zu visible_coverage=%u overlay_runs=%zu overlay_pixels=%u colors=original green=%d white=%d yellow=%d red=%d other=%d sharp_setting=%d active=%d drawn=%d",
+    printf("UI_FIXTURE PASS screen=%s window=%d generation=%llu font=101 runs=%zu screen_runs=%zu visible_runs=%zu visible_coverage=%u overlay_runs=%zu overlay_pixels=%u font101_lineheight=%d..%d stat_box_runs=%d stat_box_lineheight=%d colors=original green=%d white=%d yellow=%d red=%d other=%d sharp_setting=%d active=%d drawn=%d preview_scale=%.2f preview_weight=%s compact_size_role_runs=%d default_size_role_runs=%d run_scale=%.2f..%.2f",
         fixtureName(), window.id, static_cast<unsigned long long>(window.generation), evidence.size(),
         proof.records.size(), proof.visibleRecords.size(), proof.visibleCoverage, overlayEvidence.size(), proof.overlayPixels,
+        proof.font101LineHeightMin, proof.font101LineHeightMax, proof.statBoxRuns, proof.statBoxLineHeight,
         greenCount, whiteCount, yellowCount, redCount, otherCount,
-        settings.scene3d.sharp_text ? 1 : 0, frame.active ? 1 : 0, frame.drawn ? 1 : 0);
+        settings.scene3d.sharp_text ? 1 : 0, frame.active ? 1 : 0, frame.drawn ? 1 : 0,
+        scene::font101PreviewScaleForWindow(window.id),
+        scene::font101PreviewUsesBold(window.id) ? "bold" : "semibold",
+        compactSizeRoleCount, defaultSizeRoleCount,
+        effectiveSizeMinimum, effectiveSizeMaximum);
     if (gKind == UiFixtureKind::Barter) {
         printf(" speaker_script=%s speaker=%d speaker_tile=%d white_zero_totals=%d left=$0@%d right=$0@%d",
             gSpeakerScript, gSpeakerId, gSpeakerTile, whiteZeroCount, leftZeroX, rightZeroX);
@@ -488,16 +664,61 @@ bool parseUiFixtureOption(const char* arg)
     else if (strcmp(value, "character") == 0) gKind = UiFixtureKind::Character;
     else if (strcmp(value, "barter") == 0) gKind = UiFixtureKind::Barter;
     else if (strcmp(value, "log") == 0) gKind = UiFixtureKind::Log;
+    else if (strcmp(value, "bark") == 0) gKind = UiFixtureKind::Bark;
     else {
         gInvalidUiFixture = true;
-        fprintf(stderr, "devtools: invalid --dev-ui-fixture value (expected inventory, pipboy, character, barter, or log)\n");
+        fprintf(stderr, "devtools: invalid --dev-ui-fixture value (expected inventory, pipboy, character, barter, log, or bark)\n");
         fflush(stderr);
     }
     return true;
 }
 
+bool parseUiFixtureFont101PreviewOption(const char* arg)
+{
+    const char* prefix = "--dev-font101-size-preview=";
+    if (strncmp(arg, prefix, strlen(prefix)) != 0) return false;
+    const char* value = arg + strlen(prefix);
+    if (strcmp(value, "1.00") == 0) gFont101PreviewScale = 1.0;
+    else if (strcmp(value, "1.08") == 0) gFont101PreviewScale = 1.08;
+    else if (strcmp(value, "1.15") == 0) gFont101PreviewScale = 1.15;
+    else if (strcmp(value, "1.22") == 0) gFont101PreviewScale = 1.22;
+    else if (strcmp(value, "1.29") == 0) gFont101PreviewScale = 1.29;
+    else {
+        gInvalidUiFixture = true;
+        fprintf(stderr, "devtools: invalid font-101 size preview (expected 1.00, 1.08, 1.15, 1.22, or 1.29)\n");
+        fflush(stderr);
+        return true;
+    }
+    gFont101PreviewRequested = true;
+    return true;
+}
+
+bool parseUiFixtureFont101WeightOption(const char* arg)
+{
+    const char* prefix = "--dev-font101-weight-preview=";
+    if (strncmp(arg, prefix, strlen(prefix)) != 0) return false;
+    const char* value = arg + strlen(prefix);
+    if (strcmp(value, "bold") == 0) gFont101PreviewBold = true;
+    else if (strcmp(value, "semibold") == 0) gFont101PreviewBold = false;
+    else {
+        gInvalidUiFixture = true;
+        fprintf(stderr, "devtools: invalid font-101 weight preview (expected bold or semibold)\n");
+        fflush(stderr);
+        return true;
+    }
+    gFont101PreviewWeightRequested = true;
+    return true;
+}
+
 bool startUiFixtureWhenReady(bool startupReady, bool blockingState)
 {
+    if (gFont101PreviewRequested && (gKind != UiFixtureKind::Character || !settings.scene3d.sharp_text)) {
+        gInvalidUiFixture = true;
+    }
+    if (gFont101PreviewWeightRequested && (gKind != UiFixtureKind::Character
+            || !settings.scene3d.sharp_text || !gFont101PreviewRequested)) {
+        gInvalidUiFixture = true;
+    }
     if (gInvalidUiFixture && gStage == UiFixtureStage::Idle && startupReady && !blockingState) {
         printf("UI_FIXTURE FAIL screen=unknown reason=invalid-mode\n");
         fflush(stdout);
@@ -513,6 +734,24 @@ bool startUiFixtureWhenReady(bool startupReady, bool blockingState)
         printf("UI_FIXTURE START screen=barter route=Klamath-Sulik-real-dialog-key-B\n");
         fflush(stdout);
         return true;
+    }
+
+    if (gKind == UiFixtureKind::Bark) {
+        if (gDude == nullptr) {
+            fixtureFail("bark-fixture-requires-player-character");
+            return false;
+        }
+        gBarkBaselineCount = textObjectsGetCount();
+        Rect refreshRect;
+        if (textObjectAdd(gDude, gBarkFirstText, 101, COLOR_LIGHT_YELLOW, COLOR_BLACK, &refreshRect) == -1) {
+            fixtureFail("bark-first-add-failed");
+            return false;
+        }
+        tileWindowRefreshRect(&refreshRect, gDude->elevation);
+        gStage = UiFixtureStage::WaitingForBark;
+        printf("UI_FIXTURE START screen=bark source=textObjectAdd owner=player\n");
+        fflush(stdout);
+        return false;
     }
 
     gStage = UiFixtureStage::WaitingForScreen;
@@ -533,6 +772,19 @@ bool startUiFixtureWhenReady(bool startupReady, bool blockingState)
         }
         pipboyReset();
         printf("UI_FIXTURE SETUP screen=pipboy start_pipboy=2 process_only=1\n");
+        fflush(stdout);
+    }
+    if (gKind == UiFixtureKind::Character && gFont101PreviewRequested) {
+        if (!scene::setFont101PreviewScale(gFont101PreviewScale, -1)) {
+            fixtureFail("invalid-font101-preview-scale");
+            return false;
+        }
+        if (gFont101PreviewWeightRequested) {
+            scene::setFont101PreviewBold(gFont101PreviewBold, -1);
+        }
+        printf("UI_FIXTURE SETUP screen=character preview_scale=%.2f preview_weight=%s process_only=1\n",
+            gFont101PreviewScale,
+            gFont101PreviewWeightRequested ? (gFont101PreviewBold ? "bold" : "semibold") : "selected-bold");
         fflush(stdout);
     }
     if (key == -1) {
@@ -574,6 +826,10 @@ void uiFixtureDialogReady(const char* scriptName, int speakerId, int speakerTile
 
 void uiFixtureVanillaPresented()
 {
+    if (gKind == UiFixtureKind::Bark) {
+        runBarkFixtureFrame();
+        return;
+    }
     if (gStage != UiFixtureStage::WaitingForScreen && gStage != UiFixtureStage::WaitingForBarter) return;
     if (gKind == UiFixtureKind::Barter && gStage != UiFixtureStage::WaitingForBarter) return;
 
@@ -589,6 +845,20 @@ void uiFixtureVanillaPresented()
             fflush(stdout);
         }
         return;
+    }
+
+    if (gKind == UiFixtureKind::Character && gFont101PreviewRequested && !gFont101PreviewActivated) {
+        if (!scene::setFont101PreviewScale(gFont101PreviewScale, window.id)) {
+            fixtureFail("invalid-font101-preview-scale");
+            return;
+        }
+        if (gFont101PreviewWeightRequested) {
+            scene::setFont101PreviewBold(gFont101PreviewBold, window.id);
+        }
+        gFont101PreviewActivated = true;
+        printf("UI_FIXTURE STEP screen=character preview_scale=%.2f owner_window=%d action=scope\n",
+            gFont101PreviewScale, window.id);
+        fflush(stdout);
     }
 
     if (gKind == UiFixtureKind::Pipboy && !gPipboyStatusRequested) {
@@ -616,6 +886,11 @@ void uiFixtureVanillaPresented()
     }
     if (runs.empty()) return;
     captureWindow(window, runs);
+}
+
+void uiFixtureScenePresented()
+{
+    if (gKind == UiFixtureKind::Bark && !gBarkCallbackSuppressed) runBarkFixtureFrame();
 }
 
 } // namespace devtools

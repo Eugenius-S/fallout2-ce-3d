@@ -1,5 +1,6 @@
 #include "devtools.h"
 #include "snapshot_rows.h"
+#include "snapshot_palette.h"
 #include "preferences_probe.h"
 #include "ui_fixture.h"
 
@@ -62,6 +63,7 @@
 #include "../scene_renderer/static_scene.h"
 #include "../scene_renderer/text_present.h"
 #include "../settings.h"
+#include "../scene/menu_text.h"
 #include "../svga.h"
 #include "../text_font.h"
 #include "../tile.h"
@@ -126,8 +128,14 @@ int gTourStep = -1;
 int gTourFrames = 0;
 bool gStillSnapshot = false;
 bool gBackgroundGlow = false;
+double gDevGlowStrength = -1.0;
+bool gDevCyclePalette = false;
+int gGlowLadderStep = -1;
 bool gBackgroundShadows = false; // --dev-shadows: shadows stay on in a background run
 int gShadowDebug = 0; // --dev-shadow-debug=N: 1 factor, 2 fade, 3 coverage
+bool gDevNoSpriteSides = false; // --dev-no-sprite-sides: sprites keep their own side (087's "before")
+bool gDevOpenDoors = false; // --dev-open-doors: every door of the map stands open, once
+bool gDevOpenDoorsDone = false;
 double gDevZoom = -1.0; // --dev-zoom=D: the background run's 3D zoom (default 1)
 int gDevAmbient = -1; // --dev-ambient: the map's ambient light held there (night views)
 double gDevHour = -1.0; // --dev-hour: the game hour set on the map, once
@@ -137,7 +145,7 @@ bool gDevFly = false; // --dev-fly: the fly camera takes off at the first 3D fra
 // the point it looks at, D degrees round, D degrees above the floor, U units
 // from it (a side view of a thing).
 double gDevFlyTurn = 0.0;
-int gDevCameraTurn = 0; // --dev-camera-turn=N: the 3D camera N quarter turns round before the snapshot
+double gDevCameraTurn = 0; // degrees; legacy --dev-camera-turn=N still means quarter turns
 double gDevFlyPitch = -1.0;
 double gDevFlyDistance = -1.0;
 int gViewTile = -1;
@@ -152,6 +160,7 @@ int gDialogPageInspectStage = 0;
 std::vector<std::string> gDialogPageInspectInitialText;
 bool gDialogCursorCheckRequested = false;
 int gDialogCursorCheckStage = 0;
+bool gDialogLayoutCheckRequested = false;
 bool gDialogCursorCheckCursorMoveInProgress = false;
 std::vector<std::string> gDialogCursorCheckInitialText;
 scene::TextRecord gDialogCursorCheckRecord;
@@ -188,6 +197,7 @@ int gPickProbeExitWaitFrames = 0;
 char gToolsCommit[32] = "-";
 
 bool gPanelOpen = false;
+bool gPanelSnapshotPending = false;
 std::vector<std::string> gMaps; // file names, e.g. "kladwtwn.map"
 std::vector<int> gFiltered;     // indices into gMaps
 char gFilter[17] = {};
@@ -538,9 +548,14 @@ bool hitTest(const Rect2& r, int x, int y)
     return x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h;
 }
 
+const char* uiText(const char* text)
+{
+    return scene::menuText(text, settings.system.language);
+}
+
 void setStatus(const char* text)
 {
-    snprintf(gStatus, sizeof(gStatus), "%s", text);
+    snprintf(gStatus, sizeof(gStatus), uiText("%s"), text);
 }
 
 bool disableStaticFloorPreview(const char* status)
@@ -668,11 +683,11 @@ int findFreeTileOnElevation(int center, int elevation, int maxDistance)
 static bool applyElevationChange(int elevation)
 {
     if (elevation < 0 || elevation >= ELEVATION_COUNT) {
-        snprintf(gStatus, sizeof(gStatus), "no such elevation: %d", elevation);
+        snprintf(gStatus, sizeof(gStatus), uiText("no such elevation: %d"), elevation);
         return false;
     }
     if (!elevationPresent(elevation)) {
-        snprintf(gStatus, sizeof(gStatus), "elevation %d absent on this map", elevation);
+        snprintf(gStatus, sizeof(gStatus), uiText("elevation %d absent on this map"), elevation);
         return false;
     }
 
@@ -683,7 +698,7 @@ static bool applyElevationChange(int elevation)
         targetTile = gMapHeader.enteringTile;
     }
     if (targetTile == -1) {
-        snprintf(gStatus, sizeof(gStatus), "no free tile on elevation %d", elevation);
+        snprintf(gStatus, sizeof(gStatus), uiText("no free tile on elevation %d"), elevation);
         return false;
     }
 
@@ -708,6 +723,10 @@ bool parseOption(const char* arg)
 {
     if (strcmp(arg, "--dev-tools") == 0) {
         gEnabled = true;
+        return true;
+    }
+    if (strcmp(arg, "--dev-panel-snapshot") == 0) {
+        gPanelSnapshotPending = gEnabled;
         return true;
     }
     if (parsePreferencesProbeOption(arg)) {
@@ -765,7 +784,13 @@ bool parseOption(const char* arg)
         gDialogCursorCheckRequested = true;
         return true;
     }
+    if (strcmp(arg, "--dev-dialog-layout-check") == 0) {
+        gDialogLayoutCheckRequested = true;
+        return true;
+    }
     if (parseUiFixtureOption(arg)) return true;
+    if (parseUiFixtureFont101PreviewOption(arg)) return true;
+    if (parseUiFixtureFont101WeightOption(arg)) return true;
     if (strcmp(arg, "--dev-preferences-snapshot") == 0) {
         gPreferencesSnapshotPending = true;
         return true;
@@ -796,9 +821,39 @@ bool parseOption(const char* arg)
         debugPrint("DEVTOOLS: the glow stays on in this background run\n");
         return true;
     }
+    const char* glowStrengthPrefix = "--dev-glow-strength=";
+    if (strncmp(arg, glowStrengthPrefix, strlen(glowStrengthPrefix)) == 0) {
+        const double strength = strtod(arg + strlen(glowStrengthPrefix), nullptr);
+        if (std::isfinite(strength)) {
+            gDevGlowStrength = std::clamp(strength, 0.0, 8.0);
+            gBackgroundGlow = true;
+        }
+        return true;
+    }
+    if (strcmp(arg, "--dev-cycle-palette") == 0) {
+        gDevCyclePalette = true;
+        return true;
+    }
+    if (strcmp(arg, "--dev-glow-ladder") == 0) {
+        gGlowLadderStep = 0;
+        gBackgroundGlow = false;
+        return true;
+    }
     // --dev-shadows: keep the sun shadows on in a background run (a snapshot
     // of the shadowed view); off is the default there, so captures stay
     // byte-stable.
+    // --dev-open-doors: every door on the map is shown at its last frame, so a
+    // snapshot sees open doors (072).
+    if (strcmp(arg, "--dev-open-doors") == 0) {
+        gDevOpenDoors = true;
+        return true;
+    }
+    // --dev-no-sprite-sides: a turned camera sees the game's side of every
+    // sprite, as before 087.
+    if (strcmp(arg, "--dev-no-sprite-sides") == 0) {
+        gDevNoSpriteSides = true;
+        return true;
+    }
     if (strcmp(arg, "--dev-shadows") == 0) {
         gBackgroundShadows = true;
         debugPrint("DEVTOOLS: the shadows stay on in this background run\n");
@@ -829,7 +884,13 @@ bool parseOption(const char* arg)
     }
     const char* cameraTurnPrefix = "--dev-camera-turn=";
     if (strncmp(arg, cameraTurnPrefix, strlen(cameraTurnPrefix)) == 0) {
-        gDevCameraTurn = static_cast<int>(strtol(arg + strlen(cameraTurnPrefix), nullptr, 10)) % 4;
+        gDevCameraTurn = (static_cast<int>(strtol(arg + strlen(cameraTurnPrefix), nullptr, 10)) % 4) * 90.0;
+        return true;
+    }
+    const char* cameraDegreesPrefix = "--dev-camera-degrees=";
+    if (strncmp(arg, cameraDegreesPrefix, strlen(cameraDegreesPrefix)) == 0) {
+        const double degrees = strtod(arg + strlen(cameraDegreesPrefix), nullptr);
+        gDevCameraTurn = std::isfinite(degrees) ? std::remainder(degrees, 360.0) : 0.0;
         return true;
     }
     const char* flyDistancePrefix = "--dev-fly-distance=";
@@ -1006,7 +1067,9 @@ void applyFixedScreenOptions()
         settings.scene3d.zoom = 1.0;
         settings.scene3d.camera_rotation = false;
         settings.scene3d.glow = gBackgroundGlow;
+        if (gDevGlowStrength >= 0.0) settings.scene3d.glow_strength = gDevGlowStrength;
         settings.scene3d.shadows = gBackgroundShadows;
+        if (gDevNoSpriteSides) settings.scene3d.sprite_sides = false;
     }
     debugPrint("DEVTOOLS: fixed screen %dx%d scale %d, windowed, glow %d%s\n",
         gFixedScreenOptions.width, gFixedScreenOptions.height, gFixedScreenOptions.scale,
@@ -1015,12 +1078,16 @@ void applyFixedScreenOptions()
 
 void applyBackgroundGlow()
 {
-    if (backgroundCaptureActive()) settings.scene3d.glow = gBackgroundGlow;
+    if (backgroundCaptureActive()) {
+        settings.scene3d.glow = gBackgroundGlow;
+        if (gDevGlowStrength >= 0.0) settings.scene3d.glow_strength = gDevGlowStrength;
+    }
 }
 
 void applyBackgroundShadows()
 {
     if (backgroundCaptureActive()) settings.scene3d.shadows = gBackgroundShadows;
+    if (gDevNoSpriteSides) settings.scene3d.sprite_sides = false;
 }
 
 // Runs after the command line is parsed (applyFixedScreenOptions is earlier),
@@ -1197,6 +1264,11 @@ void update()
     if (startUiFixtureWhenReady(sceneStartupReady(), inBlockingGameState())) {
         gDialogFixtureRequested = true;
     }
+    if (gPanelSnapshotPending && sceneStartupReady() && !inBlockingGameState()) {
+        rebuildMapList();
+        gPanelOpen = true;
+        gPanelSnapshotPending = false;
+    }
     if (gPreferencesSnapshotPending && sceneStartupReady() && !inBlockingGameState()) {
         gPreferencesSnapshotPending = false;
         gPreferencesSnapshotActive = true;
@@ -1286,7 +1358,7 @@ void update()
             gDialogFixtureSpeakerTile, gDude->tile, talkResult);
         fflush(stdout);
         gameDialogEnter(speaker, 0);
-        if (!gameDialogWindowActive()) {
+        if (!gameDialogWindowActive() && !gDialogFixtureFinished) {
             printf("DIALOG_FIXTURE FAIL map=%s script=%s speaker=%d speaker_tile=%d elevation=%d hero=%d reason=dialog-window-did-not-open\n",
                 gMapHeader.name, gDialogFixtureScript, gDialogFixtureSpeakerId,
                 gDialogFixtureSpeakerTile, gDialogFixtureSpeakerElevation, gDude->tile);
@@ -1303,6 +1375,23 @@ void update()
     }
     // A dev view sets the hour once on the map; the sun snaps to it (021's
     // time jump), so morning, noon, sunset and night follow in a minute.
+    if (gDevOpenDoors && !gDevOpenDoorsDone && gMapHeader.name[0] != '\0') {
+        gDevOpenDoorsDone = true;
+        for (Object* object = objectFindFirstAtElevation(gDude->elevation); object != nullptr;
+             object = objectFindNextAtElevation()) {
+            const ProtoId protoId = object;
+            Proto* proto = nullptr;
+            if (protoId.objectType() != OBJ_TYPE_SCENERY || protoGetProto(protoId, &proto) == -1
+                || proto->scenery.type != SCENERY_TYPE_DOOR) {
+                continue;
+            }
+            CacheEntry* handle = nullptr;
+            Art* art = artLock(FrmId(object), &handle);
+            const int frames = art != nullptr ? artGetFrameCount(art) : 0;
+            if (handle != nullptr) artUnlock(handle);
+            if (frames > 1) objectSetFrame(object, frames - 1, nullptr);
+        }
+    }
     if (gDevHour >= 0.0 && !gDevHourSet && gMapHeader.name[0] != '\0') {
         gameTimeSetTime(static_cast<unsigned int>(gDevHour * 36000.0) % 864000u);
         gDevHourSet = true;
@@ -1392,11 +1481,11 @@ void update()
         gPendingElevation = false;
         if (gPendingElevationValue != static_cast<int>(gElevation)) {
             if (!elevationPresent(gPendingElevationValue)) {
-                snprintf(gStatus, sizeof(gStatus), "elevation %d absent on this map",
+                snprintf(gStatus, sizeof(gStatus), uiText("elevation %d absent on this map"),
                     gPendingElevationValue);
             } else if (applyElevationChange(gPendingElevationValue)) {
                 gStartupTargetAwaitingFinal = true;
-                snprintf(gStatus, sizeof(gStatus), "moving to elevation %d", gPendingElevationValue);
+                snprintf(gStatus, sizeof(gStatus), uiText("moving to elevation %d"), gPendingElevationValue);
                 return; // let the scheduled transition settle before preview activation
             }
         }
@@ -1433,7 +1522,14 @@ void update()
             scene_renderer::setStaticCameraCenterTile(-1);
             gViewTileApplied = true;
         }
-        if (stillSnapshotRequested()) colorCycleDisable();
+        if (stillSnapshotRequested()) {
+            if (gDevCyclePalette) {
+                auto colors = snapshotCyclePalette();
+                _setSystemPaletteEntries(colors.data(), 229, 254);
+                printf("devtools: frozen cycling colors from cycle.cc rest phase\n");
+            }
+            colorCycleDisable();
+        }
         gStartupFloorPreviewAttempted = true;
         const bool withWalls = gStartupWallPreviewRequested || gStartupHeroPreviewRequested || gStartupWalkPreviewRequested;
         const bool withHero = gStartupHeroPreviewRequested || gStartupWalkPreviewRequested;
@@ -1567,12 +1663,12 @@ bool requestMapChange(const char* mapFileName, int elevation)
     }
 
     if (mapId == -1) {
-        snprintf(gStatus, sizeof(gStatus), "no such map: %s", base);
+        snprintf(gStatus, sizeof(gStatus), uiText("no such map: %s"), base);
         return false;
     }
 
     if (elevation < 0 || elevation >= ELEVATION_COUNT) {
-        snprintf(gStatus, sizeof(gStatus), "no such elevation: %d", elevation);
+        snprintf(gStatus, sizeof(gStatus), uiText("no such elevation: %d"), elevation);
         return false;
     }
 
@@ -1583,7 +1679,7 @@ bool requestMapChange(const char* mapFileName, int elevation)
         // Elevation change within one map: presence is known from the
         // current header - refuse up front when absent.
         if (elevation != static_cast<int>(gElevation) && !elevationPresent(elevation)) {
-            snprintf(gStatus, sizeof(gStatus), "elevation %d absent on %s", elevation, base);
+            snprintf(gStatus, sizeof(gStatus), uiText("elevation %d absent on %s"), elevation, base);
             return false;
         }
         if (!applyElevationChange(elevation)) {
@@ -1594,7 +1690,7 @@ bool requestMapChange(const char* mapFileName, int elevation)
         if (elevation == static_cast<int>(gElevation)) {
             setStatus("already on this elevation");
         } else {
-            snprintf(gStatus, sizeof(gStatus), "moving to elevation %d", elevation);
+            snprintf(gStatus, sizeof(gStatus), uiText("moving to elevation %d"), elevation);
         }
         return true;
     }
@@ -1604,12 +1700,12 @@ bool requestMapChange(const char* mapFileName, int elevation)
     // game resources). The follow-up correction below stays as a backstop.
     int probe = probeTargetElevation(base, elevation);
     if (probe == 1) {
-        snprintf(gStatus, sizeof(gStatus), "elevation %d absent on %s", elevation, base);
+        snprintf(gStatus, sizeof(gStatus), uiText("elevation %d absent on %s"), elevation, base);
         return false;
     }
     if (probe == -1) {
         // Unknown - stay on the current map instead of guessing.
-        snprintf(gStatus, sizeof(gStatus), "cannot read map header: %s", base);
+        snprintf(gStatus, sizeof(gStatus), uiText("cannot read map header: %s"), base);
         return false;
     }
 
@@ -1628,7 +1724,7 @@ bool requestMapChange(const char* mapFileName, int elevation)
     gPendingElevation = true;
     gPendingMapId = mapId;
     gPendingElevationValue = elevation;
-    snprintf(gStatus, sizeof(gStatus), "traveling to %s e%d", base, elevation);
+    snprintf(gStatus, sizeof(gStatus), uiText("traveling to %s e%d"), base, elevation);
     return true;
 }
 
@@ -1948,6 +2044,13 @@ void scenePresented(const scene::RefreshResult& refreshed)
         printf("devtools: one-shot hero preview snapshot %s: %s\n",
             captured ? "saved" : "failed", gStatus);
         fflush(stdout);
+        if (captured && gGlowLadderStep >= 0 && gGlowLadderStep < 5) {
+            constexpr double strengths[] = { 0.5, 1.0, 2.0, 4.0, 8.0 };
+            gDevGlowStrength = strengths[gGlowLadderStep++];
+            gBackgroundGlow = true;
+            applyBackgroundGlow();
+            gSnapshotOncePending = true;
+        }
     }
 }
 
@@ -1987,7 +2090,58 @@ void vanillaPresented()
                 if (ownerCount < 2) ownerIds[ownerCount++] = window.id;
             }
         }
-        if (ownerCount >= 2) {
+        // A full-screen backdrop can present while the dialogue is still
+        // being built. Old world text is not a completed dialogue fixture.
+        if (ownerCount >= 2 && gameDialogGetOptionCount() > 0) {
+            if (gDialogLayoutCheckRequested) {
+                const int optionCount = gameDialogGetOptionCount();
+                const int lineHeight = fontGetLineHeight();
+                std::vector<GameDialogOptionLayout> layouts;
+                layouts.reserve(optionCount);
+                int visibleOptions = 0;
+                int textRows = 0;
+                for (int index = 0; index < optionCount; index++) {
+                    GameDialogOptionLayout layout = {};
+                    if (gameDialogGetOptionLayout(index, &layout)) {
+                        visibleOptions++;
+                        textRows += std::max(1, (layout.textBottom - layout.textTop + lineHeight - 1) / lineHeight);
+                        layouts.push_back(layout);
+                    }
+                }
+
+                const int expectedOptionCount = 7;
+                const int expectedTextRows = 8;
+                const int requiredGroupGap = settings.scene3d.sharp_text ? 4 : 2;
+                bool layoutValid = visibleOptions == expectedOptionCount && textRows == expectedTextRows;
+                printf("DIALOG_LAYOUT_CHECK PLAN sharp_setting=%d options=%d visible=%d text_rows=%d line_height=%d required_group_gap=%d\n",
+                    settings.scene3d.sharp_text ? 1 : 0, optionCount, visibleOptions, textRows, lineHeight, requiredGroupGap);
+                for (std::size_t row = 0; row < layouts.size(); row++) {
+                    const GameDialogOptionLayout& layout = layouts[row];
+                    const int gapFromPrevious = row == 0 ? 0 : layout.textTop - layouts[row - 1].textBottom;
+                    if (row > 0 && gapFromPrevious < requiredGroupGap) layoutValid = false;
+                    if (layout.buttonRight <= layout.buttonLeft || layout.buttonBottom <= layout.buttonTop
+                        || (row > 0 && layouts[row - 1].buttonBottom > layout.buttonTop)) {
+                        layoutValid = false;
+                    }
+                    printf("DIALOG_LAYOUT_CHECK ROW index=%d text_top=%d text_bottom=%d button_left=%d button_top=%d button_right=%d button_bottom=%d gap_from_previous=%d\n",
+                        layout.index, layout.textTop, layout.textBottom,
+                        layout.buttonLeft, layout.buttonTop, layout.buttonRight, layout.buttonBottom, gapFromPrevious);
+                }
+
+                if (layoutValid) {
+                    printf("DIALOG_LAYOUT_CHECK PASS geometry=non-overlapping buttons=%d text_rows=%d\n",
+                        visibleOptions, textRows);
+                } else {
+                    printf("DIALOG_LAYOUT_CHECK FAIL geometry=invalid buttons=%d text_rows=%d\n",
+                        visibleOptions, textRows);
+                }
+                fflush(stdout);
+                gDialogLayoutCheckRequested = false;
+                if (!layoutValid) {
+                    gDialogFixtureFinished = true;
+                    return;
+                }
+            }
             if (uiFixtureUsesDialogBarter()) {
                 uiFixtureDialogReady(gDialogFixtureScript, gDialogFixtureSpeakerId,
                     gDialogFixtureSpeakerTile, runCount);
@@ -2395,6 +2549,11 @@ void vanillaPresented()
     fflush(stdout);
 }
 
+void sceneOverlayPresented()
+{
+    uiFixtureScenePresented();
+}
+
 void sceneOverlaySynced(bool on)
 {
     // --dev-pick-probe: the click took the game out of the scene (a dialog).
@@ -2496,8 +2655,12 @@ bool handleKey(int key)
             else setStatus("3D scene on (Ctrl+F10 to return)");
             return true;
         }
+        // The game as it was: its own picture and its own pixel text.
         if (scene::requestedView() != scene::View::Off) {
-            disableStaticFloorPreview("3D scene off");
+            if (scene::showOriginal()) {
+                gStartupFloorPreviewFramesRemaining = 0;
+                setStatus("original game view (Ctrl+F10 to return)");
+            }
             return true;
         }
         // Back to the whole 3D scene, as the game starts it.
@@ -2697,22 +2860,22 @@ void draw(unsigned char* surface, int width, int height, int pitch)
     char line[128];
     int y = kPanelY + 4;
 
-    snprintf(line, sizeof(line), "DEV TOOLS  (Alt+D close)");
+    snprintf(line, sizeof(line), "%s", uiText("DEV TOOLS  (Alt+D close)"));
     fontDrawText(surface + pitch * y + kPanelX + 6, line, kPanelW - 12, pitch, DT_TITLE_COLOR);
     y += lineHeight + 1;
 
     char mapName[32];
     currentMapName(mapName, sizeof(mapName));
-    snprintf(line, sizeof(line), "map: %s e%d (want e%d)", mapName,
+    snprintf(line, sizeof(line), uiText("map: %s e%d (want e%d)"), mapName,
         static_cast<int>(gElevation), gSelectedElevation);
     fontDrawText(surface + pitch * y + kPanelX + 6, line, kPanelW - 12, pitch, DT_TEXT_COLOR);
     y += lineHeight;
 
-    snprintf(line, sizeof(line), "render: %s  light: off", activeRendererName());
+    snprintf(line, sizeof(line), uiText("render: %s  light: off"), activeRendererName());
     fontDrawText(surface + pitch * y + kPanelX + 6, line, kPanelW - 12, pitch, DT_ACTIVE_COLOR);
     y += lineHeight + 1;
 
-    snprintf(line, sizeof(line), "filter: %s_", gFilter);
+    snprintf(line, sizeof(line), uiText("filter: %s_"), gFilter);
     fontDrawText(surface + pitch * y + kPanelX + 6, line, kPanelW - 12, pitch, DT_TEXT_COLOR);
     y += lineHeight + 1;
 
@@ -2729,13 +2892,13 @@ void draw(unsigned char* surface, int width, int height, int pitch)
         fontDrawText(surface + pitch * (y + row * rowHeight) + kPanelX + 6, line, kPanelW - 12, pitch, color);
     }
     if (gFiltered.empty()) {
-        fontDrawText(surface + pitch * y + kPanelX + 6, "(no maps match)", kPanelW - 12, pitch, DT_ERROR_COLOR);
+        fontDrawText(surface + pitch * y + kPanelX + 6, uiText("(no maps match)"), kPanelW - 12, pitch, DT_ERROR_COLOR);
     }
     y += kListRows * rowHeight + 1;
 
     // Elevation row: the click zone starts where the labels start.
     int elevX = kPanelX + 6 + 40;
-    snprintf(line, sizeof(line), "elev:");
+    snprintf(line, sizeof(line), "%s", uiText("elev:"));
     fontDrawText(surface + pitch * y + kPanelX + 6, line, 40, pitch, DT_TEXT_COLOR);
     gElevRect = textButton(elevX, y, ELEVATION_COUNT * 24, lineHeight + 2);
     for (int e = 0; e < ELEVATION_COUNT; e++) {
@@ -2752,13 +2915,14 @@ void draw(unsigned char* surface, int width, int height, int pitch)
     gNextRect = textButton(kPanelX + 4 + bw, y, bw, lineHeight + 2);
     gGoRect = textButton(kPanelX + 4 + 2 * bw, y, bw, lineHeight + 2);
     gSnapRect = textButton(kPanelX + 4 + 3 * bw, y, bw, lineHeight + 2);
-    fontDrawText(surface + pitch * y + gPrevRect.x + 2, "<prev", bw - 4, pitch, DT_TEXT_COLOR);
-    fontDrawText(surface + pitch * y + gNextRect.x + 2, "next>", bw - 4, pitch, DT_TEXT_COLOR);
-    fontDrawText(surface + pitch * y + gGoRect.x + 2, "GO", bw - 4, pitch, DT_ACTIVE_COLOR);
-    fontDrawText(surface + pitch * y + gSnapRect.x + 2, "SNAP", bw - 4, pitch, DT_TEXT_COLOR);
+    fontDrawText(surface + pitch * y + gPrevRect.x + 2, uiText("<prev"), bw - 4, pitch, DT_TEXT_COLOR);
+    fontDrawText(surface + pitch * y + gNextRect.x + 2, uiText("next>"), bw - 4, pitch, DT_TEXT_COLOR);
+    fontDrawText(surface + pitch * y + gGoRect.x + 2, uiText("GO"), bw - 4, pitch, DT_ACTIVE_COLOR);
+    fontDrawText(surface + pitch * y + gSnapRect.x + 2, uiText("SNAP"), bw - 4, pitch, DT_TEXT_COLOR);
     y += lineHeight + 2;
 
-    snprintf(line, sizeof(line), "%s", gStatus);
+    const std::string localizedStatus = scene::menuStatusText(gStatus, settings.system.language);
+    snprintf(line, sizeof(line), "%s", localizedStatus.c_str());
     fontDrawText(surface + pitch * y + kPanelX + 6, line, kPanelW - 12, pitch, COLOR_LIGHT_GREY);
     gZonesValid = true;
 }
@@ -2768,7 +2932,7 @@ void currentMapName(char* buffer, size_t size)
     if (gMapHeader.name[0] != '\0') {
         snprintf(buffer, size, "%s", gMapHeader.name);
     } else {
-        snprintf(buffer, size, "(none)");
+        snprintf(buffer, size, "%s", uiText("(none)"));
     }
 }
 
@@ -2837,7 +3001,7 @@ bool takeSnapshot()
             }
             std::string error;
             if (!scene_renderer::captureStaticPreviewPng(imagePath, withWalls, heroPreview,
-                    &capturedWidth, &capturedHeight, &error)) {
+                    &capturedWidth, &capturedHeight, &error, gGlowLadderStep < 0)) {
                 std::string message = "snapshot failed: " + error;
                 setStatus(message.c_str());
                 return false;
@@ -3021,6 +3185,7 @@ bool takeSnapshot()
         "  \"preview_availability\": \"%s\",\n"
         "  \"renderer\": \"%s\",\n"
         "  \"light\": \"off\",\n"
+        "  \"glow\": {\"enabled\":%s,\"strength\":%.3f},\n"
         "  \"sun\": %s,\n"
         "  \"resolution\": \"%dx%d\",\n"
         "  \"logical_resolution\": \"%dx%d\",\n"
@@ -3062,6 +3227,8 @@ bool takeSnapshot()
         heroPreview ? scene::objectCardsSkipped() : 0u,
         previewRequested ? (scene_renderer::isActive() ? scene::availability() : "renderer-inactive") : "not-requested",
         activeRendererName(),
+        settings.scene3d.glow ? "true" : "false",
+        settings.scene3d.glow_strength,
         sunMetadata,
         capturedWidth,
         capturedHeight,
@@ -3084,7 +3251,7 @@ bool takeSnapshot()
         return false;
     }
 
-    snprintf(gStatus, sizeof(gStatus), "snapshot: %s", sidecarPath.filename().string().c_str());
+    snprintf(gStatus, sizeof(gStatus), uiText("snapshot: %s"), sidecarPath.filename().string().c_str());
     return true;
 }
 

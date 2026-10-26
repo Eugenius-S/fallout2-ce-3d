@@ -14,10 +14,11 @@ void drawStaticWallPreview();
 void drawStaticHeroPreview();
 
 // The same picture into a new PNG; with the hero it includes the game's
-// picture over the scene as last presented.
+// picture over the scene as last presented. Dev comparisons can omit the
+// overlay so UI readiness cannot change between captures in one run.
 bool captureStaticFloorPng(const std::filesystem::path& path, int* width, int* height, std::string* error);
 bool captureStaticPreviewPng(const std::filesystem::path& path, bool withWalls, bool withHero,
-    int* width, int* height, std::string* error);
+    int* width, int* height, std::string* error, bool includeOverlay = true);
 // The game's own picture (palette-expanded RGBA, top-down) as presentFrame
 // shows it in the window, into a new PNG at the window's size.
 bool captureFramePng(const std::filesystem::path& path, const unsigned char* rgba, int frameWidth, int frameHeight,

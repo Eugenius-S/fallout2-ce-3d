@@ -1,5 +1,7 @@
 #include "options_panel.h"
 #include "text_capture.h"
+#include "menu_text.h"
+#include "scene_view.h"
 
 #include <algorithm>
 #include <array>
@@ -17,6 +19,8 @@
 #include "../mouse.h"
 #include "../scripts.h"
 #include "../settings.h"
+#include "../scene_renderer/context.h"
+#include "../scene_renderer/text_draw.h"
 #include "../svga.h"
 #include "../text_font.h"
 #include "../window_manager.h"
@@ -25,6 +29,11 @@ namespace fallout {
 namespace scene {
 
 namespace {
+
+const char* localized(const char* text)
+{
+    return menuText(text, settings.system.language);
+}
 
 constexpr int kWidth = 640;
 constexpr int kHeight = 480;
@@ -44,7 +53,7 @@ constexpr int kSliderX = 355;
 constexpr int kSliderRight = 540;
 constexpr int kSliderValueX = 500;
 constexpr int kSliderValueWidth = 85;
-constexpr int kSliderTrackOffset = 22;
+constexpr int kLabelTextOffset = 4;
 constexpr int kSliderHitTolerance = 7;
 constexpr int kFrameNarrowInset = 16;
 constexpr int kScrollbarWidth = 12;
@@ -98,10 +107,40 @@ double editNumber(const SettingValue& value)
     return 0.0;
 }
 
+int sliderTextCenterOffset(int ownerWindow)
+{
+    ScopedFont font(101);
+    const int height = std::max(1, fontGetLineHeight());
+    int physicalWidth = 0;
+    int physicalHeight = 0;
+    int sharpCenter = 0;
+    if (sharpTextWanted() && scene_renderer::sharpTextLanguageSupported(settings.system.language)
+        && scene_renderer::sharpTextOutputSize(&physicalWidth, &physicalHeight)
+        && scene_renderer::sharpTextXHeightCenter(height, ownerWindow,
+            static_cast<double>(physicalHeight) / screenGetHeight(), &sharpCenter)) {
+        return kLabelTextOffset + sharpCenter;
+    }
+    const int width = std::max(1, fontGetStringWidth("x"));
+    std::vector<unsigned char> probe(static_cast<size_t>(width) * height, 0);
+    // Measure the lowercase body, without recording this off-screen probe as
+    // interface text. Font line boxes include space above/below the letters.
+    fontDrawTextPtr(probe.data(), "x", width, width, COLOR_GREEN | DRAW_TEXT_FLAG_NO_BG);
+    int top = height;
+    int bottom = -1;
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            if (probe[static_cast<size_t>(y) * width + x] == 0) continue;
+            top = std::min(top, y);
+            bottom = y;
+        }
+    }
+    return kLabelTextOffset + (bottom >= top ? (top + bottom + 1) / 2 : height / 2);
+}
+
 void drawRightAlignedControlText(unsigned char* panel, int rowY, int left, int right, const char* text, Color color)
 {
     const int width = std::min(fontGetStringWidth(text), right - left);
-    fontDrawText(panel + kWidth * (rowY + 4) + right - width, text, width, kWidth, color);
+    fontDrawText(panel + kWidth * (rowY + kLabelTextOffset) + right - width, text, width, kWidth, color);
 }
 
 } // namespace
@@ -124,6 +163,7 @@ bool OptionsPanel::initialize(int windowId, unsigned char* surface, const unsign
     pageY_ = pageY;
     model_ = std::make_unique<OptionsSettingsModel>();
     rows_ = optionsPanelRows(model_->edits(), "3d");
+    sliderTrackOffset_ = sliderTextCenterOffset(windowId_);
     buildRowLayout();
     if (background == nullptr || surface_ == nullptr || backgroundHeight < kHeight || screenWidth_ < kWidth || screenHeight_ < kHeight) return false;
     background_.assign(background, background + static_cast<size_t>(kWidth) * kHeight);
@@ -341,7 +381,7 @@ int OptionsPanel::sliderTrackTargetX(double ratio) const
     const double clampedRatio = std::clamp(ratio, 0.0, 1.0);
     return sliderTrackLeft() + static_cast<int>(std::round(clampedRatio * (sliderTrackRight() - sliderTrackLeft())));
 }
-int OptionsPanel::sliderTrackY(int index) const { return rowTop(index) + kSliderTrackOffset; }
+int OptionsPanel::sliderTrackY(int index) const { return rowTop(index) + sliderTrackOffset_; }
 
 void OptionsPanel::buildRowLayout()
 {
@@ -355,7 +395,7 @@ void OptionsPanel::buildRowLayout()
         if (key == "enabled" || key == "clean_edges" || key == "sharp_text") group = 0;
         else if (key == "sun" || key == "shadows" || key == "shadow_pixel_size" || key == "shadow_density"
             || key == "sun_swing" || key == "lights" || key == "glow" || key == "glow_strength") group = 1;
-        else if (key == "camera_rotation" || key == "zoom" || key == "zoom_min" || key == "zoom_max") group = 2;
+        else if (key == "camera_rotation" || key == "camera_rotation_unlimited" || key == "sprite_sides" || key == "zoom" || key == "zoom_min" || key == "zoom_max") group = 2;
         groupedRows[group].push_back(index);
     }
 
@@ -557,7 +597,7 @@ void OptionsPanel::draw()
     }
     rowFrameBackground_.assign(panel, panel + static_cast<size_t>(kWidth) * panelHeight);
     fontSetCurrent(104);
-    fontDrawText(panel + kWidth * 62 + 52 + frameInset(), "3D OPTIONS", 520, kWidth, COLOR_GREEN);
+    fontDrawText(panel + kWidth * 62 + 52 + frameInset(), localized("3D OPTIONS"), 520, kWidth, COLOR_GREEN);
     fontSetCurrent(101);
     drawRows();
     refresh();
@@ -571,7 +611,7 @@ void OptionsPanel::drawRows()
     for (const GroupLayout& group : groupLayouts_) {
         const int groupY = group.top - kPanelTop;
         fontSetCurrent(101);
-        fontDrawText(panel + kWidth * (groupY + 1) + kLabelX + inset, group.title.c_str(), 270, kWidth, COLOR_GREEN);
+        fontDrawText(panel + kWidth * (groupY + 1) + kLabelX + inset, localized(group.title.c_str()), 270, kWidth, COLOR_GREEN);
     }
     for (int index : displayOrder_) {
         const OptionsPanelRow& row = rows_[index];
@@ -590,13 +630,13 @@ void OptionsPanel::drawRows()
         const std::string displayLabel = localizedLabel != nullptr && localizedLabel[0] != '\0'
             ? localizedLabel
             : (descriptor.fallbackLabel.empty() ? descriptor.id : descriptor.fallbackLabel);
-        fontDrawText(panel + kWidth * (rowY + 4) + kLabelX + inset, displayLabel.c_str(), 270, kWidth, color);
+        fontDrawText(panel + kWidth * (rowY + kLabelTextOffset) + kLabelX + inset, displayLabel.c_str(), 270, kWidth, color);
 
         char valueText[128] = {};
         switch (row.control) {
         case OptionsPanelControl::Toggle: {
             bool value = std::get<bool>(row.edit->value);
-            std::snprintf(valueText, sizeof(valueText), "[%c] %s", value ? 'X' : ' ', value ? "On" : "Off");
+            std::snprintf(valueText, sizeof(valueText), "[%c] %s", value ? 'X' : ' ', localized(value ? "On" : "Off"));
             drawRightAlignedControlText(panel, rowY, kToggleX - inset, kToggleX + kToggleWidth - inset, valueText, color);
             break;
         }
@@ -623,7 +663,7 @@ void OptionsPanel::drawRows()
             break;
         }
         case OptionsPanelControl::Value:
-            if (const auto* value = std::get_if<bool>(&row.edit->value)) std::snprintf(valueText, sizeof(valueText), "%s", *value ? "On" : "Off");
+            if (const auto* value = std::get_if<bool>(&row.edit->value)) std::snprintf(valueText, sizeof(valueText), "%s", localized(*value ? "On" : "Off"));
             else if (const auto* value = std::get_if<int>(&row.edit->value)) std::snprintf(valueText, sizeof(valueText), "%d", *value);
             else if (const auto* value = std::get_if<double>(&row.edit->value)) std::snprintf(valueText, sizeof(valueText), "%.2f", *value);
             else if (const auto* value = std::get_if<std::string>(&row.edit->value)) std::snprintf(valueText, sizeof(valueText), "%s", value->c_str());

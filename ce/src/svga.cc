@@ -559,6 +559,7 @@ void renderPresent()
                 // The game's interface, mouse cursor and floating text over it.
                 scene_renderer::drawSceneOverlayWithSharpText(gSdlSurface, gSdlTextureSurface, sharpTextReady);
                 scene_renderer::swap();
+                devtools::sceneOverlayPresented();
                 return;
             }
             if (view == scene::View::Walls) {

@@ -465,6 +465,7 @@ void _swap_color_buf(unsigned char* buf, int width, int height, int pitch, Color
 // 0x4D3AE0
 void bufferOutline(unsigned char* buf, int width, int height, int pitch, Color color)
 {
+    ScopedTextOutlineCapture outlineCapture(buf, width, height, pitch);
     unsigned char* ptr = buf + pitch;
 
     bool cycle;

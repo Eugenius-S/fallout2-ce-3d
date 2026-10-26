@@ -1,0 +1,54 @@
+[
+  {
+    "kind": "barrel",
+    "crop": [
+      1460,
+      670,
+      1750,
+      870
+    ],
+    "glow_off_changed_pixels": 0,
+    "before_halo_sum": 630016.0,
+    "after_halo_sum": 586038.0,
+    "ratio": 0.9301954236082893
+  },
+  {
+    "kind": "campfire",
+    "crop": [
+      880,
+      380,
+      1080,
+      550
+    ],
+    "glow_off_changed_pixels": 0,
+    "before_halo_sum": 364774.0,
+    "after_halo_sum": 363595.0,
+    "ratio": 0.9967678617445322
+  },
+  {
+    "kind": "monitor",
+    "crop": [
+      600,
+      0,
+      1100,
+      450
+    ],
+    "glow_off_changed_pixels": 0,
+    "before_halo_sum": 2040858.0,
+    "after_halo_sum": 1011660.0,
+    "ratio": 0.4957032777390686
+  },
+  {
+    "kind": "slime",
+    "crop": [
+      740,
+      190,
+      1320,
+      580
+    ],
+    "glow_off_changed_pixels": 0,
+    "before_halo_sum": 666954.0,
+    "after_halo_sum": 666954.0,
+    "ratio": 1.0
+  }
+]

@@ -313,6 +313,8 @@ bool flyCameraMvp(float aspect, float* out);
 // The fly camera's screen right along the floor (GL x, z); false when it does
 // not fly.
 bool flyCameraRight(double* x, double* z);
+// The fly (or turned) camera's yaw round from the game's view, radians.
+bool flyCameraTurn(double* radians);
 // While the fly camera flies a standing card is seen from anywhere: it stands
 // upright on the middle of its footprint and turns to face the camera, as in
 // the donor's first person. The game's camera keeps the card it sees.

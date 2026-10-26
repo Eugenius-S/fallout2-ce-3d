@@ -98,8 +98,23 @@ A map tour stop may end in `:solo:turn:distance`
 (`kladwtwn:0:15123:1:90:3.5`): the things within `solo` hexes of the view
 tile alone, from the fly camera `turn` degrees round and `distance` units
 away; the shapes eval shoots a whole map in one run this way.
+The fly tour (`py -3 tools/tour/tour.py --before SIDE [--after SIDE]`, task
+078) shoots every spot of `tools/tour/spots.json` from the fly camera at
+-45, 0 and +45 degrees, one run per map elevation and side, frozen (`-Still`)
+in full daylight, and writes `before | after` sheets to `build/tour/sheets/`
+(`changed.jpg`, then `changed-2.jpg`..., holds only the spots that changed,
+or says none did). A side is a built checkout
+or a scene cache folder; a cache side runs this checkout's build with
+`dev-snapshot.ps1 -SceneCache DIR`.
 `-Turn N` (`--dev-camera-turn=N`) takes the snapshot with the 3D camera N
-quarter turns round, as `[3d] camera_rotation` turns it with [ and ].
+quarter turns round (legacy snapshot units). `-TurnDegrees D`
+(`--dev-camera-degrees=D`) accepts an exact angle, e.g. -45 or 45. Both
+snapshot overrides bypass player settings; the dev fly camera is unlimited.
+For players, `[3d] camera_rotation` enables [ and ] in 45-degree steps,
+clamped to -45..+45. `[3d] camera_rotation_unlimited` (off by default,
+marked not recommended in the Camera menu) permits a full turn. Turning rotation
+off returns to the game view; turning unlimited off clamps any current turn
+back into the safe range.
 `-Solo R` (`--dev-solo=TILE,R`, TILE is `-ViewTile`) draws only the things
 within R hexes of it, without walls or roofs (the hero stays: the fly camera needs it): one thing seen alone
 from every side (the shapes eval, `tools/shapes/eval/eval.py`).
@@ -107,6 +122,12 @@ from every side (the shapes eval, `tools/shapes/eval/eval.py`).
 From the air things are seen from any side: sprite cards stand upright and
 face the camera, and solids show their far sides (the near sides' pixels
 mirrored, as the donor's first person does); the game's camera culls those.
+Under a fly or turned camera a critter, an item or a thing in flight whose
+art has more than one side shows the side the camera sees: its own rotation
+moved by the camera's turn from the game's view in 60-degree steps, held 5
+degrees past each half-way (`[3d] sprite_sides`, on by default; 087). Scenery
+keeps its rotation: its art spends rotations on variants. `-NoSpriteSides`
+(`--dev-no-sprite-sides`) takes a snapshot without it, for a before | after.
 Doors and gates do not turn: they lie on their wall's plane. Cards no more
 than 20 pixels tall lie flat on the floor.
 Walls show their backs and the strips that close their ends: `walls.bin`
@@ -259,3 +280,25 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools/dev-launch.ps1 -Slot 1
 from save slot 1; the owner closes the old window. Never export into
 `game/mod-cache` without that build: an older engine cannot read a newer
 export.
+
+## Glow comparisons
+
+`dev-snapshot.ps1 -GlowStrength X` (`--dev-glow-strength=X`) implies `-Glow`
+and accepts 0..8. Values use an invariant decimal point. The player menu's
+slider covers the same range; the owner-selected default is 2.
+
+`-GlowLadder` captures glow off, then 0.5, 1, 2, 4, 8 in one frozen scene.
+It implies `-Still -CyclePalette`, rejects other fixtures/glow overrides,
+and suppresses the HUD in all six captures. Each JSON records `glow.enabled`
+and `glow.strength`. It does not change the owner's executable or config.
+
+`-CyclePalette` (`--dev-cycle-palette`) restores cycle.cc's rest-phase
+cycling entries 229..254 before the still view loads its object textures.
+Ordinary snapshots and normal gameplay keep their original palette behavior.
+
+The rest phase is explicit: color.pal leaves cycling entries unmapped, so
+_cmap contains zeros there. snapshot_palette.h supplies the engine's real
+6-bit cycle colors. Snapshot palette changes are opt-in and do not alter
+normal gameplay. One global glow-strength menu slider controls all sources;
+white/cyan emission is luminance-compensated in the shader, with gain 0.5..1.
+Warm red fire and green slime retain their existing contribution.

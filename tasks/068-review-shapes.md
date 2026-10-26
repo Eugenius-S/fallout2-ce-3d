@@ -2,13 +2,13 @@
 id: 068
 title: Small things from the owner's review get their right shape
 milestone: M1
-status: todo
+status: done
 owner: none
-suggested: gpt
+suggested: claude
 claude-only: no
 user-check: yes
 depends-on: []
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -41,3 +41,6 @@ check; each fix lands as a verdict there.
 Walls, corners and doors (071, 072); card order (067).
 
 ## Log
+
+### 2026-10-25 claude
+Folded into 075: closed here, the work goes on there.

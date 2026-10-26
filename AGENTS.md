@@ -18,7 +18,8 @@ decisions: [the roadmap](docs/2026-10-19-roadmap-design.md).
 Where things are: [shapes and camera rotation](docs/2026-10-20-shapes-and-rotation-design.md),
 [dev tools](docs/p1-devtools.md) (snapshots, tours, the fly camera, restarting
 the owner's game), [regression](tools/regression/README.md), the shapes eval
-in `tools/shapes/eval/` (`eval.py shoot | sheets | score`).
+in `tools/shapes/eval/` (`eval.py shoot | sheets | score`), the fly tour
+(`tools/tour/tour.py`, its spots in `tools/tour/spots.json`).
 
 ## Rules
 
@@ -30,14 +31,25 @@ in `tools/shapes/eval/` (`eval.py shoot | sheets | score`).
   your work with the background test instance (`tools/dev-snapshot.ps1`,
   `fallout2-ce-test.exe`), the only process you may stop; one agent at a time.
 - Python is `py -3` (`python` is a Store stub).
-- One task per thread: after its PR, start a new thread for the next task.
-  Open a snapshot image only when numbers or JSON cannot answer the question,
-  one at a time; every image stays in the context and is paid for on each
-  later request.
+- Limits go on re-reading the context: every call pays for the whole
+  thread so far (measured in 079: 99% of the tokens). So:
+  - one task per thread; after its PR, or once the thread is long, start a
+    new one from the task's `Log`;
+  - few calls: put read-only commands in one call; `dev-snapshot.ps1`
+    waits for the test slot itself, so never poll for it;
+  - open a snapshot image only when numbers or JSON cannot answer, one at a
+    time, cropped or scaled down; every image stays in the thread.
+- Evidence in `runs/` is a few JPEG sheets or crops of at most 1 MB each
+  (CI refuses more); raw captures stay in `game/shots/`.
 - A task that changed what the game, a tool or a folder looks like ends with
   at most 4 outcome screenshots attached in the chat when the task is done
   (and committed under its `runs/NNN-slug/` folder), so the owner sees the
   result without running anything. Pure code or numbers work needs none.
+- A change to what the 3D scene shows (the exporter, its caches, the
+  renderer) runs the fly tour against main (`py -3 tools/tour/tour.py
+  --before <main's scene cache or checkout>`) and attaches its
+  `changed.jpg` to the PR (in `runs/NNN-slug/`); a spot that should change
+  and did not, or changed and should not, is fixed before the merge.
 - Upstream CE code (`ce/src/*.cc` outside `scene/`, `scene_renderer/`,
   `devtools/`) gets a hook or a call at most; the logic lives in our modules.
 - OpenGL 4.1 core: no compute shaders, no SSBOs.
@@ -73,6 +85,7 @@ milestone: M0
 status: todo        # todo | doing | done
 owner: none         # claude | gpt | glm | none
 suggested: gpt      # a preference: if that agent is out of limits, take it
+priority: normal    # high: taken before the other free tasks
 claude-only: no
 user-check: no      # yes: the owner looks after the merge (never blocks)
 depends-on: []
@@ -81,7 +94,9 @@ reviewed: no        # see Review
 
 `tools/tasks.ps1` shows the board; `-Next <you>` prints the task to take:
 your own doing task, else a stale one (no commit on its branch for three
-days), else the first free `todo` suggested for you, else any free one.
+days), else the first free `todo` suggested for you, else any free one;
+`priority: high` tasks come first. Finish the task you took before taking
+another: a hard task is split (step 4), not handed over.
 
 1. Work in your own worktree, never switch branches in the main checkout:
    `git worktree add --detach ../fallout2-ce-3d-<you> origin/main`. It has no

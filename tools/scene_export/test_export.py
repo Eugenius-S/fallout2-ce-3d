@@ -487,6 +487,235 @@ class WallSidecarTests(unittest.TestCase):
         self.assertEqual(ends[2], (False, False))  # nor does one across it
         self.assertNotIn(3, ends)
 
+    def test_a_corner_closes_for_the_free_camera_only(self):
+        from unittest import mock
+        import wall_sidecar
+        # An L: the wall along u runs 0.4 past the far face of the one along v
+        # (u 3.0), which stops 0.5 short of the first's front (v 2.0). Both
+        # fronts face out of the corner: each runs to the other's front, the
+        # backs and tops stop at the other's back; nothing ends in between.
+        along_u = [0, 1.0, 2.0, 3.4, 2.0, 0.0, 2.0, 0, 1, 1.8, 0.25, -1]
+        along_v = [1, 3.0, 0.0, 3.0, 1.5, 0.0, 2.0, 0, 1, 1.8, 0.25, -1]
+        corners = wall_sidecar._corner_fits([along_u, along_v], set(), (0.49, 0.74, 0.46))
+        self.assertAlmostEqual(corners.keep[0][1], 2.0 / 2.4)  # the front to u 3.0
+        self.assertAlmostEqual(corners.back_keep[0][1], 1.75 / 2.4)  # the back and top to u 2.75
+        self.assertAlmostEqual(corners.top_keep[0][1], 1.75 / 2.4)
+        self.assertEqual([(round(s0, 3), round(s1, 3), back) for _, _, s0, s1, back in corners.fills],
+                         [(1.5, 2.0, False), (1.5, 1.75, True)])
+        self.assertEqual(len(corners.caps), 3)  # each end's, and the square's
+        self.assertEqual(len(corners.moved), 2)
+        # What the game's camera draws is the same triangles as without the pass.
+        scene = self.sample_scene()
+        scene["walls"] = [along_u, along_v]
+        def game(data):
+            return sorted(tuple(round(n, 5) for n in vertex) for batch in data["batches"] if not batch["fly_only"]
+                          for vertex in batch["vertices"])
+        with mock.patch.object(wall_sidecar, "_corner_fits", return_value=wall_sidecar._Corners()):
+            plain = decode_wall_sidecar(encode_wall_sidecar(scene))
+        closed = decode_wall_sidecar(encode_wall_sidecar(scene))
+        self.assertEqual(game(closed), game(plain))
+        fly = lambda data: sum(batch["triangles"] for batch in data["batches"] if batch["fly_only"])
+        self.assertGreater(fly(closed), fly(plain))
+
+    def test_a_wall_ending_above_the_floor_gets_a_foot_for_the_free_camera(self):
+        # Task 081: a picture whose clear bottom rows were trimmed ends 0.12
+        # over the floor; its front and back run down to it in the fly
+        # batches, in one picture row; the game's camera keeps what it had.
+        scene = self.sample_scene()
+        scene["walls"] = [[0, 1.0, 2.0, 3.0, 2.0, 0.12, 2.0, 0, 1, 1.8, 0.25, -1]]
+        decoded = decode_wall_sidecar(encode_wall_sidecar(scene))
+        fly = [v for batch in decoded["batches"] if batch["fly_only"] for v in batch["vertices"]]
+        game = [v for batch in decoded["batches"] if not batch["fly_only"] for v in batch["vertices"]]
+        self.assertAlmostEqual(min(v[1] for v in game), 0.12)
+        feet = [v for v in fly if v[1] < 0.12 - 1e-6]
+        self.assertEqual(len(feet), 2 * 3)  # the front's and the back's lower edge
+        self.assertTrue(all(abs(v[1]) < 1e-6 for v in feet))
+        page_h = scene["pages"][0]["size"][1]
+        self.assertLess(max(v[4] for v in feet) - min(v[4] for v in feet), 1.0 / page_h)  # one picture row
+        scene["walls"][0][5] = 0.6  # a row this high stands on something else
+        decoded = decode_wall_sidecar(encode_wall_sidecar(scene))
+        self.assertFalse([v for batch in decoded["batches"] for v in batch["vertices"] if v[1] < 0.6 - 1e-6])
+
+    def test_a_wall_over_a_roof_is_cut_at_the_roof_for_the_free_camera_only(self):
+        import wall_sidecar
+        # Task 081: a wall face 2.5 high from u 1 to 3 at v 2.5; only square
+        # (2, 2) has a roof. The game's camera keeps both triangles whole; the
+        # free camera keeps all of it but the part over that square, its rim
+        # included, above the roof height.
+        off, height = wall_sidecar.GL_MAP_OFFSET, 1.88
+        opaque, clear = [[255] * 100] * 100, [[0] * 100] * 100  # the roof cell's texels, rim included
+        corner = lambda u, y: (u - off, y, 2.5 - off, u - 1.0, y, u, y, 2.5, 0.0)
+        a, b, c, d = corner(1.0, 0.0), corner(3.0, 0.0), corner(3.0, 2.5), corner(1.0, 2.5)
+        shared = {0: [n for vertex in (a, b, c, a, c, d) for n in vertex]}
+        game, fly = {}, {}
+        wall_sidecar._cut_by_roofs(shared, wall_sidecar._Roofs(height, {(2, 2): (0, 0)}, opaque), game, fly)
+        self.assertEqual(shared, {})
+        self.assertEqual(len(game[0]), 6 * wall_sidecar.FLOATS)
+        points = [fly[0][i:i + wall_sidecar.FLOATS] for i in range(0, len(fly[0]), wall_sidecar.FLOATS)]
+        rim = wall_sidecar.ROOF_RIM
+        self.assertFalse([p for p in points if p[1] > height + 0.01 and p[0] + off > 2.0 - rim + 1e-6])
+        self.assertTrue([p for p in points if p[1] > 2.4 and p[0] + off < 2.0 - rim])
+        self.assertTrue(all(abs(p[3] - (p[0] + off - 1.0)) < 1e-6 for p in points))  # values follow the cut
+        area = sum(abs((q[0] - p[0]) * (r[1] - p[1]) - (r[0] - p[0]) * (q[1] - p[1])) / 2
+                   for p, q, r in zip(points[0::3], points[1::3], points[2::3]))
+        self.assertAlmostEqual(area, 2 * 2.5 - (1 + rim) * (2.5 - height - wall_sidecar.ROOF_SLACK), places=4)
+        # a wall in the rim, just off the square, is under the roof the engine
+        # draws where the rim's texels are opaque, and stays where they are clear
+        near = lambda v, y: (1.97 - off, y, v - off, v, y, 1.97, y, v, 0.0)
+        a, b, c, d = near(2.2, 0.0), near(2.8, 0.0), near(2.8, 2.5), near(2.2, 2.5)
+        for tiles, cut in ((opaque, True), (clear, False)):
+            shared = {0: [n for vertex in (a, b, c, a, c, d) for n in vertex]}
+            wall_sidecar._cut_by_roofs(shared, wall_sidecar._Roofs(height, {(2, 2): (0, 0)}, tiles))
+            self.assertEqual(not [v for v in shared[0][1::wall_sidecar.FLOATS] if v > height + 0.01], cut)
+        # a wall lying on a square's edge is cut, not doubled
+        edge = lambda u, y: (u - off, y, 2.0 - off, u - 1.0, y, u, y, 2.0, 0.0)
+        a, b, c, d = edge(1.0, 0.0), edge(3.0, 0.0), edge(3.0, 2.5), edge(1.0, 2.5)
+        shared = {0: [n for vertex in (a, b, c, a, c, d) for n in vertex]}
+        wall_sidecar._cut_by_roofs(shared, wall_sidecar._Roofs(height, {(2, 2): (0, 0)}, clear))
+        points = [shared[0][i:i + wall_sidecar.FLOATS] for i in range(0, len(shared[0]), wall_sidecar.FLOATS)]
+        area = sum(abs((q[0] - p[0]) * (r[1] - p[1]) - (r[0] - p[0]) * (q[1] - p[1])) / 2
+                   for p, q, r in zip(points[0::3], points[1::3], points[2::3]))
+        self.assertAlmostEqual(area, 2 * 2.5 - (2.5 - height - wall_sidecar.ROOF_SLACK), places=4)
+
+    def test_a_corner_picture_running_out_past_the_crossing_still_makes_a_corner(self):
+        import wall_sidecar
+        # Task 081: the wall along v ends in a corner picture (v 1.5 .. 2.8)
+        # that runs 0.8 past the other wall's front, out of reach: still an
+        # L, and the picture is the corner piece the free camera folds, no
+        # fin standing out into the street.
+        along_u = [0, 1.0, 2.0, 3.0, 2.0, 0.0, 2.0, 0, 1, 1.8, 0.25, -1]
+        along_v = [1, 3.0, 0.0, 3.0, 1.5, 0.0, 2.0, 0, 1, 1.8, 0.25, -1]
+        piece = [2, 3.0, 1.5, 3.0, 2.8, 0.0, 2.0, 0, 1, 1.8, 0.25, -1]
+        corners = wall_sidecar._corner_fits([along_u, along_v, piece], set(), (0.49, 0.74, 0.46),
+                                            lambda index: 16, (48.0, 32.0))
+        self.assertIn(2, corners.pieces)
+
+    def test_a_corner_block_takes_a_wide_picture_not_the_end_strip(self):
+        import wall_sidecar
+        # The wall along v ends in a 2-column strip short of the corner: the
+        # faces that fill the shortfall take the 16-column row behind it, not
+        # the strip stretched into stripes.
+        along_u = [0, 1.0, 2.0, 3.4, 2.0, 0.0, 2.0, 0, 1, 1.8, 0.25, -1]
+        along_v = [1, 3.0, 0.0, 3.0, 1.45, 0.0, 2.0, 0, 1, 1.8, 0.25, -1]
+        strip = [2, 3.0, 1.45, 3.0, 1.5, 0.0, 2.0, 0, 1, 1.8, 0.25, -1]
+        walls = [along_u, along_v, strip]
+        width = lambda index: (16, 16, 2)[index]
+        corners = wall_sidecar._corner_fits(walls, set(), (0.49, 0.74, 0.46), width, (48.0, 32.0))
+        self.assertEqual([pool for _, pool, _, _, _ in corners.fills], [[1], [1]])
+
+    @staticmethod
+    def decor_corner():
+        """An L whose wall along u ends in a corner piece (u 2.6 .. 3.4) that
+        runs into the square where the walls cross: walls, sprites (16 x 60
+        pictures side by side), projection, corners."""
+        import wall_sidecar
+        proj = Projection(donor_proj.as_json())
+        walls = [[0, 1.0, 2.0, 2.6, 2.0, 0.0, 2.0, 0, 1, 1.8, 0.25, -1],
+                 [1, 2.6, 2.0, 3.4, 2.0, 0.0, 2.0, 0, 1, 1.8, 0.25, -1],
+                 [2, 3.0, 0.0, 3.0, 1.5, 0.0, 2.0, 0, 1, 1.8, 0.25, -1]]
+        sprites = [[0, 20 * index, 0, 16, 60, 0, 0] for index in range(3)]
+        corners = wall_sidecar._corner_fits(walls, set(), proj.toward, lambda index: 16, (48.0, 32.0))
+        return walls, sprites, proj, corners
+
+    def test_a_decor_corner_folds_onto_both_fronts_seen_as_the_game_draws_it(self):
+        from unittest import mock
+        import wall_sidecar
+        walls, sprites, proj, corners = self.decor_corner()
+        self.assertEqual(list(corners.pieces), [1])
+        slab, out, twin, twin_out, start = corners.pieces[1]
+        self.assertAlmostEqual(start, 2.6)
+        faces = []
+        with mock.patch.object(wall_sidecar, "_polygon", lambda batches, proj, page, size, corners: faces.append(corners)):
+            wall_sidecar._corner_decor(None, proj, sprites, [[100, 100]], proj.toward, walls[1], slab, out, twin, twin_out)
+        self.assertGreater(len(faces), 1)
+        lift = wall_sidecar.DECOR_LIFT
+        x, y, w, h = sprites[1][1:5]
+        e0 = proj.ground_to_px(2.6, 2.0, 0.0)
+        e1 = proj.ground_to_px(3.4, 2.0, 0.0)
+        spans = []
+        for face in faces:
+            for u, v, z, tx, ty in face:
+                # On a front: the u wall's (v 2.0) up to the corner's edge, or
+                # the v wall's (u 3.0) up to it, a hair out of the face.
+                on_u = abs(v - (2.0 + lift)) < 1e-6 and u <= 3.0 + lift + 1e-6
+                on_v = abs(u - (3.0 + lift)) < 1e-6 and v <= 2.0 + lift + 1e-6
+                self.assertTrue(on_u or on_v, (u, v))
+                # The game's camera sees the texel where the game drew it.
+                column, rows = tx - x, h - (ty - y)
+                sx, sy = proj.ground_to_px(u, v, z)
+                self.assertAlmostEqual(sx, e0[0] + (e1[0] - e0[0]) * column / w, places=4)
+                self.assertAlmostEqual(sy, e0[1] + (e1[1] - e0[1]) * column / w - rows, places=4)
+            spans.append((min(tx for *_, tx, _ in face) - x, max(tx for *_, tx, _ in face) - x))
+        # Every column of the picture lands somewhere: no gap opens in it.
+        reach = 0.0
+        for lo, hi in sorted(spans):
+            self.assertLessEqual(lo, reach + 1e-6)
+            reach = max(reach, hi)
+        self.assertAlmostEqual(reach, w)
+
+    def test_only_a_dull_corner_piece_unlike_its_wall_counts_as_decor(self):
+        import numpy as np
+        import wall_sidecar
+        walls, sprites, proj, corners = self.decor_corner()
+        hpx = donor_proj.as_json()["hpx"]
+        def decor(piece):
+            atlas = np.full((100, 100, 4), 255, np.uint8)
+            atlas[:, :, :3] = 120  # plain gray walls
+            atlas[:60, 20:36, :3] = piece
+            return wall_sidecar._decor_pieces([atlas], sprites, hpx, walls, corners)
+        self.assertEqual(decor((120, 120, 120)), [])  # the plain wall turning the corner
+        self.assertEqual(decor((70, 70, 70)), [1])  # a darker pilaster
+        self.assertEqual(decor((150, 80, 60)), [])  # bricks: the wall's own material
+        stripes = np.full((60, 16, 3), 120, np.uint8)
+        stripes[:, ::2] = 40
+        self.assertEqual(decor(stripes), [1])  # same shade, but a pattern the wall lacks
+        self.assertEqual(wall_sidecar._decor_pieces(None, sprites, hpx, walls, corners), [])
+
+    def test_a_front_up_to_decor_repeats_its_last_columns(self):
+        from unittest import mock
+        import wall_sidecar
+        walls, sprites, proj, corners = self.decor_corner()
+        hpx = donor_proj.as_json()["hpx"]
+        slab, pool, s0, s1, back = next(fill for fill in corners.fills if fill[0] is corners.pieces[1][0]
+                                        and not fill[4])
+        faces = []
+        with mock.patch.object(wall_sidecar, "_polygon", lambda batches, proj, page, size, corners, away=False:
+                               faces.append(corners)):
+            wall_sidecar._corner_fill(None, proj, sprites, [[100, 100]], hpx, (48.0, 32.0), walls, pool, slab,
+                                      s0, s1, back, None, True)
+        # 0.4 + seam + edge along u at 48 columns a unit: one whole run of
+        # the row's last 16 columns (its b end at u 2.6 shows column 16), then
+        # the start of the next.
+        self.assertEqual(len(faces), 2)
+        first, second = ([tx for _, _, _, tx, _ in face] for face in faces)
+        self.assertAlmostEqual(first[0], 0)
+        self.assertAlmostEqual(first[1], 16)
+        self.assertAlmostEqual(second[0], 0)
+        self.assertLess(second[1], 16)
+        self.assertAlmostEqual(faces[0][1][0], faces[1][0][0])  # the runs meet
+
+    def test_a_corner_core_stands_in_solid_walls_only(self):
+        import numpy as np
+        # The L of the test above gets an opaque core inside the corner for
+        # the free camera; a clear mesh (half its texels clear) gets none.
+        scene = self.sample_scene()
+        scene["walls"] = [[0, 1.0, 2.0, 3.4, 2.0, 0.0, 2.0, 0, 1, 1.8, 0.25, -1],
+                          [1, 3.0, 0.0, 3.0, 1.5, 0.0, 2.0, 0, 1, 1.8, 0.25, -1]]
+        solid = np.full((100, 100, 4), 255, np.uint8)
+        mesh = solid.copy()
+        mesh[::2, :, 3] = 0
+        fly = lambda atlas: sum(batch["triangles"] for batch in decode_wall_sidecar(
+            encode_wall_sidecar(scene, atlas=None if atlas is None else [atlas]))["batches"] if batch["fly_only"])
+        self.assertGreater(fly(solid), fly(mesh))
+        self.assertEqual(fly(None), fly(solid))  # without the atlas every wall counts as solid
+        # A lower wall gets no fin: the core's arm in it stays below its top.
+        scene["walls"][1][6], scene["walls"][1][9] = 0.9, 0.8
+        vertices = lambda atlas: {tuple(round(n, 4) for n in v[:3]) for batch in decode_wall_sidecar(
+            encode_wall_sidecar(scene, atlas=[atlas]))["batches"] if batch["fly_only"] for v in batch["vertices"]}
+        arm = [z for x, z, y in vertices(solid) - vertices(mesh) if y + 50.0 < 1.7]
+        self.assertTrue(arm)
+        self.assertLessEqual(max(arm), 0.8)
+
     def test_first_person_surfaces_are_for_the_fly_camera_only(self):
         # Backs and trims go into fly-only batches: what the game's camera
         # draws stays the same.
@@ -613,6 +842,12 @@ class BakedSidecarTests(unittest.TestCase):
         self.assertIn((300, 0x02000099, BAKED_FLY_SKIP, 0.0, 0.0, 0.0), entries)
         self.assertIn((400, 0x00000036, BAKED_SKIP, 0.0, 0.0, 0.0), entries)
         self.assertEqual(decode_baked_sidecar(encode_baked_sidecar(entries)), entries)
+
+    def test_a_detail_of_a_joined_thing_hides_its_card_in_flight_beside_forms(self):
+        scene, objects = self.sample()
+        scene["forms"], scene["props"], scene["flyBoards"] = [[0]], [[0, 1, 1, 0]], [1]  # board 1 names no row
+        entries = baked_objects(scene, objects)
+        self.assertIn((400, 0x00000036, BAKED_FLY_SKIP, 0.0, 0.0, 0.0), entries)
 
     def test_a_plant_s_object_casts_no_shadow(self):
         scene, objects = self.sample()
@@ -762,6 +997,90 @@ class ShadowSidecarTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "truncated"):
             decode_shadow_sidecar(payload[:-33])
 
+
+class ThingShapeTests(unittest.TestCase):
+    """Task 075: the pieces of one thing are fitted together, and solids keep out of walls and each other."""
+
+    @staticmethod
+    def piece(name, x, y, w, h, tile=1, order=0):
+        import numpy as np
+        from types import SimpleNamespace
+        from vendor.fp import props
+        return props.Piece(SimpleNamespace(tile=tile), np.ones((h, w), np.uint8), np.zeros((h, w, 4), np.uint8),
+                           x, y, order, name)
+
+    def test_a_detail_inside_a_bigger_piece_of_its_name_joins_it(self):
+        from vendor.fp import props
+        bed, rail = self.piece("Bed", 0, 0, 80, 60, tile=1), self.piece("Bed", 50, 30, 25, 20, tile=401, order=1)
+        crate = self.piece("Crate", 10, 10, 20, 20, tile=3, order=2)
+        groups = sorted(props.groups([bed, rail, crate]), key=len)
+        self.assertEqual([[crate], [bed, rail]], groups)
+        self.assertIs(bed, props.lead(groups[1]))
+        apart = self.piece("Bed", 70, 30, 25, 20, tile=402)          # half of it outside the bed: a bed of its own
+        self.assertEqual(2, len(props.groups([bed, apart])))
+
+    def scene(self, rows, boxes=()):
+        from types import SimpleNamespace
+        return SimpleNamespace(props=[list(row) for row in rows], boxes=list(boxes))
+
+    @staticmethod
+    def row(round_, cu, cv, a, b, u=None, v=None, z1=0.5):
+        return [0, cu if u is None else u, cv if v is None else v, -1, round_, cu, cv, a, b, 0.0, z1, z1, z1, 0, 0, 0]
+
+    def test_two_things_that_overlap_in_plan_are_cut_back_by_half_each(self):
+        from vendor.fp import scene
+        fake = self.scene([self.row(0, 0.0, 0.0, 1.0, 1.0), self.row(0, 0.8, 0.1, 1.0, 1.0)])
+        scene.SceneBuilder.keep_apart(fake, [0, 1])
+        game, cut = fake.props[:2], fake.props[2:]
+        self.assertEqual([2, 2, 1, 1], [row[15] for row in fake.props])  # the game's camera keeps them as made
+        self.assertEqual(1.0, game[0][7])
+        first, second = cut
+        self.assertAlmostEqual(first[5] + first[7] / 2, second[5] - second[7] / 2, places=3)   # they meet at u = 0.4
+        self.assertAlmostEqual(0.4, first[5] + first[7] / 2, places=3)
+        self.assertEqual(1.0, first[8])                                  # cut across u only
+        slices = self.scene([self.row(0, 0.0, 0.0, 1.0, 1.0), self.row(0, 0.8, 0.1, 1.0, 1.0)])
+        scene.SceneBuilder.keep_apart(slices, [0, 0])                          # slices of one thing stay
+        held = self.scene([self.row(0, 0.0, 0.0, 2.0, 2.0), self.row(0, 0.1, 0.1, 1.0, 1.0)])
+        scene.SceneBuilder.keep_apart(held, [0, 1])                            # one holds the other along u
+        big, small = held.props[2:]
+        self.assertAlmostEqual(big[5] + big[7] / 2, small[5] - small[7] / 2, places=3)
+        self.assertEqual(2, len(slices.props))
+        self.assertEqual(1.0, slices.props[0][7])
+
+    def test_a_drum_in_a_wall_keeps_its_hex_side_and_its_near_edge(self):
+        from vendor.fp import proj, scene
+        radius = 0.5
+        fake = self.scene([self.row(1, 0.0, 0.0, radius * proj.BB_PX, radius * proj.BB_PX * 0.5, u=0.0, v=0.4)],
+                          boxes=[(-2.0, -0.2, 2.0, 0.1)])                 # a slab along u through the drum's axis
+        scene.SceneBuilder.keep_apart(fake, [0])
+        cu, cv, a = fake.props[1][5:8]
+        r = a / proj.BB_PX
+        self.assertAlmostEqual(0.1, cv - r, places=3)                    # on the slab's face
+        self.assertAlmostEqual(0.5, cv + r, places=3)                    # its near edge where it was
+        self.assertAlmostEqual(0.0, cu, places=3)
+
+    def test_a_cut_solid_is_the_fly_cameras_and_as_made_the_games(self):
+        import solids
+        faces = [(0, [], False, "both"), (0, [], False, "game"), (0, [], True, "fly")]
+        row = self.row(1, 0.0, 0.0, 1.0, 1.0)
+        row[15] = 1
+        self.assertEqual(["fly", "fly"], [face[3] for face in solids._forced(row, faces)])
+        row[15] = 2
+        self.assertEqual(["game", "game"], [face[3] for face in solids._forced(row, faces)])
+        row[14] = 1                                                      # by name: the game's camera keeps the card
+        self.assertEqual([], solids._forced(row, faces))
+
+    def test_a_cut_solid_by_name_keeps_its_axis_for_its_rests(self):
+        import solids
+        from vendor.fp import scene
+        crate = self.row(0, 0.0, 0.0, 1.0, 1.0)
+        crate[14] = 1
+        fake = self.scene([crate, self.row(0, 0.8, 0.1, 1.0, 1.0)])
+        scene.SceneBuilder.keep_apart(fake, [0, 1])
+        self.assertEqual([2, 2, 1, 1], [row[15] for row in fake.props])
+        self.assertEqual((0.0, 0.0), tuple(fake.props[0][5:7]))       # as made: its rests' axis
+        self.assertEqual([], solids._forced(fake.props[0], [(0, [], False, "both")]))
+        self.assertAlmostEqual(0.4, fake.props[2][5] + fake.props[2][7] / 2, places=3)
 
 if __name__ == "__main__":
     unittest.main()

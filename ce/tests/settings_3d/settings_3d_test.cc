@@ -1,5 +1,7 @@
 #include "settings.h"
+#include "scene/menu_text.h"
 #include "scene/scene_settings.h"
+#include "scene/camera_turn.h"
 #include "config.h"
 
 #include <cctype>
@@ -11,6 +13,7 @@ namespace fallout {
 Config gGameConfig = {};
 static const char* gConfiguredThreeDValue = nullptr;
 static const char* gConfiguredCleanEdgesValue = nullptr;
+static const char* gConfiguredLanguage = nullptr;
 static bool gInterruptWalkConfigPresent = true;
 static bool gInterruptWalkConfigValue = false;
 
@@ -24,6 +27,10 @@ bool gameConfigExit(bool) { return true; }
 
 bool configGetString(Config*, const char* section, const char* key, char** value)
 {
+    if (std::strcmp(section, "system") == 0 && std::strcmp(key, "language") == 0 && gConfiguredLanguage != nullptr) {
+        *value = const_cast<char*>(gConfiguredLanguage);
+        return true;
+    }
     if (std::strcmp(section, "3d") == 0 && std::strcmp(key, "enabled") == 0 && gConfiguredThreeDValue != nullptr) {
         *value = const_cast<char*>(gConfiguredThreeDValue);
         return true;
@@ -159,6 +166,30 @@ int main()
             && descriptor->fallbackLabel == "Enable 3D scene" && !descriptor->fallbackDescription.empty(),
             "descriptor has apply policy and fallback menu metadata")) return 1;
     const SettingDescriptor* unrelatedDescriptor = findDescriptor("system.interrupt_walk");
+    const SettingDescriptor* rotation = findDescriptor("3d.camera_rotation");
+    const SettingDescriptor* unlimited = findDescriptor("3d.camera_rotation_unlimited");
+    if (!check(rotation && unlimited && !std::get<bool>(rotation->defaultValue)
+            && !std::get<bool>(unlimited->defaultValue)
+            && !settings.scene3d.camera_rotation_unlimited
+            && unlimited->applyPolicy == SettingApplyPolicy::OnClose
+            && unlimited->fallbackLabel.find("not recommended") != std::string::npos,
+            "rotation and unrestricted rotation are independent default-off menu options")) return 1;
+    double angle = 0.0;
+    for (int i = 0; i < 100; ++i) angle = scene::cameraTurnTarget(angle, 1, false);
+    if (!check(angle == 45.0 && scene::cameraTurnTarget(angle, -1, false) == 0.0,
+            "held right stops at +45 and one left returns to game view")) return 1;
+    for (int i = 0; i < 100; ++i) angle = scene::cameraTurnTarget(angle, -1, false);
+    if (!check(angle == -45.0 && scene::cameraTurnTarget(angle, 1, false) == 0.0,
+            "held left stops at -45 and one right returns to game view")) return 1;
+    angle = 0.0;
+    for (int i = 0; i < 8; ++i) angle = scene::cameraTurnTarget(angle, 1, true);
+    if (!check(angle == 360.0 && scene::cameraTurnTarget(0.0, -8, true) == -360.0,
+            "own-risk option permits a full turn in both directions")) return 1;
+    if (!check(scene::limitedCameraTurn(270.0) == -45.0
+            && scene::limitedCameraTurn(-270.0) == 45.0
+            && scene::limitedCameraTurn(360.0) == 0.0
+            && scene::limitedCameraTurn(22.5) == 22.5,
+            "revoking unlimited rotation wraps then clamps the current view")) return 1;
     if (!check(unrelatedDescriptor != nullptr, "real unrelated setting descriptor is registered")) return 1;
     if (!check(settingsGetRevision(*descriptor) == 0 && settingsGetRevision(*unrelatedDescriptor) == 1,
             "config read increments only the changed setting revision")) return 1;
@@ -290,5 +321,76 @@ int main()
     if (!check(settingsSetValue(*zoom, SettingValue(1.25), &zoomError) && settings.scene3d.zoom == 1.25,
             "camera zoom applies immediately through its registered OnClose descriptor")) return 1;
     if (!check(settingsSetValue(*zoom, SettingValue(1.0), &zoomError), "camera zoom test restores the default")) return 1;
+    for (const auto& item : settingsGetDescriptors()) {
+        if (item.section != "3d") continue;
+        if (!check(scene::hasMenuTranslation(item.fallbackLabel.c_str()),
+                (item.id + " needs a Russian menu label").c_str())) return 1;
+        if (!check(scene::hasMenuTranslation(item.fallbackDescription.c_str()),
+                (item.id + " needs a Russian menu description").c_str())) return 1;
+    }
+    if (!check(std::string(scene::menuText("On", "RuSsIaN")) == "\xC2\xEA\xEB",
+            "Russian menu text uses CP1251 and case-insensitive language selection")) return 1;
+    if (!check(std::string(scene::menuText("Camera rotation", "russian")).find("-45\xB0") != std::string::npos
+            && std::string(scene::menuText("Camera rotation", "russian")).find("+45\xB0") != std::string::npos
+            && std::string(scene::menuText("Camera rotation", "russian")).find('?') == std::string::npos,
+            "camera range preserves signs and degree symbols in the game's encoding")) return 1;
+    if (!check(static_cast<unsigned char>(scene::menuText("Sharp interface text", "russian")[1]) == 0xB8,
+            "Russian yo is encoded for the existing game fonts")) return 1;
+    if (!check(std::string(scene::menuText("On", "german")) == "On"
+            && std::string(scene::menuText("Missing translation", "russian")) == "Missing translation"
+            && !scene::hasMenuTranslation("Missing translation"),
+            "unknown languages and missing translations keep the English fallback")) return 1;
+    auto localizedDescriptors = settingsGetDescriptors();
+    scene::localizeMenuDescriptors(localizedDescriptors, "russian");
+    for (std::size_t i = 0; i < localizedDescriptors.size(); ++i) {
+        const auto& original = settingsGetDescriptors()[i];
+        if (original.section != "3d") continue;
+        if (!check(localizedDescriptors[i].fallbackLabel != original.fallbackLabel
+                && localizedDescriptors[i].fallbackDescription != original.fallbackDescription
+                && localizedDescriptors[i].id == original.id,
+                "Russian labels and descriptions change without changing setting IDs")) return 1;
+    }
+    scene::localizeMenuDescriptors(localizedDescriptors, "english");
+    for (std::size_t i = 0; i < localizedDescriptors.size(); ++i) {
+        if (!check(localizedDescriptors[i].fallbackLabel == settingsGetDescriptors()[i].fallbackLabel
+                && localizedDescriptors[i].fallbackDescription == settingsGetDescriptors()[i].fallbackDescription,
+                "reinitialization restores exact English metadata")) return 1;
+    }
+    const std::string status = scene::menuStatusText("snapshot: example.png", "russian");
+    if (!check(status != "snapshot: example.png" && status.find("example.png") != std::string::npos,
+            "localized status keeps dynamic filenames intact")) return 1;
+    const auto englishDescriptors = settingsGetDescriptors();
+    gConfiguredLanguage = "russian";
+    if (!check(initializeWith(nullptr), "initialize real descriptors in Russian")) return 1;
+    for (std::size_t i = 0; i < englishDescriptors.size(); ++i) {
+        if (englishDescriptors[i].section != "3d") continue;
+        if (!check(settingsGetDescriptors()[i].fallbackLabel != englishDescriptors[i].fallbackLabel
+                && settingsGetDescriptors()[i].fallbackDescription != englishDescriptors[i].fallbackDescription,
+                "settings initialization localizes all real 3D labels and descriptions")) return 1;
+    }
+    gConfiguredLanguage = "english";
+    if (!check(initializeWith(nullptr), "initialize real descriptors in English again")) return 1;
+    for (std::size_t i = 0; i < englishDescriptors.size(); ++i) {
+        if (!check(settingsGetDescriptors()[i].fallbackLabel == englishDescriptors[i].fallbackLabel
+                && settingsGetDescriptors()[i].fallbackDescription == englishDescriptors[i].fallbackDescription,
+                "language changes do not retain Russian descriptor metadata")) return 1;
+    }
+    const auto* unlimitedSetting = findDescriptor("3d.camera_rotation_unlimited");
+    const auto* glowStrength = findDescriptor("3d.glow_strength");
+    if (!check(glowStrength && std::get<double>(glowStrength->defaultValue) == 2.0
+            && glowStrength->numericRange->maximum == 8.0
+            && settingsSetValue(*glowStrength, SettingValue(8.0), &error)
+            && settings.scene3d.glow_strength == 8.0
+            && settingsSetValue(*glowStrength, SettingValue(2.0), &error),
+            "glow ladder's highest level is selectable without changing the default")) return 1;
+    const auto* rotationSetting = findDescriptor("3d.camera_rotation");
+    if (!check(settingsSetValue(*unlimitedSetting, SettingValue(true), &error)
+            && settings.scene3d.camera_rotation_unlimited && !settings.scene3d.camera_rotation,
+            "own-risk menu toggle does not enable rotation by itself")) return 1;
+    if (!check(settingsSetValue(*rotationSetting, SettingValue(true), &error)
+            && settings.scene3d.camera_rotation
+            && settingsSetValue(*unlimitedSetting, SettingValue(false), &error)
+            && !settings.scene3d.camera_rotation_unlimited && settings.scene3d.camera_rotation,
+            "revoking unlimited through the real registry keeps limited rotation enabled")) return 1;
     return 0;
 }

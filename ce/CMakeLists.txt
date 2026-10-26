@@ -304,13 +304,19 @@ set(FALLOUT_PLATFORM_SOURCES
     "src/devtools/ui_fixture.cc"
     "src/scene/preview_policy.cc"
     "src/scene/preview_policy.h"
+    "src/scene/dialogue_backdrop.cc"
+    "src/scene/dialogue_backdrop.h"
+    "src/scene/dialogue_layout.cc"
+    "src/scene/dialogue_layout.h"
     "src/scene/scene_lights.cc"
     "src/scene/text_layer.cc"
+    "src/scene/floating_text.cc"
     "src/scene/text_capture.cc"
     "src/scene/sun.cc"
     "src/scene/sun.h"
     "src/scene/scene_lights.h"
     "src/scene/text_layer.h"
+    "src/scene/floating_text.h"
     "src/scene/text_capture.h"
     "src/scene/options_panel.cc"
     "src/scene/options_panel.h"
@@ -320,11 +326,15 @@ set(FALLOUT_PLATFORM_SOURCES
     "src/scene/scene_overlay.h"
     "src/scene/scene_view.cc"
     "src/scene/scene_view.h"
+    "src/scene/camera_turn.h"
     "src/scene/scene_settings.cc"
+    "src/scene/menu_text.cc"
+    "src/scene/menu_text.h"
     "src/scene/scene_settings.h"
     "src/devtools/devtools.h"
     "src/devtools/fixed_screen_options.h"
     "src/devtools/snapshot_rows.h"
+    "src/devtools/snapshot_palette.h"
     "src/devtools/preferences_probe.h"
     "src/devtools/ui_fixture.h"
     "src/scene_renderer/gl_api.cc"
@@ -441,6 +451,7 @@ if(BUILD_TESTING)
     add_subdirectory(tests/clean_edges_boundary_mask)
     add_subdirectory(tests/sun)
     add_subdirectory(tests/text_layer)
+    add_subdirectory(tests/dialogue_layout)
 endif()
 
 target_sources(${EXECUTABLE_NAME} PUBLIC

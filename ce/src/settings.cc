@@ -5,6 +5,7 @@
 #include "game_config.h"
 #include "platform_compat.h"
 #include "sound.h"
+#include "scene/menu_text.h"
 
 #include <algorithm>
 #include <cassert>
@@ -492,22 +493,29 @@ void initSettingsRegistry(bool isMapper)
     registerThreeDBoolean("glow", settings.scene3d.glow, "Glow",
         "Things that shine in Fallout 2 (fire, monitors, signs) bleed light softly in the 3D view.",
         SettingApplyPolicy::OnClose);
-    registerSetting("3d", "glow_strength", settings.scene3d.glow_strength, clamp(0.0, 3.0));
+    registerSetting("3d", "glow_strength", settings.scene3d.glow_strength, clamp(0.0, 8.0));
     SettingDescriptor& glowStrengthDescriptor = settingDescriptors.back();
     glowStrengthDescriptor.category = SettingCategory::Uncategorized;
     glowStrengthDescriptor.applyPolicy = SettingApplyPolicy::OnClose;
     glowStrengthDescriptor.subsection = "3D";
     glowStrengthDescriptor.fallbackLabel = "Glow strength";
     glowStrengthDescriptor.fallbackDescription = "How far the glow of shining things spreads and brightens.";
-    glowStrengthDescriptor.numericRange = SettingNumericRange { 0.0, 3.0, 0.1 };
+    glowStrengthDescriptor.numericRange = SettingNumericRange { 0.0, 8.0, 0.1 };
     settingsRegistry.back().descriptor = glowStrengthDescriptor;
     settingsRegistry.back().write = [](bool onlyAdd) {
         if (onlyAdd && settingsKeyExists("3d", "glow_strength")) return;
-        settingsWrite("3d", "glow_strength", settings.scene3d.glow_strength);
+        settingsWrite("3d", "glow_strength", onlyAdd ? 2.0 : settings.scene3d.glow_strength);
     };
-    registerThreeDBoolean("camera_rotation", settings.scene3d.camera_rotation, "Camera rotation (experimental)",
-        "[ and ] turn the 3D camera round the view in steps of 90 degrees, at your own risk. "
-        "A turned view is for looking only: the game takes no clicks until the camera is back.",
+    registerThreeDBoolean("camera_rotation", settings.scene3d.camera_rotation, "Camera rotation",
+        "[ and ] turn the camera up to 45 degrees left or right. "
+        "Return to the original view to control the game with the mouse.",
+        SettingApplyPolicy::OnClose);
+    registerThreeDBoolean("camera_rotation_unlimited", settings.scene3d.camera_rotation_unlimited,
+        "Unlimited camera rotation (not recommended)",
+        "Remove the 45-degree limit. Objects and walls may render incorrectly at larger angles.",
+        SettingApplyPolicy::OnClose);
+    registerThreeDBoolean("sprite_sides", settings.scene3d.sprite_sides, "Characters turn with the camera",
+        "A turned camera sees the side of people, creatures and thrown things that faces it.",
         SettingApplyPolicy::OnClose);
 
     registerSetting("3d", "lights", settings.scene3d.lights);
@@ -633,6 +641,7 @@ bool settingsInit(bool isMapper, int argc, char** argv)
         }
     }
 
+    scene::localizeMenuDescriptors(settingDescriptors, settings.system.language);
     return true;
 }
 

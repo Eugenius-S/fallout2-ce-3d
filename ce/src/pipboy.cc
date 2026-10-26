@@ -35,6 +35,7 @@
 #include "platform_compat.h"
 #include "queue.h"
 #include "random.h"
+#include "scene/text_capture.h"
 #include "scripts.h"
 #include "settings.h"
 #include "sfall_script_hooks.h"
@@ -784,6 +785,7 @@ static int pipboyWindowInit(int intent)
                 strcpy(holidayNameCopy, holidayName);
 
                 int len = fontGetStringWidth(holidayNameCopy);
+                ScopedTextSizeRole sizeRole(scene::TextSizeRole::CompactUi);
                 fontDrawText(gPipboyWindowBuffer + PIPBOY_WINDOW_WIDTH * (_pipboyFrmImages[PIPBOY_FRM_LOGO].getHeight() + 174) + 6 + _pipboyFrmImages[PIPBOY_FRM_LOGO].getWidth() / 2 + 323 - len / 2,
                     holidayNameCopy,
                     350,
@@ -829,6 +831,7 @@ static int pipboyWindowInit(int intent)
             strcpy(holidayNameCopy, holidayName);
 
             int length = fontGetStringWidth(holidayNameCopy);
+            ScopedTextSizeRole sizeRole(scene::TextSizeRole::CompactUi);
             fontDrawText(gPipboyWindowBuffer + PIPBOY_WINDOW_WIDTH * (_pipboyFrmImages[PIPBOY_FRM_LOGO].getHeight() + 174) + 6 + _pipboyFrmImages[PIPBOY_FRM_LOGO].getWidth() / 2 + 323 - length / 2,
                 holidayNameCopy,
                 350,
@@ -983,6 +986,7 @@ static void pipboyDrawText(const char* text, int flags, ColorWithFlags color)
         left += 260 - length;
     }
 
+    ScopedTextSizeRole sizeRole(scene::TextSizeRole::CompactUi);
     fontDrawText(gPipboyWindowBuffer + PIPBOY_WINDOW_WIDTH * (gPipboyCurrentLine * fontGetLineHeight() + PIPBOY_WINDOW_CONTENT_VIEW_Y) + PIPBOY_WINDOW_CONTENT_VIEW_X + left, text, PIPBOY_WINDOW_WIDTH, PIPBOY_WINDOW_WIDTH, color);
 
     if ((flags & PIPBOY_TEXT_STYLE_STRIKE_THROUGH) != 0) {
@@ -1004,6 +1008,7 @@ static void renderPagination(int currentPage, int totalPages)
         snprintf(formattedText, sizeof(formattedText), "%d %s %d", currentPage + 1, of, totalPages);
 
         int len = fontGetStringWidth(of);
+        ScopedTextSizeRole sizeRole(scene::TextSizeRole::CompactUi);
         fontDrawText(gPipboyWindowBuffer + PIPBOY_WINDOW_WIDTH * 47 + 616 + 604 - len, formattedText, 350, PIPBOY_WINDOW_WIDTH, COLOR_GREEN);
     }
 }
@@ -2231,6 +2236,7 @@ static void pipboyDrawHitPoints()
     text = getmsg(&gPipboyMessageList, &gPipboyMessageListItem, 301); // Hit Points
     snprintf(msg, sizeof(msg), "%s %d/%d", text, cur_hp, max_hp);
     len = fontGetStringWidth(msg);
+    ScopedTextSizeRole sizeRole(scene::TextSizeRole::CompactUi);
     fontDrawText(gPipboyWindowBuffer + 66 * PIPBOY_WINDOW_WIDTH + 254 + (350 - len) / 2, msg, PIPBOY_WINDOW_WIDTH, PIPBOY_WINDOW_WIDTH, COLOR_GREEN);
 }
 

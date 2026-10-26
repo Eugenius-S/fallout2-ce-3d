@@ -97,12 +97,15 @@ void drawStaticPreview(bool withWalls, bool withHero)
 
     // Nothing lies below the floor, so it is painted first and hides nothing
     // (the donor's game view): cards and solids take the depth of their hex
-    // row's plane, which can lie under the floor along the view ray.
+    // row's plane, which can lie under the floor along the view ray. A fly
+    // camera takes each vertex's own depth, so there the floor hides what
+    // hangs below the ground: a wall picture's foot reaches under it (071).
     glDepthMask(0);
     glUniform1i(gSceneTexturedLocation, 0);
     glUniform1f(gSceneCutoffLocation, 0.01f);
     glUniform4f(gSceneColorLocation, 0.0f, 0.0f, 0.0f, 1.0f);
     glDrawArrays(kTriangles, 0, 6);
+    glDepthMask(flying ? 1 : 0);
     glUniform1i(gSceneTexturedLocation, 1);
     glUniform1f(gSceneCutoffLocation, 0.01f);
     glUniform1i(gSceneLightModeLocation, lit ? 1 : 0);
@@ -332,7 +335,7 @@ bool captureStaticFloorPng(const std::filesystem::path& path, int* width, int* h
 }
 
 bool captureStaticPreviewPng(const std::filesystem::path& path, bool withWalls, bool withHero,
-    int* width, int* height, std::string* error)
+    int* width, int* height, std::string* error, bool includeOverlay)
 {
     auto fail = [&](const std::string& message) {
         if (error != nullptr) *error = message;
@@ -356,7 +359,7 @@ bool captureStaticPreviewPng(const std::filesystem::path& path, bool withWalls, 
     const bool glow = beginSceneCapture();
     drawStaticPreview(withWalls, withHero);
     if (glow) compositeGlow();
-    if (withHero && gSceneOverlayReady && !staticFlyCameraActive()) {
+    if (includeOverlay && withHero && gSceneOverlayReady && !staticFlyCameraActive()) {
         // With what the game draws over it, as presented.
         glViewport(0, 0, drawableWidth, drawableHeight);
         glEnable(kBlend);

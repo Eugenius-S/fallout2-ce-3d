@@ -2,13 +2,13 @@
 id: 071
 title: Walls: no holes, a back side everywhere, clean corners
 milestone: M1
-status: todo
-owner: none
+status: done
+owner: claude
 suggested: claude
 claude-only: no
 user-check: yes
 depends-on: []
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -41,3 +41,68 @@ from behind) may share the cause.
 Doors (072).
 
 ## Log
+
+### 2026-10-25 claude
+Done: one rule for every corner. The game draws a corner as one picture and
+the donor lays it on one wall's line, so at most corners one wall ran up to
+0.7 units past the other and the other stopped short (127 of 159 corners in
+kladwtwn were off by more than 0.08): the free camera saw a stub and a notch
+showing the street through. `_corner_fits` in
+`tools/scene_export/wall_sidecar.py` finds each thick wall end that meets
+another wall at a right angle (within 0.75): at an L the wall that runs on
+further reaches across the other's far face and the other stops at its near
+face; at a T the stem stops at the near face. An overrun is cut off for the
+free camera (the row moves to the game-only batch whole and its fly copy is
+clipped, its back too); a shortfall gets a block of the wall's own material
+(front, back, top), and a moved outer end its end face; the donor's end
+strips at moved ends are dropped. The pen's fence corners close the same way.
+The shadow casters skip game-only faces (walls.cc): they cast as the free
+camera sees them. walls.bin's format is unchanged.
+The "missing backs" were not walls: the thin rows on the walls are signs,
+posters and shelves (059 covers their backs).
+Check: the exporter suite 50/50 (a new test: an L closes and the game view's
+triangles stay the same), ctest 14/14. The game's view is unchanged to the
+pixel: kladwtwn, klamall and klaratcv default views, old against new export,
+0 pixels differ. Before and after under `runs/071-walls-whole/`
+(`dev-snapshot.ps1 -FlyTurn 90 -FlyPitch 30 -FlyDistance 14`).
+
+### 2026-10-25 claude (round 2)
+The owner: the corner still did not meet. Three causes, all fixed in
+`wall_sidecar.py`: the end face took the material of the wall it closes
+while it lies in the other wall's plane, so the brick rows broke into a
+pillar (it now takes the other wall's picture, `_corner_face`); a wall's top
+is sheared and ended in a slant at the corner, leaving a notch where the
+street showed through (one flat cap piece in the top's colour now covers
+each corner, `_corner_cap`); and a neighbouring row's top could run past the
+corner (every row near a corner has its top cut at the corner, `keep` holds
+fractions past 0 or 1 for that).
+Check: the exporter suite 50/50; the game's view still 0 pixels changed on
+kladwtwn, klamall and klaratcv. Round 1 against round 2 of both corners:
+`runs/071-walls-whole/corners-round-1-vs-2.png`.
+
+### 2026-10-25 claude (round 3)
+The owner: nothing may stick out. The feet of the wall pictures (the dirt
+painted at their base) hang below the ground, and the floor was drawn
+without writing depth, so a free camera saw them through it as a ragged
+skirt under every wall and corner. Under a fly camera the floor now writes
+depth (scene_draw.cc); the game's view keeps its old order.
+Check: the game's view 0 pixels changed (kladwtwn, klamall). The owner's
+spot before and after: `runs/071-walls-whole/owner-view-before-after.png`;
+four corners now: `corners-round-3.jpg`.
+
+### 2026-10-25 claude (round 4)
+The owner's live review (`runs/inbox/2026-10-25-corner-*.png|webp`): white
+stripes, an asphalt-like strip, a crack by the crate, the STOP corner
+crooked. Fixed in `wall_sidecar.py`: end faces and fills took their column
+scale from the lending row's own length, so a short corner piece stretched
+one or two columns over the whole face (the stripes); they now take the
+projection's columns per unit (48 along u, 32 along v). Added faces reach
+0.01 into their neighbours, so no crack shows between them. A corner cap no
+longer runs past a short corner piece whose other end is set too (the STOP
+corner's overhang), the donor's end strips at moved ends are found with a
+wider tolerance, a corner row's picture above its top is dropped for the
+free camera (the other wall's top drawn in it), and the caps take the colour
+of the wall's own top at that point. Left as art: the corner's dark edge line
+painted in the corner piece.
+Check: exporter suite 50/50; the game's view 0 pixels changed on kladwtwn and
+klamall; `runs/071-walls-whole/corners-round-4-crate-stop.png`.

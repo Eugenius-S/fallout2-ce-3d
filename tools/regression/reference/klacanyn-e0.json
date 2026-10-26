@@ -4,11 +4,20 @@
   "map": "KLACANYN.MAP",
   "elevation": 0,
   "still_snapshot": true,
-  "snapshot_run": "83a642195efe401f8d78a8ce3739fe73",
+  "snapshot_run": "b2b3fdcbe02c4173a016fdce61d5be8e",
   "view_tile": 15909,
   "preview_requested": true,
   "scene_3d_enabled": true,
   "scene_view": "full",
+  "sharp_text": {
+    "setting": false,
+    "active": false,
+    "drawn": false,
+    "runs": 0,
+    "glyphs": 0,
+    "restored_pixels": 0,
+    "prepare_ms": 0.0
+  },
   "map_clip": {
     "enabled": true,
     "setting_enabled": true,
@@ -44,8 +53,8 @@
     ]
   },
   "camera": "fixed eye=(53.64466,46.23085,63.46700), target=(4.45833,0.00000,-10.31250), fov_y=25.0, near=0.1, far=400.0, screen_right=-cross(forward,world_up)",
-  "wall_triangles": 92,
-  "wall_pages": 1,
+  "wall_triangles": 197,
+  "wall_pages": 2,
   "hero": {
     "tile": 21871,
     "fid": 16777278,
@@ -99,11 +108,11 @@
   "scale": 2,
   "windowed": true,
   "drawable": "1920x1080",
-  "ce_commit": "32f0fe2b",
+  "ce_commit": "2332f28b",
   "tools_commit": "-",
-  "exe_sha256": "ddc03416aa937b3bff789b7fb92ea636760523efd0da660f9dbbd9f5880636f4",
-  "taken": "20261022-093138",
-  "capture_image": "devhero-20261022-093138-000.png",
+  "exe_sha256": "543964e2ea9fd002d6193940577a8fb960403ad6dcb5a54d630d97b84951618d",
+  "taken": "20261026-130333",
+  "capture_image": "devhero-20261026-130333-000.png",
   "spot": {
     "name": "klacanyn-e0",
     "map": "klacanyn",

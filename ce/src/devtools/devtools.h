@@ -93,6 +93,7 @@ void sceneOverlaySynced(bool on);
 // Called after a vanilla framebuffer is presented, for one-shot snapshots
 // when no 3D view is active.
 void vanillaPresented();
+void sceneOverlayPresented();
 bool handleClick(int mouseX, int mouseY);
 
 // Draws the panel into the 8-bit framebuffer (before palette expansion).

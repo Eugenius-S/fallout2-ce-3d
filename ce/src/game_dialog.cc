@@ -6,6 +6,7 @@
 #include <string.h>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 #include "actions.h"
 #include "animation.h"
@@ -40,6 +41,9 @@
 #include "queue.h"
 #include "random.h"
 #include "scripts.h"
+#include "scene/dialogue_backdrop.h"
+#include "scene/dialogue_layout.h"
+#include "scene/scene_view.h"
 #include "scene/text_capture.h"
 #include "settings.h"
 #include "skill.h"
@@ -2492,23 +2496,6 @@ void _gdProcessUpdate()
     for (int index = 0; index < gameDialogOptionEntriesLength; index++) {
         GameDialogOptionEntry* dialogOptionEntry = &(dialogOptionEntries[index]);
 
-        if (hasEmpathy) {
-            switch (dialogOptionEntry->reaction) {
-            case GAME_DIALOG_REACTION_GOOD:
-                color = COLOR_BLUE | DRAW_TEXT_FLAG_NO_BG;
-                break;
-            case GAME_DIALOG_REACTION_NEUTRAL:
-                color = COLOR_GREEN | DRAW_TEXT_FLAG_NO_BG;
-                break;
-            case GAME_DIALOG_REACTION_BAD:
-                color = COLOR_RED | DRAW_TEXT_FLAG_NO_BG;
-                break;
-            default:
-                debugPrint("\nError: dialog: Empathy Perk: invalid reaction!");
-                break;
-            }
-        }
-
         if (dialogOptionEntry->messageListId >= 0) {
             char* text = _scr_get_msg_str_speech(dialogOptionEntry->messageListId, dialogOptionEntry->messageId, 0);
             if (text == nullptr) {
@@ -2563,12 +2550,48 @@ void _gdProcessUpdate()
                 return;
             }
         }
+    }
 
-        int estimate = _text_num_lines(dialogOptionEntry->text, _optionRect.right - _optionRect.left) * fontGetLineHeight() + _optionRect.top + 2;
-        if (estimate < _optionRect.bottom) {
-            int y = _optionRect.top;
+    const int lineHeight = fontGetLineHeight();
+    const scene::DialogueLayout optionLayout = scene::layoutDialogueOptions(
+        gameDialogOptionEntriesLength,
+        _optionRect.top,
+        _optionRect.bottom,
+        scene::sharpTextWanted(),
+        [lineHeight](std::size_t index, int top) {
+            GameDialogOptionEntry* dialogOptionEntry = &(dialogOptionEntries[index]);
+            return _text_num_lines(dialogOptionEntry->text, _optionRect.right - _optionRect.left) * lineHeight + top + 2;
+        },
+        [lineHeight](std::size_t index, int top) {
+            GameDialogOptionEntry* dialogOptionEntry = &(dialogOptionEntries[index]);
+            Rect drawRect = { _optionRect.left, top, _optionRect.right, _optionRect.bottom };
+            return gameDialogDrawText(nullptr, &drawRect, dialogOptionEntry->text,
+                nullptr, lineHeight, 393, COLOR_GREEN | DRAW_TEXT_FLAG_NO_BG, 0);
+        });
 
-            dialogOptionEntry->bottom = estimate;
+    for (int index = 0; index < gameDialogOptionEntriesLength; index++) {
+        GameDialogOptionEntry* dialogOptionEntry = &(dialogOptionEntries[index]);
+        if (hasEmpathy) {
+            switch (dialogOptionEntry->reaction) {
+            case GAME_DIALOG_REACTION_GOOD:
+                color = COLOR_BLUE | DRAW_TEXT_FLAG_NO_BG;
+                break;
+            case GAME_DIALOG_REACTION_NEUTRAL:
+                color = COLOR_GREEN | DRAW_TEXT_FLAG_NO_BG;
+                break;
+            case GAME_DIALOG_REACTION_BAD:
+                color = COLOR_RED | DRAW_TEXT_FLAG_NO_BG;
+                break;
+            default:
+                debugPrint("\nError: dialog: Empathy Perk: invalid reaction!");
+                break;
+            }
+        }
+
+        const scene::DialogueOptionPlacement& layout = optionLayout.options[index];
+        if (layout.accepted) {
+            _optionRect.top = layout.top;
+            int y = layout.top;
             dialogOptionEntry->top = y;
 
             if (index == 0) {
@@ -2587,8 +2610,8 @@ void _gdProcessUpdate()
 
             dialogOptionEntry->bottom = _optionRect.top;
             _optionRect.top += 2;
-
-            dialogOptionEntry->btn = buttonCreate(gameDialogOptionsWindow, 2, y, width, _optionRect.top - y - 4, 1200 + index, 1300 + index, -1, 49 + index, nullptr, nullptr, nullptr, 0);
+            const int buttonHeight = _optionRect.top - y - 4;
+            dialogOptionEntry->btn = buttonCreate(gameDialogOptionsWindow, 2, y, width, buttonHeight, 1200 + index, 1300 + index, -1, 49 + index, nullptr, nullptr, nullptr, 0);
             if (dialogOptionEntry->btn != -1) {
                 buttonSetCallbacks(dialogOptionEntry->btn, _gsound_red_butt_press, _gsound_red_butt_release);
             } else {
@@ -2670,7 +2693,7 @@ void _gdDestroyHeadWindow()
     }
 
     if (gameDialogBackgroundWindow != -1) {
-        windowDestroy(gameDialogBackgroundWindow);
+        scene::destroyDialogueBackgroundWindow(gameDialogBackgroundWindow);
         gameDialogBackgroundWindow = -1;
     }
 
@@ -3450,10 +3473,12 @@ static int gameDialogDrawText(unsigned char* buffer, Rect* rect, const char* str
                     return rect->top;
                 }
 
-                if (draw != 1 || start == mutableText) {
-                    fontDrawText(buffer + pitch * rect->top + 10, start, maxWidth, pitch, color);
-                } else {
-                    fontDrawText(buffer + pitch * rect->top, start, maxWidth, pitch, color);
+                if (draw != 0) {
+                    if (draw != 1 || start == mutableText) {
+                        fontDrawText(buffer + pitch * rect->top + 10, start, maxWidth, pitch, color);
+                    } else {
+                        fontDrawText(buffer + pitch * rect->top, start, maxWidth, pitch, color);
+                    }
                 }
 
                 if (textOffset != nullptr) {
@@ -3677,6 +3702,39 @@ int gameDialogGetWindow()
 int gameDialogGetBackgroundWindow()
 {
     return windowGetWindow(gameDialogBackgroundWindow) != nullptr ? gameDialogBackgroundWindow : -1;
+}
+
+int gameDialogGetOptionCount()
+{
+    return gameDialogOptionEntriesLength;
+}
+
+int gameDialogGetOptionLayout(int index, GameDialogOptionLayout* layout)
+{
+    if (layout == nullptr || index < 0 || index >= gameDialogOptionEntriesLength
+        || gameDialogOptionsWindow == -1 || windowGetWindow(gameDialogOptionsWindow) == nullptr) {
+        return 0;
+    }
+
+    const GameDialogOptionEntry& entry = dialogOptionEntries[index];
+    if (entry.btn == -1) return 0;
+
+    Rect windowRect;
+    if (windowGetRect(gameDialogOptionsWindow, &windowRect) == -1) return 0;
+
+    const int buttonY = index == 0 ? 0 : entry.top;
+    const int buttonHeight = entry.bottom + 2 - buttonY - 4;
+    const int buttonWidth = _optionRect.right - _optionRect.left - 4;
+    *layout = {
+        index,
+        entry.top,
+        entry.bottom,
+        windowRect.left + 2,
+        windowRect.top + buttonY,
+        windowRect.left + 2 + buttonWidth,
+        windowRect.top + buttonY + buttonHeight,
+    };
+    return 1;
 }
 
 // 0x448660 gdialog_barter_cleanup_tables
@@ -4816,12 +4874,10 @@ static int talk_to_create_background_window()
     int backgroundWindowX = (screenGetWidth() - GAME_DIALOG_WINDOW_WIDTH) / 2;
     int backgroundWindowY = gameDialogGetBackgroundWindowY();
 
-    gameDialogBackgroundWindow = windowCreate(backgroundWindowX,
+    gameDialogBackgroundWindow = scene::createDialogueBackgroundWindow(backgroundWindowX,
         backgroundWindowY,
         GAME_DIALOG_WINDOW_WIDTH,
-        GAME_DIALOG_WINDOW_HEIGHT,
-        static_cast<ColorWithFlags>(256),
-        WINDOW_DONT_MOVE_TOP | WINDOW_MODAL);
+        GAME_DIALOG_WINDOW_HEIGHT);
 
     if (gameDialogBackgroundWindow != -1) {
         return 0;

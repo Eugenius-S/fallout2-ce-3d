@@ -65,6 +65,8 @@ def baked_objects(scene, map_objects, live_boards=frozenset()):
     replaced = set(scene.get("hidden") or []) if not scene.get("forms") else {
         row[3] for row in scene.get("props") or [] if row[3] >= 0}
     forced = {row[3] for row in scene.get("props") or [] if len(row) > 14 and row[14] and row[3] >= 0}
+    forced |= set(scene.get("flyBoards") or [])       # only the fly camera's solids stand for these
+    replaced |= set(scene.get("flyBoards") or [])     # (a detail of a joined thing names no props row)
     for board in sorted(replaced - set(live_boards)):
         if not 0 <= board < len(boards):
             raise ValueError(f"hidden board {board} is outside scene.boards")

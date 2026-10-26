@@ -1,4 +1,5 @@
 #include "../../src/devtools/snapshot_rows.h"
+#include "../../src/devtools/snapshot_palette.h"
 
 #include <cstdio>
 #include <vector>
@@ -7,6 +8,19 @@ using fallout::devtools::copySnapshotRowsTightly;
 
 int main()
 {
+    const auto colors = fallout::devtools::snapshotCyclePalette();
+    bool hasBlueMonitor = false;
+    for (int index = 233; index <= 237; ++index) {
+        const int offset = (index - 229) * 3;
+        if (colors[offset + 2] > colors[offset] && colors[offset + 2] > 30) hasBlueMonitor = true;
+    }
+    if (!hasBlueMonitor || colors[1] == 0) {
+        std::fprintf(stderr, "frozen cycling palette left monitors or slime black\n");
+        return 4;
+    }
+    for (auto channel : colors) {
+        if (channel > 63) return 5;
+    }
     constexpr int width = 1155;
     constexpr int height = 4;
     constexpr int pitch = 1160;

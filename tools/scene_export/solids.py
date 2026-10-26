@@ -122,10 +122,18 @@ def depth_home(proj, corner, plane):
 def _forced(row, faces):
     """A solid made by name (overrides.json, props row[14]) is not the game's
     view pixel for pixel: the fly camera alone draws it, and the game's camera
-    keeps the card."""
-    if len(row) < 15 or not row[14]:
-        return faces
-    return [(page, polygon, away, "fly") for page, polygon, away, camera in faces if camera != "game"]
+    keeps the card. Nor is a solid cut back out of a wall or another thing
+    (row[15] 1); the game's camera draws it as it was made, from a copy (row[15] 2),
+    unless it is made by name: that camera keeps its card."""
+    seen = row[15] if len(row) > 15 else 0
+    forced = len(row) > 14 and row[14]
+    if seen == 2 and forced:
+        return []
+    if forced or seen == 1:
+        return [(page, polygon, away, "fly") for page, polygon, away, camera in faces if camera != "game"]
+    if seen == 2:
+        return [(page, polygon, away, "game") for page, polygon, away, camera in faces if camera != "fly"]
+    return faces
 
 
 def solid_faces(proj, sprites, boards, row):

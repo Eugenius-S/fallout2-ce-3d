@@ -1,0 +1,8 @@
+cmake_minimum_required(VERSION 3.18)
+project(dialogue_layout_tests LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+enable_testing()
+add_executable(dialogue_layout_tests ../../src/scene/dialogue_layout.cc dialogue_layout_test.cc)
+target_include_directories(dialogue_layout_tests PRIVATE ../../src/scene)
+add_test(NAME dialogue_layout_tests COMMAND dialogue_layout_tests)

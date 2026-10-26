@@ -39,6 +39,7 @@
 #include "platform_compat.h"
 #include "proto.h"
 #include "scripts.h"
+#include "scene/text_capture.h"
 #include "settings.h"
 #include "skill.h"
 #include "stat.h"
@@ -2389,6 +2390,7 @@ static void characterEditorDrawPcStats()
     snprintf(stringBuffer, sizeof(stringBuffer), "%s %d",
         getmsg(&gCharacterEditorMessageList, &gCharacterEditorMessageListItem, 113),
         level);
+    ScopedTextCaptureTag plaqueOffset(TextCaptureTag::InterfacePlaqueOffset);
     fontDrawText(gCharacterEditorWindowBuffer + 640 * y + 32, stringBuffer, 640, 640, color);
 
     // EXPERIENCE
@@ -2485,6 +2487,7 @@ static void characterEditorDrawPrimaryStat(Stat stat, bool animate, int previous
         }
 
         description = getmsg(&gCharacterEditorMessageList, &gCharacterEditorMessageListItem, messageListItemId);
+        ScopedTextCaptureTag captureTag(TextCaptureTag::SpecialStatDescription);
         fontDrawText(gCharacterEditorWindowBuffer + 640 * (gCharacterEditorPrimaryStatY[stat] + 8) + 103, description, 640, 640, color);
     } else {
         value = critterGetStat(gDude, stat);
@@ -2497,6 +2500,7 @@ static void characterEditorDrawPrimaryStat(Stat stat, bool animate, int previous
         }
 
         description = statGetValueDescription(value);
+        ScopedTextCaptureTag captureTag(TextCaptureTag::SpecialStatDescription);
         fontDrawText(gCharacterEditorWindowBuffer + off, description, 640, 640, color);
     }
 }
@@ -2632,6 +2636,8 @@ static void characterEditorDrawDerivedStats()
     y = 46;
 
     blitBufferToBuffer(_editorBackgroundFrmImage.getData() + 640 * y + 194, 118, 108, 640, gCharacterEditorWindowBuffer + 640 * y + 194, 640);
+
+    ScopedTextCaptureTag healthPlaqueOffset(TextCaptureTag::CharacterStatsPlaque);
 
     // Hit Points
     if (characterEditorSelectedItem == EDITOR_HIT_POINTS) {

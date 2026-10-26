@@ -17,7 +17,7 @@ untouched; at other zooms the circle keeps the hero's on-screen size.
 Buckner house, the hero inside at the south wall
 (`KLADWTWN.MAP`, view/hero tile 24285):
 
-- `egg-zoom-0.5.png`, `egg-zoom-1.png`, `egg-zoom-2.png`: full frames.
+- `egg-zoom-0.5.jpg`, `egg-zoom-1.jpg`, `egg-zoom-2.jpg`: full frames.
 - `zoom1-cut-crop.png` vs `zoom2-cut-crop.png` (side by side in
   `zoom1-vs-zoom2.png`): the wall's see-through oval around the hero is
   twice as wide and tall at zoom 2, as is the hero.

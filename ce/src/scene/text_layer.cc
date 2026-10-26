@@ -1,6 +1,7 @@
 #include "text_layer.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdarg>
 #include <cstdint>
 #include <cstdio>
@@ -11,6 +12,13 @@
 namespace fallout {
 namespace scene {
 namespace {
+
+constexpr double kFont101SelectedScale = 1.29;
+constexpr bool kFont101SelectedBold = true;
+double gFont101PreviewScale = kFont101SelectedScale;
+int gFont101PreviewOwnerWindow = -1;
+bool gFont101PreviewBold = kFont101SelectedBold;
+int gFont101PreviewWeightOwnerWindow = -1;
 
 bool validPixels(TextPixels pixels)
 {
@@ -103,6 +111,103 @@ void traceRun(const char* stage, TextBufferId buffer, const TextRunInfo& run, co
 
 } // namespace
 
+bool setFont101PreviewScale(double scale, int ownerWindow)
+{
+    if (scale != 1.0 && scale != 1.08 && scale != 1.15 && scale != 1.22 && scale != 1.29) return false;
+    gFont101PreviewScale = scale;
+    gFont101PreviewOwnerWindow = ownerWindow;
+    return true;
+}
+
+double font101PreviewScaleForWindow(int ownerWindow)
+{
+    if (gFont101PreviewOwnerWindow >= 0 && ownerWindow != gFont101PreviewOwnerWindow) return kFont101SelectedScale;
+    return gFont101PreviewScale;
+}
+
+double font101PreviewScaleForRun(int ownerWindow, TextSizeRole sizeRole)
+{
+    return sizeRole == TextSizeRole::CompactUi ? 1.22 : font101PreviewScaleForWindow(ownerWindow);
+}
+
+int font101PreviewCoverageHeight(int lineHeight, int ownerWindow)
+{
+    return font101PreviewCoverageHeight(lineHeight, ownerWindow, TextSizeRole::Default);
+}
+
+int font101PreviewCoverageHeight(int lineHeight, int ownerWindow, TextSizeRole sizeRole)
+{
+    if (lineHeight <= 0) return 0;
+    const double scale = font101PreviewScaleForRun(ownerWindow, sizeRole);
+    if (scale <= 1.0) return lineHeight;
+    return static_cast<int>(std::ceil((std::max(1.0, lineHeight - 0.5) * scale) + 0.5));
+}
+
+TextRect FloatingTextOutlineLayout::renderBounds(int x, int y) const
+{
+    return { x - offsetX, y - offsetY, bufferWidth, bufferHeight };
+}
+
+TextRect FloatingTextOutlineLayout::refreshBounds(int x, int y, int sceneOffsetX, int sceneOffsetY) const
+{
+    return renderBounds(x + sceneOffsetX, y + sceneOffsetY);
+}
+
+TextRect FloatingTextOutlineLayout::clipBounds(int x, int y, TextRect clip) const
+{
+    return intersection(renderBounds(x, y), clip);
+}
+
+std::size_t FloatingTextOutlineLayout::sourceOffset(TextRect clipped, int x, int y) const
+{
+    const TextRect bounds = renderBounds(x, y);
+    return static_cast<std::size_t>(clipped.y - bounds.y) * bufferWidth + clipped.x - bounds.x;
+}
+
+std::size_t FloatingTextOutlineLayout::lineStartOffset(int line) const
+{
+    if (line < 0) return 0;
+    return static_cast<std::size_t>(offsetY + legacyTopMargin + line * linePitch) * bufferWidth + offsetX;
+}
+
+int FloatingTextOutlineLayout::sharpLineOffset(int line) const
+{
+    return line < 0 ? 0 : line * lineOffset;
+}
+
+FloatingTextOutlineLayout floatingTextOutlineLayout(int legacyWidth, int legacyHeight,
+    int lineHeight, int lines, bool hasOutline, bool modernOutline)
+{
+    FloatingTextOutlineLayout layout;
+    layout.legacyWidth = legacyWidth;
+    layout.legacyHeight = legacyHeight;
+    layout.bufferWidth = legacyWidth;
+    layout.bufferHeight = legacyHeight;
+    layout.lineHeight = std::max(lineHeight, 0);
+    layout.linePitch = std::max(lineHeight + 1, 1);
+    layout.legacyTopMargin = hasOutline ? 1 : 0;
+    if (!modernOutline || legacyWidth <= 0 || legacyHeight <= 0 || lineHeight <= 0 || lines <= 0) return layout;
+    layout.offsetX = 2;
+    layout.offsetY = 2;
+    layout.bufferWidth += layout.offsetX * 2;
+    layout.lineOffset = std::max(0, font101PreviewCoverageHeight(lineHeight, -1) - lineHeight);
+    layout.bufferHeight += layout.offsetY + lines * layout.lineOffset;
+    return layout;
+}
+
+bool setFont101PreviewBold(bool bold, int ownerWindow)
+{
+    gFont101PreviewBold = bold;
+    gFont101PreviewWeightOwnerWindow = ownerWindow;
+    return true;
+}
+
+bool font101PreviewUsesBold(int ownerWindow)
+{
+    if (gFont101PreviewWeightOwnerWindow >= 0 && ownerWindow != gFont101PreviewWeightOwnerWindow) return kFont101SelectedBold;
+    return gFont101PreviewBold;
+}
+
 TextLayer::TextLayer(std::size_t recordLimit)
     : recordLimit_(std::max<std::size_t>(recordLimit, 1))
 {
@@ -184,6 +289,48 @@ bool TextLayer::capture(TextBufferId buffer, bool orphan, const TextRunInfo& run
     return true;
 }
 
+bool TextLayer::hasOutlinedRuns(TextBufferId buffer) const
+{
+    return std::any_of(records_.begin(), records_.end(), [buffer](const TextRecord& record) {
+        return record.buffer == buffer && record.run.hasOutline;
+    });
+}
+
+bool TextLayer::refreshOutlinedRuns(TextBufferId buffer, TextPixels before, TextPixels after)
+{
+    if (buffer == 0 || !validPixels(before) || !validPixels(after)
+        || before.width != after.width || before.height != after.height
+        || before.pitch != after.pitch || before.originX != after.originX || before.originY != after.originY) return false;
+    bool refreshed = false;
+    for (TextRecord& record : records_) {
+        if (record.buffer != buffer || !record.run.hasOutline) continue;
+        const TextRect clipped = intersection(record.bounds,
+            { before.originX, before.originY, before.width, before.height });
+        if (clipped.width <= 0 || clipped.height <= 0) continue;
+        std::unordered_map<std::uint64_t, unsigned char> originalPixels;
+        originalPixels.reserve(record.pixels.size());
+        for (const TextPixelRecord& pixel : record.pixels) {
+            originalPixels[pixelKey(pixel.x, pixel.y)] = pixel.before;
+        }
+        record.bounds = clipped;
+        record.pixels.clear();
+        record.coverage.clear();
+        record.coverage.reserve(static_cast<std::size_t>(clipped.width) * clipped.height);
+        for (int y = clipped.y; y < clipped.y + clipped.height; ++y) {
+            for (int x = clipped.x; x < clipped.x + clipped.width; ++x) {
+                const unsigned char prior = pixelAt(before, x, y);
+                const unsigned char current = pixelAt(after, x, y);
+                record.coverage.push_back({ x, y, current });
+                const auto original = originalPixels.find(pixelKey(x, y));
+                const unsigned char underlying = original == originalPixels.end() ? prior : original->second;
+                if (underlying != current) record.pixels.push_back({ x, y, underlying, current });
+            }
+        }
+        refreshed = true;
+    }
+    return refreshed;
+}
+
 void TextLayer::copy(TextBufferId source, TextBufferId destination, bool destinationOrphan,
     TextRect sourceRect, int destinationX, int destinationY,
     bool transparent, unsigned char transparentIndex,
@@ -236,6 +383,10 @@ void TextLayer::copy(TextBufferId source, TextBufferId destination, bool destina
         clone.ownerOffsetY = destinationOwnerWindow >= 0 ? 0 : sourceRecord.ownerOffsetY + static_cast<int>(shiftY);
         clone.run.x = static_cast<int>(static_cast<std::int64_t>(clone.run.x) + shiftX);
         clone.run.y = static_cast<int>(static_cast<std::int64_t>(clone.run.y) + shiftY);
+        if (clone.run.verticalAlignmentBoxHeight > 0) {
+            clone.run.verticalAlignmentBoxY = static_cast<int>(
+                static_cast<std::int64_t>(clone.run.verticalAlignmentBoxY) + shiftY);
+        }
         for (int& characterX : clone.run.characterX) characterX = static_cast<int>(static_cast<std::int64_t>(characterX) + shiftX);
         for (int& characterCellX : clone.run.characterCellX) characterCellX = static_cast<int>(static_cast<std::int64_t>(characterCellX) + shiftX);
 
