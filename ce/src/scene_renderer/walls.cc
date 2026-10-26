@@ -551,24 +551,15 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
                     page.push_back(vertex.z);
                     page.push_back(vertex.u);
                     page.push_back(vertex.v);
-                    // Pass 1 draws solid: the floor copy exists to close the
-                    // lifted-quad gap, and the art's antialiased bottom edge
-                    // would cut pixel holes out of it (082 round 4, the
-                    // owner's lit pixel strip along the shadow's base).
-                    // A flat, elevated caster (the walkway canopy) is one
-                    // horizontal quad: its art's soft border would leave the
-                    // shadow detached from its edge - the owner's lit strip
-                    // and the open corner (082 round 5) - so it writes the
-                    // map solid. Vertical casters solidify only their bottom
-                    // band: the foundation art blends into the ground over
-                    // the first 0.35, and the rays through that band were
-                    // the lit line along the shadow's base.
-                    float solid;
-                    if (pass == 1 || top - lowest < 0.01f) {
-                        solid = 1.0f;
-                    } else {
-                        solid = 0.85f - (vertex.y - drop);
-                    }
+                    // Pass 0 draws with the plain alpha cutoff: the map-fill
+                    // pass (082 round 6) closes the art's soft-border gaps,
+                    // and the r5 special rules - the flat elevated card
+                    // written solid, the bottom 0.35 band solid - measured
+                    // unnecessary on top of it and are gone. Pass 1 still
+                    // draws solid: the floor copy exists to close the
+                    // lifted-quad gap, the art's antialiased bottom edge
+                    // would cut pixel holes out of it (082 round 4).
+                    float solid = pass == 1 ? 1.0f : 0.0f;
                     page.push_back(solid);
                     // The caster's object number for the map's id channel
                     // (082 round 6, mechanism 2): rows count from 1, 0 means
