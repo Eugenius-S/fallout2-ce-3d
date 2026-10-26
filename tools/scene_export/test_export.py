@@ -536,6 +536,28 @@ class WallSidecarTests(unittest.TestCase):
         decoded = decode_wall_sidecar(encode_wall_sidecar(scene))
         self.assertFalse([v for batch in decoded["batches"] for v in batch["vertices"] if v[1] < 0.6 - 1e-6])
 
+    def test_a_wall_over_a_roof_is_cut_at_the_roof_for_the_free_camera_only(self):
+        import wall_sidecar
+        # Task 081: a wall face 2.5 high from u 1 to 3 at v 2.5; only square
+        # (2, 2) has a roof. The game's camera keeps both triangles whole; the
+        # free camera keeps all of it but the part over that square above the
+        # roof height.
+        off, height = wall_sidecar.GL_MAP_OFFSET, 1.88
+        corner = lambda u, y: (u - off, y, 2.5 - off, u - 1.0, y, u, y, 2.5, 0.0)
+        a, b, c, d = corner(1.0, 0.0), corner(3.0, 0.0), corner(3.0, 2.5), corner(1.0, 2.5)
+        shared = {0: [n for vertex in (a, b, c, a, c, d) for n in vertex]}
+        game, fly = {}, {}
+        wall_sidecar._cut_by_roofs(shared, (height, {(2, 2)}), game, fly)
+        self.assertEqual(shared, {})
+        self.assertEqual(len(game[0]), 6 * wall_sidecar.FLOATS)
+        points = [fly[0][i:i + wall_sidecar.FLOATS] for i in range(0, len(fly[0]), wall_sidecar.FLOATS)]
+        self.assertFalse([p for p in points if p[1] > height + 0.01 and p[0] + off > 2.0 + 1e-6])
+        self.assertTrue([p for p in points if p[1] > 2.4 and p[0] + off < 2.0])
+        self.assertTrue(all(abs(p[3] - (p[0] + off - 1.0)) < 1e-6 for p in points))  # values follow the cut
+        area = sum(abs((q[0] - p[0]) * (r[1] - p[1]) - (r[0] - p[0]) * (q[1] - p[1])) / 2
+                   for p, q, r in zip(points[0::3], points[1::3], points[2::3]))
+        self.assertAlmostEqual(area, 2 * 2.5 - (2.5 - height - wall_sidecar.ROOF_SLACK), places=4)
+
     def test_a_corner_block_takes_a_wide_picture_not_the_end_strip(self):
         import wall_sidecar
         # The wall along v ends in a 2-column strip short of the corner: the

@@ -998,6 +998,90 @@ def _box(batches, proj, pages, toward_camera, axis, along, across, z0, z1, page,
         _polygon(batches, proj, page, pages[page], corners, outward < 0)
 
 
+# Roofs (task 081). The engine lays each roof square flat at the roof
+# height, and the game draws roofs over the walls. What a wall's picture
+# shows above that height inside a roof square (an inner wall's rise face,
+# a band of top trim) is hidden under the roof in the game's view, but stuck
+# out of the roof for the free camera. The free camera keeps each wall face
+# only below the roof there; the game's camera keeps it whole.
+ROOF_SLACK = 0.001  # a face this little over the roof is under it (the corner caps lie a hair under)
+
+
+def _roof_grid(scene):
+    """(roof height, {(col, row)} of the roof squares), or None without roofs."""
+    import base64
+    projection = scene.get("proj") or {}
+    data = scene.get("roof")
+    if not isinstance(data, str) or "roofPx" not in projection:
+        return None
+    try:
+        cells = struct.unpack("<10000H", base64.b64decode(data, validate=True))
+    except (ValueError, struct.error):
+        return None
+    squares = {(index % 100, index // 100) for index, cell in enumerate(cells) if cell}
+    if not squares:
+        return None
+    return _finite(projection["roofPx"], "roof height") / _finite(projection["hpx"], "scene projection hpx"), squares
+
+
+def _over_roof(triangle, roofs):
+    """Might a part of this triangle (three vertices of FLOATS) stand over a roof square?"""
+    height, squares = roofs
+    if max(vertex[1] for vertex in triangle) <= height + ROOF_SLACK:
+        return False
+    us, vs = [vertex[0] + GL_MAP_OFFSET for vertex in triangle], [vertex[2] + GL_MAP_OFFSET for vertex in triangle]
+    return any((col, row) in squares for col in range(math.floor(min(us)), math.floor(max(us)) + 1)
+               for row in range(math.floor(min(vs)), math.floor(max(vs)) + 1))
+
+
+def _under_roofs(triangle, roofs):
+    """The polygons (lists of vertices) of a triangle that stay for the free
+    camera: all of it but what stands over a roof square above its height.
+    Every vertex value is affine on the triangle, so cuts interpolate it."""
+    height, squares = roofs
+    below = _clip(triangle, lambda p: height + ROOF_SLACK - p[1])
+    above = [_clip(triangle, lambda p: p[1] - height - ROOF_SLACK)]
+    above = [polygon for polygon in above if len(polygon) >= 3]
+    for axis in (0, 2):
+        cuts = sorted({k for polygon in above for k in range(math.floor(min(p[axis] for p in polygon) + GL_MAP_OFFSET) + 1,
+                                                             math.ceil(max(p[axis] for p in polygon) + GL_MAP_OFFSET))})
+        for k in cuts:
+            above = _split(above, lambda p, k=k, axis=axis: p[axis] + GL_MAP_OFFSET - k)
+    kept = [below] if len(below) >= 3 else []
+    for polygon in above:
+        u = sum(p[0] for p in polygon) / len(polygon) + GL_MAP_OFFSET
+        v = sum(p[2] for p in polygon) / len(polygon) + GL_MAP_OFFSET
+        if (math.floor(u), math.floor(v)) not in squares:
+            kept.append(polygon)
+    return kept
+
+
+def _cut_by_roofs(batches, roofs, game=None, fly=None):
+    """Leave out of the free camera's faces in `batches` what stands over a
+    roof (_under_roofs). With `game`, `batches` are both cameras': the game's
+    camera then keeps a cut face whole in `game`, the free camera's part goes
+    to `fly`."""
+    size = 3 * FLOATS
+    for page in list(batches):
+        values, keep = batches[page], []
+        cut = keep if game is None else fly.setdefault(page, [])
+        for start in range(0, len(values), size):
+            face = values[start:start + size]
+            triangle = [tuple(face[i * FLOATS:(i + 1) * FLOATS]) for i in range(3)]
+            if not _over_roof(triangle, roofs):
+                keep.extend(face)
+                continue
+            if game is not None:
+                game.setdefault(page, []).extend(face)
+            for polygon in _under_roofs(triangle, roofs):
+                for index in range(1, len(polygon) - 1):
+                    cut.extend(n for vertex in (polygon[0], polygon[index], polygon[index + 1]) for n in vertex)
+        batches[page] = keep
+    for target in (batches, fly or {}):
+        for page in [page for page, values in target.items() if not values]:
+            del target[page]
+
+
 def _moved_strip(trim, moved):
     """Is this donor trim an end strip at a wall end that a corner moved?"""
     ua, va, ub, vb = trim[1:5]
@@ -1135,6 +1219,11 @@ def encode_wall_sidecar(scene, skip_props=frozenset(), skip_rests=frozenset(), m
             raise ValueError(f"trim {index} sprite index is outside scene.sprites")
         _upright(fly, sprites, pages, sprite, *row[1:7], sprites[sprite][1] + row[7], sprites[sprite][2] + row[8],
                  row[9], row[10])
+
+    roofs = _roof_grid(scene)
+    if roofs is not None:
+        _cut_by_roofs(fly, roofs)
+        _cut_by_roofs(batches, roofs, game, fly)
 
     # Doors are not baked: they open and close, so the engine draws them live
     # as sprite cards with their current frame.
