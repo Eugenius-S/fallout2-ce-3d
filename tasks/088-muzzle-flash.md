@@ -31,15 +31,23 @@ the picture blink together.
   bright cluster's position per frame and rotation; the flash blinks on
   those frames at that spot. A burst's repeated bright frames give its
   repeated flashes.
+- Energy weapons (laser, plasma, pulse and the rest): the bolt leaving the
+  barrel is already self-lit and casts its light by 086, so the muzzle
+  glows by itself. If that reads too weak at the muzzle, add a smaller
+  flash there, with the bolt's colour; show both, with and without it, and
+  let the owner pick.
 - The flash is visual only: no change to combat, timing, sound or the
   game's own frames.
 
 ## Acceptance
 
-- Night sheets in `runs/088-muzzle-flash/`: a single shot and a burst, a
-  strip of the firing frames with and without the flash, the flash on the
-  same frames the sprite brightens.
-- One rifle or pistol and one burst weapon shown at least at two rotations.
+- Night sheets in `runs/088-muzzle-flash/`, laid out in rows: one row per
+  weapon and rotation, the firing frames left to right in order, each frame
+  labelled with its number; under each row the same frames without the
+  flash. The flash sits on the same frames the sprite brightens.
+- Rows for: a pistol, a rifle, a burst weapon (every shot of the burst
+  visible), a laser and a plasma weapon (their own glow, and with the
+  smaller flash added); each at least at two rotations.
 - Glow off: no flash; the original view regression stays pixel for pixel.
 - JPEG sheets at most 1 MB each.
 
