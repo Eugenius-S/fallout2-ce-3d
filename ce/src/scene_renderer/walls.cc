@@ -555,7 +555,21 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
                     // lifted-quad gap, and the art's antialiased bottom edge
                     // would cut pixel holes out of it (082 round 4, the
                     // owner's lit pixel strip along the shadow's base).
-                    page.push_back(pass == 0 ? 0.0f : 1.0f);
+                    // A flat, elevated caster (the walkway canopy) is one
+                    // horizontal quad: its art's soft border would leave the
+                    // shadow detached from its edge - the owner's lit strip
+                    // and the open corner (082 round 5) - so it writes the
+                    // map solid. Vertical casters solidify only their bottom
+                    // band: the foundation art blends into the ground over
+                    // the first 0.35, and the rays through that band were
+                    // the lit line along the shadow's base.
+                    float solid;
+                    if (pass == 1 || top - lowest < 0.01f) {
+                        solid = 1.0f;
+                    } else {
+                        solid = 0.85f - (vertex.y - drop);
+                    }
+                    page.push_back(solid);
                 }
             }
         }

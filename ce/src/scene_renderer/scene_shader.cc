@@ -267,14 +267,31 @@ float shadowDarken(float light) {
         return sunShadow();
     }
     if (uShadowDebug == 4 && (uLightMode == 1 || uLightMode == 2 || uLightMode == 3)) {
-        // The center tap's depth difference, gray at zero (082 round 4
-        // diagnostics): brighter means a blocker nearer than the receiver
-        // (shadow), darker means the map's depth is farther (lit).
+        // The center tap's signed difference, 0.05 of light per 2*uShadowBias
+        // (one map texel of depth, 082 round 5): 0.5 at zero, every texel a
+        // blocker stands in front adds 0.05, every texel behind subtracts.
         vec3 n = shadowFaceNormal();
         if (dot(n, uShadowLight) <= 0.001) return 0.0; // face turned: black
         vec3 base = vWorld + n * (1.5 * uShadowTexel);
         float diff = shadowDepth(base.xz, base.y);
-        return clamp(0.5 + diff * 8.0, 0.0, 1.0);
+        return clamp(0.5 + diff / (2.0 * uShadowBias) * 0.05, 0.0, 1.0);
+    }
+    if (uShadowDebug == 5 && (uLightMode == 1 || uLightMode == 2 || uLightMode == 3)) {
+        // The center tap's difference in buckets of 2*uShadowBias (one map
+        // texel of depth, 082 round 5): 0 lit or outside, then brighter every
+        // texel-equivalent the nearest blocker stands in front of the
+        // receiver, 0.95 past eight.
+        vec3 n = shadowFaceNormal();
+        if (dot(n, uShadowLight) <= 0.001) return 0.25;
+        vec3 base = vWorld + n * (1.5 * uShadowTexel);
+        float diff = shadowDepth(base.xz, base.y);
+        if (diff <= 0.0) return 0.0;
+        float texels = diff / (2.0 * uShadowBias);
+        if (texels <= 1.0) return 0.35;
+        if (texels <= 2.0) return 0.5;
+        if (texels <= 4.0) return 0.65;
+        if (texels <= 8.0) return 0.8;
+        return 0.95;
     }
     if (uShadowOn && uShadowStrength > 0.0) {
         if (uLightMode == 1 || uLightMode == 2) {
@@ -311,9 +328,12 @@ void main() {
         outEmissive = vec4(0.0);
     } else {
         vec4 texel = texture(uTexture, vTexcoord);
-        // The wall casters' floor copies draw solid (vShadowSolid): the art's
-        // antialiased bottom edge would cut pixel holes out of the copy and
-        // leave a lit strip along the shadow's base (082 round 4).
+        // In the depth pass the attribute sits above 0.5 for the solid
+        // texels: the floor copies entirely, and the bottom band of every
+        // caster at its own place - the art's antialiased bottom edge would
+        // leave those texels empty in the map and the ground by the wall lit
+        // (082 round 5). The scene's own draws leave the attribute at 0 and
+        // discard as always.
         if (vShadowSolid < 0.5 && texel.a < uCutoff) discard;
         if (uPick != 0) {
             outColor = uColor;
