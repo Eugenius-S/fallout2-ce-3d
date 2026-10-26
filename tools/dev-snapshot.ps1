@@ -18,7 +18,8 @@
 # Prints the snapshot JSON; the image lies next to it in game/.
 # Scenes come from build/scene-cache when that folder exists (a worktree
 # exports there with export.py --cache-root build/scene-cache), so a game
-# running from game/ keeps its own mod-cache.
+# running from game/ keeps its own mod-cache. -SceneCache DIR reads them from
+# DIR instead (the fly tour's cache sides, tools/tour/tour.py).
 #
 # F2CE_NO_EGG=1 in the environment hides the hero's see-through circle, so an
 # egg on/off capture pair shows exactly what the circle cuts.
@@ -67,6 +68,7 @@ param(
     # -Solo R: only the things within R hexes of -ViewTile, no walls or roofs.
     [int]$Solo = -1,
     [string]$OutputDirectory,
+    [string]$SceneCache,
     [ValidateSet('english', 'russian')]
     [string]$Language,
     [ValidateSet('save', 'cancel', 'escape', 'defaults', 'verify')]
@@ -340,8 +342,11 @@ $env:F2CE_DEV_BACKGROUND = '1'
 $previousAudio = $env:SDL_AUDIODRIVER
 $env:SDL_AUDIODRIVER = 'dummy'
 $previousSceneCache = $env:F2CE_SCENE_CACHE
-$sceneCache = Join-Path $Root 'build\scene-cache'
-if (Test-Path -LiteralPath $sceneCache -PathType Container) { $env:F2CE_SCENE_CACHE = $sceneCache }
+$worktreeCache = Join-Path $Root 'build\scene-cache'
+if ($SceneCache) {
+    if (-not (Test-Path -LiteralPath $SceneCache -PathType Container)) { throw "No scene cache at $SceneCache" }
+    $env:F2CE_SCENE_CACHE = (Resolve-Path -LiteralPath $SceneCache).Path
+} elseif (Test-Path -LiteralPath $worktreeCache -PathType Container) { $env:F2CE_SCENE_CACHE = $worktreeCache }
 $process = $null
 $probeHarnessStoppedProcess = $false
 $snapshots = @()
