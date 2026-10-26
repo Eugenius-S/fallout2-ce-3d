@@ -79,3 +79,9 @@ that fits no task becomes a new task when the board runs dry.
   main's own cache (hydrants in corrals, klatoxcv-e1 22777 px, klamall-e0
   3235 px). The references drifted from main; find which merge changed the
   game's view and retake them with a before | after.
+- 2026-10-26 (073, resolved in the 073 branch) The apparently dark
+  monitr7 screen and inert slime pool were caused by the test fixture:
+  it froze palette cycling, then restored unmapped _cmap entries as zeros.
+  Correct cycle.cc rest-phase colors restore both glows. The final comparison
+  also reframes an entire slime pool, rather than cropping its edge.
+  No new emission marks or game-source repair was needed.

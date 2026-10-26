@@ -334,6 +334,7 @@ set(FALLOUT_PLATFORM_SOURCES
     "src/devtools/devtools.h"
     "src/devtools/fixed_screen_options.h"
     "src/devtools/snapshot_rows.h"
+    "src/devtools/snapshot_palette.h"
     "src/devtools/preferences_probe.h"
     "src/devtools/ui_fixture.h"
     "src/scene_renderer/gl_api.cc"
