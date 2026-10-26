@@ -103,6 +103,44 @@ def _upright(batches, sprites, pages, sprite_id, ua, va, ub, vb, z0, z1, tx, ty,
     ])
 
 
+# Feet (task 081). Some wall pictures end a little above the floor: their
+# clear bottom rows were trimmed, and the game shows the floor there. The
+# free camera saw such a wall float over the street, and at a corner the
+# core stand under it alone. A face of a thick wall whose bottom is at most
+# FOOT_MAX above the floor runs on down to it for the free camera, in its
+# picture's bottom row; a higher one stands on something else.
+FOOT_MIN = 0.005
+FOOT_MAX = 0.5
+
+
+FOOT_SCAN = 8  # picture rows above the bottom a foot may take its texels from
+FOOT_SOLID = 0.95  # ... the lowest this opaque (a clear bottom row would stripe the foot)
+
+
+def _foot_z(row):
+    """The bottom of a thick wall row's faces when they need a foot, else None."""
+    z0 = _finite(row[5], "wall height")
+    return z0 if row[10] >= CORE_THICK and FOOT_MIN < z0 <= FOOT_MAX else None
+
+
+def _foot_row(atlas, page, x0, x1, y_bottom):
+    """The atlas row (its middle) a foot under picture columns x0 .. x1 whose
+    bottom is y_bottom takes: of the lowest FOOT_SCAN rows the lowest
+    FOOT_SOLID opaque, else the most opaque (the bottom row without the atlas)."""
+    if atlas is None:
+        return y_bottom - 0.5
+    x0, x1 = sorted((x0, x1))
+    bottom = int(round(y_bottom))
+    best = None
+    for y in range(bottom - 1, max(bottom - 1 - FOOT_SCAN, -1), -1):
+        share = float((atlas[page][y, int(x0):max(int(math.ceil(x1)), int(x0) + 1), 3] >= 128).mean())
+        if share >= FOOT_SOLID:
+            return y + 0.5
+        if best is None or share > best[0]:
+            best = (share, y + 0.5)
+    return best[1] if best else y_bottom - 0.5
+
+
 def _clip(polygon, side):
     """The part of a convex polygon of 3D points where side(point) >= 0; side is
     affine on the polygon's plane, so cut points interpolate exactly."""
@@ -123,7 +161,7 @@ def _split(polygons, side):
             for part in (_clip(polygon, side), _clip(polygon, lambda p: -side(p))) if len(part) >= 3]
 
 
-def _wall_back(batches, sprites, pages, row, hpx, keep=(0.0, 1.0)):
+def _wall_back(batches, sprites, pages, row, hpx, keep=(0.0, 1.0), atlas=None):
     """What the game's camera does not see of a solid wall (donor wallRest): its
     far side, `thick` behind the front, the same outline seen from behind up to
     the cap line, in the picture `back` (-1: the wall's own below its top band),
@@ -144,11 +182,16 @@ def _wall_back(batches, sprites, pages, row, hpx, keep=(0.0, 1.0)):
     if h <= 0 or zc <= z0:
         return
     # The back runs from b to a: its stretch is the front's, seen from there.
-    _upright(batches, sprites, pages, picture, ub - nu, vb - nv, ua - nu, va - nv, z0, zc, x + w, y, -w, h,
-             (1.0 - min(keep[1], 1.0), 1.0 - max(keep[0], 0.0)))
+    part = (1.0 - min(keep[1], 1.0), 1.0 - max(keep[0], 0.0))
+    _upright(batches, sprites, pages, picture, ub - nu, vb - nv, ua - nu, va - nv, z0, zc, x + w, y, -w, h, part)
+    if _foot_z(row) is not None:
+        r = _foot_row(atlas, sprites[picture][0], x, x + w, y + h)
+        _upright(batches, sprites, pages, picture, ub - nu, vb - nv, ua - nu, va - nv, 0.0, z0,
+                 x + w, r - 0.25, -w, 0.5, part)
 
 
-def _wall_front(batches, proj, sprites, pages, row, toward_camera, continues, keep=(0.0, 1.0), top_keep=None):
+def _wall_front(batches, proj, sprites, pages, row, toward_camera, continues, keep=(0.0, 1.0), top_keep=None,
+                foot=None, atlas=None):
     """The front up to the cap line, then the slab's top as a real horizontal
     face as deep as the wall is thick, and what of the picture is higher than
     that top as an upright face on the slab's far side. Each point samples the
@@ -157,7 +200,8 @@ def _wall_front(batches, proj, sprites, pages, row, toward_camera, continues, ke
     the piece ends where its picture ends; a free end is cut square, as the
     slab is. `keep`: the stretch of the wall that stays (fractions from a to
     b), where a corner moved its end (_corner_fits); `top_keep` the top's
-    (the front's when None)."""
+    (the front's when None). `foot`: the batches its foot goes in (_foot_z;
+    None: none)."""
     top_keep = keep if top_keep is None else top_keep
     sprite, ua, va, ub, vb, z0, z1, _, _, zc, thick = row[:11]
     sprite = _int(sprite, "wall sprite")
@@ -173,6 +217,10 @@ def _wall_front(batches, proj, sprites, pages, row, toward_camera, continues, ke
     top = (z1 - zc) * hpx
     _upright(batches, sprites, pages, sprite, ua, va, ub, vb, z0, zc,
              x, y + top, w, h - top, (max(keep[0], 0.0), min(keep[1], 1.0)))
+    if foot is not None and _foot_z(row) is not None:
+        r = _foot_row(atlas, page, x, x + w, y + h)
+        _upright(foot, sprites, pages, sprite, ua, va, ub, vb, 0.0, z0,
+                 x, r - 0.25, w, 0.5, (max(keep[0], 0.0), min(keep[1], 1.0)))
     if top <= 0 or top_keep[1] <= top_keep[0]:
         return
     length = math.hypot(ub - ua, vb - va)
@@ -512,7 +560,9 @@ def _corner_fits(walls, hidden, toward_camera, width=None, px=(1.0, 1.0)):
         pool = sorted([index for line in slabs if line.axis == slab.axis and abs(line.plane - slab.plane) < 0.01
                        for index in line.rows
                        if (max(span(index)) <= o0 + CORNER_SLACK or min(span(index)) >= o1 - CORNER_SLACK)
-                       and gap(end, *span(index)) <= 2 * CORNER_REACH and wide(index, 4)],
+                       and gap(end, *span(index)) <= 2 * CORNER_REACH and wide(index, 4)
+                       # a strip high up (a top band of its own) is no face to fill with
+                       and walls[index][5] <= FOOT_MAX],
                       key=lambda index: gap(start, *span(index))) or [lender]
         corners.pools[(id(slab), out)] = pool
         for index in left_out:
@@ -647,17 +697,23 @@ def _corner_fill(batches, proj, sprites, pages, hpx, px, walls, pool, slab, s0, 
                                                          abs(s1 - s0) * px[slab.axis])
         tiles = None
     z0, zc = walls[lender][5], walls[lender][9]  # as high as the row the columns come from
-    if tiles is None:
-        lo, hi = sorted((start, stop))
-        corners = [[*p(lo, depth), z0, c0, y_bottom], [*p(hi, depth), z0, c1, y_bottom],
-                   [*p(hi, depth), zc, c1, y_top], [*p(lo, depth), zc, c0, y_top]]
+    foot = _foot_z(walls[lender])
+
+    def block(a, b, u0, u1):
+        corners = [[*p(a, depth), z0, u0, y_bottom], [*p(b, depth), z0, u1, y_bottom],
+                   [*p(b, depth), zc, u1, y_top], [*p(a, depth), zc, u0, y_top]]
         _polygon(batches, proj, page, pages[page], corners, back)
+        if foot is not None:  # down to the floor, as the row's own foot
+            r = _foot_row(atlas, page, u0, u1, y_bottom)
+            corners = [[*p(a, depth), 0.0, u0, r + 0.25], [*p(b, depth), 0.0, u1, r + 0.25],
+                       [*p(b, depth), z0, u1, r - 0.25], [*p(a, depth), z0, u0, r - 0.25]]
+            _polygon(batches, proj, page, pages[page], corners, back)
+
+    if tiles is None:
+        block(*sorted((start, stop)), c0, c1)
         return
     for a, b in tiles:
-        c1 = inner + (edge - inner) * abs(b - a) / span
-        corners = [[*p(a, depth), z0, inner, y_bottom], [*p(b, depth), z0, c1, y_bottom],
-                   [*p(b, depth), zc, c1, y_top], [*p(a, depth), zc, inner, y_top]]
-        _polygon(batches, proj, page, pages[page], corners, back)
+        block(a, b, inner, inner + (edge - inner) * abs(b - a) / span)
 
 
 def _corner_end(batches, proj, sprites, pages, hpx, px, toward_camera, walls, pool, slab, out, s, atlas=None):
@@ -671,6 +727,11 @@ def _corner_end(batches, proj, sprites, pages, hpx, px, toward_camera, walls, po
     corners = [[*p(s, near), z0, c0, y_bottom], [*p(s, far), z0, c1, y_bottom],
                [*p(s, far), zc, c1, y_top], [*p(s, near), zc, c0, y_top]]
     _polygon(batches, proj, page, pages[page], corners, out * toward_camera[slab.axis] < 0)
+    if _foot_z(walls[lender]) is not None:
+        r = _foot_row(atlas, page, c0, c1, y_bottom)
+        corners = [[*p(s, near), 0.0, c0, r + 0.25], [*p(s, far), 0.0, c1, r + 0.25],
+                   [*p(s, far), z0, c1, r - 0.25], [*p(s, near), z0, c0, r - 0.25]]
+        _polygon(batches, proj, page, pages[page], corners, out * toward_camera[slab.axis] < 0)
 
 
 def _corner_cap(batches, proj, sprites, pages, hpx, row, slab, s0, s1):
@@ -1023,9 +1084,10 @@ def encode_wall_sidecar(scene, skip_props=frozenset(), skip_rests=frozenset(), m
             # whole, the free camera draws what stays.
             _wall_front(game, proj, sprites, pages, row, toward_camera, continuations[index])
             _wall_front(fly, proj, sprites, pages, row, toward_camera, continuations[index], corners.keep[index],
-                        corners.top_keep[index])
+                        corners.top_keep[index], None if index in hidden_walls else fly, atlas)
         elif row[10] > 0:
-            _wall_front(batches, proj, sprites, pages, row, toward_camera, continuations[index])
+            _wall_front(batches, proj, sprites, pages, row, toward_camera, continuations[index],
+                        foot=None if index in hidden_walls else fly, atlas=atlas)
         else:
             _record(row, 7, f"thin wall {index}")
             sprite = _int(row[0], "thin wall sprite index")
@@ -1038,7 +1100,7 @@ def encode_wall_sidecar(scene, skip_props=frozenset(), skip_rests=frozenset(), m
     for index, row in enumerate(walls):
         if row[10] > 0 and index not in hidden_walls:
             fly.object = owner(row[8])
-            _wall_back(fly, sprites, pages, row, hpx, corners.back_keep.get(index, (0.0, 1.0)))
+            _wall_back(fly, sprites, pages, row, hpx, corners.back_keep.get(index, (0.0, 1.0)), atlas)
     decor = _decor_pieces(atlas, sprites, hpx, walls, corners)
     # Both fronts of a corner with decor run on as they stand up to it.
     decor_ends = {key for index in decor for slab, out, twin, twin_out, _ in [corners.pieces[index]]

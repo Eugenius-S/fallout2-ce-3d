@@ -517,6 +517,25 @@ class WallSidecarTests(unittest.TestCase):
         fly = lambda data: sum(batch["triangles"] for batch in data["batches"] if batch["fly_only"])
         self.assertGreater(fly(closed), fly(plain))
 
+    def test_a_wall_ending_above_the_floor_gets_a_foot_for_the_free_camera(self):
+        # Task 081: a picture whose clear bottom rows were trimmed ends 0.12
+        # over the floor; its front and back run down to it in the fly
+        # batches, in one picture row; the game's camera keeps what it had.
+        scene = self.sample_scene()
+        scene["walls"] = [[0, 1.0, 2.0, 3.0, 2.0, 0.12, 2.0, 0, 1, 1.8, 0.25, -1]]
+        decoded = decode_wall_sidecar(encode_wall_sidecar(scene))
+        fly = [v for batch in decoded["batches"] if batch["fly_only"] for v in batch["vertices"]]
+        game = [v for batch in decoded["batches"] if not batch["fly_only"] for v in batch["vertices"]]
+        self.assertAlmostEqual(min(v[1] for v in game), 0.12)
+        feet = [v for v in fly if v[1] < 0.12 - 1e-6]
+        self.assertEqual(len(feet), 2 * 3)  # the front's and the back's lower edge
+        self.assertTrue(all(abs(v[1]) < 1e-6 for v in feet))
+        page_h = scene["pages"][0]["size"][1]
+        self.assertLess(max(v[4] for v in feet) - min(v[4] for v in feet), 1.0 / page_h)  # one picture row
+        scene["walls"][0][5] = 0.6  # a row this high stands on something else
+        decoded = decode_wall_sidecar(encode_wall_sidecar(scene))
+        self.assertFalse([v for batch in decoded["batches"] for v in batch["vertices"] if v[1] < 0.6 - 1e-6])
+
     def test_a_corner_block_takes_a_wide_picture_not_the_end_strip(self):
         import wall_sidecar
         # The wall along v ends in a 2-column strip short of the corner: the
