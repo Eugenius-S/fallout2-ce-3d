@@ -55,7 +55,9 @@ void drawStaticPreview(bool withWalls, bool withHero)
     bindStaticMapClipUniforms();
     glUniformMatrix4fv(gSceneMvpLocation, 1, 0, mvp);
     glUniform1i(gSceneDepthAtLocation, 0);
-    glUniform3f(gSceneEyeLocation, camera.eye[0], camera.eye[1], camera.eye[2]);
+    // The fragment shader finds a solid's line of sight by its pixel.
+    glUniform4f(gSceneViewportLocation, static_cast<float>(x), static_cast<float>(y), static_cast<float>(width),
+        static_cast<float>(height));
     glUniform1i(gSceneTranslucentLocation, 0);
     glUniform1i(gScenePickLocation, 0);
     glUniform1i(gSceneSeeThroughLocation, 0);

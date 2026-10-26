@@ -6,7 +6,7 @@ import math
 import struct
 
 from scene_check import one_map_elevation
-from solids import Projection, rest_card, rest_cross, screen_area, solid_faces
+from solids import OVER_CARD, Projection, rest_card, rest_cross, row_plane, screen_area, solid_faces
 
 
 MAGIC = b"F2WL"
@@ -1313,11 +1313,18 @@ def encode_wall_sidecar(scene, skip_props=frozenset(), skip_rests=frozenset(), m
     # skip_*: rows whose object the engine keeps drawing live (it animates).
     boards = scene.get("boards") or []
     board_owner = lambda board: owner(boards[board][5]) if 0 <= board < len(boards) else -1.0
-    # A solid's rest cards stand on its axis: they belong to its object.
+    # A solid's rest cards stand on its axis: they belong to its object. They
+    # show what the solid does not (a pot's mouth, a table's stem), so they
+    # take its card's depth plane, stack and all, a hair nearer than the solid
+    # (067: at their own pixel's depth the solid hid a pot's mouth).
     axis_owner = {}
+    axis_plane = {}
     forced_axes = {(row[5], row[6]) for row in scene.get("props") or [] if len(row) > 14 and row[14]}
     for index, row in enumerate(scene.get("props") or []):
         axis_owner.setdefault((row[5], row[6]), board_owner(row[3]))
+        if 0 <= row[3] < len(boards):
+            _, board_u, board_v, stack = boards[row[3]][:4]
+            axis_plane.setdefault((row[5], row[6]), row_plane(proj, board_u, board_v, stack) + 2 * OVER_CARD)
         if index in skip_props:
             continue
         batches.object = fly.object = game.object = board_owner(row[3])
@@ -1331,7 +1338,7 @@ def encode_wall_sidecar(scene, skip_props=frozenset(), skip_rests=frozenset(), m
         # The game's camera sees the card; the fly camera two crossed sheets,
         # each from both sides.
         game.object = fly.object = axis_owner.get((row[1], row[2]), -1.0)
-        page, corners = rest_card(proj, sprites, row)
+        page, corners = rest_card(proj, sprites, row, axis_plane.get((row[1], row[2])))
         seen = row[5] if len(row) > 5 else 0     # 1: of a solid the fly camera alone sees, 2: the game's
         if (row[1], row[2]) not in forced_axes and seen != 1:  # the game's camera sees that solid's card whole
             _polygon(game, proj, page, pages[page], corners)

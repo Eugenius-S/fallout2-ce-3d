@@ -4,7 +4,7 @@
   "map": "KLATOXCV.MAP",
   "elevation": 2,
   "still_snapshot": true,
-  "snapshot_run": "2f61baa9cc63449c960f302271984041",
+  "snapshot_run": "ed5b63f36c0843098c0b2fbc4970530a",
   "view_tile": 15065,
   "preview_requested": true,
   "scene_3d_enabled": true,
@@ -84,6 +84,10 @@
   "preview_availability": "available",
   "renderer": "scene-gl",
   "light": "off",
+  "glow": {
+    "enabled": false,
+    "strength": 2.0
+  },
   "sun": {
     "setting": true,
     "daylight": false,
@@ -108,11 +112,11 @@
   "scale": 2,
   "windowed": true,
   "drawable": "1920x1080",
-  "ce_commit": "2332f28b",
+  "ce_commit": "d795db36",
   "tools_commit": "-",
-  "exe_sha256": "543964e2ea9fd002d6193940577a8fb960403ad6dcb5a54d630d97b84951618d",
-  "taken": "20261026-130503",
-  "capture_image": "devhero-20261026-130503-000.png",
+  "exe_sha256": "c349f0e81c49f59c4245712c9c195acce481cafea0c245f6614b51ecb6453983",
+  "taken": "20261026-173939",
+  "capture_image": "devhero-20261026-173939-000.png",
   "spot": {
     "name": "klatoxcv-e2",
     "map": "klatoxcv",

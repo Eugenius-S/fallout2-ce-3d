@@ -415,6 +415,16 @@ class WallSidecarTests(unittest.TestCase):
                 self.assertGreater(area, 0.0)
         self.assertGreater(away, 0)
 
+        # The rest of its sprite, a card on its axis, takes its card's plane,
+        # stack and all, not the hex row's at the axis, a hair nearer than the
+        # solid: it shows what the solid does not.
+        scene["rests"] = [[2, 10.0, 10.1, 0.0, 0.0, 0]]
+        homes = [vertex[7] + 50.0 for batch in decode_wall_sidecar(encode_wall_sidecar(scene))["batches"]
+                 for vertex in batch["vertices"]]
+        self.assertTrue(any(abs(home - (plane + 2e-5)) < 1e-5 for home in homes))
+        self.assertFalse(any(abs(home - row_plane(proj, 10.0, 10.1)) < 1e-5 for home in homes))
+        scene["rests"] = []
+
         # A drum: sixteen sides and a top (the sides away from the camera
         # repeat the facing quarter mirrored, so they are not checked here).
         # It stands for several cards (board -1), so it keeps its own depth.

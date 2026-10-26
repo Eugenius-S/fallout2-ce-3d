@@ -19,7 +19,6 @@ layout(location = 3) in float aObject; // walls.bin: the object row it shows, -1
 layout(location = 5) in vec3 aDepthNormal;
 uniform mat4 uMvp;
 uniform int uDepthAt;
-uniform vec3 uEye; // the game view's eye: every line of sight goes through it
 // Whether the egg cuts what is drawn: 0 no, 1 the walls whose object row is
 // set in uSeeThroughObjects (the hero stands behind them), 2 the whole draw.
 uniform int uSeeThrough;
@@ -30,6 +29,8 @@ out vec3 vWorld;
 out vec2 vWorldXZ;
 flat out int vSeeThrough;
 flat out float vFullLight;
+flat out int vDepthOnPlane;
+flat out vec4 vDepthPlane; // normal, and its dot with the plane's points
 void main() {
     gl_Position = uMvp * vec4(aPosition, 1.0);
     vTexcoord = aTexcoord;
@@ -43,16 +44,10 @@ void main() {
         if (uSeeThrough == 1) vSeeThrough = entry.r > 0.5 ? 1 : 0;
         if (uLightMode == 2) vFullLight = entry.g;
     }
+    vDepthOnPlane = uDepthAt != 0 && dot(aDepthNormal, aDepthNormal) > 0.5 ? 1 : 0;
+    vDepthPlane = vec4(aDepthNormal, dot(aDepthNormal, aDepthAt));
     if (uDepthAt != 0) {
-        // The exporter reached the depth point along the game's parallel ray;
-        // under the view's perspective it is moved, within its plane, onto
-        // this vertex's line of sight, so two things on one pixel compare
-        // their planes there (a solid and a card of one hex row, 067).
-        vec3 at = aDepthAt;
-        vec3 sight = aPosition - uEye;
-        float across = dot(aDepthNormal, sight);
-        if (abs(across) > 1e-6) at = aPosition + sight * (dot(aDepthNormal, aDepthAt - aPosition) / across);
-        vec4 q = uMvp * vec4(at, 1.0);
+        vec4 q = uMvp * vec4(aDepthAt, 1.0);
         gl_Position.z = q.z / q.w * gl_Position.w;
     }
 }
@@ -64,6 +59,9 @@ in vec3 vWorld;
 in vec2 vWorldXZ;
 flat in int vSeeThrough;
 flat in float vFullLight;
+flat in int vDepthOnPlane;
+flat in vec4 vDepthPlane;
+uniform mat4 uMvp;
 uniform sampler2D uTexture;
 uniform int uTextured;
 uniform vec4 uColor;
@@ -230,7 +228,33 @@ float eggShare() {
     if (e.x < 0.0 || e.y < 0.0 || e.x >= 1.0 || e.y >= 1.0) return 0.0;
     return min(floor(texture(uEggMask, e).r * 255.0 + 0.5), 128.0);
 }
+// The depth of the face's depth plane (vDepthPlane) on this fragment's own
+// line of sight. The exporter reached the depth points along the game's
+// parallel ray; under the view's perspective that lands on another pixel, off
+// by more than neighbouring hex rows' planes are apart. Here a solid, a wall
+// and a card on one pixel compare their planes there, as a live card's depth
+// point already lies on its own line of sight (067: a cabinet and a person of
+// one hex row). It is worked out per fragment, not between the face's
+// corners, so the faces of one solid tie exactly and the first one drawn
+// keeps the pixel.
+float planeDepth() {
+    vec2 ndc = (gl_FragCoord.xy - uViewport.xy) / uViewport.zw * 2.0 - 1.0;
+    vec4 rowX = vec4(uMvp[0][0], uMvp[1][0], uMvp[2][0], uMvp[3][0]);
+    vec4 rowY = vec4(uMvp[0][1], uMvp[1][1], uMvp[2][1], uMvp[3][1]);
+    vec4 rowZ = vec4(uMvp[0][2], uMvp[1][2], uMvp[2][2], uMvp[3][2]);
+    vec4 rowW = vec4(uMvp[0][3], uMvp[1][3], uMvp[2][3], uMvp[3][3]);
+    // The point p on the plane whose clip x and y over w are this pixel's:
+    // a.p = 0, b.p = 0, normal.p = offset.
+    vec4 a = rowX - ndc.x * rowW;
+    vec4 b = rowY - ndc.y * rowW;
+    mat3 m = transpose(mat3(a.xyz, b.xyz, vDepthPlane.xyz));
+    float det = determinant(m);
+    if (abs(det) < 1e-12) return gl_FragCoord.z;
+    vec3 p = inverse(m) * vec3(-a.w, -b.w, vDepthPlane.w);
+    return dot(rowZ, vec4(p, 1.0)) / dot(rowW, vec4(p, 1.0)) * 0.5 + 0.5;
+}
 void main() {
+    gl_FragDepth = vDepthOnPlane != 0 ? planeDepth() : gl_FragCoord.z;
     if (uClipEnabled != 0) {
         if (dot(uClipPlane0.xy, vWorldXZ) + uClipPlane0.z < -0.00001
             || dot(uClipPlane1.xy, vWorldXZ) + uClipPlane1.z < -0.00001
@@ -320,7 +344,6 @@ int gSceneTexturedLocation = -1;
 int gSceneColorLocation = -1;
 int gSceneCutoffLocation = -1;
 int gSceneDepthAtLocation = -1;
-int gSceneEyeLocation = -1;
 int gSceneTranslucentLocation = -1;
 int gSceneTintLocation = -1;
 int gSceneGlassGrayLocation = -1;
@@ -391,7 +414,6 @@ bool createSceneShader(std::string* error)
     gSceneColorLocation = glGetUniformLocation(gSceneProgram, "uColor");
     gSceneCutoffLocation = glGetUniformLocation(gSceneProgram, "uCutoff");
     gSceneDepthAtLocation = glGetUniformLocation(gSceneProgram, "uDepthAt");
-    gSceneEyeLocation = glGetUniformLocation(gSceneProgram, "uEye");
     gSceneTranslucentLocation = glGetUniformLocation(gSceneProgram, "uTranslucent");
     gSceneTintLocation = glGetUniformLocation(gSceneProgram, "uTint");
     gSceneGlassGrayLocation = glGetUniformLocation(gSceneProgram, "uGlassGray");
@@ -433,7 +455,7 @@ bool createSceneShader(std::string* error)
     gSceneShadowRangeLocation = glGetUniformLocation(gSceneProgram, "uShadowRange");
     if (gSceneMvpLocation < 0 || gSceneTextureLocation < 0
         || gSceneTexturedLocation < 0 || gSceneColorLocation < 0 || gSceneCutoffLocation < 0
-        || gSceneDepthAtLocation < 0 || gSceneEyeLocation < 0 || gSceneTranslucentLocation < 0 || gSceneTintLocation < 0
+        || gSceneDepthAtLocation < 0 || gSceneTranslucentLocation < 0 || gSceneTintLocation < 0
         || gSceneGlassGrayLocation < 0 || gScenePickLocation < 0 || gSceneEggLocation < 0
         || gSceneEggMaskLocation < 0 || gSceneEggRectLocation < 0 || gSceneViewportLocation < 0
         || gSceneLogicalLocation < 0 || gSceneSeeThroughLocation < 0 || gSceneSeeThroughObjectsLocation < 0
