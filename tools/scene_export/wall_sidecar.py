@@ -103,6 +103,44 @@ def _upright(batches, sprites, pages, sprite_id, ua, va, ub, vb, z0, z1, tx, ty,
     ])
 
 
+# Feet (task 081). Some wall pictures end a little above the floor: their
+# clear bottom rows were trimmed, and the game shows the floor there. The
+# free camera saw such a wall float over the street, and at a corner the
+# core stand under it alone. A face of a thick wall whose bottom is at most
+# FOOT_MAX above the floor runs on down to it for the free camera, in its
+# picture's bottom row; a higher one stands on something else.
+FOOT_MIN = 0.005
+FOOT_MAX = 0.5
+
+
+FOOT_SCAN = 8  # picture rows above the bottom a foot may take its texels from
+FOOT_SOLID = 0.95  # ... the lowest this opaque (a clear bottom row would stripe the foot)
+
+
+def _foot_z(row):
+    """The bottom of a thick wall row's faces when they need a foot, else None."""
+    z0 = _finite(row[5], "wall height")
+    return z0 if row[10] >= CORE_THICK and FOOT_MIN < z0 <= FOOT_MAX else None
+
+
+def _foot_row(atlas, page, x0, x1, y_bottom):
+    """The atlas row (its middle) a foot under picture columns x0 .. x1 whose
+    bottom is y_bottom takes: of the lowest FOOT_SCAN rows the lowest
+    FOOT_SOLID opaque, else the most opaque (the bottom row without the atlas)."""
+    if atlas is None:
+        return y_bottom - 0.5
+    x0, x1 = sorted((x0, x1))
+    bottom = int(round(y_bottom))
+    best = None
+    for y in range(bottom - 1, max(bottom - 1 - FOOT_SCAN, -1), -1):
+        share = float((atlas[page][y, int(x0):max(int(math.ceil(x1)), int(x0) + 1), 3] >= 128).mean())
+        if share >= FOOT_SOLID:
+            return y + 0.5
+        if best is None or share > best[0]:
+            best = (share, y + 0.5)
+    return best[1] if best else y_bottom - 0.5
+
+
 def _clip(polygon, side):
     """The part of a convex polygon of 3D points where side(point) >= 0; side is
     affine on the polygon's plane, so cut points interpolate exactly."""
@@ -123,7 +161,7 @@ def _split(polygons, side):
             for part in (_clip(polygon, side), _clip(polygon, lambda p: -side(p))) if len(part) >= 3]
 
 
-def _wall_back(batches, sprites, pages, row, hpx, keep=(0.0, 1.0)):
+def _wall_back(batches, sprites, pages, row, hpx, keep=(0.0, 1.0), atlas=None):
     """What the game's camera does not see of a solid wall (donor wallRest): its
     far side, `thick` behind the front, the same outline seen from behind up to
     the cap line, in the picture `back` (-1: the wall's own below its top band),
@@ -144,11 +182,16 @@ def _wall_back(batches, sprites, pages, row, hpx, keep=(0.0, 1.0)):
     if h <= 0 or zc <= z0:
         return
     # The back runs from b to a: its stretch is the front's, seen from there.
-    _upright(batches, sprites, pages, picture, ub - nu, vb - nv, ua - nu, va - nv, z0, zc, x + w, y, -w, h,
-             (1.0 - min(keep[1], 1.0), 1.0 - max(keep[0], 0.0)))
+    part = (1.0 - min(keep[1], 1.0), 1.0 - max(keep[0], 0.0))
+    _upright(batches, sprites, pages, picture, ub - nu, vb - nv, ua - nu, va - nv, z0, zc, x + w, y, -w, h, part)
+    if _foot_z(row) is not None:
+        r = _foot_row(atlas, sprites[picture][0], x, x + w, y + h)
+        _upright(batches, sprites, pages, picture, ub - nu, vb - nv, ua - nu, va - nv, 0.0, z0,
+                 x + w, r - 0.25, -w, 0.5, part)
 
 
-def _wall_front(batches, proj, sprites, pages, row, toward_camera, continues, keep=(0.0, 1.0), top_keep=None):
+def _wall_front(batches, proj, sprites, pages, row, toward_camera, continues, keep=(0.0, 1.0), top_keep=None,
+                foot=None, atlas=None):
     """The front up to the cap line, then the slab's top as a real horizontal
     face as deep as the wall is thick, and what of the picture is higher than
     that top as an upright face on the slab's far side. Each point samples the
@@ -157,7 +200,8 @@ def _wall_front(batches, proj, sprites, pages, row, toward_camera, continues, ke
     the piece ends where its picture ends; a free end is cut square, as the
     slab is. `keep`: the stretch of the wall that stays (fractions from a to
     b), where a corner moved its end (_corner_fits); `top_keep` the top's
-    (the front's when None)."""
+    (the front's when None). `foot`: the batches its foot goes in (_foot_z;
+    None: none)."""
     top_keep = keep if top_keep is None else top_keep
     sprite, ua, va, ub, vb, z0, z1, _, _, zc, thick = row[:11]
     sprite = _int(sprite, "wall sprite")
@@ -173,6 +217,10 @@ def _wall_front(batches, proj, sprites, pages, row, toward_camera, continues, ke
     top = (z1 - zc) * hpx
     _upright(batches, sprites, pages, sprite, ua, va, ub, vb, z0, zc,
              x, y + top, w, h - top, (max(keep[0], 0.0), min(keep[1], 1.0)))
+    if foot is not None and _foot_z(row) is not None:
+        r = _foot_row(atlas, page, x, x + w, y + h)
+        _upright(foot, sprites, pages, sprite, ua, va, ub, vb, 0.0, z0,
+                 x, r - 0.25, w, 0.5, (max(keep[0], 0.0), min(keep[1], 1.0)))
     if top <= 0 or top_keep[1] <= top_keep[0]:
         return
     length = math.hypot(ub - ua, vb - va)
@@ -375,6 +423,24 @@ def _corner_fits(walls, hidden, toward_camera, width=None, px=(1.0, 1.0)):
     gap = lambda x, lo, hi: max(lo - x, 0.0, x - hi)
     far = lambda slab, out: slab.band()[1] if out > 0 else slab.band()[0]
     near = lambda slab, out: slab.band()[0] if out > 0 else slab.band()[1]
+
+    def tip(slab, out, other):
+        """Where the slab's end at `out` lies for a corner with `other`. A
+        corner picture may run on past the crossing out of reach (a post or
+        a trim standing out in the open, task 081): a last row that runs
+        across the other's band and stops within twice the reach past it
+        ends the slab in the crossing."""
+        end = slab.hi if out > 0 else slab.lo
+        over = out * (end - far(other, out))
+        if not CORNER_REACH < over <= 2 * CORNER_REACH:
+            return end
+        for index in slab.rows:
+            s0, s1 = sorted((walls[index][1 + slab.axis], walls[index][3 + slab.axis]))
+            last, first = (s1, s0) if out > 0 else (-s0, -s1)
+            if last >= out * end - 1e-6 and first < out * far(other, out) - CORNER_SLACK:
+                return far(other, out)
+        return end
+
     targets = {}
     pairs = {}  # an L: {(id(slab), out): (the other slab, its out)}
     meets = {}  # {(id(slab), out): the slab that end meets}
@@ -386,23 +452,26 @@ def _corner_fits(walls, hidden, toward_camera, width=None, px=(1.0, 1.0)):
             # A short wall may come within reach of a wall with both ends: a
             # wall that reaches past its other end is that end's corner.
             past = lambda b: b.band()[0] <= a.lo + CORNER_SLACK if out > 0 else b.band()[1] >= a.hi - CORNER_SLACK
-            met = [(gap(end, *b.band()), index, b) for index, b in enumerate(slabs) if b.axis != a.axis
-                   and gap(end, *b.band()) <= CORNER_REACH and b.hi >= a0 - CORNER_REACH and b.lo <= a1 + CORNER_REACH
-                   and not (past(b) and gap(end, *b.band()) > CORNER_SLACK)
+            met = [(gap(tip(a, out, b), *b.band()), index, b) for index, b in enumerate(slabs) if b.axis != a.axis
+                   and gap(tip(a, out, b), *b.band()) <= CORNER_REACH
+                   and b.hi >= a0 - CORNER_REACH and b.lo <= a1 + CORNER_REACH
+                   and not (past(b) and gap(tip(a, out, b), *b.band()) > CORNER_SLACK)
                    # A thick wall does not reach for a rail or a trim strip
                    # (some are wholly clear): the game ends it where it ends.
                    and not (a.thick >= CORE_THICK and b.thick < CORE_THICK)]
             if not met:
                 continue
             b = min(met, key=lambda item: item[:2])[2]
-            if b.lo < a0 - CORNER_REACH and b.hi > a1 + CORNER_REACH:
+            end = tip(a, out, b)
+            b_lo, b_hi = tip(b, -1, a), tip(b, 1, a)
+            if b_lo < a0 - CORNER_REACH and b_hi > a1 + CORNER_REACH:
                 targets[(id(a), out)] = (a, out, near(b, out), None)  # a T: the stem stops at b
                 meets[(id(a), out)] = b
                 continue
-            if b.hi <= a1 + CORNER_REACH and b.lo >= a0 - CORNER_REACH:
+            if b_hi <= a1 + CORNER_REACH and b_lo >= a0 - CORNER_REACH:
                 continue  # all of b lies at a's end: no corner to read
-            b_out = 1 if b.hi <= a1 + CORNER_REACH else -1
-            b_end = b.hi if b_out > 0 else b.lo
+            b_out = 1 if b_hi <= a1 + CORNER_REACH else -1
+            b_end = b_hi if b_out > 0 else b_lo
             # The wall that runs on further past the other reaches across it;
             # its end face then lies in the other's plane.
             if out * (end - far(b, out)) >= b_out * (b_end - far(a, b_out)):
@@ -512,7 +581,9 @@ def _corner_fits(walls, hidden, toward_camera, width=None, px=(1.0, 1.0)):
         pool = sorted([index for line in slabs if line.axis == slab.axis and abs(line.plane - slab.plane) < 0.01
                        for index in line.rows
                        if (max(span(index)) <= o0 + CORNER_SLACK or min(span(index)) >= o1 - CORNER_SLACK)
-                       and gap(end, *span(index)) <= 2 * CORNER_REACH and wide(index, 4)],
+                       and gap(end, *span(index)) <= 2 * CORNER_REACH and wide(index, 4)
+                       # a strip high up (a top band of its own) is no face to fill with
+                       and walls[index][5] <= FOOT_MAX],
                       key=lambda index: gap(start, *span(index))) or [lender]
         corners.pools[(id(slab), out)] = pool
         for index in left_out:
@@ -647,17 +718,23 @@ def _corner_fill(batches, proj, sprites, pages, hpx, px, walls, pool, slab, s0, 
                                                          abs(s1 - s0) * px[slab.axis])
         tiles = None
     z0, zc = walls[lender][5], walls[lender][9]  # as high as the row the columns come from
-    if tiles is None:
-        lo, hi = sorted((start, stop))
-        corners = [[*p(lo, depth), z0, c0, y_bottom], [*p(hi, depth), z0, c1, y_bottom],
-                   [*p(hi, depth), zc, c1, y_top], [*p(lo, depth), zc, c0, y_top]]
+    foot = _foot_z(walls[lender])
+
+    def block(a, b, u0, u1):
+        corners = [[*p(a, depth), z0, u0, y_bottom], [*p(b, depth), z0, u1, y_bottom],
+                   [*p(b, depth), zc, u1, y_top], [*p(a, depth), zc, u0, y_top]]
         _polygon(batches, proj, page, pages[page], corners, back)
+        if foot is not None:  # down to the floor, as the row's own foot
+            r = _foot_row(atlas, page, u0, u1, y_bottom)
+            corners = [[*p(a, depth), 0.0, u0, r + 0.25], [*p(b, depth), 0.0, u1, r + 0.25],
+                       [*p(b, depth), z0, u1, r - 0.25], [*p(a, depth), z0, u0, r - 0.25]]
+            _polygon(batches, proj, page, pages[page], corners, back)
+
+    if tiles is None:
+        block(*sorted((start, stop)), c0, c1)
         return
     for a, b in tiles:
-        c1 = inner + (edge - inner) * abs(b - a) / span
-        corners = [[*p(a, depth), z0, inner, y_bottom], [*p(b, depth), z0, c1, y_bottom],
-                   [*p(b, depth), zc, c1, y_top], [*p(a, depth), zc, inner, y_top]]
-        _polygon(batches, proj, page, pages[page], corners, back)
+        block(a, b, inner, inner + (edge - inner) * abs(b - a) / span)
 
 
 def _corner_end(batches, proj, sprites, pages, hpx, px, toward_camera, walls, pool, slab, out, s, atlas=None):
@@ -671,6 +748,11 @@ def _corner_end(batches, proj, sprites, pages, hpx, px, toward_camera, walls, po
     corners = [[*p(s, near), z0, c0, y_bottom], [*p(s, far), z0, c1, y_bottom],
                [*p(s, far), zc, c1, y_top], [*p(s, near), zc, c0, y_top]]
     _polygon(batches, proj, page, pages[page], corners, out * toward_camera[slab.axis] < 0)
+    if _foot_z(walls[lender]) is not None:
+        r = _foot_row(atlas, page, c0, c1, y_bottom)
+        corners = [[*p(s, near), 0.0, c0, r + 0.25], [*p(s, far), 0.0, c1, r + 0.25],
+                   [*p(s, far), z0, c1, r - 0.25], [*p(s, near), z0, c0, r - 0.25]]
+        _polygon(batches, proj, page, pages[page], corners, out * toward_camera[slab.axis] < 0)
 
 
 def _corner_cap(batches, proj, sprites, pages, hpx, row, slab, s0, s1):
@@ -937,6 +1019,150 @@ def _box(batches, proj, pages, toward_camera, axis, along, across, z0, z1, page,
         _polygon(batches, proj, page, pages[page], corners, outward < 0)
 
 
+# Roofs (task 081). The engine lays each roof square flat at the roof
+# height, with its cell's rim past each side, and the game draws roofs over
+# the walls. What a wall's picture shows above that height under a roof (an
+# inner wall's rise face, a band of top trim) is hidden in the game's view,
+# but stuck out of the roof for the free camera. The free camera keeps each
+# wall face only below the roof there; the game's camera keeps it whole.
+ROOF_SLACK = 0.001  # a face this little over the roof is under it (the corner caps lie a hair under)
+ROOF_CELL, ROOF_MARGIN = 88, 6  # a roof square's texels and its rim's (floor_sidecar, floor.cc)
+ROOF_RIM = ROOF_MARGIN / ROOF_CELL  # how far past its square the engine draws a roof cell's rim
+
+
+class _Roofs:
+    """The roof squares of a scene at the roof height. A point is under a
+    roof in its square, or in the rim of a square next to it where that
+    cell's texel is opaque (`tiles`: the tiles atlas alpha; without it the
+    rims count as clear)."""
+
+    def __init__(self, height, cells, tiles=None):
+        self.height, self.cells, self.tiles = height, cells, tiles
+
+    def near(self, lo_u, hi_u, lo_v, hi_v):
+        return any((col, row) in self.cells for col in _roof_cells(lo_u, hi_u) for row in _roof_cells(lo_v, hi_v))
+
+    def covers(self, u, v):
+        if (math.floor(u), math.floor(v)) in self.cells:
+            return True
+        if self.tiles is None:
+            return False
+        for col in _roof_cells(u, u):
+            for row in _roof_cells(v, v):
+                cell = self.cells.get((col, row))
+                if cell is None:
+                    continue
+                x = min(max(int(cell[0] + ROOF_MARGIN + (u - col) * ROOF_CELL), cell[0]), cell[0] + ROOF_CELL + 2 * ROOF_MARGIN - 1)
+                y = min(max(int(cell[1] + ROOF_MARGIN + (v - row) * ROOF_CELL), cell[1]), cell[1] + ROOF_CELL + 2 * ROOF_MARGIN - 1)
+                if 0 <= y < len(self.tiles) and 0 <= x < len(self.tiles[y]) and self.tiles[y][x] >= 128:
+                    return True
+        return False
+
+
+def _roof_grid(scene, tiles=None):
+    """The scene's _Roofs, or None without roofs. tiles: the tiles atlas alpha
+    (rows of 0..255), for the rims."""
+    import base64
+    projection = scene.get("proj") or {}
+    data = scene.get("roof")
+    if not isinstance(data, str) or "roofPx" not in projection:
+        return None
+    try:
+        indices = struct.unpack("<10000H", base64.b64decode(data, validate=True))
+    except (ValueError, struct.error):
+        return None
+    atlas = (scene.get("tiles") or {}).get("cells") or []
+    cells = {(index % 100, index // 100): tuple(atlas[cell - 1]) if cell <= len(atlas) else (0, 0)
+             for index, cell in enumerate(indices) if cell}
+    if not cells:
+        return None
+    height = _finite(projection["roofPx"], "roof height") / _finite(projection["hpx"], "scene projection hpx")
+    return _Roofs(height, cells, tiles if atlas else None)
+
+
+def _roof_cells(lo, hi):
+    """The columns (or rows) whose roof square, rim included, reaches into lo..hi."""
+    return range(math.floor(lo - ROOF_RIM), math.floor(hi + ROOF_RIM) + 1)
+
+
+def _over_roof(triangle, roofs):
+    """Might a part of this triangle (three vertices of FLOATS) stand over a roof?"""
+    if max(vertex[1] for vertex in triangle) <= roofs.height + ROOF_SLACK:
+        return False
+    us, vs = [vertex[0] + GL_MAP_OFFSET for vertex in triangle], [vertex[2] + GL_MAP_OFFSET for vertex in triangle]
+    return roofs.near(min(us), max(us), min(vs), max(vs))
+
+
+def _under_roofs(triangle, roofs):
+    """The polygons (lists of vertices) of a triangle that stay for the free
+    camera: all of it but what stands under a roof (_Roofs.covers) above its
+    height. Every vertex value is affine on the triangle, so cuts interpolate
+    it. The pieces are cut at the squares' and the rims' edges, and in a rim
+    where its texels turn from clear to opaque along the piece."""
+    height = roofs.height
+    below = _clip(triangle, lambda p: height + ROOF_SLACK - p[1])
+    above = [_clip(triangle, lambda p: p[1] - height - ROOF_SLACK)]
+    above = [polygon for polygon in above if len(polygon) >= 3]
+    extent = lambda polygon, axis: (min(p[axis] for p in polygon) + GL_MAP_OFFSET, max(p[axis] for p in polygon) + GL_MAP_OFFSET)
+    centre = lambda polygon, axis: sum(p[axis] for p in polygon) / len(polygon) + GL_MAP_OFFSET
+
+    def cut(polygons, axis, k):
+        # only a polygon on both sides: one lying in the plane would come out twice
+        return [part for polygon in polygons
+                for part in (_split([polygon], lambda p: p[axis] + GL_MAP_OFFSET - k)
+                             if extent(polygon, axis)[0] < k < extent(polygon, axis)[1] else [polygon])]
+
+    for axis in (0, 2):
+        cuts = sorted({k + edge for polygon in above for k in _roof_cells(*extent(polygon, axis))
+                       for edge in (-ROOF_RIM, 0.0, ROOF_RIM)})
+        for k in cuts:
+            above = cut(above, axis, k)
+    if roofs.tiles is not None:
+        for axis, other in ((0, 2), (2, 0)):
+            parts = []
+            for polygon in above:
+                lo, hi = extent(polygon, axis)
+                at = centre(polygon, other)
+                cover = lambda s: roofs.covers(s, at) if axis == 0 else roofs.covers(at, s)
+                count = max(1, math.ceil((hi - lo) * ROOF_CELL))  # a sample a texel
+                steps = [lo + (hi - lo) * (i + 0.5) / count for i in range(count)]
+                pieces = [polygon]
+                for a, b in zip(steps, steps[1:]):
+                    if cover(a) != cover(b):
+                        pieces = cut(pieces, axis, (a + b) / 2)
+                parts.extend(pieces)
+            above = parts
+    kept = [below] if len(below) >= 3 else []
+    kept.extend(polygon for polygon in above if not roofs.covers(centre(polygon, 0), centre(polygon, 2)))
+    return kept
+
+
+def _cut_by_roofs(batches, roofs, game=None, fly=None):
+    """Leave out of the free camera's faces in `batches` what stands over a
+    roof (_under_roofs). With `game`, `batches` are both cameras': the game's
+    camera then keeps a cut face whole in `game`, the free camera's part goes
+    to `fly`."""
+    size = 3 * FLOATS
+    for page in list(batches):
+        values, keep = batches[page], []
+        cut = keep if game is None else fly.setdefault(page, [])
+        for start in range(0, len(values), size):
+            face = values[start:start + size]
+            triangle = [tuple(face[i * FLOATS:(i + 1) * FLOATS]) for i in range(3)]
+            if not _over_roof(triangle, roofs):
+                keep.extend(face)
+                continue
+            if game is not None:
+                game.setdefault(page, []).extend(face)
+            for polygon in _under_roofs(triangle, roofs):
+                for index in range(1, len(polygon) - 1):
+                    cut.extend(n for vertex in (polygon[0], polygon[index], polygon[index + 1]) for n in vertex)
+        batches[page] = keep
+    for target in (batches, fly or {}):
+        for page in [page for page, values in target.items() if not values]:
+            del target[page]
+
+
 def _moved_strip(trim, moved):
     """Is this donor trim an end strip at a wall end that a corner moved?"""
     ua, va, ub, vb = trim[1:5]
@@ -948,7 +1174,7 @@ def _moved_strip(trim, moved):
     return False
 
 
-def encode_wall_sidecar(scene, skip_props=frozenset(), skip_rests=frozenset(), map_objects=None, atlas=None):
+def encode_wall_sidecar(scene, skip_props=frozenset(), skip_rests=frozenset(), map_objects=None, atlas=None, tiles=None):
     """Build the donor game view's wall triangles for one scene: what the game's
     camera sees of walls (fronts and tops) and the sheets that have no
     thickness. Backs and slab ends (wallRest, trims) are first-person only in
@@ -957,7 +1183,7 @@ def encode_wall_sidecar(scene, skip_props=frozenset(), skip_rests=frozenset(), m
     upper parts are left out.) map_objects: the elevation's objects in map file
     order (the rows' serial numbers); the faces of each object name it in the
     table. atlas: the packed RGBA pages (alpha), so a corner's core takes an
-    opaque texel."""
+    opaque texel. tiles: the tiles atlas alpha, for the roofs' rims."""
     if scene.get("format") != 6 or not one_map_elevation(scene):
         raise ValueError("wall sidecar expects one map elevation in scene format 6")
     pages_data = scene.get("pages")
@@ -1023,9 +1249,10 @@ def encode_wall_sidecar(scene, skip_props=frozenset(), skip_rests=frozenset(), m
             # whole, the free camera draws what stays.
             _wall_front(game, proj, sprites, pages, row, toward_camera, continuations[index])
             _wall_front(fly, proj, sprites, pages, row, toward_camera, continuations[index], corners.keep[index],
-                        corners.top_keep[index])
+                        corners.top_keep[index], None if index in hidden_walls else fly, atlas)
         elif row[10] > 0:
-            _wall_front(batches, proj, sprites, pages, row, toward_camera, continuations[index])
+            _wall_front(batches, proj, sprites, pages, row, toward_camera, continuations[index],
+                        foot=None if index in hidden_walls else fly, atlas=atlas)
         else:
             _record(row, 7, f"thin wall {index}")
             sprite = _int(row[0], "thin wall sprite index")
@@ -1038,7 +1265,7 @@ def encode_wall_sidecar(scene, skip_props=frozenset(), skip_rests=frozenset(), m
     for index, row in enumerate(walls):
         if row[10] > 0 and index not in hidden_walls:
             fly.object = owner(row[8])
-            _wall_back(fly, sprites, pages, row, hpx, corners.back_keep.get(index, (0.0, 1.0)))
+            _wall_back(fly, sprites, pages, row, hpx, corners.back_keep.get(index, (0.0, 1.0)), atlas)
     decor = _decor_pieces(atlas, sprites, hpx, walls, corners)
     # Both fronts of a corner with decor run on as they stand up to it.
     decor_ends = {key for index in decor for slab, out, twin, twin_out, _ in [corners.pieces[index]]
@@ -1073,6 +1300,11 @@ def encode_wall_sidecar(scene, skip_props=frozenset(), skip_rests=frozenset(), m
             raise ValueError(f"trim {index} sprite index is outside scene.sprites")
         _upright(fly, sprites, pages, sprite, *row[1:7], sprites[sprite][1] + row[7], sprites[sprite][2] + row[8],
                  row[9], row[10])
+
+    roofs = _roof_grid(scene, tiles)
+    if roofs is not None:
+        _cut_by_roofs(fly, roofs)
+        _cut_by_roofs(batches, roofs, game, fly)
 
     # Doors are not baked: they open and close, so the engine draws them live
     # as sprite cards with their current frame.
