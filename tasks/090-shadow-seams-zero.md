@@ -123,3 +123,65 @@ Cloud shadows (023), the night look, the sun's path (082).
   caster pass uses it as the clip-space projection, so the casters filled
   only the map's upper right quarter (a 4096 map in effect) and
   `uShadowTexel` was 2 to 2.8 times smaller than the real texel.
+
+### 2026-10-26 claude: round 1, total 157,846 -> 53,347 seam pixels
+
+- Root cause of most holes: the shader took the face normal's screen
+  derivatives after the alpha `discard`. In a 2x2 quad with a discarded
+  neighbour (the floor tiles' transparent joints, a window's art holes, a
+  wall's base) NVIDIA gives zero derivatives, the normal turned NaN, the
+  face gate and every compare failed, and the pixel read lit inside the
+  shadow. Debug view 2 now paints such pixels red: 69,601 at 24292 h7
+  before, 0 after taking the derivatives at the top of `main()`. This is the
+  owner's 01 (lit pixels at the wall base), 04 and 06 (joints, star dots).
+- `shadowMatrix` gives clip space, so the casters fill the whole 8192 map;
+  the texel is the real one; the gap fill reaches 4 texels (the same width
+  on the ground as 082's 2).
+- The filled depth is R32F (was 16 bits in RG16), the caster ids a separate
+  R16 on unit 6, written by the fill pass as a second target.
+- The receivers compare their own plane carried to the texel center (the
+  receiver-plane compare): no normal offset, no center-tap early out, a
+  quarter-texel bias. The hatching on sun-facing faces (03) is gone.
+- Cards (doors, signs, people) take their feet's majority, in or out: a door
+  in its wall's line read a fifth or a half dark against the wall (the
+  dips at 19265 and 20690, 7551 and 3045 px at noon, now 16 and 0).
+- The same derivative bug sits in the point lights' wall normal
+  (`sceneLighting`); fixing it there changed 179 to 1155 px in the caves
+  (klaratcv, klatoxcv), so it stays out of this task and goes to the inbox.
+- ctest 16/16; regression 0 changed px on all 16 views.
+
+| view | before | holes | specks | dips | grains | after |
+|---|---|---|---|---|---|---|
+| 25075 h7 | 7267 | 3354 | 552 | 17 | 44 | 3967 |
+| 25075 h12 | 3639 | 3656 | 15 | 0 | 0 | 3671 |
+| 25075 h17 | 5619 | 2911 | 909 | 12 | 21 | 3853 |
+| 24292 h7 | 7382 | 1736 | 535 | 87 | 46 | 2404 |
+| 24292 h12 | 3467 | 1823 | 4 | 173 | 0 | 2000 |
+| 24292 h17 | 4596 | 1225 | 499 | 236 | 13 | 1973 |
+| 24292 h7 fly | 12219 | 3505 | 1147 | 2 | 330 | 4984 |
+| 24292 h12 fly | 9799 | 2828 | 210 | 106 | 0 | 3144 |
+| 24292 h17 fly | 11986 | 2816 | 971 | 170 | 219 | 4176 |
+| 23481 h7 | 10370 | 2754 | 594 | 14 | 87 | 3449 |
+| 23481 h12 | 4293 | 2617 | 50 | 0 | 5 | 2672 |
+| 23481 h17 | 4992 | 1402 | 845 | 5 | 23 | 2275 |
+| 19265 h7 | 10879 | 1827 | 396 | 6 | 132 | 2361 |
+| 19265 h12 | 12660 | 2023 | 692 | 16 | 7 | 2738 |
+| 19265 h17 | 12278 | 2090 | 694 | 98 | 83 | 2965 |
+| 17104 h7 | 5509 | 836 | 67 | 22 | 173 | 1098 |
+| 17104 h12 | 5159 | 368 | 95 | 389 | 0 | 852 |
+| 17104 h17 | 4365 | 773 | 521 | 244 | 246 | 1784 |
+| 20690 h7 | 8309 | 748 | 372 | 20 | 170 | 1310 |
+| 20690 h12 | 6545 | 588 | 86 | 0 | 1 | 675 |
+| 20690 h17 | 6513 | 400 | 506 | 1 | 89 | 996 |
+
+- What is left, read from the overlays:
+  - wall caps: the 1 px top face of a wall box and of every fence rail
+    faces up and reads lit while its wall reads the flat shaded value (all
+    of 25075 h12, most of 24292 h12; the owner's 02 corner strip is the
+    same kind on a side face);
+  - fence rails and foliage: their art's alpha holes make the shadow on the
+    ground ragged and dotted (05, the tree at 19265); a wider gap fill (6
+    texels) changed nothing, so these are not map gaps;
+  - a door card on a wall turned from the sun still reads lit at noon (one
+    factor at its feet, the ground there is lit); not counted by the metric
+    but visible.
