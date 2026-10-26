@@ -2,14 +2,14 @@
 id: 087
 title: Characters turn with the camera: the sprite shows the side the camera sees
 milestone: M1
-status: todo
-owner: none
+status: done
+owner: claude
 suggested: glm
 priority: normal
 claude-only: no
 user-check: yes
 depends-on: []
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -63,3 +63,45 @@ a round figure. Three stages:
 Objects already turned into 3D shapes (075) or walls; real 3D figures.
 
 ## Log
+
+### 2026-10-26 claude
+Done: under a fly or turned camera a standing critter, item or projectile
+(misc) whose art has more than one side is drawn in its rotation moved by the
+camera's yaw from the game's view, in 60-degree steps with 5 degrees of
+hysteresis past each half-way (`spriteTurnSteps` in
+`ce/src/scene_renderer/sprite_card.cc`, the per-frame count in
+`live_objects.cc`, the choice of art in `shownArt`,
+`ce/src/scene/scene_objects.cc`). Only the drawn art changes; the game keeps
+its rotation. Flat sprites (they turn with the ground) and things `walls.bin`
+draws keep theirs. `[3d] sprite_sides` (on) switches it; `dev-snapshot.ps1
+-NoSpriteSides` shoots the old look. On the ground the hexes are squashed
+(neighbouring facings 53 or 63 degrees apart), so the step is the art's own
+60 degrees and only its sign comes from the ground.
+
+Stage 1: `runs/087-sprites-turn-with-camera/hero-turns.jpg` (the hero at
+turns 0/30/45/60/90, before | after: 30 still shows the game's side, inside
+the hysteresis; 45 and 60 one side on, 90 two) and `critters.jpg` (brahmin and
+townsfolk at 60 and 90).
+
+Stage 2: `tools/shapes/art_sides.py` lists every item and scenery FRM with
+more than one stored side: items spear, flare, rock; scenery cac1000,
+cac2000, car1..car5, car1b..car5b, cola, truck2, truck3, vwin01..vwin04,
+vwin06, vwin07, wlamp5, bath01, bath02, ss122, ss123, wdbeam01..wdbeam10,
+wdbeam20..wdbeam25, crafter2, pipe003, tire004..tire006, brkglass,
+shelf001..shelf006. `art/misc` adds 14 projectiles (rocket, knife, spear,
+molotov, ...). The sheet `stage2-six-sided-art.jpg` shows why scenery stays:
+its rotations are variants (other wrecks, other cacti, a shelf or window
+breaking up, "UNUSED ART" placeholders), cola and wlamp5 are two wall
+facings; turning them would swap the object. Items and projectiles turn.
+
+Stage 3: no FRM stores 2 to 5 sides; fewer sides means one stored side (67
+critter FRMs, most items and scenery) or six with repeats (9 critter
+remains, all flat when shown). The art lookup in the moved rotation already
+gives the nearest side; a one-sided object keeps its picture
+(`stage3-fewer-sides.jpg`: the deathclaw egg and mabos2aa through a full
+turn).
+
+Next: nothing; the owner judges the look.
+Check: `ctest --test-dir build --output-on-failure`;
+`tools/dev-snapshot.ps1 -TurnDegrees 60 -Still` against the same with
+`-NoSpriteSides`; `tools/regression.ps1` (0 changed pixels).

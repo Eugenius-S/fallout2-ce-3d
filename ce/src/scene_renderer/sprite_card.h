@@ -69,6 +69,23 @@ bool flatSpriteCard(const SpriteCardProjection& projection, const SpriteCardArt&
 // each other and walls as the game's painting does.
 double spriteRowPlane(const SpriteCardProjection& projection, int tile, int stack);
 
+// The yaw on the scene ground (atan2(z, x), as a fly camera's) of the way a
+// sprite in `rotation` faces: 0..5 are NE, E, SE, SW, W, NW on the game's
+// screen. The ground's hexes are a little squashed: neighbouring facings lie
+// 53 or 63 degrees apart, all turning one way.
+bool spriteRotationYaw(const SpriteCardProjection& projection, int rotation, double* yaw);
+
+// The sides of a turning sprite (087): a camera whose yaw is `turn` radians
+// round from the game's view sees the side `steps` rotations on from the
+// object's own. The art's sides are 60 degrees apart; `rotationSign` is the
+// way the yaw turns from one rotation to the next (spriteRotationYaw).
+// Near the half-way between two sides the count keeps `previous`, so a sprite
+// does not flicker while the camera hovers there.
+int spriteTurnSteps(double turn, int rotationSign, int previous);
+
+// The rotation drawn for an object in `rotation` when the sides move `steps`.
+int spriteShownRotation(int rotation, int steps);
+
 } // namespace scene_renderer
 } // namespace fallout
 

@@ -72,6 +72,8 @@ const std::vector<Translation>& catalog()
         { "[ and ] turn the camera up to 45 degrees left or right. Return to the original view to control the game with the mouse.", cp1251(u8"Клавиши [ и ] поворачивают камеру в пределах 45 градусов влево и вправо. Верните камеру в исходное положение, чтобы управлять игрой мышью.") },
         { "Unlimited camera rotation (not recommended)", cp1251(u8"Полный оборот (не рекомендуется)") },
         { "Remove the 45-degree limit. Objects and walls may render incorrectly at larger angles.", cp1251(u8"Снимает ограничение в 45 градусов. При большем повороте объекты и стены могут отображаться с ошибками.") },
+        { "Characters turn with the camera", cp1251(u8"Персонажи поворачиваются с камерой") },
+        { "A turned camera sees the side of people, creatures and thrown things that faces it.", cp1251(u8"Повёрнутая камера видит ту сторону людей, существ и брошенных предметов, что обращена к ней.") },
         { "Light", cp1251(u8"Освещение") },
         { "Light the 3D scene with the game's light.", cp1251(u8"Освещать 3D-сцену игровым светом.") },
         { "Camera zoom", cp1251(u8"Масштаб камеры") },

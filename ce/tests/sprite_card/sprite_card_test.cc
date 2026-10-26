@@ -92,6 +92,34 @@ int main()
     CHECK(NEAR(spriteRowPlane(projection, 25075, 99) - odd, 4.0 * 1e-4));
     CHECK(spriteRowPlane(projection, 25075 + 200, 0) > odd); // the next row is nearer
 
+    // The six facings lie 53 or 63 degrees apart on the ground (its hexes are
+    // squashed), all turning one way.
+    const double kDegree = 3.14159265358979323846 / 180.0;
+    double yaws[6] = {};
+    for (int rotation = 0; rotation < 6; rotation++) CHECK(spriteRotationYaw(projection, rotation, &yaws[rotation]));
+    const int rotationSign = std::remainder(yaws[1] - yaws[0], 360.0 * kDegree) > 0.0 ? 1 : -1;
+    for (int rotation = 0; rotation < 6; rotation++) {
+        const double step = rotationSign * std::remainder(yaws[(rotation + 1) % 6] - yaws[rotation], 360.0 * kDegree);
+        CHECK(step > 50.0 * kDegree && step < 70.0 * kDegree);
+    }
+    CHECK(!spriteRotationYaw(projection, 6, &yaws[0]));
+
+    // A camera turned one rotation's yaw on sees the side one rotation back;
+    // the side changes only past the half-way, by the hysteresis.
+    const double sign = rotationSign;
+    CHECK(spriteTurnSteps(0.0, rotationSign, 0) == 0);
+    CHECK(spriteTurnSteps(sign * 60.0 * kDegree, rotationSign, 0) == 5);
+    CHECK(spriteTurnSteps(-sign * 60.0 * kDegree, rotationSign, 0) == 1);
+    CHECK(spriteTurnSteps(-sign * 45.0 * kDegree, rotationSign, 0) == 1);
+    CHECK(spriteTurnSteps(-sign * 33.0 * kDegree, rotationSign, 0) == 0);
+    CHECK(spriteTurnSteps(-sign * 36.0 * kDegree, rotationSign, 0) == 1);
+    CHECK(spriteTurnSteps(-sign * 27.0 * kDegree, rotationSign, 1) == 1);
+    CHECK(spriteTurnSteps(-sign * 24.0 * kDegree, rotationSign, 1) == 0);
+    CHECK(spriteTurnSteps(-sign * 180.0 * kDegree, rotationSign, 0) == 3);
+    CHECK(spriteTurnSteps(sign * 61.0 * kDegree, rotationSign, 5) == 5);
+    CHECK(spriteTurnSteps(-sign * 361.0 * kDegree, rotationSign, 0) == 0);
+    CHECK(spriteShownRotation(5, 1) == 0 && spriteShownRotation(0, 5) == 5 && spriteShownRotation(2, 3) == 5);
+
     // Off-grid tiles and empty frames are refused.
     art = { -1, 0, 0, 0, 0, 30, 60 };
     CHECK(!standingSpriteCard(projection, art, corners, nullptr, nullptr));

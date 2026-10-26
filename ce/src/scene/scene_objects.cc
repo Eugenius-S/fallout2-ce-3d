@@ -34,6 +34,42 @@ unsigned char spriteAlpha(unsigned char colorIndex)
     return colorIndex >= 0xE5 ? 254 : 255;
 }
 
+// The art and rotation a standing sprite is drawn in (087). A fly or turned
+// camera sees another side of a critter, item or projectile whose art has more
+// than one: its art in the rotation that side faces. Art with fewer sides
+// shows the nearest one it has, as the game would for that rotation. Scenery
+// keeps its own rotation: its art spends rotations on variants (wrecks, cacti,
+// a shelf breaking up; tools/shapes/art_sides.py), not on sides. So do flat
+// sprites, which turn with the ground, and things walls.bin draws.
+struct ShownArt {
+    int fid;
+    int rotation;
+};
+
+ShownArt shownArt(Object* object, bool flat)
+{
+    const ShownArt own = { object->fid, object->rotation };
+    const FrmId frmId(object);
+    const ObjectType type = frmId.objectType();
+    if (!settings.scene3d.sprite_sides || flat || (type != OBJ_TYPE_CRITTER && type != OBJ_TYPE_ITEM && type != OBJ_TYPE_MISC)) return own;
+    const int rotation = scene_renderer::staticShownRotation(object->rotation);
+    if (rotation == object->rotation) return own;
+    // Art stored a file per side (.fr0 .. .fr5) names its side in the fid; a
+    // side without its file keeps the game's own art.
+    if (frmId.hasRotation() && frmId.rotation() != ROTATION_NE) {
+        constexpr int kRotationBits = 0x70000000;
+        const FrmId side((object->fid & ~kRotationBits) | ((rotation + 1) << 28));
+        return side.exist() ? ShownArt { side.fid(), rotation } : own;
+    }
+    CacheEntry* handle = nullptr;
+    Art* art = artLock(frmId, &handle);
+    if (art == nullptr) return own;
+    bool sides = false;
+    for (int index = 1; index < ROTATION_COUNT; index++) sides = sides || art->dataOffsets[index] != art->dataOffsets[0];
+    artUnlock(handle);
+    return sides ? ShownArt { object->fid, rotation } : own;
+}
+
 std::vector<PickEntry> gPickObjects;
 int gHeroPickId = -1;
 int gHeroStack = 0; // standing sprites the game paints on the hero's hex before the hero
@@ -60,9 +96,10 @@ bool updateHeroFromGame()
         return unavailable("player rotation is invalid");
     }
 
+    const ShownArt shown = shownArt(gDude, (gDude->flags & OBJECT_FLAT) != OBJECT_NONE);
     FrmImage image;
-    const FrmId frmId(gDude);
-    if (!image.lock(frmId, gDude->frame, gDude->rotation)) {
+    const FrmId frmId(shown.fid);
+    if (!image.lock(frmId, gDude->frame, static_cast<Rotation>(shown.rotation))) {
         return unavailable("current player FRM frame could not be locked");
     }
     const int width = image.getWidth();
@@ -87,7 +124,7 @@ bool updateHeroFromGame()
 
     scene_renderer::StaticHeroFrame frame = {
         gDude->tile, static_cast<int>(gDude->elevation), gDude->fid, gDude->frame,
-        static_cast<int>(gDude->rotation), gDude->x, gDude->y,
+        shown.rotation, gDude->x, gDude->y,
         image.getXOffset(), image.getYOffset(), width, height, rgba.data(), rgba.size(),
     };
     frame.stack = gHeroStack;
@@ -164,8 +201,13 @@ void addObjectCard(Object* object, void* context)
         if (handle != nullptr) artUnlock(handle);
         if (frames > 1 && object->frame == frames - 1) return;
     }
+    const bool flat = (object->flags & OBJECT_FLAT) != OBJECT_NONE
+        || scene_renderer::staticObjectFlat(object->tile, object->fid);
+    const bool flyFlat = scene_renderer::staticFlyCameraActive()
+        && scene_renderer::staticObjectFlyFlat(object->tile, object->fid);
+    const ShownArt shown = shownArt(object, flat || flyFlat || pickOnly);
     FrmImage image;
-    if (!image.lock(FrmId(object), object->frame, object->rotation)) {
+    if (!image.lock(FrmId(shown.fid), object->frame, static_cast<Rotation>(shown.rotation))) {
         pass.skipped++;
         return;
     }
@@ -190,7 +232,7 @@ void addObjectCard(Object* object, void* context)
         }
     }
     const int variant = body != nullptr ? 1 : 0;
-    const bool cached = scene_renderer::staticObjectArtCached(object->fid, object->frame, object->rotation, variant);
+    const bool cached = scene_renderer::staticObjectArtCached(object->fid, object->frame, shown.rotation, variant);
     if (!cached && body == nullptr) {
         const unsigned char* indices = image.getData();
         if (indices == nullptr) {
@@ -208,9 +250,9 @@ void addObjectCard(Object* object, void* context)
         }
     }
     scene_renderer::StaticObjectFrame frame = {
-        object->tile, object->fid, object->frame, static_cast<int>(object->rotation), object->x, object->y,
+        object->tile, object->fid, object->frame, shown.rotation, object->x, object->y,
         body != nullptr ? bodyX : image.getXOffset(), body != nullptr ? bodyY : image.getYOffset(), width, height,
-        (object->flags & OBJECT_FLAT) != OBJECT_NONE || scene_renderer::staticObjectFlat(object->tile, object->fid),
+        flat,
         cached ? nullptr : (body != nullptr ? body : pass.rgba.data()),
         cached ? 0 : (body != nullptr ? static_cast<size_t>(width) * static_cast<size_t>(height) * 4
                                       : pass.rgba.size()),

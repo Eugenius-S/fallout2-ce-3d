@@ -122,6 +122,12 @@ from every side (the shapes eval, `tools/shapes/eval/eval.py`).
 From the air things are seen from any side: sprite cards stand upright and
 face the camera, and solids show their far sides (the near sides' pixels
 mirrored, as the donor's first person does); the game's camera culls those.
+Under a fly or turned camera a critter, an item or a thing in flight whose
+art has more than one side shows the side the camera sees: its own rotation
+moved by the camera's turn from the game's view in 60-degree steps, held 5
+degrees past each half-way (`[3d] sprite_sides`, on by default; 087). Scenery
+keeps its rotation: its art spends rotations on variants. `-NoSpriteSides`
+(`--dev-no-sprite-sides`) takes a snapshot without it, for a before | after.
 Doors and gates do not turn: they lie on their wall's plane. Cards no more
 than 20 pixels tall lie flat on the floor.
 Walls show their backs and the strips that close their ends: `walls.bin`

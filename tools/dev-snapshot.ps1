@@ -90,6 +90,9 @@ param(
     # -Shadows: keep the sun shadows on in this background run (they are
     # forced off by default, so captures stay byte-stable).
     [switch]$Shadows,
+    # -NoSpriteSides: a turned camera sees the game's side of every sprite
+    # (before 087).
+    [switch]$NoSpriteSides,
     # -Hour H: set the game hour on the map (the sun snaps to it), so morning,
     # noon, sunset and night views come from one command.
     [ValidateRange(0, 24)]
@@ -278,6 +281,7 @@ if ($GlowStrength -ge 0) { $arguments += "--dev-glow-strength=$($GlowStrength.To
 if ($CyclePalette) { $arguments += '--dev-cycle-palette' }
 if ($GlowLadder) { $arguments += '--dev-glow-ladder' }
 if ($Shadows) { $arguments += '--dev-shadows' }
+if ($NoSpriteSides) { $arguments += '--dev-no-sprite-sides' }
 if ($OpenDoors) { $arguments += '--dev-open-doors' }
 if ($Hour -ge 0) { $arguments += "--dev-hour=$Hour" }
 if ($Zoom -gt 0) { $arguments += "--dev-zoom=$Zoom" }
