@@ -302,6 +302,8 @@ set(FALLOUT_PLATFORM_SOURCES
     "src/devtools/snapshot_rows.cc"
     "src/devtools/preferences_probe.cc"
     "src/devtools/ui_fixture.cc"
+    "src/devtools/weapon_effect_fixture.cc"
+    "src/devtools/weapon_effect_fixture.h"
     "src/scene/preview_policy.cc"
     "src/scene/preview_policy.h"
     "src/scene/dialogue_backdrop.cc"

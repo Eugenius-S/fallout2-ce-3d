@@ -288,3 +288,15 @@ _cmap contains zeros there. snapshot_palette.h supplies the engine's real
 normal gameplay. One global glow-strength menu slider controls all sources;
 white/cyan emission is luminance-compensated in the shader, with gain 0.5..1.
 Warm red fire and green slime retain their existing contribution.
+
+## Native effect inspection
+
+`-EffectFixture NAME -EffectFrame N -GlowPair` spawns a no-save native misc
+object in the background instance, freezes the scene/palette, fits a camera
+to the real card, and takes OFF/default-strength captures. Supported initial
+names: laser, plasma-bolt, plasma-pistol, plasma-rifle, fire-explosion,
+plasma-explosion, emp-explosion, rocket-explosion. Frame indices start at zero;
+omitted frame uses the middle one. The fixture records its actual FID/frame,
+camera and no-save state in weapon_effect metadata. -GlowPair derives its ON
+value from Scene3dSettings's global default and expects two captures.
+These are single-object static previews, not combat or trajectory simulation.
