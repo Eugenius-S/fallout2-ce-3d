@@ -18,7 +18,8 @@
 # Prints the snapshot JSON; the image lies next to it in game/.
 # Scenes come from build/scene-cache when that folder exists (a worktree
 # exports there with export.py --cache-root build/scene-cache), so a game
-# running from game/ keeps its own mod-cache.
+# running from game/ keeps its own mod-cache. -SceneCache DIR reads them from
+# DIR instead (the fly tour's cache sides, tools/tour/tour.py).
 #
 # F2CE_NO_EGG=1 in the environment hides the hero's see-through circle, so an
 # egg on/off capture pair shows exactly what the circle cuts.
@@ -67,6 +68,7 @@ param(
     # -Solo R: only the things within R hexes of -ViewTile, no walls or roofs.
     [int]$Solo = -1,
     [string]$OutputDirectory,
+    [string]$SceneCache,
     [ValidateSet('english', 'russian')]
     [string]$Language,
     [ValidateSet('save', 'cancel', 'escape', 'defaults', 'verify')]
@@ -98,6 +100,9 @@ param(
     # -Shadows: keep the sun shadows on in this background run (they are
     # forced off by default, so captures stay byte-stable).
     [switch]$Shadows,
+    # -NoSpriteSides: a turned camera sees the game's side of every sprite
+    # (before 087).
+    [switch]$NoSpriteSides,
     # -Hour H: set the game hour on the map (the sun snaps to it), so morning,
     # noon, sunset and night views come from one command.
     [ValidateRange(0, 24)]
@@ -295,6 +300,7 @@ if ($GlowLevels) { $arguments += '--dev-glow-levels=' + (($GlowLevels | ForEach-
 if ($EffectFixture) { $arguments += "--dev-effect=$($EffectFixture.ToLowerInvariant())" }
 if ($EffectFrame -ge 0) { $arguments += "--dev-effect-frame=$EffectFrame" }
 if ($Shadows) { $arguments += '--dev-shadows' }
+if ($NoSpriteSides) { $arguments += '--dev-no-sprite-sides' }
 if ($OpenDoors) { $arguments += '--dev-open-doors' }
 if ($Hour -ge 0) { $arguments += "--dev-hour=$Hour" }
 if ($Zoom -gt 0) { $arguments += "--dev-zoom=$Zoom" }
@@ -361,8 +367,11 @@ $env:F2CE_DEV_BACKGROUND = '1'
 $previousAudio = $env:SDL_AUDIODRIVER
 $env:SDL_AUDIODRIVER = 'dummy'
 $previousSceneCache = $env:F2CE_SCENE_CACHE
-$sceneCache = Join-Path $Root 'build\scene-cache'
-if (Test-Path -LiteralPath $sceneCache -PathType Container) { $env:F2CE_SCENE_CACHE = $sceneCache }
+$worktreeCache = Join-Path $Root 'build\scene-cache'
+if ($SceneCache) {
+    if (-not (Test-Path -LiteralPath $SceneCache -PathType Container)) { throw "No scene cache at $SceneCache" }
+    $env:F2CE_SCENE_CACHE = (Resolve-Path -LiteralPath $SceneCache).Path
+} elseif (Test-Path -LiteralPath $worktreeCache -PathType Container) { $env:F2CE_SCENE_CACHE = $worktreeCache }
 $process = $null
 $probeHarnessStoppedProcess = $false
 $snapshots = @()

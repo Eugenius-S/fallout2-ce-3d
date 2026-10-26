@@ -98,6 +98,14 @@ A map tour stop may end in `:solo:turn:distance`
 (`kladwtwn:0:15123:1:90:3.5`): the things within `solo` hexes of the view
 tile alone, from the fly camera `turn` degrees round and `distance` units
 away; the shapes eval shoots a whole map in one run this way.
+The fly tour (`py -3 tools/tour/tour.py --before SIDE [--after SIDE]`, task
+078) shoots every spot of `tools/tour/spots.json` from the fly camera at
+-45, 0 and +45 degrees, one run per map elevation and side, frozen (`-Still`)
+in full daylight, and writes `before | after` sheets to `build/tour/sheets/`
+(`changed.jpg`, then `changed-2.jpg`..., holds only the spots that changed,
+or says none did). A side is a built checkout
+or a scene cache folder; a cache side runs this checkout's build with
+`dev-snapshot.ps1 -SceneCache DIR`.
 `-Turn N` (`--dev-camera-turn=N`) takes the snapshot with the 3D camera N
 quarter turns round (legacy snapshot units). `-TurnDegrees D`
 (`--dev-camera-degrees=D`) accepts an exact angle, e.g. -45 or 45. Both
@@ -114,6 +122,12 @@ from every side (the shapes eval, `tools/shapes/eval/eval.py`).
 From the air things are seen from any side: sprite cards stand upright and
 face the camera, and solids show their far sides (the near sides' pixels
 mirrored, as the donor's first person does); the game's camera culls those.
+Under a fly or turned camera a critter, an item or a thing in flight whose
+art has more than one side shows the side the camera sees: its own rotation
+moved by the camera's turn from the game's view in 60-degree steps, held 5
+degrees past each half-way (`[3d] sprite_sides`, on by default; 087). Scenery
+keeps its rotation: its art spends rotations on variants. `-NoSpriteSides`
+(`--dev-no-sprite-sides`) takes a snapshot without it, for a before | after.
 Doors and gates do not turn: they lie on their wall's plane. Cards no more
 than 20 pixels tall lie flat on the floor.
 Walls show their backs and the strips that close their ends: `walls.bin`

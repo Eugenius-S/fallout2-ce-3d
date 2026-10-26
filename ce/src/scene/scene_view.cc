@@ -44,6 +44,7 @@ namespace scene {
 namespace {
 
 View gView = View::Off;
+bool gOriginalShown = false; // Ctrl+F10 asked for the game as it was
 bool gCameraGlide = true;
 bool gFreeScroll = false; // tileSetFreeScroll as set for the full view
 // The wheel sets a target zoom (settings.scene3d.zoom) and the shown zoom
@@ -440,6 +441,7 @@ bool enable(View view, std::string* message)
         return false;
     }
     gView = view;
+    gOriginalShown = false;
     gFailedMap.clear();
     gFailedElevation = -1;
     syncToMap();
@@ -464,6 +466,18 @@ bool disable()
     scene_renderer::clearStaticObjects();
     scene_renderer::setStaticCameraCenterTile(-1);
     return true;
+}
+
+bool showOriginal()
+{
+    if (!disable()) return false;
+    gOriginalShown = true;
+    return true;
+}
+
+bool sharpTextWanted()
+{
+    return settings.scene3d.sharp_text && !(gOriginalShown && gView == View::Off);
 }
 
 View requestedView()

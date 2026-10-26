@@ -486,6 +486,9 @@ void initSettingsRegistry(bool isMapper)
         "Unlimited camera rotation (not recommended)",
         "Remove the 45-degree limit. Objects and walls may render incorrectly at larger angles.",
         SettingApplyPolicy::OnClose);
+    registerThreeDBoolean("sprite_sides", settings.scene3d.sprite_sides, "Characters turn with the camera",
+        "A turned camera sees the side of people, creatures and thrown things that faces it.",
+        SettingApplyPolicy::OnClose);
 
     registerSetting("3d", "lights", settings.scene3d.lights);
     SettingDescriptor& lightsDescriptor = settingDescriptors.back();

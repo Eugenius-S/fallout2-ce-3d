@@ -72,6 +72,11 @@ bool updateStaticHero(const StaticHeroFrame& frame, std::string* error);
 void clearStaticHero();
 bool staticHeroInfo(StaticHeroInfo* info);
 
+// The rotation whose art shows the side of a sprite in `rotation` that the
+// fly or turned camera sees (087); the game's own view sees `rotation`.
+// Updated by beginStaticObjects.
+int staticShownRotation(int rotation);
+
 // Live objects are rebuilt every presented frame between begin and end.
 // Objects walls.bin already draws (static_scene.h) are only picked.
 bool staticObjectArtCached(int fid, int frame, int rotation, int variant = 0);

@@ -165,6 +165,14 @@ bool flyCameraRight(double* x, double* z)
     return true;
 }
 
+bool flyCameraTurn(double* radians)
+{
+    StaticFlyCamera game;
+    if (!gFlying || !staticGameViewPose(&game)) return false;
+    *radians = std::remainder(static_cast<double>(gFly.yaw) - game.yaw, 2.0 * 3.14159265358979323846);
+    return std::isfinite(*radians);
+}
+
 bool flyCameraMvp(float aspect, float* out)
 {
     if (!gFlying) return false;

@@ -11,6 +11,10 @@ namespace {
 constexpr double kMapOffset = 50.0;
 constexpr int kGridWidth = 200;
 constexpr int kGridSize = 200 * 200;
+constexpr double kPi = 3.14159265358979323846;
+// How far past the half-way between two sides a turn goes before the shown
+// side changes: 5 degrees of the 60 between rotations.
+constexpr double kTurnHysteresis = 5.0 / 60.0;
 
 bool artIsValid(const SpriteCardArt& art)
 {
@@ -174,6 +178,32 @@ double spriteRowPlane(const SpriteCardProjection& projection, int tile, int stac
         nudge += projection.stack * std::min(static_cast<double>(std::max(stack, 0)), projection.rowTilt / projection.stack - 1.0);
     }
     return z + nudge;
+}
+
+bool spriteRotationYaw(const SpriteCardProjection& projection, int rotation, double* yaw)
+{
+    // The screen step to the neighbouring hex in each direction.
+    static const double kStep[6][2] = { { 16, -12 }, { 32, 0 }, { 16, 12 }, { -16, 12 }, { -32, 0 }, { -16, -12 } };
+    if (rotation < 0 || rotation >= 6 || std::abs(determinant(projection)) < 1e-9) return false;
+    double du, dv;
+    deltaToGround(projection, kStep[rotation][0], kStep[rotation][1], &du, &dv);
+    *yaw = std::atan2(dv, du);
+    return std::isfinite(*yaw);
+}
+
+int spriteTurnSteps(double turn, int rotationSign, int previous)
+{
+    if (!std::isfinite(turn) || rotationSign == 0) return 0;
+    // Turning the camera one way turns what it sees of a sprite the other way.
+    const double steps = std::remainder(-turn, 2.0 * kPi) / (rotationSign * kPi / 3.0);
+    const double fromPrevious = std::remainder(steps - previous, 6.0);
+    if (std::abs(fromPrevious) <= 0.5 + kTurnHysteresis) return ((previous % 6) + 6) % 6;
+    return ((static_cast<int>(std::lround(steps)) % 6) + 6) % 6;
+}
+
+int spriteShownRotation(int rotation, int steps)
+{
+    return (((rotation + steps) % 6) + 6) % 6;
 }
 
 } // namespace scene_renderer

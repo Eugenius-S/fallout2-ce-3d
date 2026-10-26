@@ -18,7 +18,8 @@ decisions: [the roadmap](docs/2026-10-19-roadmap-design.md).
 Where things are: [shapes and camera rotation](docs/2026-10-20-shapes-and-rotation-design.md),
 [dev tools](docs/p1-devtools.md) (snapshots, tours, the fly camera, restarting
 the owner's game), [regression](tools/regression/README.md), the shapes eval
-in `tools/shapes/eval/` (`eval.py shoot | sheets | score`).
+in `tools/shapes/eval/` (`eval.py shoot | sheets | score`), the fly tour
+(`tools/tour/tour.py`, its spots in `tools/tour/spots.json`).
 
 ## Rules
 
@@ -44,6 +45,11 @@ in `tools/shapes/eval/` (`eval.py shoot | sheets | score`).
   at most 4 outcome screenshots attached in the chat when the task is done
   (and committed under its `runs/NNN-slug/` folder), so the owner sees the
   result without running anything. Pure code or numbers work needs none.
+- A change to what the 3D scene shows (the exporter, its caches, the
+  renderer) runs the fly tour against main (`py -3 tools/tour/tour.py
+  --before <main's scene cache or checkout>`) and attaches its
+  `changed.jpg` to the PR (in `runs/NNN-slug/`); a spot that should change
+  and did not, or changed and should not, is fixed before the merge.
 - Upstream CE code (`ce/src/*.cc` outside `scene/`, `scene_renderer/`,
   `devtools/`) gets a hook or a call at most; the logic lives in our modules.
 - OpenGL 4.1 core: no compute shaders, no SSBOs.

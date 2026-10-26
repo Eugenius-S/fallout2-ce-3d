@@ -7,6 +7,7 @@
 #include <SDL.h>
 
 #include "../scene/scene_overlay.h"
+#include "../scene/scene_view.h"
 #include "../scene/text_capture.h"
 #include "../settings.h"
 #include "context.h"
@@ -53,7 +54,7 @@ bool prepareSharpTextForPresent(SDL_Surface* indexedSurface, SDL_Surface* rgbaSu
         disableSharpText("unsupported language; using pixel text (English/Russian only)");
         return false;
     }
-    if (!enabled || !settings.scene3d.sharp_text || indexedSurface == nullptr || rgbaSurface == nullptr) {
+    if (!enabled || !scene::sharpTextWanted() || indexedSurface == nullptr || rgbaSurface == nullptr) {
         prepareSharpTextFrame(nullptr, 0, 0, 0, nullptr, 0, 0, 0, nullptr, 0, false);
         return false;
     }
