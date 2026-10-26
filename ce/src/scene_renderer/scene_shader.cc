@@ -14,6 +14,9 @@ layout(location = 0) in vec3 aPosition;
 layout(location = 1) in vec2 aTexcoord;
 layout(location = 2) in vec3 aDepthAt; // the point whose depth this vertex takes
 layout(location = 3) in float aObject; // walls.bin: the object row it shows, -1: none
+// The wall casters' floor copies draw solid: only they set this vertex
+// attribute, every other VAO leaves it at 0.
+layout(location = 4) in float aShadowSolid;
 uniform mat4 uMvp;
 uniform int uDepthAt;
 // Whether the egg cuts what is drawn: 0 no, 1 the walls whose object row is
@@ -24,6 +27,7 @@ uniform int uLightMode;
 out vec2 vTexcoord;
 out vec3 vWorld;
 out vec2 vWorldXZ;
+out float vShadowSolid;
 flat out int vSeeThrough;
 flat out float vFullLight;
 void main() {
@@ -31,6 +35,7 @@ void main() {
     vTexcoord = aTexcoord;
     vWorld = aPosition;
     vWorldXZ = aPosition.xz;
+    vShadowSolid = aShadowSolid;
     vSeeThrough = uSeeThrough == 2 ? 1 : 0;
     vFullLight = 0.0;
     if ((uSeeThrough == 1 || uLightMode == 2) && aObject >= 0.0) {
@@ -50,6 +55,7 @@ constexpr const char* kSceneFragmentShader = R"(#version 330 core
 in vec2 vTexcoord;
 in vec3 vWorld;
 in vec2 vWorldXZ;
+in float vShadowSolid;
 flat in int vSeeThrough;
 flat in float vFullLight;
 uniform sampler2D uTexture;
@@ -295,7 +301,10 @@ void main() {
         outEmissive = vec4(0.0);
     } else {
         vec4 texel = texture(uTexture, vTexcoord);
-        if (texel.a < uCutoff) discard;
+        // The wall casters' floor copies draw solid (vShadowSolid): the art's
+        // antialiased bottom edge would cut pixel holes out of the copy and
+        // leave a lit strip along the shadow's base (082 round 4).
+        if (vShadowSolid < 0.5 && texel.a < uCutoff) discard;
         if (uPick != 0) {
             outColor = uColor;
             outEmissive = vec4(0.0);

@@ -512,18 +512,25 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
                 // casters drop all the way: the old 0.4 cap (062 round 6)
                 // left a fraction of the gap, and at the sun's lowest 60
                 // degrees (082 round 2) that fraction read as a pixel-wide
-                // lit stripe at the building's base. High casters keep no
-                // copy: a roof dropped onto the floor would cover the whole
-                // floor under it in the depth map. The copy stays in the
-                // triangle's plane, so the shadow's measured distance from
-                // the caster does not change.
+                // lit stripe at the building's base. Walls standing on a
+                // raised slab have their quads higher still (0.74 and up on
+                // kladwtwn), so the cutoff has to sit above the slab plus
+                // the art lift; 1.0 covers slabs to about half a wall's
+                // height and keeps roofs (lowest above 2) out: a roof
+                // dropped onto the floor would cover the whole floor under
+                // it in the depth map. The copy stays in the triangle's
+                // plane, so the shadow's measured distance from the caster
+                // does not change.
                 float lowest = 1e9f;
                 for (int corner = 0; corner < 3; corner++) {
                     lowest = std::min(lowest, batch.vertices[index + corner].vertex.y);
                 }
-                const bool nearFloor = lowest > 0.0f && lowest <= 0.6f;
+                const bool nearFloor = lowest <= 1.0f;
                 const float drop = pass == 0 || !nearFloor ? 0.0f : lowest;
-                if (pass == 1 && drop <= 0.0f) break;
+                // A negative drop lifts an undersunk caster's copy up to the
+                // floor (the foundation stones sit below y=0); only a zero
+                // gap needs no copy.
+                if (pass == 1 && drop == 0.0f) break;
                 for (int corner = 0; corner < 3; corner++) {
                     const DepthVertex& vertex = batch.vertices[index + corner].vertex;
                     page.push_back(vertex.x);
@@ -531,6 +538,11 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
                     page.push_back(vertex.z);
                     page.push_back(vertex.u);
                     page.push_back(vertex.v);
+                    // Pass 1 draws solid: the floor copy exists to close the
+                    // lifted-quad gap, and the art's antialiased bottom edge
+                    // would cut pixel holes out of it (082 round 4, the
+                    // owner's lit pixel strip along the shadow's base).
+                    page.push_back(pass == 0 ? 0.0f : 1.0f);
                 }
             }
         }
@@ -595,8 +607,8 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
         };
         std::vector<PageRange> pageRanges;
         for (auto& [page, vertices] : casterPages) {
-            pageRanges.push_back({ page, static_cast<int>(casterData.size() / 5),
-                static_cast<int>(vertices.size() / 5) });
+            pageRanges.push_back({ page, static_cast<int>(casterData.size() / 6),
+                static_cast<int>(vertices.size() / 6) });
             casterData.insert(casterData.end(), vertices.begin(), vertices.end());
         }
         if (gShadowVao == 0) glGenVertexArrays(1, &gShadowVao);
@@ -606,10 +618,13 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
         glBufferData(kArrayBuffer,
             static_cast<long long>(casterData.size() * sizeof(float)), casterData.data(), kStaticDraw);
         glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 3, 0x1406 /* GL_FLOAT */, 0, 5 * sizeof(float), nullptr);
+        glVertexAttribPointer(0, 3, 0x1406 /* GL_FLOAT */, 0, 6 * sizeof(float), nullptr);
         glEnableVertexAttribArray(1);
-        glVertexAttribPointer(1, 2, 0x1406 /* GL_FLOAT */, 0, 5 * sizeof(float),
+        glVertexAttribPointer(1, 2, 0x1406, 0, 6 * sizeof(float),
             reinterpret_cast<const void*>(3 * sizeof(float)));
+        glEnableVertexAttribArray(4);
+        glVertexAttribPointer(4, 1, 0x1406, 0, 6 * sizeof(float),
+            reinterpret_cast<const void*>(5 * sizeof(float)));
         glBindVertexArray(0);
         std::vector<WallCasterRange> ranges;
         for (const PageRange& pageRange : pageRanges) {
