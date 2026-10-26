@@ -2,8 +2,8 @@
 id: 081
 title: Roofs and overlapping walls in 3D: nothing sticks out, nothing shows through
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: claude
 suggested: claude
 priority: normal
 claude-only: no
