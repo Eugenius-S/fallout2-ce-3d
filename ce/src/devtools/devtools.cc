@@ -139,7 +139,7 @@ bool gDevFly = false; // --dev-fly: the fly camera takes off at the first 3D fra
 // the point it looks at, D degrees round, D degrees above the floor, U units
 // from it (a side view of a thing).
 double gDevFlyTurn = 0.0;
-int gDevCameraTurn = 0; // --dev-camera-turn=N: the 3D camera N quarter turns round before the snapshot
+double gDevCameraTurn = 0; // degrees; legacy --dev-camera-turn=N still means quarter turns
 double gDevFlyPitch = -1.0;
 double gDevFlyDistance = -1.0;
 int gViewTile = -1;
@@ -841,7 +841,13 @@ bool parseOption(const char* arg)
     }
     const char* cameraTurnPrefix = "--dev-camera-turn=";
     if (strncmp(arg, cameraTurnPrefix, strlen(cameraTurnPrefix)) == 0) {
-        gDevCameraTurn = static_cast<int>(strtol(arg + strlen(cameraTurnPrefix), nullptr, 10)) % 4;
+        gDevCameraTurn = (static_cast<int>(strtol(arg + strlen(cameraTurnPrefix), nullptr, 10)) % 4) * 90.0;
+        return true;
+    }
+    const char* cameraDegreesPrefix = "--dev-camera-degrees=";
+    if (strncmp(arg, cameraDegreesPrefix, strlen(cameraDegreesPrefix)) == 0) {
+        const double degrees = strtod(arg + strlen(cameraDegreesPrefix), nullptr);
+        gDevCameraTurn = std::isfinite(degrees) ? std::remainder(degrees, 360.0) : 0.0;
         return true;
     }
     const char* flyDistancePrefix = "--dev-fly-distance=";

@@ -1,6 +1,7 @@
 #include "settings.h"
 #include "scene/menu_text.h"
 #include "scene/scene_settings.h"
+#include "scene/camera_turn.h"
 #include "config.h"
 
 #include <cctype>
@@ -165,6 +166,30 @@ int main()
             && descriptor->fallbackLabel == "Enable 3D scene" && !descriptor->fallbackDescription.empty(),
             "descriptor has apply policy and fallback menu metadata")) return 1;
     const SettingDescriptor* unrelatedDescriptor = findDescriptor("system.interrupt_walk");
+    const SettingDescriptor* rotation = findDescriptor("3d.camera_rotation");
+    const SettingDescriptor* unlimited = findDescriptor("3d.camera_rotation_unlimited");
+    if (!check(rotation && unlimited && !std::get<bool>(rotation->defaultValue)
+            && !std::get<bool>(unlimited->defaultValue)
+            && !settings.scene3d.camera_rotation_unlimited
+            && unlimited->applyPolicy == SettingApplyPolicy::OnClose
+            && unlimited->fallbackLabel.find("own risk") != std::string::npos,
+            "rotation and unrestricted rotation are independent default-off menu options")) return 1;
+    double angle = 0.0;
+    for (int i = 0; i < 100; ++i) angle = scene::cameraTurnTarget(angle, 1, false);
+    if (!check(angle == 45.0 && scene::cameraTurnTarget(angle, -1, false) == 0.0,
+            "held right stops at +45 and one left returns to game view")) return 1;
+    for (int i = 0; i < 100; ++i) angle = scene::cameraTurnTarget(angle, -1, false);
+    if (!check(angle == -45.0 && scene::cameraTurnTarget(angle, 1, false) == 0.0,
+            "held left stops at -45 and one right returns to game view")) return 1;
+    angle = 0.0;
+    for (int i = 0; i < 8; ++i) angle = scene::cameraTurnTarget(angle, 1, true);
+    if (!check(angle == 360.0 && scene::cameraTurnTarget(0.0, -8, true) == -360.0,
+            "own-risk option permits a full turn in both directions")) return 1;
+    if (!check(scene::limitedCameraTurn(270.0) == -45.0
+            && scene::limitedCameraTurn(-270.0) == 45.0
+            && scene::limitedCameraTurn(360.0) == 0.0
+            && scene::limitedCameraTurn(22.5) == 22.5,
+            "revoking unlimited rotation wraps then clamps the current view")) return 1;
     if (!check(unrelatedDescriptor != nullptr, "real unrelated setting descriptor is registered")) return 1;
     if (!check(settingsGetRevision(*descriptor) == 0 && settingsGetRevision(*unrelatedDescriptor) == 1,
             "config read increments only the changed setting revision")) return 1;

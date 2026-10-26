@@ -64,14 +64,15 @@ RefreshResult refreshForPresent();
 // up and presenting.
 void adjustZoom(int steps);
 
-// Camera rotation ([3d] camera_rotation): `steps` quarter turns round the
+// Camera rotation ([3d] camera_rotation): `steps` 45-degree turns round the
 // point the view looks at, animated; false when it is off or the full 3D view
 // is not shown. A turned camera is for looking only (the fly camera's
-// drawing: cards face it, no interface); a full turn lands it.
+// drawing: cards face it, no interface); returning to zero lands it.
+// Limited to +/-45 unless camera_rotation_unlimited is enabled.
 bool turnCamera(int steps);
-// The camera at once `steps` quarter turns round, whatever the setting says
+// The camera at once `degrees` round, whatever the setting says
 // (dev snapshots).
-void setCameraTurnNow(int steps);
+void setCameraTurnNow(double degrees);
 bool cameraTurned();
 // Every frame, from the main loop.
 void updateCameraTurn();

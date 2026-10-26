@@ -479,8 +479,12 @@ void initSettingsRegistry(bool isMapper)
         settingsWrite("3d", "glow_strength", settings.scene3d.glow_strength);
     };
     registerThreeDBoolean("camera_rotation", settings.scene3d.camera_rotation, "Camera rotation (experimental)",
-        "[ and ] turn the 3D camera round the view in steps of 90 degrees, at your own risk. "
+        "[ and ] turn the 3D camera in steps of 45 degrees, limited to 45 degrees either way. "
         "A turned view is for looking only: the game takes no clicks until the camera is back.",
+        SettingApplyPolicy::OnClose);
+    registerThreeDBoolean("camera_rotation_unlimited", settings.scene3d.camera_rotation_unlimited,
+        "Unlimited camera rotation (own risk)",
+        "Allow a full camera turn at your own risk. Beyond 45 degrees, missing backs and imperfect corners may be visible.",
         SettingApplyPolicy::OnClose);
 
     registerSetting("3d", "lights", settings.scene3d.lights);
