@@ -196,15 +196,26 @@ extern int gSceneSeeThroughLocation;
 extern int gSceneSeeThroughObjectsLocation;
 extern int gSceneEggPassLocation;
 // The sun's shadow (shadow.cc): on, the world-to-map matrix, the depth map
-// (unit 5), the sun's strength, the AA ring's span in GL units, the compare
-// bias and the map's depth span.
+// (unit 5), the sun's strength, the sun's direction, the map's texel in GL
+// units, the AA ring's span in GL units and the compare bias.
 extern int gSceneShadowOnLocation;
 extern int gSceneShadowMatrixLocation;
 extern int gSceneShadowMapLocation;
 extern int gSceneShadowStrengthLocation;
+extern int gSceneShadowDensityLocation;
+extern int gSceneShadowLightLocation;
+extern int gSceneShadowTexelLocation;
 extern int gSceneShadowStepLocation;
 extern int gSceneShadowBiasLocation;
-extern int gSceneShadowRangeLocation;
+extern int gSceneShadowDebugLocation;
+// 082 round 6: whose map texels count as empty at the compare (mechanism 2).
+// The wall draws take the number from their own vertices (uSelfFromVertex 1),
+// everything else reads uShadowSelfId; sprites also take their shadow factor
+// at the feet point uShadowAnchor instead of per pixel (mechanism 3).
+extern int gSceneShadowPassLocation;
+extern int gSceneShadowSelfFromVertexLocation;
+extern int gSceneShadowSelfIdLocation;
+extern int gSceneShadowAnchorLocation;
 
 bool createSceneShader(std::string* error);
 void destroySceneShader();
@@ -322,6 +333,8 @@ struct ObjectDraw {
     bool pickOnly; // drawn by walls.bin; its card is only picked
     bool seeThrough; // the hero stands behind it: the egg cuts it
     int tile; // its hex, for its light; -1: full light
+    float anchorX; // its feet on the ground (bottom-center of the card),
+    float anchorZ; // for the whole-sprite sun shadow (082 round 6)
 };
 
 extern std::vector<ObjectDraw> gObjectDraws;

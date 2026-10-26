@@ -399,7 +399,7 @@ void updateSunFromGame()
     const double seconds = std::chrono::duration<double>(now - last).count();
     last = now;
     gSun.update(gameTimeGetTime(), static_cast<double>(lightGetAmbientIntensity()) / LIGHT_INTENSITY_MAX,
-        settings.scene3d.sun && gDaylight, seconds);
+        settings.scene3d.sun && gDaylight, seconds, settings.scene3d.sun_swing);
 }
 
 const Sun& currentSun()

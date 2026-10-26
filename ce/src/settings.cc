@@ -460,7 +460,35 @@ void initSettingsRegistry(bool isMapper)
     settingsRegistry.back().descriptor = shadowPixelDescriptor;
     settingsRegistry.back().write = [](bool onlyAdd) {
         if (onlyAdd && settingsKeyExists("3d", "shadow_pixel_size")) return;
-        settingsWrite("3d", "shadow_pixel_size", onlyAdd ? 3.0 : settings.scene3d.shadow_pixel_size);
+        settingsWrite("3d", "shadow_pixel_size", onlyAdd ? 1.0 : settings.scene3d.shadow_pixel_size);
+    };
+    registerSetting("3d", "shadow_density", settings.scene3d.shadow_density, clamp(0.0, 2.0));
+    SettingDescriptor& shadowDensityDescriptor = settingDescriptors.back();
+    shadowDensityDescriptor.category = SettingCategory::Uncategorized;
+    shadowDensityDescriptor.applyPolicy = SettingApplyPolicy::OnClose;
+    shadowDensityDescriptor.subsection = "3D";
+    shadowDensityDescriptor.fallbackLabel = "Shadow density";
+    shadowDensityDescriptor.fallbackDescription =
+        "How dark the sun shadows read: 0 turns them off, 1 is the default, above 1 darker than default.";
+    shadowDensityDescriptor.numericRange = SettingNumericRange { 0.0, 2.0, 0.05 };
+    settingsRegistry.back().descriptor = shadowDensityDescriptor;
+    settingsRegistry.back().write = [](bool onlyAdd) {
+        if (onlyAdd && settingsKeyExists("3d", "shadow_density")) return;
+        settingsWrite("3d", "shadow_density", onlyAdd ? 1.0 : settings.scene3d.shadow_density);
+    };
+    registerSetting("3d", "sun_swing", settings.scene3d.sun_swing, clamp(0.0, 60.0));
+    SettingDescriptor& sunSwingDescriptor = settingDescriptors.back();
+    sunSwingDescriptor.category = SettingCategory::Uncategorized;
+    sunSwingDescriptor.applyPolicy = SettingApplyPolicy::OnClose;
+    sunSwingDescriptor.subsection = "3D";
+    sunSwingDescriptor.fallbackLabel = "Sun swing";
+    sunSwingDescriptor.fallbackDescription =
+        "How far, in degrees, the sun leans off straight overhead at dawn and dusk; 0 keeps it overhead all day.";
+    sunSwingDescriptor.numericRange = SettingNumericRange { 0.0, 60.0, 1.0 };
+    settingsRegistry.back().descriptor = sunSwingDescriptor;
+    settingsRegistry.back().write = [](bool onlyAdd) {
+        if (onlyAdd && settingsKeyExists("3d", "sun_swing")) return;
+        settingsWrite("3d", "sun_swing", onlyAdd ? 30.0 : settings.scene3d.sun_swing);
     };
     registerThreeDBoolean("glow", settings.scene3d.glow, "Glow",
         "Things that shine in Fallout 2 (fire, monitors, signs) bleed light softly in the 3D view.",

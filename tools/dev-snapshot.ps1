@@ -100,6 +100,10 @@ param(
     # -Shadows: keep the sun shadows on in this background run (they are
     # forced off by default, so captures stay byte-stable).
     [switch]$Shadows,
+    # -ShadowDebug:N: 1 the raw factor, 2 the face test (the sun hits the
+    # face or it takes the flat shaded value), 3 the coverage (062
+    # diagnostics); implies -Shadows.
+    [int]$ShadowDebug = 0,
     # -NoSpriteSides: a turned camera sees the game's side of every sprite
     # (before 087).
     [switch]$NoSpriteSides,
@@ -300,6 +304,7 @@ if ($GlowLevels) { $arguments += '--dev-glow-levels=' + (($GlowLevels | ForEach-
 if ($EffectFixture) { $arguments += "--dev-effect=$($EffectFixture.ToLowerInvariant())" }
 if ($EffectFrame -ge 0) { $arguments += "--dev-effect-frame=$EffectFrame" }
 if ($Shadows) { $arguments += '--dev-shadows' }
+if ($ShadowDebug) { $arguments += "--dev-shadow-debug=$ShadowDebug" }
 if ($NoSpriteSides) { $arguments += '--dev-no-sprite-sides' }
 if ($OpenDoors) { $arguments += '--dev-open-doors' }
 if ($Hour -ge 0) { $arguments += "--dev-hour=$Hour" }

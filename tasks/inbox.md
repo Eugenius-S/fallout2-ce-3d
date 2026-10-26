@@ -81,3 +81,7 @@ that fits no task becomes a new task when the board runs dry.
   Correct cycle.cc rest-phase colors restore both glows. The final comparison
   also reframes an entire slime pool, rather than cropping its edge.
   No new emission marks or game-source repair was needed.
+- 2026-10-25 The owner, on the night look: at night nothing changes
+  visually; there should be a moon of some kind (his words, for later: a
+  moon light at night, presumably a dim cool directional like the sun
+  line but weak).

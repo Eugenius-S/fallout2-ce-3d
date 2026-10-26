@@ -294,7 +294,9 @@ struct Scene3dSettings {
     bool lights = true;
     bool sun = true;
     bool shadows = true;
-    double shadow_pixel_size = 3.0;
+    double shadow_pixel_size = 1.0; // 082: crisp by default, the knob softens
+    double shadow_density = 1.0; // scales the shadow darkening; 0 turns the cast shadows off
+    double sun_swing = 30.0; // degrees off vertical at dawn and dusk (082)
     bool glow = true;
     double glow_strength = 2.0;
     bool camera_rotation = false;

@@ -522,15 +522,71 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
                 const auto known = gBakedObjects.find(bakedObjectKey(rowTileOf[row], static_cast<int>(rowByIndex[row])));
                 if (known != gBakedObjects.end() && known->second.noCast) casts = false;
             }
+            // Low flat cards (sidewalk slabs, path patches) stop casting: at
+            // the sun's 60-90 degrees their own shadow is a sliver, while
+            // their depth in the map screens the wall's floor copy behind
+            // them, and the wall's shadow then cannot reach its own foot
+            // (082 round 4, the owner's lit strip along the base).
+            float lowest = 1e9f;
+            float top = -1e9f;
+            for (int corner = 0; corner < 3; corner++) {
+                const float y = batch.vertices[index + corner].vertex.y;
+                lowest = std::min(lowest, y);
+                top = std::max(top, y);
+            }
+            if (top < 0.6f) casts = false;
             if (!casts) continue;
             std::vector<float>& page = casterPages[batch.page];
-            for (int corner = 0; corner < 3; corner++) {
-                const DepthVertex& vertex = batch.vertices[index + corner].vertex;
-                page.push_back(vertex.x);
-                page.push_back(vertex.y);
-                page.push_back(vertex.z);
-                page.push_back(vertex.u);
-                page.push_back(vertex.v);
+            for (int pass = 0; pass < 2; pass++) {
+                // Pass 0 draws the triangle as it is. Pass 1 draws a copy
+                // shifted straight down to the floor (never under it): the
+                // art's quads sit about 0.37 GL units up, and the gap left a
+                // lit strip between a wall and its own shadow. Near-floor
+                // casters drop all the way: the old 0.4 cap (062 round 6)
+                // left a fraction of the gap, and at the sun's lowest 60
+                // degrees (082 round 2) that fraction read as a pixel-wide
+                // lit stripe at the building's base. Walls standing on a
+                // raised slab have their quads higher still (0.74 and up on
+                // kladwtwn), so the cutoff has to sit above the slab plus
+                // the art lift; 1.0 covers slabs to about half a wall's
+                // height and keeps roofs (lowest above 2) out: a roof
+                // dropped onto the floor would cover the whole floor under
+                // it in the depth map. The copy stays in the triangle's
+                // plane, so the shadow's measured distance from the caster
+                // does not change.
+                float lowest = 1e9f;
+                for (int corner = 0; corner < 3; corner++) {
+                    lowest = std::min(lowest, batch.vertices[index + corner].vertex.y);
+                }
+                const bool nearFloor = lowest <= 1.0f;
+                const float drop = pass == 0 || !nearFloor ? 0.0f : lowest;
+                // A negative drop lifts an undersunk caster's copy up to the
+                // floor (the foundation stones sit below y=0); only a zero
+                // gap needs no copy.
+                if (pass == 1 && drop == 0.0f) break;
+                for (int corner = 0; corner < 3; corner++) {
+                    const DepthVertex& vertex = batch.vertices[index + corner].vertex;
+                    page.push_back(vertex.x);
+                    page.push_back(vertex.y - drop);
+                    page.push_back(vertex.z);
+                    page.push_back(vertex.u);
+                    page.push_back(vertex.v);
+                    // Pass 0 draws with the plain alpha cutoff: the map-fill
+                    // pass (082 round 6) closes the art's soft-border gaps,
+                    // and the r5 special rules - the flat elevated card
+                    // written solid, the bottom 0.35 band solid - measured
+                    // unnecessary on top of it and are gone. Pass 1 still
+                    // draws solid: the floor copy exists to close the
+                    // lifted-quad gap, the art's antialiased bottom edge
+                    // would cut pixel holes out of it (082 round 4).
+                    float solid = pass == 1 ? 1.0f : 0.0f;
+                    page.push_back(solid);
+                    // The caster's object number for the map's id channel
+                    // (082 round 6, mechanism 2): rows count from 1, 0 means
+                    // no id - the scene's reads of these texels never exclude
+                    // them. Unattributed caster triangles carry no id.
+                    page.push_back(object >= 0.0f ? object + 1.0f : 0.0f);
+                }
             }
         }
     }
@@ -596,8 +652,8 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
         };
         std::vector<PageRange> pageRanges;
         for (auto& [page, vertices] : casterPages) {
-            pageRanges.push_back({ page, static_cast<int>(casterData.size() / 5),
-                static_cast<int>(vertices.size() / 5) });
+            pageRanges.push_back({ page, static_cast<int>(casterData.size() / 7),
+                static_cast<int>(vertices.size() / 7) });
             casterData.insert(casterData.end(), vertices.begin(), vertices.end());
         }
         if (gShadowVao == 0) glGenVertexArrays(1, &gShadowVao);
@@ -607,10 +663,16 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
         glBufferData(kArrayBuffer,
             static_cast<long long>(casterData.size() * sizeof(float)), casterData.data(), kStaticDraw);
         glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 3, 0x1406 /* GL_FLOAT */, 0, 5 * sizeof(float), nullptr);
+        glVertexAttribPointer(0, 3, 0x1406 /* GL_FLOAT */, 0, 7 * sizeof(float), nullptr);
         glEnableVertexAttribArray(1);
-        glVertexAttribPointer(1, 2, 0x1406 /* GL_FLOAT */, 0, 5 * sizeof(float),
+        glVertexAttribPointer(1, 2, 0x1406, 0, 7 * sizeof(float),
             reinterpret_cast<const void*>(3 * sizeof(float)));
+        glEnableVertexAttribArray(4);
+        glVertexAttribPointer(4, 1, 0x1406, 0, 7 * sizeof(float),
+            reinterpret_cast<const void*>(5 * sizeof(float)));
+        glEnableVertexAttribArray(6);
+        glVertexAttribPointer(6, 1, 0x1406, 0, 7 * sizeof(float),
+            reinterpret_cast<const void*>(6 * sizeof(float)));
         glBindVertexArray(0);
         std::vector<WallCasterRange> ranges;
         for (const PageRange& pageRange : pageRanges) {
@@ -624,6 +686,18 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
             if (texture == 0) continue; // the page's texture never loaded
             ranges.push_back({ texture, pageRange.first, pageRange.count });
         }
+        // One-shot load diagnostics (082 round 6): what the caster buffer
+        // holds, printed before the ranges move into the shadow module.
+        float minX = 1e9f, maxX = -1e9f, minZ = 1e9f, maxZ = -1e9f;
+        for (size_t v = 0; v + 2 < casterData.size(); v += 7) {
+            minX = std::min(minX, casterData[v]);
+            maxX = std::max(maxX, casterData[v]);
+            minZ = std::min(minZ, casterData[v + 2]);
+            maxZ = std::max(maxZ, casterData[v + 2]);
+        }
+        fprintf(stderr, "CASTERS: pages %zu, ranges %zu, vertices %zu, x %.2f..%.2f, z %.2f..%.2f\n",
+            casterPages.size(), ranges.size(), casterData.size() / 7, minX, maxX, minZ, maxZ);
+        fflush(stderr);
         setShadowWallCasters(gShadowVao, wallHeight, std::move(ranges));
     }
     if (objectCount > 0) {
