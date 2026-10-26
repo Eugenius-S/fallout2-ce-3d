@@ -75,3 +75,9 @@ that fits no task becomes a new task when the board runs dry.
   overhead, default 30 degrees each way (morning -30, evening +30; this
   replaces 082's 15), adjustable by the player. The owner gave glm these
   instructions for 082 directly; check what 082 lands before cutting a task.
+- 2026-10-26 (073, resolved in the 073 branch) The apparently dark
+  monitr7 screen and inert slime pool were caused by the test fixture:
+  it froze palette cycling, then restored unmapped _cmap entries as zeros.
+  Correct cycle.cc rest-phase colors restore both glows. The final comparison
+  also reframes an entire slime pool, rather than cropping its edge.
+  No new emission marks or game-source repair was needed.

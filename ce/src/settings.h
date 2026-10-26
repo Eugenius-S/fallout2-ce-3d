@@ -296,7 +296,7 @@ struct Scene3dSettings {
     bool shadows = true;
     double shadow_pixel_size = 3.0;
     bool glow = true;
-    double glow_strength = 1.0;
+    double glow_strength = 2.0;
     bool camera_rotation = false;
     bool camera_rotation_unlimited = false;
     double zoom = 1.0;

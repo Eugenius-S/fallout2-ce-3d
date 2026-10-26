@@ -1,5 +1,6 @@
 #include "devtools.h"
 #include "snapshot_rows.h"
+#include "snapshot_palette.h"
 #include "preferences_probe.h"
 #include "ui_fixture.h"
 
@@ -127,6 +128,9 @@ int gTourStep = -1;
 int gTourFrames = 0;
 bool gStillSnapshot = false;
 bool gBackgroundGlow = false;
+double gDevGlowStrength = -1.0;
+bool gDevCyclePalette = false;
+int gGlowLadderStep = -1;
 bool gBackgroundShadows = false; // --dev-shadows: shadows stay on in a background run
 bool gDevOpenDoors = false; // --dev-open-doors: every door of the map stands open, once
 bool gDevOpenDoorsDone = false;
@@ -815,6 +819,24 @@ bool parseOption(const char* arg)
         debugPrint("DEVTOOLS: the glow stays on in this background run\n");
         return true;
     }
+    const char* glowStrengthPrefix = "--dev-glow-strength=";
+    if (strncmp(arg, glowStrengthPrefix, strlen(glowStrengthPrefix)) == 0) {
+        const double strength = strtod(arg + strlen(glowStrengthPrefix), nullptr);
+        if (std::isfinite(strength)) {
+            gDevGlowStrength = std::clamp(strength, 0.0, 8.0);
+            gBackgroundGlow = true;
+        }
+        return true;
+    }
+    if (strcmp(arg, "--dev-cycle-palette") == 0) {
+        gDevCyclePalette = true;
+        return true;
+    }
+    if (strcmp(arg, "--dev-glow-ladder") == 0) {
+        gGlowLadderStep = 0;
+        gBackgroundGlow = false;
+        return true;
+    }
     // --dev-shadows: keep the sun shadows on in a background run (a snapshot
     // of the shadowed view); off is the default there, so captures stay
     // byte-stable.
@@ -1024,6 +1046,7 @@ void applyFixedScreenOptions()
         settings.scene3d.zoom = 1.0;
         settings.scene3d.camera_rotation = false;
         settings.scene3d.glow = gBackgroundGlow;
+        if (gDevGlowStrength >= 0.0) settings.scene3d.glow_strength = gDevGlowStrength;
         settings.scene3d.shadows = gBackgroundShadows;
     }
     debugPrint("DEVTOOLS: fixed screen %dx%d scale %d, windowed, glow %d%s\n",
@@ -1033,7 +1056,10 @@ void applyFixedScreenOptions()
 
 void applyBackgroundGlow()
 {
-    if (backgroundCaptureActive()) settings.scene3d.glow = gBackgroundGlow;
+    if (backgroundCaptureActive()) {
+        settings.scene3d.glow = gBackgroundGlow;
+        if (gDevGlowStrength >= 0.0) settings.scene3d.glow_strength = gDevGlowStrength;
+    }
 }
 
 void applyBackgroundShadows()
@@ -1473,7 +1499,14 @@ void update()
             scene_renderer::setStaticCameraCenterTile(-1);
             gViewTileApplied = true;
         }
-        if (stillSnapshotRequested()) colorCycleDisable();
+        if (stillSnapshotRequested()) {
+            if (gDevCyclePalette) {
+                auto colors = snapshotCyclePalette();
+                _setSystemPaletteEntries(colors.data(), 229, 254);
+                printf("devtools: frozen cycling colors from cycle.cc rest phase\n");
+            }
+            colorCycleDisable();
+        }
         gStartupFloorPreviewAttempted = true;
         const bool withWalls = gStartupWallPreviewRequested || gStartupHeroPreviewRequested || gStartupWalkPreviewRequested;
         const bool withHero = gStartupHeroPreviewRequested || gStartupWalkPreviewRequested;
@@ -1988,6 +2021,13 @@ void scenePresented(const scene::RefreshResult& refreshed)
         printf("devtools: one-shot hero preview snapshot %s: %s\n",
             captured ? "saved" : "failed", gStatus);
         fflush(stdout);
+        if (captured && gGlowLadderStep >= 0 && gGlowLadderStep < 5) {
+            constexpr double strengths[] = { 0.5, 1.0, 2.0, 4.0, 8.0 };
+            gDevGlowStrength = strengths[gGlowLadderStep++];
+            gBackgroundGlow = true;
+            applyBackgroundGlow();
+            gSnapshotOncePending = true;
+        }
     }
 }
 
@@ -2918,7 +2958,7 @@ bool takeSnapshot()
             }
             std::string error;
             if (!scene_renderer::captureStaticPreviewPng(imagePath, withWalls, heroPreview,
-                    &capturedWidth, &capturedHeight, &error)) {
+                    &capturedWidth, &capturedHeight, &error, gGlowLadderStep < 0)) {
                 std::string message = "snapshot failed: " + error;
                 setStatus(message.c_str());
                 return false;
@@ -3102,6 +3142,7 @@ bool takeSnapshot()
         "  \"preview_availability\": \"%s\",\n"
         "  \"renderer\": \"%s\",\n"
         "  \"light\": \"off\",\n"
+        "  \"glow\": {\"enabled\":%s,\"strength\":%.3f},\n"
         "  \"sun\": %s,\n"
         "  \"resolution\": \"%dx%d\",\n"
         "  \"logical_resolution\": \"%dx%d\",\n"
@@ -3143,6 +3184,8 @@ bool takeSnapshot()
         heroPreview ? scene::objectCardsSkipped() : 0u,
         previewRequested ? (scene_renderer::isActive() ? scene::availability() : "renderer-inactive") : "not-requested",
         activeRendererName(),
+        settings.scene3d.glow ? "true" : "false",
+        settings.scene3d.glow_strength,
         sunMetadata,
         capturedWidth,
         capturedHeight,
