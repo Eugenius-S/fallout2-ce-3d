@@ -502,6 +502,19 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
                 const auto known = gBakedObjects.find(bakedObjectKey(rowTileOf[row], static_cast<int>(rowByIndex[row])));
                 if (known != gBakedObjects.end() && known->second.noCast) casts = false;
             }
+            // Low flat cards (sidewalk slabs, path patches) stop casting: at
+            // the sun's 60-90 degrees their own shadow is a sliver, while
+            // their depth in the map screens the wall's floor copy behind
+            // them, and the wall's shadow then cannot reach its own foot
+            // (082 round 4, the owner's lit strip along the base).
+            float lowest = 1e9f;
+            float top = -1e9f;
+            for (int corner = 0; corner < 3; corner++) {
+                const float y = batch.vertices[index + corner].vertex.y;
+                lowest = std::min(lowest, y);
+                top = std::max(top, y);
+            }
+            if (top < 0.6f) casts = false;
             if (!casts) continue;
             std::vector<float>& page = casterPages[batch.page];
             for (int pass = 0; pass < 2; pass++) {

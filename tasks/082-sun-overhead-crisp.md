@@ -174,3 +174,32 @@ The knobs (the owner's request, modeled on shadow_pixel_size):
   swing 0 presses every shadow under its caster, 60 stretches building,
   hydrant and fence shadows (masks in build/082-shots/knobs/). ctest
   14/14 (the sun test gained swing 60/0/clamp cases).
+
+### 2026-10-26 glm (round 4)
+Done: the owner's two finds from his eye pass (the lit pixel strip along the
+shadow's base at the long building; the building corner the shadow does not
+take). Commit 40b66fd2.
+
+- Found and fixed a real defect: FOUNDATION-STONE casters sit BELOW the floor
+  (walls_lowest histogram: lowest spans -0.44..+2.1, with 4.9k casters under
+  0). They had no floor copy in any round (the old cap and both cutoffs
+  required lowest > 0), so their art's transparent gaps kept lit holes at the
+  contact zone; 55k depth-map pixels changed once their copies (lifted to the
+  floor by a negative drop) started drawing. Fence lattice stays lattice.
+- The copies now draw solid (vShadowSolid vertex attribute, 6th float in the
+  caster buffer; the depth pass skips the alpha discard for them), the
+  cutoff rose to 1.0 (kladwtwn slabs put wall quads up to ~1.0), and the
+  copy break fires only on an exactly zero gap.
+- The lit strip itself is NOT copies and NOT alpha (unchanged with solid
+  copies; factor view shows full light 255 with a 2 px AA edge). Leading
+  diagnosis: at buildings on a raised slab the slab's near edge owns the
+  shadow depth map at the foot (its depth is nearer to the light than the
+  wall's copy), so the wall's shadow cannot start at the wall; width
+  follows 1/tan(height) (10 px at 68 deg). Fix is the next round's work
+  (candidates: ground receivers near walls read a second-closest blocker,
+  or path/slab cards stop casting at high sun).
+- GOTCHA for devshots: an `if (false) discard` diagnostic in the fragment
+  shader makes the compiler drop uCutoff, the static floor shader then
+  reports "uniforms are missing" and NO snapshot is taken (silent 90 s
+  timeouts). Diagnostics must keep every uniform referenced.
+- ctest 14/14. Before|after sheet: runs/082-sun-overhead-crisp/round3/.

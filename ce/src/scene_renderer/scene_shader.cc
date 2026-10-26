@@ -266,6 +266,16 @@ float shadowDarken(float light) {
         // itself, not the composed scene (062 diagnostics).
         return sunShadow();
     }
+    if (uShadowDebug == 4 && (uLightMode == 1 || uLightMode == 2 || uLightMode == 3)) {
+        // The center tap's depth difference, gray at zero (082 round 4
+        // diagnostics): brighter means a blocker nearer than the receiver
+        // (shadow), darker means the map's depth is farther (lit).
+        vec3 n = shadowFaceNormal();
+        if (dot(n, uShadowLight) <= 0.001) return 0.0; // face turned: black
+        vec3 base = vWorld + n * (1.5 * uShadowTexel);
+        float diff = shadowDepth(base.xz, base.y);
+        return clamp(0.5 + diff * 8.0, 0.0, 1.0);
+    }
     if (uShadowOn && uShadowStrength > 0.0) {
         if (uLightMode == 1 || uLightMode == 2) {
             // The ground and the walls: crisp shadows, even inside, the flat
