@@ -13,11 +13,11 @@ constexpr double kTicksPerHour = 36000.0;
 constexpr double kSunrise = 6.0;
 constexpr double kSunset = 18.0;
 // The sun stays HIGH and near-overhead (the owner's 082): straight up at
-// noon, kSwing degrees off vertical at the day's ends, linear between. No
-// long shadows exist at all; a 2-unit wall casts at most 2 * tan(kSwing)
-// units of shadow.
+// noon, the swing degrees off vertical at the day's ends, linear between. No
+// long shadows exist at all; a 2-unit wall casts at most 2 * tan(swing)
+// units of shadow. The swing is the [3d] sun_swing setting (082 round 2,
+// default 30, was a 15 constant).
 constexpr double kNoonHeight = 90.0; // degrees, noon
-constexpr double kSwing = 30.0; // degrees off vertical at dawn and dusk (082 round 2: was 15)
 // The vertical plane the sun swings in, as the game camera's screen
 // horizontal: the GL ground direction (x, z) that moves a point across the
 // screen and never up or down it. From the donor projection (kladwtwn's
@@ -47,15 +47,16 @@ double smoothstep(double edge0, double edge1, double x)
 
 } // namespace
 
-Sun sunAt(unsigned int gameTime, double ambient, bool daylight)
+Sun sunAt(unsigned int gameTime, double ambient, bool daylight, double swingDegrees)
 {
     Sun sun;
+    const double swing = std::clamp(swingDegrees, 0.0, 60.0);
     const double hour = std::fmod(gameTime / kTicksPerHour, 24.0);
     const double day = (hour - kSunrise) / (kSunset - kSunrise); // 0 sunrise, 1 sunset
-    // One fixed vertical plane, the tilt linear through the day: -kSwing at
-    // sunrise, 0 at noon, +kSwing at sunset (082). Outside the day the sun is
+    // One fixed vertical plane, the tilt linear through the day: -swing at
+    // sunrise, 0 at noon, +swing at sunset (082). Outside the day the sun is
     // down and the tilt stays at the day's end.
-    sun.tilt = std::clamp(-kSwing + 2.0 * kSwing * day, -kSwing, kSwing);
+    sun.tilt = std::clamp(-swing + 2.0 * swing * day, -swing, swing);
     const double tilt = sun.tilt * kPi / 180.0;
     const double sinTilt = std::sin(tilt);
     sun.height = kNoonHeight - std::fabs(sun.tilt);
@@ -82,9 +83,10 @@ Sun sunAt(unsigned int gameTime, double ambient, bool daylight)
     return sun;
 }
 
-const Sun& SunTracker::update(unsigned int gameTime, double ambient, bool daylight, double seconds)
+const Sun& SunTracker::update(unsigned int gameTime, double ambient, bool daylight, double seconds,
+    double swingDegrees)
 {
-    const Sun target = sunAt(gameTime, ambient, daylight);
+    const Sun target = sunAt(gameTime, ambient, daylight, swingDegrees);
     const bool jumped = !started || daylight != lastDaylight || gameTime < lastTime
         || gameTime - lastTime > kJumpTicks;
     const float strength = jumped

@@ -69,6 +69,19 @@ int main()
     failures += !check(close(std::fabs(morning.azimuth - evening.azimuth), 180.0, 1e-5),
         "dawn and dusk lean to opposite sides of the plane");
 
+    // The [3d] sun_swing setting (082 round 2): the swing is a parameter.
+    const Sun wide = sunAt(day + 7 * kHour, 1.0, true, 60.0);
+    failures += !check(wide.up && close(wide.tilt, -50.0, 1e-9), "swing 60 at 7:00: tilted -50 degrees");
+    failures += !check(close(wide.height, 40.0, 1e-9), "swing 60 at 7:00: 40 degrees above the horizon");
+    const Sun narrow = sunAt(day + 7 * kHour, 1.0, true, 0.0);
+    failures += !check(narrow.up && close(narrow.tilt, 0.0, 1e-9),
+        "swing 0: overhead at every hour");
+    failures += !check(close(narrow.direction[0], 0.0, 1e-6) && close(narrow.direction[1], 1.0, 1e-6)
+            && close(narrow.direction[2], 0.0, 1e-6),
+        "swing 0: the direction is straight up");
+    failures += !check(close(sunAt(day + 7 * kHour, 1.0, true, 90.0).tilt, -50.0, 1e-9),
+        "the swing clamps at 60 degrees");
+
     failures += !check(!sunAt(day + 19 * kHour, 1.0, true).up, "19:00: set");
     failures += !check(!sunAt(day, 1.0, true).up, "0:00: none");
     failures += !check(!sunAt(day + 12 * kHour, 1.0, false).up, "underground: none");

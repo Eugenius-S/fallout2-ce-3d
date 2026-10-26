@@ -202,6 +202,7 @@ extern int gSceneShadowOnLocation;
 extern int gSceneShadowMatrixLocation;
 extern int gSceneShadowMapLocation;
 extern int gSceneShadowStrengthLocation;
+extern int gSceneShadowDensityLocation;
 extern int gSceneShadowLightLocation;
 extern int gSceneShadowTexelLocation;
 extern int gSceneShadowStepLocation;

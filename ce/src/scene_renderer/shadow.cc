@@ -213,6 +213,7 @@ bool bindStaticShadows(const float* sceneMvp)
     glUniform1i(gSceneShadowOnLocation, 1);
     glUniformMatrix4fv(gSceneShadowMatrixLocation, 1, 0, matrix);
     glUniform1f(gSceneShadowStrengthLocation, sun.strength);
+    glUniform1f(gSceneShadowDensityLocation, static_cast<float>(settings.scene3d.shadow_density));
     glUniform3f(gSceneShadowLightLocation, sun.direction[0], sun.direction[1], sun.direction[2]);
     glUniform1f(gSceneShadowTexelLocation, texel);
     glUniform1f(gSceneShadowStepLocation, ring);

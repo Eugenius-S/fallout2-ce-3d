@@ -132,3 +132,45 @@ shadows are crisp, the walls stripe no more. On top of 062 round 7, one PR.
   each; before is 062 round 7, after is this branch, both with the
   [3d] shadow_pixel_size the branch ships). The full-res PNGs stay in
   game/shots/dev/2026-10-25/.
+
+### 2026-10-26 glm
+Done: round 2 (the owner's eye pass) and the two [3d] knobs he asked for.
+
+Round 2 (commit b8232ae0):
+- Shadow density: the ground/wall darken factor 0.425 -> 0.35 by the
+  owner's eye.
+- The sun swings 30 degrees (was 15): at dawn and dusk it stands 60
+  degrees above the horizon; the sun test rewritten (-30/0/+30 at
+  6/12/18, -25/+25 at 7/17).
+- Ctrl+T was forward-only, dropped the day count across midnight and had
+  no readout (at night a step was invisible). Now Ctrl+T steps forward,
+  Alt+T backward, the day is kept, the minute lands, and the new hour
+  shows in the dev panel's status line.
+- The base junction at 60 degrees: the pass-1 coplanar caster copy was
+  capped at 0.4, leaving a residual gap for casters 0.4-0.6 above the
+  floor. Near-floor casters (lowest <= 0.6) now drop fully onto the
+  floor; high casters keep no copy (a roof dropped onto the floor would
+  shadow the whole floor under it). The stripe did not reproduce at the
+  long building even before the fix; the fix removes the class.
+- Seams inside the shadow identified by the debug views: the dashed
+  strokes under fences are the fence ART (its transparent holes cut out
+  of the depth map, 063's design); the lit patch in the big morning
+  shadow is the barrel card standing at its own height. No caster seams.
+- Measured: 6 factor+face pairs, worst column step 0.0000, flatness
+  1.0000, edge 2-4 game pixels. Sheets in
+  runs/082-sun-overhead-crisp/round2/.
+
+The knobs (the owner's request, modeled on shadow_pixel_size):
+- [3d] shadow_density, default 1.0, range 0..2: scales the shadow
+  darkening (0.35/0.3 multiplied by it); 0 turns the cast shadows off.
+  Uniform uShadowDensity, set in shadow.cc next to uShadowStrength.
+- [3d] sun_swing, default 30, range 0..60: the sun's degrees off
+  vertical at dawn and dusk; sunAt/SunTracker::update take it as a
+  parameter, updateSunFromGame passes the setting.
+- Both have menu lines in the Lighting group (options_panel), cfg keys,
+  defaults written on first run. Checked live: density 0 clears the
+  ground shadows (wall shading stays, it is the faces' own look), 2.0
+  darkens monotonically (shadow-zone luma 52.2 / 42.5 / 34.7 at 0/1/2);
+  swing 0 presses every shadow under its caster, 60 stretches building,
+  hydrant and fence shadows (masks in build/082-shots/knobs/). ctest
+  14/14 (the sun test gained swing 60/0/clamp cases).

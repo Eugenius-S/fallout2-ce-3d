@@ -102,6 +102,7 @@ uniform bool uShadowOn;
 uniform mat4 uShadowMatrix;
 uniform sampler2D uShadowMap;
 uniform float uShadowStrength;
+uniform float uShadowDensity; // the [3d] shadow_density setting, scales the darkening
 uniform vec3 uShadowLight; // towards the sun, GL (x, y up, z)
 uniform float uShadowTexel; // the map's texel in GL units
 uniform float uShadowStep;
@@ -263,10 +264,12 @@ float shadowDarken(float light) {
         if (uLightMode == 1 || uLightMode == 2) {
             // The ground and the walls: crisp shadows, even inside, the flat
             // shaded value on the faces the sun does not hit (082). 0.35 by
-            // the owner's eye (082 round 2): 0.425 read too saturated.
-            light *= 1.0 - uShadowStrength * 0.35 * sunShadow();
+            // the owner's eye (082 round 2): 0.425 read too saturated; the
+            // [3d] shadow_density setting scales it, 0 turns the cast
+            // shadows off.
+            light *= 1.0 - uShadowStrength * uShadowDensity * 0.35 * sunShadow();
         } else if (uLightMode == 3) {
-            light *= 1.0 - uShadowStrength * 0.3 * sunShadow();
+            light *= 1.0 - uShadowStrength * uShadowDensity * 0.3 * sunShadow();
         }
     }
     return light;
@@ -420,6 +423,7 @@ int gSceneShadowOnLocation = -1;
 int gSceneShadowMatrixLocation = -1;
 int gSceneShadowMapLocation = -1;
 int gSceneShadowStrengthLocation = -1;
+int gSceneShadowDensityLocation = -1;
 int gSceneShadowLightLocation = -1;
 int gSceneShadowTexelLocation = -1;
 int gSceneShadowStepLocation = -1;
@@ -495,6 +499,7 @@ bool createSceneShader(std::string* error)
     gSceneShadowMatrixLocation = glGetUniformLocation(gSceneProgram, "uShadowMatrix");
     gSceneShadowMapLocation = glGetUniformLocation(gSceneProgram, "uShadowMap");
     gSceneShadowStrengthLocation = glGetUniformLocation(gSceneProgram, "uShadowStrength");
+    gSceneShadowDensityLocation = glGetUniformLocation(gSceneProgram, "uShadowDensity");
     gSceneShadowLightLocation = glGetUniformLocation(gSceneProgram, "uShadowLight");
     gSceneShadowTexelLocation = glGetUniformLocation(gSceneProgram, "uShadowTexel");
     gSceneShadowStepLocation = glGetUniformLocation(gSceneProgram, "uShadowStep");
