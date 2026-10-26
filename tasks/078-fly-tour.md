@@ -2,14 +2,14 @@
 id: 078
 title: A fixed fly tour shoots every map before and after each scene change
 milestone: M1
-status: doing
+status: done
 owner: claude
 suggested: glm
 priority: high
 claude-only: no
 user-check: no
 depends-on: []
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -45,3 +45,23 @@ change on one sheet before the owner looks.
 Judging the views automatically.
 
 ## Log
+
+### 2026-10-26 claude
+Done: `py -3 tools/tour/tour.py --before SIDE [--after SIDE]` shoots every
+spot of `tools/tour/spots.json` (43 spots on all seven Klamath maps and
+their elevations: the 071 corners, the bathhouse, Vic's shack, the review2,
+076 and 083 spots, the regression views) from the fly camera at -45, 0 and
++45 degrees, distance 8, one frozen (`-Still`) full-daylight run per map
+elevation and side, and writes `before | after` sheets (one JPEG per map
+elevation, `changed.jpg` with only the changed spots, red frames on changed
+pairs, an "empty view" line for a spot off the map). A side is a built
+checkout or a scene cache; `dev-snapshot.ps1 -SceneCache DIR` runs a cache
+with this build. A full tour takes about 4.5 minutes per side; `--reuse`
+keeps a side's shots. Without `-Still` wandering critters changed views
+between two runs of one cache; with it main against main is 0 of 43.
+The committed run, `runs/078-fly-tour/`: the scene cache of the exporter
+before 081 against main's, the same build: 39 of 43 spots changed (roof
+cuts and wall feet; klacanyn and two other spots without walls did not).
+AGENTS.md: a scene change attaches the tour's `changed.jpg` to its PR.
+Next: none; add spots to `spots.json` when the owner finds a new place.
+Check: `py -3 tools/tour/tour.py --before <cache or checkout> --maps klagraz`.

@@ -89,7 +89,7 @@ def shoot(name, side, turns, distance, groups, reuse):
         # -Command, quoted: through -File a list with commas becomes an array.
         command = (f"& '{root / 'tools' / 'dev-snapshot.ps1'}' -Map {map_name} -Elevation {elevation} "
                    f"-Tour '{','.join(stops)}' -Still -Ambient 65536 -OutputDirectory '{folder}' "
-                   f"-TimeoutSeconds {90 + 3 * len(stops)}")
+                   f"-TimeoutSeconds {120 + 4 * len(stops)}")
         if kind == "cache":
             command += f" -SceneCache '{path}'"
         run = subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", command],
