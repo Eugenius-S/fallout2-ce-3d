@@ -1,6 +1,7 @@
 """086: compare the requested common glow levels without changing source gains."""
 import hashlib
 import json
+import argparse
 from pathlib import Path
 
 import numpy as np
@@ -11,6 +12,48 @@ from effect_review_sheets import sign_crop
 ROOT = Path('build/effects086')
 OUT = Path('runs/086-weapon-glow-previews')
 LEVELS = [0.7, 0.8, 1.0, 1.3, 1.5, 1.8]
+
+
+def sign_low():
+    references = json.loads((OUT / 'glow-levels-measurements.json').read_text())
+    sheet = Image.new('RGB', (1080, 640), (18, 18, 18))
+    draw = ImageDraw.Draw(sheet)
+    report = []
+    for row_index, name in enumerate(['sign40', 'sign41']):
+        reference = next(r for r in references if r['source']['name'] == name)
+        directory = ROOT / 'sign-low' / name
+        files = sorted(directory.glob('*.json'))
+        assert len(files) == 4, (name, len(files))
+        rows = [json.loads(p.read_text()) for p in files]
+        assert [r['glow']['enabled'] for r in rows] == [False, True, True, True]
+        assert [r['glow']['strength'] for r in rows[1:]] == [0.3, 0.4, 0.5]
+        for row in rows:
+            assert row['exe_sha256'] == reference['metadata'][0]['exe_sha256']
+            assert row['effect_emission'] and row['light'] == 'enabled'
+            for key in ['map', 'elevation', 'hero', 'camera', 'view_tile', 'weapon_effect', 'resolution', 'scale']:
+                assert row[key] == reference['metadata'][0][key], (name, key)
+        paths = [directory / row['image'] for row in rows]
+        images = [Image.open(p).convert('RGB') for p in paths]
+        previous = ROOT / 'tuning' / name
+        old = json.loads(sorted(previous.glob('*.json'))[0].read_text())
+        assert np.array_equal(np.asarray(images[0]), np.asarray(Image.open(previous / old['image']).convert('RGB')))
+        crop = reference['crop']
+        arrays = [np.asarray(im.crop(crop)).astype(int) for im in images]
+        energy = [float(np.maximum(a - arrays[0], 0).mean()) for a in arrays[1:]]
+        assert 0 < energy[0] < energy[1] < energy[2], (name, energy)
+        y = row_index * 320
+        draw.text((8, y + 5), name + ' | ' + reference['source']['art'] + ' | night', fill='white')
+        for column, im in enumerate(images[1:]):
+            preview = ImageOps.contain(im.crop(crop), (360, 275), Image.Resampling.NEAREST)
+            sheet.paste(preview, (column * 360, y + 42))
+            draw.text((column * 360 + 8, y + 24), 'Shared glow ' + str([0.3, 0.4, 0.5][column]), fill='white')
+        report.append(dict(source=reference['source'], crop=crop, levels=[0.3, 0.4, 0.5],
+                           identical_previous_off=True, added_rgb_mean=energy, metadata=rows,
+                           image_sha256=[hashlib.sha256(p.read_bytes()).hexdigest() for p in paths]))
+    sheet.save(OUT / 'night-signs-low.jpg', quality=88)
+    assert (OUT / 'night-signs-low.jpg').stat().st_size < 1_000_000
+    (OUT / 'sign-low-measurements.json').write_text(json.dumps(report, indent=2) + '\n')
+    print('Validated two OFF/0.3/0.4/0.5 sign sequences; previous build, state and OFF pixels match.')
 
 
 def main():
@@ -80,4 +123,7 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--sign-low', action='store_true')
+    args = parser.parse_args()
+    sign_low() if args.sign_low else main()

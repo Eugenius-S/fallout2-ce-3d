@@ -160,3 +160,14 @@ Check: all 13 six-level comparisons validate; Python compilation, diff and runs
 size checks pass, each JPEG under 1 MB. Prior runtime checks still apply because
 only the evidence assembler, images, measurements and documentation changed.
 Next: visual calibration and the main-integration step described above.
+
+### 2026-10-26 gpt: lower sign-only preview
+
+Done: requested SIGN40/41 comparison at 0.3 / 0.4 / 0.5 in night-signs-low.jpg.
+Eight frozen captures use the previous build, cameras, source gains, surface
+lights and crops. sign-low-measurements.json records matching previous OFF
+pixels, matching scene metadata and increasing bloom response. Reproduce with
+tools/effect_glow_levels.py --sign-low after sign-low captures.
+Check: both sequences, Python compilation, diff and runs size checks pass.
+Production values and the owner's other pending visual picks are not applied.
+Next: finish visual calibration, then integrate main as described above.

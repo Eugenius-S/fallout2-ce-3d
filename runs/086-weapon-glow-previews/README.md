@@ -10,6 +10,12 @@ Smoke and rocket casing remain ordinary material. Known SIGN40/41 red/yellow
 tubes use the same core selection, including baked geometry via its runtime
 object table. Scene file formats are unchanged.
 
+night-signs-low.jpg adds the owner's sign-only comparison at 0.3 / 0.4 / 0.5.
+It uses the same crops, executable and lighting as the six-column sign sheet.
+sign-low-measurements.json verifies identical previous OFF pixels and scene
+state. Reassemble with `py -3 tools/effect_glow_levels.py --sign-low` from raw
+captures in build/effects086/sign-low. This changes previews only.
+
 All 13 examples use one executable, 1920x1080, scale 2, ambient 16384 and fixed
 clock 0. Eleven effect fixtures use KLADWTWN at 25075, hero 25280, solo radius 1.
 The two real DENBUS1 signs retain their native placements: SIGN40 tile 16274,
