@@ -12,7 +12,7 @@ int main()
     const auto laser = effectEmission(0x05000005);
     const auto rocket = effectEmission(0x05000009);
     const auto sign = effectEmission(0x020006D6);
-    if (laser.distance != 3 || !effectHotPixel(laser, 1, palette)
+    if (sign.alpha != 245 || laser.distance != 3 || !effectHotPixel(laser, 1, palette)
         || effectHotPixel(laser, 0, palette) || effectHotPixel(laser, 2, palette)
         || !effectHotPixel(laser, 3, palette) || !effectHotPixel(rocket, 4, palette)
         || effectHotPixel(rocket, 3, palette) || !effectHotPixel(sign, 1, palette)

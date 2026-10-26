@@ -42,10 +42,7 @@ unsigned char spriteAlpha(unsigned char colorIndex)
 // keeps its own rotation: its art spends rotations on variants (wrecks, cacti,
 // a shelf breaking up; tools/shapes/art_sides.py), not on sides. So do flat
 // sprites, which turn with the ground, and things walls.bin draws.
-struct ShownArt {
-    int fid;
-    int rotation;
-};
+using ShownArt = SceneObjectArt;
 
 ShownArt shownArt(Object* object, bool flat)
 {
@@ -315,6 +312,15 @@ bool pickWanted(int pickId, void* context)
 }
 
 } // namespace
+
+SceneObjectArt shownObjectArt(Object* object)
+{
+    const bool flat = (object->flags & OBJECT_FLAT) != OBJECT_NONE
+        || scene_renderer::staticObjectFlat(object->tile, object->fid)
+        || scene_renderer::staticObjectBaked(object->tile, object->fid)
+        || (scene_renderer::staticFlyCameraActive() && scene_renderer::staticObjectFlyFlat(object->tile, object->fid));
+    return shownArt(object, flat);
+}
 
 bool updateObjectsFromGame()
 {

@@ -1,5 +1,28 @@
 # 086: native effect emission, local light and glow
 
+## Final accepted configuration
+
+final-projectiles.jpg, final-fire-electric-rocket.jpg, final-explosions.jpg
+and final-signs.jpg show the integrated-main build. Left: glow OFF with source
+emission/local lights ON. Right: the ONE common glow slider at default 2 with
+all accepted internal calibrations, including the signs' former strength 0.4.
+The 15% neutral component applies to EMP as well: the owner accepted that
+tradeoff without a separate EMP path. Final pairs and frame/state/build checks
+are recorded in final-measurements.json by tools/effect_final_sheets.py.
+
+The shared shownObjectArt selection keeps emitter extraction aligned with the
+visible side chosen by task 087 for a turned camera. No scene file formats,
+native CE object light fields or player controls were added or changed.
+The later sections preserve the earlier approved/rejected calibration evidence.
+
+Final world verification uses a fresh own Klamath export and main ea4bba3f:
+all 16 ordinary views have 0 changed pixels against the current committed
+references (final-regression-summary.json). Full fly tour compares 43 spots
+at three angles, 129 views per build, with 0 spots changed (changed.jpg and
+final-tour.json). Source fixture captures preceded this cache refresh; their
+native effect art is unchanged. Release game/mapper, 16 CTests, 64 exporter
+tests and 12 regression unit tests pass. References were not retaken.
+
 ## White suppression and chosen effect calibration
 
 white-projectiles.jpg, white-fire-electric-rocket.jpg, white-explosions.jpg

@@ -7,7 +7,7 @@ namespace fallout {
 namespace scene {
 
 // Native art identities, not arbitrary bright scenery. Alpha tags are internal
-// material markers 240..244 carry the owner's per-kind calibration at the
+// material markers 240..245 carry the owner's per-kind calibration at the
 // common default 2; 248..250 remain developer/legacy tags. All are self-lit.
 struct EffectEmission {
     unsigned char alpha = 255;
@@ -25,7 +25,7 @@ inline EffectEmission effectEmission(int fid)
     if (!gEffectEmissionEnabled) return {};
     const int type = (fid >> 24) & 15;
     const int art = fid & 0xFFF;
-    if (type == 2 && (art == 1750 || art == 1751)) return { 249, 4, 0.8f, true, false }; // SIGN40/41
+    if (type == 2 && (art == 1750 || art == 1751)) return { 245, 4, 0.8f, true, false }; // signs: former shared 0.4
     if (type != 5) return {};
     switch (art) {
     case 5: return { 240, 3, 0.65f }; // laser: former shared 0.7

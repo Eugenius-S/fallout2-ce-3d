@@ -1,5 +1,6 @@
 #include "scene_lights.h"
 #include "effect_emission.h"
+#include "scene_objects.h"
 
 #include <algorithm>
 #include <array>
@@ -85,11 +86,11 @@ bool shining(unsigned char index)
     return (index >= 229 && index <= 247) || index == 254;
 }
 
-Emitter findEmitter(Object* object)
+Emitter findEmitter(Object* object, const SceneObjectArt& shown)
 {
     Emitter emitter;
     FrmImage image;
-    if (!image.lock(FrmId(object), object->frame, object->rotation)) return emitter;
+    if (!image.lock(FrmId(shown.fid), object->frame, static_cast<Rotation>(shown.rotation))) return emitter;
     const int width = image.getWidth();
     const int height = image.getHeight();
     const unsigned char* indices = image.getData();
@@ -135,6 +136,15 @@ Emitter findEmitter(Object* object)
     return emitter;
 }
 
+const Emitter& emitterFor(Object* object)
+{
+    const SceneObjectArt shown = shownObjectArt(object);
+    const auto key = std::make_tuple(shown.fid, object->frame, shown.rotation);
+    auto found = gEmitters.find(key);
+    if (found == gEmitters.end()) found = gEmitters.emplace(key, findEmitter(object, shown)).first;
+    return found->second;
+}
+
 void emitterColor(const Emitter& emitter, float color[3], float saturation = kSaturation)
 {
     unsigned char* palette = directDrawGetPalette();
@@ -166,14 +176,12 @@ void collectLight(Object* object, void* context)
     light.distance = std::min(object->lightDistance, 8);
 
     if (!candidate.critter) {
-        const auto key = std::make_tuple(object->fid, object->frame, static_cast<int>(object->rotation));
-        auto found = gEmitters.find(key);
-        if (found == gEmitters.end()) found = gEmitters.emplace(key, findEmitter(object)).first;
-        candidate.shines = found->second.found;
+        const Emitter& emitter = emitterFor(object);
+        candidate.shines = emitter.found;
         if (candidate.shines) {
-            light.right = found->second.right;
-            light.down = found->second.down;
-            emitterColor(found->second, light.color, effectEmission(object->fid).distance != 0 ? 1.0f : kSaturation);
+            light.right = emitter.right;
+            light.down = emitter.down;
+            emitterColor(emitter, light.color, effectEmission(object->fid).distance != 0 ? 1.0f : kSaturation);
         }
     }
     if (!candidate.shines) {
@@ -193,10 +201,7 @@ void collectEffectLight(Object* object, void* context)
     if (effect.distance == 0 || (object->flags & OBJECT_HIDDEN) != OBJECT_NONE
         || !hexGridTileIsValid(object->tile)
         || (object->lightIntensity > 0 && (object->flags & OBJECT_LIGHTING) != OBJECT_NONE)) return;
-    const auto key = std::make_tuple(object->fid, object->frame, static_cast<int>(object->rotation));
-    auto found = gEmitters.find(key);
-    if (found == gEmitters.end()) found = gEmitters.emplace(key, findEmitter(object)).first;
-    const Emitter& emitter = found->second;
+    const Emitter& emitter = emitterFor(object);
     if (!emitter.found) return;
     Candidate candidate = { object, {}, true, false };
     auto& light = candidate.light;

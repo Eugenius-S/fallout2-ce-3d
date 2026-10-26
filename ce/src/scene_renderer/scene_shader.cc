@@ -254,9 +254,10 @@ void main() {
             // marker) stay at full light; alpha 252 only glows, the tiles and
             // walls darken as everything does.
             float mark = texel.a * 255.0;
-            bool signTube = vFullLight > 0.4 && vFullLight < 0.6
+            bool calibratedSign = vFullLight > 0.2 && vFullLight < 0.3;
+            bool signTube = (calibratedSign || (vFullLight > 0.4 && vFullLight < 0.6))
                 && texel.r >= 0.5 && texel.r > texel.b * 1.5 && texel.r >= texel.g;
-            bool calibratedCore = mark > 239.5 && mark < 244.5;
+            bool calibratedCore = (mark > 239.5 && mark < 245.5) || (calibratedSign && signTube);
             bool effectCore = calibratedCore || (mark > 247.5 && mark < 250.5) || signTube;
             bool fullBright = abs(mark - 254.0) < 0.5 || effectCore;
             outColor.a = 1.0;
@@ -304,10 +305,10 @@ void main() {
             // Preserve that clamp before scaling to common strength 2; simply
             // multiplying the old gain by the ratio would change its colors.
             if (calibratedCore) {
-                float referenceGain = mark < 240.5 ? 8.0 : (mark < 241.5 ? 1.0
-                    : (mark < 242.5 ? 8.0 : 4.0));
-                float chosenRatio = mark < 240.5 ? 0.35 : (mark < 241.5 ? 0.75
-                    : (mark < 243.5 ? 0.5 : 0.35));
+                float referenceGain = signTube ? 4.0 : (mark < 240.5 ? 8.0 : (mark < 241.5 ? 1.0
+                    : (mark < 242.5 ? 8.0 : 4.0)));
+                float chosenRatio = signTube ? 0.2 : (mark < 240.5 ? 0.35 : (mark < 241.5 ? 0.75
+                    : (mark < 243.5 ? 0.5 : (mark < 244.5 ? 0.35 : 0.2))));
                 glow = clamp(glow * referenceGain, 0.0, 1.0) * chosenRatio;
             } else if (effectCore) {
                 glow *= effectGain;

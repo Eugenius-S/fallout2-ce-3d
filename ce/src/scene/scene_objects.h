@@ -16,6 +16,10 @@ struct PickEntry {
     int tile;
 };
 
+struct SceneObjectArt { int fid; int rotation; };
+// The visible side (087), shared with emission/light source extraction.
+SceneObjectArt shownObjectArt(Object* object);
+
 // Every live object on the current elevation into the scene in its current
 // frame (critters with their animation, doors open or shut, items where they
 // lie), then the hero. True when the hero card shows the hero's frame.

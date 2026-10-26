@@ -2,13 +2,13 @@
 id: 086
 title: Self-lit weapon effects, local colored light and luminous sign previews
 milestone: M1
-status: doing
+status: done
 owner: gpt
 suggested: gpt
 claude-only: no
 user-check: yes
 depends-on: [073]
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -48,9 +48,9 @@ TRANSFORM: self-lit material, colored local-light contribution, existing bloom p
 MEANING: source cores stay bright in darkness; nearby surfaces receive their color.
 OUTPUT: all three layers, controlled by existing global lighting/glow settings.
 DIRECT CHECK: night source/surface/halo probes, frame lifetime and ordinary-view controls.
-The native fixture, production emission/local lights, two night sign examples
-and requested strength comparisons are implemented on this branch. Visual
-calibration and integration with the newer main remain before closure.
+The native fixture, production emission/local lights, accepted calibration and
+two night sign examples are complete and integrated with main. Final source
+checks, fresh-export regressions and the full main-versus-branch fly tour pass.
 
 ## Log
 
@@ -206,3 +206,39 @@ FX tags and was verified by the final 13 OFF comparisons. Diff, Python and runs
 size checks pass. Owner game/config have not been installed/restarted/modified.
 Next: inspect the new white suppression, finalize signs and integrate the newer
 main before PR/merge as above. Task stays doing; this is saved branch work.
+
+### 2026-10-26 gpt: accepted result, integrated main and final verification
+
+Owner accepted the right-hand white-suppressed result including the weaker EMP
+as a tradeoff, and authorized completing the task and merging the PR. Signs use
+the shown 0.4 equivalent internally at COMMON default 2. There is one slider.
+
+Done: merged main ea4bba3f without conflicts, preserving 087 sprite directions.
+SceneObjectArt/shownObjectArt is shared by renderer and emitter extraction, so
+turned effects cast their light from their actual visible frame/side. Live and
+baked signs use calibrated material 245/runtime wall flag 3. No scene-file
+formats, owner game files or live game process were changed.
+
+Final evidence: final-*.jpg (OFF with source/local light vs common glow 2),
+final-measurements.json validates 13 pairs from the integrated build and 11
+move/offset/hide/restore/lighting-switch/native-map preservation checks.
+Source fixture captures preceded the final cache refresh; they use unchanged
+native art and valid scene caches. The authoritative world checks below use
+fresh exports, not the old borrowed junction targets.
+
+Check: Release game and mapper, all 16 CTests, 64 exporter and 12 regression
+unit tests. Fresh own Klamath export replaces the borrowed map junctions while
+holding the background test mutex; borrowed targets and game mod-cache remain
+untouched. All 16 regression views match the current committed main references
+with ZERO changed pixels (final-regression-summary.json). The initial stale
+cache comparison was rejected, not used as final evidence.
+
+Full fly tour against a separately built main ea4bba3f, both on the same fresh
+cache: 43 spots, three angles, 129 views per build, 0 of 43 spots changed.
+changed.jpg and final-tour.json record that required review. Windows PowerShell
+module lookup was repaired for the tour subprocess only, without system edits.
+All four final JPEG sheets and changed.jpg are below 1 MB; checks and review
+pass. No reference snapshots were retaken and no serialized format changed.
+
+Next: GitHub CI, then squash-merge this PR. Installation/combat testing in the
+owner's primary game is a separate step; it has not been launched or installed.
