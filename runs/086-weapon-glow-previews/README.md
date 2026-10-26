@@ -2,7 +2,7 @@
 
 The current outcome is night-projectiles.jpg, night-fire-electric-rocket.jpg,
 night-explosions.jpg and night-signs.jpg. Each row compares the owner's requested
-COMMON glow strengths 1.3 / 1.5 / 1.8, left to right. Source compensation and
+COMMON glow strengths 0.7 / 0.8 / 1.0 / 1.3 / 1.5 / 1.8, left to right. Source compensation and
 local lights are identical across columns; the global default remains 2.
 No extra player controls were added. The accepted PLASMAB bloom material stays
 unchanged; the other known native FX get self-lit hot cores and compensation.
@@ -10,14 +10,15 @@ Smoke and rocket casing remain ordinary material. Known SIGN40/41 red/yellow
 tubes use the same core selection, including baked geometry via its runtime
 object table. Scene file formats are unchanged.
 
-All 13 sequences use one executable, 1920x1080, scale 2, ambient 16384 and fixed
+All 13 examples use one executable, 1920x1080, scale 2, ambient 16384 and fixed
 clock 0. Eleven effect fixtures use KLADWTWN at 25075, hero 25280, solo radius 1.
 The two real DENBUS1 signs retain their native placements: SIGN40 tile 16274,
 hero on the same tile to open its roof, zoom 2; SIGN41 tile 17080, zoom 1.
 The sign images include their actual surroundings. Sources and camera state,
-matching frozen scenes, increasing response and hashes of all raw captures
+matching frozen scenes, pixel-identical OFF controls across the two batches,
+increasing response and hashes of the raw captures
 are validated in glow-levels-measurements.json by tools/effect_glow_levels.py.
-Raw images stay in build/effects086/tuning and are not committed.
+Raw images stay in build/effects086/tuning and tuning-low and are not committed.
 
 The visual lights follow live object tiles, pixel offsets and current frames;
 hidden/missing objects stop submitting them. They use the native wall/door
@@ -43,6 +44,7 @@ Reproduce the requested strengths, replacing name/frame from the measurements:
 
 ```powershell
 tools/dev-snapshot.ps1 -Map kladwtwn -ViewTile 25075 -HeroTile 25280 -Solo 1 -EffectFixture laser -EffectFrame 5 -EffectLightCheck -GlowLevels 1.3,1.5,1.8 -Ambient 16384 -Hour 0 -CaptureConsole -OutputDirectory build/effects086/tuning/laser
+tools/dev-snapshot.ps1 -Map kladwtwn -ViewTile 25075 -HeroTile 25280 -Solo 1 -EffectFixture laser -EffectFrame 5 -EffectLightCheck -GlowLevels 0.7,0.8,1 -Ambient 16384 -Hour 0 -CaptureConsole -OutputDirectory build/effects086/tuning-low/laser
 py -3 tools/effect_glow_levels.py
 ```
 

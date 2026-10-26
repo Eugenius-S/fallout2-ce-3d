@@ -146,3 +146,17 @@ Before PR/merge integrate origin/main (now c88f4062, includes task 087 sprite
 camera directions and task 058 refreshed references), rebuild and rerun the
 current-main checks. This branch has not yet integrated those newer changes.
 Keep the task doing; production implementation is saved, not merged/deployed.
+
+### 2026-10-26 gpt: append 0.7/0.8/1.0 to the same review layouts
+
+Owner requested three lower common strengths alongside the previous values.
+Done: 52 additional night captures for all 11 FX and both signs, using the
+same executable, scene parameters, source gains, lighting and camera as before.
+Each of the four night sheets now has six columns:
+0.7 / 0.8 / 1.0 / 1.3 / 1.5 / 1.8. Default 2 and production code unchanged.
+tools/effect_glow_levels.py verifies both batches, pixel-identical OFF controls
+for every example, matching build/state and strictly increasing glow response.
+Check: all 13 six-level comparisons validate; Python compilation, diff and runs
+size checks pass, each JPEG under 1 MB. Prior runtime checks still apply because
+only the evidence assembler, images, measurements and documentation changed.
+Next: visual calibration and the main-integration step described above.
