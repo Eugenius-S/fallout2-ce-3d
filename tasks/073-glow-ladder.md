@@ -46,4 +46,16 @@ strength from test shots: each kind of glowing thing shot at five strengths,
 
 New glowing things (what is not marked or bright today).
 
+## Capture pipeline
+
+INPUT: one frozen map view and strengths 0.5, 1, 2, 4, 8 plus glow off.
+TRANSFORM: reuse the existing composite, change its scalar between captures.
+MEANING: tight and wide halo weights remain 0.55 and 1.5; only strength varies.
+OUTPUT: six labelled close views per kind, identical camera and palette phase.
+DIRECT CHECK: metadata values, unchanged hero/frame/view, per-level pixel lifts.
+The optional fixture restores color.pal's authored cycling entries. Clean
+captures omit the HUD overlay at every level, including the first one.
+The default remains 1 until the owner chooses. JPEG sheets follow AGENTS.md's
+evidence rule; raw PNG captures stay untracked under build/.
+
 ## Log

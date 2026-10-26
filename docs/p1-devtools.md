@@ -266,3 +266,18 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools/dev-launch.ps1 -Slot 1
 from save slot 1; the owner closes the old window. Never export into
 `game/mod-cache` without that build: an older engine cannot read a newer
 export.
+
+## Glow comparisons
+
+`dev-snapshot.ps1 -GlowStrength X` (`--dev-glow-strength=X`) implies `-Glow`
+and accepts 0..8. Values use an invariant decimal point. The player menu's
+slider covers the same range; the default remains 1 until the 073 owner pick.
+
+`-GlowLadder` captures glow off, then 0.5, 1, 2, 4, 8 in one frozen scene.
+It implies `-Still -CyclePalette`, rejects other fixtures/glow overrides,
+and suppresses the HUD in all six captures. Each JSON records `glow.enabled`
+and `glow.strength`. It does not change the owner's executable or config.
+
+`-CyclePalette` (`--dev-cycle-palette`) restores color.pal's authored
+cycling entries 229..254 before the still view loads its object textures.
+Ordinary snapshots and normal gameplay keep their original palette behavior.

@@ -81,6 +81,10 @@ param(
     # Implies -Glow. Five comparison levels can include values above the old limit.
     [ValidateRange(0, 8)]
     [double]$GlowStrength = -1,
+    # Restore color.pal's authored cycling colors before freezing the still view.
+    [switch]$CyclePalette,
+    # One frozen scene, six captures: off, then 0.5/1/2/4/8.
+    [switch]$GlowLadder,
     # -Shadows: keep the sun shadows on in this background run (they are
     # forced off by default, so captures stay byte-stable).
     [switch]$Shadows,
@@ -101,6 +105,13 @@ param(
     [int]$Scale = 2
 )
 $ErrorActionPreference = 'Stop'
+if ($GlowLadder) {
+    if ($Glow -or $GlowStrength -ge 0 -or $Preferences -or $Classic -or $Probe -or $Tour -or $DialogFixture -or $UiFixture -or $DevPanel -or $PreferencesProbe) {
+        throw '-GlowLadder requires an ordinary scene capture without other glow overrides or fixtures.'
+    }
+    $Still = $true
+    $CyclePalette = $true
+}
 function Get-TestConfigValue([string]$Path, [string]$Section, [string]$Key) {
     $currentSection = ''
     $keyPattern = '^\s*' + [regex]::Escape($Key) + '\s*=\s*(.*?)\s*$'
@@ -262,6 +273,8 @@ if ($PreferencesProbe) {
 }
 if ($Glow) { $arguments += '--dev-glow' }
 if ($GlowStrength -ge 0) { $arguments += "--dev-glow-strength=$($GlowStrength.ToString([System.Globalization.CultureInfo]::InvariantCulture))" }
+if ($CyclePalette) { $arguments += '--dev-cycle-palette' }
+if ($GlowLadder) { $arguments += '--dev-glow-ladder' }
 if ($Shadows) { $arguments += '--dev-shadows' }
 if ($OpenDoors) { $arguments += '--dev-open-doors' }
 if ($Hour -ge 0) { $arguments += "--dev-hour=$Hour" }
@@ -318,6 +331,7 @@ if ($PreferencesProbe) {
     elseif ($DialogFixture) { $shots = 1 }
     else { $arguments += '--dev-snapshot-once' }
 }
+if ($GlowLadder) { $shots = 6 }
 
 $started = Get-Date
 $previousBackground = $env:F2CE_DEV_BACKGROUND

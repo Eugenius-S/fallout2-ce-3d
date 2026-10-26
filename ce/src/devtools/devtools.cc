@@ -128,6 +128,8 @@ int gTourFrames = 0;
 bool gStillSnapshot = false;
 bool gBackgroundGlow = false;
 double gDevGlowStrength = -1.0;
+bool gDevCyclePalette = false;
+int gGlowLadderStep = -1;
 bool gBackgroundShadows = false; // --dev-shadows: shadows stay on in a background run
 bool gDevOpenDoors = false; // --dev-open-doors: every door of the map stands open, once
 bool gDevOpenDoorsDone = false;
@@ -825,6 +827,15 @@ bool parseOption(const char* arg)
         }
         return true;
     }
+    if (strcmp(arg, "--dev-cycle-palette") == 0) {
+        gDevCyclePalette = true;
+        return true;
+    }
+    if (strcmp(arg, "--dev-glow-ladder") == 0) {
+        gGlowLadderStep = 0;
+        gBackgroundGlow = false;
+        return true;
+    }
     // --dev-shadows: keep the sun shadows on in a background run (a snapshot
     // of the shadowed view); off is the default there, so captures stay
     // byte-stable.
@@ -1487,7 +1498,13 @@ void update()
             scene_renderer::setStaticCameraCenterTile(-1);
             gViewTileApplied = true;
         }
-        if (stillSnapshotRequested()) colorCycleDisable();
+        if (stillSnapshotRequested()) {
+            if (gDevCyclePalette) {
+                _setSystemPaletteEntries(_cmap + 229 * 3, 229, 254);
+                printf("devtools: frozen cycling colors from color.pal\n");
+            }
+            colorCycleDisable();
+        }
         gStartupFloorPreviewAttempted = true;
         const bool withWalls = gStartupWallPreviewRequested || gStartupHeroPreviewRequested || gStartupWalkPreviewRequested;
         const bool withHero = gStartupHeroPreviewRequested || gStartupWalkPreviewRequested;
@@ -2002,6 +2019,13 @@ void scenePresented(const scene::RefreshResult& refreshed)
         printf("devtools: one-shot hero preview snapshot %s: %s\n",
             captured ? "saved" : "failed", gStatus);
         fflush(stdout);
+        if (captured && gGlowLadderStep >= 0 && gGlowLadderStep < 5) {
+            constexpr double strengths[] = { 0.5, 1.0, 2.0, 4.0, 8.0 };
+            gDevGlowStrength = strengths[gGlowLadderStep++];
+            gBackgroundGlow = true;
+            applyBackgroundGlow();
+            gSnapshotOncePending = true;
+        }
     }
 }
 
@@ -2932,7 +2956,7 @@ bool takeSnapshot()
             }
             std::string error;
             if (!scene_renderer::captureStaticPreviewPng(imagePath, withWalls, heroPreview,
-                    &capturedWidth, &capturedHeight, &error)) {
+                    &capturedWidth, &capturedHeight, &error, gGlowLadderStep < 0)) {
                 std::string message = "snapshot failed: " + error;
                 setStatus(message.c_str());
                 return false;

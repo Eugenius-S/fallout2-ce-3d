@@ -320,7 +320,7 @@ bool captureStaticFloorPng(const std::filesystem::path& path, int* width, int* h
 }
 
 bool captureStaticPreviewPng(const std::filesystem::path& path, bool withWalls, bool withHero,
-    int* width, int* height, std::string* error)
+    int* width, int* height, std::string* error, bool includeOverlay)
 {
     auto fail = [&](const std::string& message) {
         if (error != nullptr) *error = message;
@@ -344,7 +344,7 @@ bool captureStaticPreviewPng(const std::filesystem::path& path, bool withWalls, 
     const bool glow = beginSceneCapture();
     drawStaticPreview(withWalls, withHero);
     if (glow) compositeGlow();
-    if (withHero && gSceneOverlayReady && !staticFlyCameraActive()) {
+    if (includeOverlay && withHero && gSceneOverlayReady && !staticFlyCameraActive()) {
         // With what the game draws over it, as presented.
         glViewport(0, 0, drawableWidth, drawableHeight);
         glEnable(kBlend);
