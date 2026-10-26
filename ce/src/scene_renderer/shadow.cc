@@ -30,8 +30,9 @@ constexpr unsigned int kDepthComponent = 0x1902;
 constexpr unsigned int kUnsignedInt = 0x1405;
 constexpr unsigned int kDrawBuffersNone = 0; // GL_NONE
 constexpr unsigned int kColorAttachment0 = 0x8CE0;
+constexpr unsigned int kColorAttachment1 = 0x8CE1;
 constexpr unsigned int kR16 = 0x822D;
-constexpr unsigned int kRG16 = 0x822C;
+constexpr unsigned int kR32F = 0x822E;
 constexpr unsigned int kUnsignedShort = 0x1403;
 constexpr unsigned int kFloat = 0x1406;
 // The caster ids travel in the id channel normalized to this scale: the map
@@ -45,8 +46,11 @@ unsigned int gShadowMapTexture = 0;
 unsigned int gShadowIdTexture = 0;
 unsigned int gShadowFbo = 0;
 // The receivers read the filled map: the depth after the gap-fill pass, and
-// the caster id that travels with it (082 round 6, mechanisms 1 and 2).
+// the caster id that travels with it (082 round 6, mechanisms 1 and 2). The
+// depth stays a full float (090): 16 bits put the coplanar compare on
+// quantization noise.
 unsigned int gShadowFilledTexture = 0;
+unsigned int gShadowFilledIdTexture = 0;
 unsigned int gShadowDilateFbo = 0;
 unsigned int gShadowDilateProgram = 0;
 unsigned int gShadowDilateVao = 0;
@@ -55,10 +59,12 @@ int gShadowDilateIdLocation = -1;
 
 // Mechanism 1 (082 round 6): one fullscreen pass copies the depth map into
 // the filled map, filling an empty texel when occupied texels stand on both
-// sides 2 texels apart along one of the four axes (the two diagonals
+// sides 4 texels apart along one of the four axes (the two diagonals
 // included). The value is the farther of the two, closer to the ground; its
 // id travels along. The outer contour never grows: a fill needs both sides,
-// so holes wider than 4 texels (fence lattices, true openings) stay.
+// so holes wider than 8 texels (fence lattices, true openings) stay. 4, not
+// 082's 2: the map's texels halved in size when the casters began to fill
+// the whole map (090), the filled gap keeps its width on the ground.
 constexpr const char* kDilateVertexShader = R"(#version 330 core
 void main() {
     vec2 p = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2));
@@ -69,7 +75,8 @@ void main() {
 constexpr const char* kDilateFragmentShader = R"(#version 330 core
 uniform sampler2D uDepthMap; // the raw depth (unit 0)
 uniform sampler2D uIdMap; // the raw caster ids (unit 1)
-out vec4 outColor; // rg: the filled depth and the caster id / 1024
+layout(location = 0) out vec4 outDepth; // r: the filled depth
+layout(location = 1) out vec4 outId; // r: the caster id / 1024
 void main() {
     ivec2 size = textureSize(uDepthMap, 0);
     ivec2 p = ivec2(gl_FragCoord.xy);
@@ -77,8 +84,8 @@ void main() {
     float id = texelFetch(uIdMap, p, 0).r;
     if (depth >= 0.999) {
         ivec2 offsets[8] = ivec2[8](
-            ivec2(2, 0), ivec2(-2, 0), ivec2(0, 2), ivec2(0, -2),
-            ivec2(2, 2), ivec2(2, -2), ivec2(-2, 2), ivec2(-2, -2));
+            ivec2(4, 0), ivec2(-4, 0), ivec2(0, 4), ivec2(0, -4),
+            ivec2(4, 4), ivec2(4, -4), ivec2(-4, 4), ivec2(-4, -4));
         float best = -1.0;
         float bestId = 0.0;
         for (int i = 0; i < 8; i++) {
@@ -100,7 +107,8 @@ void main() {
             id = bestId;
         }
     }
-    outColor = vec4(depth, id, 0.0, 1.0);
+    outDepth = vec4(depth, 0.0, 0.0, 1.0);
+    outId = vec4(id, 0.0, 0.0, 1.0);
 }
 )";
 
@@ -113,10 +121,14 @@ float gMaxCasterHeight = 3.2f;
 bool gShadowRendered = false;
 double gShadowSeconds = 0.0;
 
-// The sun's shadow matrix: world GL (x, y up, z) to the depth map's uv and
-// depth in 0..1, column-major for glUniformMatrix4fv. The eye sits at
-// sunDirection * kEyeDistance and looks at the map center.
-void shadowMatrix(const float direction[3], float pad, float* out)
+// The sun's shadow matrix: world GL (x, y up, z) to the depth map's clip
+// space, -1..1 like any projection (the receivers map it to 0..1),
+// column-major for glUniformMatrix4fv. Until 090 it gave 0..1 itself, so the
+// casters filled only the map's upper right quarter: a 4096 map in effect.
+// The eye sits at sunDirection * kEyeDistance and looks at the map center.
+// *texel takes one map texel's width on the ground plane's larger axis, GL
+// units.
+void shadowMatrix(const float direction[3], float pad, float* out, float* texel)
 {
     const double dir[3] = { direction[0], direction[1], direction[2] };
     const double zAxis[3] = { -dir[0], -dir[1], -dir[2] };
@@ -169,6 +181,12 @@ void shadowMatrix(const float direction[3], float pad, float* out)
     out[13] = static_cast<float>(0.5 - uvScaleY * toEye[1]);
     out[14] = static_cast<float>(-depthScale * (toEye[2] + near));
     out[15] = 1.0f;
+    // 0..1 to clip space: x' = 2x - 1 on the three rows.
+    for (int row = 0; row < 3; row++) {
+        for (int column = 0; column < 3; column++) out[column * 4 + row] *= 2.0f;
+        out[12 + row] = 2.0f * out[12 + row] - 1.0f;
+    }
+    *texel = static_cast<float>(2.0 * std::max(spanX, spanY) / kShadowMapSize);
 }
 
 void ensureResources()
@@ -200,7 +218,16 @@ void ensureResources()
     if (gShadowFilledTexture == 0) {
         glGenTextures(1, &gShadowFilledTexture);
         glBindTexture(kTexture2D, gShadowFilledTexture);
-        glTexImage2D(kTexture2D, 0, kRG16, kShadowMapSize, kShadowMapSize, 0, kRG, kUnsignedShort, nullptr);
+        glTexImage2D(kTexture2D, 0, kR32F, kShadowMapSize, kShadowMapSize, 0, kRed, kFloat, nullptr);
+        glTexParameteri(kTexture2D, kTextureMinFilter, kNearest);
+        glTexParameteri(kTexture2D, kTextureMagFilter, kNearest);
+        glTexParameteri(kTexture2D, kTextureWrapS, kClampToEdge);
+        glTexParameteri(kTexture2D, kTextureWrapT, kClampToEdge);
+    }
+    if (gShadowFilledIdTexture == 0) {
+        glGenTextures(1, &gShadowFilledIdTexture);
+        glBindTexture(kTexture2D, gShadowFilledIdTexture);
+        glTexImage2D(kTexture2D, 0, kR16, kShadowMapSize, kShadowMapSize, 0, kRed, kUnsignedShort, nullptr);
         glTexParameteri(kTexture2D, kTextureMinFilter, kNearest);
         glTexParameteri(kTexture2D, kTextureMagFilter, kNearest);
         glTexParameteri(kTexture2D, kTextureWrapS, kClampToEdge);
@@ -224,8 +251,9 @@ void ensureResources()
         glGenFramebuffers(1, &gShadowDilateFbo);
         glBindFramebuffer(kFramebuffer, gShadowDilateFbo);
         glFramebufferTexture2D(kFramebuffer, kColorAttachment0, kTexture2D, gShadowFilledTexture, 0);
-        const unsigned int color = kColorAttachment0;
-        glDrawBuffers(1, &color);
+        glFramebufferTexture2D(kFramebuffer, kColorAttachment1, kTexture2D, gShadowFilledIdTexture, 0);
+        const unsigned int colors[2] = { kColorAttachment0, kColorAttachment1 };
+        glDrawBuffers(2, colors);
         if (glCheckFramebufferStatus(kFramebuffer) != kFramebufferComplete) {
             fprintf(stderr, "scene_renderer: the shadow fill framebuffer is incomplete; shadows stay off\n");
             fflush(stderr);
@@ -292,6 +320,7 @@ void destroyStaticShadows()
         if (gShadowMapTexture != 0) glDeleteTextures(1, &gShadowMapTexture);
         if (gShadowIdTexture != 0) glDeleteTextures(1, &gShadowIdTexture);
         if (gShadowFilledTexture != 0) glDeleteTextures(1, &gShadowFilledTexture);
+        if (gShadowFilledIdTexture != 0) glDeleteTextures(1, &gShadowFilledIdTexture);
         if (gShadowFbo != 0) glDeleteFramebuffers(1, &gShadowFbo);
         if (gShadowDilateFbo != 0) glDeleteFramebuffers(1, &gShadowDilateFbo);
         if (gShadowDilateProgram != 0) glDeleteProgram(gShadowDilateProgram);
@@ -300,6 +329,7 @@ void destroyStaticShadows()
     gShadowMapTexture = 0;
     gShadowIdTexture = 0;
     gShadowFilledTexture = 0;
+    gShadowFilledIdTexture = 0;
     gShadowFbo = 0;
     gShadowDilateFbo = 0;
     gShadowDilateProgram = 0;
@@ -340,33 +370,37 @@ bool bindStaticShadows(const float* sceneMvp)
     const double height = std::max(static_cast<double>(sun.direction[1]), 0.05);
     const float pad = static_cast<float>(std::clamp(gMaxCasterHeight / height + 8.0, 8.0, 96.0));
     float matrix[16];
-    shadowMatrix(sun.direction, pad, matrix);
+    float texel = 0.0f;
+    shadowMatrix(sun.direction, pad, matrix, &texel);
 
     // The AA ring: uShadowStep GL units per [3d] shadow_pixel_size game
     // pixel (hpx is the projection's pixels per GL unit), but at least one
     // depth map texel wide, so the taps straddle texel boundaries and
-    // antialias the NEAREST stair. The compare bias covers the depth slope
-    // error of the blockers within one map texel; it stays small because the
-    // shader lifts the lookup off the surface along its normal (082). Set
-    // before the passes: the casters draw with them.
+    // antialias the NEAREST stair. The compare bias, a quarter texel of
+    // depth: the receiver compares its own plane carried to the texel center
+    // (090), so a coplanar caster compares equal to float precision and the
+    // bias only has to clear the rounding; a quarter texel is under half a
+    // game pixel of light gap at a wall's foot. Set before the passes: the
+    // casters draw with them.
     const double hpx = gHeroProjection.hpx > 0.0 ? gHeroProjection.hpx : 32.0;
     const float step = static_cast<float>(settings.scene3d.shadow_pixel_size / hpx);
     const double near = 1.0;
     const double far = 2.0 * kEyeDistance + 2.0 * gMaxCasterHeight + 20.0;
-    const float texel = static_cast<float>(2.0 * (50.0 + pad) / kShadowMapSize);
     const float ring = std::max(step, texel);
     glUniform1i(gSceneShadowOnLocation, 1);
     glUniformMatrix4fv(gSceneShadowMatrixLocation, 1, 0, matrix);
     glUniform1f(gSceneShadowStrengthLocation, sun.strength);
     glUniform1f(gSceneShadowDensityLocation, static_cast<float>(settings.scene3d.shadow_density));
     glUniform3f(gSceneShadowLightLocation, sun.direction[0], sun.direction[1], sun.direction[2]);
-    glUniform1f(gSceneShadowTexelLocation, texel);
     glUniform1f(gSceneShadowStepLocation, ring);
-    glUniform1f(gSceneShadowBiasLocation, 0.5f * texel / static_cast<float>(far - near));
+    glUniform1f(gSceneShadowBiasLocation, 0.25f * texel / static_cast<float>(far - near));
     glUniform1i(gSceneShadowDebugLocation, devtools::shadowDebugRequested());
     glActiveTexture(kTexture0 + 5);
     glBindTexture(kTexture2D, gShadowFilledTexture);
     glUniform1i(gSceneShadowMapLocation, 5);
+    glActiveTexture(kTexture0 + 6);
+    glBindTexture(kTexture2D, gShadowFilledIdTexture);
+    glUniform1i(gSceneShadowIdsLocation, 6);
     glActiveTexture(kTexture0);
 
     // The casters draw with the scene program itself, in its pick mode (a
@@ -433,7 +467,7 @@ bool bindStaticShadows(const float* sceneMvp)
     }
 
     // Mechanism 1 (082 round 6): fill the map's joint gaps, then hand the
-    // receivers the filled map (unit 5 was re-pointed above).
+    // receivers the filled map (units 5 and 6 were pointed above).
     if (gShadowDilateProgram != 0 && gShadowDilateFbo != 0) {
         glBindFramebuffer(kFramebuffer, gShadowDilateFbo);
         glDisable(kDepthTest);

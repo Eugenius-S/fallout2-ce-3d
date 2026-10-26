@@ -196,15 +196,15 @@ extern int gSceneSeeThroughLocation;
 extern int gSceneSeeThroughObjectsLocation;
 extern int gSceneEggPassLocation;
 // The sun's shadow (shadow.cc): on, the world-to-map matrix, the depth map
-// (unit 5), the sun's strength, the sun's direction, the map's texel in GL
-// units, the AA ring's span in GL units and the compare bias.
+// (unit 5) and its caster ids (unit 6), the sun's strength, the sun's
+// direction, the AA ring's span in GL units and the compare bias.
 extern int gSceneShadowOnLocation;
 extern int gSceneShadowMatrixLocation;
 extern int gSceneShadowMapLocation;
+extern int gSceneShadowIdsLocation;
 extern int gSceneShadowStrengthLocation;
 extern int gSceneShadowDensityLocation;
 extern int gSceneShadowLightLocation;
-extern int gSceneShadowTexelLocation;
 extern int gSceneShadowStepLocation;
 extern int gSceneShadowBiasLocation;
 extern int gSceneShadowDebugLocation;
