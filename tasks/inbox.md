@@ -37,7 +37,7 @@ that fits no task becomes a new task when the board runs dry.
   whether these things were never covered. Not now.
 - 2026-10-25 (task 075) A table in the bathhouse sticks through its walls
   (`runs/inbox/2026-10-25-bathhouse-interior.png`). Not now.
-- 2026-10-25 (task 076; 04, 07's holes and 09 in 075) The owner's live
+- 2026-10-25 (task 076; 04, 07's holes and 09 in 075; 03, 08, 10 in 081) The owner's live
   review after 071 round 4 and 072
   (`runs/inbox/2026-10-25-review2-01..12.png`). The owner's verdict: fix
   the 3D-fication algorithm itself, no hand-made cases.
@@ -65,12 +65,17 @@ that fits no task becomes a new task when the board runs dry.
   walls near the corner is missing, so the brick bottom floats above the
   street, and a flat brown box (the corner core) stands under it alone; the
   bricks above also look see-through near the edge. Belongs to the corner
-  work of 076/083 (`_corner_fits`, `_corner_core`) or to glm's build;
-  place not named yet. Seen in a build glm ran (its shadow work), so first
-  check whether main shows it too before fixing anything.
+  work of 076/083 (`_corner_fits`, `_corner_core`) or to glm's build.
+  Task 081: main shows the floating bottom too (wall pictures end above the
+  floor); fixed there with feet. The see-through bricks were not seen on
+  main; if they stay, they come from 082's `walls.cc` (PR #104).
 - 2026-10-25 Two sun options in the [3d] settings, after 082 lands (it
   rewrites `ce/src/scene/sun.cc`): (1) the darkness of building shadows as a
   slider (none on main or in PR #104 today); (2) how far the sun swings from
   overhead, default 30 degrees each way (morning -30, evening +30; this
   replaces 082's 15), adjustable by the player. The owner gave glm these
   instructions for 082 directly; check what 082 lands before cutting a task.
+- 2026-10-26 (seen in 081) `tools/regression.ps1` fails 13 of 16 spots on
+  main's own cache (hydrants in corrals, klatoxcv-e1 22777 px, klamall-e0
+  3235 px). The references drifted from main; find which merge changed the
+  game's view and retake them with a before | after.
