@@ -2,8 +2,8 @@
 id: 073
 title: Glow strength ladder: each glowing thing at five strengths for the owner to pick
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: gpt
 suggested: glm
 claude-only: no
 user-check: yes
