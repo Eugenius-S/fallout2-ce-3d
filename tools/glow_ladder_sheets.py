@@ -16,11 +16,11 @@ def main():
     args.output.mkdir(parents=True, exist_ok=True)
     # Identical crop at every level, never per-frame exposure or color changes.
     specs = [
-        ('barrel', 'final/barrel', (1360, 540, 1920, 980)),
-        ('campfire', 'final/campfire', (690, 250, 1230, 690)),
-        ('monitor', 'final/monitor', (600, 0, 1100, 450)),
-        ('slime', 'final/slime', (1140, 480, 1800, 980)),
-        ('screens', 'clean/screens', (650, 50, 1250, 550)),
+        ('barrel', 'selected/barrel', (1360, 540, 1920, 980)),
+        ('campfire', 'selected/campfire', (690, 250, 1230, 690)),
+        ('monitor', 'selected/monitor', (600, 0, 1100, 450)),
+        ('slime', 'selected/slime', (740, 190, 1320, 580)),
+        ('screens', 'selected/screens', (740, 180, 1280, 700)),
     ]
     strengths = [None, 0.5, 1, 2, 4, 8]
     report = []
@@ -63,6 +63,7 @@ def main():
         changed = sum(strongest.histogram()[9:])
         report.append({'kind': kind, 'captures': relative, 'crop': crop,
                        'map': rows[0]['map'], 'view_tile': rows[0]['view_tile'],
+                       'exe_sha256': rows[0]['exe_sha256'],
                        'changed_pixels_over_8': changed, 'levels': evidence})
         print(f'{kind}: {changed} pixels change by more than 8/255 at strength 8')
     (args.output / 'measurements.json').write_text(json.dumps(report, indent=2) + '\n', encoding='utf-8')

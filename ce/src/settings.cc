@@ -476,7 +476,7 @@ void initSettingsRegistry(bool isMapper)
     settingsRegistry.back().descriptor = glowStrengthDescriptor;
     settingsRegistry.back().write = [](bool onlyAdd) {
         if (onlyAdd && settingsKeyExists("3d", "glow_strength")) return;
-        settingsWrite("3d", "glow_strength", settings.scene3d.glow_strength);
+        settingsWrite("3d", "glow_strength", onlyAdd ? 2.0 : settings.scene3d.glow_strength);
     };
     registerThreeDBoolean("camera_rotation", settings.scene3d.camera_rotation, "Camera rotation",
         "[ and ] turn the camera up to 45 degrees left or right. "

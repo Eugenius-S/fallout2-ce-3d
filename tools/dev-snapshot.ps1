@@ -81,7 +81,7 @@ param(
     # Implies -Glow. Five comparison levels can include values above the old limit.
     [ValidateRange(0, 8)]
     [double]$GlowStrength = -1,
-    # Restore color.pal's authored cycling colors before freezing the still view.
+    # Restore cycle.cc's rest-phase cycling colors before freezing the still view.
     [switch]$CyclePalette,
     # One frozen scene, six captures: off, then 0.5/1/2/4/8.
     [switch]$GlowLadder,

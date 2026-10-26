@@ -1,5 +1,6 @@
 #include "devtools.h"
 #include "snapshot_rows.h"
+#include "snapshot_palette.h"
 #include "preferences_probe.h"
 #include "ui_fixture.h"
 
@@ -1500,8 +1501,9 @@ void update()
         }
         if (stillSnapshotRequested()) {
             if (gDevCyclePalette) {
-                _setSystemPaletteEntries(_cmap + 229 * 3, 229, 254);
-                printf("devtools: frozen cycling colors from color.pal\n");
+                auto colors = snapshotCyclePalette();
+                _setSystemPaletteEntries(colors.data(), 229, 254);
+                printf("devtools: frozen cycling colors from cycle.cc rest phase\n");
             }
             colorCycleDisable();
         }

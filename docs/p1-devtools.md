@@ -271,13 +271,20 @@ export.
 
 `dev-snapshot.ps1 -GlowStrength X` (`--dev-glow-strength=X`) implies `-Glow`
 and accepts 0..8. Values use an invariant decimal point. The player menu's
-slider covers the same range; the default remains 1 until the 073 owner pick.
+slider covers the same range; the owner-selected default is 2.
 
 `-GlowLadder` captures glow off, then 0.5, 1, 2, 4, 8 in one frozen scene.
 It implies `-Still -CyclePalette`, rejects other fixtures/glow overrides,
 and suppresses the HUD in all six captures. Each JSON records `glow.enabled`
 and `glow.strength`. It does not change the owner's executable or config.
 
-`-CyclePalette` (`--dev-cycle-palette`) restores color.pal's authored
+`-CyclePalette` (`--dev-cycle-palette`) restores cycle.cc's rest-phase
 cycling entries 229..254 before the still view loads its object textures.
 Ordinary snapshots and normal gameplay keep their original palette behavior.
+
+The rest phase is explicit: color.pal leaves cycling entries unmapped, so
+_cmap contains zeros there. snapshot_palette.h supplies the engine's real
+6-bit cycle colors. Snapshot palette changes are opt-in and do not alter
+normal gameplay. One global glow-strength menu slider controls all sources;
+white/cyan emission is luminance-compensated in the shader, with gain 0.5..1.
+Warm red fire and green slime retain their existing contribution.

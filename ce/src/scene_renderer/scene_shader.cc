@@ -284,7 +284,16 @@ void main() {
             bool marked = mark > 251.5 && mark < 254.5;
             vec3 emission = marked ? texel.rgb * outColor.a : vec3(0.0);
             vec3 bright = outColor.rgb * smoothstep(0.88, 0.98, max(max(outColor.r, outColor.g), outColor.b));
-            outEmissive = vec4(max(emission, bright), marked ? 1.0 : 0.0);
+            vec3 glow = max(emission, bright);
+            // White/cyan monitor pixels look brighter than equally strong red
+            // embers. Compensate their luminance, bounded to half strength;
+            // warm fire and green slime keep their original contribution.
+            float peak = max(max(glow.r, glow.g), glow.b);
+            float luminance = dot(glow, vec3(0.2126, 0.7152, 0.0722));
+            float coldShare = smoothstep(0.25, 0.65, glow.b / max(peak, 0.0001));
+            float compensation = clamp(0.2126 * peak / max(luminance, 0.0001), 0.5, 1.0);
+            glow *= mix(1.0, compensation, coldShare);
+            outEmissive = vec4(glow, marked ? 1.0 : 0.0);
         }
     }
 }

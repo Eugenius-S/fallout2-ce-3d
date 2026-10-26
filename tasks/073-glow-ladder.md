@@ -2,13 +2,13 @@
 id: 073
 title: Glow strength ladder: each glowing thing at five strengths for the owner to pick
 milestone: M1
-status: doing
+status: done
 owner: gpt
 suggested: glm
 claude-only: no
 user-check: yes
 depends-on: []
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -36,11 +36,15 @@ strength from test shots: each kind of glowing thing shot at five strengths,
 
 ## Acceptance
 
-- `runs/073-glow-ladder/<kind>.png` for each kind: one sheet with the same
+- `runs/073-glow-ladder/<kind>.jpg` for each kind: one sheet with the same
   close view at strengths 1 to 5 in a row, each labelled with its number and
   the `glow_strength` value it maps to; plus the same view with the glow off.
 - The owner's pick goes into the Log and becomes the default in
   `settings.h` and `settings.cc` (user-check: yes).
+- Owner's final scope: one global strength, default 2 for fire; compensate
+  brighter white/cyan computer emission internally. No per-kind controls.
+- Correct cycling colors on the wall monitor and slime; frame the entire
+  selected pool, with space around it to see the halo.
 
 ## Out of scope
 
@@ -48,15 +52,14 @@ New glowing things (what is not marked or bright today).
 
 ## Capture pipeline
 
-INPUT: one frozen map view and strengths 0.5, 1, 2, 4, 8 plus glow off.
-TRANSFORM: reuse the existing composite, change its scalar between captures.
-MEANING: tight and wide halo weights remain 0.55 and 1.5; only strength varies.
-OUTPUT: six labelled close views per kind, identical camera and palette phase.
-DIRECT CHECK: metadata values, unchanged hero/frame/view, per-level pixel lifts.
-The optional fixture restores color.pal's authored cycling entries. Clean
-captures omit the HUD overlay at every level, including the first one.
-The default remains 1 until the owner chooses. JPEG sheets follow AGENTS.md's
-evidence rule; raw PNG captures stay untracked under build/.
+INPUT: marked emissive RGB, near bright pass, one global glow scalar (default 2).
+TRANSFORM: derive peak and Rec.709 luminance; select cool pixels by B/peak.
+TRANSFORM: cool compensation clamps 0.2126*peak/luminance to 0.5..1; mix by smoothstep(0.25,0.65,B/peak).
+MEANING: white/cyan emission is reduced; red fire and green slime keep gain 1.
+OUTPUT: both existing halo scales share the compensated RGB and one menu scalar.
+DIRECT CHECK: same-palette before/after crops, fixed rest-phase ladders, glow-off regression.
+The fixture uses cycle.cc's colors, not unmapped color.pal/_cmap entries.
+JPEG sheets follow AGENTS.md; raw PNG captures stay untracked under build/.
 
 ## Log
 
@@ -92,3 +95,31 @@ currently has one global scalar, so assigning one new default cannot reproduce
 all three approved looks. Do not substitute a single compromise value.
 Next: resolve the per-kind implementation scope before changing defaults;
 the dark-screen/pool issue remains recorded in inbox. Keep 073 doing.
+
+### 2026-10-26 owner scope update
+The owner chose a common fire strength of 2 for barrel and campfire, with
+luminance compensation for white/cyan computer glow. Keep one global menu
+slider. Produce corrected monitor/slime comparisons and frame the entire
+selected slime pool with space around it. This supersedes the earlier
+per-kind proposal and requires no per-kind setting or new emission marks.
+
+### 2026-10-26 gpt: completed final owner scope
+Done: one global menu scalar, default 2 in settings.h and the config writer.
+White/cyan computer emission is luminance-compensated with gain 0.5..1;
+warm red and green source colors retain gain 1. No per-kind controls.
+Corrected the test's real cause: _cmap has unmapped zeros for cycling colors.
+The fixture now uses cycle.cc's rest-phase palette. Both monitr7 and slime
+produce halos; the earlier no-response measurements are superseded, and the
+inbox entry is marked resolved. Reframed the entire slime pool at view 22924,
+zoom 1, with visible space around it; screen view now includes its room.
+Evidence: regenerated all five ladders; default-fires, compensation,
+screens-detail and slime-detail JPEGs under runs/073-glow-ladder/.
+Check: measured same-palette compensation at strength 2: added RGB sum ratios
+computer 0.4957, barrel 0.9302, campfire 0.9968, slime 1.0000. OFF crop pixels
+are identical in all four controls. The barrel ROI includes some cool spill.
+Release game/mapper, all 15 CTests, 64 exporter and 12 regression unit tests
+pass. All 16 glow-off world views match 066 current-base controls exactly;
+committed old references were not retaken (058).
+Next: owner checks the final visuals after merge. No remaining owner pick;
+the selected default and single-slider scope are implemented. No owner game
+restart, installation or config rewrite was performed.
