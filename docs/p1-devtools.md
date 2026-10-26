@@ -302,3 +302,28 @@ _cmap contains zeros there. snapshot_palette.h supplies the engine's real
 normal gameplay. One global glow-strength menu slider controls all sources;
 white/cyan emission is luminance-compensated in the shader, with gain 0.5..1.
 Warm red fire and green slime retain their existing contribution.
+
+## Native effect inspection
+
+`-EffectFixture NAME -EffectFrame N -GlowPair` spawns a no-save native misc
+object in the background instance, freezes the scene/palette, fits a camera
+to the real card, and takes OFF/default-strength captures. Supported initial
+names: laser, plasma-bolt, plasma-pistol, plasma-rifle, fire-explosion,
+plasma-explosion, emp-explosion, rocket-explosion. Frame indices start at zero;
+omitted frame uses the middle one. The fixture records its actual FID/frame,
+camera and no-save state in weapon_effect metadata. -GlowPair derives its ON
+value from Scene3dSettings's global default and expects two captures.
+These are single-object static previews, not combat or trajectory simulation.
+
+Additional fixtures: electric, flamethrower, rocket. sign40 and sign41 inspect
+existing DENBUS1 objects (tiles 16274 and 17080), without spawning replacements.
+Place the hero inside the selected building to reveal a sign hidden by its roof.
+
+`-GlowLevels 1.3,1.5,1.8` replaces the ladder/pair and takes four frozen captures:
+OFF followed by those three global strengths. It preserves emission and local
+lighting. Values use an invariant decimal point in the CLI and metadata.
+`-NoEffectEmission` disables the new effect material/local-light classification
+for a before comparison. `-EffectLightCheck` exercises a synthetic effect light
+through move/offset/hide/restore/lights-off, checks the unchanged native light
+map and object light fields, and records light_check in weapon_effect metadata.
+The legacy light metadata field now reports the actual lighting setting.

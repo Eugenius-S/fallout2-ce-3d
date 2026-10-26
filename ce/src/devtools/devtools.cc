@@ -3,6 +3,8 @@
 #include "snapshot_palette.h"
 #include "preferences_probe.h"
 #include "ui_fixture.h"
+#include "weapon_effect_fixture.h"
+#include "../scene/effect_emission.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -131,6 +133,7 @@ bool gBackgroundGlow = false;
 double gDevGlowStrength = -1.0;
 bool gDevCyclePalette = false;
 int gGlowLadderStep = -1;
+std::vector<double> gGlowLevels = { 0.5, 1.0, 2.0, 4.0, 8.0 };
 bool gBackgroundShadows = false; // --dev-shadows: shadows stay on in a background run
 bool gDevNoSpriteSides = false; // --dev-no-sprite-sides: sprites keep their own side (087's "before")
 bool gDevOpenDoors = false; // --dev-open-doors: every door of the map stands open, once
@@ -838,6 +841,50 @@ bool parseOption(const char* arg)
         gBackgroundGlow = false;
         return true;
     }
+    if (strcmp(arg, "--dev-glow-pair") == 0) {
+        gGlowLevels = { Scene3dSettings {}.glow_strength };
+        gGlowLadderStep = 0;
+        gBackgroundGlow = false;
+        return true;
+    }
+    const char* glowLevelsPrefix = "--dev-glow-levels=";
+    if (strncmp(arg, glowLevelsPrefix, strlen(glowLevelsPrefix)) == 0) {
+        std::vector<double> levels;
+        const char* cursor = arg + strlen(glowLevelsPrefix);
+        bool valid = *cursor != '\0';
+        while (valid && *cursor != '\0') {
+            char* end = nullptr;
+            const double level = strtod(cursor, &end);
+            if (end == cursor || !std::isfinite(level) || level < 0.0 || level > 8.0
+                || (*end != '\0' && *end != ',') || levels.size() >= 8) { valid = false; break; }
+            levels.push_back(level);
+            if (*end == ',') { cursor = end + 1; if (*cursor == '\0') valid = false; }
+            else cursor = end;
+        }
+        if (valid && !levels.empty()) {
+            gGlowLevels = std::move(levels);
+            gGlowLadderStep = 0;
+            gBackgroundGlow = false;
+        } else fprintf(stderr, "devtools: invalid glow levels (expected 1..8 numbers in 0..8)\n");
+        return true;
+    }
+    if (strcmp(arg, "--dev-no-effect-emission") == 0) {
+        scene::gEffectEmissionEnabled = false;
+        return true;
+    }
+    const char* effectPrefix = "--dev-effect=";
+    if (strcmp(arg, "--dev-effect-light-check") == 0) {
+        requestWeaponEffectLightCheck();
+        return true;
+    }
+    if (strncmp(arg, effectPrefix, strlen(effectPrefix)) == 0) {
+        return configureWeaponEffectFixture(arg + strlen(effectPrefix));
+    }
+    const char* effectFramePrefix = "--dev-effect-frame=";
+    if (strncmp(arg, effectFramePrefix, strlen(effectFramePrefix)) == 0) {
+        setWeaponEffectFrame(static_cast<int>(strtol(arg + strlen(effectFramePrefix), nullptr, 10)));
+        return true;
+    }
     // --dev-shadows: keep the sun shadows on in a background run (a snapshot
     // of the shadowed view); off is the default there, so captures stay
     // byte-stable.
@@ -1517,6 +1564,11 @@ void update()
             colorCycleDisable();
         }
         gStartupFloorPreviewAttempted = true;
+        if (!startWeaponEffectFixture(gViewTile >= 0 ? gViewTile : gCenterTile, static_cast<int>(gElevation))) {
+            gSnapshotOncePending = false;
+            _game_user_wants_to_quit = GAME_QUIT_REQUEST_EXIT;
+            return;
+        }
         const bool withWalls = gStartupWallPreviewRequested || gStartupHeroPreviewRequested || gStartupWalkPreviewRequested;
         const bool withHero = gStartupHeroPreviewRequested || gStartupWalkPreviewRequested;
         const bool explicitPreview = gStartupFloorPreviewRequested || gStartupWallPreviewRequested
@@ -2025,14 +2077,15 @@ void scenePresented(const scene::RefreshResult& refreshed)
         return; // the snapshot comes with the next frame, from the air
     }
     if (refreshed.heroUpdated && gSnapshotOncePending) {
+        if (focusWeaponEffectFixture()) return;
         gSnapshotOncePending = false;
         const bool captured = takeSnapshot();
         printf("devtools: one-shot hero preview snapshot %s: %s\n",
             captured ? "saved" : "failed", gStatus);
         fflush(stdout);
-        if (captured && gGlowLadderStep >= 0 && gGlowLadderStep < 5) {
-            constexpr double strengths[] = { 0.5, 1.0, 2.0, 4.0, 8.0 };
-            gDevGlowStrength = strengths[gGlowLadderStep++];
+        if (captured && gGlowLadderStep >= 0 && gGlowLadderStep < static_cast<int>(gGlowLevels.size())) {
+            gDevGlowStrength = gGlowLevels[gGlowLadderStep];
+            ++gGlowLadderStep;
             gBackgroundGlow = true;
             applyBackgroundGlow();
             gSnapshotOncePending = true;
@@ -3154,8 +3207,10 @@ bool takeSnapshot()
         "  \"objects\": {\"drawn\":%u,\"skipped\":%u},\n"
         "  \"preview_availability\": \"%s\",\n"
         "  \"renderer\": \"%s\",\n"
-        "  \"light\": \"off\",\n"
+        "  \"light\": \"%s\",\n"
+        "  \"effect_emission\": %s,\n"
         "  \"glow\": {\"enabled\":%s,\"strength\":%.3f},\n"
+        "  \"weapon_effect\": %s,\n"
         "  \"sun\": %s,\n"
         "  \"resolution\": \"%dx%d\",\n"
         "  \"logical_resolution\": \"%dx%d\",\n"
@@ -3197,8 +3252,11 @@ bool takeSnapshot()
         heroPreview ? scene::objectCardsSkipped() : 0u,
         previewRequested ? (scene_renderer::isActive() ? scene::availability() : "renderer-inactive") : "not-requested",
         activeRendererName(),
+        settings.scene3d.lights ? "enabled" : "off",
+        scene::gEffectEmissionEnabled ? "true" : "false",
         settings.scene3d.glow ? "true" : "false",
         settings.scene3d.glow_strength,
+        weaponEffectMetadata().c_str(),
         sunMetadata,
         capturedWidth,
         capturedHeight,

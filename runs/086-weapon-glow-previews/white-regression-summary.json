@@ -1,0 +1,103 @@
+{
+  "success": true,
+  "reference": "066 current-base reference",
+  "stage": "white suppression before final effect-only clamp correction",
+  "spots": [
+    {
+      "spot": "entrance",
+      "status": "pass",
+      "changed_pixels": 0,
+      "image_sha256": "df91b7ec945c7d9e233b0a8f41c4629f64c61a268a38f2f698980091aa177f87"
+    },
+    {
+      "spot": "corrals",
+      "status": "pass",
+      "changed_pixels": 0,
+      "image_sha256": "5aaf090a63a45b2365b2d42853604c0e4141b8a3a2de23b2c52fc1461fc7ce98"
+    },
+    {
+      "spot": "residents",
+      "status": "pass",
+      "changed_pixels": 0,
+      "image_sha256": "0a60b0437e130fef8243f9f9f4e73c7c12a0f68eb5cf5a1c85815a9f199752cc"
+    },
+    {
+      "spot": "central-doors",
+      "status": "pass",
+      "changed_pixels": 0,
+      "image_sha256": "645a89d015ee0ff517c28ca143eb5b0c718b7834d09ea858334c2436bb393933"
+    },
+    {
+      "spot": "north-rooms",
+      "status": "pass",
+      "changed_pixels": 0,
+      "image_sha256": "9dd07c51d2e2781598cbe585599055a53c44bf74ae7f63476062cbbd6bbf0ad6"
+    },
+    {
+      "spot": "map-edge",
+      "status": "pass",
+      "changed_pixels": 0,
+      "image_sha256": "beadcada16e5bbd37fbf41f4dd6fdfaa80374b9f33c0b5e80a46c509bf74074c"
+    },
+    {
+      "spot": "klacanyn-e0",
+      "status": "pass",
+      "changed_pixels": 0,
+      "image_sha256": "69e1f2cfbc82f051a9ca0035ddf2f8b2b86784a4773e123eba371e7efc6b73a8"
+    },
+    {
+      "spot": "klagraz-e0",
+      "status": "pass",
+      "changed_pixels": 0,
+      "image_sha256": "af0fc24c43e8abae1bf62cf8d85d073bfe7eedcb8fb7b858ef2bbdded5697560"
+    },
+    {
+      "spot": "klamall-e0",
+      "status": "pass",
+      "changed_pixels": 0,
+      "image_sha256": "8bd91ad38f91d6e87be101dc74e3ed2dbcb7fad93ba04610c6c3e71ed40b6250"
+    },
+    {
+      "spot": "klaratcv-e0",
+      "status": "pass",
+      "changed_pixels": 0,
+      "image_sha256": "e92219d3bfa5d0a83268a6a9c29a70230caa5d1503740ef523bec359505e8a7b"
+    },
+    {
+      "spot": "klaratcv-e1",
+      "status": "pass",
+      "changed_pixels": 0,
+      "image_sha256": "ca58b9e9912b50a7d0d185547b23c7a215a4aa1d5ded0369596cc0c5c98abac4"
+    },
+    {
+      "spot": "klaratcv-e2",
+      "status": "pass",
+      "changed_pixels": 0,
+      "image_sha256": "e3fbc549cfc7e38cc3b3b285eb9f4692a98f15a812ec7cd3da312c3fb4664dbf"
+    },
+    {
+      "spot": "klatoxcv-e0",
+      "status": "pass",
+      "changed_pixels": 0,
+      "image_sha256": "91bb93e30e634c984b76b2e5d1f9605cff9737403f708bd28263c51a268db48e"
+    },
+    {
+      "spot": "klatoxcv-e1",
+      "status": "pass",
+      "changed_pixels": 0,
+      "image_sha256": "8c88db1c9b0a5f7c6bc82f98eefbe7c234da7296dd1b7c09083478ae2038a796"
+    },
+    {
+      "spot": "klatoxcv-e2",
+      "status": "pass",
+      "changed_pixels": 0,
+      "image_sha256": "b026f3457a5ac0f5b663c670b40c4c5d8cb19bd845d9bf70d1564c2649ab83c6"
+    },
+    {
+      "spot": "klatrap-e0",
+      "status": "pass",
+      "changed_pixels": 0,
+      "image_sha256": "6ec7ecc7b4a882236ca3df5c559f136f76c6215a09bc7eabb8cb440d81503c3e"
+    }
+  ]
+}

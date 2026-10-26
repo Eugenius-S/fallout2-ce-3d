@@ -10,6 +10,7 @@
 #include "../map.h"
 #include "../object.h"
 #include "clean_edges_boundary_mask.h"
+#include "effect_emission.h"
 #include "../scene_renderer/board_shadows.h"
 #include "../scene_renderer/camera.h"
 #include "../scene_renderer/live_objects.h"
@@ -41,10 +42,7 @@ unsigned char spriteAlpha(unsigned char colorIndex)
 // keeps its own rotation: its art spends rotations on variants (wrecks, cacti,
 // a shelf breaking up; tools/shapes/art_sides.py), not on sides. So do flat
 // sprites, which turn with the ground, and things walls.bin draws.
-struct ShownArt {
-    int fid;
-    int rotation;
-};
+using ShownArt = SceneObjectArt;
 
 ShownArt shownArt(Object* object, bool flat)
 {
@@ -173,6 +171,8 @@ void addObjectCard(Object* object, void* context)
     // walls.bin draws it: its card is only picked, and the game's count of
     // sprites on its hex does not include it.
     const bool pickOnly = scene_renderer::staticObjectBaked(object->tile, object->fid);
+    const EffectEmission emission = effectEmission(object->fid); // calibrated material tag, independent of local light
+    if (pickOnly && emission.sign) scene_renderer::markStaticWallEmissive(object->tile, object->fid);
     // The game shows the hero through walls and scenery he stands behind.
     const bool seeThrough = objectSeeThroughAroundDude(object);
     if (pickOnly && seeThrough) scene_renderer::markStaticWallSeeThrough(object->tile, object->fid);
@@ -246,7 +246,8 @@ void addObjectCard(Object* object, void* context)
             pass.rgba[index * 4] = static_cast<unsigned char>(pass.palette[colorIndex * 3] << 2);
             pass.rgba[index * 4 + 1] = static_cast<unsigned char>(pass.palette[colorIndex * 3 + 1] << 2);
             pass.rgba[index * 4 + 2] = static_cast<unsigned char>(pass.palette[colorIndex * 3 + 2] << 2);
-            pass.rgba[index * 4 + 3] = spriteAlpha(colorIndex);
+            pass.rgba[index * 4 + 3] = effectHotPixel(emission, colorIndex, pass.palette)
+                ? emission.alpha : spriteAlpha(colorIndex);
         }
     }
     scene_renderer::StaticObjectFrame frame = {
@@ -311,6 +312,15 @@ bool pickWanted(int pickId, void* context)
 }
 
 } // namespace
+
+SceneObjectArt shownObjectArt(Object* object)
+{
+    const bool flat = (object->flags & OBJECT_FLAT) != OBJECT_NONE
+        || scene_renderer::staticObjectFlat(object->tile, object->fid)
+        || scene_renderer::staticObjectBaked(object->tile, object->fid)
+        || (scene_renderer::staticFlyCameraActive() && scene_renderer::staticObjectFlyFlat(object->tile, object->fid));
+    return shownArt(object, flat);
+}
 
 bool updateObjectsFromGame()
 {

@@ -1,0 +1,481 @@
+[
+  {
+    "source": {
+      "name": "laser",
+      "fid": 83886085,
+      "art": "lazrpis.frm",
+      "frame": 5,
+      "frames": 6,
+      "rotation": 1
+    },
+    "previous_strength": 0.7,
+    "common_strength": 2,
+    "sign_strength_provisional": false,
+    "neutral_share": 0.15,
+    "identical_source_and_surface_pixels": true,
+    "crop": [
+      600,
+      200,
+      1320,
+      880
+    ],
+    "mean_added_neutral": [
+      0.8191727941176471,
+      0.12902369281045753
+    ],
+    "white_pixels_245": [
+      197,
+      0
+    ],
+    "image_sha256": [
+      "686a8f944326f456f2f436f164222513d737a9a20eb6791cdaca58e317f80f4e",
+      "9dbc23784715f93c86b05147e6cd61127de99bbdf94a41f2383db21ea8989878",
+      "686a8f944326f456f2f436f164222513d737a9a20eb6791cdaca58e317f80f4e",
+      "bcdc981a97bcef0c8466afccdb9be12e205441ebf8b250aef38570145f1edf22"
+    ],
+    "old_exe": "3ba23dbdc661369bb14ccaf7e16abdc7d35872382c9ff9ef535ebcff00d914d6",
+    "new_exe": "1c8b0bcb2bccba68a9d3e4a01154184746b3b89c57a2d69704652304d1801f7c"
+  },
+  {
+    "source": {
+      "name": "plasma-bolt",
+      "fid": 83886086,
+      "art": "plasmab.frm",
+      "frame": 0,
+      "frames": 1,
+      "rotation": 1
+    },
+    "previous_strength": 1.5,
+    "common_strength": 2,
+    "sign_strength_provisional": false,
+    "neutral_share": 0.15,
+    "identical_source_and_surface_pixels": true,
+    "crop": [
+      600,
+      200,
+      1320,
+      880
+    ],
+    "mean_added_neutral": [
+      1.5848468137254903,
+      0.3304983660130719
+    ],
+    "white_pixels_245": [
+      1582,
+      0
+    ],
+    "image_sha256": [
+      "7e5e0f8e5d63d5e378fa2820495ca7e07e0e4004e915e50d1631be4d8c9ce471",
+      "a85e7830105fb772a7cd7b9479ca93b4b4c6c838da83dc2765934677a320100d",
+      "7e5e0f8e5d63d5e378fa2820495ca7e07e0e4004e915e50d1631be4d8c9ce471",
+      "c6174d9cec579eabc583611ba82ebef8fb334ff8b66b18366c20d75b7af6457d"
+    ],
+    "old_exe": "3ba23dbdc661369bb14ccaf7e16abdc7d35872382c9ff9ef535ebcff00d914d6",
+    "new_exe": "1c8b0bcb2bccba68a9d3e4a01154184746b3b89c57a2d69704652304d1801f7c"
+  },
+  {
+    "source": {
+      "name": "plasma-pistol",
+      "fid": 83886087,
+      "art": "plazpis.frm",
+      "frame": 2,
+      "frames": 6,
+      "rotation": 1
+    },
+    "previous_strength": 0.7,
+    "common_strength": 2,
+    "sign_strength_provisional": false,
+    "neutral_share": 0.15,
+    "identical_source_and_surface_pixels": true,
+    "crop": [
+      600,
+      200,
+      1320,
+      880
+    ],
+    "mean_added_neutral": [
+      3.9164562908496734,
+      0.6965420751633987
+    ],
+    "white_pixels_245": [
+      0,
+      0
+    ],
+    "image_sha256": [
+      "e6aeae7a73ea4dba5761ca0630497f60cc07acf54c82ca255510e743c38bf1ff",
+      "66e1c971069c5ffa91297e2fe0a317a27301ffe02270dee9e65b52c1a80b45e5",
+      "e6aeae7a73ea4dba5761ca0630497f60cc07acf54c82ca255510e743c38bf1ff",
+      "07200ad3fa6807c2eb1aab8d4b7b9508bcc0f4b1a7ab9ada63420bb836554908"
+    ],
+    "old_exe": "3ba23dbdc661369bb14ccaf7e16abdc7d35872382c9ff9ef535ebcff00d914d6",
+    "new_exe": "1c8b0bcb2bccba68a9d3e4a01154184746b3b89c57a2d69704652304d1801f7c"
+  },
+  {
+    "source": {
+      "name": "plasma-rifle",
+      "fid": 83886088,
+      "art": "plzmrif.frm",
+      "frame": 3,
+      "frames": 4,
+      "rotation": 1
+    },
+    "previous_strength": 0.7,
+    "common_strength": 2,
+    "sign_strength_provisional": false,
+    "neutral_share": 0.15,
+    "identical_source_and_surface_pixels": true,
+    "crop": [
+      600,
+      200,
+      1320,
+      880
+    ],
+    "mean_added_neutral": [
+      2.6996772875816992,
+      0.5893566176470588
+    ],
+    "white_pixels_245": [
+      5935,
+      450
+    ],
+    "image_sha256": [
+      "f5d15825d0ebbe550e6a04e1b782f1e9434998b84667f2fbc6f87f7c0c7104e3",
+      "85b22989b3fde03d10884dd5226c6bd048d19609fa81d5fb0b5013d593d1af87",
+      "f5d15825d0ebbe550e6a04e1b782f1e9434998b84667f2fbc6f87f7c0c7104e3",
+      "0477f233687405ac7c92cc31f4128e24c519ad8c8ade78a6f3c1ed33c984beea"
+    ],
+    "old_exe": "3ba23dbdc661369bb14ccaf7e16abdc7d35872382c9ff9ef535ebcff00d914d6",
+    "new_exe": "1c8b0bcb2bccba68a9d3e4a01154184746b3b89c57a2d69704652304d1801f7c"
+  },
+  {
+    "source": {
+      "name": "electric",
+      "fid": 83886094,
+      "art": "elect.frm",
+      "frame": 3,
+      "frames": 6,
+      "rotation": 1
+    },
+    "previous_strength": 0.7,
+    "common_strength": 2,
+    "sign_strength_provisional": false,
+    "neutral_share": 0.15,
+    "identical_source_and_surface_pixels": true,
+    "crop": [
+      600,
+      200,
+      1320,
+      880
+    ],
+    "mean_added_neutral": [
+      1.162328431372549,
+      0.23730392156862745
+    ],
+    "white_pixels_245": [
+      2364,
+      0
+    ],
+    "image_sha256": [
+      "7d7450a1fac1ce9c31664d2b7cf35978b9c1a9f5a834a6a52886a6bbd7a4139b",
+      "59cfd4bb781a2f5a59cf4c7bcd959d524d0a3a098b0b133969afa3b05bd79542",
+      "7d7450a1fac1ce9c31664d2b7cf35978b9c1a9f5a834a6a52886a6bbd7a4139b",
+      "58ca074d8d0d77939ab44d83c72e23bc02980f09d43358f64a2bdf3772bf2ed6"
+    ],
+    "old_exe": "3ba23dbdc661369bb14ccaf7e16abdc7d35872382c9ff9ef535ebcff00d914d6",
+    "new_exe": "1c8b0bcb2bccba68a9d3e4a01154184746b3b89c57a2d69704652304d1801f7c"
+  },
+  {
+    "source": {
+      "name": "flamethrower",
+      "fid": 83886106,
+      "art": "fthro.frm",
+      "frame": 0,
+      "frames": 6,
+      "rotation": 1
+    },
+    "previous_strength": 1.0,
+    "common_strength": 2,
+    "sign_strength_provisional": false,
+    "neutral_share": 0.15,
+    "identical_source_and_surface_pixels": true,
+    "crop": [
+      600,
+      200,
+      1320,
+      880
+    ],
+    "mean_added_neutral": [
+      2.0210355392156862,
+      0.3622283496732026
+    ],
+    "white_pixels_245": [
+      2837,
+      0
+    ],
+    "image_sha256": [
+      "a4bc5f3bc4aaa8f6cf6d93bc5ad3c0548e3842554eec028392393d90156c5b00",
+      "d4b27701b2b36bb1b934b10f9eb3d5c04faff505d900d6703ccb96ca11677431",
+      "a4bc5f3bc4aaa8f6cf6d93bc5ad3c0548e3842554eec028392393d90156c5b00",
+      "797850d23e352f0909e3bed0ace1598489e7315e27b7e1067153a2d3435fbd74"
+    ],
+    "old_exe": "3ba23dbdc661369bb14ccaf7e16abdc7d35872382c9ff9ef535ebcff00d914d6",
+    "new_exe": "1c8b0bcb2bccba68a9d3e4a01154184746b3b89c57a2d69704652304d1801f7c"
+  },
+  {
+    "source": {
+      "name": "rocket",
+      "fid": 83886089,
+      "art": "rocket.frm",
+      "frame": 1,
+      "frames": 5,
+      "rotation": 1
+    },
+    "previous_strength": 1.0,
+    "common_strength": 2,
+    "sign_strength_provisional": false,
+    "neutral_share": 0.15,
+    "identical_source_and_surface_pixels": true,
+    "crop": [
+      600,
+      200,
+      1320,
+      880
+    ],
+    "mean_added_neutral": [
+      2.1560089869281045,
+      0.4254125816993464
+    ],
+    "white_pixels_245": [
+      3265,
+      0
+    ],
+    "image_sha256": [
+      "7102048c540c7e622139ce9adad34e2521d025636997e145b593429d7d567332",
+      "c911c369ae0e3627f54cf12d12bc7af57899ffaddbde526737cca275b2825953",
+      "7102048c540c7e622139ce9adad34e2521d025636997e145b593429d7d567332",
+      "a6630e1d39a0b0a4183946c6c9b353e6517d6e32a7f53282fd2ddfb38d0a0e64"
+    ],
+    "old_exe": "3ba23dbdc661369bb14ccaf7e16abdc7d35872382c9ff9ef535ebcff00d914d6",
+    "new_exe": "1c8b0bcb2bccba68a9d3e4a01154184746b3b89c57a2d69704652304d1801f7c"
+  },
+  {
+    "source": {
+      "name": "fire-explosion",
+      "fid": 83886109,
+      "art": "expa.frm",
+      "frame": 2,
+      "frames": 7,
+      "rotation": 0
+    },
+    "previous_strength": 0.7,
+    "common_strength": 2,
+    "sign_strength_provisional": false,
+    "neutral_share": 0.15,
+    "identical_source_and_surface_pixels": true,
+    "crop": [
+      600,
+      200,
+      1320,
+      880
+    ],
+    "mean_added_neutral": [
+      7.066274509803922,
+      1.8086744281045752
+    ],
+    "white_pixels_245": [
+      22266,
+      2718
+    ],
+    "image_sha256": [
+      "0a3282dfaf8abd48b82f75ad6f443ff12fb2ea0ad231a2d64891d663614ea21f",
+      "82307efd4b16cda39a7efa4f262809564bfbc8f65f446bd402fa0360824fb597",
+      "0a3282dfaf8abd48b82f75ad6f443ff12fb2ea0ad231a2d64891d663614ea21f",
+      "9c2160213cc4bf07d8debb0f95236ea696f36521f509324793441f4f03fca484"
+    ],
+    "old_exe": "3ba23dbdc661369bb14ccaf7e16abdc7d35872382c9ff9ef535ebcff00d914d6",
+    "new_exe": "1c8b0bcb2bccba68a9d3e4a01154184746b3b89c57a2d69704652304d1801f7c"
+  },
+  {
+    "source": {
+      "name": "plasma-explosion",
+      "fid": 83886111,
+      "art": "expp.frm",
+      "frame": 2,
+      "frames": 9,
+      "rotation": 0
+    },
+    "previous_strength": 0.7,
+    "common_strength": 2,
+    "sign_strength_provisional": false,
+    "neutral_share": 0.15,
+    "identical_source_and_surface_pixels": true,
+    "crop": [
+      600,
+      200,
+      1320,
+      880
+    ],
+    "mean_added_neutral": [
+      9.67203227124183,
+      2.8318321078431374
+    ],
+    "white_pixels_245": [
+      25363,
+      3871
+    ],
+    "image_sha256": [
+      "c05a413e64b6f9ada4baa15cf5040a14fa3ff0009cdfa197c66a81ec6b91b4ef",
+      "05801c48d40e2b560c9a96806863c3f0fc65807c8acc5d629e090a149fa0516e",
+      "c05a413e64b6f9ada4baa15cf5040a14fa3ff0009cdfa197c66a81ec6b91b4ef",
+      "da712fc65504f1ca6c2f40d2a798e09c710012cc822ab081736bc8c6b4e7dfbb"
+    ],
+    "old_exe": "3ba23dbdc661369bb14ccaf7e16abdc7d35872382c9ff9ef535ebcff00d914d6",
+    "new_exe": "1c8b0bcb2bccba68a9d3e4a01154184746b3b89c57a2d69704652304d1801f7c"
+  },
+  {
+    "source": {
+      "name": "emp-explosion",
+      "fid": 83886082,
+      "art": "empxpld.frm",
+      "frame": 3,
+      "frames": 5,
+      "rotation": 0
+    },
+    "previous_strength": 0.7,
+    "common_strength": 2,
+    "sign_strength_provisional": false,
+    "neutral_share": 0.15,
+    "identical_source_and_surface_pixels": true,
+    "crop": [
+      600,
+      200,
+      1320,
+      880
+    ],
+    "mean_added_neutral": [
+      2.485218545751634,
+      0.3812622549019608
+    ],
+    "white_pixels_245": [
+      4297,
+      2894
+    ],
+    "image_sha256": [
+      "61f0d26060ebcba129a4d0d4556b9ca600093ed9d16d6622ea81819b47cf82e1",
+      "828145a92befb1776d29c2d3249dcc2835ba49a77e2ad8974238064d0df9307d",
+      "61f0d26060ebcba129a4d0d4556b9ca600093ed9d16d6622ea81819b47cf82e1",
+      "44b1b908e8a5a9ab95d2a683ce1f3b88d685636064b5956f33c3199217aa64f1"
+    ],
+    "old_exe": "3ba23dbdc661369bb14ccaf7e16abdc7d35872382c9ff9ef535ebcff00d914d6",
+    "new_exe": "1c8b0bcb2bccba68a9d3e4a01154184746b3b89c57a2d69704652304d1801f7c"
+  },
+  {
+    "source": {
+      "name": "rocket-explosion",
+      "fid": 83886090,
+      "art": "roktxpd.frm",
+      "frame": 2,
+      "frames": 6,
+      "rotation": 0
+    },
+    "previous_strength": 0.7,
+    "common_strength": 2,
+    "sign_strength_provisional": false,
+    "neutral_share": 0.15,
+    "identical_source_and_surface_pixels": true,
+    "crop": [
+      600,
+      200,
+      1320,
+      880
+    ],
+    "mean_added_neutral": [
+      5.405222630718955,
+      1.2557883986928104
+    ],
+    "white_pixels_245": [
+      14768,
+      2475
+    ],
+    "image_sha256": [
+      "66eda496f7e0bfeb325e2c2a604be06287e7bdafa6ab97f1a8ae2914e7af34c4",
+      "254f7a55a5251a1a69b5aac2a054e82b113b31275424b3954eab2746e0d6c79d",
+      "66eda496f7e0bfeb325e2c2a604be06287e7bdafa6ab97f1a8ae2914e7af34c4",
+      "c74d479fbec336628e32cbbe38e3849571751664db4ac6174b6ce8b0dbe51392"
+    ],
+    "old_exe": "3ba23dbdc661369bb14ccaf7e16abdc7d35872382c9ff9ef535ebcff00d914d6",
+    "new_exe": "1c8b0bcb2bccba68a9d3e4a01154184746b3b89c57a2d69704652304d1801f7c"
+  },
+  {
+    "source": {
+      "name": "sign40",
+      "art": "SIGN40.FRM",
+      "fid": 33556182,
+      "frame": 0,
+      "existing": true
+    },
+    "previous_strength": 0.4,
+    "common_strength": 0.4,
+    "sign_strength_provisional": true,
+    "neutral_share": 0.15,
+    "identical_source_and_surface_pixels": true,
+    "crop": [
+      836,
+      24,
+      1300,
+      388
+    ],
+    "mean_added_neutral": [
+      6.867285193255021,
+      1.102388452065176
+    ],
+    "white_pixels_245": [
+      904,
+      0
+    ],
+    "image_sha256": [
+      "83d7a7ebddecade3b1a44f7e9d6eb089e531e3c33b654743f4dba4aa7c31e32b",
+      "8b0f6216fa79260c32d7ebb1340da9f51ddcb57d1144a6436a2800140abaf6c3",
+      "83d7a7ebddecade3b1a44f7e9d6eb089e531e3c33b654743f4dba4aa7c31e32b",
+      "dabafbd6091ac37824551289a2808b5dac22a493fadbac11a785b4cf6649245c"
+    ],
+    "old_exe": "3ba23dbdc661369bb14ccaf7e16abdc7d35872382c9ff9ef535ebcff00d914d6",
+    "new_exe": "1c8b0bcb2bccba68a9d3e4a01154184746b3b89c57a2d69704652304d1801f7c"
+  },
+  {
+    "source": {
+      "name": "sign41",
+      "art": "SIGN41.FRM",
+      "fid": 33556183,
+      "frame": 0,
+      "existing": true
+    },
+    "previous_strength": 0.4,
+    "common_strength": 0.4,
+    "sign_strength_provisional": true,
+    "neutral_share": 0.15,
+    "identical_source_and_surface_pixels": true,
+    "crop": [
+      772,
+      132,
+      1048,
+      404
+    ],
+    "mean_added_neutral": [
+      1.018955136402387,
+      0.12071078431372549
+    ],
+    "white_pixels_245": [
+      0,
+      0
+    ],
+    "image_sha256": [
+      "0992342dcaff424e4384b6728fe0309c5dc15b8758e8011d41c911f60fa11edf",
+      "dd8802334c6552318cf97d577ac448fe135e1208cbf14a1a907bdf090d53c7d7",
+      "0992342dcaff424e4384b6728fe0309c5dc15b8758e8011d41c911f60fa11edf",
+      "9bdda14c3dbc00eb519408a12d7f418e0bdde2781ffaf77aa453da4ade345fce"
+    ],
+    "old_exe": "3ba23dbdc661369bb14ccaf7e16abdc7d35872382c9ff9ef535ebcff00d914d6",
+    "new_exe": "1c8b0bcb2bccba68a9d3e4a01154184746b3b89c57a2d69704652304d1801f7c"
+  }
+]

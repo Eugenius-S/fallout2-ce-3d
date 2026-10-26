@@ -302,6 +302,8 @@ set(FALLOUT_PLATFORM_SOURCES
     "src/devtools/snapshot_rows.cc"
     "src/devtools/preferences_probe.cc"
     "src/devtools/ui_fixture.cc"
+    "src/devtools/weapon_effect_fixture.cc"
+    "src/devtools/weapon_effect_fixture.h"
     "src/scene/preview_policy.cc"
     "src/scene/preview_policy.h"
     "src/scene/dialogue_backdrop.cc"
@@ -449,6 +451,7 @@ if(BUILD_TESTING)
     add_subdirectory(tests/snapshot_rows)
     add_subdirectory(tests/embedded_fonts)
     add_subdirectory(tests/clean_edges_boundary_mask)
+    add_subdirectory(tests/effect_emission)
     add_subdirectory(tests/sun)
     add_subdirectory(tests/text_layer)
     add_subdirectory(tests/dialogue_layout)

@@ -1,0 +1,82 @@
+[
+  {
+    "name": "laser",
+    "fid": 83886085,
+    "art": "lazrpis.frm",
+    "frame": 5,
+    "frames": 6,
+    "rotation": 1,
+    "cycling_pixels": 0,
+    "opaque_pixels": 106
+  },
+  {
+    "name": "plasma-bolt",
+    "fid": 83886086,
+    "art": "plasmab.frm",
+    "frame": 0,
+    "frames": 1,
+    "rotation": 1,
+    "cycling_pixels": 67,
+    "opaque_pixels": 67
+  },
+  {
+    "name": "plasma-pistol",
+    "fid": 83886087,
+    "art": "plazpis.frm",
+    "frame": 2,
+    "frames": 6,
+    "rotation": 1,
+    "cycling_pixels": 0,
+    "opaque_pixels": 117
+  },
+  {
+    "name": "plasma-rifle",
+    "fid": 83886088,
+    "art": "plzmrif.frm",
+    "frame": 3,
+    "frames": 4,
+    "rotation": 1,
+    "cycling_pixels": 0,
+    "opaque_pixels": 83
+  },
+  {
+    "name": "fire-explosion",
+    "fid": 83886109,
+    "art": "expa.frm",
+    "frame": 2,
+    "frames": 7,
+    "rotation": 0,
+    "cycling_pixels": 0,
+    "opaque_pixels": 2412
+  },
+  {
+    "name": "plasma-explosion",
+    "fid": 83886111,
+    "art": "expp.frm",
+    "frame": 2,
+    "frames": 9,
+    "rotation": 0,
+    "cycling_pixels": 0,
+    "opaque_pixels": 821
+  },
+  {
+    "name": "emp-explosion",
+    "fid": 83886082,
+    "art": "empxpld.frm",
+    "frame": 3,
+    "frames": 5,
+    "rotation": 0,
+    "cycling_pixels": 0,
+    "opaque_pixels": 121
+  },
+  {
+    "name": "rocket-explosion",
+    "fid": 83886090,
+    "art": "roktxpd.frm",
+    "frame": 2,
+    "frames": 6,
+    "rotation": 0,
+    "cycling_pixels": 0,
+    "opaque_pixels": 2072
+  }
+]
