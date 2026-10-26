@@ -127,6 +127,7 @@ int gTourStep = -1;
 int gTourFrames = 0;
 bool gStillSnapshot = false;
 bool gBackgroundGlow = false;
+double gDevGlowStrength = -1.0;
 bool gBackgroundShadows = false; // --dev-shadows: shadows stay on in a background run
 bool gDevOpenDoors = false; // --dev-open-doors: every door of the map stands open, once
 bool gDevOpenDoorsDone = false;
@@ -815,6 +816,15 @@ bool parseOption(const char* arg)
         debugPrint("DEVTOOLS: the glow stays on in this background run\n");
         return true;
     }
+    const char* glowStrengthPrefix = "--dev-glow-strength=";
+    if (strncmp(arg, glowStrengthPrefix, strlen(glowStrengthPrefix)) == 0) {
+        const double strength = strtod(arg + strlen(glowStrengthPrefix), nullptr);
+        if (std::isfinite(strength)) {
+            gDevGlowStrength = std::clamp(strength, 0.0, 8.0);
+            gBackgroundGlow = true;
+        }
+        return true;
+    }
     // --dev-shadows: keep the sun shadows on in a background run (a snapshot
     // of the shadowed view); off is the default there, so captures stay
     // byte-stable.
@@ -1024,6 +1034,7 @@ void applyFixedScreenOptions()
         settings.scene3d.zoom = 1.0;
         settings.scene3d.camera_rotation = false;
         settings.scene3d.glow = gBackgroundGlow;
+        if (gDevGlowStrength >= 0.0) settings.scene3d.glow_strength = gDevGlowStrength;
         settings.scene3d.shadows = gBackgroundShadows;
     }
     debugPrint("DEVTOOLS: fixed screen %dx%d scale %d, windowed, glow %d%s\n",
@@ -1033,7 +1044,10 @@ void applyFixedScreenOptions()
 
 void applyBackgroundGlow()
 {
-    if (backgroundCaptureActive()) settings.scene3d.glow = gBackgroundGlow;
+    if (backgroundCaptureActive()) {
+        settings.scene3d.glow = gBackgroundGlow;
+        if (gDevGlowStrength >= 0.0) settings.scene3d.glow_strength = gDevGlowStrength;
+    }
 }
 
 void applyBackgroundShadows()
@@ -3102,6 +3116,7 @@ bool takeSnapshot()
         "  \"preview_availability\": \"%s\",\n"
         "  \"renderer\": \"%s\",\n"
         "  \"light\": \"off\",\n"
+        "  \"glow\": {\"enabled\":%s,\"strength\":%.3f},\n"
         "  \"sun\": %s,\n"
         "  \"resolution\": \"%dx%d\",\n"
         "  \"logical_resolution\": \"%dx%d\",\n"
@@ -3143,6 +3158,8 @@ bool takeSnapshot()
         heroPreview ? scene::objectCardsSkipped() : 0u,
         previewRequested ? (scene_renderer::isActive() ? scene::availability() : "renderer-inactive") : "not-requested",
         activeRendererName(),
+        settings.scene3d.glow ? "true" : "false",
+        settings.scene3d.glow_strength,
         sunMetadata,
         capturedWidth,
         capturedHeight,

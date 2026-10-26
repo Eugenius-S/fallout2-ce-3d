@@ -78,6 +78,9 @@ param(
     # -Glow: keep the glow on in this background run (it is forced off by
     # default, so captures stay byte-stable).
     [switch]$Glow,
+    # Implies -Glow. Five comparison levels can include values above the old limit.
+    [ValidateRange(0, 8)]
+    [double]$GlowStrength = -1,
     # -Shadows: keep the sun shadows on in this background run (they are
     # forced off by default, so captures stay byte-stable).
     [switch]$Shadows,
@@ -258,6 +261,7 @@ if ($PreferencesProbe) {
         '--dev-new-game', "--dev-map=$Map", "--dev-elevation=$Elevation", "--dev-snapshot-run=$runId")
 }
 if ($Glow) { $arguments += '--dev-glow' }
+if ($GlowStrength -ge 0) { $arguments += "--dev-glow-strength=$($GlowStrength.ToString([System.Globalization.CultureInfo]::InvariantCulture))" }
 if ($Shadows) { $arguments += '--dev-shadows' }
 if ($OpenDoors) { $arguments += '--dev-open-doors' }
 if ($Hour -ge 0) { $arguments += "--dev-hour=$Hour" }

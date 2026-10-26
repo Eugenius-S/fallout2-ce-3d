@@ -376,6 +376,13 @@ int main()
                 "language changes do not retain Russian descriptor metadata")) return 1;
     }
     const auto* unlimitedSetting = findDescriptor("3d.camera_rotation_unlimited");
+    const auto* glowStrength = findDescriptor("3d.glow_strength");
+    if (!check(glowStrength && std::get<double>(glowStrength->defaultValue) == 1.0
+            && glowStrength->numericRange->maximum == 8.0
+            && settingsSetValue(*glowStrength, SettingValue(8.0), &error)
+            && settings.scene3d.glow_strength == 8.0
+            && settingsSetValue(*glowStrength, SettingValue(1.0), &error),
+            "glow ladder's highest level is selectable without changing the default")) return 1;
     const auto* rotationSetting = findDescriptor("3d.camera_rotation");
     if (!check(settingsSetValue(*unlimitedSetting, SettingValue(true), &error)
             && settings.scene3d.camera_rotation_unlimited && !settings.scene3d.camera_rotation,

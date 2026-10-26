@@ -465,14 +465,14 @@ void initSettingsRegistry(bool isMapper)
     registerThreeDBoolean("glow", settings.scene3d.glow, "Glow",
         "Things that shine in Fallout 2 (fire, monitors, signs) bleed light softly in the 3D view.",
         SettingApplyPolicy::OnClose);
-    registerSetting("3d", "glow_strength", settings.scene3d.glow_strength, clamp(0.0, 3.0));
+    registerSetting("3d", "glow_strength", settings.scene3d.glow_strength, clamp(0.0, 8.0));
     SettingDescriptor& glowStrengthDescriptor = settingDescriptors.back();
     glowStrengthDescriptor.category = SettingCategory::Uncategorized;
     glowStrengthDescriptor.applyPolicy = SettingApplyPolicy::OnClose;
     glowStrengthDescriptor.subsection = "3D";
     glowStrengthDescriptor.fallbackLabel = "Glow strength";
     glowStrengthDescriptor.fallbackDescription = "How far the glow of shining things spreads and brightens.";
-    glowStrengthDescriptor.numericRange = SettingNumericRange { 0.0, 3.0, 0.1 };
+    glowStrengthDescriptor.numericRange = SettingNumericRange { 0.0, 8.0, 0.1 };
     settingsRegistry.back().descriptor = glowStrengthDescriptor;
     settingsRegistry.back().write = [](bool onlyAdd) {
         if (onlyAdd && settingsKeyExists("3d", "glow_strength")) return;
