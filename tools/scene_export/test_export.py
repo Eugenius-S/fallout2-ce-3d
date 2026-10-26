@@ -558,6 +558,19 @@ class WallSidecarTests(unittest.TestCase):
                    for p, q, r in zip(points[0::3], points[1::3], points[2::3]))
         self.assertAlmostEqual(area, 2 * 2.5 - (2.5 - height - wall_sidecar.ROOF_SLACK), places=4)
 
+    def test_a_corner_picture_running_out_past_the_crossing_still_makes_a_corner(self):
+        import wall_sidecar
+        # Task 081: the wall along v ends in a corner picture (v 1.5 .. 2.8)
+        # that runs 0.8 past the other wall's front, out of reach: still an
+        # L, and the picture is the corner piece the free camera folds, no
+        # fin standing out into the street.
+        along_u = [0, 1.0, 2.0, 3.0, 2.0, 0.0, 2.0, 0, 1, 1.8, 0.25, -1]
+        along_v = [1, 3.0, 0.0, 3.0, 1.5, 0.0, 2.0, 0, 1, 1.8, 0.25, -1]
+        piece = [2, 3.0, 1.5, 3.0, 2.8, 0.0, 2.0, 0, 1, 1.8, 0.25, -1]
+        corners = wall_sidecar._corner_fits([along_u, along_v, piece], set(), (0.49, 0.74, 0.46),
+                                            lambda index: 16, (48.0, 32.0))
+        self.assertIn(2, corners.pieces)
+
     def test_a_corner_block_takes_a_wide_picture_not_the_end_strip(self):
         import wall_sidecar
         # The wall along v ends in a 2-column strip short of the corner: the

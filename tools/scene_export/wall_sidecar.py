@@ -423,6 +423,24 @@ def _corner_fits(walls, hidden, toward_camera, width=None, px=(1.0, 1.0)):
     gap = lambda x, lo, hi: max(lo - x, 0.0, x - hi)
     far = lambda slab, out: slab.band()[1] if out > 0 else slab.band()[0]
     near = lambda slab, out: slab.band()[0] if out > 0 else slab.band()[1]
+
+    def tip(slab, out, other):
+        """Where the slab's end at `out` lies for a corner with `other`. A
+        corner picture may run on past the crossing out of reach (a post or
+        a trim standing out in the open, task 081): a last row that runs
+        across the other's band and stops within twice the reach past it
+        ends the slab in the crossing."""
+        end = slab.hi if out > 0 else slab.lo
+        over = out * (end - far(other, out))
+        if not CORNER_REACH < over <= 2 * CORNER_REACH:
+            return end
+        for index in slab.rows:
+            s0, s1 = sorted((walls[index][1 + slab.axis], walls[index][3 + slab.axis]))
+            last, first = (s1, s0) if out > 0 else (-s0, -s1)
+            if last >= out * end - 1e-6 and first < out * far(other, out) - CORNER_SLACK:
+                return far(other, out)
+        return end
+
     targets = {}
     pairs = {}  # an L: {(id(slab), out): (the other slab, its out)}
     meets = {}  # {(id(slab), out): the slab that end meets}
@@ -434,23 +452,26 @@ def _corner_fits(walls, hidden, toward_camera, width=None, px=(1.0, 1.0)):
             # A short wall may come within reach of a wall with both ends: a
             # wall that reaches past its other end is that end's corner.
             past = lambda b: b.band()[0] <= a.lo + CORNER_SLACK if out > 0 else b.band()[1] >= a.hi - CORNER_SLACK
-            met = [(gap(end, *b.band()), index, b) for index, b in enumerate(slabs) if b.axis != a.axis
-                   and gap(end, *b.band()) <= CORNER_REACH and b.hi >= a0 - CORNER_REACH and b.lo <= a1 + CORNER_REACH
-                   and not (past(b) and gap(end, *b.band()) > CORNER_SLACK)
+            met = [(gap(tip(a, out, b), *b.band()), index, b) for index, b in enumerate(slabs) if b.axis != a.axis
+                   and gap(tip(a, out, b), *b.band()) <= CORNER_REACH
+                   and b.hi >= a0 - CORNER_REACH and b.lo <= a1 + CORNER_REACH
+                   and not (past(b) and gap(tip(a, out, b), *b.band()) > CORNER_SLACK)
                    # A thick wall does not reach for a rail or a trim strip
                    # (some are wholly clear): the game ends it where it ends.
                    and not (a.thick >= CORE_THICK and b.thick < CORE_THICK)]
             if not met:
                 continue
             b = min(met, key=lambda item: item[:2])[2]
-            if b.lo < a0 - CORNER_REACH and b.hi > a1 + CORNER_REACH:
+            end = tip(a, out, b)
+            b_lo, b_hi = tip(b, -1, a), tip(b, 1, a)
+            if b_lo < a0 - CORNER_REACH and b_hi > a1 + CORNER_REACH:
                 targets[(id(a), out)] = (a, out, near(b, out), None)  # a T: the stem stops at b
                 meets[(id(a), out)] = b
                 continue
-            if b.hi <= a1 + CORNER_REACH and b.lo >= a0 - CORNER_REACH:
+            if b_hi <= a1 + CORNER_REACH and b_lo >= a0 - CORNER_REACH:
                 continue  # all of b lies at a's end: no corner to read
-            b_out = 1 if b.hi <= a1 + CORNER_REACH else -1
-            b_end = b.hi if b_out > 0 else b.lo
+            b_out = 1 if b_hi <= a1 + CORNER_REACH else -1
+            b_end = b_hi if b_out > 0 else b_lo
             # The wall that runs on further past the other reaches across it;
             # its end face then lies in the other's plane.
             if out * (end - far(b, out)) >= b_out * (b_end - far(a, b_out)):
