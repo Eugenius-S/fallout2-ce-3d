@@ -214,7 +214,7 @@ void drawStaticPreview(bool withWalls, bool withHero)
         glDepthMask(1);
         glDisable(kBlend);
     }
-    glUniform1i(gSceneLightModeLocation, lit ? 4 : 0);
+    glUniform1i(gSceneLightModeLocation, 4); // roof material, also when lights are disabled
     glUniform1f(gSceneLightValueLocation, lightAmbient());
     if (withHero && staticSoloKeeps(-1)) drawRoofs(x, y, width, height); // solo: no roofs
     glUniform1i(gSceneLightModeLocation, 0);

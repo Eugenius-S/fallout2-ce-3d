@@ -91,6 +91,8 @@ void beginStaticWallSeeThrough();
 void markStaticWallSeeThrough(int tile, int fid);
 // A baked object the engine paints at full light (OBJECT_TRANS_WALL), this frame.
 void markStaticWallFullLight(int tile, int fid);
+// Known luminous sign: only its colored tubes shine, not the backing board.
+void markStaticWallEmissive(int tile, int fid);
 void endStaticWallSeeThrough();
 
 } // namespace scene_renderer

@@ -1,0 +1,266 @@
+[
+  {
+    "source": {
+      "name": "laser",
+      "fid": 83886085,
+      "art": "lazrpis.frm",
+      "frame": 5,
+      "frames": 6,
+      "rotation": 1
+    },
+    "ambient": 16384,
+    "floor_changed_pixels": 57510,
+    "floor_added_rgb": [
+      81.17256944444445,
+      24.067222222222224,
+      19.22869791666667
+    ],
+    "image_sha256": [
+      "fa51bf0954f2ecd55795b55f2ef8d6418c28b92a7ab67f0d6f5ea19e9146fb55",
+      "686a8f944326f456f2f436f164222513d737a9a20eb6791cdaca58e317f80f4e",
+      "2dad67bf2d5d0605992b8f17f640da8e33ea3dfe7a85a3c52c527d7b89335b5e"
+    ],
+    "exe_sha256": "75287b4a750d6521ad0afcea8f36cc2131250ada290670bd046ba95a45ac7e89",
+    "light_check": true
+  },
+  {
+    "source": {
+      "name": "plasma-bolt",
+      "fid": 83886086,
+      "art": "plasmab.frm",
+      "frame": 0,
+      "frames": 1,
+      "rotation": 1
+    },
+    "ambient": 16384,
+    "floor_changed_pixels": 56788,
+    "floor_added_rgb": [
+      45.765590277777775,
+      29.98777777777778,
+      27.436822916666667
+    ],
+    "image_sha256": [
+      "26c73036715150ec3ca98d3c85d78959857acac6d43331328580a87f68d3ebda",
+      "7e5e0f8e5d63d5e378fa2820495ca7e07e0e4004e915e50d1631be4d8c9ce471",
+      "1e4216599badeb950a0f3c426d9471d6a44bd55dbd5c504a9cab7beb0bad435d"
+    ],
+    "exe_sha256": "75287b4a750d6521ad0afcea8f36cc2131250ada290670bd046ba95a45ac7e89",
+    "light_check": true
+  },
+  {
+    "source": {
+      "name": "plasma-pistol",
+      "fid": 83886087,
+      "art": "plazpis.frm",
+      "frame": 2,
+      "frames": 6,
+      "rotation": 1
+    },
+    "ambient": 16384,
+    "floor_changed_pixels": 57600,
+    "floor_added_rgb": [
+      32.535503472222224,
+      56.341388888888886,
+      14.364045138888889
+    ],
+    "image_sha256": [
+      "248fea190ed52779a0263fafb78c965d7b2c472c577c2da1b18ab43333116d4f",
+      "e6aeae7a73ea4dba5761ca0630497f60cc07acf54c82ca255510e743c38bf1ff",
+      "8027f743ec0d814eee0dd24ac7a310585ce1f3a194ab4354eb39ff29ee567a2e"
+    ],
+    "exe_sha256": "75287b4a750d6521ad0afcea8f36cc2131250ada290670bd046ba95a45ac7e89",
+    "light_check": true
+  },
+  {
+    "source": {
+      "name": "plasma-rifle",
+      "fid": 83886088,
+      "art": "plzmrif.frm",
+      "frame": 3,
+      "frames": 4,
+      "rotation": 1
+    },
+    "ambient": 16384,
+    "floor_changed_pixels": 57599,
+    "floor_added_rgb": [
+      56.02086805555555,
+      47.92685763888889,
+      27.398263888888888
+    ],
+    "image_sha256": [
+      "14b3ed49e585b63571c39ecd13daef1847beecdecb42db4cd561eb84327b7007",
+      "f5d15825d0ebbe550e6a04e1b782f1e9434998b84667f2fbc6f87f7c0c7104e3",
+      "1b0fe7cc828546e79710bb792bef4ea9b90f54fe6a5bdc65aa4fc1637c7f712b"
+    ],
+    "exe_sha256": "75287b4a750d6521ad0afcea8f36cc2131250ada290670bd046ba95a45ac7e89",
+    "light_check": true
+  },
+  {
+    "source": {
+      "name": "electric",
+      "fid": 83886094,
+      "art": "elect.frm",
+      "frame": 3,
+      "frames": 6,
+      "rotation": 1
+    },
+    "ambient": 16384,
+    "floor_changed_pixels": 57574,
+    "floor_added_rgb": [
+      61.61392361111111,
+      32.75303819444444,
+      37.8290625
+    ],
+    "image_sha256": [
+      "a8e296cab8a8da5f0225f00ad2b57253b83caf116d1ebdbd7bc32c21ad905cc8",
+      "7d7450a1fac1ce9c31664d2b7cf35978b9c1a9f5a834a6a52886a6bbd7a4139b",
+      "26475522130c568f9069d30697c58d4ee68fd8b0462dfc784786f496e9a4f1a4"
+    ],
+    "exe_sha256": "75287b4a750d6521ad0afcea8f36cc2131250ada290670bd046ba95a45ac7e89",
+    "light_check": true
+  },
+  {
+    "source": {
+      "name": "flamethrower",
+      "fid": 83886106,
+      "art": "fthro.frm",
+      "frame": 0,
+      "frames": 6,
+      "rotation": 1
+    },
+    "ambient": 16384,
+    "floor_changed_pixels": 57540,
+    "floor_added_rgb": [
+      75.71694444444445,
+      32.81401041666667,
+      21.871458333333333
+    ],
+    "image_sha256": [
+      "ac1caa0331f042025d4f541384aba63cbf1c44dcd936b45baf7eb3cfc636dcfd",
+      "a4bc5f3bc4aaa8f6cf6d93bc5ad3c0548e3842554eec028392393d90156c5b00",
+      "c44eb3ac2f5eda18c51549db48ec703fc4c33c50fe4ee62f73e99ceaa7b11b99"
+    ],
+    "exe_sha256": "75287b4a750d6521ad0afcea8f36cc2131250ada290670bd046ba95a45ac7e89",
+    "light_check": true
+  },
+  {
+    "source": {
+      "name": "rocket",
+      "fid": 83886089,
+      "art": "rocket.frm",
+      "frame": 1,
+      "frames": 5,
+      "rotation": 1
+    },
+    "ambient": 16384,
+    "floor_changed_pixels": 32092,
+    "floor_added_rgb": [
+      11.967708333333333,
+      7.822430555555556,
+      4.580572916666667
+    ],
+    "image_sha256": [
+      "135b41ed51dc04ac62a6770780eab4864a1f8076187490476f93ecb8d8069892",
+      "7102048c540c7e622139ce9adad34e2521d025636997e145b593429d7d567332",
+      "a2ed22aff62fd663ad977173c3bf4f39155648b86702f1a8b25ed4c2f3812e70"
+    ],
+    "exe_sha256": "75287b4a750d6521ad0afcea8f36cc2131250ada290670bd046ba95a45ac7e89",
+    "light_check": true
+  },
+  {
+    "source": {
+      "name": "fire-explosion",
+      "fid": 83886109,
+      "art": "expa.frm",
+      "frame": 2,
+      "frames": 7,
+      "rotation": 0
+    },
+    "ambient": 16384,
+    "floor_changed_pixels": 57600,
+    "floor_added_rgb": [
+      45.84020833333334,
+      30.248333333333335,
+      19.553854166666667
+    ],
+    "image_sha256": [
+      "d104901248b1b8df3a2f38cb185734de4cf75d290bafd99c222bdc49c7c622d3",
+      "0a3282dfaf8abd48b82f75ad6f443ff12fb2ea0ad231a2d64891d663614ea21f",
+      "11ec90b1bae4984217f09fb1b30d7d628eb4775cc4c2d19ffcbe7e7757aafac6"
+    ],
+    "exe_sha256": "75287b4a750d6521ad0afcea8f36cc2131250ada290670bd046ba95a45ac7e89",
+    "light_check": true
+  },
+  {
+    "source": {
+      "name": "plasma-explosion",
+      "fid": 83886111,
+      "art": "expp.frm",
+      "frame": 2,
+      "frames": 9,
+      "rotation": 0
+    },
+    "ambient": 16384,
+    "floor_changed_pixels": 57600,
+    "floor_added_rgb": [
+      49.10263888888889,
+      51.83890625,
+      25.79435763888889
+    ],
+    "image_sha256": [
+      "07c001592a6d5663289534b09e9ecc2a9da45f6e9d045134ed6b1465c245e096",
+      "c05a413e64b6f9ada4baa15cf5040a14fa3ff0009cdfa197c66a81ec6b91b4ef",
+      "13b8f4a71b407ca261f0cea4e50c00701e78c720adb8ac177f6ebbf5b912a307"
+    ],
+    "exe_sha256": "75287b4a750d6521ad0afcea8f36cc2131250ada290670bd046ba95a45ac7e89",
+    "light_check": true
+  },
+  {
+    "source": {
+      "name": "emp-explosion",
+      "fid": 83886082,
+      "art": "empxpld.frm",
+      "frame": 3,
+      "frames": 5,
+      "rotation": 0
+    },
+    "ambient": 16384,
+    "floor_changed_pixels": 56980,
+    "floor_added_rgb": [
+      49.16770833333333,
+      37.77508680555555,
+      32.16133680555556
+    ],
+    "image_sha256": [
+      "d58f848a58ad3c1229c0c29a19e1bb2f317d5756794203a969eb875b3d8c600d",
+      "61f0d26060ebcba129a4d0d4556b9ca600093ed9d16d6622ea81819b47cf82e1",
+      "ee66145c5b6bbb8aad3a09e1cfa1879e7c3024ec22e40f7576dbc5296a5699f7"
+    ],
+    "exe_sha256": "75287b4a750d6521ad0afcea8f36cc2131250ada290670bd046ba95a45ac7e89",
+    "light_check": true
+  },
+  {
+    "source": {
+      "name": "rocket-explosion",
+      "fid": 83886090,
+      "art": "roktxpd.frm",
+      "frame": 2,
+      "frames": 6,
+      "rotation": 0
+    },
+    "ambient": 16384,
+    "floor_changed_pixels": 57559,
+    "floor_added_rgb": [
+      43.145,
+      28.86046875,
+      18.866614583333334
+    ],
+    "image_sha256": [
+      "8e02c57f76406c1c80aece17405a4a43185a79620961549da3c14c397281f5c6",
+      "66eda496f7e0bfeb325e2c2a604be06287e7bdafa6ab97f1a8ae2914e7af34c4",
+      "eeed28ecd9672844a2b2c519fc3d5cf77bccd989234ab39f97987b864290c4ad"
+    ],
+    "exe_sha256": "75287b4a750d6521ad0afcea8f36cc2131250ada290670bd046ba95a45ac7e89",
+    "light_check": true
+  }
+]

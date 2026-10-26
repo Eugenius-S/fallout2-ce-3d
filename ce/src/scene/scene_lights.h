@@ -4,6 +4,7 @@
 #include "sun.h"
 
 namespace fallout {
+struct Object;
 namespace scene {
 
 // The game's light into the scene, each frame: the ambient level and every
@@ -13,6 +14,8 @@ namespace scene {
 // reach is the engine's own spread, so walls stop it as in the game.
 // `[3d] lights` off: the scene is unlit.
 void updateLightsFromGame();
+// Developer lifetime check against the lights actually submitted this frame.
+bool effectLightMatches(const Object* object, int tile, int x, int y);
 
 // Whether the loaded map elevation is under the sky (scene.json `daylight`).
 void setSceneDaylight(bool daylight);

@@ -48,8 +48,9 @@ TRANSFORM: self-lit material, colored local-light contribution, existing bloom p
 MEANING: source cores stay bright in darkness; nearby surfaces receive their color.
 OUTPUT: all three layers, controlled by existing global lighting/glow settings.
 DIRECT CHECK: night source/surface/halo probes, frame lifetime and ordinary-view controls.
-The initial developer fixture and daytime sheets are complete; production
-emission/local-light behavior and two night sign examples remain pending.
+The native fixture, production emission/local lights, two night sign examples
+and requested strength comparisons are implemented on this branch. Visual
+calibration and integration with the newer main remain before closure.
 
 ## Log
 
@@ -102,3 +103,46 @@ warned that real emission + dynamic-light work materially expands the request
 and costs more tokens in this long chat. Save/push this state and wait for
 further guidance before implementing the new production-lighting scope.
 Active worktree: E:/Projects/fallout2-ce-3d-gpt-065, branch task/086-weapon-glow-previews.
+
+### 2026-10-26 gpt: emission/local-light implementation and 1.3/1.5/1.8 review
+
+Owner explicitly resumed implementation and confirmed the existing repository
+must be continued without repeating Foundation setup. PLASMAB at glow 2 is the
+accepted reference; compensate the other FX internally with one global slider.
+Then the owner requested all examples at 1.3 / 1.5 / 1.8. Default stays 2 until
+the visual choice is made; these sheets are experimental compensation values.
+
+Done: effect_emission.h classifies verified native FX and SIGN40/41, selects
+hot pixels for material and local-light color/position, and excludes smoke and
+rocket casing. scene_objects.cc/shader tag self-lit cores with per-kind bloom
+compensation. Runtime baked sign flags reuse the wall-object table without
+changing scene file formats. scene_lights.cc adds visual sources for effects
+without native CE lights, respects wall/door spread using a source copy, avoids
+double lighting and reserves the existing 32-light budget. Moving synthetic FX
+do not invalidate the static spread cache. Native CE fields/light map stay put.
+Roof blending now erases hidden emission instead of leaking a sign's glow.
+
+Fixture: added electric/flamethrower/rocket and two existing DENBUS1 signs.
+GlowLevels captures OFF plus any 1..8 requested levels in one frozen process.
+NoEffectEmission provides a comparison control. EffectLightCheck verifies the
+actual submitted source through tile/pixel movement, hiding/restoring and
+lighting off, with unchanged native hex light map and object light fields.
+Snapshot metadata now reports lighting correctly (previously hardcoded off).
+
+Evidence: four night-*.jpg sheets, columns 1.3 / 1.5 / 1.8 for all 11 effects
+and two real signs. glow-levels-measurements.json validates 52 captures from
+one build, identical state within rows, exact strengths and increasing glow.
+lighting-probes.json records before/after floor changes with bloom disabled
+for every effect, plus movement/lifetime checks. Earlier review-*.jpg are the
+daytime pre-implementation ladders already present when this run resumed.
+
+Check: Release game/mapper, 16 CTests, 64 exporter and 12 regression unit tests.
+All 16 normal views equal current-base controls (0 changed pixels); an extra
+entrance view after the roof change also matches. Runs size and diff checks
+pass. Owner game/config were not installed, restarted, focused or modified.
+
+Next: inspect the requested visual levels and finalize compensation/default.
+Before PR/merge integrate origin/main (now c88f4062, includes task 087 sprite
+camera directions and task 058 refreshed references), rebuild and rerun the
+current-main checks. This branch has not yet integrated those newer changes.
+Keep the task doing; production implementation is saved, not merged/deployed.

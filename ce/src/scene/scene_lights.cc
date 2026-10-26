@@ -1,4 +1,5 @@
 #include "scene_lights.h"
+#include "effect_emission.h"
 
 #include <algorithm>
 #include <array>
@@ -71,6 +72,8 @@ struct SpreadCache {
 };
 
 SpreadCache gSpreads;
+struct EffectLightProbe { const Object* object; int tile; int x; int y; };
+std::vector<EffectLightProbe> gEffectLightProbes;
 
 bool gDaylight = false;
 SunTracker gSun;
@@ -106,7 +109,8 @@ Emitter findEmitter(Object* object)
         brightest = std::max(brightest, brightness(indices[at]));
     }
     const int threshold = brightest * 9 / 10;
-    if (!animated && brightest < 150) return emitter; // nothing bright (of 189, 6-bit white)
+    const EffectEmission effect = effectEmission(object->fid);
+    if (effect.distance == 0 && !animated && brightest < 150) return emitter;
     double sumX = 0.0;
     double sumY = 0.0;
     int count = 0;
@@ -114,7 +118,8 @@ Emitter findEmitter(Object* object)
         for (int x = 0; x < width; x++) {
             const unsigned char index = indices[y * width + x];
             if (index == 0) continue;
-            if (animated ? !shining(index) : brightness(index) < threshold) continue;
+            if (effect.distance != 0 ? !effectHotPixel(effect, index, palette)
+                                     : (animated ? !shining(index) : brightness(index) < threshold)) continue;
             sumX += x + 0.5;
             sumY += y + 0.5;
             emitter.counts[index]++;
@@ -130,7 +135,7 @@ Emitter findEmitter(Object* object)
     return emitter;
 }
 
-void emitterColor(const Emitter& emitter, float color[3])
+void emitterColor(const Emitter& emitter, float color[3], float saturation = kSaturation)
 {
     unsigned char* palette = directDrawGetPalette();
     double sum[3] = { 0.0, 0.0, 0.0 };
@@ -141,7 +146,7 @@ void emitterColor(const Emitter& emitter, float color[3])
     const double top = std::max({ sum[0], sum[1], sum[2] });
     for (int channel = 0; channel < 3; channel++) {
         const float own = top > 0.0 ? static_cast<float>(sum[channel] / top) : kLampColor[channel];
-        color[channel] = 1.0f - kSaturation + kSaturation * own;
+        color[channel] = 1.0f - saturation + saturation * own;
     }
 }
 
@@ -168,7 +173,7 @@ void collectLight(Object* object, void* context)
         if (candidate.shines) {
             light.right = found->second.right;
             light.down = found->second.down;
-            emitterColor(found->second, light.color);
+            emitterColor(found->second, light.color, effectEmission(object->fid).distance != 0 ? 1.0f : kSaturation);
         }
     }
     if (!candidate.shines) {
@@ -178,6 +183,32 @@ void collectLight(Object* object, void* context)
         }
     }
     candidates->push_back(std::move(candidate));
+}
+
+// Visual lights for native FX without CE light flags. Never write back to the
+// object or native hex-light map; the current visible objects are the lifetime.
+void collectEffectLight(Object* object, void* context)
+{
+    const EffectEmission effect = effectEmission(object->fid);
+    if (effect.distance == 0 || (object->flags & OBJECT_HIDDEN) != OBJECT_NONE
+        || !hexGridTileIsValid(object->tile)
+        || (object->lightIntensity > 0 && (object->flags & OBJECT_LIGHTING) != OBJECT_NONE)) return;
+    const auto key = std::make_tuple(object->fid, object->frame, static_cast<int>(object->rotation));
+    auto found = gEmitters.find(key);
+    if (found == gEmitters.end()) found = gEmitters.emplace(key, findEmitter(object)).first;
+    const Emitter& emitter = found->second;
+    if (!emitter.found) return;
+    Candidate candidate = { object, {}, true, false };
+    auto& light = candidate.light;
+    light.tile = object->tile;
+    light.objectX = object->x;
+    light.objectY = object->y;
+    light.right = emitter.right;
+    light.down = emitter.down;
+    light.distance = effect.distance;
+    light.intensity = effect.intensity;
+    emitterColor(emitter, light.color, 1.0f);
+    static_cast<std::vector<Candidate>*>(context)->push_back(std::move(candidate));
 }
 
 // Hexes between two tiles, as tileDistanceBetween counts them, at once: the
@@ -221,6 +252,7 @@ void borrowColor(Candidate* candidate, const std::vector<Candidate>& candidates)
 
 void updateLightsFromGame()
 {
+    gEffectLightProbes.clear();
     if (!settings.scene3d.lights) {
         scene_renderer::clearStaticLight();
         gSpreads = {};
@@ -228,6 +260,12 @@ void updateLightsFromGame()
     }
     std::vector<Candidate> candidates;
     objectForEachAtElevation(gElevation, collectLight, &candidates);
+    std::vector<Candidate> effects;
+    objectForEachAtElevation(gElevation, collectEffectLight, &effects);
+    std::stable_sort(effects.begin(), effects.end(), [](const Candidate& a, const Candidate& b) {
+        return hexDistance(gCenterTile, a.light.tile) < hexDistance(gCenterTile, b.light.tile);
+    });
+    if (effects.size() > kMaxSmoothLights) effects.resize(kMaxSmoothLights);
 
     // The big lights nearest to the view are lit from their own point.
     std::vector<int> smooth;
@@ -238,7 +276,8 @@ void updateLightsFromGame()
     std::stable_sort(smooth.begin(), smooth.end(), [&candidates](int a, int b) {
         return hexDistance(gCenterTile, candidates[a].light.tile) < hexDistance(gCenterTile, candidates[b].light.tile);
     });
-    if (static_cast<int>(smooth.size()) > kMaxSmoothLights) smooth.resize(kMaxSmoothLights);
+    const int staticSlots = kMaxSmoothLights - static_cast<int>(effects.size());
+    if (static_cast<int>(smooth.size()) > staticSlots) smooth.resize(staticSlots);
     for (int index : smooth) isSmooth[index] = true;
 
     // What the spreads depend on: the map, the lights, which of them are big,
@@ -311,7 +350,29 @@ void updateLightsFromGame()
             color[tile * 3 + channel] = top > 0.0f ? color[tile * 3 + channel] / top : 1.0f;
         }
     }
+    for (const Candidate& effect : effects) {
+        lights.push_back(effect.light);
+        // A copy lets the native wall/door occlusion walk use its light fields
+        // without changing the live effect or subtracting nonexistent CE light.
+        Object source = *effect.object;
+        source.flags |= OBJECT_LIGHTING;
+        source.lightIntensity = static_cast<int>(effect.light.intensity * 65536.0f);
+        source.lightDistance = effect.light.distance;
+        objectSpreadLight(&source, [](int tile, int intensity, void* context) {
+            if (intensity > 0) static_cast<std::vector<int>*>(context)->push_back(tile);
+        }, &lights.back().reach);
+        if (!lights.back().reach.empty()) gEffectLightProbes.push_back({ effect.object,
+            effect.light.tile, effect.light.objectX, effect.light.objectY });
+    }
     scene_renderer::setStaticLight(lightGetAmbientIntensity(), std::move(hexLight), std::move(color), std::move(lights));
+}
+
+bool effectLightMatches(const Object* object, int tile, int x, int y)
+{
+    for (const auto& light : gEffectLightProbes) {
+        if (light.object == object && light.tile == tile && light.x == x && light.y == y) return true;
+    }
+    return false;
 }
 
 void setSceneDaylight(bool daylight)

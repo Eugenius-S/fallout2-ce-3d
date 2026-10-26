@@ -86,7 +86,12 @@ param(
     # One frozen scene, six captures: off, then 0.5/1/2/4/8.
     [switch]$GlowLadder,
     [switch]$GlowPair,
-    [ValidateSet('laser', 'plasma-bolt', 'plasma-pistol', 'plasma-rifle', 'fire-explosion', 'plasma-explosion', 'emp-explosion', 'rocket-explosion')]
+    [ValidateCount(1, 8)]
+    [ValidateRange(0, 8)]
+    [double[]]$GlowLevels,
+    [switch]$NoEffectEmission,
+    [switch]$EffectLightCheck,
+    [ValidateSet('laser', 'plasma-bolt', 'plasma-pistol', 'plasma-rifle', 'fire-explosion', 'plasma-explosion', 'emp-explosion', 'rocket-explosion', 'electric', 'flamethrower', 'rocket', 'sign40', 'sign41')]
     [string]$EffectFixture,
     [ValidateRange(0, 1000)]
     [int]$EffectFrame = -1,
@@ -110,9 +115,10 @@ param(
     [int]$Scale = 2
 )
 $ErrorActionPreference = 'Stop'
-if ($GlowLadder -and $GlowPair) { throw 'Choose either -GlowLadder or -GlowPair.' }
+if (([int][bool]$GlowLadder + [int][bool]$GlowPair + [int][bool]$GlowLevels) -gt 1) { throw 'Choose one glow comparison mode.' }
+if ($EffectLightCheck -and (-not $EffectFixture -or $EffectFixture -like 'sign*' -or $NoEffectEmission)) { throw '-EffectLightCheck requires an emitting projectile or explosion fixture.' }
 if ($EffectFrame -ge 0 -and -not $EffectFixture) { throw '-EffectFrame requires -EffectFixture.' }
-if ($GlowLadder -or $GlowPair -or $EffectFixture) {
+if ($GlowLadder -or $GlowPair -or $GlowLevels -or $EffectFixture) {
     if ($Glow -or $GlowStrength -ge 0 -or $Preferences -or $Classic -or $Probe -or $Tour -or $DialogFixture -or $UiFixture -or $DevPanel -or $PreferencesProbe) {
         throw 'Glow comparisons and effect fixtures require an ordinary scene capture without other glow overrides or fixtures.'
     }
@@ -262,6 +268,8 @@ if (-not (Test-Path -LiteralPath $exe) -or
 $shots = 1
 $runId = [guid]::NewGuid().ToString('N')
 $arguments = @('--dev-tools')
+if ($NoEffectEmission) { $arguments += '--dev-no-effect-emission' }
+if ($EffectLightCheck) { $arguments += '--dev-effect-light-check' }
 if ($SharpText) { $arguments += '--dev-sharp-text=1' } else { $arguments += '--dev-sharp-text=0' }
 if ($UiFixture) { $arguments += "--dev-ui-fixture=$UiFixture" }
 if ($Font101PreviewScale) { $arguments += "--dev-font101-size-preview=$Font101PreviewScale" }
@@ -283,6 +291,7 @@ if ($GlowStrength -ge 0) { $arguments += "--dev-glow-strength=$($GlowStrength.To
 if ($CyclePalette) { $arguments += '--dev-cycle-palette' }
 if ($GlowLadder) { $arguments += '--dev-glow-ladder' }
 if ($GlowPair) { $arguments += '--dev-glow-pair' }
+if ($GlowLevels) { $arguments += '--dev-glow-levels=' + (($GlowLevels | ForEach-Object { $_.ToString('0.###', [Globalization.CultureInfo]::InvariantCulture) }) -join ',') }
 if ($EffectFixture) { $arguments += "--dev-effect=$($EffectFixture.ToLowerInvariant())" }
 if ($EffectFrame -ge 0) { $arguments += "--dev-effect-frame=$EffectFrame" }
 if ($Shadows) { $arguments += '--dev-shadows' }
@@ -343,6 +352,7 @@ if ($PreferencesProbe) {
 }
 if ($GlowLadder) { $shots = 6 }
 if ($GlowPair) { $shots = 2 }
+if ($GlowLevels) { $shots = 1 + $GlowLevels.Count }
 
 $started = Get-Date
 $previousBackground = $env:F2CE_DEV_BACKGROUND
