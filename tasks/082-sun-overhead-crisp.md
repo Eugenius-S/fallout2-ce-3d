@@ -233,3 +233,60 @@ take). Commit 40b66fd2.
   measures as genuinely sunlit ground (factor 0, the map empty along the
   whole ray to the sun) - our computed sun diverges there from the
   painted-original look. Shots: build/082-shots/r5-flat/.
+
+## Round 6 (2026-10-26, the owner's spec, three general mechanisms)
+
+The owner's eye pass on the round-5 build found four defects: gaps at wall
+joints; a mesh of shadow appeared under the КУПЕЦЪ sign; contour gaps
+between characters in shadow and their shadow; tile-square gaps on the
+floor. His spec, recorded verbatim in spirit:
+
+- No more special-case rules per object kind ("flat elevated card writes
+  solid", "bottom 0.35 of a wall solid"). Everything closes through three
+  general mechanisms; the rules they replace are removed afterwards.
+- Mechanism 1, gap filling in the depth map: after the depth pass, one
+  fullscreen pass dilates the map into a separate texture the receivers
+  read. An empty texel is filled when, within 2 texels along one of the
+  four axes (horizontal, vertical, two diagonals), occupied texels stand
+  on BOTH sides; it takes the farther of the two (closer to the ground).
+  The outer contour never grows (both sides required); holes wider than 2
+  texels (fence lattices, true openings) stay. Measure the width on the
+  corral lattice: it must stay a lattice, else use 1. Check first with
+  -ShadowDebug 5 at a joint and on the floor: an empty map means this
+  mechanism owns it; a solid map with the hole still there means the
+  receiver, see mechanism 2's note.
+- Mechanism 2, an object must not shadow itself (the mesh on the sign and
+  on the wagon roof): the depth map gains a second channel with the
+  caster's object number; the piece drawn on screen passes its own number;
+  map texels holding it compare as empty. Check with -ShadowDebug 5 on the
+  sign's mesh: differences up to 2 texels mean self-shadowing (mechanism 2
+  closes it); more means another object casts (the sign's letters onto the
+  wall behind), which mechanism 1 closes (the holes in the letters fill).
+- After 1 and 2, disable the flat-card-solid and bottom-0.35 rules and
+  re-measure the canopy and the corner from round 5. If the canopy gap
+  stays gone, the rules are deleted; if it returns, they stay and the log
+  records what exactly they are needed for. The foundations' floor copies
+  (round 4) stay: they close the ground gap, different geometry.
+- Mechanism 3, a sprite in shadow darkens whole at once (people, mobs,
+  items, everything with uLightMode == 3): one shadow factor per sprite,
+  taken at its true feet point (the bottom center of its card in world,
+  following the walk step, not the hex center) plus a small lift; the
+  25-tap disk samples in the ground plane, the sprite's own number
+  excluded (mechanism 2), else it shadows itself at the feet. This
+  deliberately reverses the 063 per-pixel decision (its hex steps came
+  from the hex center; with the feet point the transition is smooth, the
+  whole sprite darkens over about one texel of travel). The lit contour
+  around a character in shadow should go with it; if it remains, it is
+  another pass - find it with the debug view and describe it in the log,
+  do not patch it. A large sprite that reads wrong all-dark: log it, not
+  fixed this round.
+- Acceptance: the four places from the owner's screenshots shot in the
+  same views, a was|now sheet in runs/082-sun-overhead-crisp/round6/;
+  a character walking into shadow as an 8-frame strip, the whole sprite
+  changing together, no steps; the old measurements hold (shadow_stripes
+  0.0000, face flatness 1.0000 at 7, 12, 17, edge 2-4 px, corral lattice
+  intact); ctest passes; the original-view regression matches pixel for
+  pixel.
+- Limit: at most two attempts per mechanism; if gaps remain after two,
+  log the -ShadowDebug 4/5 measurements at those places and stop - no
+  third variant, no new special rules.
