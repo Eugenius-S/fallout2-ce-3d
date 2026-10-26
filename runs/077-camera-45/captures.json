@@ -1,0 +1,23 @@
+[
+  {
+    "degrees": -45,
+    "image_sha256": "272ccd4580c012a9287475f61c178384483d4cd4198a3b3ec4e37e14e0f21c80",
+    "map": "KLADWTWN.MAP",
+    "view_tile": 17467,
+    "exe_sha256": "db37fbe8a47e501e708f47646bdb8de71a9c62293785765567c492cab17980ba"
+  },
+  {
+    "degrees": 0,
+    "image_sha256": "64b82271fae6f157c7e064100812e70971c386a1e94a2f21a2c1ea2867a72653",
+    "map": "KLADWTWN.MAP",
+    "view_tile": 17467,
+    "exe_sha256": "db37fbe8a47e501e708f47646bdb8de71a9c62293785765567c492cab17980ba"
+  },
+  {
+    "degrees": 45,
+    "image_sha256": "02ab3e10e2519d5bc6c20897cedb4a94c44e9de5116dee4eb3d38a785ed3355c",
+    "map": "KLADWTWN.MAP",
+    "view_tile": 17467,
+    "exe_sha256": "db37fbe8a47e501e708f47646bdb8de71a9c62293785765567c492cab17980ba"
+  }
+]
