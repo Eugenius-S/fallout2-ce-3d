@@ -193,3 +193,66 @@ checked). Open question to the owner: count the lit 1 px wall and rail caps
 as seams and shade them with their wall, and close small alpha holes in
 fence and foliage art when building the shadow map while keeping real gaps.
 Next: get the answer, finish round 2, measure, then ctest and the regression.
+
+### 2026-10-27 claude, round 2
+Owner's answers: the lit caps count and take their wall's factor; small
+alpha holes close in the map, real gaps stay; the noon door card is fixed
+the same way only if its cause is shared, else logged; foliage looks fine.
+- Signs and other cards hung flat on a wall (within 0.14 of an overlapping
+  wall face, 24 on kladwtwn, the Buckner sign among them) cast nothing: the
+  wall's shadow covers them.
+- The face gate reads the painted plane: a wall's 1 px top, a rail's top
+  and a corner strip take their front face's side of the sun. A cap is
+  carried onto its painted plane, one disk radius down, and takes that
+  face's factor there, in or out.
+- The metric leaves out the faces turned from the sun (blue): the ground
+  seen lit between two shaded fence rails is light, not a hole.
+- Low live cards (straw, grass, flat rubble) read per pixel on the ground
+  under their line of sight; one factor per card was a patchwork.
+- Contact: a blocker within 16 texels of depth of the receiver casts
+  nothing there, and a tap past such a foot does not count. The ground seen
+  through the stepped transparent foot of a wall's sprite lies just behind
+  its face and read the wall: a dotted dark line along every wall's foot
+  in the evening (25075 h17 specks 1068 to 75). On the ground only it lit
+  less at the eave but left more at the fly view's wall corners (24292
+  2295 against 3055 px over its six views), so it covers every receiver.
+- The depth pass closes art holes up to 3 texels (opaque on both sides
+  within 2 along a row, a column or a diagonal). It changes little: a gap
+  of 8 moved 24292 h7 fly by 14 px, so the ragged edges are not art holes.
+- The noon door card is not the caps' cause: a standing card takes one
+  factor at its feet, the ground there is lit at noon. Shading it like its
+  wall means the face test for every standing card, people included, who
+  would all go dark at noon. Logged, not done.
+- ctest 16/16; regression 0 changed px on all 16 views.
+
+| view | holes | specks | dips | grains | total |
+|---|---|---|---|---|---|
+| 25075 h7 | 400 | 123 | 1 | 105 | 629 |
+| 25075 h12 | 0 | 0 | 0 | 0 | 0 |
+| 25075 h17 | 246 | 75 | 0 | 10 | 331 |
+| 24292 h7 | 91 | 156 | 0 | 1 | 248 |
+| 24292 h12 | 0 | 0 | 0 | 0 | 0 |
+| 24292 h17 | 152 | 44 | 1 | 2 | 199 |
+| 24292 h7 fly | 572 | 328 | 0 | 2 | 902 |
+| 24292 h12 fly | 24 | 11 | 0 | 0 | 35 |
+| 24292 h17 fly | 657 | 244 | 0 | 9 | 910 |
+| 23481 h7 | 105 | 164 | 5 | 9 | 283 |
+| 23481 h12 | 0 | 1 | 0 | 5 | 6 |
+| 23481 h17 | 180 | 73 | 0 | 6 | 259 |
+| 19265 h7 | 914 | 141 | 0 | 2 | 1057 |
+| 19265 h12 | 931 | 137 | 7 | 0 | 1075 |
+| 19265 h17 | 1457 | 285 | 8 | 0 | 1750 |
+| 17104 h7 | 110 | 9 | 5 | 0 | 124 |
+| 17104 h12 | 2 | 0 | 0 | 0 | 2 |
+| 17104 h17 | 349 | 63 | 1 | 1 | 414 |
+| 20690 h7 | 132 | 103 | 0 | 2 | 237 |
+| 20690 h12 | 0 | 0 | 0 | 1 | 1 |
+| 20690 h17 | 105 | 103 | 0 | 0 | 208 |
+
+- What is left, read from the overlays:
+  - live cards against a shaded wall: a tree's card takes its feet's lit
+    factor and its twigs read as holes in the wall's shadow (787 of 19265's
+    931 noon px); at 25075 h7 most of what is left lies on live cards;
+  - window grates: their bars' shadows on the pane behind read dotted;
+  - fence rail shadows on the ground keep ragged lit dots at their edges.
+- Not done: the owner accepts at 0 on every view.
