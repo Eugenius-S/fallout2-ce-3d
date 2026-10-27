@@ -140,6 +140,7 @@ that fits no task becomes a new task when the board runs dry.
 - 2026-10-27 (tasks 101-104) The owner's later shots in `runs/inbox/2026-10-27-*`:
   roof ends and fringe (101), walls from inside and holes (102), the halo on
   walls (103), the camera's bottom edge (104).
+- KLAGRAZ e0 still differs from the stored regression reference by 132 px; clean 098 baseline has the same deviation.
 - 2026-10-27 The 4:3 full-screen art (main menu, splash and loading screens,
   death and ending slides, the like) extended to 16:9 and 21:9. The owner's
   method, to extend the originals rather than replace them: regenerate the art
