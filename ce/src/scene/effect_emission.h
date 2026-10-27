@@ -31,7 +31,8 @@ inline EffectEmission effectEmission(int fid)
     case 5: return { 240, 3, 0.65f }; // laser: former shared 0.7
     case 6: return { 241, 3, 0.8f, false, false, true }; // plasma bolt: 1.5
     case 7: case 8: return { 240, 3, 0.8f }; // plasma pistol/rifle: 0.7
-    case 9: return { 242, 3, 0.65f, false, true }; // rocket exhaust: 1
+    case 9: case 52: return { 242, 3, 0.65f, false, true }; // rocket / native robot rocket exhaust
+    case 55: return {240,3,0.8f}; // native PBALL2 plasma cannon projectile, found by 088 inventory
     case 14: return { 240, 3, 0.8f }; // electricity: corrected to 0.7
     case 26: return { 243, 4, 0.9f, false, true }; // flamethrower: 1
     case 2: case 10: case 29: case 30: case 31:

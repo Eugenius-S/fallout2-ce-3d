@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstdio>
 
+#include "../dev_output.h"
 #include "../scene/scene_lights.h"
 #include "../settings.h"
 #include "../devtools/devtools.h"
@@ -526,7 +527,7 @@ bool bindStaticShadows(const float* sceneMvp)
                     static_cast<unsigned char>(nearest * 255.0f + 0.5f);
             }
         }
-        std::FILE* dump = std::fopen("shadowmap-dump.pgm", "wb");
+        std::FILE* dump = std::fopen(dev_output::outputFile("shadowmap-dump.pgm").string().c_str(), "wb");
         if (dump != nullptr) {
             std::fprintf(dump, "P5\n%u %u\n255\n", kDumpSize, kDumpSize);
             std::fwrite(out.data(), 1, out.size(), dump);

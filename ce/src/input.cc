@@ -437,7 +437,7 @@ int screenshotHandlerDefaultImpl(int width, int height, unsigned char* data, uns
     for (index = 0; index < 100000; index++) {
         snprintf(fileName, sizeof(fileName), "scr%.5d.bmp", index);
 
-        stream = compat_fopen(fileName, "rb");
+        stream = compat_fopen(dev_output::outputFile(fileName).string().c_str(), "rb");
         if (stream == nullptr) {
             break;
         }
@@ -449,7 +449,7 @@ int screenshotHandlerDefaultImpl(int width, int height, unsigned char* data, uns
         return -1;
     }
 
-    stream = compat_fopen(fileName, "wb");
+    stream = compat_fopen(dev_output::outputFile(fileName).string().c_str(), "wb");
     if (stream == nullptr) {
         return -1;
     }

@@ -30,9 +30,19 @@ A background check without a window on screen: `tools\dev-snapshot.ps1`
 runs the build as `build\test-run\fallout2-ce-test.exe` with the fixed
 config from `tools\test-config\fallout2.cfg` (the owner's `game\fallout2.cfg`
 is never read or written), off screen, without taking focus, takes one
-snapshot and closes only its own process. With `-Probe`
+snapshot and closes only its own process. Everything the run writes
+(snapshots, logs, the game's saved maps, automap, world map and protos)
+goes to its own folder, `build\test-run\runs\<id>`, through
+`F2CE_DEV_OUT` (`ce/src/dev_output.h`): the shared `game\data` is read but
+never written, and another game's saved maps and protos in it are hidden
+(`xbaseHideGameState`). So test games from different worktrees run at the
+same time; runs from one worktree queue on a per-worktree mutex, as they
+share the exe and its config. With `-OutputDirectory` the snapshots (and
+`devprobe.log`, `shadowmap-dump.pgm`) are copied there and the run folder
+is removed unless `-KeepRunFolder`; without it the run folder stays and
+holds them. With `-Probe`
 (`--dev-pick-probe`) the game cursor is put on the scene residents, and
-`game\logs\devprobe.log` records what the game finds under it; then a click on
+`devprobe.log` records what the game finds under it; then a click on
 the floor (the hero walks) and a click on the nearest person (a dialog).
 Two snapshots: the hex cursor and the action icon.
 

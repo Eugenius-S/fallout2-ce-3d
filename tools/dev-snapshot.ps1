@@ -6,8 +6,16 @@
 # (dev-launch.ps1 installs new builds) are never read or written; the game's
 # resources stay in game/, which remains the working directory.
 #
+# Every file the run writes (snapshots, logs, the game's saved maps, automap
+# and world map) goes to its own folder, build/test-run/runs/<id> (the exe's
+# F2CE_DEV_OUT), so test games from different worktrees run side by side and
+# never read each other's output. Only runs from the same worktree queue up,
+# since they share the exe and its config. With -OutputDirectory the results
+# are copied there and the run folder is removed (-KeepRunFolder keeps it);
+# without it the run folder stays and holds the results.
+#
 # -Probe: the mouse is put on the scene's critters and what the game finds
-# under it goes to game/devprobe.log; two snapshots show the hex cursor and
+# under it goes to devprobe.log; two snapshots show the hex cursor and
 # the hover icon over a critter, then a left click there is logged until the
 # game leaves the scene (a dialog).
 #
@@ -15,7 +23,8 @@
 # process travels to each listed map elevation (and view hex) and takes one
 # snapshot there. -Classic: the same in the game's own 2D picture.
 #
-# Prints the snapshot JSON; the image lies next to it in game/.
+# Prints the snapshot JSON; the image lies next to it (a classic capture's in
+# the run folder's shots/game/).
 # Scenes come from build/scene-cache when that folder exists (a worktree
 # exports there with export.py --cache-root build/scene-cache), so a game
 # running from game/ keeps its own mod-cache. -SceneCache DIR reads them from
@@ -27,7 +36,7 @@ param(
     [string]$Map = "kladwtwn",
     [int]$Elevation = 0,
     [int]$TimeoutSeconds = 90,
-    # How long to wait for another test game to finish before giving up.
+    # How long to wait for this worktree's previous test game to finish.
     [ValidateRange(0, 240)]
     [int]$WaitMinutes = 30,
     [switch]$Probe,
@@ -75,6 +84,8 @@ param(
     [string]$PreferencesProbe,
     [switch]$ReuseTestConfig,
     [switch]$CaptureConsole,
+    # Keep build/test-run/runs/<id> after the results are copied out.
+    [switch]$KeepRunFolder,
     # -OpenDoors: every door on the map stands open (its last frame).
     [switch]$OpenDoors,
     # -Glow: keep the glow on in this background run (it is forced off by
@@ -95,6 +106,13 @@ param(
     [switch]$EffectLightCheck,
     [ValidateSet('laser', 'plasma-bolt', 'plasma-pistol', 'plasma-rifle', 'fire-explosion', 'plasma-explosion', 'emp-explosion', 'rocket-explosion', 'electric', 'flamethrower', 'rocket', 'sign40', 'sign41')]
     [string]$EffectFixture,
+    [ValidateRange(1, 16777215)]
+    [int]$MuzzleWeapon = 0,
+    [ValidateSet(45,46,47)]
+    [int]$MuzzleAnimation = 45,
+    [ValidateRange(0,5)]
+    [int]$MuzzleRotation = 1,
+    [switch]$MuzzleGlowOff,
     [ValidateRange(0, 1000)]
     [int]$EffectFrame = -1,
     # -Shadows: keep the sun shadows on in this background run (they are
@@ -124,6 +142,11 @@ param(
     [int]$Scale = 2
 )
 $ErrorActionPreference = 'Stop'
+if ($MuzzleWeapon -gt 0) {
+    if ($EffectFixture -or $GlowPair -or $GlowLadder -or $GlowLevels -or $DialogFixture -or $UiFixture -or $Preferences -or $Tour -or $Classic -or $Probe -or $DevPanel -or $PreferencesProbe) {throw 'Muzzle batch needs its own ordinary scene run.'}
+    if (-not $OutputDirectory) {throw '-MuzzleWeapon requires -OutputDirectory.'}
+    $Still=$true; $CyclePalette=$true; $Glow=-not $MuzzleGlowOff; $CaptureConsole=$true
+}
 if (([int][bool]$GlowLadder + [int][bool]$GlowPair + [int][bool]$GlowLevels) -gt 1) { throw 'Choose one glow comparison mode.' }
 if ($EffectLightCheck -and (-not $EffectFixture -or $EffectFixture -like 'sign*' -or $NoEffectEmission)) { throw '-EffectLightCheck requires an emitting projectile or explosion fixture.' }
 if ($EffectFrame -ge 0 -and -not $EffectFixture) { throw '-EffectFrame requires -EffectFixture.' }
@@ -142,6 +165,22 @@ function Get-TestConfigValue([string]$Path, [string]$Section, [string]$Key) {
         elseif ($currentSection -eq $Section -and $line -match $keyPattern) { return $Matches[1] }
     }
     throw "Missing [$Section].$Key in $Path"
+}
+# Scene captures live beside the sidecar; classic framebuffer PNGs use the run
+# folder's shots/game even though their sidecars are under shots/dev.
+function Get-SnapshotImage($Snapshot, $Metadata) {
+    $image = Join-Path $Snapshot.Directory $Metadata.image
+    if (Test-Path -LiteralPath $image -PathType Leaf) { return $image }
+    return Join-Path (Join-Path $runDirectory 'shots\game') $Metadata.image
+}
+# Once the results are copied out the run folder goes; without
+# -OutputDirectory it holds them. A failed run's folder stays for a look.
+function Complete-RunFolder {
+    if ($OutputDirectory -and -not $KeepRunFolder) {
+        Remove-Item -LiteralPath $runDirectory -Recurse -Force
+    } else {
+        Write-Output "RUN FOLDER: $runDirectory"
+    }
 }
 if ($DevPanel) {
     if ($Preferences -or $PreferencesProbe -or $DialogFixture -or $UiFixture -or $Probe -or $Tour) {
@@ -167,11 +206,14 @@ if (-not (Test-Path -LiteralPath $fixedConfig)) { throw "Missing the fixed test 
 $exeDirectory = Join-Path $Root 'build\test-run'
 New-Item -ItemType Directory -Path $exeDirectory -Force | Out-Null
 $exe = Join-Path $exeDirectory 'fallout2-ce-test.exe'
-# One test game at a time on this machine: wait here for the slot instead of
-# failing, so an agent spends one call on it, not a polling loop. The mutex
-# lines the waiters up; it is let go once the test game has exited, or by the
-# trap on any error, so a long-lived PowerShell host never keeps it.
-$slot = New-Object System.Threading.Mutex($false, 'Global\fallout2-ce-test-slot')
+# One test game at a time per worktree (they share this exe and its config);
+# other worktrees run alongside. Wait here for the slot instead of failing, so
+# an agent spends one call on it, not a polling loop. The mutex lines the
+# waiters up; it is let go once the test game has exited, or by the trap on
+# any error, so a long-lived PowerShell host never keeps it.
+$slotKey = [System.BitConverter]::ToString([System.Security.Cryptography.SHA256]::Create().ComputeHash(
+    [System.Text.Encoding]::UTF8.GetBytes($exe.ToLowerInvariant()))).Replace('-', '').Substring(0, 16)
+$slot = New-Object System.Threading.Mutex($false, "Global\fallout2-ce-test-slot-$slotKey")
 $slotHeld = $false
 function Release-TestSlot {
     if ($script:slotHeld) {
@@ -185,8 +227,10 @@ try { $slotHeld = $slot.WaitOne([TimeSpan]::FromMinutes($WaitMinutes)) }
 catch [System.Threading.AbandonedMutexException] { $slotHeld = $true }
 if (-not $slotHeld) { throw "The test slot stayed busy for $WaitMinutes minutes." }
 $slotDeadline = (Get-Date).AddMinutes($WaitMinutes)
-while (Get-Process fallout2-ce-test -ErrorAction SilentlyContinue) {
-    if ((Get-Date) -gt $slotDeadline) { throw "Another fallout2-ce-test.exe kept running for $WaitMinutes minutes." }
+# A game this worktree started outside the slot (an older script) still holds
+# the exe; other worktrees' test games are left alone.
+while (Get-Process fallout2-ce-test -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq $exe }) {
+    if ((Get-Date) -gt $slotDeadline) { throw "$exe kept running for $WaitMinutes minutes." }
     Start-Sleep -Seconds 2
 }
 $configPath = Join-Path $exeDirectory 'fallout2.cfg'
@@ -276,7 +320,12 @@ if (-not (Test-Path -LiteralPath $exe) -or
 }
 $shots = 1
 $runId = [guid]::NewGuid().ToString('N')
+# This run's own output root: the exe writes everything under it. A short
+# name, as the game's own paths stay within 260 characters.
+$runDirectory = Join-Path $exeDirectory "runs\$($runId.Substring(0, 12))"
+New-Item -ItemType Directory -Path $runDirectory -Force | Out-Null
 $arguments = @('--dev-tools')
+if ($MuzzleWeapon -gt 0) {$arguments += @("--dev-muzzle=$MuzzleWeapon", "--dev-muzzle-animation=$MuzzleAnimation", "--dev-muzzle-rotation=$MuzzleRotation")}
 if ($NoEffectEmission) { $arguments += '--dev-no-effect-emission' }
 if ($EffectLightCheck) { $arguments += '--dev-effect-light-check' }
 if ($SharpText) { $arguments += '--dev-sharp-text=1' } else { $arguments += '--dev-sharp-text=0' }
@@ -348,8 +397,6 @@ if ($PreferencesProbe) {
     if ($Tour) { throw '-Tour cannot be combined with -Probe.' }
     $shots = 2
     $arguments += '--dev-pick-probe'
-    Remove-Item (Join-Path (Join-Path $GameDir 'logs') 'devprobe.log') -ErrorAction SilentlyContinue
-    Remove-Item (Join-Path $GameDir 'devprobe.log') -ErrorAction SilentlyContinue
 } elseif ($Tour -or $Classic) {
     # Without the scene the one snapshot comes from a tour with no stops.
     $shots = 1 + @("$Tour".Split(',') | Where-Object { $_.Trim() }).Count
@@ -372,6 +419,8 @@ $env:F2CE_DEV_BACKGROUND = '1'
 $previousAudio = $env:SDL_AUDIODRIVER
 $env:SDL_AUDIODRIVER = 'dummy'
 $previousSceneCache = $env:F2CE_SCENE_CACHE
+$previousOutput = $env:F2CE_DEV_OUT
+$env:F2CE_DEV_OUT = $runDirectory
 $worktreeCache = Join-Path $Root 'build\scene-cache'
 if ($SceneCache) {
     if (-not (Test-Path -LiteralPath $SceneCache -PathType Container)) { throw "No scene cache at $SceneCache" }
@@ -414,15 +463,14 @@ try {
             # writer that could not make the folder. Both are filtered by the run
             # id below.
             $snapshots = @(
-                @(Get-ChildItem $GameDir -Filter 'devshot-*.json' -File -ErrorAction SilentlyContinue) +
-                @(Get-ChildItem (Join-Path $GameDir 'shots\dev') -Recurse -Filter 'devshot-*.json' -File -ErrorAction SilentlyContinue)
+                @(Get-ChildItem $runDirectory -Filter 'devshot-*.json' -File -ErrorAction SilentlyContinue) +
+                @(Get-ChildItem (Join-Path $runDirectory 'shots\dev') -Recurse -Filter 'devshot-*.json' -File -ErrorAction SilentlyContinue)
             ) | Where-Object {
                 if ($_.LastWriteTime -le $started) { return $false }
                 try { (Get-Content -Raw -LiteralPath $_.FullName | ConvertFrom-Json).snapshot_run -eq $runId }
                 catch { $false } # The writer may still be completing this file.
             }
-            $log = Join-Path (Join-Path $GameDir 'logs') 'devprobe.log'
-            if (-not (Test-Path $log)) { $log = Join-Path $GameDir 'devprobe.log' }
+            $log = Join-Path $runDirectory 'logs\devprobe.log'
             $probed = -not $Probe -or ((Test-Path $log) -and (Select-String -Path $log -Pattern 'probe done' -Quiet))
             if ($UiFixture) {
                 $fixtureLog = Join-Path $OutputDirectory 'process.stdout.log'
@@ -462,6 +510,15 @@ try {
                 }
                 if ($snapshots.Count -ge $shots -and (Test-Path -LiteralPath $fixtureLog) -and
                     (Select-String -LiteralPath $fixtureLog -Pattern '^DIALOG_FIXTURE PASS ' -Quiet)) { break }
+            } elseif ($MuzzleWeapon -gt 0) {
+                $muzzleLog086=Join-Path $OutputDirectory 'process.stdout.log'
+                if (Test-Path -LiteralPath $muzzleLog086) {
+                    $muzzleText086=Get-Content -Raw -LiteralPath $muzzleLog086
+                    if ($muzzleText086 -match 'MUZZLE_FIXTURE FAIL') {break}
+                    if ($muzzleText086 -match 'MUZZLE_FIXTURE PASS frames=(\d+) captures=(\d+)') {
+                        if ($snapshots.Count -ge [int]$Matches[2]) {break}
+                    }
+                }
             } elseif ($snapshots.Count -ge $shots -and $probed) { break }
             Start-Sleep -Milliseconds 500
         }
@@ -471,6 +528,7 @@ try {
     $env:F2CE_DEV_BACKGROUND = $previousBackground
     $env:SDL_AUDIODRIVER = $previousAudio
     $env:F2CE_SCENE_CACHE = $previousSceneCache
+    $env:F2CE_DEV_OUT = $previousOutput
     if ($null -ne $process) {
         if (-not $process.HasExited) {
             Stop-Process -Id $process.Id -Force
@@ -479,6 +537,10 @@ try {
         if (-not $process.WaitForExit(10000)) { throw 'The background test process did not exit.' }
     }
     Release-TestSlot
+}
+if ($MuzzleWeapon -gt 0) {
+    $muzzleText086=Get-Content -Raw -LiteralPath (Join-Path $OutputDirectory 'process.stdout.log')
+    if ($muzzleText086 -notmatch 'MUZZLE_FIXTURE PASS' -or $muzzleText086 -match 'MUZZLE_FIXTURE FAIL') {throw 'Muzzle batch did not finish successfully.'}
 }
 if ($PreferencesProbe) {
     $probeLog = Get-Content -Raw -LiteralPath (Join-Path $OutputDirectory 'process.stdout.log')
@@ -549,6 +611,7 @@ if ($PreferencesProbe) {
     $resultPath = Join-Path $OutputDirectory 'preferences-result.json'
     $probeResult | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $resultPath -Encoding utf8
     Write-Output "PREFERENCES_PROBE RESULT $resultPath"
+    Complete-RunFolder
     return
 }
 if ($UiFixture) {
@@ -650,6 +713,7 @@ if ($DialogPageInspect) {
     }
     if (-not $probeHarnessStoppedProcess) { throw 'Dialog page inspection was not stopped by its isolated helper harness.' }
     Write-Output $inspectLog
+    Complete-RunFolder
     return
 }
 if ($DialogCursorCheck) {
@@ -671,7 +735,7 @@ if ($DialogCursorCheck) {
         $cursorMetadata.sharp_text.runs -le 0 -or $cursorMetadata.sharp_text.glyphs -le 0) {
         throw 'Dialog cursor snapshot does not prove an active drawn sharp-text pass.'
     }
-    $cursorImagePath = Join-Path $GameDir $cursorMetadata.image
+    $cursorImagePath = Get-SnapshotImage $snapshots[0] $cursorMetadata
     & py -3 (Join-Path $PSScriptRoot 'check_png_pixel.py') $cursorImagePath $cursorPass.Groups[1].Value $cursorPass.Groups[2].Value `
         $cursorPass.Groups[5].Value $cursorPass.Groups[6].Value $cursorPass.Groups[7].Value
     if ($LASTEXITCODE -ne 0) { throw 'Dialog cursor pixel in the decoded PNG does not match the engine cursor palette color.' }
@@ -684,25 +748,27 @@ if ($DialogLayoutCheck) {
     }
 }
 if ($snapshots.Count -lt $shots) { throw "No snapshot within $TimeoutSeconds s." }
+if ($OutputDirectory) { New-Item -ItemType Directory -Path $OutputDirectory -Force | Out-Null }
 foreach ($snapshot in $snapshots) {
+    $shown = $snapshot.FullName
     if ($OutputDirectory) {
-        New-Item -ItemType Directory -Path $OutputDirectory -Force | Out-Null
         $metadata = Get-Content -Raw -LiteralPath $snapshot.FullName | ConvertFrom-Json
         Copy-Item -LiteralPath $snapshot.FullName -Destination $OutputDirectory
-        # Scene captures live beside the sidecar; vanilla framebuffer PNGs
-        # use shots/game even though their sidecars are under shots/dev.
-        $imagePath = Join-Path $snapshot.Directory $metadata.image
-        if (-not (Test-Path -LiteralPath $imagePath -PathType Leaf)) {
-            $imagePath = Join-Path (Join-Path $GameDir 'shots\game') $metadata.image
-        }
-        Copy-Item -LiteralPath $imagePath -Destination $OutputDirectory
+        Copy-Item -LiteralPath (Get-SnapshotImage $snapshot $metadata) -Destination $OutputDirectory
+        $shown = Join-Path $OutputDirectory $snapshot.Name
     }
-    Write-Output ("SNAPSHOT: " + $snapshot.FullName)
+    Write-Output ("SNAPSHOT: " + $shown)
     Get-Content $snapshot.FullName
 }
+$probeLog = Join-Path $runDirectory 'logs\devprobe.log'
+if ($OutputDirectory) {
+    # -ShadowDebug 6 writes the depth map dump.
+    foreach ($kept in @($probeLog, (Join-Path $runDirectory 'shadowmap-dump.pgm'))) {
+        if (Test-Path -LiteralPath $kept) { Copy-Item -LiteralPath $kept -Destination $OutputDirectory }
+    }
+}
 if ($Probe) {
-    $probeLog = Join-Path (Join-Path $GameDir 'logs') 'devprobe.log'
-    if (-not (Test-Path $probeLog)) { $probeLog = Join-Path $GameDir 'devprobe.log' }
     Write-Output "PROBE:"
     Get-Content $probeLog
 }
+Complete-RunFolder

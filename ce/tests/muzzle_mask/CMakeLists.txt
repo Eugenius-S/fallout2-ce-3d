@@ -1,0 +1,5 @@
+cmake_minimum_required(VERSION 3.18)
+project(muzzle_mask_tests LANGUAGES CXX)
+add_executable(muzzle_mask_tests muzzle_mask_test.cc ../../src/scene/muzzle_mask.cc)
+target_compile_features(muzzle_mask_tests PRIVATE cxx_std_17)
+add_test(NAME muzzle_mask_tests COMMAND muzzle_mask_tests)

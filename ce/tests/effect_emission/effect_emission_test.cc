@@ -22,6 +22,8 @@ int main()
         || !effectEmission(0x05000006).cycling
         || effectEmission(0x05000006).alpha != 241
         || laser.alpha != 240 || rocket.alpha != 242
+        || effectEmission(0x05000034).alpha != rocket.alpha // robot rocket
+        || effectEmission(0x05000037).alpha != laser.alpha // dual plasma cannon
         || effectEmission(0x05000026).distance != 0
         || effectEmission(0x0500001A).alpha != 243
         || effectEmission(0x0500001D).alpha != 244) {

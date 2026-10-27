@@ -165,6 +165,7 @@ vec2 hexAt(vec3 w) {
 // spreads it), fading over its distance. The small lights come per hex,
 // between hex centers; the big ones smooth, from their own point, and a wall
 // (`facing`, normal n) takes more of one it faces.
+)" R"(
 vec4 pointLights(vec3 w, vec3 n, bool facing) {
     vec2 hex = hexAt(w);
     vec4 small = texture(uLightMap, (hex + 0.5) / 200.0);
@@ -593,7 +594,8 @@ void main() {
             bool calibratedSign = vFullLight > 0.2 && vFullLight < 0.3;
             bool signTube = (calibratedSign || (vFullLight > 0.4 && vFullLight < 0.6))
                 && texel.r >= 0.5 && texel.r > texel.b * 1.5 && texel.r >= texel.g;
-            bool calibratedCore = (mark > 239.5 && mark < 245.5) || (calibratedSign && signTube);
+            bool muzzleCore = mark > 245.5 && mark < 247.5;
+            bool calibratedCore = (mark > 239.5 && mark < 247.5) || (calibratedSign && signTube);
             bool effectCore = calibratedCore || (mark > 247.5 && mark < 250.5) || signTube;
             bool fullBright = abs(mark - 254.0) < 0.5 || effectCore;
             outColor.a = 1.0;
@@ -706,10 +708,10 @@ void main() {
             // Preserve that clamp before scaling to common strength 2; simply
             // multiplying the old gain by the ratio would change its colors.
             if (calibratedCore) {
-                float referenceGain = signTube ? 4.0 : (mark < 240.5 ? 8.0 : (mark < 241.5 ? 1.0
-                    : (mark < 242.5 ? 8.0 : 4.0)));
-                float chosenRatio = signTube ? 0.2 : (mark < 240.5 ? 0.35 : (mark < 241.5 ? 0.75
-                    : (mark < 243.5 ? 0.5 : (mark < 244.5 ? 0.35 : 0.2))));
+                float referenceGain = muzzleCore ? 1.0 : (signTube ? 4.0 : (mark < 240.5 ? 8.0 : (mark < 241.5 ? 1.0
+                    : (mark < 242.5 ? 8.0 : 4.0))));
+                float chosenRatio = muzzleCore ? (mark > 246.5 ? 0.45 : 0.25) : (signTube ? 0.2 : (mark < 240.5 ? 0.35 : (mark < 241.5 ? 0.75
+                    : (mark < 243.5 ? 0.5 : (mark < 244.5 ? 0.35 : 0.2)))));
                 glow = clamp(glow * referenceGain, 0.0, 1.0) * chosenRatio;
             } else if (effectCore) {
                 glow *= effectGain;

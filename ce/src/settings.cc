@@ -658,6 +658,18 @@ void settingsMarkCommandLineOverride(const char* section, const char* key)
     }
 }
 
+void settingsRedirectMasterPatches(const std::string& path)
+{
+    for (auto& entry : settingsRegistry) {
+        if (entry.descriptor.section == "system" && entry.descriptor.key == "master_patches") {
+            // Written back on save in place of the live value.
+            entry.restartValue = entry.getValue();
+            entry.setValue(path);
+            return;
+        }
+    }
+}
+
 void settingsWriteToConfig(bool onlyAdd)
 {
     for (const auto& entry : settingsRegistry) {

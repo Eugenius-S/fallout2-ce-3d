@@ -1,5 +1,6 @@
 #include "content_config.h"
 
+#include "dev_output.h"
 #include "game_config_migration.h"
 
 namespace fallout {
@@ -15,9 +16,12 @@ void contentConfigInit()
         return;
     }
 
-    // Try to migrate some settings from legacy config files.
-    contentConfigTryMigrateFromSfall(kConfigPatchPath);
-    contentConfigTryMigrateFromF2Res(kConfigPatchPath);
+    // Try to migrate some settings from legacy config files. A test run with
+    // its own folder (dev_output.h) reads the shared patch config as it is.
+    if (dev_output::gameStateDirectory().empty()) {
+        contentConfigTryMigrateFromSfall(kConfigPatchPath);
+        contentConfigTryMigrateFromF2Res(kConfigPatchPath);
+    }
 
     if (!configInit(&gContentConfig)) {
         return;

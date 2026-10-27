@@ -19,6 +19,9 @@ struct PickEntry {
 struct SceneObjectArt { int fid; int rotation; };
 // The visible side (087), shared with emission/light source extraction.
 SceneObjectArt shownObjectArt(Object* object);
+// Bounded native-art inspection fixtures only; normal objects have no override.
+void setObjectArtOffsetForInspection(Object* object, int x, int y);
+bool objectArtOffsetForInspection(Object* object, int* x, int* y);
 
 // Every live object on the current elevation into the scene in its current
 // frame (critters with their animation, doors open or shut, items where they

@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <string>
+#include <map>
 
 #include "../art.h"
 #include "../color.h"
@@ -11,6 +12,7 @@
 #include "../object.h"
 #include "clean_edges_boundary_mask.h"
 #include "effect_emission.h"
+#include "muzzle_flash.h"
 #include "../scene_renderer/board_shadows.h"
 #include "../scene_renderer/camera.h"
 #include "../scene_renderer/live_objects.h"
@@ -69,6 +71,7 @@ ShownArt shownArt(Object* object, bool flat)
 }
 
 std::vector<PickEntry> gPickObjects;
+std::map<Object*,std::pair<int,int>> gInspectionOffsets;
 int gHeroPickId = -1;
 int gHeroStack = 0; // standing sprites the game paints on the hero's hex before the hero
 unsigned int gObjectCardsSkipped = 0;
@@ -111,13 +114,18 @@ bool updateHeroFromGame()
     if (indices == nullptr || palette == nullptr) return unavailable("player palette or pixels are unavailable");
 
     const size_t pixelCount = static_cast<size_t>(width) * static_cast<size_t>(height);
+    const MuzzleMask* flash = muzzleFlashFor(shown.fid, gDude->frame, shown.rotation, true);
+    const MuzzleMaterial muzzle = flash != nullptr ? muzzleMaterial(gDude) : MuzzleMaterial{};
     std::vector<unsigned char> rgba(pixelCount * 4);
     for (size_t index = 0; index < pixelCount; index++) {
         const unsigned char colorIndex = indices[index];
         rgba[index * 4] = static_cast<unsigned char>(palette[colorIndex * 3] << 2);
         rgba[index * 4 + 1] = static_cast<unsigned char>(palette[colorIndex * 3 + 1] << 2);
         rgba[index * 4 + 2] = static_cast<unsigned char>(palette[colorIndex * 3 + 2] << 2);
-        rgba[index * 4 + 3] = spriteAlpha(colorIndex);
+        const bool hot = flash != nullptr && flash->mask.size() == pixelCount && flash->mask[index];
+        const bool extra = hot && muzzle.extra && flash->extraMask[index];
+        rgba[index * 4 + 3] = extra ? 247 : (hot && muzzle.allowNative ? 246 : spriteAlpha(colorIndex));
+        if (extra) tintMuzzlePixel(rgba.data()+index*4,muzzle);
     }
 
     scene_renderer::StaticHeroFrame frame = {
@@ -231,7 +239,10 @@ void addObjectCard(Object* object, void* context)
             height = bodyHeight;
         }
     }
-    const int variant = body != nullptr ? 1 : 0;
+    const MuzzleMask* flash = muzzleFlashFor(shown.fid, object->frame, shown.rotation, true);
+    const MuzzleMaterial muzzle = flash != nullptr ? muzzleMaterial(object) : MuzzleMaterial{};
+    const int variant = (body != nullptr ? 1 : 0) | (flash != nullptr && (muzzle.allowNative || muzzle.extra) ? 2 : 0)
+        | (muzzle.extra ? ((muzzle.weaponPid & 0xFFFFFF) << 3) | 4 : 0);
     const bool cached = scene_renderer::staticObjectArtCached(object->fid, object->frame, shown.rotation, variant);
     if (!cached && body == nullptr) {
         const unsigned char* indices = image.getData();
@@ -246,13 +257,19 @@ void addObjectCard(Object* object, void* context)
             pass.rgba[index * 4] = static_cast<unsigned char>(pass.palette[colorIndex * 3] << 2);
             pass.rgba[index * 4 + 1] = static_cast<unsigned char>(pass.palette[colorIndex * 3 + 1] << 2);
             pass.rgba[index * 4 + 2] = static_cast<unsigned char>(pass.palette[colorIndex * 3 + 2] << 2);
-            pass.rgba[index * 4 + 3] = effectHotPixel(emission, colorIndex, pass.palette)
-                ? emission.alpha : spriteAlpha(colorIndex);
+            const bool hot=flash!=nullptr && flash->mask.size()==pixelCount && flash->mask[index];
+            const bool extra=hot && muzzle.extra && flash->extraMask[index];
+            pass.rgba[index*4+3]=extra ? 247 : (hot && muzzle.allowNative ? 246
+                : (effectHotPixel(emission,colorIndex,pass.palette) ? emission.alpha : spriteAlpha(colorIndex)));
+            if (extra) tintMuzzlePixel(pass.rgba.data()+index*4,muzzle);
         }
     }
+    int inspectionX=0,inspectionY=0;
+    objectArtOffsetForInspection(object,&inspectionX,&inspectionY);
     scene_renderer::StaticObjectFrame frame = {
         object->tile, object->fid, object->frame, shown.rotation, object->x, object->y,
-        body != nullptr ? bodyX : image.getXOffset(), body != nullptr ? bodyY : image.getYOffset(), width, height,
+        (body != nullptr ? bodyX : image.getXOffset())+inspectionX,
+        (body != nullptr ? bodyY : image.getYOffset())+inspectionY, width, height,
         flat,
         cached ? nullptr : (body != nullptr ? body : pass.rgba.data()),
         cached ? 0 : (body != nullptr ? static_cast<size_t>(width) * static_cast<size_t>(height) * 4
@@ -320,6 +337,14 @@ SceneObjectArt shownObjectArt(Object* object)
         || scene_renderer::staticObjectBaked(object->tile, object->fid)
         || (scene_renderer::staticFlyCameraActive() && scene_renderer::staticObjectFlyFlat(object->tile, object->fid));
     return shownArt(object, flat);
+}
+
+void setObjectArtOffsetForInspection(Object* object,int x,int y) {gInspectionOffsets[object]={x,y};}
+bool objectArtOffsetForInspection(Object* object,int* x,int* y)
+{
+    const auto found=gInspectionOffsets.find(object);
+    if(found==gInspectionOffsets.end()) return false;
+    *x=found->second.first; *y=found->second.second; return true;
 }
 
 bool updateObjectsFromGame()

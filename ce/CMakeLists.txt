@@ -301,9 +301,12 @@ set(FALLOUT_PLATFORM_SOURCES
     "src/devtools/fixed_screen_options.cc"
     "src/devtools/snapshot_rows.cc"
     "src/devtools/preferences_probe.cc"
+    "src/devtools/test_run_state.cc"
     "src/devtools/ui_fixture.cc"
     "src/devtools/weapon_effect_fixture.cc"
     "src/devtools/weapon_effect_fixture.h"
+    "src/devtools/muzzle_fixture.cc"
+    "src/devtools/muzzle_fixture.h"
     "src/scene/preview_policy.cc"
     "src/scene/preview_policy.h"
     "src/scene/dialogue_backdrop.cc"
@@ -311,6 +314,10 @@ set(FALLOUT_PLATFORM_SOURCES
     "src/scene/dialogue_layout.cc"
     "src/scene/dialogue_layout.h"
     "src/scene/scene_lights.cc"
+    "src/scene/muzzle_mask.cc"
+    "src/scene/muzzle_mask.h"
+    "src/scene/muzzle_flash.cc"
+    "src/scene/muzzle_flash.h"
     "src/scene/text_layer.cc"
     "src/scene/floating_text.cc"
     "src/scene/text_capture.cc"
@@ -338,6 +345,7 @@ set(FALLOUT_PLATFORM_SOURCES
     "src/devtools/snapshot_rows.h"
     "src/devtools/snapshot_palette.h"
     "src/devtools/preferences_probe.h"
+    "src/devtools/test_run_state.h"
     "src/devtools/ui_fixture.h"
     "src/scene_renderer/gl_api.cc"
     "src/scene_renderer/gl_api.h"
@@ -449,9 +457,11 @@ if(BUILD_TESTING)
     add_subdirectory(tests/map_clip)
     add_subdirectory(tests/fixed_screen_options)
     add_subdirectory(tests/snapshot_rows)
+    add_subdirectory(tests/dev_output)
     add_subdirectory(tests/embedded_fonts)
     add_subdirectory(tests/clean_edges_boundary_mask)
     add_subdirectory(tests/effect_emission)
+    add_subdirectory(tests/muzzle_mask)
     add_subdirectory(tests/sun)
     add_subdirectory(tests/text_layer)
     add_subdirectory(tests/dialogue_layout)
