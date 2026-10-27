@@ -2,8 +2,8 @@
 id: 094
 title: Winding the clock past night never brings the morning back
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: gpt
 suggested: gpt
 priority: normal
 claude-only: no
@@ -44,3 +44,11 @@ gets light again and the sun comes back.
 How the night looks (the moon's strength and colour).
 
 ## Log
+
+### 2026-10-27 gpt: claimed
+
+Owner confirmed Ctrl+T in the live 3D view as the control that reproduces
+the stuck night. Starting from main 410e2d9c in the separate worktree
+E:/Projects/fallout2-ce-3d-gpt-094. First reproduce that control in an
+isolated test run, recording time, ambient and daylight through midnight;
+then fix the cause, add the night-to-morning test and capture the four hours.
