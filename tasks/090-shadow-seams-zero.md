@@ -271,3 +271,57 @@ the same way only if its cause is shared, else logged; foliage looks fine.
   (1457 holes either way), so its twigs over the lit wall are its own
   outline, not a seam. The per-pixel rule changed nothing and is not kept.
 - ctest 16/16; regression 0 changed px on all 16 views.
+
+### 2026-10-27 claude, round 3 (metric)
+Decision (parent session for the owner, option a with two limits): the
+metric leaves out only the pixels a standing live card covers (a tree, a
+person: a live card darkened whole at its feet; doors in their wall stay
+counted). Why: a tree standing in shadow before a sunlit wall shows its own
+outline there, not a gap in a shadow, and the owner finds foliage fine.
+- The factor view paints such a card green; shadow_seams.py leaves its
+  pixels out and judges the patches round it with the card joined: a lit
+  patch closed by shadow and the card is a hole, a lit line between a card
+  and its shadow is a hole, the wall between two twigs is not, nor a line
+  the card only crosses on its way to a left-out face.
+- `py -3 tools/shadow_seams.py --self-test` draws the cases (a figure in
+  shadow, a lit gap round its feet, a lit hole and a shaded speck beside
+  it, a shaded tree over a lit wall): all pass.
+- Proof on real frames, 19265 h17: 200 lit pixels painted under the cards
+  standing in shadow raise the count 380 to 564; the contact rule off
+  raises it 380 to 759, the part within 6 px of a card 0 to 8.
+- The egg and translucent object passes upload each object's anchor,
+  ground and wall parameters too (PR 126 review).
+- Tried and dropped: stretching the disk's axes to a full radius across
+  the map on grazed faces (the eave's teeth stayed, 300 holes, dips 8 to
+  182). The teeth under an eave are in the raw coverage itself, a comb
+  with a 3 px period: the map's stair along the roof's edge.
+- ctest 18/18; regression 0 changed px on all 16 views.
+
+| view | holes | specks | dips | grains | total |
+|---|---|---|---|---|---|
+| 25075 h7 | 166 | 72 | 0 | 96 | 334 |
+| 25075 h12 | 0 | 0 | 0 | 0 | 0 |
+| 25075 h17 | 207 | 73 | 0 | 9 | 289 |
+| 24292 h7 | 90 | 141 | 0 | 1 | 232 |
+| 24292 h12 | 0 | 0 | 0 | 0 | 0 |
+| 24292 h17 | 128 | 40 | 1 | 2 | 171 |
+| 24292 h7 fly | 284 | 280 | 0 | 1 | 565 |
+| 24292 h12 fly | 8 | 0 | 0 | 0 | 8 |
+| 24292 h17 fly | 405 | 203 | 0 | 9 | 617 |
+| 23481 h7 | 99 | 138 | 5 | 9 | 251 |
+| 23481 h12 | 0 | 0 | 0 | 0 | 0 |
+| 23481 h17 | 154 | 69 | 0 | 6 | 229 |
+| 19265 h7 | 116 | 4 | 0 | 2 | 122 |
+| 19265 h12 | 29 | 0 | 7 | 0 | 36 |
+| 19265 h17 | 297 | 75 | 8 | 0 | 380 |
+| 17104 h7 | 118 | 9 | 5 | 0 | 132 |
+| 17104 h12 | 0 | 0 | 0 | 0 | 0 |
+| 17104 h17 | 345 | 50 | 1 | 1 | 397 |
+| 20690 h7 | 83 | 103 | 0 | 2 | 188 |
+| 20690 h12 | 0 | 0 | 0 | 1 | 1 |
+| 20690 h17 | 63 | 87 | 0 | 0 | 150 |
+
+- What is left: the eave's teeth on the wall below a roof's edge (morning
+  and evening, the largest share at 17104, 19265 and the fly view); lit
+  slivers between fence rail shadows on the ground (25075 h7); low plants
+  and straw at a shadow's edge. Not done: the owner accepts at 0.

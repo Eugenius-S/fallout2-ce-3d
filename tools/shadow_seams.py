@@ -79,12 +79,20 @@ def measure(fac, ignore, card, area, edge):
     holes = small_enclosed(lit, area, near_ignore, card)
     # Lit lines at most 2 px wide closed by the shadow round them: what a
     # 3 x 3 closing of the shadow fills, the picture border left out.
+    closed = ndimage.binary_closing(shadow, structure=square, border_value=0)
+    holes |= closed & lit & ~near_ignore
     # A standing card closes them too, with the shadow (a lit line between a
     # figure and the shadow it stands in), but not alone: the wall between
-    # two twigs of a tree is the tree's own outline.
-    closed = ndimage.binary_closing(shadow | card, structure=square, border_value=0)
-    closed &= ~ndimage.binary_closing(card, structure=square, border_value=0)
-    holes |= closed & lit & ~near_ignore
+    # two twigs of a tree is the tree's own outline. Nor a line the card only
+    # crosses, which runs on to a left-out face (the lit foot of a wall
+    # turned from the sun, a post standing on it).
+    by_card = ndimage.binary_closing(shadow | card, structure=square, border_value=0)
+    by_card &= ~closed & ~ndimage.binary_closing(card, structure=square, border_value=0) & lit
+    labels, count = ndimage.label(lit, structure=square)
+    if count:
+        open_ends = np.unique(labels[near_ignore & lit])
+        by_card &= ~np.isin(labels, open_ends[open_ends > 0])
+    holes |= by_card & ~near_ignore
     specks = small_enclosed(shadow, area, near_ignore, card)
     disk = ndimage.generate_binary_structure(2, 1)
     inner_shadow = ndimage.binary_erosion(shadow | ignore, structure=disk, iterations=edge, border_value=1) & shadow
