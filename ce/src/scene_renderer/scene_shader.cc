@@ -354,6 +354,54 @@ float shadowCoverage(vec3 base, vec3 t1, vec3 t2, vec2 slope, float selfId) {
     }
     return sum / count;
 }
+// Towards the eye that sees this fragment: the game's parallel direction, or
+// the free camera's own ray (090: a low card under the fly camera followed
+// the game's direction and its shadow slid off the ground's around it).
+vec3 towardViewer() {
+    return uFlyEye.w > 0.5 ? normalize(uFlyEye.xyz - vWorld) : uTowardCamera;
+}
+// The caster id the map holds where a world point projects, 0 for none.
+float shadowCasterId(vec3 q) {
+    vec3 m = shadowTex(q);
+    return floor(texelFetch(uShadowIds, ivec2(m.xy * vec2(textureSize(uShadowMap, 0))), 0).r * 1024.0 + 0.5);
+}
+// Whether the eye sees this ground point through a hole in a wall the map
+// holds solid (090): a window grate's art holes. The floor seen through them
+// lies inside, in the shadow of the roof or the building's body, and dotted
+// the lit pane with the grate's holes. The march goes from the point towards
+// the eye until the first lit place; the point is seen through a face when
+// that place lies on a caster's surface (just behind it a blocker within
+// contact, just in front of it the caster itself, not the far ground a
+// shadow's edge in the air shows) and the point's own blocker carries no id
+// (a roof, a wall's body) while that face does. The ground behind a fence,
+// shaded by the fence's own rails and seen between them, keeps its shadow.
+// The game view only: under the free camera the march met the edges of low
+// casters and lit whole patches of open shadow (24292 h7 fly 557 to 698).
+bool seenThroughCaster(vec3 p) {
+    vec3 v = towardViewer();
+    if (uFlyEye.w > 0.5 || v.y < 0.05) return false;
+    float reach = 3.0 / v.y; // a wall's height up the line of sight
+    float shaded = 0.0;
+    float lit = -1.0;
+    for (int k = 1; k <= 24; k++) {
+        float s = reach * float(k) / 24.0;
+        if (shadowTapDiff(p + v * s, vec2(0.0), 0.0) <= uShadowBias) {
+            lit = s;
+            break;
+        }
+        shaded = s;
+    }
+    if (lit < 0.0) return false;
+    for (int k = 0; k < 8; k++) {
+        float s = 0.5 * (shaded + lit);
+        if (shadowTapDiff(p + v * s, vec2(0.0), 0.0) <= uShadowBias) lit = s;
+        else shaded = s;
+    }
+    float behind = shadowTapDiff(p + v * shaded, vec2(0.0), 0.0);
+    float front = shadowTapDiff(p + v * lit, vec2(0.0), 0.0);
+    if (behind > uShadowContact || front < -32.0 * uShadowBias) return false;
+    return shadowCasterId(p) < 0.5 && shadowCasterId(p + v * shaded) > 0.5;
+}
 float sunShadow(float selfId) {
     vec3 n = shadowFaceNormal();
     // A face turned away from the sun is in its own shadow: no map lookup,
@@ -395,6 +443,7 @@ float sunShadow(float selfId) {
     // grazes it (an eave's outline across a wall): a third as wide, round
     // the same middle (090).
     if (abs(n.y) < 0.5) coverage = clamp((coverage - 0.5) * 3.0 + 0.5, 0.0, 1.0);
+    else if (coverage > 0.0 && seenThroughCaster(vWorld)) coverage = 0.0;
     return coverage;
 }
 // The whole sprite darkens at its feet (082 round 6, deliberately reversing
@@ -420,12 +469,6 @@ float sunShadowAtAnchor(float selfId) {
 // A card standing in its wall's plane (a door) is part of that wall: on a
 // wall turned from the sun it takes the flat shaded value with it (090, the
 // noon door lit in its shaded wall at 19265). Anyone else's card has no plane.
-// Towards the eye that sees this fragment: the game's parallel direction, or
-// the free camera's own ray (090: a low card under the fly camera followed
-// the game's direction and its shadow slid off the ground's around it).
-vec3 towardViewer() {
-    return uFlyEye.w > 0.5 ? normalize(uFlyEye.xyz - vWorld) : uTowardCamera;
-}
 bool cardTurned() {
     vec3 w = vec3(uShadowGround.z, 0.0, uShadowGround.w);
     if (dot(w, w) < 0.5) return false;
