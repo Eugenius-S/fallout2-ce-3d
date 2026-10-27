@@ -25,7 +25,7 @@ Compared the final 16 3D regression frames directly against `098-regression-base
 
 Classic control used `-Classic -Still` at the same points, 1920x1080 scale 2. It is a vanilla framebuffer with `scene_view=off`; 12 available pairs are exact 0 px and their map/elevation/tile/camera/resolution/scale metadata matches. Classic exe SHA256: baseline `23a382f0d445f924bba10acdd4e58e6839f112b637803d0a79398d532ad1984c`; fixed `4f2ce48a9aa7dedfd0f12e0dce07bd226f8ece6b3e56f7f5e4b7edf415c3ca9f`. Four Classic points did not produce a screenshot/sidecar within 25s: KLACANYN e0 and KLATOXCV e0/e1/e2. Their 3D captures completed. Thus Classic 0 px is proven on 12/16 points, not all 16.
 
-The standard reference checker reports eight cave/Klamath reference mismatches; direct comparison to the 098 baseline above is the relevant attribution check because the stored references have different counts. No reference images were updated.
+The standard reference checker reports seven failing spots on the fixed build. Four already failed against stored references on the clean 098 baseline: KLAGRAZ e0 (132 px), KLARATCV e2 (44 px), KLATOXCV e0 (5,106 px), and KLATOXCV e1 (492,039 px). The other three newly fail after this change (KLARATCV e0/e1 and KLATOXCV e2); counts in all six cave frames differ from the stored references as expected from the lighting change. No reference images were updated.
 
 ## Automated tests
 
