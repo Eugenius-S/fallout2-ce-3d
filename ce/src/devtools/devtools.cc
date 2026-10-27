@@ -108,6 +108,28 @@ bool gStartupFloorPreviewAttempted = false;
 int gStartupFloorPreviewReturnAfter = 0;
 int gStartupFloorPreviewFramesRemaining = 0;
 bool gSnapshotOncePending = false;
+int gScrollProbeKey = -1;
+int gScrollProbeStage = 0;
+int gScrollProbeStartTile = -1;
+int gScrollProbeFrames = 0;
+bool gScrollFindBlocker = false;
+int gScrollEdgeDirection = -1;
+int gScrollEdgeStage = 0;
+int gScrollEdgeStartTile = -1;
+int gScrollEdgeStableFrames = 0;
+int gScrollEdgeTotalFrames = 0;
+bool gFollowHeroProbe = false;
+int gFollowHeroStage = 0;
+int gFollowHeroStartTile = -1;
+int gFollowHeroLastCenter = -1;
+int gFollowHeroStableFrames = 0;
+bool gWalkProbe = false;
+int gWalkProbeStage = 0;
+int gWalkProbeStartTile = -1;
+int gWalkProbeTargetTile = -1;
+int gWalkProbeStartCenter = -1;
+int gWalkProbeFrames = 0;
+bool gWalkProbeCenterChanged = false;
 bool gClockLadder = false;
 int gClockLadderStage = -1;
 bool gPreferencesSnapshotPending = false;
@@ -780,6 +802,46 @@ bool parseOption(const char* arg)
         gSnapshotOncePending = true;
         return true;
     }
+    const char* scrollStepPrefix = "--dev-scroll-step=";
+    if (strncmp(arg, scrollStepPrefix, strlen(scrollStepPrefix)) == 0) {
+        const char* step = arg + strlen(scrollStepPrefix);
+        if (strcmp(step, "left") == 0) gScrollProbeKey = KEY_ARROW_LEFT;
+        else if (strcmp(step, "right") == 0) gScrollProbeKey = KEY_ARROW_RIGHT;
+        else if (strcmp(step, "up") == 0) gScrollProbeKey = KEY_ARROW_UP;
+        else if (strcmp(step, "down") == 0) gScrollProbeKey = KEY_ARROW_DOWN;
+        else {
+            fprintf(stderr, "devtools: invalid --dev-scroll-step (expected left, right, up, or down)\n");
+            fflush(stderr);
+            return true;
+        }
+        return true;
+    }
+    const char* scrollEdgePrefix = "--dev-scroll-edge=";
+    if (strncmp(arg, scrollEdgePrefix, strlen(scrollEdgePrefix)) == 0) {
+        const char* edge = arg + strlen(scrollEdgePrefix);
+        if (strcmp(edge, "left") == 0) gScrollEdgeDirection = 0;
+        else if (strcmp(edge, "right") == 0) gScrollEdgeDirection = 1;
+        else if (strcmp(edge, "up") == 0) gScrollEdgeDirection = 2;
+        else if (strcmp(edge, "down") == 0) gScrollEdgeDirection = 3;
+        else {
+            fprintf(stderr, "devtools: invalid --dev-scroll-edge (expected left, right, up, or down)\n");
+            fflush(stderr);
+            return true;
+        }
+        return true;
+    }
+    if (strcmp(arg, "--dev-scroll-find-blocker") == 0) {
+        gScrollFindBlocker = true;
+        return true;
+    }
+    if (strcmp(arg, "--dev-follow-hero") == 0) {
+        gFollowHeroProbe = true;
+        return true;
+    }
+    if (strcmp(arg, "--dev-walk-probe") == 0) {
+        gWalkProbe = true;
+        return true;
+    }
     if (strcmp(arg, "--dev-clock-ladder") == 0) {
         gClockLadder = true;
         return true;
@@ -1337,6 +1399,189 @@ void update()
     // The startup --dev-map travel retries here until the opening movie is
     // over and the transition is accepted (089).
     applyStartupTarget();
+    if (gScrollFindBlocker && gScrollProbeStage == 0
+        && sceneStartupReady() && !inBlockingGameState()) {
+        {
+            const int dx[4] = { -1, 1, 0, 0 };
+            const int dy[4] = { 0, 0, -1, 1 };
+            const int keys[4] = { KEY_ARROW_LEFT, KEY_ARROW_RIGHT, KEY_ARROW_UP, KEY_ARROW_DOWN };
+            std::vector<int> blockerTiles;
+            for (Object* object = objectFindFirstAtElevation(gElevation); object != nullptr;
+                    object = objectFindNextAtElevation()) {
+                if (ProtoId(object) == MiscProtoTypeId::Id0x0C) blockerTiles.push_back(object->tile);
+            }
+            bool found = false;
+            for (int target : blockerTiles) {
+                const int first = std::max(1, target - 404);
+                const int last = std::min(39999, target + 404);
+                for (int start = first; start <= last && !found; ++start) {
+                    if (_obj_blocking_at(gDude, start, gElevation) != nullptr) continue;
+                    mapEdgeSelectZoneAndClamp(start, gElevation);
+                    if (mapEdgeIsEnabled() && mapEdgeZoneIsSelected()) continue;
+                    int screenX, screenY;
+                    tileToScreenXY(start, &screenX, &screenY);
+                    for (int direction = 0; direction < 4; ++direction) {
+                        const int candidate = tileFromScreenXY(screenX + dx[direction] * 32 + 16,
+                            screenY + dy[direction] * 24 + 8);
+                        if (candidate != target) continue;
+                        if (objectSetLocation(gDude, start, gElevation, nullptr) != 0) continue;
+                        if (tileSetCenter(start, TILE_SET_CENTER_FLAG_IGNORE_SCROLL_RESTRICTIONS
+                                | TILE_SET_CENTER_FLAG_IGNORE_BOUNDS | TILE_SET_CENTER_REFRESH_WINDOW) != 0) {
+                            printf("SCROLL_BLOCKER FAIL map=%s reason=cannot-set-center start=%d\n", gMapHeader.name, start);
+                            fflush(stdout);
+                            gScrollProbeStage = 3;
+                            found = true;
+                            break;
+                        }
+                        gScrollProbeStartTile = start;
+                        gScrollProbeKey = keys[direction];
+                        gViewTileApplied = true;
+                        enqueueInputEvent(gScrollProbeKey);
+                        gScrollProbeStage = 1;
+                        printf("SCROLL_BLOCKER TARGET map=%s start=%d target=%d key=%s\n", gMapHeader.name, start,
+                            target, keys[direction] == KEY_ARROW_LEFT ? "left" : keys[direction] == KEY_ARROW_RIGHT ? "right"
+                                : keys[direction] == KEY_ARROW_UP ? "up" : "down");
+                        fflush(stdout);
+                        found = true;
+                        break;
+                    }
+                }
+            }
+            if (!found) {
+                printf("SCROLL_BLOCKER FAIL map=%s reason=no-adjacent-id-0x0c blockers=%zu\n",
+                    gMapHeader.name, blockerTiles.size());
+                fflush(stdout);
+                gScrollProbeStage = 3;
+            }
+        }
+    }
+    if (gScrollEdgeDirection >= 0 && gScrollEdgeStage < 2
+        && gViewTileApplied && sceneStartupReady() && !inBlockingGameState()) {
+        if (gScrollEdgeStage == 0) {
+            gScrollEdgeStartTile = gCenterTile;
+            gScrollEdgeStage = 1;
+        }
+        gameMouseScrollAtEdgeForDevtools(gScrollEdgeDirection);
+        gScrollEdgeTotalFrames++;
+        if (gCenterTile == gScrollEdgeStartTile) gScrollEdgeStableFrames++;
+        else {
+            gScrollEdgeStartTile = gCenterTile;
+            gScrollEdgeStableFrames = 0;
+        }
+        if (gScrollEdgeStableFrames >= 300) {
+            const char* edge = gScrollEdgeDirection == 0 ? "left" : gScrollEdgeDirection == 1 ? "right"
+                : gScrollEdgeDirection == 2 ? "up" : "down";
+            int centerX = 0, centerY = 0, heroX = 0, heroY = 0;
+            tileToScreenXY(gCenterTile, &centerX, &centerY);
+            if (gDude != nullptr) tileToScreenXY(gDude->tile, &heroX, &heroY);
+            printf("SCROLL_EDGE PASS edge=%s center=%d stable_frames=%d total_frames=%d edg_enabled=%d edg_zone=%d center_xy=%d,%d hero=%d hero_xy=%d,%d delta_xy=%d,%d\n",
+                edge, gCenterTile, gScrollEdgeStableFrames, gScrollEdgeTotalFrames,
+                mapEdgeIsEnabled() ? 1 : 0, mapEdgeZoneIsSelected() ? 1 : 0,
+                centerX, centerY, gDude != nullptr ? gDude->tile : -1, heroX, heroY,
+                centerX - heroX, centerY - heroY);
+            fflush(stdout);
+            gScrollEdgeStage = 2;
+        } else if (gScrollEdgeTotalFrames >= 1200) {
+            const char* edge = gScrollEdgeDirection == 0 ? "left" : gScrollEdgeDirection == 1 ? "right"
+                : gScrollEdgeDirection == 2 ? "up" : "down";
+            printf("SCROLL_EDGE FAIL edge=%s center=%d stable_frames=%d total_frames=%d reason=unstable\n",
+                edge, gCenterTile, gScrollEdgeStableFrames, gScrollEdgeTotalFrames);
+            fflush(stdout);
+            gScrollEdgeStage = 2;
+        }
+    }
+    if (gScrollProbeKey >= 0 && gScrollProbeStage < 2
+        && gViewTileApplied && sceneStartupReady() && !inBlockingGameState()) {
+        if (gScrollProbeStage == 0) {
+            gScrollProbeStartTile = gCenterTile;
+            objectSetLocation(gDude, gCenterTile, gElevation, nullptr);
+            enqueueInputEvent(gScrollProbeKey);
+            gScrollProbeStage = 1;
+        } else if (gCenterTile != gScrollProbeStartTile || ++gScrollProbeFrames >= 12) {
+            gScrollProbeStage = 2;
+            const char* key = gScrollProbeKey == KEY_ARROW_LEFT ? "left"
+                : gScrollProbeKey == KEY_ARROW_RIGHT ? "right"
+                : gScrollProbeKey == KEY_ARROW_UP ? "up" : "down";
+            printf("SCROLL_STEP PASS key=%s start=%d center=%d moved=%d frames=%d\n",
+                key, gScrollProbeStartTile, gCenterTile,
+                gCenterTile != gScrollProbeStartTile ? 1 : 0, gScrollProbeFrames);
+            fflush(stdout);
+        }
+    }
+    if (gFollowHeroProbe && gFollowHeroStage < 2
+        && gViewTileApplied && sceneStartupReady() && !inBlockingGameState()) {
+        if (gFollowHeroStage == 0) {
+            gFollowHeroStartTile = gCenterTile;
+            gFollowHeroLastCenter = gCenterTile;
+            enqueueInputEvent(KEY_HOME);
+            gFollowHeroStage = 1;
+        } else if (gCenterTile == gFollowHeroLastCenter) {
+            gFollowHeroStableFrames++;
+        } else {
+            gFollowHeroLastCenter = gCenterTile;
+            gFollowHeroStableFrames = 0;
+        }
+        if (gFollowHeroStableFrames >= 12) {
+            printf("FOLLOW_HERO PASS start=%d hero=%d center=%d stable_frames=%d\n",
+                gFollowHeroStartTile, gDude != nullptr ? gDude->tile : -1, gCenterTile, gFollowHeroStableFrames);
+            fflush(stdout);
+            gFollowHeroStage = 2;
+        }
+    }
+    if (gWalkProbe && gWalkProbeStage == 0 && gViewTileApplied
+        && sceneStartupReady() && !inBlockingGameState() && gDude != nullptr
+        && animationIsBusy(gDude) != -1) {
+        gWalkProbeStartTile = gDude->tile;
+        gWalkProbeStartCenter = gCenterTile;
+        unsigned char rotations[200] = {};
+        int pathLength = 0;
+        // Find a walkable, connected destination far enough to test whether
+        // normal hero movement makes the game camera follow along.
+        for (int distance = 20; distance >= 8 && gWalkProbeTargetTile == -1; --distance) {
+            for (int tile = 1; tile < 40000; ++tile) {
+                if (tileDistanceBetween(gWalkProbeStartTile, tile) != distance
+                    || !elevationTileFree(tile, gElevation)) {
+                    continue;
+                }
+                const int candidatePathLength = _make_path(gDude, gWalkProbeStartTile, tile, rotations, 1);
+                if (candidatePathLength > 0 && candidatePathLength <= 200) {
+                    gWalkProbeTargetTile = tile;
+                    pathLength = candidatePathLength;
+                    break;
+                }
+            }
+        }
+        if (gWalkProbeTargetTile == -1 || reg_anim_begin(ANIMATION_REQUEST_RESERVED) != 0
+            || animationRegisterMoveToTile(gDude, gWalkProbeTargetTile, gElevation, -1, 0) != 0
+            || reg_anim_end() != 0) {
+            printf("WALK_PROBE RESULT map=%s result=failed-to-queue start=%d center=%d target=%d\n",
+                gMapHeader.name, gWalkProbeStartTile, gWalkProbeStartCenter, gWalkProbeTargetTile);
+            fflush(stdout);
+            gWalkProbeStage = 2;
+        } else {
+            printf("WALK_PROBE START map=%s elevation=%d start=%d center=%d target=%d path=%d\n",
+                gMapHeader.name, gElevation, gWalkProbeStartTile, gWalkProbeStartCenter,
+                gWalkProbeTargetTile, pathLength);
+            fflush(stdout);
+            gWalkProbeStage = 1;
+        }
+    } else if (gWalkProbe && gWalkProbeStage == 1 && gDude != nullptr) {
+        ++gWalkProbeFrames;
+        if (gCenterTile != gWalkProbeStartCenter) gWalkProbeCenterChanged = true;
+        if (animationIsBusy(gDude) != -1) {
+            printf("WALK_PROBE RESULT map=%s start=%d target=%d hero=%d center_start=%d center_end=%d center_changed=%d frames=%d\n",
+                gMapHeader.name, gWalkProbeStartTile, gWalkProbeTargetTile, gDude->tile,
+                gWalkProbeStartCenter, gCenterTile, gWalkProbeCenterChanged ? 1 : 0, gWalkProbeFrames);
+            fflush(stdout);
+            gWalkProbeStage = 2;
+        } else if (gWalkProbeFrames >= 3000) {
+            printf("WALK_PROBE RESULT map=%s start=%d target=%d hero=%d center_start=%d center_end=%d center_changed=%d frames=%d reason=timeout\n",
+                gMapHeader.name, gWalkProbeStartTile, gWalkProbeTargetTile, gDude->tile,
+                gWalkProbeStartCenter, gCenterTile, gWalkProbeCenterChanged ? 1 : 0, gWalkProbeFrames);
+            fflush(stdout);
+            gWalkProbeStage = 2;
+        }
+    }
     if (startUiFixtureWhenReady(sceneStartupReady(), inBlockingGameState())) {
         gDialogFixtureRequested = true;
     }
@@ -2160,6 +2405,8 @@ void scenePresented(const scene::RefreshResult& refreshed)
     }
     if (refreshed.heroUpdated && gSnapshotOncePending) {
         if (focusMuzzleFixture() || focusWeaponEffectFixture()) return;
+        if ((gScrollProbeKey >= 0 && gScrollProbeStage < 2) || (gScrollEdgeDirection >= 0 && gScrollEdgeStage < 2)
+            || (gFollowHeroProbe && gFollowHeroStage < 2) || (gWalkProbe && gWalkProbeStage < 2)) return;
         if (gClockLadder && gClockLadderStage < 0) {
             gameTimeSetTime(3u * 864000u + 22u * 36000u);
             scriptsExecMapUpdateProc();
@@ -2682,6 +2929,8 @@ void vanillaPresented()
         || scene::activeView() != scene::View::Off) {
         return;
     }
+    if ((gScrollProbeKey >= 0 && gScrollProbeStage < 2) || (gScrollEdgeDirection >= 0 && gScrollEdgeStage < 2)
+            || (gFollowHeroProbe && gFollowHeroStage < 2) || (gWalkProbe && gWalkProbeStage < 2)) return;
     gSnapshotOncePending = false;
     const bool captured = takeSnapshot();
     printf("devtools: one-shot vanilla snapshot %s: %s\n", captured ? "saved" : "failed", gStatus);

@@ -49,3 +49,7 @@ over the black past the map.
 Changing where the original game stops; the clean edges cut.
 
 ## Log
+### 2026-10-27 gpt
+Progress: Full 3D scrolling now honors map bounds and uses the original 480×400 hero-distance limit. KLAMALL exposed that the expanded 3D limit moved the center 240 px farther than Classic; removing it restores identical center stops. On final executable SHA `3f5e0256…`, all four KLADWTWN screen edges and arrows match Classic; KLAMALL EDG-enabled left edge also matches. Final captures and RGBA comparison are under `runs/095-camera-stops-at-map-edge/` and `build/095-final-regression-3f5e0256/`.
+Remaining: Object-blocker branch, camera follow during actual walking, and interactive fly WASD remain unverified. The attempted real mouse walk moved the hero but left center unchanged; the test window is offscreen for WASD. See `runs/095-camera-stops-at-map-edge/verification.md`; leave task `doing`, `reviewed: no`.
+Check: CTest 18/18; eight edge arrows and eight screen-edge probes passed; all 16 fixed 3D PNGs RGBA-identical to `094-direct-base` (baseline executable SHA `aad846b1…`, final `3f5e0256…`).

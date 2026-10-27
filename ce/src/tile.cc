@@ -589,14 +589,8 @@ int tileSetCenter(int tile, int flags)
             int dx = abs(dudeScreenX - tileScreenX);
             int dy = abs(dudeScreenY - tileScreenY);
 
-            // 480 x 400 is three quarters and five sixths of the 640 x 480
-            // screen; the dev 3D view keeps those shares of its wider window.
             int limitX = 480;
             int limitY = 400;
-            if (gTileFreeScroll) {
-                limitX = std::max(limitX, 480 * gTileWindowWidth / 640);
-                limitY = std::max(limitY, 400 * gTileWindowHeight / 480);
-            }
 
             if (dx > abs(dudeScreenX - _tile_offx)
                 || dy > abs(dudeScreenY - _tile_offy)) {
