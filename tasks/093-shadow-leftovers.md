@@ -14,7 +14,7 @@ reviewed: no
 
 ## Goal
 
-The five shadow faults the owner found in the live game after 090 are gone:
+The six shadow faults the owner found in the live game after 090 are gone:
 a building's corner takes the same shadow as the walls beside it, at every
 hour.
 
@@ -33,7 +33,9 @@ hour.
      corner).
   5. `-4.png`: the shadow moved onto the left house's corner; the owner
      guesses the corner element is one object, so it is shaded as a whole.
-- Faults 1, 3 and 5 look like one cause: a corner is one card or one
+  6. `-6.webp`: the same on the cow pen's fence: a corner post is one
+     piece, so the shadow darkens all of it.
+- Faults 1, 3, 5 and 6 look like one cause: a corner is one card or one
   object, so it gets one light value for both faces, or the face of the
   wrong wall. 090 already gives caps and door cards their own wall's side
   of the sun; check how a corner piece is lit against that.
@@ -43,7 +45,7 @@ hour.
 
 ## Acceptance
 
-- Before | after in `runs/093-shadow-leftovers/` for each of the five, at
+- Before | after in `runs/093-shadow-leftovers/` for each of the six, at
   morning, noon and evening, on the same frames.
 - The 090 seam totals do not rise on any view.
 - The original view regression stays pixel for pixel; ctest passes.
