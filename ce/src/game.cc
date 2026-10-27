@@ -4,9 +4,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <filesystem>
-#include <string>
-
 #include "actions.h"
 #include "animation.h"
 #include "art.h"
@@ -22,7 +19,6 @@
 #include "db.h"
 #include "dbox.h"
 #include "debug.h"
-#include "dev_output.h"
 #include "display_monitor.h"
 #include "draw.h"
 #include "endgame.h"
@@ -58,7 +54,6 @@
 #include "scripts.h"
 #include "scene/scene_view.h"
 #include "settings.h"
-#include "xfile.h"
 #include "sfall_arrays.h"
 #include "sfall_callbacks.h"
 #include "sfall_config.h"
@@ -80,6 +75,7 @@
 #include "win32.h"
 #include "window_manager.h"
 #include "devtools/devtools.h"
+#include "devtools/test_run_state.h"
 #include "worldmap.h"
 
 #if __APPLE__
@@ -1444,15 +1440,8 @@ static bool tryLoadBaseCEModAtPath(const char* path, bool* found, bool* openFail
 // 0x44418C
 static int gameDbInit()
 {
-    // F2CE_DEV_OUT (a test run's own folder, dev_output.h): the game's own
-    // state goes there; the configured patches folder is still read, minus
-    // the state another game left in it.
-    std::string sharedPatchesPath;
-    const std::filesystem::path gameStatePath = dev_output::gameStateDirectory();
-    if (!gameStatePath.empty()) {
-        sharedPatchesPath = settings.system.master_patches_path;
-        settingsRedirectMasterPatches(gameStatePath.string());
-    }
+    // A test run keeps the game's own state in its folder (test_run_state.h).
+    devtools::testRunStateRedirectPatches();
 
     const char* master_dat_path = settings.system.master_dat_path.c_str();
     if (*master_dat_path == '\0') {
@@ -1522,10 +1511,7 @@ static int gameDbInit()
         dbOpen(critter_patches_path);
     }
 
-    if (!sharedPatchesPath.empty()) {
-        dbOpen(sharedPatchesPath.c_str());
-        xbaseHideGameState(sharedPatchesPath.c_str());
-    }
+    devtools::testRunStateMountSharedPatches();
 
     if (master_patches_path != nullptr) {
         dbOpen(master_patches_path);
