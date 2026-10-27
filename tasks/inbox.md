@@ -113,4 +113,6 @@ that fits no task becomes a new task when the board runs dry.
   `runs/inbox/2026-10-27-bathhouse-corner-piece-gone.jpg`): the corner piece
   (the striped pillar seen at that corner in `2026-10-27-shadow-leftover-4b-bathhouse.jpg`)
   is gone; the corner is a plain grey box. The owner: the corner element fell off.
-  Likely 096's corner pieces.
+  In the isometric camera of the same 3D view the striped pillar is in place
+  (owner's shot in chat, not on disk); only the turned perspective camera
+  loses it. Likely 096's corner pieces.
