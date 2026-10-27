@@ -22,6 +22,24 @@ using namespace internal;
 
 namespace {
 
+// The art textures keep NEAREST (the pixel look, 070).  Under the fly camera
+// a surface can fill the screen many times over, and a magnified NEAREST
+// texel reads as raw pixel noise; a sampler bound only while flying leaves
+// the game's own view untouched and lets magnified art read as a picture.
+unsigned int gFlyArtSampler = 0;
+
+void bindFlyArtSampler(unsigned int unit)
+{
+    if (gFlyArtSampler == 0) {
+        glGenSamplers(1, &gFlyArtSampler);
+        glSamplerParameteri(gFlyArtSampler, kTextureMinFilter, kNearest);
+        glSamplerParameteri(gFlyArtSampler, kTextureMagFilter, kLinear);
+        glSamplerParameteri(gFlyArtSampler, kTextureWrapS, kClampToEdge);
+        glSamplerParameteri(gFlyArtSampler, kTextureWrapT, kClampToEdge);
+    }
+    glBindSampler(unit, gFlyArtSampler);
+}
+
 void drawStaticPreview(bool withWalls, bool withHero)
 {
     if (!gInitialized || !gFloorLoaded || (withWalls && !gWallsLoaded)) return;
@@ -95,6 +113,7 @@ void drawStaticPreview(bool withWalls, bool withHero)
     }
     glActiveTexture(kTexture0);
     glUniform1i(gSceneTextureLocation, 0);
+    if (flying) bindFlyArtSampler(0);
     glBindVertexArray(gFloorVao);
     glBindTexture(kTexture2D, gFloorTexture);
 
@@ -241,6 +260,7 @@ void drawStaticPreview(bool withWalls, bool withHero)
     glDisable(kBlend);
     glDisable(kDepthTest);
     glDepthMask(1);
+    if (flying) glBindSampler(0, 0);
     glBindVertexArray(0);
     glUseProgram(0);
 }
