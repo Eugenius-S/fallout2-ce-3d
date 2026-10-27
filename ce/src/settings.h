@@ -349,6 +349,9 @@ bool settingsSave();
 void settingsWriteToConfig(bool onlyAdd = false);
 bool settingsExit(bool shouldSave);
 void settingsMarkCommandLineOverride(const char* section, const char* key);
+// This process uses [path] as master_patches; fallout2.cfg keeps the
+// configured folder (a test run's own output folder, dev_output.h).
+void settingsRedirectMasterPatches(const std::string& path);
 const std::vector<SettingDescriptor>& settingsGetDescriptors();
 SettingValue settingsGetValue(const SettingDescriptor& descriptor);
 // Includes committed restart-required edits without changing the active runtime value.

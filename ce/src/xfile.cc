@@ -37,12 +37,16 @@ static void xbaseExitHandler(void);
 static bool xlistEnumerateHandler(XListEnumerationContext* context);
 static bool xlistEnumerateDirectoriesHandler(XListEnumerationContext* context);
 static bool xlistAppend(XList* xlist, const char* name);
+static bool xbaseHidesFile(const XBase* xbase, const char* filePath);
 
 // 0x6B24D0 paths
 static XBase* gXbaseHead;
 
 // 0x6B24D4 init
 static bool gXbaseExitHandlerRegistered;
+
+// The directory xbase that hides the game's own state (xbaseHideGameState).
+static char* gGameStateHiddenPath;
 
 // 0x4DED6C xfclose
 int xfileClose(XFile* stream)
@@ -112,7 +116,7 @@ XFile* xfileOpen(const char* filePath, const char* mode)
                     snprintf(path, sizeof(path), "%s", filePath);
                     break;
                 }
-            } else {
+            } else if (!xbaseHidesFile(curr, filePath)) {
                 // Build path relative to directory-based xbase.
                 snprintf(path, sizeof(path), "%s\\%s", curr->path, filePath);
 
@@ -600,6 +604,37 @@ bool xbaseIsValidDirectory(const char* path)
     return false;
 }
 
+void xbaseHideGameState(const char* path)
+{
+    free(gGameStateHiddenPath);
+    gGameStateHiddenPath = path != nullptr ? compat_strdup(path) : nullptr;
+}
+
+// [filePath] is relative to the xbase; enumeration passes its pattern.
+static bool xbaseHidesFile(const XBase* xbase, const char* filePath)
+{
+    if (gGameStateHiddenPath == nullptr || xbase->isDbase || compat_stricmp(xbase->path, gGameStateHiddenPath) != 0) {
+        return false;
+    }
+
+    char path[COMPAT_MAX_PATH];
+    snprintf(path, sizeof(path), "%s", filePath);
+    for (char* ch = path; *ch != '\0'; ch++) {
+        if (*ch == '/') *ch = '\\';
+    }
+
+    const char* extension = strrchr(path, '.');
+    if (compat_strnicmp(path, "MAPS\\", 5) == 0 && strchr(path + 5, '\\') == nullptr) {
+        return (extension != nullptr && compat_stricmp(extension, ".SAV") == 0)
+            || compat_stricmp(path + 5, "AUTOMAP.DB") == 0
+            || compat_stricmp(path + 5, "AUTOMAP.TMP") == 0;
+    }
+    if (compat_strnicmp(path, "proto\\critters\\", 15) == 0 || compat_strnicmp(path, "proto\\items\\", 12) == 0) {
+        return extension != nullptr && compat_stricmp(extension, ".pro") == 0;
+    }
+    return compat_stricmp(path, "worldmap.dat") == 0;
+}
+
 // 0x4DFB3C xenumfiles
 static bool xlistEnumerate(const char* pattern, XListEnumerationHandler* handler, XList* xlist)
 {
@@ -662,7 +697,7 @@ static bool xlistEnumerate(const char* pattern, XListEnumerationHandler* handler
 
                 dbaseFindClose(xbase->dbase, &dbaseFindData);
             }
-        } else {
+        } else if (!xbaseHidesFile(xbase, pattern)) {
             char path[COMPAT_MAX_PATH];
             snprintf(path, sizeof(path), "%s\\%s", xbase->path, pattern);
             compat_windows_path_to_native(path);

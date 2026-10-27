@@ -69,6 +69,15 @@ bool xbaseOpen(const char* path);
 // Returns true if path is currently mounted as a directory-based VFS xbase
 // (comparison ignores case and a trailing path separator).
 bool xbaseIsValidDirectory(const char* path);
+
+// The directory xbase at [path] stops answering for the game's own state, the
+// files a new game erases from master_patches: saved maps (MAPS\*.SAV), the
+// automap (MAPS\AUTOMAP.DB), the world map (worldmap.dat) and saved protos
+// (proto\critters\*.pro, proto\items\*.pro). A test run with its own output
+// folder (dev_output.h) reads the shared patches folder without the state
+// another game left there.
+void xbaseHideGameState(const char* path);
+
 bool xlistInit(const char* pattern, XList* xlist);
 
 // Like xlistInit, but collects only directories. Only directory-based xbases
