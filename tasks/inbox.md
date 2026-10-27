@@ -121,3 +121,9 @@ that fits no task becomes a new task when the board runs dry.
   face while the corner piece with its striped pillar stays lit. The owner: the
   shadow flowed round the corner, ignoring the corner piece. One more case of
   096's class; check it there once 096 lands.
+- 2026-10-27 Roof horns, fewer than before but still there (owner's shot
+  `runs/inbox/2026-10-27-roof-horns.jpg`, flight over Klamath with the 095
+  build): dark wall-top strips stand up through the big brick building's roof
+  (a broken dashed line across it, a black triangle at its right edge) and
+  through the roof left of the bathhouse. Walls poking above the roof they sit
+  under; follow-up of the 081 roofs work.
