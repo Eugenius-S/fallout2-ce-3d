@@ -736,6 +736,23 @@ if((NOT ANDROID) AND (NOT IOS) AND (NOT CMAKE_SYSTEM_NAME MATCHES "Emscripten"))
         )
     endif()
 
+    # The player-facing launcher (task 091): installs the build from the
+    # rolling latest release onto a clean Fallout 2 and starts the game.
+    add_executable(fallout2-ce-3d-launcher
+        "src/launcher_main.cc"
+    )
+    target_include_directories(fallout2-ce-3d-launcher PRIVATE "src")
+    if(WIN32)
+        target_link_libraries(fallout2-ce-3d-launcher winhttp bcrypt advapi32 ole32 uuid)
+    endif()
+    if(MINGW)
+        target_link_options(fallout2-ce-3d-launcher PRIVATE
+            -static
+            -static-libgcc
+            -static-libstdc++
+        )
+    endif()
+
     if(APPLE)
         file(GLOB_RECURSE CE_DAT_INPUTS CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/files/ce.dat/*")
         set(CE_DAT_RESOURCE_PATH "${CMAKE_CURRENT_BINARY_DIR}/ce.dat")

@@ -1,0 +1,15 @@
+fallout2-ce-3d-launcher
+
+game root (from --game-root): E:/Projects/f2ce3d-091-test/game
+installed build: c091c091c091c091c091c091c091c091
+cannot reach the release (http://127.0.0.1:9/version.txt: send failed)
+offline: starting the installed game as it is
+scenes present: kladwtwn, klatrap, klacanyn, klagraz, klamall, klaratcv, klatoxcv
+the 3D scene data is current
+fallout2.cfg sha256 before: 892a30a9cddc20815142047b46b844e9aa1a8a6e39aea2639d3f51aa213b77de
+data/savegame sha256 before: 67c7ba2e682630d03ed9ad41f67e379d880a23bd72084fbbc5d7b63327f69b51
+starting E:/Projects/f2ce3d-091-test/game\fallout2-ce.exe
+the game exited with code 3221225477
+fallout2.cfg sha256 after:  892a30a9cddc20815142047b46b844e9aa1a8a6e39aea2639d3f51aa213b77de (unchanged)
+data/savegame sha256 after:  67c7ba2e682630d03ed9ad41f67e379d880a23bd72084fbbc5d7b63327f69b51 (unchanged)
+bye
