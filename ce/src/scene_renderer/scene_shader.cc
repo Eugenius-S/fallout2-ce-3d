@@ -206,7 +206,7 @@ vec4 sceneLighting() {
     if (uLightMode == 1) return pointLights(vWorld, vec3(0.0, 1.0, 0.0), false);
     if (uLightMode == 2) {
         if (vFullLight > 0.75) return vec4(1.0);
-        vec3 n = normalize(cross(dFdx(vWorld), dFdy(vWorld)));
+        vec3 n = normalize(gFaceCross);
         if (dot(n, uTowardCamera) < 0.0) n = -n;
         return pointLights(vWorld, n, true);
     }

@@ -140,3 +140,4 @@ that fits no task becomes a new task when the board runs dry.
 - 2026-10-27 (tasks 101-104) The owner's later shots in `runs/inbox/2026-10-27-*`:
   roof ends and fringe (101), walls from inside and holes (102), the halo on
   walls (103), the camera's bottom edge (104).
+- KLAGRAZ e0 still differs from the stored regression reference by 132 px; clean 098 baseline has the same deviation.
