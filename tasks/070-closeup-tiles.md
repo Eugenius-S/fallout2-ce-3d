@@ -2,13 +2,13 @@
 id: 070
 title: Tiles up close in the fly camera stop looking like pixel noise
 milestone: M1
-status: todo
-owner: none
+status: done
+owner: gpt
 suggested: glm
 claude-only: no
 user-check: yes
 depends-on: []
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -35,3 +35,58 @@ clean pictures again, not raw pixel noise.
 New art.
 
 ## Log
+
+### 2026-10-27 gpt: completed
+
+Compared against main 4a3b54fa (090). The owner-reference cylinder was found
+in KLADWTWN e0 at tile 26106. Its reconstructed before/after, with matching
+camera and scene settings, is in runs/070-closeup-tiles/closeup.jpg. Strongly
+magnified fly-view RGB is filtered with preserved contrast and nearest alpha;
+the game camera stays nearest. The shadow files and shadow shader logic match
+main exactly. The full fly tour changed magnified texels at all 43 spots; its
+six comparison pages are in runs/070-closeup-tiles/ and were inspected.
+
+Check: clean Release builds, 18/18 CTests, 64 exporter and 12 regression unit
+tests. All 16 game-view comparisons passed with zero changed pixels against
+the references on the final build. The 092 snapshot runners used per-worktree
+isolated folders and -OutputDirectory. No game resources or saves were changed.
+
+### 2026-10-27 gpt: integrated shadow checkpoint
+
+Main advanced to 4a3b54fa (090) during verification. Merged it while retaining
+its shadow implementation verbatim: there is no branch diff in shadow.cc,
+walls.cc or the shadow parts of scene_shader.cc. A clean rebuild and all 18
+CTests passed. The same reconstructed barrel view is pixel-identical to the
+earlier before/after sheet after integration. The final 16-view regression and
+fresh fly tour against 090 are running from the isolated 092 test runners.
+Next: inspect the tour, record results, finish the PR and merge.
+
+### 2026-10-27 gpt: close-up filtering in progress
+
+History search with `git log -S` found nearest filtering in floor and scenery
+since the original renderer, and no mipmap, GL_LINEAR or upscale path for
+these scene textures. The prior drum work changed geometry, not filtering;
+there is no disabled close-up texture option in the current config.
+
+The native object in the reference is at KLADWTWN elevation 0, tile 26106.
+The screenshot pose was reconstructed with an isolated fly-camera lift; the
+same scene and pose are compared in runs/070-closeup-tiles/closeup.jpg.
+Strongly magnified fly-view art now uses contrast-aware RGB interpolation,
+while nearest alpha preserves transparency, picking and material tags. The
+game view remains nearest-neighbour. No shadow code was changed.
+
+Release build, 18 CTests, 64 exporter and 12 regression unit tests passed.
+All 16 game-view captures matched the references with zero changed pixels on
+the first build. Final regression and fly tour are running after narrowing the
+filter to strongly magnified art; confirm build hashes, rerun any earlier
+captures from the previous build, and inspect the tour before finishing.
+
+### 2026-10-27 gpt: claimed from main with 092
+
+Worktree E:/Projects/fallout2-ce-3d-gpt-070 starts at main 4c23fc1c,
+which contains 092. Clean Release build and 18 CTests passed. Test games
+use isolated run folders; collect evidence through dev-snapshot.ps1
+-OutputDirectory. The owner asked to keep all shadow code untouched.
+Next: inspect filtering, mip and upscale history with git log -S, reproduce
+the reference close-up, fix the cause, and run the original-view regression
+and fly tour before the PR.

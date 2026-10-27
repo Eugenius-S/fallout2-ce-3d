@@ -69,6 +69,8 @@ param(
     [double]$FlyTurn = 0,
     [double]$FlyPitch = -1,
     [double]$FlyDistance = -1,
+    [ValidateRange(-20, 20)]
+    [double]$FlyLift = 0,
     # -Turn N: the 3D camera N quarter turns round ([3d] camera_rotation).
     [int]$Turn = 0,
     # Exact snapshot angle in degrees, bypassing player settings like -Turn.
@@ -382,6 +384,7 @@ if ($Fly) { $arguments += '--dev-fly' }
 if ($FlyTurn -ne 0) { $arguments += "--dev-fly-turn=$FlyTurn" }
 if ($FlyPitch -gt 0) { $arguments += "--dev-fly-pitch=$FlyPitch" }
 if ($FlyDistance -gt 0) { $arguments += "--dev-fly-distance=$FlyDistance" }
+if ($FlyLift -ne 0) { $arguments += "--dev-fly-lift=$($FlyLift.ToString([System.Globalization.CultureInfo]::InvariantCulture))" }
 if ($Turn -ne 0) { $arguments += "--dev-camera-turn=$Turn" }
 if ($TurnDegrees -ne 0) { $arguments += "--dev-camera-degrees=$($TurnDegrees.ToString([System.Globalization.CultureInfo]::InvariantCulture))" }
 if ($Solo -ge 0 -and $PSBoundParameters.ContainsKey('ViewTile')) { $arguments += "--dev-solo=$ViewTile,$Solo" }
