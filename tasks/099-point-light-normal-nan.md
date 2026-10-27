@@ -2,14 +2,14 @@
 id: 099
 title: Point lights next to cut-out pixels no longer get a broken wall normal
 milestone: M1
-status: doing
+status: done
 owner: gpt
 suggested: gpt
 priority: normal
 claude-only: no
 user-check: yes
 depends-on: [098]
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -48,3 +48,5 @@ The sun, the light colours and their strength.
 - Direct final 3D RGBA regression against clean 098 baseline: 10/16 exact. Six Rat/Toxic cave points changed (204, 1,175, 676, 764, 300, 861 px respectively), within intended point-light scenes. Classic `-Still` framebuffer control: 16/16 exact 0 px with matching metadata, `scene_view=off`. Twelve used direct startup targets; four maps that emitted no screenshots on direct startup were captured using the existing test `-Tour` route from KLADWTWN.
 - CTest 18/18 and regression Python unit tests 12/12 pass. Reference checker reports seven failing spots on the fixed build; four already failed on clean 098 baseline (KLAGRAZ e0, KLARATCV e2, KLATOXCV e0/e1). Three additional cave spots now differ due to intended lighting. Direct RGBA attribution and baseline counts are in the evidence report. References were not updated.
 - Baseline/fixed EXE SHA256: `23a382f0d445f924bba10acdd4e58e6839f112b637803d0a79398d532ad1984c` / `4f2ce48a9aa7dedfd0f12e0dce07bd226f8ece6b3e56f7f5e4b7edf415c3ca9f`.
+
+- Review: Shader change, capture evidence and test coverage reviewed; visual sheets are available for the owner.
