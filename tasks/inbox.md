@@ -85,7 +85,7 @@ that fits no task becomes a new task when the board runs dry.
   visually; there should be a moon of some kind (his words, for later: a
   moon light at night, presumably a dim cool directional like the sun
   line but weak).
-- 2026-10-26 (found in 090) The point lights' wall normal in
+- 2026-10-26 (task 099; found in 090) The point lights' wall normal in
   `sceneLighting` (uLightMode 2) takes `dFdx/dFdy(vWorld)` after the alpha
   `discard`; next to a discarded pixel NVIDIA gives zero derivatives and the
   normal turns NaN. 090 fixed it for the sun only; the same fix in the
