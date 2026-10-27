@@ -91,7 +91,7 @@ that fits no task becomes a new task when the board runs dry.
   normal turns NaN. 090 fixed it for the sun only; the same fix in the
   point lights changes 179 to 1155 px in the caves (klaratcv, klatoxcv),
   so it needs its own task with a look check there.
-- 2026-10-27 (093 leftover 4, task 096) The owner reproduced the thing poking
+- 2026-10-27 (093 leftover 4, task 100) The owner reproduced the thing poking
   out of the bathhouse wall in the live 3D game:
   `runs/inbox/2026-10-27-shadow-leftover-4b-bathhouse.jpg`. A grey box
   sticks out of the bathhouse's west wall (the long wall facing the alley),
