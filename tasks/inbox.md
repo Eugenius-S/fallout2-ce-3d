@@ -91,3 +91,10 @@ that fits no task becomes a new task when the board runs dry.
   normal turns NaN. 090 fixed it for the sun only; the same fix in the
   point lights changes 179 to 1155 px in the caves (klaratcv, klatoxcv),
   so it needs its own task with a look check there.
+- 2026-10-27 The 4:3 full-screen art (main menu, splash and loading screens,
+  death and ending slides, the like) extended to 16:9 and 21:9. The owner's
+  method, to extend the originals rather than replace them: regenerate the art
+  wider from the original, downscale it to the game's pixel size, add dithering
+  to match, then lay the untouched original over the middle with a small mask
+  at its edges (a gradient to 0) so the original blends into the extension.
+  Not now; a note only.
