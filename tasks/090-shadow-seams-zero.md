@@ -325,3 +325,52 @@ outline there, not a gap in a shadow, and the owner finds foliage fine.
   and evening, the largest share at 17104, 19265 and the fly view); lit
   slivers between fence rail shadows on the ground (25075 h7); low plants
   and straw at a shadow's edge. Not done: the owner accepts at 0.
+
+### 2026-10-27 claude, round 4 (the last, the owner's decision)
+- The eave's teeth: on an upright face the foot rule no longer drops taps
+  (it combed the roof edge's outline), each disk axis spans a full radius
+  across the map (at most fourfold) and the ramp is a third as wide round
+  0.5. 17104 h17 397 to 324, 19265 h17 380 to 174.
+- Window grates, by cause: the dots on the pane are the floor inside seen
+  through the grate's art holes, shaded by the roof or the building's body
+  (debug 6: the receiver and its blocker carry no id, the blocker over 8
+  texels deep). A ground point whose line of sight leaves the shadow on a
+  caster's surface, while its own blocker carries no id and that face does,
+  takes the face's light. The ground behind a fence, shaded by its own
+  rails, keeps its shadow; the free camera keeps the plain read (the march
+  lit open shadow there, 24292 h7 fly 557 to 698). 17104 h17 324 to 225.
+- Fence rail edges, by cause: 108 of the 148 holes at 25075 h7 are not
+  ground but the rails' own ragged art edge (upright, lit with its rail)
+  inside the thin shadow line seen between two rails; their outline, not a
+  seam in the shadow. Not changed.
+- ctest 18/18; regression 0 changed px on all 16 views.
+- Before | after sheets: `runs/090-shadow-seams-zero/` (the owner's finds,
+  each tile at 7, 12, 17 h and the 24292 fly view, the tree at 19265). The
+  owner's 06 (the shack with the sign) lies outside the six measured views.
+- Done pending the owner's check by eye.
+
+| view | holes | specks | dips | grains | total |
+|---|---|---|---|---|---|
+| 25075 h7 | 148 | 72 | 0 | 55 | 275 |
+| 25075 h12 | 0 | 0 | 0 | 0 | 0 |
+| 25075 h17 | 192 | 57 | 0 | 7 | 256 |
+| 24292 h7 | 73 | 117 | 0 | 1 | 191 |
+| 24292 h12 | 0 | 0 | 0 | 0 | 0 |
+| 24292 h17 | 105 | 12 | 0 | 1 | 118 |
+| 24292 h7 fly | 280 | 276 | 0 | 1 | 557 |
+| 24292 h12 fly | 8 | 0 | 0 | 0 | 8 |
+| 24292 h17 fly | 245 | 203 | 0 | 9 | 457 |
+| 23481 h7 | 62 | 122 | 5 | 10 | 199 |
+| 23481 h12 | 0 | 0 | 0 | 0 | 0 |
+| 23481 h17 | 126 | 53 | 0 | 2 | 181 |
+| 19265 h7 | 106 | 6 | 0 | 0 | 112 |
+| 19265 h12 | 29 | 0 | 7 | 0 | 36 |
+| 19265 h17 | 97 | 32 | 4 | 0 | 133 |
+| 17104 h7 | 77 | 16 | 4 | 0 | 97 |
+| 17104 h12 | 0 | 0 | 0 | 0 | 0 |
+| 17104 h17 | 193 | 32 | 0 | 0 | 225 |
+| 20690 h7 | 38 | 78 | 0 | 2 | 118 |
+| 20690 h12 | 0 | 0 | 0 | 1 | 1 |
+| 20690 h17 | 14 | 44 | 0 | 0 | 58 |
+
+Total 3022 seam pixels over the 21 views (baseline 157,846).
