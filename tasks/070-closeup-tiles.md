@@ -2,8 +2,8 @@
 id: 070
 title: Tiles up close in the fly camera stop looking like pixel noise
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: gpt
 suggested: glm
 claude-only: no
 user-check: yes
@@ -35,3 +35,13 @@ clean pictures again, not raw pixel noise.
 New art.
 
 ## Log
+
+### 2026-10-27 gpt: claimed from main with 092
+
+Worktree E:/Projects/fallout2-ce-3d-gpt-070 starts at main 4c23fc1c,
+which contains 092. Clean Release build and 18 CTests passed. Test games
+use isolated run folders; collect evidence through dev-snapshot.ps1
+-OutputDirectory. The owner asked to keep all shadow code untouched.
+Next: inspect filtering, mip and upscale history with git log -S, reproduce
+the reference close-up, fix the cause, and run the original-view regression
+and fly tour before the PR.
