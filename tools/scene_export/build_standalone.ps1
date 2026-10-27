@@ -13,9 +13,21 @@ $Root = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 if ($OutDir -eq '') { $OutDir = Join-Path $Root 'build\exporter-standalone' }
 New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
 
-py -3 -m PyInstaller --version 2>$null
+# Prefer the interpreter the environment prepared: setup-python (CI) exports
+# pythonLocation and installs PyInstaller into that Python, while the bare
+# `py` launcher resolves to the machine's newest Python, which may have none.
+# With no pythonLocation (a dev machine) fall back to `py -3`.
+$python = 'py'
+$pythonArgs = @('-3')
+if ($env:pythonLocation -and (Test-Path (Join-Path $env:pythonLocation 'python.exe'))) {
+    $python = Join-Path $env:pythonLocation 'python.exe'
+    $pythonArgs = @()
+}
+Write-Host "interpreter: $python $($pythonArgs -join ' ')"
+
+& $python @pythonArgs -m PyInstaller --version 2>$null
 if ($LASTEXITCODE -ne 0) {
-    py -3 -m pip install pyinstaller
+    & $python @pythonArgs -m pip install pyinstaller
     if ($LASTEXITCODE -ne 0) { throw 'pyinstaller is not available' }
 }
 
@@ -25,7 +37,7 @@ $entry = Join-Path $PSScriptRoot 'standalone.py'
 
 # The whole exporter tree travels as data, vendor and shapes included;
 # standalone.py imports it from the extracted copy at runtime.
-py -3 -m PyInstaller --noconfirm --clean --onefile --console `
+& $python @pythonArgs -m PyInstaller --noconfirm --clean --onefile --console `
     --name scene-exporter `
     --distpath $OutDir --workpath $work --specpath $spec `
     --add-data "$PSScriptRoot;scene_export" `
