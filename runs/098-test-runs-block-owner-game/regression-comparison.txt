@@ -1,0 +1,10 @@
+Task 098 visual regression comparison
+
+Base: commit 2ad12853 (unmodified source), EXE SHA-256 0DDC3169BF93C26D00FCD3D3FA15D7E645DCBFEDB38FB07FD6F8A869976042DB
+Final fixed EXE SHA-256 23A382F0D445F924BBA10ACDD4E58E6839F112B637803D0A79398D532AD1984C
+Captures: build/098-regression-baseline vs build/098-regression-final; 16 pairs, each 1920x1080.
+Direct decoded RGBA comparison: 16/16 exact; stable sidecar fields (view/map/elevation/view_tile/scene mode/resolution/scale/renderer) all equal.
+
+The repository-reference regression reported the same 4 pre-existing reference deviations on both base and final build: klagraz-e0 132 px, klaratcv-e2 44 px, klatoxcv-e0 5106 px, klatoxcv-e1 492039 px. The other 12 spots passed on both builds. These counts were identical between base and final captures.
+
+Final checks: ctest --test-dir build --output-on-failure: 18/18 passed; py -3 -m unittest discover -s tools/regression -p 'test*.py' -v: 12/12 passed; git diff --check: clean.

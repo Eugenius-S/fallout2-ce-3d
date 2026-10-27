@@ -1,0 +1,24 @@
+Task 098 isolated acceptance evidence (all runs used only the copied game in this worktree)
+
+Background test alongside normal copy
+background_game_pid=49968
+background_first_capture=build/test-run/runs/baaa22742f78/shots/dev/2026-10-27/devshot-20261027-214139.json
+background_controller_paused_after_capture=True
+background_title_mutex_present=False
+normal_copy_a_capture=runs/098-test-runs-block-owner-game/normal-copy-while-background-open-final/shots/dev/2026-10-27/devshot-20261027-214149.json
+normal_copy_a_started_while_background_alive=True
+normal_copy_a_acquired_title_mutex=True
+The background controller was resumed after the check; isolated test processes were stopped by the harness.
+
+Normal single-instance collision (separate paired run)
+first_normal_pid=47424
+first_normal_capture=True
+first_normal_alive_at_second_launch=True
+first_normal_mutex_present=True
+second_normal_pid=50692
+second_normal_exited=True
+second_normal_exit_code=1
+second_normal_capture=False
+title_mutex_present_after_second_launch=True
+second_normal_message_observed=False
+The message text is established from code only: windowManagerInit returns WINDOW_MANAGER_ERR_ALREADY_RUNNING (ce/src/window_manager.cc); ce/src/window.cc maps it to "Program already running." and exit(1). No dialog was captured directly.
