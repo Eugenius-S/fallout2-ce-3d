@@ -2757,10 +2757,8 @@ bool handleKey(int key)
     // Ctrl+T steps the game hour forward, Alt+T backward, the [3d] sun the
     // owner reads shadows by: the options panel's plain T answers only while
     // the panel is open (063), and the fly camera below would eat the key.
-    // The day is kept, the step lands on the same minute. The status line
-    // shows the hour the sun now keeps: at night a step changes nothing
-    // visible, and without a readout it read as time standing still (082
-    // round 2).
+    // The step keeps the minute and advances the calendar across midnight.
+    // The status line shows the current hour even when it is dark.
     if ((key == KEY_CTRL_T || key == KEY_ALT_T) && scene::enabled()) {
         const unsigned int ticks = gameTimeGetTime();
         gameTimeSetTime(scene::stepClockHour(ticks, key == KEY_CTRL_T ? 1 : -1));
