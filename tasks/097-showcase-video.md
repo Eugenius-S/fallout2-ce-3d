@@ -26,8 +26,9 @@ what is on screen.
   `higgsfield:higgsfield-generate` for the pieces they cover).
 - Take it when the slice is close to done, so the shots show the finished
   look; until then this task waits.
-- Recording goes through the dev tools (`tools/dev-snapshot.ps1` and the dev
-  launch), never by driving the owner's running game.
+- Recording goes through the background test instance
+  (`tools/dev-snapshot.ps1`), never by driving the owner's running game;
+  `tools/dev-launch.ps1` only when the owner asks for it in chat.
 
 ## What the video shows
 
@@ -51,8 +52,9 @@ side by side or one after the other:
 - One video, 1 to 2 minutes, 1080p, a caption in the corner for each
   segment in English, no music without a licence.
 - The video sits where the GitHub page can show it (a release asset or a
-  link in `README.md`), not committed into the repo; the raw clips and the
-  edit plan in `runs/097-showcase-video/` within the runs size limit.
+  link in `README.md`), not committed into the repo; raw clips stay in
+  `game/shots/`, and `runs/097-showcase-video/` holds only the edit plan and
+  small JPEG previews.
 - The owner watches it and says it goes up.
 
 ## Out of scope
