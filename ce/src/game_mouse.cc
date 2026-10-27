@@ -2708,6 +2708,22 @@ int gameMouseHandleScrolling(int x, int y, MouseCursorType cursor)
     return 0;
 }
 
+// Exercise the same edge-scroll handler used by the live mouse refresh from
+// an isolated dev snapshot, where SDL mouse warps may not reach a hidden window.
+int gameMouseScrollAtEdgeForDevtools(int direction)
+{
+    int x = (_scr_size.left + _scr_size.right) / 2;
+    int y = (_scr_size.top + _scr_size.bottom) / 2;
+    switch (direction) {
+    case 0: x = _scr_size.left; break;
+    case 1: x = _scr_size.right; break;
+    case 2: y = _scr_size.top; break;
+    case 3: y = _scr_size.bottom; break;
+    default: return -1;
+    }
+    return gameMouseHandleScrolling(x, y, MOUSE_CURSOR_NONE);
+}
+
 // 0x44E544 gmouse_remove_item_outline
 void _gmouse_remove_item_outline(Object* object)
 {

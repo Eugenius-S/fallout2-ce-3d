@@ -46,7 +46,6 @@ namespace {
 View gView = View::Off;
 bool gOriginalShown = false; // Ctrl+F10 asked for the game as it was
 bool gCameraGlide = true;
-bool gFreeScroll = false; // tileSetFreeScroll as set for the full view
 // The wheel sets a target zoom (settings.scene3d.zoom) and the shown zoom
 // eases there, so the picture glides instead of jumping a step at a time.
 constexpr double kZoomGlideSeconds = 0.2;
@@ -405,12 +404,6 @@ void syncToMap()
             }
         }
     }
-    const bool active = activeView() == View::Full;
-    if (active != gFreeScroll) {
-        tileSetFreeScroll(active); // the 3D view scrolls past map edges
-        gFreeScroll = active;
-        resetHeroLog();
-    }
     updateMapClip();
 }
 
@@ -457,10 +450,7 @@ bool disable()
 {
     if (gView == View::Off) return false;
     gView = View::Off;
-    if (gFreeScroll) {
-        tileSetFreeScroll(false);
-        gFreeScroll = false;
-    }
+    tileSetFreeScroll(false);
     resetHeroLog();
     scene_renderer::clearStaticHero();
     scene_renderer::clearStaticObjects();

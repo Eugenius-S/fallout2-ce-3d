@@ -1,0 +1,118 @@
+{
+  "resolution": "1920x1080",
+  "logical_resolution": "960x540",
+  "scale": 2,
+  "final_exe_sha256": "3f5e0256285bd5023290f809c9a26325a9587dd79d64db735cb79c6baa339cf0",
+  "pairs": {
+    "kladwtwn-left": {
+      "map": "KLADWTWN.MAP",
+      "edge": "left",
+      "center_tile": 17526,
+      "probe_hero_tile": 18715,
+      "comparison_image": "left-edge.jpg",
+      "3d": {
+        "capture_json": "devshot-20261027-194715-000.json",
+        "view": "static-wall-plus-hero-preview",
+        "exe_sha256": "3f5e0256285bd5023290f809c9a26325a9587dd79d64db735cb79c6baa339cf0",
+        "probe": "SCROLL_EDGE PASS edge=left center=17526 stable_frames=300 total_frames=360 edg_enabled=1 edg_zone=1 center_xy=464,212 hero=18715 hero_xy=816,212 delta_xy=-352,0",
+        "source_dir": "build\\095-final-kladwtwn-edges-3f5e0256\\3d-left"
+      },
+      "classic": {
+        "capture_json": "devshot-20261027-194821.json",
+        "view": "vanilla-framebuffer",
+        "exe_sha256": "3f5e0256285bd5023290f809c9a26325a9587dd79d64db735cb79c6baa339cf0",
+        "probe": "SCROLL_EDGE PASS edge=left center=17526 stable_frames=300 total_frames=361 edg_enabled=1 edg_zone=1 center_xy=464,212 hero=18715 hero_xy=816,212 delta_xy=-352,0",
+        "source_dir": "build\\095-final-kladwtwn-edges-3f5e0256\\classic-left"
+      },
+      "image_bytes": 263229
+    },
+    "kladwtwn-right": {
+      "map": "KLADWTWN.MAP",
+      "edge": "right",
+      "center_tile": 22872,
+      "probe_hero_tile": 21486,
+      "comparison_image": "right-edge.jpg",
+      "3d": {
+        "capture_json": "devshot-20261027-194732-000.json",
+        "view": "static-wall-plus-hero-preview",
+        "exe_sha256": "3f5e0256285bd5023290f809c9a26325a9587dd79d64db735cb79c6baa339cf0",
+        "probe": "SCROLL_EDGE PASS edge=right center=22872 stable_frames=300 total_frames=369 edg_enabled=1 edg_zone=1 center_xy=464,212 hero=21486 hero_xy=16,212 delta_xy=448,0",
+        "source_dir": "build\\095-final-kladwtwn-edges-3f5e0256\\3d-right"
+      },
+      "classic": {
+        "capture_json": "devshot-20261027-194838.json",
+        "view": "vanilla-framebuffer",
+        "exe_sha256": "3f5e0256285bd5023290f809c9a26325a9587dd79d64db735cb79c6baa339cf0",
+        "probe": "SCROLL_EDGE PASS edge=right center=22872 stable_frames=300 total_frames=367 edg_enabled=1 edg_zone=1 center_xy=464,212 hero=21486 hero_xy=16,212 delta_xy=448,0",
+        "source_dir": "build\\095-final-kladwtwn-edges-3f5e0256\\classic-right"
+      },
+      "image_bytes": 285375
+    },
+    "kladwtwn-up": {
+      "map": "KLADWTWN.MAP",
+      "edge": "up",
+      "center_tile": 12876,
+      "probe_hero_tile": 15284,
+      "comparison_image": "up-edge.jpg",
+      "3d": {
+        "capture_json": "devshot-20261027-194749-000.json",
+        "view": "static-wall-plus-hero-preview",
+        "exe_sha256": "3f5e0256285bd5023290f809c9a26325a9587dd79d64db735cb79c6baa339cf0",
+        "probe": "SCROLL_EDGE PASS edge=up center=12876 stable_frames=300 total_frames=356 edg_enabled=1 edg_zone=1 center_xy=464,208 hero=15284 hero_xy=464,400 delta_xy=0,-192",
+        "source_dir": "build\\095-final-kladwtwn-edges-3f5e0256\\3d-up"
+      },
+      "classic": {
+        "capture_json": "devshot-20261027-194853.json",
+        "view": "vanilla-framebuffer",
+        "exe_sha256": "3f5e0256285bd5023290f809c9a26325a9587dd79d64db735cb79c6baa339cf0",
+        "probe": "SCROLL_EDGE PASS edge=up center=12876 stable_frames=300 total_frames=359 edg_enabled=1 edg_zone=1 center_xy=464,208 hero=15284 hero_xy=464,400 delta_xy=0,-192",
+        "source_dir": "build\\095-final-kladwtwn-edges-3f5e0256\\classic-up"
+      },
+      "image_bytes": 329089
+    },
+    "kladwtwn-down": {
+      "map": "KLADWTWN.MAP",
+      "edge": "down",
+      "center_tile": 26722,
+      "probe_hero_tile": 24916,
+      "comparison_image": "down-edge.jpg",
+      "3d": {
+        "capture_json": "devshot-20261027-194805-000.json",
+        "view": "static-wall-plus-hero-preview",
+        "exe_sha256": "3f5e0256285bd5023290f809c9a26325a9587dd79d64db735cb79c6baa339cf0",
+        "probe": "SCROLL_EDGE PASS edge=down center=26722 stable_frames=300 total_frames=352 edg_enabled=1 edg_zone=1 center_xy=464,216 hero=24916 hero_xy=464,72 delta_xy=0,144",
+        "source_dir": "build\\095-final-kladwtwn-edges-3f5e0256\\3d-down"
+      },
+      "classic": {
+        "capture_json": "devshot-20261027-194909.json",
+        "view": "vanilla-framebuffer",
+        "exe_sha256": "3f5e0256285bd5023290f809c9a26325a9587dd79d64db735cb79c6baa339cf0",
+        "probe": "SCROLL_EDGE PASS edge=down center=26722 stable_frames=300 total_frames=352 edg_enabled=1 edg_zone=1 center_xy=464,216 hero=24916 hero_xy=464,72 delta_xy=0,144",
+        "source_dir": "build\\095-final-kladwtwn-edges-3f5e0256\\classic-down"
+      },
+      "image_bytes": 248718
+    },
+    "klamall-left": {
+      "map": "KLAMALL.MAP",
+      "edge": "left",
+      "center_tile": 18715,
+      "probe_hero_tile": 20100,
+      "comparison_image": "klamall-left-edge.jpg",
+      "3d": {
+        "capture_json": "devshot-20261027-194946-000.json",
+        "view": "static-wall-plus-hero-preview",
+        "exe_sha256": "3f5e0256285bd5023290f809c9a26325a9587dd79d64db735cb79c6baa339cf0",
+        "probe": "SCROLL_EDGE PASS edge=left center=18715 stable_frames=300 total_frames=332 edg_enabled=1 edg_zone=1 center_xy=464,212 hero=20100 hero_xy=944,212 delta_xy=-480,0",
+        "source_dir": "build\\095-final-klamall-edg-3f5e0256\\3d-left"
+      },
+      "classic": {
+        "capture_json": "devshot-20261027-195002.json",
+        "view": "vanilla-framebuffer",
+        "exe_sha256": "3f5e0256285bd5023290f809c9a26325a9587dd79d64db735cb79c6baa339cf0",
+        "probe": "SCROLL_EDGE PASS edge=left center=18715 stable_frames=300 total_frames=332 edg_enabled=1 edg_zone=1 center_xy=464,212 hero=20100 hero_xy=944,212 delta_xy=-480,0",
+        "source_dir": "build\\095-final-klamall-edg-3f5e0256\\classic-left"
+      },
+      "image_bytes": 266139
+    }
+  }
+}
