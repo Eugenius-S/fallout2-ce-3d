@@ -256,3 +256,18 @@ the same way only if its cause is shared, else logged; foliage looks fine.
   - window grates: their bars' shadows on the pane behind read dotted;
   - fence rail shadows on the ground keep ragged lit dots at their edges.
 - Not done: the owner accepts at 0 on every view.
+
+### 2026-10-27 claude, round 3
+- The noon door: a card standing in its wall's plane (a door, the ones
+  with a baked plane) takes that wall's side of the sun, the flat shaded
+  value on a wall turned from it. The tree's shaded twigs at 19265 read
+  against the lit door: 19265 h7 1057 to 157, h12 1075 to 175. People and
+  free-standing things are unchanged.
+- Review (PR 126): a low card under the fly camera projected its pixels to
+  the ground along the game's direction; it now follows the free camera's
+  own ray (24292 fly 902/35/910 to 886/34/909).
+- The tree at 19265 h17 (1436 of 1750 px) stands in shadow in front of a
+  sunlit wall: read per pixel at its own place it reads the same shadow
+  (1457 holes either way), so its twigs over the lit wall are its own
+  outline, not a seam. The per-pixel rule changed nothing and is not kept.
+- ctest 16/16; regression 0 changed px on all 16 views.

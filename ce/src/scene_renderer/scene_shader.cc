@@ -113,6 +113,7 @@ uniform sampler2D uLightReach; // the hexes each light reaches, a window per lig
 uniform sampler2D uLightMap;
 uniform float uHexUnit; // GL length of one hex step on the ground
 uniform vec3 uTowardCamera; // GL direction towards the game's camera
+uniform vec4 uFlyEye; // xyz the free camera's eye, w 1 while it flies (090)
 uniform vec2 uLightSqu; // ground (u, v) to game pixels
 uniform vec2 uLightSqv;
 uniform vec2 uLightOrigin;
@@ -141,7 +142,9 @@ uniform int uShadowPass;
 uniform int uShadowSelfFromVertex;
 uniform float uShadowSelfId;
 uniform vec2 uShadowAnchor;
-uniform vec2 uShadowGround; // x 1: a low card reads per pixel on the ground at height y (090)
+// x 1: a low card reads per pixel on the ground at height y; zw a door's
+// wall normal (x, z) (090).
+uniform vec4 uShadowGround;
 out vec4 outColor;
 // What a texel shines by itself for the glow (task 022): the colour a
 // full-bright texel keeps, premultiplied by its shown coverage; black
@@ -394,10 +397,27 @@ float sunShadowAtAnchor(float selfId) {
 // body (090): each pixel reads the shadow where the game's line of sight
 // through it meets the ground the card stands on, as the floor does. One
 // factor per card broke a corral's shadow into a patchwork of whole cards.
+// A card standing in its wall's plane (a door) is part of that wall: on a
+// wall turned from the sun it takes the flat shaded value with it (090, the
+// noon door lit in its shaded wall at 19265). Anyone else's card has no plane.
+// Towards the eye that sees this fragment: the game's parallel direction, or
+// the free camera's own ray (090: a low card under the fly camera followed
+// the game's direction and its shadow slid off the ground's around it).
+vec3 towardViewer() {
+    return uFlyEye.w > 0.5 ? normalize(uFlyEye.xyz - vWorld) : uTowardCamera;
+}
+bool cardTurned() {
+    vec3 w = vec3(uShadowGround.z, 0.0, uShadowGround.w);
+    if (dot(w, w) < 0.5) return false;
+    if (dot(w, towardViewer()) < 0.0) w = -w;
+    return dot(w, uShadowLight) <= 0.001;
+}
 float sunShadowCard(float selfId) {
+    if (cardTurned()) return 1.0;
     if (uShadowGround.x < 0.5) return sunShadowAtAnchor(selfId);
     vec3 g = vWorld;
-    if (uTowardCamera.y > 0.01) g -= uTowardCamera * ((vWorld.y - uShadowGround.y) / uTowardCamera.y);
+    vec3 toward = towardViewer();
+    if (toward.y > 0.01) g -= toward * ((vWorld.y - uShadowGround.y) / toward.y);
     g.y = uShadowGround.y;
     vec2 slope = shadowPlaneSlope(vec3(0.0, 1.0, 0.0));
     return shadowCoverage(g, vec3(1.0, 0.0, 0.0), vec3(0.0, 0.0, 1.0), slope, selfId);
@@ -461,7 +481,7 @@ float shadowDarken(float light) {
             // per-pixel read (063) left lit contour gaps between a character
             // in shadow and its shadow. A low card is ground and darkens as
             // the ground does (090).
-            float density = uShadowGround.x > 0.5 ? 0.35 : 0.3;
+            float density = uShadowGround.x > 0.5 || cardTurned() ? 0.35 : 0.3;
             light *= 1.0 - uShadowStrength * uShadowDensity * density * sunShadowCard(selfId);
         }
     }
@@ -632,7 +652,8 @@ void main() {
                 outEmissive = vec4(0.0);
                 bool receiver = uLightMode == 1 || uLightMode == 2 || uLightMode == 3;
                 bool turned = (uLightMode == 1 || uLightMode == 2)
-                    && dot(shadowPaintedNormal(shadowFaceNormal()), uShadowLight) <= 0.001;
+                    ? dot(shadowPaintedNormal(shadowFaceNormal()), uShadowLight) <= 0.001
+                    : uLightMode == 3 && cardTurned();
                 outColor = !receiver ? vec4(1.0, 0.0, 1.0, 1.0) : turned ? vec4(0.0, 0.0, 1.0, 1.0) : vec4(vec3(lit.a), 1.0);
                 return;
             }
@@ -725,6 +746,7 @@ int gSceneLightAnchorLocation = -1;
 int gSceneAmbientLocation = -1;
 int gSceneHexUnitLocation = -1;
 int gSceneTowardCameraLocation = -1;
+int gSceneFlyEyeLocation = -1;
 int gSceneLightCountLocation = -1;
 int gSceneLightPosLocation = -1;
 int gSceneLightColorLocation = -1;
@@ -807,6 +829,7 @@ bool createSceneShader(std::string* error)
     gSceneAmbientLocation = glGetUniformLocation(gSceneProgram, "uAmbient");
     gSceneHexUnitLocation = glGetUniformLocation(gSceneProgram, "uHexUnit");
     gSceneTowardCameraLocation = glGetUniformLocation(gSceneProgram, "uTowardCamera");
+    gSceneFlyEyeLocation = glGetUniformLocation(gSceneProgram, "uFlyEye");
     gSceneLightCountLocation = glGetUniformLocation(gSceneProgram, "uLightCount");
     gSceneLightPosLocation = glGetUniformLocation(gSceneProgram, "uLightPos");
     gSceneLightColorLocation = glGetUniformLocation(gSceneProgram, "uLightColor");

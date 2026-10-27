@@ -188,6 +188,7 @@ extern int gSceneLightAnchorLocation;
 extern int gSceneAmbientLocation;
 extern int gSceneHexUnitLocation;
 extern int gSceneTowardCameraLocation;
+extern int gSceneFlyEyeLocation;
 extern int gSceneLightCountLocation;
 extern int gSceneLightPosLocation;
 extern int gSceneLightColorLocation;
@@ -343,6 +344,10 @@ struct ObjectDraw {
     // rubble) takes the sun shadow per pixel on the ground it shows (090).
     bool groundShadow = false;
     float groundY = 0.0f; // the height of that ground
+    // A card standing in a wall's plane (a door): that plane's normal (x, z),
+    // 0 for any other card. It takes its wall's side of the sun (090).
+    float wallNormalX = 0.0f;
+    float wallNormalZ = 0.0f;
 };
 
 // Below this height (GL units) a standing card is ground clutter, not a body.

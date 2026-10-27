@@ -272,8 +272,10 @@ bool addStaticObject(const StaticObjectFrame& frame, std::string* error)
     }
     const StaticPreviewCamera camera = staticPreviewCamera(true);
     float plane[3];
+    bool onWall = false;
     if (flat) {
     } else if (staticObjectPlane(frame.tile, frame.fid, plane)) {
+        onWall = true;
         onFlyPlane(corners, plane, camera.eye);
     } else {
         faceFlyCamera(corners);
@@ -342,6 +344,10 @@ bool addStaticObject(const StaticObjectFrame& frame, std::string* error)
     }
     gObjectDraws.back().groundShadow = flat || high - low < kLowCardHeight;
     gObjectDraws.back().groundY = lift[1]; // the floor, or the top of the solid it stands on
+    if (onWall) {
+        gObjectDraws.back().wallNormalX = static_cast<float>(-std::sin(plane[1]));
+        gObjectDraws.back().wallNormalZ = static_cast<float>(std::cos(plane[1]));
+    }
     const int order[6] = { 0, 1, 2, 0, 2, 3 };
     for (int index : order) {
         SpriteCardVertex corner = corners[index];
