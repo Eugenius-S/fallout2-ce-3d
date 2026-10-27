@@ -85,12 +85,61 @@ that fits no task becomes a new task when the board runs dry.
   visually; there should be a moon of some kind (his words, for later: a
   moon light at night, presumably a dim cool directional like the sun
   line but weak).
-- 2026-10-26 (found in 090) The point lights' wall normal in
+- 2026-10-26 (task 099; found in 090) The point lights' wall normal in
   `sceneLighting` (uLightMode 2) takes `dFdx/dFdy(vWorld)` after the alpha
   `discard`; next to a discarded pixel NVIDIA gives zero derivatives and the
   normal turns NaN. 090 fixed it for the sun only; the same fix in the
   point lights changes 179 to 1155 px in the caves (klaratcv, klatoxcv),
   so it needs its own task with a look check there.
+- 2026-10-27 (093 leftover 4, task 100) The owner reproduced the thing poking
+  out of the bathhouse wall in the live 3D game:
+  `runs/inbox/2026-10-27-shadow-leftover-4b-bathhouse.jpg`. A grey box
+  sticks out of the bathhouse's west wall (the long wall facing the alley),
+  a few hexes up from its south corner, the hero standing at that corner.
+  Inside (`2026-10-27-shadow-leftover-4c-bathhouse-inside.jpg`, roof off) the
+  owner names it: a table with junk on it inside the bathhouse, its picture
+  crossing the wall. So it is a scene object, not the painted crates 093
+  compared. From above (`-4d-bathhouse-top.jpg`, fly view) the junk is not on
+  the table at all: the box, plate and cans sit against the alley wall, and
+  two grey pipes lie outside it in the alley. The items are placed away from
+  their table, through the wall.
+- 2026-10-27 (task 102) Inside the bathhouse, roof off, in flight (owner's shot
+  `runs/inbox/2026-10-27-bathhouse-inside-light-strips.jpg`): the inner face of
+  the far wall shows vertical strips of bright specks, the window columns of the
+  wall's outside picture lit as if daylight came through. The owner reads them
+  as stray strips of light. Check what the inside face of a wall shows (its own
+  art, a flat dark face, or the outside picture mirrored) against the original.
+- 2026-10-27 (096) The bathhouse's south corner in the 3D view, roof off (owner's shot
+  `runs/inbox/2026-10-27-bathhouse-corner-piece-gone.jpg`): the corner piece
+  (the striped pillar seen at that corner in `2026-10-27-shadow-leftover-4b-bathhouse.jpg`)
+  is gone; the corner is a plain grey box. The owner: the corner element fell off.
+  In the isometric camera of the same 3D view the striped pillar is in place
+  (owner's shot in chat, not on disk); only the turned perspective camera
+  loses it. Likely 096's corner pieces.
+- 2026-10-27 (096) A house corner from close by in flight (owner's shot in chat,
+  not on disk): the shadow on one wall runs on past the corner onto the next
+  face while the corner piece with its striped pillar stays lit. The owner: the
+  shadow flowed round the corner, ignoring the corner piece. One more case of
+  096's class; check it there once 096 lands.
+- 2026-10-27 (task 101) Roof horns, fewer than before but still there (owner's shot
+  `runs/inbox/2026-10-27-roof-horns.jpg`, flight over Klamath with the 095
+  build): dark wall-top strips stand up through the big brick building's roof
+  (a broken dashed line across it, a black triangle at its right edge) and
+  through the roof left of the bathhouse. Walls poking above the roof they sit
+  under; follow-up of the 081 roofs work.
+- 2026-10-27 (task 103) The see-through halo round the hero is gone (owner's shot
+  `runs/inbox/2026-10-27-hero-see-through-halo-gone.jpg`, the 095 build, inside
+  the bathhouse by its south wall): the wall in front of the hero is drawn solid,
+  with no cut-out round him. Find which change lost it (git bisect between the
+  last build where the owner saw it and 095).
+- 2026-10-27 (096) More corner shadows from the owner's live run: at Vic's
+  house the shadow flows round the corner too
+  (`runs/inbox/2026-10-27-vic-house-shadow-round-corner.jpg`), and the bottom-edge
+  shot `runs/inbox/2026-10-27-bottom-edge-exit-zone.jpg` has a shadow flaw by the
+  house (the owner did not mark which; compare it with the original view).
+- 2026-10-27 (tasks 101-104) The owner's later shots in `runs/inbox/2026-10-27-*`:
+  roof ends and fringe (101), walls from inside and holes (102), the halo on
+  walls (103), the camera's bottom edge (104).
 - 2026-10-27 The 4:3 full-screen art (main menu, splash and loading screens,
   death and ending slides, the like) extended to 16:9 and 21:9. The owner's
   method, to extend the originals rather than replace them: regenerate the art
