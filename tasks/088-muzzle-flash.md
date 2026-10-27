@@ -1,6 +1,6 @@
 ---
 id: 088
-title: A shot flashes at the gun's muzzle, one flash per bullet in a burst
+title: A shot flashes at the gun's muzzle in the native animation's rhythm
 milestone: M1
 status: doing
 owner: gpt
@@ -15,7 +15,7 @@ reviewed: no
 ## Goal
 
 When someone fires a gun, a flash of light blinks in front of them at the
-muzzle. A burst gives several flashes, one per shot. Each flash lands on the
+muzzle. A burst follows the flashes painted in its animation. Each flash lands on the
 frames where the shooter's own sprite brightens at the shot, so the light and
 the picture blink together.
 
@@ -47,7 +47,7 @@ the picture blink together.
   weapon and rotation, the firing frames left to right in order, each frame
   labelled with its number; under each row the same frames without the
   flash. The flash sits on the same frames the sprite brightens.
-- Rows for: a pistol, a rifle, a burst weapon (every shot of the burst
+- Rows for: a pistol, a rifle, a burst weapon (every painted flash of the burst
   visible), and every energy and non-bullet kind found (laser, plasma,
   pulse, electric, flamethrower, rocket, ...: their own glow, and with the
   smaller flash added); each at least at two rotations.
@@ -59,6 +59,26 @@ the picture blink together.
 New art, weapon balance, projectile trails, per-weapon menu controls.
 
 ## Log
+
+### 2026-10-27 gpt: implementation and comparison in progress
+
+The owner chose the painted flash rhythm: the SMG spends six rounds but its
+three painted flashes get three light pulses. Native animation and combat timing
+stay unchanged. Pixel masks and light sources follow the firing frames and
+rotations, controlled by the existing global glow switch. A no-save fixture
+captures frames with and without the new flash; the energy comparison places
+the native projectile at the painted barrel and is not a combat replay. The
+default energy mode uses the projectile's existing 086 glow; an extra smaller
+flash is available only in the fixture for visual comparison. Weapons without
+a separate projectile retain their painted muzzle or flame glow.
+
+Build and 17 CTests, 64 exporter tests and 12 regression unit tests passed.
+Bullet frame captures exist in build/muzzle088/bullets and the glow-off SMG
+control in build/muzzle088/glow-off-smg. A laser-pistol pilot exists in
+build/muzzle088/energy/laser-pistol-r1. The remaining energy captures run via
+TEMP/088-capture-energy.ps1; save comparison sheets under runs/088-muzzle-flash.
+Check the actual frames and off/on pairs, then run the full fly tour and normal
+view regression against baseline main 261eaa2e. Task remains in progress.
 
 ### 2026-10-26 gpt: claimed after completing 086
 

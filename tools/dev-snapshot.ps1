@@ -95,6 +95,13 @@ param(
     [switch]$EffectLightCheck,
     [ValidateSet('laser', 'plasma-bolt', 'plasma-pistol', 'plasma-rifle', 'fire-explosion', 'plasma-explosion', 'emp-explosion', 'rocket-explosion', 'electric', 'flamethrower', 'rocket', 'sign40', 'sign41')]
     [string]$EffectFixture,
+    [ValidateRange(1, 16777215)]
+    [int]$MuzzleWeapon = 0,
+    [ValidateSet(45,46,47)]
+    [int]$MuzzleAnimation = 45,
+    [ValidateRange(0,5)]
+    [int]$MuzzleRotation = 1,
+    [switch]$MuzzleGlowOff,
     [ValidateRange(0, 1000)]
     [int]$EffectFrame = -1,
     # -Shadows: keep the sun shadows on in this background run (they are
@@ -120,6 +127,11 @@ param(
     [int]$Scale = 2
 )
 $ErrorActionPreference = 'Stop'
+if ($MuzzleWeapon -gt 0) {
+    if ($EffectFixture -or $GlowPair -or $GlowLadder -or $GlowLevels -or $DialogFixture -or $UiFixture -or $Preferences -or $Tour -or $Classic -or $Probe -or $DevPanel -or $PreferencesProbe) {throw 'Muzzle batch needs its own ordinary scene run.'}
+    if (-not $OutputDirectory) {throw '-MuzzleWeapon requires -OutputDirectory.'}
+    $Still=$true; $CyclePalette=$true; $Glow=-not $MuzzleGlowOff; $CaptureConsole=$true
+}
 if (([int][bool]$GlowLadder + [int][bool]$GlowPair + [int][bool]$GlowLevels) -gt 1) { throw 'Choose one glow comparison mode.' }
 if ($EffectLightCheck -and (-not $EffectFixture -or $EffectFixture -like 'sign*' -or $NoEffectEmission)) { throw '-EffectLightCheck requires an emitting projectile or explosion fixture.' }
 if ($EffectFrame -ge 0 -and -not $EffectFixture) { throw '-EffectFrame requires -EffectFixture.' }
@@ -273,6 +285,7 @@ if (-not (Test-Path -LiteralPath $exe) -or
 $shots = 1
 $runId = [guid]::NewGuid().ToString('N')
 $arguments = @('--dev-tools')
+if ($MuzzleWeapon -gt 0) {$arguments += @("--dev-muzzle=$MuzzleWeapon", "--dev-muzzle-animation=$MuzzleAnimation", "--dev-muzzle-rotation=$MuzzleRotation")}
 if ($NoEffectEmission) { $arguments += '--dev-no-effect-emission' }
 if ($EffectLightCheck) { $arguments += '--dev-effect-light-check' }
 if ($SharpText) { $arguments += '--dev-sharp-text=1' } else { $arguments += '--dev-sharp-text=0' }
@@ -457,6 +470,15 @@ try {
                 }
                 if ($snapshots.Count -ge $shots -and (Test-Path -LiteralPath $fixtureLog) -and
                     (Select-String -LiteralPath $fixtureLog -Pattern '^DIALOG_FIXTURE PASS ' -Quiet)) { break }
+            } elseif ($MuzzleWeapon -gt 0) {
+                $muzzleLog086=Join-Path $OutputDirectory 'process.stdout.log'
+                if (Test-Path -LiteralPath $muzzleLog086) {
+                    $muzzleText086=Get-Content -Raw -LiteralPath $muzzleLog086
+                    if ($muzzleText086 -match 'MUZZLE_FIXTURE FAIL') {break}
+                    if ($muzzleText086 -match 'MUZZLE_FIXTURE PASS frames=(\d+) captures=(\d+)') {
+                        if ($snapshots.Count -ge [int]$Matches[2]) {break}
+                    }
+                }
             } elseif ($snapshots.Count -ge $shots -and $probed) { break }
             Start-Sleep -Milliseconds 500
         }
@@ -474,6 +496,10 @@ try {
         if (-not $process.WaitForExit(10000)) { throw 'The background test process did not exit.' }
     }
     Release-TestSlot
+}
+if ($MuzzleWeapon -gt 0) {
+    $muzzleText086=Get-Content -Raw -LiteralPath (Join-Path $OutputDirectory 'process.stdout.log')
+    if ($muzzleText086 -notmatch 'MUZZLE_FIXTURE PASS' -or $muzzleText086 -match 'MUZZLE_FIXTURE FAIL') {throw 'Muzzle batch did not finish successfully.'}
 }
 if ($PreferencesProbe) {
     $probeLog = Get-Content -Raw -LiteralPath (Join-Path $OutputDirectory 'process.stdout.log')

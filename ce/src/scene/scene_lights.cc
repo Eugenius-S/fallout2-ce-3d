@@ -1,6 +1,7 @@
 #include "scene_lights.h"
 #include "effect_emission.h"
 #include "scene_objects.h"
+#include "muzzle_flash.h"
 
 #include <algorithm>
 #include <array>
@@ -210,10 +211,43 @@ void collectEffectLight(Object* object, void* context)
     light.objectY = object->y;
     light.right = emitter.right;
     light.down = emitter.down;
+    int inspectionX=0,inspectionY=0;
+    objectArtOffsetForInspection(object,&inspectionX,&inspectionY);
+    light.right+=inspectionX; light.down+=inspectionY;
     light.distance = effect.distance;
     light.intensity = effect.intensity;
     emitterColor(emitter, light.color, 1.0f);
     static_cast<std::vector<Candidate>*>(context)->push_back(std::move(candidate));
+}
+
+void collectMuzzleLight(Object* object, void* context)
+{
+    if (!muzzleFlashesEnabled() || (object->flags & OBJECT_HIDDEN) != OBJECT_NONE || !hexGridTileIsValid(object->tile)) return;
+    const auto shown = shownObjectArt(object);
+    const auto* flash = muzzleFlashFor(shown.fid, object->frame, shown.rotation, true);
+    if (flash == nullptr) return;
+    const MuzzleMaterial material = muzzleMaterial(object);
+    if (!material.allowNative && !material.extra) return;
+    FrmImage image;
+    if (!image.lock(FrmId(shown.fid), object->frame, static_cast<Rotation>(shown.rotation))) return;
+    Candidate candidate = { object, {}, true, false };
+    auto& light = candidate.light;
+    light.tile = object->tile; light.objectX = object->x; light.objectY = object->y;
+    light.right = image.getXOffset() - image.getWidth() / 2 + flash->x;
+    light.down = image.getYOffset() - (image.getHeight() - 1) + flash->y;
+    const bool continuous=FrmId(object).animationType()==ANIM_FIRE_CONTINUOUS;
+    light.distance = continuous ? 4 : 2; light.intensity = continuous ? 0.85f : 0.65f;
+    Emitter source; source.counts = flash->colors;
+    emitterColor(source, light.color, 0.9f);
+    auto* destination = static_cast<std::vector<Candidate>*>(context);
+    if(material.allowNative) destination->push_back(candidate);
+    if (material.extra) {
+        candidate.light.right=image.getXOffset()-image.getWidth()/2+flash->rootX;
+        candidate.light.down=image.getYOffset()-(image.getHeight()-1)+flash->rootY;
+        candidate.light.distance=1; candidate.light.intensity=0.35f;
+        for (int k=0;k<3;++k) candidate.light.color[k]=material.color[k];
+        destination->push_back(std::move(candidate));
+    }
 }
 
 // Hexes between two tiles, as tileDistanceBetween counts them, at once: the
@@ -267,6 +301,7 @@ void updateLightsFromGame()
     objectForEachAtElevation(gElevation, collectLight, &candidates);
     std::vector<Candidate> effects;
     objectForEachAtElevation(gElevation, collectEffectLight, &effects);
+    objectForEachAtElevation(gElevation, collectMuzzleLight, &effects);
     std::stable_sort(effects.begin(), effects.end(), [](const Candidate& a, const Candidate& b) {
         return hexDistance(gCenterTile, a.light.tile) < hexDistance(gCenterTile, b.light.tile);
     });

@@ -4,6 +4,7 @@
 #include "preferences_probe.h"
 #include "ui_fixture.h"
 #include "weapon_effect_fixture.h"
+#include "muzzle_fixture.h"
 #include "../scene/effect_emission.h"
 
 #include <stdio.h>
@@ -872,6 +873,12 @@ bool parseOption(const char* arg)
         scene::gEffectEmissionEnabled = false;
         return true;
     }
+    const char* muzzlePrefix = "--dev-muzzle=";
+    if (strncmp(arg,muzzlePrefix,strlen(muzzlePrefix))==0) { configureMuzzleFixture(static_cast<int>(strtol(arg+strlen(muzzlePrefix),nullptr,10)),-1,-1); return true; }
+    const char* muzzleAnimPrefix = "--dev-muzzle-animation=";
+    if (strncmp(arg,muzzleAnimPrefix,strlen(muzzleAnimPrefix))==0) { configureMuzzleFixture(-1,static_cast<int>(strtol(arg+strlen(muzzleAnimPrefix),nullptr,10)),-1); return true; }
+    const char* muzzleRotPrefix = "--dev-muzzle-rotation=";
+    if (strncmp(arg,muzzleRotPrefix,strlen(muzzleRotPrefix))==0) { configureMuzzleFixture(-1,-1,static_cast<int>(strtol(arg+strlen(muzzleRotPrefix),nullptr,10))); return true; }
     const char* effectPrefix = "--dev-effect=";
     if (strcmp(arg, "--dev-effect-light-check") == 0) {
         requestWeaponEffectLightCheck();
@@ -1564,7 +1571,8 @@ void update()
             colorCycleDisable();
         }
         gStartupFloorPreviewAttempted = true;
-        if (!startWeaponEffectFixture(gViewTile >= 0 ? gViewTile : gCenterTile, static_cast<int>(gElevation))) {
+        if (!startMuzzleFixture(gViewTile >= 0 ? gViewTile : gCenterTile,static_cast<int>(gElevation))
+            || !startWeaponEffectFixture(gViewTile >= 0 ? gViewTile : gCenterTile, static_cast<int>(gElevation))) {
             gSnapshotOncePending = false;
             _game_user_wants_to_quit = GAME_QUIT_REQUEST_EXIT;
             return;
@@ -2077,12 +2085,13 @@ void scenePresented(const scene::RefreshResult& refreshed)
         return; // the snapshot comes with the next frame, from the air
     }
     if (refreshed.heroUpdated && gSnapshotOncePending) {
-        if (focusWeaponEffectFixture()) return;
+        if (focusMuzzleFixture() || focusWeaponEffectFixture()) return;
         gSnapshotOncePending = false;
         const bool captured = takeSnapshot();
         printf("devtools: one-shot hero preview snapshot %s: %s\n",
             captured ? "saved" : "failed", gStatus);
         fflush(stdout);
+        if (captured && advanceMuzzleFixture()) { gSnapshotOncePending = true; return; }
         if (captured && gGlowLadderStep >= 0 && gGlowLadderStep < static_cast<int>(gGlowLevels.size())) {
             gDevGlowStrength = gGlowLevels[gGlowLadderStep];
             ++gGlowLadderStep;
@@ -3211,6 +3220,7 @@ bool takeSnapshot()
         "  \"effect_emission\": %s,\n"
         "  \"glow\": {\"enabled\":%s,\"strength\":%.3f},\n"
         "  \"weapon_effect\": %s,\n"
+        "  \"muzzle\": %s,\n"
         "  \"sun\": %s,\n"
         "  \"resolution\": \"%dx%d\",\n"
         "  \"logical_resolution\": \"%dx%d\",\n"
@@ -3257,6 +3267,7 @@ bool takeSnapshot()
         settings.scene3d.glow ? "true" : "false",
         settings.scene3d.glow_strength,
         weaponEffectMetadata().c_str(),
+        muzzleFixtureMetadata().c_str(),
         sunMetadata,
         capturedWidth,
         capturedHeight,
