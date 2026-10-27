@@ -109,3 +109,8 @@ that fits no task becomes a new task when the board runs dry.
   wall's outside picture lit as if daylight came through. The owner reads them
   as stray strips of light. Check what the inside face of a wall shows (its own
   art, a flat dark face, or the outside picture mirrored) against the original.
+- 2026-10-27 The bathhouse's south corner in the 3D view, roof off (owner's shot
+  `runs/inbox/2026-10-27-bathhouse-corner-piece-gone.jpg`): the corner piece
+  (the striped pillar seen at that corner in `2026-10-27-shadow-leftover-4b-bathhouse.jpg`)
+  is gone; the corner is a plain grey box. The owner: the corner element fell off.
+  Likely 096's corner pieces.
