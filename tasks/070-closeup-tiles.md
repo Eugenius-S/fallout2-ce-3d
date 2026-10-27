@@ -36,6 +36,16 @@ New art.
 
 ## Log
 
+### 2026-10-27 gpt: integrated shadow checkpoint
+
+Main advanced to 4a3b54fa (090) during verification. Merged it while retaining
+its shadow implementation verbatim: there is no branch diff in shadow.cc,
+walls.cc or the shadow parts of scene_shader.cc. A clean rebuild and all 18
+CTests passed. The same reconstructed barrel view is pixel-identical to the
+earlier before/after sheet after integration. The final 16-view regression and
+fresh fly tour against 090 are running from the isolated 092 test runners.
+Next: inspect the tour, record results, finish the PR and merge.
+
 ### 2026-10-27 gpt: close-up filtering in progress
 
 History search with `git log -S` found nearest filtering in floor and scenery
