@@ -2,7 +2,7 @@
 import json
 from pathlib import Path
 
-from PIL import Image, ImageChops, ImageDraw
+from PIL import Image, ImageChops, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parents[1]
 SHOTS = ROOT / "build/muzzle088"
@@ -13,7 +13,7 @@ GROUPS = {
     "energy-rifles": ("energy", ("laser-rifle", "plasma-rifle", "pulse-rifle", "gatling-laser")),
     "energy-heavy": ("energy", ("flamethrower", "rocket", "robot-rocket", "boss-plasma")),
 }
-CELL_W, CELL_H, LABEL = 130, 182, 23
+CELL_W, CELL_H, LABEL = 150, 210, 25
 
 
 def load_batch(folder):
@@ -48,26 +48,35 @@ def load_batch(folder):
 
 
 def sheet(name, group, cases):
-    batches = [(case, rot, *load_batch(SHOTS / group / f"{case}-r{rot}"))
-               for case in cases for rot in (1, 4)]
-    width = max(frames for _, _, _, frames, _ in batches) * CELL_W
-    height = sum(LABEL + modes * CELL_H for _, _, _, _, modes in batches)
+    batches = [(case, [load_batch(SHOTS / group / f"{case}-r{rot}") for rot in (1, 4)]) for case in cases]
+    width = max(sum(batch[1] for batch in pair) for _, pair in batches) * CELL_W + 12
+    def rows(batch):
+        entries, _, modes = batch
+        return (0, 2) if modes == 3 and entries[0]["muzzle"]["projectile_fid"] > 0 else tuple(range(modes))
+    height = sum(LABEL + max(len(rows(batch)) for batch in pair) * CELL_H for _, pair in batches)
     image = Image.new("RGB", (width, height), (17, 17, 17))
     draw = ImageDraw.Draw(image)
+    try:
+        font = ImageFont.truetype("arial.ttf", 14)
+    except OSError:
+        font = ImageFont.load_default()
     y = 0
-    for case, rot, entries, frames, modes in batches:
-        draw.text((5, y + 4), f"{case} | rotation {rot} | frames 0-{frames-1}", fill="white")
-        y += LABEL
-        labels = ("native + flash", "native only") if modes == 2 else ("projectile / native glow", "without muzzle", "+ small flash")
-        folder = SHOTS / group / f"{case}-r{rot}"
-        for mode in range(modes):
-            for frame in range(frames):
-                source = Image.open(folder / entries[mode * frames + frame]["image"]).convert("RGB")
-                crop = source.crop((760, 260, 1160, 820)).resize((CELL_W, CELL_H - 20), Image.Resampling.LANCZOS)
-                x = frame * CELL_W
-                image.paste(crop, (x, y + 20))
-                draw.text((x + 3, y + 3), f"{frame}" + (f" | {labels[mode]}" if frame == 0 else ""), fill="white")
-            y += CELL_H
+    for case, pair in batches:
+        x_start = 0
+        for rot, (entries, frames, modes) in zip((1, 4), pair):
+            draw.text((x_start + 5, y + 4), f"{case} | rotation {rot} | frames 0-{frames-1}", fill="white", font=font)
+            labels = ("native + flash", "native only") if modes == 2 else ("native glow", "no muzzle", "+ small flash")
+            folder = SHOTS / group / f"{case}-r{rot}"
+            for row, mode in enumerate(rows((entries, frames, modes))):
+                row_y = y + LABEL + row * CELL_H
+                for frame in range(frames):
+                    source = Image.open(folder / entries[mode * frames + frame]["image"]).convert("RGB")
+                    crop = source.crop((760, 260, 1160, 820)).resize((CELL_W, CELL_H - 20), Image.Resampling.LANCZOS)
+                    x = x_start + frame * CELL_W
+                    image.paste(crop, (x, row_y + 20))
+                    draw.text((x + 3, row_y + 2), f"{frame}" + (f" | {labels[mode]}" if frame == 0 else ""), fill="white", font=font)
+            x_start += frames * CELL_W + 12
+        y += LABEL + max(len(rows(batch)) for batch in pair) * CELL_H
     path = OUT / f"{name}.jpg"
     OUT.mkdir(parents=True, exist_ok=True)
     for quality in (88, 80, 72, 64, 56):

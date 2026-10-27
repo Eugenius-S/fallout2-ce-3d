@@ -11,6 +11,7 @@ struct MuzzleMaterial {
 bool muzzleFlashesEnabled();
 void setMuzzleFlashPreview(bool enabled);
 void setEnergyMuzzlePreview(bool enabled);
+void useDefaultEnergyMuzzle();
 MuzzleMaterial muzzleMaterial(Object* object);
 void tintMuzzlePixel(unsigned char* rgba, const MuzzleMaterial& material);
 const MuzzleMask* muzzleFlashFor(int fid, int frame, int rotation, bool respectSwitch = true);

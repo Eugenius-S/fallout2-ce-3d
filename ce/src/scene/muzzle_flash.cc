@@ -18,7 +18,8 @@
 namespace fallout { namespace scene {
 namespace {
 bool gPreview = true;
-bool gEnergyExtra = false; // optional comparison; owner chooses before finalizing 088
+bool gEnergyPreview = false;
+bool gEnergyPreviewOverride = false;
 std::map<std::pair<int,int>, std::vector<MuzzleMask>> gMasks;
 std::map<std::pair<int,int>, std::array<float,3>> gColors;
 
@@ -76,7 +77,8 @@ std::vector<MuzzleMask> inspect(int fid, int rotation)
 
 bool muzzleFlashesEnabled() { return gPreview && settings.scene3d.glow; }
 void setMuzzleFlashPreview(bool enabled) { gPreview = enabled; }
-void setEnergyMuzzlePreview(bool enabled) { gEnergyExtra = enabled; }
+void setEnergyMuzzlePreview(bool enabled) { gEnergyPreviewOverride = true; gEnergyPreview = enabled; }
+void useDefaultEnergyMuzzle() { gEnergyPreviewOverride = false; }
 
 MuzzleMaterial muzzleMaterial(Object* object)
 {
@@ -91,10 +93,13 @@ MuzzleMaterial muzzleMaterial(Object* object)
     Proto* proto = nullptr;
     if (weapon == nullptr || protoGetProto(weapon,&proto) != 0 || proto == nullptr
         || proto->item.data.weapon.damageType == DAMAGE_TYPE_NORMAL) return result;
-    // A separate bolt already lights the barrel through 086. Its normal mode
-    // needs no additional muzzle source; the owner compares that with the extra.
+    // Separate bolts already light the barrel through 086. The owner selected
+    // a small extra flash for laser and plasma weapons with separate bolts.
     result.allowNative = proto->item.data.weapon.projectilePid <= 0;
-    if (!gEnergyExtra) return result;
+    const int damage = proto->item.data.weapon.damageType;
+    const bool extra = gEnergyPreviewOverride ? gEnergyPreview
+        : (proto->item.data.weapon.projectilePid > 0 && (damage == DAMAGE_TYPE_LASER || damage == DAMAGE_TYPE_PLASMA));
+    if (!extra) return result;
     result.extra = true;
     result.weaponPid = ProtoId(weapon).pid();
     const auto key = std::make_pair(result.weaponPid, static_cast<int>(object->rotation));

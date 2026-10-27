@@ -7,9 +7,10 @@ uses the same scene, camera, animation and build for its comparison rows.
 The player lamp is off to show local illumination from the effect.
 
 - Bullet weapons: flash and its light, then the same frames without them.
-- Energy and other projectiles: native glow, no added muzzle flash, then a
-  small additional muzzle flash. For a weapon without a separate projectile,
-  the first row uses its native flame or painted flash as the light source.
+- Energy and other projectiles: native glow, then a small additional muzzle
+  flash. For a weapon without a separate projectile, the first row uses its
+  native flame or painted flash as the light source, and the middle row shows
+  it without the added light.
 - The single global glow setting controls the result. Frames and rotations
   are labelled in the images. SMG frames 1, 3 and 5 are its painted flashes.
 

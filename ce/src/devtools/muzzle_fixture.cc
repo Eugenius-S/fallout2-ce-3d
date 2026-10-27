@@ -19,6 +19,7 @@ namespace {
 int gWeapon = 0, gAnimation = 45, gRotation = 1, gFrames = 0, gShot = 0, gFid = -1;
 int gAimX = 0, gAimY = 0;
 int gModes = 2;
+bool gUsesDefaultExtra = false;
 Object* gProjectile = nullptr;
 bool gFocused = false, gDone = false;
 std::vector<std::pair<int,int>> gOffsets;
@@ -31,7 +32,8 @@ void showFrame()
     gDude->y = gAimY + gOffsets[frame].second;
     const int mode=gShot/gFrames;
     scene::setMuzzleFlashPreview(mode!=1);
-    scene::setEnergyMuzzlePreview(mode==2);
+    if (mode==2 && gUsesDefaultExtra) scene::useDefaultEnergyMuzzle();
+    else scene::setEnergyMuzzlePreview(mode==2);
     if (gProjectile != nullptr) {
         // Material comparison only: park native projectile art at the painted
         // barrel. This is not a combat trajectory or a new animation schedule.
@@ -73,6 +75,11 @@ bool startMuzzleFixture(int tile, int elevation)
     gModes = weaponGetDamageType(gDude,weapon)==DAMAGE_TYPE_NORMAL ? 2 : 3;
     Proto* weaponProto=nullptr;
     Proto* projectileProto=nullptr;
+    if (gModes==3 && protoGetProto(weapon,&weaponProto)==0 && weaponProto!=nullptr) {
+        const int damage=weaponProto->item.data.weapon.damageType;
+        gUsesDefaultExtra=weaponProto->item.data.weapon.projectilePid>0
+            && (damage==DAMAGE_TYPE_LASER || damage==DAMAGE_TYPE_PLASMA);
+    }
     if (gModes==3 && protoGetProto(weapon,&weaponProto)==0 && weaponProto!=nullptr
         && weaponProto->item.data.weapon.projectilePid>0
         && protoGetProto(ProtoId(weaponProto->item.data.weapon.projectilePid),&projectileProto)==0

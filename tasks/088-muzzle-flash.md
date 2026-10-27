@@ -68,8 +68,10 @@ stay unchanged. Pixel masks and light sources follow the firing frames and
 rotations, controlled by the existing global glow switch. A no-save fixture
 captures frames with and without the new flash; the energy comparison places
 the native projectile at the painted barrel and is not a combat replay. The
-default energy mode uses the projectile's existing 086 glow; an extra smaller
-flash is available only in the fixture for visual comparison. Weapons without
+default energy mode uses the projectile's existing 086 glow. After seeing the
+comparison, the owner chose a small extra muzzle flash for laser and plasma
+weapons with a separate projectile. The fixture also shows the variant without
+that flash. Weapons without
 a separate projectile retain their painted muzzle or flame glow.
 
 Build and 17 CTests, 64 exporter tests and 12 regression unit tests passed.
