@@ -126,3 +126,13 @@ the launcher updating itself, maps the exporter does not cover yet.
     hashes.
   - Checks: ctest 18/18; exporter unittest 64/64; regression corrals 0
     changed pixels.
+- Review fix (PR #128): the zip never carried `scene-exporter.exe` (it was
+  built into `build/exporter-standalone/` while only `staging/*` got packed),
+  so a fresh install had no exporter and could not make the 3D data.
+  `publish-latest` now copies the exporter into `staging/` before
+  `Compress-Archive` and the pack step lists the zip and fails if any of the
+  six files (`fallout2-ce.exe`, `fallout2-ce-3d-launcher.exe`, `ce.dat`,
+  `fallout2.cfg`, `version.txt`, `scene-exporter.exe`) is missing; the check
+  runs before the upload, so a broken zip never reaches the release. The
+  check block was verified locally under both Windows PowerShell 5.1 and
+  pwsh: a six-file zip passes, a zip without `ce.dat` fails naming it.

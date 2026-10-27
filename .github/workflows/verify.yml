@@ -79,9 +79,24 @@ jobs:
         with:
           name: game-win64
           path: staging
+      - name: Add the standalone exporter to the payload
+        run: Copy-Item build/exporter-standalone/scene-exporter.exe staging/
       - name: Pack and update the latest release
         run: |
           Compress-Archive -Path staging/* -DestinationPath fallout2-ce-3d-win64.zip -Force
+          # The launcher unpacks these six by name; a zip without any one of
+          # them would install a half-broken game.  Check before uploading.
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $zip = [IO.Compression.ZipFile]::OpenRead((Join-Path (Get-Location) 'fallout2-ce-3d-win64.zip'))
+          try {
+            $names = $zip.Entries | ForEach-Object { $_.FullName } | Where-Object { $_ }
+            $want = 'fallout2-ce.exe', 'fallout2-ce-3d-launcher.exe', 'ce.dat', 'fallout2.cfg', 'version.txt', 'scene-exporter.exe'
+            $missing = @($want | Where-Object { $_ -notin $names })
+            "zip contains: $($names -join ', ')"
+            if ($missing.Count -gt 0) { throw "the release zip is missing: $($missing -join ', ')" }
+          } finally {
+            $zip.Dispose()
+          }
           gh release view latest --repo $env:GITHUB_REPOSITORY
           if ($LASTEXITCODE -ne 0) {
             gh release create latest --repo $env:GITHUB_REPOSITORY --target $env:GITHUB_SHA `
