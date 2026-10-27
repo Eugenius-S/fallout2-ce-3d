@@ -205,6 +205,8 @@ void drawStaticPreview(bool withWalls, bool withHero)
             for (const ObjectDraw& draw : gObjectDraws) {
                 if (draw.pickOnly || draw.flat || draw.tint[0] >= 0.0f || !draw.seeThrough) continue;
                 lightSprite(draw.tile);
+                shadowAtFeet(draw.anchorX, draw.anchorZ, draw.groundShadow, draw.groundY, draw.wallNormalX,
+                    draw.wallNormalZ);
                 glBindTexture(kTexture2D, draw.texture);
                 glDrawArrays(kTriangles, draw.firstVertex, 6);
             }
@@ -225,6 +227,7 @@ void drawStaticPreview(bool withWalls, bool withHero)
         for (const ObjectDraw& draw : gObjectDraws) {
             if (draw.pickOnly || draw.tint[0] < 0.0f) continue;
             lightSprite(draw.tile);
+            shadowAtFeet(draw.anchorX, draw.anchorZ, draw.groundShadow, draw.groundY, draw.wallNormalX, draw.wallNormalZ);
             glUniform3f(gSceneTintLocation, draw.tint[0], draw.tint[1], draw.tint[2]);
             glUniform1i(gSceneGlassGrayLocation, draw.glassGray ? 1 : 0);
             glBindTexture(kTexture2D, draw.texture);

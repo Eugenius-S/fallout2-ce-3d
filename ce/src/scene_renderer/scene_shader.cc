@@ -648,8 +648,17 @@ void main() {
                 // (090, tools/shadow_seams.py). A face turned from the sun
                 // (the flat shaded value, no cast shadow) reads blue: lit
                 // ground seen between two shaded fence rails is light, not a
-                // hole in a shadow.
+                // hole in a shadow. A standing body or plant (a person, a
+                // tree: a live card darkened whole at its feet, not a door
+                // in its wall) reads green: the metric leaves its own pixels
+                // out, its outline against a lit wall is not a seam, and still
+                // counts the ground round it (090).
                 outEmissive = vec4(0.0);
+                if (uLightMode == 3 && uShadowGround.x < 0.5
+                    && dot(uShadowGround.zw, uShadowGround.zw) < 0.5) {
+                    outColor = vec4(0.0, 1.0, 0.0, 1.0);
+                    return;
+                }
                 bool receiver = uLightMode == 1 || uLightMode == 2 || uLightMode == 3;
                 bool turned = (uLightMode == 1 || uLightMode == 2)
                     ? dot(shadowPaintedNormal(shadowFaceNormal()), uShadowLight) <= 0.001
