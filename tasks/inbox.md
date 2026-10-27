@@ -116,3 +116,8 @@ that fits no task becomes a new task when the board runs dry.
   In the isometric camera of the same 3D view the striped pillar is in place
   (owner's shot in chat, not on disk); only the turned perspective camera
   loses it. Likely 096's corner pieces.
+- 2026-10-27 (096) A house corner from close by in flight (owner's shot in chat,
+  not on disk): the shadow on one wall runs on past the corner onto the next
+  face while the corner piece with its striped pillar stays lit. The owner: the
+  shadow flowed round the corner, ignoring the corner piece. One more case of
+  096's class; check it there once 096 lands.
