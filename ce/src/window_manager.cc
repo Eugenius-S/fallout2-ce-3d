@@ -124,7 +124,7 @@ int windowManagerInit(VideoSystemInitProc* videoSystemInitProc, VideoSystemExitP
     }
 
 #ifdef _WIN32
-    if (_GNW95_title_mutex == INVALID_HANDLE_VALUE) {
+    if (gProgramWindowTitle[0] == '\0') {
         return WINDOW_MANAGER_ERR_TITLE_NOT_SET;
     }
 #endif
@@ -297,8 +297,10 @@ void windowManagerExit(void)
             gWindowSystemInitialized = false;
 
 #ifdef _WIN32
-            CloseHandle(_GNW95_title_mutex);
-            _GNW95_title_mutex = INVALID_HANDLE_VALUE;
+            if (_GNW95_title_mutex != INVALID_HANDLE_VALUE) {
+                CloseHandle(_GNW95_title_mutex);
+                _GNW95_title_mutex = INVALID_HANDLE_VALUE;
+            }
 #endif
         }
         _insideWinExit = false;
@@ -1409,10 +1411,9 @@ void programWindowSetTitle(const char* title)
     }
 
 #ifdef _WIN32
-    if (_GNW95_title_mutex == INVALID_HANDLE_VALUE) {
+    if (_GNW95_title_mutex == INVALID_HANDLE_VALUE && getenv("F2CE_DEV_BACKGROUND") == nullptr) {
         _GNW95_title_mutex = CreateMutexA(nullptr, TRUE, title);
-        // A dev test run (tools/dev-snapshot.ps1) runs beside the user's open game.
-        if (GetLastError() != ERROR_SUCCESS && getenv("F2CE_DEV_BACKGROUND") == nullptr) {
+        if (GetLastError() != ERROR_SUCCESS) {
             _GNW95_already_running = true;
             return;
         }

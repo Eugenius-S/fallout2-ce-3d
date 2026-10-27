@@ -44,3 +44,8 @@ their own game.
 Anything else about how test runs are launched.
 
 ## Log
+
+### 2026-10-27 gpt
+Done: Background dev-snapshot no longer acquires the FALLOUT II title mutex; the title-set sentinel remains checked, mutex cleanup is guarded, and a normal copy can launch beside the background test while a second normal copy exits with code 1. Isolated acceptance evidence is in `runs/098-test-runs-block-owner-game/acceptance-mutex-results.txt`; direct 16-view RGBA comparison and build SHA records are in `runs/098-test-runs-block-owner-game/regression-comparison.txt`, with raw captures under `build/098-regression-baseline/` and `build/098-regression-final/`.
+Next: root review of the draft PR; do not merge until review.
+Check: CTest 18/18 and regression unit tests 12/12 pass. Direct baseline/final RGBA is exact for 16/16 views. The repository-reference run has the same four deviations on base and final (132, 44, 5106, 492039 pixels); its other 12 views pass.
