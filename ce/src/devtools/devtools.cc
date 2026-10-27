@@ -133,6 +133,7 @@ bool gStillSnapshot = false;
 bool gBackgroundGlow = false;
 double gDevGlowStrength = -1.0;
 bool gDevCyclePalette = false;
+bool gDevCycleZero = false;
 int gGlowLadderStep = -1;
 std::vector<double> gGlowLevels = { 0.5, 1.0, 2.0, 4.0, 8.0 };
 bool gBackgroundShadows = false; // --dev-shadows: shadows stay on in a background run
@@ -838,6 +839,10 @@ bool parseOption(const char* arg)
         gDevCyclePalette = true;
         return true;
     }
+    if (strcmp(arg, "--dev-cycle-zero") == 0) {
+        gDevCycleZero = true;
+        return true;
+    }
     if (strcmp(arg, "--dev-glow-ladder") == 0) {
         gGlowLadderStep = 0;
         gBackgroundGlow = false;
@@ -1315,6 +1320,9 @@ void update()
     if (!gEnabled) {
         return;
     }
+    // The startup --dev-map travel retries here until the opening movie is
+    // over and the transition is accepted (089).
+    applyStartupTarget();
     if (startUiFixtureWhenReady(sceneStartupReady(), inBlockingGameState())) {
         gDialogFixtureRequested = true;
     }
@@ -1526,9 +1534,22 @@ void update()
     }
     if (gPendingElevation) {
         if (inBlockingGameState()) {
+            static int blockedDiag = 0;
+            if (blockedDiag++ % 300 == 0) {
+                printf("devtools: pending map id %d blocked: combat=%d dialog=%d movie=%d map=%s elev=%d\n",
+                    gPendingMapId, isInCombat() ? 1 : 0, _inDialog != 0 ? 1 : 0, _moviePlaying() != 0 ? 1 : 0,
+                    gMapHeader.name, static_cast<int>(gElevation));
+                fflush(stdout);
+            }
             return;
         }
         if (static_cast<int>(gMapHeader.index) != gPendingMapId) {
+            static int waitingDiag = 0;
+            if (waitingDiag++ % 300 == 0) {
+                printf("devtools: waiting for map id %d, the header has %d (%s)\n", gPendingMapId,
+                    static_cast<int>(gMapHeader.index), gMapHeader.name);
+                fflush(stdout);
+            }
             return; // the requested map has not finished loading yet
         }
 
@@ -1548,6 +1569,13 @@ void update()
     if (gStartupTargetAwaitingFinal) {
         if (static_cast<int>(gMapHeader.index) != gPendingMapId
             || static_cast<int>(gElevation) != gPendingElevationValue) {
+            static int awaitDiag = 0;
+            if (awaitDiag++ % 300 == 0) {
+                printf("devtools: awaiting final map id %d e%d, the header has %d e%d (%s)\n", gPendingMapId,
+                    gPendingElevationValue, static_cast<int>(gMapHeader.index), static_cast<int>(gElevation),
+                    gMapHeader.name);
+                fflush(stdout);
+            }
             return;
         }
         gStartupTargetAwaitingFinal = false;
@@ -1577,7 +1605,13 @@ void update()
             gViewTileApplied = true;
         }
         if (stillSnapshotRequested()) {
-            if (gDevCyclePalette) {
+            if (gDevCycleZero) {
+                // 089 diagnostic: hold the range at what a color.pal restore
+                // leaves behind - unmapped entries come back as zeros.
+                unsigned char zeros[26 * 3] = {};
+                _setSystemPaletteEntries(zeros, 229, 254);
+                printf("devtools: cycling range 229-254 frozen at the palette-file zeros\n");
+            } else if (gDevCyclePalette) {
                 auto colors = snapshotCyclePalette();
                 _setSystemPaletteEntries(colors.data(), 229, 254);
                 printf("devtools: frozen cycling colors from cycle.cc rest phase\n");
@@ -1687,15 +1721,21 @@ void applyStartupTarget()
     if (gStartupApplied || !gEnabled) {
         return;
     }
-    gStartupApplied = true;
     if (gStartupMap[0] != '\0') {
-        gStartupTargetSettled = false;
-        if (requestMapChange(gStartupMap, gStartupElevation)) {
-            gStartupTargetAwaitingFinal = true;
-        } else {
-            gStartupTargetSettled = true;
+        // A new game opens on a movie (089: the --dev-map travel never fired
+        // and every non-default-map startup sat in 2D). Refusals stay
+        // retriable: the target applies on the first clear frame instead.
+        bool accepted = requestMapChange(gStartupMap, gStartupElevation);
+        printf("devtools: startup target %s e%d accepted=%d blocking=%d\n", gStartupMap, gStartupElevation,
+            accepted ? 1 : 0, inBlockingGameState() ? 1 : 0);
+        fflush(stdout);
+        if (!accepted) {
+            return;
         }
+        gStartupTargetSettled = false;
+        gStartupTargetAwaitingFinal = true;
     }
+    gStartupApplied = true;
 }
 
 bool requestMapChange(const char* mapFileName, int elevation)
@@ -1724,6 +1764,8 @@ bool requestMapChange(const char* mapFileName, int elevation)
 
     if (mapId == -1) {
         snprintf(gStatus, sizeof(gStatus), uiText("no such map: %s"), base);
+        printf("devtools: requestMapChange %s: not in the worldmap registry\n", base);
+        fflush(stdout);
         return false;
     }
 
@@ -2735,7 +2777,9 @@ bool handleKey(int key)
         return true;
     }
 
-    if (key == KEY_ALT_D) {
+    // F7 duplicates Alt+D: window-message automation (tools/game-input.ps1)
+    // posts plain virtual keys and cannot hold the Alt modifier.
+    if (key == KEY_ALT_D || key == KEY_F7) {
         if (!gPanelOpen) {
             rebuildMapList();
         }
