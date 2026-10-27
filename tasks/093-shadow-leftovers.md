@@ -2,14 +2,14 @@
 id: 093
 title: Shadow leftovers on corners, an eave strip and a table poking through a wall
 milestone: M1
-status: todo
+status: done
 owner: none
 suggested: glm
 priority: normal
 claude-only: no
 user-check: yes
 depends-on: []
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -91,13 +91,23 @@ New shadow features, the moon, shadow softness.
     8, 13, 17, the roof-culled interior view, the alley fly views) the 3D
     matches the vanilla framebuffer shot for shot
     (`runs/093-probe/f4-corner-vanilla-vs-3d.png`). The owner's exact
-    scroll reproduces it; his view tile with the dev panel open would pin
-    the delta.
+    scroll reproduces it; the owner's view tile with the dev panel open
+    would pin the delta.
   - A per-card shader rule (`sunShadowStanding`) was tried for 5 and 6:
     fences and painted posts are not standing cards (the pen diff is 0 px
     at all three hours) while wide card clusters did move; reverted.
-- The fix needs the owner's rule for whose side of the sun a corner piece
-  takes; opened as 096 with the evidence references. This task stays open
-  until 096 lands and the six shots re-check by eye.
+- The corner class moved to 096 with the evidence references; the owner
+  set its direction on this PR: the pieces are cut at the corner line,
+  each half on its own face's side of the sun. Leftover 4 is not the
+  corner class: the live poke-through by the bathhouse is a scene object
+  off its table, task 100. The task closes here; the six shots re-check
+  by eye in 096 and 100.
 - ctest 18/18; the corrals regression 0 px; with the split out, the 090
   seam totals sit at main's on every measured view.
+
+### 2026-10-27 glm: closed on the owner's review of the PR
+
+- The owner reviewed the branch and set 096's direction: the corner
+  pieces are baked as two pieces cut at the corner line, each keeping its
+  own face's plane, and the 090 seam totals must not rise. Status is
+  done; the corner work continues in 096, leftover 4 in task 100.
