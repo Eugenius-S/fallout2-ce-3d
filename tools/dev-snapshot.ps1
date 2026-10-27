@@ -115,6 +115,7 @@ param(
     [ValidateRange(0,5)]
     [int]$MuzzleRotation = 1,
     [switch]$MuzzleGlowOff,
+    [switch]$ClockLadder,
     [ValidateRange(0, 1000)]
     [int]$EffectFrame = -1,
     # -Shadows: keep the sun shadows on in this background run (they are
@@ -144,6 +145,10 @@ param(
     [int]$Scale = 2
 )
 $ErrorActionPreference = 'Stop'
+if ($ClockLadder) {
+    if (-not $OutputDirectory -or $Tour -or $Classic -or $Probe -or $Preferences -or $MuzzleWeapon -or $GlowLadder -or $GlowPair -or $GlowLevels -or $EffectFixture -or $DialogFixture -or $UiFixture) { throw '-ClockLadder requires its own scene run and -OutputDirectory.' }
+    $Still=$true; $CaptureConsole=$true
+}
 if ($MuzzleWeapon -gt 0) {
     if ($EffectFixture -or $GlowPair -or $GlowLadder -or $GlowLevels -or $DialogFixture -or $UiFixture -or $Preferences -or $Tour -or $Classic -or $Probe -or $DevPanel -or $PreferencesProbe) {throw 'Muzzle batch needs its own ordinary scene run.'}
     if (-not $OutputDirectory) {throw '-MuzzleWeapon requires -OutputDirectory.'}
@@ -328,6 +333,7 @@ $runDirectory = Join-Path $exeDirectory "runs\$($runId.Substring(0, 12))"
 New-Item -ItemType Directory -Path $runDirectory -Force | Out-Null
 $arguments = @('--dev-tools')
 if ($MuzzleWeapon -gt 0) {$arguments += @("--dev-muzzle=$MuzzleWeapon", "--dev-muzzle-animation=$MuzzleAnimation", "--dev-muzzle-rotation=$MuzzleRotation")}
+if ($ClockLadder) { $arguments += '--dev-clock-ladder' }
 if ($NoEffectEmission) { $arguments += '--dev-no-effect-emission' }
 if ($EffectLightCheck) { $arguments += '--dev-effect-light-check' }
 if ($SharpText) { $arguments += '--dev-sharp-text=1' } else { $arguments += '--dev-sharp-text=0' }
@@ -414,6 +420,7 @@ if ($PreferencesProbe) {
 if ($GlowLadder) { $shots = 6 }
 if ($GlowPair) { $shots = 2 }
 if ($GlowLevels) { $shots = 1 + $GlowLevels.Count }
+if ($ClockLadder) { $shots = 4 }
 
 $started = Get-Date
 $previousBackground = $env:F2CE_DEV_BACKGROUND
@@ -522,6 +529,9 @@ try {
                         if ($snapshots.Count -ge [int]$Matches[2]) {break}
                     }
                 }
+            } elseif ($ClockLadder) {
+                $clockLog = Join-Path $OutputDirectory 'process.stdout.log'
+                if ($snapshots.Count -ge $shots -and (Test-Path -LiteralPath $clockLog) -and (Select-String -LiteralPath $clockLog -Pattern '^CLOCK_LADDER PASS' -Quiet)) { break }
             } elseif ($snapshots.Count -ge $shots -and $probed) { break }
             Start-Sleep -Milliseconds 500
         }
@@ -544,6 +554,10 @@ try {
 if ($MuzzleWeapon -gt 0) {
     $muzzleText086=Get-Content -Raw -LiteralPath (Join-Path $OutputDirectory 'process.stdout.log')
     if ($muzzleText086 -notmatch 'MUZZLE_FIXTURE PASS' -or $muzzleText086 -match 'MUZZLE_FIXTURE FAIL') {throw 'Muzzle batch did not finish successfully.'}
+}
+if ($ClockLadder) {
+    $clockText094=Get-Content -Raw -LiteralPath (Join-Path $OutputDirectory 'process.stdout.log')
+    if ($clockText094 -notmatch '(?m)^CLOCK_LADDER PASS') { throw 'Clock ladder did not finish successfully.' }
 }
 if ($PreferencesProbe) {
     $probeLog = Get-Content -Raw -LiteralPath (Join-Path $OutputDirectory 'process.stdout.log')

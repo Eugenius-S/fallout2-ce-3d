@@ -7,6 +7,7 @@
 using fallout::scene::Sun;
 using fallout::scene::SunTracker;
 using fallout::scene::sunAt;
+using fallout::scene::stepClockHour;
 
 namespace {
 
@@ -102,6 +103,23 @@ int main()
     failures += !check(!tracker.sun().up, "waiting until 20:00 sets it at once");
     tracker.update(day + 12 * kHour, 1.0, true, 0.016);
     failures += !check(std::fabs(tracker.sun().strength - 1.0f) < 1e-6f, "a load back to noon sets it at once");
+
+    // The real debug clock crosses midnight into the next day. Map scripts
+    // supply the changing ambient values; a jump must not carry night over.
+    unsigned int clock = day + 22 * kHour + 1200;
+    SunTracker overnight;
+    overnight.update(clock, 0.43, true, 0.016);
+    for (int i = 0; i < 11; ++i) {
+        clock = stepClockHour(clock, 1);
+        const unsigned int hour = clock / kHour % 24;
+        overnight.update(clock, hour >= 6 ? 1.0 : 0.43, true, 0.016);
+        if (hour == 2) failures += !check(!overnight.sun().up, "2:00 stays night");
+        if (hour == 9) failures += !check(overnight.sun().up && overnight.sun().strength > 0.9f,
+            "next morning restores daylight after a clock jump");
+    }
+    failures += !check(clock == day + 33 * kHour + 1200, "midnight advances the day and keeps minutes");
+    failures += !check(stepClockHour(day + 24 * kHour + 1200, -1) == day + 23 * kHour + 1200,
+        "stepping backward at midnight returns to the preceding day");
 
     if (failures == 0) std::printf("sun_tests: all passed\n");
     return failures == 0 ? 0 : 1;

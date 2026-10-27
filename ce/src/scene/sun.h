@@ -24,6 +24,9 @@ struct Sun {
 // default (082 round 2).
 constexpr double kSunSwingDefault = 30.0;
 
+// Step the debug clock one hour without discarding its day or minute.
+unsigned int stepClockHour(unsigned int gameTime, int direction);
+
 // Where the sun is at `gameTime` with the map's ambient light (0 to 1, the
 // engine's LIGHT_INTENSITY_MAX is 1) on a map under the sky (`daylight`).
 Sun sunAt(unsigned int gameTime, double ambient, bool daylight,
