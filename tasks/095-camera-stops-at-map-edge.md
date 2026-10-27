@@ -2,14 +2,14 @@
 id: 095
 title: The 3D camera stops at the map's edge as the original does
 milestone: M1
-status: doing
+status: done
 owner: gpt
 suggested: gpt
 priority: normal
 claude-only: no
 user-check: yes
 depends-on: []
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -51,7 +51,7 @@ Changing where the original game stops; the clean edges cut.
 ## Log
 ### 2026-10-27 gpt
 Progress: Full 3D scrolling now honors map bounds and uses the original 480×400 hero-distance limit. KLAMALL exposed that the expanded 3D limit moved the center 240 px farther than Classic; removing it restores identical center stops. On final executable SHA `3f5e0256…`, all four KLADWTWN screen edges and arrows match Classic; KLAMALL EDG-enabled left edge also matches. Final captures and RGBA comparison are under `runs/095-camera-stops-at-map-edge/` and `build/095-final-regression-3f5e0256/`.
-Remaining: Object-blocker branch, camera follow during actual walking, and interactive fly WASD remain unverified. The attempted real mouse walk moved the hero but left center unchanged; the test window is offscreen for WASD. See `runs/095-camera-stops-at-map-edge/verification.md`; leave task `doing`, `reviewed: no`.
+Review: The owner accepted the change and closed the three investigation points: object blockers are unreachable on the installed EDG maps, walking follow is outside the original behavior, and the fly path is untouched. See `runs/095-camera-stops-at-map-edge/verification.md`.
 Check: CTest 18/18; eight edge arrows and eight screen-edge probes passed; all 16 fixed 3D PNGs RGBA-identical to `094-direct-base` (baseline executable SHA `aad846b1…`, final `3f5e0256…`).
 
 Follow-up investigation: `_dude_move` schedules character animation without setting the camera center, and `scene_view::refreshForPresent` mirrors `gCenterTile`; the tested click-walk therefore does not demonstrate auto-follow. Synthetic `SDL_PushEvent` key structs cannot hold WASD because `fly()` reads SDL keyboard state, which is updated by SDL's internal keyboard-send path. The configured `f2_res.dat` has 155 valid EDG maps with one zone per elevation; the current selector always picks that zone, so the object-blocker condition (EDG inactive or no selected zone) could not be reached on an EDG-loaded map in this archive. See the verification report for source references and limits. Removed the one-off blocker-search harness after preserving its negative result and the archive evidence.
