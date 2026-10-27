@@ -42,7 +42,10 @@ jobs:
           Copy-Item build/fallout2-ce-3d-launcher.exe staging/
           build/ce-dat-tool.exe create ce/files/ce.dat staging/ce.dat
           Copy-Item ce/files/fallout2.cfg staging/
-          Set-Content -Encoding ascii -NoNewline (Join-Path staging 'version.txt') $env:GITHUB_SHA
+          # Named parameters: pwsh 7.6 silently swaps the positional path and
+          # value of Set-Content when -NoNewline precedes them, writing a file
+          # named after the value instead.
+          Set-Content -Path staging/version.txt -Value $env:GITHUB_SHA -Encoding ascii -NoNewline
       - uses: actions/upload-artifact@v4
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         with:
