@@ -127,3 +127,8 @@ that fits no task becomes a new task when the board runs dry.
   (a broken dashed line across it, a black triangle at its right edge) and
   through the roof left of the bathhouse. Walls poking above the roof they sit
   under; follow-up of the 081 roofs work.
+- 2026-10-27 The see-through halo round the hero is gone (owner's shot
+  `runs/inbox/2026-10-27-hero-see-through-halo-gone.jpg`, the 095 build, inside
+  the bathhouse by its south wall): the wall in front of the hero is drawn solid,
+  with no cut-out round him. Find which change lost it (git bisect between the
+  last build where the owner saw it and 095).
