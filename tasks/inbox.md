@@ -98,3 +98,9 @@ that fits no task becomes a new task when the board runs dry.
   to match, then lay the untouched original over the middle with a small mask
   at its edges (a gradient to 0) so the original blends into the extension.
   Not now; a note only.
+- 2026-10-27 A list of the unique objects that will need their own 3D model,
+  because the generic wall, roof and box rules cannot shape them: the big
+  stone head in Arroyo, the Vault City gate, the Reno signs, the vertibirds,
+  and the like (other one-off landmarks, vehicles and large signs). Go
+  through the maps and the prototypes once, name each object with its map and
+  shot, and order them by how much a player sees them. Not now; a note only.
