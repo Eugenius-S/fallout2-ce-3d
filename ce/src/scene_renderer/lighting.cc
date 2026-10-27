@@ -4,6 +4,7 @@
 #include <cmath>
 #include <stdio.h>
 
+#include "camera.h"
 #include "game_view.h"
 #include "gl_api.h"
 #include "scene_internal.h"
@@ -243,6 +244,12 @@ bool bindLight()
     }
     glUniform3f(gSceneTowardCameraLocation, static_cast<float>(toward[0]), static_cast<float>(toward[1]),
         static_cast<float>(toward[2]));
+    if (staticFlyCameraActive()) {
+        const StaticPreviewCamera camera = staticPreviewCamera(true);
+        glUniform4f(gSceneFlyEyeLocation, camera.eye[0], camera.eye[1], camera.eye[2], 1.0f);
+    } else {
+        glUniform4f(gSceneFlyEyeLocation, 0.0f, 0.0f, 0.0f, 0.0f);
+    }
     glUniform1i(gSceneLightCountLocation, gShown);
     if (gShown > 0) {
         glUniform4fv(gSceneLightPosLocation, gShown, gPos);

@@ -188,6 +188,7 @@ extern int gSceneLightAnchorLocation;
 extern int gSceneAmbientLocation;
 extern int gSceneHexUnitLocation;
 extern int gSceneTowardCameraLocation;
+extern int gSceneFlyEyeLocation;
 extern int gSceneLightCountLocation;
 extern int gSceneLightPosLocation;
 extern int gSceneLightColorLocation;
@@ -196,17 +197,18 @@ extern int gSceneSeeThroughLocation;
 extern int gSceneSeeThroughObjectsLocation;
 extern int gSceneEggPassLocation;
 // The sun's shadow (shadow.cc): on, the world-to-map matrix, the depth map
-// (unit 5), the sun's strength, the sun's direction, the map's texel in GL
-// units, the AA ring's span in GL units and the compare bias.
+// (unit 5) and its caster ids (unit 6), the sun's strength, the sun's
+// direction, the AA ring's span in GL units and the compare bias.
 extern int gSceneShadowOnLocation;
 extern int gSceneShadowMatrixLocation;
 extern int gSceneShadowMapLocation;
+extern int gSceneShadowIdsLocation;
 extern int gSceneShadowStrengthLocation;
 extern int gSceneShadowDensityLocation;
 extern int gSceneShadowLightLocation;
-extern int gSceneShadowTexelLocation;
 extern int gSceneShadowStepLocation;
 extern int gSceneShadowBiasLocation;
+extern int gSceneShadowContactLocation;
 extern int gSceneShadowDebugLocation;
 // 082 round 6: whose map texels count as empty at the compare (mechanism 2).
 // The wall draws take the number from their own vertices (uSelfFromVertex 1),
@@ -216,6 +218,9 @@ extern int gSceneShadowPassLocation;
 extern int gSceneShadowSelfFromVertexLocation;
 extern int gSceneShadowSelfIdLocation;
 extern int gSceneShadowAnchorLocation;
+// 090: x 1 when a low card reads the shadow per pixel on the ground it shows,
+// y the height of that ground.
+extern int gSceneShadowGroundLocation;
 
 bool createSceneShader(std::string* error);
 void destroySceneShader();
@@ -335,7 +340,18 @@ struct ObjectDraw {
     int tile; // its hex, for its light; -1: full light
     float anchorX; // its feet on the ground (bottom-center of the card),
     float anchorZ; // for the whole-sprite sun shadow (082 round 6)
+    // A low thing (lying flat, or a card under kLowCardHeight: straw, grass,
+    // rubble) takes the sun shadow per pixel on the ground it shows (090).
+    bool groundShadow = false;
+    float groundY = 0.0f; // the height of that ground
+    // A card standing in a wall's plane (a door): that plane's normal (x, z),
+    // 0 for any other card. It takes its wall's side of the sun (090).
+    float wallNormalX = 0.0f;
+    float wallNormalZ = 0.0f;
 };
+
+// Below this height (GL units) a standing card is ground clutter, not a body.
+constexpr float kLowCardHeight = 0.5f;
 
 extern std::vector<ObjectDraw> gObjectDraws;
 extern unsigned int gObjectVao;
