@@ -492,6 +492,68 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
             }
         }
     }
+    // A card hung flat on a wall (a sign, graffiti, a shelf or a stack of
+    // boxes drawn against it) is the wall's painting: the wall's own shadow
+    // covers it, and its quad, lifted a hair off the wall, threw a second
+    // shadow of the sign onto the wall and the sidewalk (090, the owner's
+    // Buckner sign). Such an object lies in one upright plane within
+    // kFlushGap of a wall face that overlaps it; the cards on kladwtwn sit
+    // 0.03 to 0.12 off their walls, the nearest free-standing card 0.16.
+    constexpr float kFlushGap = 0.14f;
+    struct WallFace {
+        bool alongZ; // the face's plane is x = at (it runs along z)
+        float at, lo, hi;
+    };
+    std::vector<WallFace> wallFaces;
+    std::vector<unsigned char> rowPlane(objectCount, 0); // 1 x plane, 2 z plane, 3 neither
+    std::vector<float> rowPlaneAt(objectCount, 0.0f);
+    for (const WallBatchData& batch : batches) {
+        if (batch.gameOnly) continue;
+        for (size_t index = 0; index + 2 < batch.vertices.size(); index += 3) {
+            const float object = batch.vertices[index].object;
+            float minX = 1e9f, maxX = -1e9f, minY = 1e9f, maxY = -1e9f, minZ = 1e9f, maxZ = -1e9f;
+            for (int corner = 0; corner < 3; corner++) {
+                const DepthVertex& vertex = batch.vertices[index + corner].vertex;
+                minX = std::min(minX, vertex.x);
+                maxX = std::max(maxX, vertex.x);
+                minY = std::min(minY, vertex.y);
+                maxY = std::max(maxY, vertex.y);
+                minZ = std::min(minZ, vertex.z);
+                maxZ = std::max(maxZ, vertex.z);
+            }
+            const bool xPlane = maxX - minX < 1e-3f;
+            const bool zPlane = maxZ - minZ < 1e-3f;
+            const bool wall = object < 0.0f || rowType[static_cast<size_t>(object)] == 3;
+            if (wall) {
+                if (maxY - minY >= 0.3f && (xPlane || zPlane)) {
+                    wallFaces.push_back(xPlane ? WallFace { true, minX, minZ, maxZ } : WallFace { false, minZ, minX, maxX });
+                }
+                continue;
+            }
+            const size_t row = static_cast<size_t>(object);
+            const unsigned char plane = xPlane ? 1 : zPlane ? 2 : 3;
+            const float at = xPlane ? minX : minZ;
+            if (rowPlane[row] == 0) {
+                rowPlane[row] = plane;
+                rowPlaneAt[row] = at;
+            } else if (rowPlane[row] != plane || std::abs(rowPlaneAt[row] - at) > 1e-3f) {
+                rowPlane[row] = 3;
+            }
+        }
+    }
+    std::vector<bool> rowOnWall(objectCount, false);
+    for (unsigned int row = 0; row < objectCount; row++) {
+        if (!rowSeen[row] || rowPlane[row] == 0 || rowPlane[row] == 3) continue;
+        const bool alongZ = rowPlane[row] == 1;
+        const float lo = alongZ ? rowMinZ[row] : rowMinX[row];
+        const float hi = alongZ ? rowMaxZ[row] : rowMaxX[row];
+        for (const WallFace& face : wallFaces) {
+            if (face.alongZ == alongZ && std::abs(face.at - rowPlaneAt[row]) <= kFlushGap && face.lo < hi && face.hi > lo) {
+                rowOnWall[row] = true;
+                break;
+            }
+        }
+    }
     float wallHeight = 0.0f;
     for (unsigned int row = 0; row < objectCount; row++) {
         if (rowType[row] == 3 && rowSeen[row]) wallHeight = std::max(wallHeight, rowMaxY[row]);
@@ -521,6 +583,7 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
                 // A plant's crown throws no shadow (045's follow-up), whatever its size.
                 const auto known = gBakedObjects.find(bakedObjectKey(rowTileOf[row], static_cast<int>(rowByIndex[row])));
                 if (known != gBakedObjects.end() && known->second.noCast) casts = false;
+                if (rowOnWall[row]) casts = false;
             }
             // Low flat cards (sidewalk slabs, path patches) stop casting: at
             // the sun's 60-90 degrees their own shadow is a sliver, while
@@ -695,8 +758,9 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
             minZ = std::min(minZ, casterData[v + 2]);
             maxZ = std::max(maxZ, casterData[v + 2]);
         }
-        fprintf(stderr, "CASTERS: pages %zu, ranges %zu, vertices %zu, x %.2f..%.2f, z %.2f..%.2f\n",
-            casterPages.size(), ranges.size(), casterData.size() / 7, minX, maxX, minZ, maxZ);
+        fprintf(stderr, "CASTERS: pages %zu, ranges %zu, vertices %zu, x %.2f..%.2f, z %.2f..%.2f, wall cards %zu\n",
+            casterPages.size(), ranges.size(), casterData.size() / 7, minX, maxX, minZ, maxZ,
+            static_cast<size_t>(std::count(rowOnWall.begin(), rowOnWall.end(), true)));
         fflush(stderr);
         setShadowWallCasters(gShadowVao, wallHeight, std::move(ranges));
     }
