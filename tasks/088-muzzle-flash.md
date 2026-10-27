@@ -75,6 +75,12 @@ including a fresh fly tour and representative muzzle captures; then finish the
 task and PR. Existing sheets record the earlier build and remain comparisons,
 not evidence of the integrated runtime.
 
+Integrated build check: laser preview matches the selected earlier frame pixel
+for pixel; the SMG lights frames 1, 3 and 5, and all nine glow-off frame pairs
+match exactly. All 16 ordinary views match their references pixel for pixel.
+The fresh fly tour is running against c05a0f34 with `--reuse`; two separate
+map launches timed out and were retried, preserving successful captures.
+
 ### 2026-10-27 gpt: implementation and comparison in progress
 
 The owner chose the painted flash rhythm: the SMG spends six rounds but its
