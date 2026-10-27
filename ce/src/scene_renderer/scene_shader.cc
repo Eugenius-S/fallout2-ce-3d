@@ -320,14 +320,28 @@ R"(// The 25-tap disk (a three-radius ring, 1.0, 0.65 turned 22.5 degrees, 0.35
 // bias and within uShadowContact. Else the disk reached across a sun-facing
 // wall's foot into the shadow behind it and grained the lit ground at its
 // base; the outline a wall's top casts on open ground keeps its soft edge.
+// Only on the ground (090): on an upright face under an eave the roof's
+// edge stands within uShadowContact of the face, the taps towards it were
+// dropped, and the few left combed the eave's outline into teeth.
+// On an upright face each axis of the disk stretches so that it spans a
+// full radius across the map (090): where the sun grazes the face a radius
+// laid on it crosses less than a texel, and the map's stair along a
+// straight outline read as a comb. At most fourfold.
+float shadowAxisStretch(vec3 t) {
+    float along = dot(t, uShadowLight);
+    return 1.0 / max(sqrt(max(1.0 - along * along, 0.0)), 0.25);
+}
 float shadowCoverage(vec3 base, vec3 t1, vec3 t2, vec2 slope, float selfId) {
     float contact = uShadowContact;
     float sum = 0.0;
     float count = 0.0;
+    bool ground = abs(cross(t1, t2).y) > 0.5;
+    vec3 a1 = t1 * (ground ? 1.0 : shadowAxisStretch(t1)) * uShadowStep;
+    vec3 a2 = t2 * (ground ? 1.0 : shadowAxisStretch(t2)) * uShadowStep;
     for (int i = 0; i < 25; i++) {
-        vec3 q = base + (t1 * kShadowTaps[i].x + t2 * kShadowTaps[i].y) * uShadowStep;
+        vec3 q = base + a1 * kShadowTaps[i].x + a2 * kShadowTaps[i].y;
         bool reached = true;
-        for (int k = 0; k <= 3 && i > 0; k++) {
+        for (int k = 0; k <= 3 && i > 0 && ground; k++) {
             float on = shadowTapDiff(mix(base, q, float(k) * 0.25), slope, selfId);
             if (on > uShadowBias && on <= contact) {
                 reached = false;
@@ -376,7 +390,12 @@ float sunShadow(float selfId) {
         return step(0.5, shadowCoverage(base, t1, t2, shadowPlaneSlope(painted), selfId));
     }
     shadowFaceBasis(n, t1, t2);
-    return shadowCoverage(base, t1, t2, shadowPlaneSlope(n), selfId);
+    float coverage = shadowCoverage(base, t1, t2, shadowPlaneSlope(n), selfId);
+    // On an upright face the disk's edge is a long ramp where the sun
+    // grazes it (an eave's outline across a wall): a third as wide, round
+    // the same middle (090).
+    if (abs(n.y) < 0.5) coverage = clamp((coverage - 0.5) * 3.0 + 0.5, 0.0, 1.0);
+    return coverage;
 }
 // The whole sprite darkens at its feet (082 round 6, deliberately reversing
 // 063's per-pixel read): one factor at the card's bottom center, lifted a
