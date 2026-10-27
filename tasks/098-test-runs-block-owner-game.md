@@ -2,8 +2,8 @@
 id: 098
 title: A background test run no longer stops the owner's game from starting
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: gpt
 suggested: gpt
 priority: normal
 claude-only: no
