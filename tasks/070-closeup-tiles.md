@@ -2,13 +2,13 @@
 id: 070
 title: Tiles up close in the fly camera stop looking like pixel noise
 milestone: M1
-status: doing
+status: done
 owner: gpt
 suggested: glm
 claude-only: no
 user-check: yes
 depends-on: []
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -35,6 +35,21 @@ clean pictures again, not raw pixel noise.
 New art.
 
 ## Log
+
+### 2026-10-27 gpt: completed
+
+Compared against main 4a3b54fa (090). The owner-reference cylinder was found
+in KLADWTWN e0 at tile 26106. Its reconstructed before/after, with matching
+camera and scene settings, is in runs/070-closeup-tiles/closeup.jpg. Strongly
+magnified fly-view RGB is filtered with preserved contrast and nearest alpha;
+the game camera stays nearest. The shadow files and shadow shader logic match
+main exactly. The full fly tour changed magnified texels at all 43 spots; its
+six comparison pages are in runs/070-closeup-tiles/ and were inspected.
+
+Check: clean Release builds, 18/18 CTests, 64 exporter and 12 regression unit
+tests. All 16 game-view comparisons passed with zero changed pixels against
+the references on the final build. The 092 snapshot runners used per-worktree
+isolated folders and -OutputDirectory. No game resources or saves were changed.
 
 ### 2026-10-27 gpt: integrated shadow checkpoint
 
