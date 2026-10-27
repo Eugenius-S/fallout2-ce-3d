@@ -10,7 +10,8 @@ The player lamp is off to show local illumination from the effect.
 - Energy and other projectiles: native glow, then a small additional muzzle
   flash. For a weapon without a separate projectile, the first row uses its
   native flame or painted flash as the light source, and the middle row shows
-  it without the added light.
+  it without the added light. The owner selected the extra flash for laser and
+  plasma weapons with a separate projectile.
 - The single global glow setting controls the result. Frames and rotations
   are labelled in the images. SMG frames 1, 3 and 5 are its painted flashes.
 
