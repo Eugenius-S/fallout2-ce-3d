@@ -77,6 +77,7 @@ flat in vec4 vDepthPlane;
 uniform mat4 uMvp;
 uniform sampler2D uTexture;
 uniform int uTextured;
+uniform int uCloseupFilter;
 uniform vec4 uColor;
 uniform float uCutoff;
 uniform int uTranslucent; // the engine's translucent blend: steam, glass, energy, ...
@@ -414,6 +415,12 @@ void main() {
         outEmissive = vec4(0.0);
     } else {
         vec4 texel = texture(uTexture, vTexcoord);
+        vec2 closeupPixel = vec2(0.0);
+        float closeupFootprint = 1.0;
+        if (uCloseupFilter != 0 && uPick == 0 && uTranslucent == 0) {
+            closeupPixel = vTexcoord * vec2(textureSize(uTexture, 0)) - vec2(0.5);
+            closeupFootprint = max(length(dFdx(closeupPixel)), length(dFdy(closeupPixel)));
+        }
         // In the depth pass the attribute sits above 0.5 for the solid
         // texels: the floor copies entirely, and the bottom band of every
         // caster at its own place - the art's antialiased bottom edge would
@@ -421,6 +428,30 @@ void main() {
         // (082 round 5). The scene's own draws leave the attribute at 0 and
         // discard as always.
         if (vShadowSolid < 0.5 && texel.a < uCutoff) discard;
+        // Smooth magnified native art only in the fly view. Keep the nearest
+        // texel's alpha: it carries material IDs, transparency and pick data.
+        if (uCloseupFilter != 0 && uPick == 0 && uTranslucent == 0) {
+            ivec2 dims = textureSize(uTexture, 0);
+            vec2 pixel = closeupPixel;
+            // Affect only strongly magnified art (over 3 screen pixels per
+            // source texel); ordinary fly-camera views retain their texture.
+            float amount = 0.65 * (1.0 - smoothstep(0.15, 0.30, closeupFootprint));
+            if (amount > 0.0) {
+                ivec2 base = ivec2(floor(pixel));
+                vec2 f = fract(pixel);
+                vec3 sum = vec3(0.0);
+                float total = 0.0;
+                for (int y = 0; y < 2; ++y) for (int x = 0; x < 2; ++x) {
+                    ivec2 at = clamp(base + ivec2(x, y), ivec2(0), dims - ivec2(1));
+                    vec4 sampleColor = texelFetch(uTexture, at, 0);
+                    float weight = (x == 0 ? 1.0 - f.x : f.x) * (y == 0 ? 1.0 - f.y : f.y);
+                    // Do not wash sharp art details across a high-contrast edge.
+                    weight *= 1.0 - smoothstep(0.12, 0.45, length(sampleColor.rgb - texel.rgb));
+                    if (sampleColor.a >= uCutoff) { sum += sampleColor.rgb * weight; total += weight; }
+                }
+                if (total > 0.0) texel.rgb = mix(texel.rgb, sum / total, amount);
+            }
+        }
         if (uPick != 0) {
             // The depth pass writes the caster's object number into the map's
             // id channel (082 round 6, mechanism 2); the mouse pick keeps its
@@ -549,6 +580,7 @@ unsigned int gSceneProgram = 0;
 int gSceneMvpLocation = -1;
 int gSceneTextureLocation = -1;
 int gSceneTexturedLocation = -1;
+int gSceneCloseupFilterLocation = -1;
 int gSceneColorLocation = -1;
 int gSceneCutoffLocation = -1;
 int gSceneDepthAtLocation = -1;
@@ -626,6 +658,7 @@ bool createSceneShader(std::string* error)
     gSceneMvpLocation = glGetUniformLocation(gSceneProgram, "uMvp");
     gSceneTextureLocation = glGetUniformLocation(gSceneProgram, "uTexture");
     gSceneTexturedLocation = glGetUniformLocation(gSceneProgram, "uTextured");
+    gSceneCloseupFilterLocation = glGetUniformLocation(gSceneProgram, "uCloseupFilter");
     gSceneColorLocation = glGetUniformLocation(gSceneProgram, "uColor");
     gSceneCutoffLocation = glGetUniformLocation(gSceneProgram, "uCutoff");
     gSceneDepthAtLocation = glGetUniformLocation(gSceneProgram, "uDepthAt");

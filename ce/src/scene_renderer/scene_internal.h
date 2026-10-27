@@ -153,6 +153,7 @@ extern unsigned int gSceneProgram;
 extern int gSceneMvpLocation;
 extern int gSceneTextureLocation;
 extern int gSceneTexturedLocation;
+extern int gSceneCloseupFilterLocation;
 extern int gSceneColorLocation;
 extern int gSceneCutoffLocation;
 extern int gSceneDepthAtLocation;

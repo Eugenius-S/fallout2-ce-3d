@@ -36,6 +36,26 @@ New art.
 
 ## Log
 
+### 2026-10-27 gpt: close-up filtering in progress
+
+History search with `git log -S` found nearest filtering in floor and scenery
+since the original renderer, and no mipmap, GL_LINEAR or upscale path for
+these scene textures. The prior drum work changed geometry, not filtering;
+there is no disabled close-up texture option in the current config.
+
+The native object in the reference is at KLADWTWN elevation 0, tile 26106.
+The screenshot pose was reconstructed with an isolated fly-camera lift; the
+same scene and pose are compared in runs/070-closeup-tiles/closeup.jpg.
+Strongly magnified fly-view art now uses contrast-aware RGB interpolation,
+while nearest alpha preserves transparency, picking and material tags. The
+game view remains nearest-neighbour. No shadow code was changed.
+
+Release build, 18 CTests, 64 exporter and 12 regression unit tests passed.
+All 16 game-view captures matched the references with zero changed pixels on
+the first build. Final regression and fly tour are running after narrowing the
+filter to strongly magnified art; confirm build hashes, rerun any earlier
+captures from the previous build, and inspect the tour before finishing.
+
 ### 2026-10-27 gpt: claimed from main with 092
 
 Worktree E:/Projects/fallout2-ce-3d-gpt-070 starts at main 4c23fc1c,

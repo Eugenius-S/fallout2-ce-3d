@@ -152,6 +152,7 @@ double gDevFlyTurn = 0.0;
 double gDevCameraTurn = 0; // degrees; legacy --dev-camera-turn=N still means quarter turns
 double gDevFlyPitch = -1.0;
 double gDevFlyDistance = -1.0;
+double gDevFlyLift = 0.0; // move the inspection camera vertically after aiming
 int gViewTile = -1;
 bool gViewTileApplied = false;
 int gHeroTile = -1; // --dev-hero-tile: the hero is put there before the scene starts
@@ -934,6 +935,13 @@ bool parseOption(const char* arg)
     if (strncmp(arg, flyTurnPrefix, strlen(flyTurnPrefix)) == 0) {
         gDevFly = true;
         gDevFlyTurn = strtod(arg + strlen(flyTurnPrefix), nullptr);
+        return true;
+    }
+    const char* flyLiftPrefix = "--dev-fly-lift=";
+    if (strncmp(arg, flyLiftPrefix, strlen(flyLiftPrefix)) == 0) {
+        gDevFly = true;
+        const double lift = strtod(arg + strlen(flyLiftPrefix), nullptr);
+        gDevFlyLift = std::isfinite(lift) ? std::clamp(lift, -20.0, 20.0) : 0.0;
         return true;
     }
     const char* cameraTurnPrefix = "--dev-camera-turn=";
@@ -2095,6 +2103,10 @@ void scenePresented(const scene::RefreshResult& refreshed)
         startFlying(false);
         if (gFlying && (gDevFlyTurn != 0.0 || gDevFlyPitch > 0.0 || gDevFlyDistance > 0.0)) {
             circleFlight(gDevFlyTurn, gDevFlyPitch, gDevFlyDistance);
+        }
+        if (gFlying && gDevFlyLift != 0.0) {
+            gFly.eye[1] += static_cast<float>(gDevFlyLift);
+            scene_renderer::setStaticFlyCamera(&gFly);
         }
         return; // the snapshot comes with the next frame, from the air
     }

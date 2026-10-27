@@ -52,6 +52,7 @@ void drawStaticPreview(bool withWalls, bool withHero)
         glBlendFunc(kSrcAlpha, kOneMinusSrcAlpha);
     }
     glUseProgram(gSceneProgram);
+    glUniform1i(gSceneCloseupFilterLocation, flying ? 1 : 0);
     bindStaticMapClipUniforms();
     glUniformMatrix4fv(gSceneMvpLocation, 1, 0, mvp);
     glUniform1i(gSceneDepthAtLocation, 0);
