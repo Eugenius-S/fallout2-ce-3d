@@ -40,6 +40,9 @@ constexpr Effect kEffects[] = {
     { "rocket", 9 },
     { "sign40", 1750, OBJ_TYPE_SCENERY, true },
     { "sign41", 1751, OBJ_TYPE_SCENERY, true },
+    // The toxic slime's cycling pixels (089): spawned at the view tile; the
+    // green goop reads black when the palette's cycle entries are zeros.
+    { "toxic-goo", 996, OBJ_TYPE_SCENERY, false },
 };
 const Effect* gEffect = nullptr;
 Object* gEffectObject = nullptr;

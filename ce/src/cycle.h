@@ -11,6 +11,7 @@ void colorCycleEnable();
 bool colorCycleEnabled();
 void cycleSetSpeedFactor(int value);
 void colorCycleTicker();
+void colorCycleSeedPalette(unsigned char* palette);
 
 } // namespace fallout
 

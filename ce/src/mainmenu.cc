@@ -483,8 +483,11 @@ static void mainMenuDrawButtonLabels(const MainMenuLayout& layout, const MainMen
 {
     MessageListItem msg;
     ColorWithFlags fontSettings = COLOR_YELLOW_2 | DRAW_TEXT_FLAG_NONE;
-    ColorWithFlags fontSettingsSFall = COLOR_BLACK | DRAW_TEXT_FLAG_NONE;
-    configGetEnum<ColorWithFlags>(&gContentConfig, CONTENT_CONFIG_MAIN_MENU_SECTION, "big_font_color", &fontSettingsSFall, COLOR_BLACK | DRAW_TEXT_FLAG_NONE);
+    // Unset reads as 0: COLOR_BLACK is a real palette index (228 on the
+    // vanilla palette), so using it as the sentinel made the guard below
+    // always true and the labels came out black instead of yellow.
+    ColorWithFlags fontSettingsSFall = static_cast<ColorWithFlags>(0);
+    configGetEnum<ColorWithFlags>(&gContentConfig, CONTENT_CONFIG_MAIN_MENU_SECTION, "big_font_color", &fontSettingsSFall);
     if (fontSettingsSFall) {
         fontSettings = static_cast<Color>(fontSettingsSFall & COLOR_LAST) | DRAW_TEXT_FLAG_NONE;
     }

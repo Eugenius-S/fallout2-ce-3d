@@ -326,4 +326,33 @@ void colorCycleTicker()
     }
 }
 
+// The cycling ranges 229..254 are unmapped in color.pal, so a palette loaded
+// from it carries zeros there (089). Anything that snapshots the palette
+// between a restore and the next tick - the 3D scene's texture bake, a fade -
+// saw those things black. This writes cycle.cc's own rest-phase colors into a
+// palette, the same values snapshot_palette.h freezes for stable captures.
+// Entries the loaded palette maps to its own colors (death.pal uses the whole
+// range) keep those. Independent of colorCycleInit: the tables above stay raw
+// until init shifts them, so the seed shifts its own copy.
+void colorCycleSeedPalette(unsigned char* palette)
+{
+    static constexpr unsigned char kRestColors[26 * 3] = {
+        0, 108, 0, 11, 115, 7, 27, 123, 15, 43, 131, 27,
+        107, 107, 111, 99, 103, 127, 87, 107, 143, 0, 147, 163, 107, 187, 255,
+        255, 0, 0, 215, 0, 0, 147, 43, 11, 255, 119, 0, 255, 59, 0,
+        71, 0, 0, 123, 0, 0, 179, 0, 0, 123, 0, 0, 71, 0, 0,
+        83, 63, 43, 75, 59, 43, 67, 55, 39, 63, 51, 39, 55, 47, 35, 51, 43, 35,
+        240, 0, 0,
+    };
+
+    for (int index = 0; index < 26; index++) {
+        if (_mappedColor[229 + index] != 0) {
+            continue;
+        }
+        palette[(229 + index) * 3] = kRestColors[index * 3] >> 2;
+        palette[(229 + index) * 3 + 1] = kRestColors[index * 3 + 1] >> 2;
+        palette[(229 + index) * 3 + 2] = kRestColors[index * 3 + 2] >> 2;
+    }
+}
+
 } // namespace fallout

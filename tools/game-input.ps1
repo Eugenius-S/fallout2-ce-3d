@@ -36,7 +36,7 @@ public static class Win {
 "@
 [Win]::SetProcessDPIAware() | Out-Null
 
-$proc = Get-Process -Name 'fallout2-ce' -ErrorAction SilentlyContinue |
+$proc = Get-Process -Name 'fallout2-ce', 'fallout2-ce-test' -ErrorAction SilentlyContinue |
     Where-Object { $_.MainWindowHandle -ne 0 } | Select-Object -First 1
 $h = if ($proc) { $proc.MainWindowHandle } else { [IntPtr]::Zero }
 if ($h -eq [IntPtr]::Zero) { $h = [Win]::FindWindow($null, 'FALLOUT II') }

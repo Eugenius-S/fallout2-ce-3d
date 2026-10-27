@@ -6,6 +6,7 @@
 #include <algorithm>
 
 #include "db.h"
+#include "cycle.h"
 #include "memory.h"
 #include "svga.h"
 
@@ -348,6 +349,11 @@ bool colorPaletteLoad(const char* path)
     }
 
     _rebuildColorBlendTables();
+
+    // The palette file leaves the cycling ranges unmapped, so _cmap carried
+    // zeros there and every restore pushed black over the slime, fires and
+    // monitors until the next cycle tick (089). Keep the real rest colors.
+    colorCycleSeedPalette(_cmap);
 
     // NOTE: Uninline.
     fileClose(stream);
