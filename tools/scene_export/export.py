@@ -346,6 +346,9 @@ def parse_args(argv=None):
     parser.add_argument("--cache-root", type=Path,
                         help="where the scenes go instead of <game>/mod-cache/scene (a worktree's own cache, "
                              "read by the test game through F2CE_SCENE_CACHE, so a running game keeps its own)")
+    parser.add_argument("--check", action="store_true",
+                        help="report whether every requested map's base scene exists and exit: 0 all present, "
+                             "3 some missing (the 091 launcher asks before spending minutes on an export)")
     args = parser.parse_args(argv)
     names = MAP_GROUPS.get(args.maps.lower(), args.maps.split(",")) if args.maps else [args.map]
     args.map_names = [name.strip().lower() for name in names]
@@ -353,6 +356,12 @@ def parse_args(argv=None):
         if not re.fullmatch(r"[a-z0-9_]+", name):
             parser.error(f"invalid map name: {name!r}")
     return args
+
+
+def check_scenes(game_root: Path, map_names: list[str], cache_root: Path = None) -> list[str]:
+    """The requested maps whose elevation 0 scene is not in the cache yet."""
+    scenes = cache_root if cache_root is not None else game_root / "mod-cache" / "scene"
+    return [name for name in map_names if not (scenes / name / "0" / "scene.json").is_file()]
 
 
 def scene_directory(game_root: Path, map_name: str, elevation: int, cache_root: Path = None) -> Path:
@@ -472,6 +481,13 @@ def main(argv=None):
     if not game_root.is_dir():
         raise SystemExit(f"game root not found: {game_root}")
     cache_root = args.cache_root.resolve() if args.cache_root else None
+    if args.check:
+        missing = check_scenes(game_root, args.map_names, cache_root)
+        if missing:
+            print("scenes missing: " + ", ".join(missing))
+            raise SystemExit(3)
+        print("scenes present: " + ", ".join(args.map_names))
+        return 0
     if not args.maps:
         # One scene: its directory is checked before the game data is opened.
         targets = [(args.map_names[0], args.elevation, scene_directory(game_root, args.map_names[0], args.elevation,

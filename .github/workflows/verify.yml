@@ -34,6 +34,76 @@ jobs:
           sparse-checkout-cone-mode: false
       - run: powershell -NoProfile -ExecutionPolicy Bypass -File tools/configure-build.ps1 Release
       - run: ctest --test-dir build --output-on-failure
+      - name: Stage the release payload
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          New-Item -ItemType Directory -Force -Path staging | Out-Null
+          Copy-Item build/fallout2-ce.exe staging/
+          Copy-Item build/fallout2-ce-3d-launcher.exe staging/
+          build/ce-dat-tool.exe create ce/files/ce.dat staging/ce.dat
+          Copy-Item ce/files/fallout2.cfg staging/
+          Set-Content -Encoding ascii -NoNewline (Join-Path staging 'version.txt') $env:GITHUB_SHA
+      - uses: actions/upload-artifact@v4
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        with:
+          name: game-win64
+          path: staging/*
+          retention-days: 1
+  publish-latest:
+    # The rolling `latest` release, rebuilt on every push to main (task 091):
+    # the game, the default cfg, the commit and the exporter as a standalone
+    # exe.  No game file and no scene data goes here: the launcher makes the
+    # 3D data on the player's machine from their own game files.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: windows-game
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            /*
+            !/runs/
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -r tools/scene_export/requirements.txt pyinstaller
+      - run: powershell -NoProfile -ExecutionPolicy Bypass -File tools/scene_export/build_standalone.ps1
+      - name: Smoke-test the standalone exporter
+        run: build/exporter-standalone/scene-exporter.exe --help
+      - uses: actions/download-artifact@v4
+        with:
+          name: game-win64
+          path: staging
+      - name: Add the standalone exporter to the payload
+        run: Copy-Item build/exporter-standalone/scene-exporter.exe staging/
+      - name: Pack and update the latest release
+        run: |
+          Compress-Archive -Path staging/* -DestinationPath fallout2-ce-3d-win64.zip -Force
+          # The launcher unpacks these six by name; a zip without any one of
+          # them would install a half-broken game.  Check before uploading.
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $zip = [IO.Compression.ZipFile]::OpenRead((Join-Path (Get-Location) 'fallout2-ce-3d-win64.zip'))
+          try {
+            $names = $zip.Entries | ForEach-Object { $_.FullName } | Where-Object { $_ }
+            $want = 'fallout2-ce.exe', 'fallout2-ce-3d-launcher.exe', 'ce.dat', 'fallout2.cfg', 'version.txt', 'scene-exporter.exe'
+            $missing = @($want | Where-Object { $_ -notin $names })
+            "zip contains: $($names -join ', ')"
+            if ($missing.Count -gt 0) { throw "the release zip is missing: $($missing -join ', ')" }
+          } finally {
+            $zip.Dispose()
+          }
+          gh release view latest --repo $env:GITHUB_REPOSITORY
+          if ($LASTEXITCODE -ne 0) {
+            gh release create latest --repo $env:GITHUB_REPOSITORY --target $env:GITHUB_SHA `
+              --title "Latest build" `
+              --notes "Rolling build of main. Run fallout2-ce-3d-launcher.exe to install it onto your Fallout 2; the launcher makes the 3D scene data from your own game files."
+          }
+          gh release upload latest fallout2-ce-3d-win64.zip staging/version.txt staging/fallout2-ce-3d-launcher.exe --repo $env:GITHUB_REPOSITORY --clobber
   exporter:
     runs-on: ubuntu-latest
     steps:

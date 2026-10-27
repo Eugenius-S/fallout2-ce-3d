@@ -1,0 +1,64 @@
+fallout2-ce-3d-launcher
+
+game root (from --game-root): E:/Projects/f2ce3d-091-test/game
+installed build: none, fresh install
+release build: a091a091a091a091a091a091a091a091
+installing: none -> a091a091a091a091a091a091a091a091
+downloading http://127.0.0.1:8119/fallout2-ce-3d-win64.zip
+  ... 1 MB
+  ... 2 MB
+  ... 3 MB
+  ... 4 MB
+  ... 5 MB
+  ... 6 MB
+  ... 7 MB
+  ... 8 MB
+  ... 9 MB
+  ... 10 MB
+  ... 11 MB
+  ... 12 MB
+  ... 13 MB
+  ... 14 MB
+  ... 15 MB
+  ... 16 MB
+  ... 17 MB
+  ... 18 MB
+  ... 19 MB
+  ... 20 MB
+  ... 21 MB
+  ... 22 MB
+  ... 23 MB
+  ... 24 MB
+  ... 25 MB
+  ... 26 MB
+  ... 27 MB
+  ... 28 MB
+  ... 29 MB
+  downloaded 31441536 bytes
+unpacking
+installing into the game folder:
+  fallout2-ce.exe: installed
+  ce.dat: installed
+  scene-exporter.exe: installed
+  fallout2.cfg: installed (default)
+  version.txt: a091a091a091a091a091a091a091a091
+making the 3D scene data for: klamath
+{"files": 10, "fingerprint_sha256": "54bf2ad1b3cf730a74f6193f4f999e5419f41fb8ff4e09f1ace2fdafc176dc41", "output": "E:\\Projects\\f2ce3d-091-test\\game\\mod-cache\\scene\\kladwtwn\\0", "resources_read": 1429}
+{"files": 10, "fingerprint_sha256": "dda272a74af986146f3e7be999882e97ca4c3e6fca2ca4c79b904bf9bae6270d", "output": "E:\\Projects\\f2ce3d-091-test\\game\\mod-cache\\scene\\klatrap\\0", "resources_read": 57}
+{"files": 10, "fingerprint_sha256": "a699967850d9ee988d3476b7852cd368cc974558ee9c0d10db7fd5ac94e54db8", "output": "E:\\Projects\\f2ce3d-091-test\\game\\mod-cache\\scene\\klacanyn\\0", "resources_read": 101}
+{"files": 10, "fingerprint_sha256": "43584fcde7bf7627dcd3ff10aadef8f87725ebd03ca5c149c33dd749df352560", "output": "E:\\Projects\\f2ce3d-091-test\\game\\mod-cache\\scene\\klagraz\\0", "resources_read": 50}
+{"files": 10, "fingerprint_sha256": "e94cc42175b6c4686b0db050cca901df9b2418d9f767986bdf49038252698d98", "output": "E:\\Projects\\f2ce3d-091-test\\game\\mod-cache\\scene\\klamall\\0", "resources_read": 289}
+{"files": 11, "fingerprint_sha256": "426ab39d5ea9f94a6b828eb997917c517b6be4bed04aba8e50c14fa197b60ad6", "output": "E:\\Projects\\f2ce3d-091-test\\game\\mod-cache\\scene\\klamall\\1", "resources_read": 26}
+{"files": 11, "fingerprint_sha256": "580487636f235a7b6f7bced01e0e62066e0d5ff5aab38e1ebb05ec6cd1c76640", "output": "E:\\Projects\\f2ce3d-091-test\\game\\mod-cache\\scene\\klaratcv\\0", "resources_read": 212}
+{"files": 11, "fingerprint_sha256": "c8f8a55387e156472b856d58498b0b88ba82864b9df5b7fd55838844aadd3365", "output": "E:\\Projects\\f2ce3d-091-test\\game\\mod-cache\\scene\\klaratcv\\1", "resources_read": 36}
+{"files": 11, "fingerprint_sha256": "1271f12714fb1f8ac327d9db843608e4f2cb7909f1160dd3784d63528c226db5", "output": "E:\\Projects\\f2ce3d-091-test\\game\\mod-cache\\scene\\klaratcv\\2", "resources_read": 43}
+{"files": 11, "fingerprint_sha256": "c17ad7f0ebce33a125c418e5d94f1848a5e61f1e8e0f9da20a292ef702e3f182", "output": "E:\\Projects\\f2ce3d-091-test\\game\\mod-cache\\scene\\klatoxcv\\0", "resources_read": 34}
+{"files": 11, "fingerprint_sha256": "487899f598e4b203ce39b4cea7c39b5e7f5cad70e2ac8e19a4964a2202fcf606", "output": "E:\\Projects\\f2ce3d-091-test\\game\\mod-cache\\scene\\klatoxcv\\1", "resources_read": 157}
+{"files": 11, "fingerprint_sha256": "b0404dc2b49fdb0c6d10a0c152cc4d99c19e7e2ea8eab0af7dcb86c9786978e2", "output": "E:\\Projects\\f2ce3d-091-test\\game\\mod-cache\\scene\\klatoxcv\\2", "resources_read": 75}
+fallout2.cfg sha256 before: 892a30a9cddc20815142047b46b844e9aa1a8a6e39aea2639d3f51aa213b77de
+data/savegame sha256 before: 67c7ba2e682630d03ed9ad41f67e379d880a23bd72084fbbc5d7b63327f69b51
+starting E:/Projects/f2ce3d-091-test/game\fallout2-ce.exe
+the game exited with code 3221225477
+fallout2.cfg sha256 after:  892a30a9cddc20815142047b46b844e9aa1a8a6e39aea2639d3f51aa213b77de (unchanged)
+data/savegame sha256 after:  67c7ba2e682630d03ed9ad41f67e379d880a23bd72084fbbc5d7b63327f69b51 (unchanged)
+bye
