@@ -96,3 +96,7 @@ that fits no task becomes a new task when the board runs dry.
   `runs/inbox/2026-10-27-shadow-leftover-4b-bathhouse.jpg`. A grey box
   sticks out of the bathhouse's west wall (the long wall facing the alley),
   a few hexes up from its south corner, the hero standing at that corner.
+  Inside (`2026-10-27-shadow-leftover-4c-bathhouse-inside.jpg`, roof off) the
+  owner names it: a table with junk on it inside the bathhouse, its picture
+  crossing the wall. So it is a scene object, not the painted crates 093
+  compared.
