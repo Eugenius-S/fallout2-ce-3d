@@ -2,14 +2,14 @@
 id: 088
 title: A shot flashes at the gun's muzzle in the native animation's rhythm
 milestone: M1
-status: doing
+status: done
 owner: gpt
 suggested: gpt
 priority: normal
 claude-only: no
 user-check: yes
 depends-on: [086]
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -59,6 +59,17 @@ the picture blink together.
 New art, weapon balance, projectile trails, per-weapon menu controls.
 
 ## Log
+
+### 2026-10-27 gpt: completed
+
+Integrated against main c05a0f34. A clean Release build passed all 17 CTests,
+64 exporter tests and 12 regression unit tests. All 16 ordinary views matched
+pixel for pixel, as did all nine SMG glow-off pairs. The integrated laser's
+selected extra flash matched the approved preview pixel for pixel; SMG light
+followed painted frames 1, 3 and 5. The full fly tour changed 0 of 43 spots;
+its changed.jpg and the four native-frame comparison sheets are in
+runs/088-muzzle-flash. Two isolated snapshot launches timed out and succeeded
+on retry. The comparisons use frozen no-save fixtures, not live combat.
 
 ### 2026-10-27 gpt: selected flash and integrated main
 
