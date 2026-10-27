@@ -54,6 +54,10 @@ in `tools/shapes/eval/` (`eval.py shoot | sheets | score`), the fly tour
   and did not, or changed and should not, is fixed before the merge.
 - Upstream CE code (`ce/src/*.cc` outside `scene/`, `scene_renderer/`,
   `devtools/`) gets a hook or a call at most; the logic lives in our modules.
+- A fix in the 3D scene is a rule that holds for every map, object and
+  wall of its kind, never a case for one prototype, tile or map (the owner,
+  2026-10-27). A PR names the rule and shows it on more than the one spot
+  the task named.
 - OpenGL 4.1 core: no compute shaders, no SSBOs.
 - The game's own view stays pixel for pixel; new 3D geometry shows only in
   flight or a turned view, unless a task says otherwise.

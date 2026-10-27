@@ -30,6 +30,10 @@ original, and nothing of them shows through a wall from outside.
 - 093 compared the painted crates outside that corner and found them equal
   to the original; that was a different spot. This is a scene object
   (items on a table) placed away from its table.
+- The same class, same day: a round stove inside a house has its top apart
+  from its body and sticks out through the wall behind it
+  (`runs/inbox/2026-10-27-stove-top-apart.jpg` inside,
+  `-stove-through-wall.jpg` from the street). Fix both by one rule.
 - Earlier work on the same bathhouse table: 075 (things' shapes) and the
   inbox line "A table in the bathhouse sticks through its walls".
 
