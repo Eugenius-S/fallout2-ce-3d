@@ -2,8 +2,8 @@
 id: 095
 title: The 3D camera stops at the map's edge as the original does
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: gpt
 suggested: gpt
 priority: normal
 claude-only: no
