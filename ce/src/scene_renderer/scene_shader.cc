@@ -317,7 +317,7 @@ R"(// The 25-tap disk (a three-radius ring, 1.0, 0.65 turned 22.5 degrees, 0.35
 // wall's foot into the shadow behind it and grained the lit ground at its
 // base; the outline a wall's top casts on open ground keeps its soft edge.
 float shadowCoverage(vec3 base, vec3 t1, vec3 t2, vec2 slope, float selfId) {
-    float contact = abs(cross(t1, t2).y) > 0.9 ? uShadowContact : 0.0;
+    float contact = uShadowContact;
     float sum = 0.0;
     float count = 0.0;
     for (int i = 0; i < 25; i++) {
