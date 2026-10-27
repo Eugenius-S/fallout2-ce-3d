@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 
 namespace fallout {
 namespace scene {
@@ -46,6 +47,15 @@ double smoothstep(double edge0, double edge1, double x)
 }
 
 } // namespace
+
+unsigned int stepClockHour(unsigned int gameTime, int direction)
+{
+    constexpr unsigned int hour = 36000;
+    if (direction > 0) return gameTime > std::numeric_limits<unsigned int>::max() - hour
+        ? std::numeric_limits<unsigned int>::max() : gameTime + hour;
+    if (direction < 0) return gameTime <= hour ? 1u : gameTime - hour;
+    return gameTime;
+}
 
 Sun sunAt(unsigned int gameTime, double ambient, bool daylight, double swingDegrees)
 {

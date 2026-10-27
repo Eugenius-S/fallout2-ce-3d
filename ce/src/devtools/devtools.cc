@@ -108,6 +108,8 @@ bool gStartupFloorPreviewAttempted = false;
 int gStartupFloorPreviewReturnAfter = 0;
 int gStartupFloorPreviewFramesRemaining = 0;
 bool gSnapshotOncePending = false;
+bool gClockLadder = false;
+int gClockLadderStage = -1;
 bool gPreferencesSnapshotPending = false;
 bool gPreferencesSnapshotActive = false;
 bool gPreferencesSnapshotBottom = false;
@@ -776,6 +778,10 @@ bool parseOption(const char* arg)
     }
     if (strcmp(arg, "--dev-snapshot-once") == 0) {
         gSnapshotOncePending = true;
+        return true;
+    }
+    if (strcmp(arg, "--dev-clock-ladder") == 0) {
+        gClockLadder = true;
         return true;
     }
     if (strcmp(arg, "--dev-dialog-fixture") == 0) {
@@ -2154,8 +2160,25 @@ void scenePresented(const scene::RefreshResult& refreshed)
     }
     if (refreshed.heroUpdated && gSnapshotOncePending) {
         if (focusMuzzleFixture() || focusWeaponEffectFixture()) return;
+        if (gClockLadder && gClockLadderStage < 0) {
+            gameTimeSetTime(3u * 864000u + 22u * 36000u);
+            scriptsExecMapUpdateProc();
+            gClockLadderStage = 0;
+            return; // let the scene redraw at 22:00
+        }
         gSnapshotOncePending = false;
         const bool captured = takeSnapshot();
+        if (captured && gClockLadder) {
+            printf("CLOCK_LADDER stage=%d ticks=%u hour=%d ambient=%d daylight=%d sun=%f\n",
+                gClockLadderStage, gameTimeGetTime(), gameTimeGetHour(), lightGetAmbientIntensity(),
+                scene::sceneDaylight() ? 1 : 0, scene::currentSun().strength);
+            const int steps[] = {4, 4, 3, 0};
+            for (int i = 0; i < steps[gClockLadderStage]; ++i) handleKey(KEY_CTRL_T);
+            if (++gClockLadderStage < 4) gSnapshotOncePending = true;
+            else { gClockLadder = false; printf("CLOCK_LADDER PASS\n"); }
+            fflush(stdout);
+            return;
+        }
         printf("devtools: one-shot hero preview snapshot %s: %s\n",
             captured ? "saved" : "failed", gStatus);
         fflush(stdout);
@@ -2740,11 +2763,12 @@ bool handleKey(int key)
     // round 2).
     if ((key == KEY_CTRL_T || key == KEY_ALT_T) && scene::enabled()) {
         const unsigned int ticks = gameTimeGetTime();
-        const unsigned int day = ticks / 864000u; // 36000 ticks an hour, 24 a day
-        const unsigned int minute = ticks % 36000u;
-        unsigned int hour = ticks / 36000u % 24u;
-        hour = (hour + 24u + (key == KEY_CTRL_T ? 1u : 23u)) % 24u;
-        gameTimeSetTime(day * 864000u + hour * 36000u + minute);
+        gameTimeSetTime(scene::stepClockHour(ticks, key == KEY_CTRL_T ? 1 : -1));
+        // Time jumps bypass the periodic map-update script that sets ambient
+        // light. Refresh it now so dawn does not keep the last night value.
+        scriptsExecMapUpdateProc();
+        const unsigned int hour = gameTimeGetTime() / 36000u % 24u;
+        const unsigned int minute = gameTimeGetTime() % 36000u;
         char status[32];
         snprintf(status, sizeof(status), "hour %u:%02u", hour, minute / 600u);
         setStatus(status);

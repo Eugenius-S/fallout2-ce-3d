@@ -45,6 +45,19 @@ How the night looks (the moon's strength and colour).
 
 ## Log
 
+### 2026-10-27 gpt: reproduced and fixed Ctrl+T
+
+The owner confirmed Ctrl+T. In the isolated KLADWTWN run the real handler
+wrapped 23:00 to the same day and left ambient at 28426 through 09:00 while
+the daylight flag stayed true; the sun strength was only 0.245. Running the
+native map-update procedure after each step restored ambient to 65536 at 06:00.
+Ctrl+T and Alt+T now step the actual date by one hour and run that map update.
+The new sun CTest covers the night-to-morning step and midnight in both
+directions. A single no-save Ctrl+T ladder produced the 22/02/06/09 sheet in
+runs/094-day-clock-stuck-at-night/ and confirms strength 1.0 at 09:00.
+Next: complete the original-view regression, full fly tour and CI; then merge
+094 before taking 095 as requested.
+
 ### 2026-10-27 gpt: claimed
 
 Owner confirmed Ctrl+T in the live 3D view as the control that reproduces
