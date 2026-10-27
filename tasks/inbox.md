@@ -99,4 +99,7 @@ that fits no task becomes a new task when the board runs dry.
   Inside (`2026-10-27-shadow-leftover-4c-bathhouse-inside.jpg`, roof off) the
   owner names it: a table with junk on it inside the bathhouse, its picture
   crossing the wall. So it is a scene object, not the painted crates 093
-  compared.
+  compared. From above (`-4d-bathhouse-top.jpg`, fly view) the junk is not on
+  the table at all: the box, plate and cans sit against the alley wall, and
+  two grey pipes lie outside it in the alley. The items are placed away from
+  their table, through the wall.
