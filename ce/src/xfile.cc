@@ -12,6 +12,7 @@
 #endif
 
 #include "debug.h"
+#include "devtools/test_run_state.h"
 #include "file_find.h"
 
 namespace fallout {
@@ -112,7 +113,7 @@ XFile* xfileOpen(const char* filePath, const char* mode)
                     snprintf(path, sizeof(path), "%s", filePath);
                     break;
                 }
-            } else {
+            } else if (!devtools::testRunStateHidesFile(curr->path, filePath)) {
                 // Build path relative to directory-based xbase.
                 snprintf(path, sizeof(path), "%s\\%s", curr->path, filePath);
 
@@ -662,7 +663,7 @@ static bool xlistEnumerate(const char* pattern, XListEnumerationHandler* handler
 
                 dbaseFindClose(xbase->dbase, &dbaseFindData);
             }
-        } else {
+        } else if (!devtools::testRunStateHidesFile(xbase->path, pattern)) {
             char path[COMPAT_MAX_PATH];
             snprintf(path, sizeof(path), "%s\\%s", xbase->path, pattern);
             compat_windows_path_to_native(path);

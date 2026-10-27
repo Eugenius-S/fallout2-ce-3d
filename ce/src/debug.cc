@@ -7,6 +7,7 @@
 #include <string.h>
 #include <string>
 
+#include "dev_output.h"
 #include "memory.h"
 #include "platform_compat.h"
 #include "window_manager_private.h"
@@ -95,7 +96,7 @@ void _debug_register_log(const char* fileName, const char* mode)
             fclose(_fd);
         }
 
-        _fd = compat_fopen(fileName, mode);
+        _fd = compat_fopen(dev_output::outputFile(fileName).string().c_str(), mode);
         gDebugPrintProc = _debug_log;
         debugFlushBuffer();
     }

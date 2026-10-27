@@ -75,6 +75,7 @@
 #include "win32.h"
 #include "window_manager.h"
 #include "devtools/devtools.h"
+#include "devtools/test_run_state.h"
 #include "worldmap.h"
 
 #if __APPLE__
@@ -1439,6 +1440,9 @@ static bool tryLoadBaseCEModAtPath(const char* path, bool* found, bool* openFail
 // 0x44418C
 static int gameDbInit()
 {
+    // A test run keeps the game's own state in its folder (test_run_state.h).
+    devtools::testRunStateRedirectPatches();
+
     const char* master_dat_path = settings.system.master_dat_path.c_str();
     if (*master_dat_path == '\0') {
         master_dat_path = nullptr;
@@ -1506,6 +1510,8 @@ static int gameDbInit()
     if (critter_patches_path != nullptr) {
         dbOpen(critter_patches_path);
     }
+
+    devtools::testRunStateMountSharedPatches();
 
     if (master_patches_path != nullptr) {
         dbOpen(master_patches_path);
