@@ -156,6 +156,7 @@ double gDevCameraTurn = 0; // degrees; legacy --dev-camera-turn=N still means qu
 double gDevFlyPitch = -1.0;
 double gDevFlyDistance = -1.0;
 double gDevFlyLift = 0.0; // move the inspection camera vertically after aiming
+unsigned int gDevFlyCircleFrames = 0; // frames spent waiting for the fly axes to settle
 int gViewTile = -1;
 bool gViewTileApplied = false;
 int gHeroTile = -1; // --dev-hero-tile: the hero is put there before the scene starts
@@ -2147,16 +2148,35 @@ void scenePresented(const scene::RefreshResult& refreshed)
         return; // the snapshot comes with a later frame, turned
     }
     if (refreshed.heroUpdated && gDevFly && !gFlying) {
-        gDevFly = false;
         startFlying(false);
-        if (gFlying && (gDevFlyTurn != 0.0 || gDevFlyPitch > 0.0 || gDevFlyDistance > 0.0)) {
+        const bool circles = gDevFlyTurn != 0.0 || gDevFlyPitch > 0.0 || gDevFlyDistance > 0.0;
+        if (!circles) {
+            gDevFly = false;
+            if (gFlying && gDevFlyLift != 0.0) {
+                gFly.eye[1] += static_cast<float>(gDevFlyLift);
+                scene_renderer::setStaticFlyCamera(&gFly);
+            }
+        }
+        return; // a circling snapshot comes once the fly camera's axes settle
+    }
+    if (gDevFly && gFlying) {
+        // circleFlight declines to fly until the fly camera's forward points
+        // at the ground, and right after takeoff the axes are still the game
+        // camera's or unset (093: the same-frame call returned and the camera
+        // stayed at the game's offset).  Give them up to 30 frames.
+        float forward[3], right[3];
+        scene_renderer::staticFlyCameraAxes(gFly, forward, right);
+        if (forward[1] < -0.01f || ++gDevFlyCircleFrames >= 30) {
+            gDevFlyCircleFrames = 0;
+            gDevFly = false;
             circleFlight(gDevFlyTurn, gDevFlyPitch, gDevFlyDistance);
+            if (gDevFlyLift != 0.0) {
+                gFly.eye[1] += static_cast<float>(gDevFlyLift);
+                scene_renderer::setStaticFlyCamera(&gFly);
+            }
+            return; // the snapshot comes with the next frame, from the air
         }
-        if (gFlying && gDevFlyLift != 0.0) {
-            gFly.eye[1] += static_cast<float>(gDevFlyLift);
-            scene_renderer::setStaticFlyCamera(&gFly);
-        }
-        return; // the snapshot comes with the next frame, from the air
+        return; // still settling
     }
     if (refreshed.heroUpdated && gSnapshotOncePending) {
         if (focusMuzzleFixture() || focusWeaponEffectFixture()) return;

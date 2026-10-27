@@ -55,3 +55,49 @@ hour.
 New shadow features, the moon, shadow softness.
 
 ## Log
+
+### 2026-10-27 glm: the fly fix lands; the corner class needs the owner's rule (moved to 096)
+
+- The devshot fly camera raced its own takeoff: circleFlight ran on the same
+  frame the fly axes were still the game camera's, so `-FlyTurn` pictures
+  stayed at the game's offset or landed black. The takeoff now waits up to
+  30 frames for the axes to settle (`devtools.cc`). Note for picture checks:
+  in preview mode the JSON's camera line always reports the fixed preview
+  camera, fly or not; judge a fly shot by the picture.
+- The six leftovers were hunted with before | after sheets at hours 8, 13
+  and 17 (`runs/093-shadow-leftovers/`, `before` on main's build, `after`
+  on this branch's final code; at every framing the final pair diffs to
+  0 px, so the sheets also prove nothing regressed) and the diagnosis views
+  in `runs/093-probe/`. Fault by fault:
+  - 1, 3 (the brick corner lit or dark as a whole), 5 (the painted post by
+    the bathhouse) and 6 (the pen's corner post) are one class. ShadowDebug
+    2 proves the corner piece takes the crossing wall's side of the sun
+    since 090's painted-plane rule: at hour 8 the Buckner pillar reads
+    shaded beside its lit face, at hour 17 lit beside its shaded face
+    (`runs/093-probe/f1-debug-old-vs-new.png`), on main's code.
+  - The exporter split (cut the corner picture at the crossing wall, carry
+    the stretch onto the crossing plane) was tried at three cut planes. At
+    the Buckner corner the rows end inside the crossing band, so nothing
+    moves there; where the cut bites, the 090 seam metric rises at the
+    evening views (19265 h17 133 to 213 with the nearest-plane cut, 233
+    with the far-face cut). Reverted: the exporter is back at main's, the
+    scene fingerprint is main's again.
+  - 2 (the strip at the top of the corner under the roof edge) is the same
+    piece class at the roof line; it moves with the same lever and the same
+    evening seams followed it.
+  - 4 (the boxes and planks by the bathhouse's corner): the boxes are
+    painted into the wall picture, not scene objects (nothing at that spot
+    in `scene.json`). At every framing built here (the game view at hours
+    8, 13, 17, the roof-culled interior view, the alley fly views) the 3D
+    matches the vanilla framebuffer shot for shot
+    (`runs/093-probe/f4-corner-vanilla-vs-3d.png`). The owner's exact
+    scroll reproduces it; his view tile with the dev panel open would pin
+    the delta.
+  - A per-card shader rule (`sunShadowStanding`) was tried for 5 and 6:
+    fences and painted posts are not standing cards (the pen diff is 0 px
+    at all three hours) while wide card clusters did move; reverted.
+- The fix needs the owner's rule for whose side of the sun a corner piece
+  takes; opened as 096 with the evidence references. This task stays open
+  until 096 lands and the six shots re-check by eye.
+- ctest 18/18; the corrals regression 0 px; with the split out, the 090
+  seam totals sit at main's on every measured view.
