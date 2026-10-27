@@ -112,7 +112,6 @@ int gScrollProbeKey = -1;
 int gScrollProbeStage = 0;
 int gScrollProbeStartTile = -1;
 int gScrollProbeFrames = 0;
-bool gScrollFindBlocker = false;
 int gScrollEdgeDirection = -1;
 int gScrollEdgeStage = 0;
 int gScrollEdgeStartTile = -1;
@@ -830,10 +829,6 @@ bool parseOption(const char* arg)
         }
         return true;
     }
-    if (strcmp(arg, "--dev-scroll-find-blocker") == 0) {
-        gScrollFindBlocker = true;
-        return true;
-    }
     if (strcmp(arg, "--dev-follow-hero") == 0) {
         gFollowHeroProbe = true;
         return true;
@@ -1399,62 +1394,6 @@ void update()
     // The startup --dev-map travel retries here until the opening movie is
     // over and the transition is accepted (089).
     applyStartupTarget();
-    if (gScrollFindBlocker && gScrollProbeStage == 0
-        && sceneStartupReady() && !inBlockingGameState()) {
-        {
-            const int dx[4] = { -1, 1, 0, 0 };
-            const int dy[4] = { 0, 0, -1, 1 };
-            const int keys[4] = { KEY_ARROW_LEFT, KEY_ARROW_RIGHT, KEY_ARROW_UP, KEY_ARROW_DOWN };
-            std::vector<int> blockerTiles;
-            for (Object* object = objectFindFirstAtElevation(gElevation); object != nullptr;
-                    object = objectFindNextAtElevation()) {
-                if (ProtoId(object) == MiscProtoTypeId::Id0x0C) blockerTiles.push_back(object->tile);
-            }
-            bool found = false;
-            for (int target : blockerTiles) {
-                const int first = std::max(1, target - 404);
-                const int last = std::min(39999, target + 404);
-                for (int start = first; start <= last && !found; ++start) {
-                    if (_obj_blocking_at(gDude, start, gElevation) != nullptr) continue;
-                    mapEdgeSelectZoneAndClamp(start, gElevation);
-                    if (mapEdgeIsEnabled() && mapEdgeZoneIsSelected()) continue;
-                    int screenX, screenY;
-                    tileToScreenXY(start, &screenX, &screenY);
-                    for (int direction = 0; direction < 4; ++direction) {
-                        const int candidate = tileFromScreenXY(screenX + dx[direction] * 32 + 16,
-                            screenY + dy[direction] * 24 + 8);
-                        if (candidate != target) continue;
-                        if (objectSetLocation(gDude, start, gElevation, nullptr) != 0) continue;
-                        if (tileSetCenter(start, TILE_SET_CENTER_FLAG_IGNORE_SCROLL_RESTRICTIONS
-                                | TILE_SET_CENTER_FLAG_IGNORE_BOUNDS | TILE_SET_CENTER_REFRESH_WINDOW) != 0) {
-                            printf("SCROLL_BLOCKER FAIL map=%s reason=cannot-set-center start=%d\n", gMapHeader.name, start);
-                            fflush(stdout);
-                            gScrollProbeStage = 3;
-                            found = true;
-                            break;
-                        }
-                        gScrollProbeStartTile = start;
-                        gScrollProbeKey = keys[direction];
-                        gViewTileApplied = true;
-                        enqueueInputEvent(gScrollProbeKey);
-                        gScrollProbeStage = 1;
-                        printf("SCROLL_BLOCKER TARGET map=%s start=%d target=%d key=%s\n", gMapHeader.name, start,
-                            target, keys[direction] == KEY_ARROW_LEFT ? "left" : keys[direction] == KEY_ARROW_RIGHT ? "right"
-                                : keys[direction] == KEY_ARROW_UP ? "up" : "down");
-                        fflush(stdout);
-                        found = true;
-                        break;
-                    }
-                }
-            }
-            if (!found) {
-                printf("SCROLL_BLOCKER FAIL map=%s reason=no-adjacent-id-0x0c blockers=%zu\n",
-                    gMapHeader.name, blockerTiles.size());
-                fflush(stdout);
-                gScrollProbeStage = 3;
-            }
-        }
-    }
     if (gScrollEdgeDirection >= 0 && gScrollEdgeStage < 2
         && gViewTileApplied && sceneStartupReady() && !inBlockingGameState()) {
         if (gScrollEdgeStage == 0) {

@@ -122,7 +122,6 @@ param(
     [string]$ScrollEdge,
     [switch]$FollowHero,
     [switch]$WalkProbe,
-    [switch]$ScrollBlocker,
     [ValidateRange(0, 1000)]
     [int]$EffectFrame = -1,
     # -Shadows: keep the sun shadows on in this background run (they are
@@ -156,15 +155,11 @@ if ($ClockLadder) {
     if (-not $OutputDirectory -or $Tour -or $Classic -or $Probe -or $Preferences -or $MuzzleWeapon -or $GlowLadder -or $GlowPair -or $GlowLevels -or $EffectFixture -or $DialogFixture -or $UiFixture) { throw '-ClockLadder requires its own scene run and -OutputDirectory.' }
     $Still=$true; $CaptureConsole=$true
 }
-if (([int][bool]$ScrollStep + [int][bool]$ScrollEdge + [int][bool]$FollowHero + [int][bool]$WalkProbe + [int][bool]$ScrollBlocker) -gt 1) { throw 'Choose one scroll or walk probe mode.' }
-if ($ScrollStep -or $ScrollEdge -or $FollowHero -or $WalkProbe -or $ScrollBlocker) {
+if (([int][bool]$ScrollStep + [int][bool]$ScrollEdge + [int][bool]$FollowHero + [int][bool]$WalkProbe) -gt 1) { throw 'Choose one scroll or walk probe mode.' }
+if ($ScrollStep -or $ScrollEdge -or $FollowHero -or $WalkProbe) {
     if (-not $OutputDirectory -or -not $PSBoundParameters.ContainsKey('ViewTile') -or $Tour -or $Probe -or $Preferences -or $MuzzleWeapon -or $GlowLadder -or $GlowPair -or $GlowLevels -or $EffectFixture -or $DialogFixture -or $UiFixture) {
-        if ($ScrollStep -or $ScrollEdge -or $FollowHero -or $WalkProbe) { throw 'Scroll and walk probes require their own scene run, -ViewTile, and -OutputDirectory.' }
-        if (-not $OutputDirectory -or $Tour -or $Probe -or $Preferences -or $MuzzleWeapon -or $GlowLadder -or $GlowPair -or $GlowLevels -or $EffectFixture -or $DialogFixture -or $UiFixture) {
-            throw '-ScrollBlocker requires its own scene run and -OutputDirectory.'
-        }
+        throw 'Scroll and walk probes require their own scene run, -ViewTile, and -OutputDirectory.'
     }
-    if ($ScrollBlocker -and $PSBoundParameters.ContainsKey('ViewTile')) { throw '-ScrollBlocker chooses its own center; omit -ViewTile.' }
     if ($ScrollEdge -and -not $PSBoundParameters.ContainsKey('HeroTile')) { throw '-ScrollEdge requires -HeroTile near the map edge so hero-distance limiting does not stop the probe first.' }
     if ($FollowHero -and -not $PSBoundParameters.ContainsKey('HeroTile')) { throw '-FollowHero requires -HeroTile.' }
     if ($WalkProbe -and -not $PSBoundParameters.ContainsKey('HeroTile')) { throw '-WalkProbe requires -HeroTile.' }
@@ -362,7 +357,6 @@ if ($ClockLadder) { $arguments += '--dev-clock-ladder' }
 if ($ScrollEdge) { $arguments += "--dev-scroll-edge=$ScrollEdge" }
 if ($FollowHero) { $arguments += '--dev-follow-hero' }
     if ($WalkProbe) { $arguments += '--dev-walk-probe' }
-if ($ScrollBlocker) { $arguments += '--dev-scroll-find-blocker' }
 if ($NoEffectEmission) { $arguments += '--dev-no-effect-emission' }
 if ($EffectLightCheck) { $arguments += '--dev-effect-light-check' }
 if ($SharpText) { $arguments += '--dev-sharp-text=1' } else { $arguments += '--dev-sharp-text=0' }
@@ -435,7 +429,7 @@ if ($PreferencesProbe) {
     if ($Tour) { throw '-Tour cannot be combined with -Probe.' }
     $shots = 2
     $arguments += '--dev-pick-probe'
-} elseif ($ScrollStep -or $ScrollEdge -or $FollowHero -or $ScrollBlocker) {
+} elseif ($ScrollStep -or $ScrollEdge -or $FollowHero) {
     $shots = 1
     $arguments += '--dev-snapshot-once'
 } elseif ($Tour -or $Classic) {
@@ -564,10 +558,10 @@ try {
             } elseif ($ClockLadder) {
                 $clockLog = Join-Path $OutputDirectory 'process.stdout.log'
                 if ($snapshots.Count -ge $shots -and (Test-Path -LiteralPath $clockLog) -and (Select-String -LiteralPath $clockLog -Pattern '^CLOCK_LADDER PASS' -Quiet)) { break }
-            } elseif ($ScrollStep -or $ScrollEdge -or $FollowHero -or $WalkProbe -or $ScrollBlocker) {
+            } elseif ($ScrollStep -or $ScrollEdge -or $FollowHero -or $WalkProbe) {
                 $scrollLog = Join-Path $OutputDirectory 'process.stdout.log'
                 if ((Test-Path -LiteralPath $scrollLog) -and
-                    (Select-String -LiteralPath $scrollLog -Pattern '^(SCROLL_STEP|SCROLL_EDGE|FOLLOW_HERO|SCROLL_BLOCKER) FAIL ' -Quiet)) { break }
+                    (Select-String -LiteralPath $scrollLog -Pattern '^(SCROLL_STEP|SCROLL_EDGE|FOLLOW_HERO) FAIL ' -Quiet)) { break }
                 $scrollProbePassed = (Test-Path -LiteralPath $scrollLog) -and
                     (Select-String -LiteralPath $scrollLog -Pattern '^(SCROLL_STEP|SCROLL_EDGE|FOLLOW_HERO) PASS ' -Quiet)
                 $walkProbeFinished = $WalkProbe -and (Test-Path -LiteralPath $scrollLog) -and
@@ -600,13 +594,12 @@ if ($ClockLadder) {
     $clockText094=Get-Content -Raw -LiteralPath (Join-Path $OutputDirectory 'process.stdout.log')
     if ($clockText094 -notmatch '(?m)^CLOCK_LADDER PASS') { throw 'Clock ladder did not finish successfully.' }
 }
-if ($ScrollStep -or $ScrollEdge -or $FollowHero -or $WalkProbe -or $ScrollBlocker) {
+if ($ScrollStep -or $ScrollEdge -or $FollowHero -or $WalkProbe) {
     $scrollText = Get-Content -Raw -LiteralPath (Join-Path $OutputDirectory 'process.stdout.log')
     if ($ScrollEdge -and $scrollText -notmatch '(?m)^SCROLL_EDGE PASS ') { throw 'Screen-edge scroll did not finish successfully.' }
     if ($FollowHero -and $scrollText -notmatch '(?m)^FOLLOW_HERO PASS ') { throw 'Hero-centering probe did not finish successfully.' }
     if ($WalkProbe -and $scrollText -notmatch '(?m)^WALK_PROBE RESULT ') { throw 'Walk probe did not finish.' }
-    if (($ScrollStep -or $ScrollBlocker) -and $scrollText -notmatch '(?m)^SCROLL_STEP PASS ') { throw 'Scroll step did not finish successfully.' }
-    if ($ScrollBlocker -and $scrollText -notmatch '(?m)^SCROLL_BLOCKER TARGET ') { throw 'No scroll-blocker target was found.' }
+    if ($ScrollStep -and $scrollText -notmatch '(?m)^SCROLL_STEP PASS ') { throw 'Scroll step did not finish successfully.' }
 }
 if ($PreferencesProbe) {
     $probeLog = Get-Content -Raw -LiteralPath (Join-Path $OutputDirectory 'process.stdout.log')
