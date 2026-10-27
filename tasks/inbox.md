@@ -103,3 +103,9 @@ that fits no task becomes a new task when the board runs dry.
   the table at all: the box, plate and cans sit against the alley wall, and
   two grey pipes lie outside it in the alley. The items are placed away from
   their table, through the wall.
+- 2026-10-27 Inside the bathhouse, roof off, in flight (owner's shot
+  `runs/inbox/2026-10-27-bathhouse-inside-light-strips.jpg`): the inner face of
+  the far wall shows vertical strips of bright specks, the window columns of the
+  wall's outside picture lit as if daylight came through. The owner reads them
+  as stray strips of light. Check what the inside face of a wall shows (its own
+  art, a flat dark face, or the outside picture mirrored) against the original.
