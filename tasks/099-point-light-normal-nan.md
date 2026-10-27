@@ -2,8 +2,8 @@
 id: 099
 title: Point lights next to cut-out pixels no longer get a broken wall normal
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: gpt
 suggested: gpt
 priority: normal
 claude-only: no
@@ -40,3 +40,4 @@ cut-out pixel as anywhere else, as the sun already does since 090.
 The sun, the light colours and their strength.
 
 ## Log
+
