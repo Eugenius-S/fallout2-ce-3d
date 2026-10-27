@@ -60,6 +60,21 @@ New art, weapon balance, projectile trails, per-weapon menu controls.
 
 ## Log
 
+### 2026-10-27 gpt: selected flash and integrated main
+
+All four JPEG sheets are in runs/088-muzzle-flash. The owner chose the small
+additional flash for laser and plasma projectile weapons; the test fixture's
+real default path matches the approved preview pixel for pixel. Burst timing
+follows the native painted frames. On base 261eaa2e the 16 ordinary views all
+matched their references pixel for pixel, the glow-off SMG pairs matched, and
+the full fly tour changed 0 of 43 spots. Main advanced to c05a0f34 while the
+captures ran; merged it without conflicts. A clean rebuild was necessary on
+this machine because incremental MSVC header dependencies are unreliable: all
+17 CTests now pass. Next: validate the integrated build against c05a0f34,
+including a fresh fly tour and representative muzzle captures; then finish the
+task and PR. Existing sheets record the earlier build and remain comparisons,
+not evidence of the integrated runtime.
+
 ### 2026-10-27 gpt: implementation and comparison in progress
 
 The owner chose the painted flash rhythm: the SMG spends six rounds but its
