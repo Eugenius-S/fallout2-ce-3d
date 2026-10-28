@@ -54,6 +54,7 @@ WALK_THROUGH = 160  # px: a thing that stops no one is a solid all the same if i
 # exceptions, at most a tenth of a map group's distinct FRMs).
 _OVERRIDES = json.loads((Path(__file__).resolve().parents[2] / "shapes" / "overrides.json").read_text(encoding="utf-8"))
 FORCED = {name: kind for kind in ("box", "drum") for name in _OVERRIDES.get(kind, {})}
+PLAIN_OBJECT_FLAGS = mapfile.OBJECT_LIGHT_THRU | mapfile.OBJECT_LIGHTING    # no structure: loose clutter (build_props)
 MIN_DRUM = 0.1      # units: the radius a drum keeps when a wall or another thing cuts it back
 APART = 0.02        # units: solids of two things that overlap less in plan are left as they are
 MIN_BOX = 0.1       # units: what is left of a box that is cut back at a wall, at least
@@ -630,6 +631,13 @@ class SceneBuilder:
             first = group[0]
             if seen is None:
                 seen = 2 if whole[id(first)] in made else 0
+            # The mapper's loose clutter: its flag word carries nothing but light-through and its
+            # own light, no bit that says the game treats it as a thing of the world (usable, flat,
+            # walk-through, shoot-through). Such a pile keeps the card everywhere: stood up, its box
+            # read as junk standing in an alley the game's own view keeps hidden behind a wall
+            # (the bathhouse's junk piles, the pot-belly stoves: 2026-10-28).
+            if all(not piece.obj.flags & ~PLAIN_OBJECT_FLAGS & 0xFFFFFFFF for piece in group):
+                continue
             blocking = any(not piece.obj.flags & mapfile.OBJECT_NO_BLOCK for piece in group)
             # A box by name (tools/scene_export/shapes/overrides.json): chairs and
             # crates the fit takes for plants.

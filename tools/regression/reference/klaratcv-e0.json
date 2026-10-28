@@ -4,11 +4,7 @@
   "map": "KLARATCV.MAP",
   "elevation": 0,
   "still_snapshot": true,
-<<<<<<< HEAD
-  "snapshot_run": "f676c593cd754bd3be1d81e58cedb210",
-=======
-  "snapshot_run": "f20b92a95a034a4ea0c224f1f8861cf1",
->>>>>>> 6fb5bb23 (096: corner pieces cut at the corner line; references and evidence for the changed views)
+  "snapshot_run": "1238f33810e743ad8247bdcea00ddf69",
   "view_tile": 21511,
   "preview_requested": true,
   "scene_3d_enabled": true,
@@ -57,7 +53,7 @@
     ]
   },
   "camera": "fixed eye=(54.64466,46.23085,77.46700), target=(5.45833,0.00000,3.68750), fov_y=25.0, near=0.1, far=400.0, screen_right=-cross(forward,world_up)",
-  "wall_triangles": 6425,
+  "wall_triangles": 6331,
   "wall_pages": 3,
   "hero": {
     "tile": 20100,
@@ -119,19 +115,11 @@
   "scale": 2,
   "windowed": true,
   "drawable": "1920x1080",
-<<<<<<< HEAD
-  "ce_commit": "6ef11132",
+  "ce_commit": "36eca52c",
   "tools_commit": "-",
-  "exe_sha256": "e8bb1bbff72f582d9d14f4c407920a06ad4e83c94c7d4d9d06952a49c184c730",
-  "taken": "20261027-233257",
-  "capture_image": "devhero-20261027-233257-000.png",
-=======
-  "ce_commit": "46c09db6",
-  "tools_commit": "-",
-  "exe_sha256": "86c7a157021a42afd7e4b687bfcb0e8219d9914f1838b378cf14897c8649a20a",
-  "taken": "20261028-001529",
-  "capture_image": "devhero-20261028-001529-000.png",
->>>>>>> 6fb5bb23 (096: corner pieces cut at the corner line; references and evidence for the changed views)
+  "exe_sha256": "b4c13c740266c0ad52eae1ec6a410aaf4aa389be16a9f9adb98470e8d191a813",
+  "taken": "20261028-154350",
+  "capture_image": "devhero-20261028-154350-000.png",
   "spot": {
     "name": "klaratcv-e0",
     "map": "klaratcv",
