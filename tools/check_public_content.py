@@ -2,6 +2,7 @@
 import re
 import subprocess
 import sys
+import zlib
 
 
 RULES = (
@@ -27,11 +28,34 @@ def findings(patch):
             continue
         added = line[1:]
         for label, pattern in RULES:
+            if label == "email address" and email_exempt_path(path):
+                continue
             for match in pattern.finditer(added):
                 if label == "email address" and match.group(0).lower() == ALLOWED_EMAIL:
                     continue
                 results.append((path, line_number, label))
     return results
+
+
+def email_exempt_path(path):
+    parts = path.lower().split("/")
+    name = parts[-1]
+    return (
+        bool(
+            {"third_party", "third-party", "thirdparty", "vendor", "vendors", "vendored"}
+            & set(parts)
+        )
+        or "license" in parts
+        or "licenses" in parts
+        or name.startswith(("license", "copying", "notice"))
+    )
+
+
+def _inflate(data):
+    try:
+        return zlib.decompressobj().decompress(data, 1024 * 1024)
+    except zlib.error:
+        return b""
 
 
 def image_metadata(data, suffix):
@@ -68,8 +92,27 @@ def image_metadata(data, suffix):
             end = offset + 8 + size
             if end + 4 > len(data):
                 break
-            if kind in {b"tEXt", b"iTXt", b"zTXt", b"eXIf"}:
-                chunks.append(data[offset + 8 : end])
+            payload = data[offset + 8 : end]
+            if kind == b"tEXt":
+                chunks.append(payload)
+            elif kind == b"zTXt":
+                _, separator, rest = payload.partition(b"\0")
+                if separator and len(rest) >= 2 and rest[0] == 0:
+                    chunks.append(_inflate(rest[1:]))
+            elif kind == b"iTXt":
+                _, separator, rest = payload.partition(b"\0")
+                if separator and len(rest) >= 2:
+                    compressed, method, rest = rest[0], rest[1], rest[2:]
+                    _, separator, rest = rest.partition(b"\0")
+                    if separator:
+                        _, separator, text = rest.partition(b"\0")
+                        if separator:
+                            if compressed == 1 and method == 0:
+                                chunks.append(_inflate(text))
+                            elif compressed == 0:
+                                chunks.append(text)
+            elif kind == b"eXIf":
+                chunks.append(payload)
             offset = end + 4
             if kind == b"IEND":
                 break
@@ -86,6 +129,20 @@ def image_metadata(data, suffix):
                 chunks.append(data[start:end])
             offset = end + (size & 1)
     return chunks
+
+
+def metadata_findings(path, payloads):
+    problems = []
+    for payload in payloads:
+        text = payload.replace(b"\0", b"").decode("latin1", "ignore")
+        for label, pattern in RULES:
+            if label == "email address" and email_exempt_path(path):
+                continue
+            for match in pattern.finditer(text):
+                if label == "email address" and match.group(0).lower() == ALLOWED_EMAIL:
+                    continue
+                problems.append(label)
+    return problems
 
 
 def main():
@@ -116,11 +173,8 @@ def main():
             capture_output=True,
         ).stdout
         for payload in image_metadata(blob, "." + name.rsplit(".", 1)[-1]):
-            for label, pattern in RULES:
-                for match in pattern.finditer(payload.decode("latin1", "ignore")):
-                    if label == "email address" and match.group(0).lower() == ALLOWED_EMAIL:
-                        continue
-                    problems.append((name, 0, f"image metadata: {label}"))
+            for label in metadata_findings(name, [payload]):
+                problems.append((name, 0, f"image metadata: {label}"))
     for path, line, label in problems:
         print(f"{path}: added line {line}: {label}")
     if problems:
