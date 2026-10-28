@@ -58,7 +58,7 @@ The door-wall view matches the `doorb06.frm` room and the neighboring
 51% transparent texels in the sampled back strip (atlas sprites 1843 and
 1801). The scene's door object at tile 15272 is `doorb06.frm`. The runtime
 view at tile 15272 shows outside-colored pinholes in those dark inner wall
-faces. These alpha holes explain the openings in the owner's first view.
+faces. These alpha holes are a plausible cause of the openings in the owner's first view, but the exact source pieces remain unconfirmed.
 
 The bathhouse view matches the two narrow windows on its far wall: rows 200
 and 210 are `nec151.frm` and `nec150.frm` windows at tiles 14714 and 14722;
@@ -74,7 +74,7 @@ implementation targets. Next: one general rule that makes wall-back texture
 holes opaque and subdued for every wall, then retake the owner views and the
 other Klamath interiors.
 
-### 2026-10-28 gpt — safety check before implementation
+### 2026-10-28 gpt (safety check) before implementation
 
 Checked the exporter’s source geometry classification, independent of English
 prototype names. `boxes.Cut.kind` is derived from the un-sheared front image;
