@@ -2,7 +2,7 @@
 id: 103
 title: The see-through halo round the hero works at walls again
 milestone: M1
-status: doing
+status: blocked
 owner: gpt
 suggested: gpt
 priority: high
@@ -106,3 +106,20 @@ The halo's shape and size.
   `build/103-owner-roof-main/`. No game source was changed; task remains
   `doing`, `reviewed: no`. This targeted comparison does not identify when the
   behavior changed between 018 and 095, so it is not a completed fix or bisect.
+
+### 2026-10-28 current-main exact-point check
+
+- Built `origin/main` at `47148c1c` and captured one isolated still snapshot of
+  KLADWTWN e0, `HeroTile=17878`, `ViewTile=17467`, at 1920x1080. The capture
+  reports the egg active (`rect=[183,249,129,98]`, 628 wall rows marked). The
+  frame is `build/103-owner-target-current-main/devhero-20261028-173652-000.png`
+  in the isolated current-main worktree; exe SHA-256 is
+  `9879c59585578bf67c6ecc73f8555a075a4f094892064a27b0167577bddf1612`.
+- Compared the hero and the south-wall edge in the supplied crop and the fresh
+  frame. The hero's feet remain above the wall's top edge, so the wall does not
+  occlude the hero in this captured view. The marked wall section is also away
+  from the hero silhouette. This does not establish a reproduced see-through
+  regression, so no bisect or code change is justified from this run.
+- Status: blocked pending a reproducible view where the south wall actually
+  crosses the hero or the intended egg area. The owner's game and its files
+  were not touched.
