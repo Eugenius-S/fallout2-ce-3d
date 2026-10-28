@@ -52,7 +52,54 @@ Shadows, the corner pieces (096).
 
 ## Log
 
-## Log
+### 2026-10-28 glm: the tour retook against a main cache rebuilt from origin/main; the corner spots are atlas resampling, not the corner cut
+
+- Merged origin/main (ff974f91: 104's farther bottom-edge camera, 105's README,
+  107's task text); the exe rebuilt; exporter unit tests, regression unit tests
+  and ctest 18/18 pass. The main cache the first tour compared against had been
+  exported by pre-096 code (exporter 1.10.0, fingerprint ae2680...); a fresh
+  export of origin/main (detached worktree fallout2-ce-3d-glm-main) into
+  build/scene-cache-main differs. The tour retook against it: still 31 of 43
+  spots, the same 31 as before the merge.
+- The five long-building corner spots (24268, 24292, 20268, 20292, 20690) are
+  not 096's corner cut: the cut is in both caches, and none of the freed
+  objects stands within their view. Their 200-400 pixels per turn are single
+  speckles on wall and roof textures across the whole frame: when the freed
+  props' sprites leave the atlas, the page repacks and minified surfaces
+  resample differently. Invisible at 1:1. A spot changes exactly when its map
+  elevation's scene changed at all: klagraz, klatrap and the other cave
+  elevations, which free nothing, are all "same".
+- The rule's visible footprint, objects verified as owners of removed props
+  (every removed prop's nearest object at distance 0.00 is plain-flag; no
+  door, table, bed or vehicle lost a solid, their props only renumber with the
+  atlas):
+  - kladwtwn e0: the junk piles njunk2 16478 and njunk1 16479, the girlie
+    posters GIRLP005 17078 and GIRLP017 17082, the stoves sstove2 20937 and
+    26106. Seen from 19265, 17467, 17666, 17104, 17699, 20268, 20292, 20690,
+    24292, 22958 and 20736 (the stove right under it). The other eight
+    kladwtwn spots are resampling only.
+  - klamall e0: Stack of Tires 12869, 12871, 18904, 21525; Metal Barrels
+    19102, 19103, 19301, 19302, 19303, 19702; Junk piles 12918, 13504, 14514,
+    19936, 21684, 21686, 21887, 21925. Seen from 13050, 12666, 15450, 21700,
+    23145; 27886 and 28493 resampling only.
+  - klacanyn e0: the painted mountains mount04 11296 and mount05 12501; 15909
+    sees one, 23869 is resampling only.
+  - klaratcv e0: the cave machinery mach01-mach05 (17540, 18140, 18740, 19541,
+    19739); both gallery spots sit farther than a view away, resampling only.
+  - klatoxcv e2: the computers glcomp02 (13696, 13700, 13702); 15065 is
+    resampling only.
+- The regression after the merge failed 12 spots. A build of origin/main
+  itself fails 5 of them (klagraz-e0, klaratcv-e0, klaratcv-e1, klaratcv-e2,
+  klatoxcv-e2): 104's camera moved the views main's references pin. The 10
+  spots my branch failed beyond that were re-blessed from the merged build's
+  captures: the six kladwtwn views and klacanyn-e0, where the wider bottom
+  edge shows the freed cards or the resampling, and the three cave references
+  retaken on top of 104. After the re-bless the regression fails only the
+  pre-existing board items klagraz-e0 (183 px) and klaratcv-e2 (6299 px), the
+  same counts as on origin/main. reviewed stays no.
+- Exports from now on write the worktree's own cache (export.py --cache-root
+  build/scene-cache, as this run's regression and tour already do); the
+  shared game/mod-cache stays as it was.
 
 ### 2026-10-28 glm: the things were never on the table; the rule is the mapper's own flag word
 
