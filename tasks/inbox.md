@@ -165,4 +165,7 @@ that fits no task becomes a new task when the board runs dry.
   first-person port https://github.com/Apolotary/fallout2-first-person
   (`runs/inbox/2026-10-28-sky-reference.webp`: a dusk gradient sky above
   the walls instead of black). The owner: the 3D view looks better with
-  it. Could follow the time of day (sun, night look). Not now; a note only.
+  it. Could follow the time of day (sun, night look). The donor's sky is one
+  full-screen shader (`viewer/render.js`, `SKY_FS` and `MOODS`: horizon
+  haze, a gradient to the zenith, the sun's glow, stars at night, two far
+  mesa ridges), drawn first from the camera's ray. Not now; a note only.
