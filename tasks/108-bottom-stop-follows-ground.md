@@ -9,7 +9,7 @@ priority: normal
 claude-only: no
 user-check: yes
 depends-on: []
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -77,15 +77,9 @@ The other edges, the fly camera, filling the void past the map with art.
   `28f38476ba5b722a044d5ced038f61fd45f7b1d822d9ed2658a99eb3eb4fabde`;
   final CE `2d185988`, EXE SHA256
   `16749698f7724deb2e950c63b46525f5f9f56328a848419e7f099aecd909a9c7`.
-- The first projected-area calculation used the sidecar's separate perspective
-  preview camera, so those numbers were withdrawn; no sidecar camera
-  projection is used to identify the exit grid. A rough pixel-color check
-  (largest 8-connected `G-R>=8`, `G-B>=4` component in y<880) grows from
-  84,744 to 167,073 px for Klad and 76,999 to 91,012 px for Klagraz. Diagnostic
-  overlays in `runs/108-bottom-stop-follows-ground/green-roi-diagnostics/`
-  were checked against both raw captures. This can include unrelated green
-  pixels; Den's largest component is an unrelated shrub, so no numeric Den
-  claim is made. The reproducible script is `measure_green_roi.py`.
+- Exit-grid evidence comes from Den Bus 2's HUD screenshot and its exported
+  `Exit Grid` decal data; the center red X is not used. No sidecar camera
+  projection or pixel-color component is used to identify the grid.
 - Original 2D: re-captured all 16 `tools/regression/spots.json` Classic views
   on the final EXE and exact base `ff2d06df`, with the same Klamath-start
   `-Classic -Still -Tour` route. Pixel comparison: 0 changed pixels across all
@@ -94,10 +88,8 @@ The other edges, the fly camera, filling the void past the map with art.
   `ff2d06df`; direct RGBA comparison: 0 changed pixels in all 16. Frozen
   reference differences are the same on both builds: Klagraz 183 px,
   Klaratcv e0/e1/e2 3837/5185/6299 px, Klatoxcv e2 550 px. References were
-  not changed. Base run `runs/regression/20261028-165649-282-51304`, candidate
-  run `runs/regression/20261028-170628-266-56052`. The Classic captures used
-  the same exact base and final EXE SHA above; candidate output is in
-  `runs/108-bottom-stop-follows-ground/classic-final-current-latest/`.
+  not changed. The Classic captures used the same exact base and final EXE
+  SHA above; sidecars confirmed matching map/elevation/tile metadata.
 - Other stops: left/right/up endpoints match exact base at tiles
   26723/29494/21486; all four clip planes match. Non-still right/up PNGs have
   578/1256 changed pixels between runs, so no pixel-identical claim is made.
@@ -105,7 +97,6 @@ The other edges, the fly camera, filling the void past the map with art.
   2. With zoom 1.15, Klad reaches tile 29312 at +45° and 29111 at −45°.
 - Timed real floor-row checks: Klad max 139 µs, Klagraz max 123 µs, +45° max
   157 µs, −45° max 230 µs; each accepted scroll used 3–4 candidate checks.
-  Den bus1 needed no extra check beyond its authored stop.
 - Release build passed; `ctest --test-dir build -C Release
   --output-on-failure`: 18/18 passed. Python exporter tests passed 66/66 and
   regression tool tests passed 12/12. The fly tour against exact base `ff2d06df`
