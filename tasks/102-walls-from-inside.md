@@ -2,9 +2,9 @@
 id: 102
 title: Walls seen from inside are whole and dark, with no holes and no lit window strips
 milestone: M1
-status: todo
-owner: none
-suggested: glm
+status: doing
+owner: gpt
+suggested: gpt
 priority: normal
 claude-only: no
 user-check: yes
