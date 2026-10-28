@@ -154,3 +154,10 @@ that fits no task becomes a new task when the board runs dry.
   and the like (other one-off landmarks, vehicles and large signs). Go
   through the maps and the prototypes once, name each object with its map and
   shot, and order them by how much a player sees them. Not now; a note only.
+- 2026-10-28 The owner's live review on main `9705aca4`, Klamath
+  (`runs/inbox/2026-10-28-*`): the STOP corner seam and a dark house's
+  corner seam (110); the trough and the sandwich-board sign dark whole with
+  no shadow on them, corner pieces shaded whole (109); the hero's cut-out
+  only on roofs, not walls (103); no glow on the slime pools and no
+  visible point lights in the toxic caves (111). The bottom stop (108)
+  passed with no remarks.
