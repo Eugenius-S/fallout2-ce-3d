@@ -2,8 +2,8 @@
 id: 096
 title: Corner pieces are cut at the corner line, each half on its own face's side of the sun
 milestone: M1
-status: doing
-owner: none
+status: done
+owner: glm
 suggested: glm
 priority: normal
 claude-only: no
@@ -140,3 +140,38 @@ New shadow features, the moon, shadow softness.
   (pen-corner-h17.jpg, before and after alike). Giving the post's halves
   their fences' planes needs the post card split at its own axis, which
   needs a look at the art; left for the owner's eye and a follow-up.
+- The owner's review (2026-10-28) settles the acceptance: the two 17:00
+  rises stand. A corner piece's half that follows its own face is the
+  rule, and the metric stays as 090 defined it; the decision is written
+  here so the follow-up tasks measure against it, not against the old
+  totals. Status done; the references above were retaken on this branch.
+- The owner's three later finds got their before | after sheets at the
+  owner's framing (runs/096-corner-piece-sun-side/):
+  - `inbox-corner-turned-before-after.jpg`, the bathhouse corner piece
+    lost in the turned perspective camera. Reproduced on the branch
+    build: the bathhouse's interior hero tile 18930, zoom 2.5, the
+    camera turned 40 degrees, hour 8 - the striped pillar and its boss
+    are gone, while the isometric camera of the same view keeps them.
+    Main (before) and 096 (after) are identical to the pixel there: the
+    turned camera renders through the free camera's batches, and there
+    the piece rows stay trimmed at the corner line (the cut is the game
+    camera's only), so the pillar art past the trim never draws and the
+    free camera's fills show the plain wall. This is the same rule's
+    free-camera half and it is its own work; the sheet names it.
+  - `inbox-vic-shack-before-after.jpg`, the shadow round the corner at
+    Vic's shack (the task 039 tiles: view 17659, hour 13, zoom 2).
+    The cut does reach this corner: the shack's west-face corner strip
+    reads its own face now (the amplified diff marks the strip), and
+    the corner-top edge the owner marked is otherwise unchanged.
+  - `inbox-bottom-edge-before-after.jpg`, the flaw by the vine wall at
+    the map's bottom-edge exit zone (view 28096, hour 8): the building's
+    cast shadow ends with a notched edge by the wall, the owner's circle
+    sits on it. Main and 096 are identical here except the pen's fence
+    corner post, so the flaw is outside 096's class; the sheet carries
+    the classic view of the same spot for comparison. It stays an inbox
+    item of its own.
+- The owner's posts 5 (bathhouse) and 6 (pen): the split of a post card
+  at its own axis cannot ride the span cut - the visible post art lives
+  in rows whose spans stop at or before the corner line, so there is no
+  past stretch to re-home (the pen's cut bites 2-pixel slivers and the
+  visible post does not move). Cut as task 107 in this branch.
