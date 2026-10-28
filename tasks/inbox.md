@@ -169,8 +169,13 @@ that fits no task becomes a new task when the board runs dry.
   full-screen shader (`viewer/render.js`, `SKY_FS` and `MOODS`: horizon
   haze, a gradient to the zenith, the sun's glow, stars at night, two far
   mesa ridges), drawn first from the camera's ray. Not now; a note only.
-- 2026-10-28 (tasks 107, 110) The bathhouse's corner by its door in the 3D
-  view (`runs/inbox/2026-10-28-bathhouse-corner-piece.png`): the corner
-  piece (the striped pillar with the ball at its foot) stands as a flat
-  picture across the corner, and the two walls under the roof edge meet it
-  with a step. The corner-join class of 107 and 110; check it there.
+- 2026-10-28 (task 114) The bathhouse's corner by its door
+  (`runs/inbox/2026-10-28-bathhouse-corner-piece.png`): the grey thing on
+  the wall left of the hero is not the corner; it is the thing in the wall
+  that 100 did not fix.
+- 2026-10-28 The owner's live review on main `ff5f4ed0`
+  (`runs/inbox/2026-10-28-*`): the thing in the bathhouse wall still there
+  (114); holes in the tub and inside buildings, fill by the edge colour
+  (115, with 102); the stove flat and the lockers flat (116); the message
+  window's last line cut (117); the hero's halo still missing (103, in
+  work).
