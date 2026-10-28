@@ -169,3 +169,8 @@ that fits no task becomes a new task when the board runs dry.
   full-screen shader (`viewer/render.js`, `SKY_FS` and `MOODS`: horizon
   haze, a gradient to the zenith, the sun's glow, stars at night, two far
   mesa ridges), drawn first from the camera's ray. Not now; a note only.
+- 2026-10-28 (tasks 107, 110) The bathhouse's corner by its door in the 3D
+  view (`runs/inbox/2026-10-28-bathhouse-corner-piece.png`): the corner
+  piece (the striped pillar with the ball at its foot) stands as a flat
+  picture across the corner, and the two walls under the roof edge meet it
+  with a step. The corner-join class of 107 and 110; check it there.
