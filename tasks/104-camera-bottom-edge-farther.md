@@ -2,8 +2,8 @@
 id: 104
 title: The 3D camera goes a little farther at the map's bottom edge, so the exit zone shows
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: gpt
 suggested: gpt
 priority: normal
 claude-only: no
