@@ -2,7 +2,7 @@
 id: 109
 title: A standing card and a corner piece take the sun shadow where it falls on them, not all or nothing
 milestone: M1
-status: doing
+status: done
 owner: glm
 suggested: glm
 priority: high
