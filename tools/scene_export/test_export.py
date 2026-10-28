@@ -632,8 +632,9 @@ class WallSidecarTests(unittest.TestCase):
         import wall_sidecar
         walls, sprites, proj, corners = self.decor_corner()
         self.assertEqual(list(corners.pieces), [1])
-        slab, out, twin, twin_out, start = corners.pieces[1]
+        slab, out, twin, twin_out, start, cut = corners.pieces[1]
         self.assertAlmostEqual(start, 2.6)
+        self.assertAlmostEqual(cut, 3.0)
         faces = []
         with mock.patch.object(wall_sidecar, "_polygon", lambda batches, proj, page, size, corners: faces.append(corners)):
             wall_sidecar._corner_decor(None, proj, sprites, [[100, 100]], proj.toward, walls[1], slab, out, twin, twin_out)
@@ -662,6 +663,41 @@ class WallSidecarTests(unittest.TestCase):
             self.assertLessEqual(lo, reach + 1e-6)
             reach = max(reach, hi)
         self.assertAlmostEqual(reach, w)
+
+    def test_a_corner_piece_is_cut_at_the_corner_line_and_the_past_stretch_takes_the_other_face(self):
+        from unittest import mock
+        import wall_sidecar
+        walls, sprites, proj, corners = self.decor_corner()
+        _, out, _, _, _, cut = corners.pieces[1]
+        quads = []
+        with mock.patch.object(wall_sidecar, "_quad",
+                               lambda batches, page, size, cs: quads.append([list(c) for c in cs])):
+            wall_sidecar._wall_front(wall_sidecar._Batches(), proj, sprites, [[100, 100]], walls[1],
+                                     proj.toward[:2], (False, False), corner=(cut, out, proj.toward))
+        # The picture splits at the corner line (u 3.0): the face's own
+        # stretch keeps no depth points, the stretch past it takes the plane
+        # of the wall it continues there, its vertices staying where they were.
+        self.assertEqual(len(quads), 2, [q[0][:3] for q in quads])
+        for quad, past in zip(quads, (False, True)):
+            for corner in quad:
+                du, dv, dz = corner[5:8] or (0.0, 0.0, 0.0)
+                if past:
+                    self.assertAlmostEqual(corner[0] + du, 3.0, places=4)
+                    self.assertTrue(2.99 <= corner[0] <= 3.41, corner[:3])
+                else:
+                    self.assertAlmostEqual(du + dv + dz, 0.0, places=6)
+
+    def test_a_thin_fence_row_across_the_other_line_is_cut_at_it(self):
+        import wall_sidecar
+        # A fence along u ends at a fence along v; the rows of it whose span
+        # crosses the other fence's plane are cut there (096), the fence
+        # along v is not.
+        along_v = [0, 2.0, 2.1, 2.0, 3.0, 0, 0.84, 0, 1, 0.0, 0.06, -1]
+        along_u = [1, 2.2, 2.05, 1.0, 2.05, 0, 0.8, 0, 1, 0.0, 0.06, -1]
+        sliver = [2, 2.03, 2.05, 1.97, 2.05, 0, 0.84, 0, 1, 0.0, 0.06, -1]
+        corners = wall_sidecar._corner_fits([along_v, along_u, sliver], set(), (0.49, 0.74, 0.46),
+                                            lambda index: 16, (48.0, 32.0))
+        self.assertEqual(corners.thin_cuts, {1: (2.0, 1), 2: (2.0, 1)})
 
     def test_only_a_dull_corner_piece_unlike_its_wall_counts_as_decor(self):
         import numpy as np

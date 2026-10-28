@@ -4,7 +4,7 @@
   "map": "KLADWTWN.MAP",
   "elevation": 0,
   "still_snapshot": true,
-  "snapshot_run": "8e618b60a98e4f29af7a9893097d341e",
+  "snapshot_run": "685f0d4cccef442d8b5936a1a37b171c",
   "view_tile": 25075,
   "preview_requested": true,
   "scene_3d_enabled": true,
@@ -53,7 +53,7 @@
     ]
   },
   "camera": "fixed eye=(36.64466,46.23085,86.46700), target=(-12.54167,0.00000,12.68750), fov_y=25.0, near=0.1, far=400.0, screen_right=-cross(forward,world_up)",
-  "wall_triangles": 28969,
+  "wall_triangles": 29308,
   "wall_pages": 3,
   "hero": {
     "tile": 25075,
@@ -83,22 +83,25 @@
   },
   "preview_availability": "available",
   "renderer": "scene-gl",
-  "light": "off",
+  "light": "enabled",
+  "effect_emission": true,
   "glow": {
     "enabled": false,
     "strength": 2.0
   },
+  "weapon_effect": null,
+  "muzzle": null,
   "sun": {
     "setting": true,
     "daylight": true,
     "game_time": 302400,
     "up": true,
-    "height": 35.267,
-    "azimuth": 171.0,
+    "height": 72.0,
+    "azimuth": -26.565,
     "direction": [
-      -0.80642,
-      0.57739,
-      0.12772
+      0.27639,
+      0.95106,
+      -0.1382
     ],
     "color": [
       1.0,
@@ -112,11 +115,11 @@
   "scale": 2,
   "windowed": true,
   "drawable": "1920x1080",
-  "ce_commit": "d795db36",
+  "ce_commit": "36eca52c",
   "tools_commit": "-",
-  "exe_sha256": "c349f0e81c49f59c4245712c9c195acce481cafea0c245f6614b51ecb6453983",
-  "taken": "20261026-174724",
-  "capture_image": "devhero-20261026-174724-000.png",
+  "exe_sha256": "b4c13c740266c0ad52eae1ec6a410aaf4aa389be16a9f9adb98470e8d191a813",
+  "taken": "20261028-154206",
+  "capture_image": "devhero-20261028-154206-000.png",
   "spot": {
     "name": "entrance",
     "map": "kladwtwn",

@@ -71,9 +71,21 @@ def _quad(batches, page, page_size, corners):
         target.extend(points[index])
 
 
-def _upright(batches, sprites, pages, sprite_id, ua, va, ub, vb, z0, z1, tx, ty, tw, th, part=(0.0, 1.0)):
+def _plane_home(corner, plane_home):
+    """The displacement taking a vertex onto the plane {axis = at} along the
+    game camera's ray: the depth and the sun side of the face whose picture
+    the vertex carries past the corner line (096)."""
+    axis, at, ray = plane_home
+    here = corner[0] if axis == 0 else corner[1]
+    t = (at - here) / ray[axis]
+    return (t * ray[0], t * ray[1], t * ray[2])
+
+
+def _upright(batches, sprites, pages, sprite_id, ua, va, ub, vb, z0, z1, tx, ty, tw, th, part=(0.0, 1.0),
+             plane_home=None):
     """The picture's rectangle upright between ground points a and b; `part`
-    keeps only that stretch of it (fractions from a to b)."""
+    keeps only that stretch of it (fractions from a to b). `plane_home`: the
+    vertices' depth points move onto that plane along the game camera's ray."""
     sprite_id = _int(sprite_id, "sprite index")
     if not 0 <= sprite_id < len(sprites):
         raise ValueError(f"sprite index {sprite_id} is outside scene.sprites")
@@ -97,10 +109,10 @@ def _upright(batches, sprites, pages, sprite_id, ua, va, ub, vb, z0, z1, tx, ty,
         return
     pa, pb = (ua + (ub - ua) * f0, va + (vb - va) * f0), (ua + (ub - ua) * f1, va + (vb - va) * f1)
     xa, xb = tx + tw * f0, tx + tw * f1
-    _quad(batches, page, (image_w, image_h), [
-        [*pa, z0, xa, ty + th], [*pb, z0, xb, ty + th],
-        [*pb, z1, xb, ty], [*pa, z1, xa, ty],
-    ])
+    corners = [[*pa, z0, xa, ty + th], [*pb, z0, xb, ty + th], [*pb, z1, xb, ty], [*pa, z1, xa, ty]]
+    if plane_home is not None:
+        corners = [[*corner[:5], *_plane_home(corner, plane_home)] for corner in corners]
+    _quad(batches, page, (image_w, image_h), corners)
 
 
 # Feet (task 081). Some wall pictures end a little above the floor: their
@@ -191,7 +203,7 @@ def _wall_back(batches, sprites, pages, row, hpx, keep=(0.0, 1.0), atlas=None):
 
 
 def _wall_front(batches, proj, sprites, pages, row, toward_camera, continues, keep=(0.0, 1.0), top_keep=None,
-                foot=None, atlas=None):
+                foot=None, atlas=None, corner=None):
     """The front up to the cap line, then the slab's top as a real horizontal
     face as deep as the wall is thick, and what of the picture is higher than
     that top as an upright face on the slab's far side. Each point samples the
@@ -201,9 +213,21 @@ def _wall_front(batches, proj, sprites, pages, row, toward_camera, continues, ke
     slab is. `keep`: the stretch of the wall that stays (fractions from a to
     b), where a corner moved its end (_corner_fits); `top_keep` the top's
     (the front's when None). `foot`: the batches its foot goes in (_foot_z;
-    None: none)."""
+    None: none). `corner`: (s, out, ray): the row is a corner piece whose
+    picture runs past the corner line at ground s on its axis, towards its
+    `out` end. The picture is cut at that line and the stretch past it takes
+    the face it continues: its plane, reached along the game camera's `ray`,
+    for the depth and the sun side alike (096)."""
     top_keep = keep if top_keep is None else top_keep
     sprite, ua, va, ub, vb, z0, z1, _, _, zc, thick = row[:11]
+    axis = 0 if abs(va - vb) < 1e-9 else 1
+    cut, past_low, ray = None, False, None
+    if corner is not None:
+        s_cut, out, ray = corner
+        s_a = (ua, va)[axis]
+        dir = 1.0 if ((ub - ua) if axis == 0 else (vb - va)) > 0 else -1.0
+        cut = (s_cut - s_a) * dir  # the corner line, in `along` units from a
+        past_low = dir * out < 0  # the stretch past the line is `along` <= cut
     sprite = _int(sprite, "wall sprite")
     if not 0 <= sprite < len(sprites):
         raise ValueError(f"wall sprite index {sprite} is outside scene.sprites")
@@ -215,15 +239,25 @@ def _wall_front(batches, proj, sprites, pages, row, toward_camera, continues, ke
     z0, z1, zc = (_finite(value, "wall height") for value in (z0, z1, zc))
     hpx = proj.hpx
     top = (z1 - zc) * hpx
-    _upright(batches, sprites, pages, sprite, ua, va, ub, vb, z0, zc,
-             x, y + top, w, h - top, (max(keep[0], 0.0), min(keep[1], 1.0)))
+    length = math.hypot(ub - ua, vb - va)
+    lo, hi = max(keep[0], 0.0), min(keep[1], 1.0)
+    stretches = [((lo, hi), None)]
+    if cut is not None and hi > lo:
+        f = min(max(cut / length, 0.0), 1.0) if length > 0 else 0.0
+        own = (lo, min(hi, f)) if not past_low else (max(lo, f), hi)
+        past = (max(lo, f), hi) if not past_low else (lo, min(hi, f))
+        stretches = [(own, None), (past, (axis, s_cut, ray))]
+    for part, home in stretches:
+        if part[1] <= part[0]:
+            continue
+        _upright(batches, sprites, pages, sprite, ua, va, ub, vb, z0, zc,
+                 x, y + top, w, h - top, part, plane_home=home)
     if foot is not None and _foot_z(row) is not None:
         r = _foot_row(atlas, page, x, x + w, y + h)
         _upright(foot, sprites, pages, sprite, ua, va, ub, vb, 0.0, z0,
                  x, r - 0.25, w, 0.5, (max(keep[0], 0.0), min(keep[1], 1.0)))
     if top <= 0 or top_keep[1] <= top_keep[0]:
         return
-    length = math.hypot(ub - ua, vb - va)
     e0, e1 = proj.ground_to_px(ua, va, zc), proj.ground_to_px(ub, vb, zc)
     dx = e1[0] - e0[0]
     if length == 0 or abs(dx) < 1e-9:
@@ -265,11 +299,25 @@ def _wall_front(batches, proj, sprites, pages, row, toward_camera, continues, ke
     faces = [face for face in faces if len(face) >= 3]
     # A slab deeper than its picture's top rows takes the last row further.
     faces = _split(faces, lambda p: top - texel(p)[1])
+    parts = []
     for face in faces:
+        if cut is None:
+            parts.append((face, None))
+            continue
+        own = _clip(face, lambda p: cut - along(p)) if not past_low else _clip(face, lambda p: along(p) - cut)
+        past = _clip(face, lambda p: along(p) - cut) if not past_low else _clip(face, lambda p: cut - along(p))
+        if len(own) >= 3:
+            parts.append((own, None))
+        if len(past) >= 3:
+            parts.append((past, (axis, s_cut, ray)))
+    for face, on_twin in parts:
         corners = []
         for point in face:
             column, rows = texel(point)
             column, rows = min(max(column, 0.0), w), min(max(rows, 0.0), top)
+            if on_twin is not None:
+                corners.append([*point, x + column, y + top - rows, *_plane_home(point, on_twin)])
+                continue
             # A texel keeps the depth of the front plane it was painted on: what
             # the game drew the wall over (a lamp post right behind it) stays hidden.
             f = column / w
@@ -408,8 +456,9 @@ class _Corners:
         self.keep, self.back_keep, self.top_keep = {}, {}, {}
         self.fills, self.caps, self.moved, self.cores, self.ends = [], [], [], [], []
         self.extent = {}  # {id(slab): (from, to)} what the free camera keeps of a slab a corner moved
-        self.pieces = {}  # {wall row: (slab, out, twin, twin's out, start)} the corner pieces left out
+        self.pieces = {}  # {wall row: (slab, out, twin, twin's out, start, corner line)} the corner pieces left out
         self.pools = {}  # {(id(slab), out): the plain rows near that end}
+        self.thin_cuts = {}  # {thin wall row: (the other line's plane, out)} (096)
 
 
 def _corner_fits(walls, hidden, toward_camera, width=None, px=(1.0, 1.0)):
@@ -587,7 +636,10 @@ def _corner_fits(walls, hidden, toward_camera, width=None, px=(1.0, 1.0)):
                       key=lambda index: gap(start, *span(index))) or [lender]
         corners.pools[(id(slab), out)] = pool
         for index in left_out:
-            corners.pieces[index] = (slab, out, *pairs[(id(slab), out)], start)
+            # The corner line is where the two visible faces meet: the twin's
+            # own plane, whoever's end the pair came from.
+            twin = pairs[(id(slab), out)][0]
+            corners.pieces[index] = (slab, out, *pairs[(id(slab), out)], start, twin.plane)
         for at, back in ((front_t, False), (back_t, True)):
             if out * (start - at) < -CORNER_SLACK:
                 corners.fills.append((slab, pool, start, at, back))
@@ -619,6 +671,23 @@ def _corner_fits(walls, hidden, toward_camera, width=None, px=(1.0, 1.0)):
     corners.fills = [(slab, plain_pool(pool), s0, s1, back) for slab, pool, s0, s1, back in corners.fills]
     corners.ends = [(slab, out, at, plain_pool(pool)) for slab, out, at, pool in corners.ends]
     corners.pools = {key: plain_pool(pool) for key, pool in corners.pools.items()}
+    # Thin walls (fences, rails) turn their corners in the picture too (096):
+    # where an end of a thin line meets another thin line, a row of it whose
+    # span runs past the other's plane is cut there, and its stretch past the
+    # line takes the face it continues.
+    thin = [slab for slab in slabs if slab.thick < CORE_THICK]
+    for a in thin:
+        for b in thin:
+            if b.axis == a.axis:
+                continue
+            for end, out in ((a.lo, -1), (a.hi, 1)):
+                if gap(end, *b.band()) > CORNER_REACH:
+                    continue
+                for index in a.rows:
+                    sa, sb = walls[index][1 + a.axis], walls[index][3 + a.axis]
+                    if not min(sa, sb) < b.plane < max(sa, sb):
+                        continue
+                    corners.thin_cuts[index] = (b.plane, out)
     return corners
 
 
@@ -1246,18 +1315,36 @@ def encode_wall_sidecar(scene, skip_props=frozenset(), skip_rests=frozenset(), m
         batches.object = game.object = fly.object = owner(row[8])
         if row[10] > 0 and index in corners.keep:
             # A corner sets this wall's end: the game's camera keeps the row
-            # whole, the free camera draws what stays.
-            _wall_front(game, proj, sprites, pages, row, toward_camera, continuations[index])
+            # whole, the free camera draws what stays. A corner piece (096) is
+            # cut at the corner line: the stretch past it takes the face it
+            # continues, for the depth and the sun side alike; the game's
+            # camera only, the free camera's fills already draw that corner.
+            piece = corners.pieces.get(index)
+            cut = corners.thin_cuts.get(index)
+            if piece is not None:
+                corner = (piece[5], piece[1], proj.toward)
+                fly_corner = None
+            elif cut is not None:
+                corner = fly_corner = (cut[0], cut[1], proj.toward)
+            else:
+                corner = fly_corner = None
+            _wall_front(game, proj, sprites, pages, row, toward_camera, continuations[index], corner=corner)
             _wall_front(fly, proj, sprites, pages, row, toward_camera, continuations[index], corners.keep[index],
-                        corners.top_keep[index], None if index in hidden_walls else fly, atlas)
+                        corners.top_keep[index], None if index in hidden_walls else fly, atlas,
+                        corner=fly_corner)
         elif row[10] > 0:
+            # A thin wall (a fence) whose span crosses the line it corners
+            # with (096): the stretch past that line takes the face it
+            # continues, as a corner piece does.
+            cut = corners.thin_cuts.get(index)
+            corner = (cut[0], cut[1], proj.toward) if cut is not None else None
             _wall_front(batches, proj, sprites, pages, row, toward_camera, continuations[index],
-                        foot=None if index in hidden_walls else fly, atlas=atlas)
+                        foot=None if index in hidden_walls else fly, atlas=atlas, corner=corner)
         else:
             _record(row, 7, f"thin wall {index}")
             sprite = _int(row[0], "thin wall sprite index")
             if not 0 <= sprite < len(sprites):
-                raise ValueError(f"thin wall {index} sprite index is outside scene.sprites")
+                raise ValueError(f"thin wall sprite index {index} is outside scene.sprites")
             _upright(batches, sprites, pages, sprite, *row[1:7], *sprites[sprite][1:5])
 
     # Backs of the solid walls (not those a solid or a form stands for in first
@@ -1268,14 +1355,14 @@ def encode_wall_sidecar(scene, skip_props=frozenset(), skip_rests=frozenset(), m
             _wall_back(fly, sprites, pages, row, hpx, corners.back_keep.get(index, (0.0, 1.0)), atlas)
     decor = _decor_pieces(atlas, sprites, hpx, walls, corners)
     # Both fronts of a corner with decor run on as they stand up to it.
-    decor_ends = {key for index in decor for slab, out, twin, twin_out, _ in [corners.pieces[index]]
+    decor_ends = {key for index in decor for slab, out, twin, twin_out, _, _ in [corners.pieces[index]]
                   for key in ((id(slab), out), (id(twin), twin_out))}
     for slab, pool, s0, s1, back in corners.fills:
         fly.object = owner(walls[pool[0]][8])
         _corner_fill(fly, proj, sprites, pages, hpx, px, walls, pool, slab, s0, s1, back, atlas,
                      (id(slab), 1 if s1 > s0 else -1) in decor_ends)
     for index in decor:
-        slab, out, twin, twin_out, _ = corners.pieces[index]
+        slab, out, twin, twin_out, _, _ = corners.pieces[index]
         fly.object = owner(walls[index][8])
         _corner_decor(fly, proj, sprites, pages, toward_camera, walls[index], slab, out, twin, twin_out)
     for slab, out, at, pool in corners.ends:

@@ -25,18 +25,22 @@
 #include "../map_edge.h"
 #include "../object.h"
 #include "../scene_renderer/game_view.h"
+#include "../scene_renderer/ground_pick.h"
 #include "../scene_renderer/picking.h"
 #include "../combat.h"
 #include "../game.h"
+#include "../interface.h"
 #include "../map.h"
 #include "../movie.h"
 #include "../platform_compat.h"
 #include "../scene_renderer/camera.h"
 #include "../scene_renderer/live_objects.h"
+#include "../scene_renderer/map_clip.h"
 #include "../scene_renderer/static_scene.h"
 #include "../scene_renderer/sprite_card.h"
 #include "../settings.h"
 #include "../tile.h"
+#include "../window_manager.h"
 
 namespace fallout {
 namespace scene {
@@ -66,9 +70,11 @@ bool gPolicyLogged = false;
 std::uint64_t gCleanEdgesRevision = static_cast<std::uint64_t>(-1);
 std::string gClipMap;
 int gClipElevation = -1;
+bool gClipBottomExtended = false;
 std::string gClipFailureMap;
 int gClipFailureElevation = -1;
 std::uint64_t gClipFailureRevision = static_cast<std::uint64_t>(-1);
+double cameraTurnDegrees();
 
 void stripMapExtension(const char* name, char* out, size_t size)
 {
@@ -177,16 +183,34 @@ scene_renderer::MapClip authoredMapClip()
     return authored.enabled ? authored : floorClip;
 }
 
+// Keep the lower viewport edge on drawn floor. EDG clips are authored in the
+// game map, but the exported floor hull can extend farther at the bottom.
+// Expand only plane 2 (the bottom edge in authoredMapClip's perimeter order)
+// to cover the floor hull; all other edges stay authored. This also handles
+// squareRect clips whose axis-aligned edge normals do not match the floor hull.
+bool extendAuthoredBottomToFloor(scene_renderer::MapClip& clip)
+{
+    using namespace scene_renderer;
+    if (!clip.enabled || clip.source != MapClipSource::Authored) return false;
+    const MapClip floor = staticFloorMapClip();
+    if (!floor.enabled) return false;
+    return extendMapClipPlaneToFloor(clip, floor, 2);
+}
+
 void updateMapClip()
 {
     if (gLoadedMap.empty() || gLoadedMap != currentMapName() || gLoadedElevation != static_cast<int>(gElevation)) {
         scene_renderer::setStaticMapClip({});
         gClipMap.clear();
         gClipElevation = -1;
+        gClipBottomExtended = false;
         return;
     }
     const std::uint64_t revision = cleanEdgesRevision();
-    if (gClipMap == gLoadedMap && gClipElevation == gLoadedElevation && gCleanEdgesRevision == revision) return;
+    const bool extendBottom = cleanEdges() && tileSceneOverlayActive() && mapEdgeIsLoaded()
+        && mapEdgeTilePastBottomStop(gCenterTile);
+    if (gClipMap == gLoadedMap && gClipElevation == gLoadedElevation
+        && gCleanEdgesRevision == revision && gClipBottomExtended == extendBottom) return;
     scene_renderer::MapClip clip;
     if (cleanEdges()) {
         const char* requested = devtools::isEnabled() ? SDL_getenv("F2CE_DEV_CLEAN_EDGES") : nullptr;
@@ -196,6 +220,7 @@ void updateMapClip()
             clip = authoredMapClip();
         }
     }
+    if (extendBottom) extendAuthoredBottomToFloor(clip);
     scene_renderer::setStaticMapClip(clip);
     if (cleanEdges() && !clip.enabled
         && (gClipFailureMap != gLoadedMap || gClipFailureElevation != gLoadedElevation
@@ -215,6 +240,7 @@ void updateMapClip()
     }
     gClipMap = gLoadedMap;
     gClipElevation = gLoadedElevation;
+    gClipBottomExtended = extendBottom;
     gCleanEdgesRevision = revision;
 }
 
@@ -366,6 +392,93 @@ bool showsCurrentMap()
     return !gLoadedMap.empty() && gLoadedMap == currentMapName() && gLoadedElevation == static_cast<int>(gElevation);
 }
 
+bool bottomViewHasDrawnGround(int tile)
+{
+    if (!mapEdgeTilePastBottomStop(tile) || !showsCurrentMap() || activeView() != View::Full
+        || (scene_renderer::staticFlyCameraActive() && !cameraTurned())) return false;
+
+    scene_renderer::GameView baseView;
+    if (!scene_renderer::gameViewAtCenterTile(tile, &baseView)) return false;
+    Rect mapWindow;
+    if (windowGetRect(gIsoWindow, &mapWindow) != 0) return false;
+    Rect interfaceBar;
+    const int visibleBottom = windowGetRect(gInterfaceBarWindow, &interfaceBar) == 0
+        ? std::min(mapWindow.bottom + 1, interfaceBar.top) : mapWindow.bottom + 1;
+    const int left = std::max(0, mapWindow.left);
+    const int right = std::min(baseView.logicalWidth, mapWindow.right + 1);
+    const int bottom = std::min(baseView.logicalHeight, visibleBottom);
+    if (left >= right || bottom <= mapWindow.top) return false;
+
+    baseView.screenCenterSet = true;
+    baseView.screenCenter[0] = mapWindow.left + (rectGetWidth(&mapWindow) - 32) / 2.0
+        + mapEdgeGetTileXAlignment();
+    baseView.screenCenter[1] = mapWindow.top + (rectGetHeight(&mapWindow) - 16) / 2.0;
+    scene_renderer::MapClip clip = scene_renderer::staticMapClip();
+    if (!extendAuthoredBottomToFloor(clip)) return false;
+    const bool turned = cameraTurned();
+    const scene_renderer::GroundPickViewport pickViewport {
+        baseView.logicalWidth, baseView.logicalHeight, baseView.logicalWidth, baseView.logicalHeight,
+        baseView.logicalWidth, baseView.logicalHeight,
+    };
+
+    const scene_renderer::GameView& view = baseView;
+    scene_renderer::GroundPickProjection projection {};
+    scene_renderer::GroundPickCamera camera {};
+    if (turned) {
+        double eye[3], centerX, centerZ;
+        double leftX, leftZ, rightX, rightZ;
+        const double middleX = view.screenCenter[0];
+        const double middleY = view.screenCenter[1];
+        if (!scene_renderer::gameViewEye(view, eye)
+            || !scene_renderer::gameViewPickGround(view, middleX, middleY, &centerX, &centerZ)
+            || !scene_renderer::gameViewPickGround(view, 0.0, middleY, &leftX, &leftZ)
+            || !scene_renderer::gameViewPickGround(view, view.logicalWidth, middleY, &rightX, &rightZ)) return false;
+        const double to[3] = { centerX - eye[0], -eye[1], centerZ - eye[2] };
+        const double length = std::sqrt(to[0] * to[0] + to[1] * to[1] + to[2] * to[2]);
+        if (!(length > 0.0) || !(to[1] < -0.01)) return false;
+        const scene_renderer::StaticPreviewCamera preview = scene_renderer::staticPreviewCamera(true);
+        const double width = std::hypot(rightX - leftX, rightZ - leftZ);
+        const double aspect = static_cast<double>(view.logicalWidth) / view.logicalHeight;
+        const double distance = width / (2.0 * aspect * std::tan(preview.fovY * 3.14159265358979323846 / 360.0));
+        const double yaw = std::atan2(to[2], to[0]) + cameraTurnDegrees() * 3.14159265358979323846 / 180.0;
+        const double pitch = std::asin(to[1] / length);
+        const double forward[3] = {
+            std::cos(pitch) * std::cos(yaw), std::sin(pitch), std::cos(pitch) * std::sin(yaw),
+        };
+        camera = {
+            { centerX - forward[0] * distance, -forward[1] * distance,
+                centerZ - forward[2] * distance },
+            { centerX - forward[0] * distance + forward[0], -forward[1] * distance + forward[1],
+                centerZ - forward[2] * distance + forward[2] },
+            preview.fovY, true,
+        };
+        scene_renderer::SpriteCardProjection spriteProjection;
+        if (!scene_renderer::currentGameProjection(&spriteProjection)) return false;
+        projection = { { spriteProjection.squ[0], spriteProjection.squ[1] },
+            { spriteProjection.sqv[0], spriteProjection.sqv[1] },
+            { spriteProjection.origin[0], spriteProjection.origin[1] } };
+    }
+
+    // The last viewport row above the interface must map to drawn floor, using
+    // the active zoom, camera turn and clip. No color or brightness test.
+    for (int x = left; x < right; x++) {
+        double worldX, worldZ;
+        bool picked;
+        if (turned) {
+            scene_renderer::GroundPickResult result {};
+            picked = scene_renderer::pickGroundTile(projection, camera, pickViewport,
+                x + 0.5, bottom - 0.5, &result);
+            worldX = result.worldX;
+            worldZ = result.worldZ;
+        } else {
+            picked = scene_renderer::gameViewPickGround(view, x + 0.5, bottom - 0.5, &worldX, &worldZ);
+        }
+        if (!picked || !scene_renderer::staticFloorHasGround(worldX, worldZ)
+            || !scene_renderer::mapClipContains(clip, worldX, worldZ)) return false;
+    }
+    return true;
+}
+
 void syncToMap()
 {
     const std::string map = currentMapName();
@@ -505,6 +618,11 @@ bool gTurnDevOverride = false;
 Uint64 gTurnLast = 0;
 scene_renderer::StaticFlyCamera gTurnPose = {};
 constexpr double kTurnSpeed = 360.0; // degrees a second
+
+double cameraTurnDegrees()
+{
+    return gTurnAt;
+}
 
 void landCameraTurn()
 {

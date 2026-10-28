@@ -26,6 +26,8 @@ bool loadStaticProjection(const std::filesystem::path& cacheDirectory, std::stri
 // engine's gCenterTile), with a mild perspective (game_view.h). -1 = the
 // fixed preview camera.
 void setStaticCameraCenterTile(int tile);
+// The current game-view projection, positioned at a candidate center hex.
+bool gameViewAtCenterTile(int tile, GameView* view);
 
 StaticPreviewCamera staticPreviewCamera(bool withWalls);
 

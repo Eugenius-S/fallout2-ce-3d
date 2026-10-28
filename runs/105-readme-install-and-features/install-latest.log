@@ -1,0 +1,60 @@
+fallout2-ce-3d-launcher
+
+game root (from --game-root): <game>
+installed build: none, fresh install
+release build: 623e380cd5f87fbc3234e05bbca92ccd426b8d60
+installing: none -> 623e380cd5f87fbc3234e05bbca92ccd426b8d60
+downloading https://github.com/Eugenius-S/fallout2-ce-3d/releases/download/latest/fallout2-ce-3d-win64.zip
+  ... 1 MB
+  ... 2 MB
+  ... 3 MB
+  ... 4 MB
+  ... 5 MB
+  ... 6 MB
+  ... 7 MB
+  ... 8 MB
+  ... 9 MB
+  ... 10 MB
+  ... 11 MB
+  ... 12 MB
+  ... 13 MB
+  ... 14 MB
+  ... 15 MB
+  ... 16 MB
+  ... 17 MB
+  ... 18 MB
+  ... 19 MB
+  ... 20 MB
+  ... 21 MB
+  ... 22 MB
+  ... 23 MB
+  ... 24 MB
+  ... 25 MB
+  ... 26 MB
+  ... 27 MB
+  ... 28 MB
+  ... 29 MB
+  ... 30 MB
+  ... 31 MB
+  downloaded 33087921 bytes
+unpacking
+installing into the game folder:
+  fallout2-ce.exe: installed
+  ce.dat: installed
+  scene-exporter.exe: installed
+  fallout2.cfg: installed (default)
+  version.txt: 623e380cd5f87fbc3234e05bbca92ccd426b8d60
+making the 3D scene data for: klamath
+{"files": 10, "fingerprint_sha256": "c0402fe579d9717b1fcfb9f395a2c2ad7b09aa6479411c0cbca90c9b32173585", "output": "<game>\\mod-cache\\scene\\kladwtwn\\0", "resources_read": 1245}
+{"files": 10, "fingerprint_sha256": "831344f8451ad4bb0e2f99c4a214f01d2568c2be96add07ceb28f67f70fd28fa", "output": "<game>\\mod-cache\\scene\\klatrap\\0", "resources_read": 72}
+{"files": 10, "fingerprint_sha256": "ea536e99f2b8f7ca38dc072c30d807e14f9dd66a5727c7a260b626bbf4cb1776", "output": "<game>\\mod-cache\\scene\\klacanyn\\0", "resources_read": 103}
+{"files": 10, "fingerprint_sha256": "aa9861fbf00dac9612085f4ae47d37e9e8e89d7743b58a55d0bfc40305f63257", "output": "<game>\\mod-cache\\scene\\klagraz\\0", "resources_read": 20}
+{"files": 10, "fingerprint_sha256": "0237f3025f3645442c2f16b26fe4df818d20992930e935bd33971735e7e1a1c0", "output": "<game>\\mod-cache\\scene\\klamall\\0", "resources_read": 258}
+{"files": 11, "fingerprint_sha256": "55573b277ff80ab783fa58a0ac08d12dc9c7a4f18cd4faded84c23010ba28b53", "output": "<game>\\mod-cache\\scene\\klamall\\1", "resources_read": 22}
+{"files": 11, "fingerprint_sha256": "46ff4adab6739924c9d928168e02ff3c993d4710d6df37841f8560719c16f32f", "output": "<game>\\mod-cache\\scene\\klaratcv\\0", "resources_read": 209}
+{"files": 11, "fingerprint_sha256": "64a79b9502e1997e1cf3fe2b084eb449e39c9197c2a2aeab4b51d1e27742e887", "output": "<game>\\mod-cache\\scene\\klaratcv\\1", "resources_read": 36}
+{"files": 11, "fingerprint_sha256": "4ec7dcbdfbf8f059d701e70b0de8b30449bc1574848704d06712cf4d83580ff4", "output": "<game>\\mod-cache\\scene\\klaratcv\\2", "resources_read": 29}
+{"files": 11, "fingerprint_sha256": "9dd56499c1a67833122e4cc7f9874497a68100cd41f873ab71a0fac6de085591", "output": "<game>\\mod-cache\\scene\\klatoxcv\\0", "resources_read": 32}
+{"files": 11, "fingerprint_sha256": "a833b9faecf09a5e92373763b1890330ea462bbb7d05712afcb33a923d9cf2e7", "output": "<game>\\mod-cache\\scene\\klatoxcv\\1", "resources_read": 112}
+{"files": 11, "fingerprint_sha256": "4f4536c1d8b1d3c212297a6063aaefa0481230d57f036e4441a57a66285c3f6e", "output": "<game>\\mod-cache\\scene\\klatoxcv\\2", "resources_read": 69}
+done (--no-start)

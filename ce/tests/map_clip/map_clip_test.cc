@@ -1,5 +1,6 @@
 #include "map_clip.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <limits>
@@ -100,5 +101,45 @@ int main()
     if (!check(!makeProjectedFloorMapClip(emptyFloor, 2, 2, squ, sqv, origin).enabled
             && !makeProjectedFloorMapClip(oneCell, 1, 1, squ, sqv, origin).enabled,
             "empty and too-small floor masks disable the clip")) return 1;
+    unsigned char floorGrid[2 * 2] = { 1, 0, 0, 1 };
+    if (!check(floorGridContainsWorldPoint(floorGrid, 2, 2, -0.5, -0.5)
+            && floorGridContainsWorldPoint(floorGrid, 2, 2, 0.5, 0.5)
+            && !floorGridContainsWorldPoint(floorGrid, 2, 2, 0.5, -0.5)
+            && !floorGridContainsWorldPoint(floorGrid, 2, 2, 1.0, 0.0),
+            "bottom-edge ground checks use the occupied floor cells and reject void")) return 1;
+    const unsigned char fullFloor[16] = {
+        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    };
+    const double rotatedSqu[2] = { 2.0, 1.0 };
+    const double rotatedSqv[2] = { -1.0, 2.0 };
+    const double rotatedOrigin[2] = { 0.0, 0.0 };
+    const MapClip diagonalFloor = makeProjectedFloorMapClip(fullFloor, 4, 4,
+        rotatedSqu, rotatedSqv, rotatedOrigin);
+    const MapClip squareAuthored = makeMapClipRect(-1.0, -1.0, 1.0, 1.0, MapClipSource::Authored);
+    double bestFloorNormalDot = -1.0;
+    for (const MapClipPlane& plane : diagonalFloor.planes) {
+        bestFloorNormalDot = std::max(bestFloorNormalDot,
+            static_cast<double>(squareAuthored.planes[2].x) * plane.x
+                + static_cast<double>(squareAuthored.planes[2].z) * plane.z);
+    }
+    MapClip unmatchedSquare = squareAuthored;
+    const bool unmatchedExtended = extendMapClipPlaneToFloor(unmatchedSquare, diagonalFloor, 2);
+    const MapClip alignedFloor = makeMapClipRect(-1.0, -1.0, 1.0, 3.0, MapClipSource::Floor);
+    MapClip extendedSquare = squareAuthored;
+    const bool didExtendSquare = extendMapClipPlaneToFloor(extendedSquare, alignedFloor, 2);
+    if (!check(diagonalFloor.enabled && bestFloorNormalDot < 0.999,
+            "square and diagonal floor normals do not match")) return 1;
+    if (!check(!unmatchedExtended
+            && unmatchedSquare.planes[0].offset == squareAuthored.planes[0].offset
+            && unmatchedSquare.planes[1].offset == squareAuthored.planes[1].offset
+            && unmatchedSquare.planes[2].offset == squareAuthored.planes[2].offset
+            && unmatchedSquare.planes[3].offset == squareAuthored.planes[3].offset,
+            "an unmatched square edge does not extend any plane")) return 1;
+    if (!check(didExtendSquare && extendedSquare.planes[2].offset > squareAuthored.planes[2].offset
+            && extendedSquare.planes[0].offset == squareAuthored.planes[0].offset
+            && extendedSquare.planes[1].offset == squareAuthored.planes[1].offset
+            && extendedSquare.planes[3].offset == squareAuthored.planes[3].offset
+            && mapClipContains(extendedSquare, 0.0, 3.0),
+            "an aligned floor edge extends only the selected plane")) return 1;
     return 0;
 }

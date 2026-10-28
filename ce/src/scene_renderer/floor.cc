@@ -223,6 +223,12 @@ MapClip staticFloorMapClip()
     return gFloorMapClip;
 }
 
+bool staticFloorHasGround(double x, double z)
+{
+    if (gFloorOccupancy.size() != 10000) return false;
+    return floorGridContainsWorldPoint(gFloorOccupancy.data(), 100, 100, x, z);
+}
+
 bool setStaticFloorMapProjection(const SpriteCardProjection& projection)
 {
     if (gFloorOccupancy.size() != 10000) {
