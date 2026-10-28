@@ -73,3 +73,35 @@ walls and are not the source pieces for these views. Do not use them as
 implementation targets. Next: one general rule that makes wall-back texture
 holes opaque and subdued for every wall, then retake the owner views and the
 other Klamath interiors.
+
+### 2026-10-28 gpt — safety check before implementation
+
+Checked the exporter’s source geometry classification, independent of English
+prototype names. `boxes.Cut.kind` is derived from the un-sheared front image;
+`Cut.solid` records its actual solid runs. Bathhouse rows 200/210 are `window`
+with a full-width run `(0, 32)`, so making only their back-texture transparent
+texels opaque and dark is consistent with a closed wall panel. Row 225 is
+`plain`, also with a full-width run. The first-view candidates rows 253 and 260
+are `other`, with only run `(10, 16)` across 16 columns. Their front silhouettes
+therefore have a partial solid run. This is evidence of an opening in the
+source silhouette, not proof that the space is an intentional passage. The
+back sprites are about 51% transparent, but filling their transparent texels
+could close that opening.
+
+Reproduced the source scene with `py -3 tools/scene_export/export.py
+--game-root E:\Projects\fallout2-ce-3d\game --map kladwtwn --elevation 0
+--cache-root .\build\scene-cache`; source classification is in
+`tools/scene_export/vendor/fp/boxes.py` (`Cut.sort` and `Cut.body`). The scene
+rows above are from `build/scene-cache/kladwtwn/0/scene.json`; inspection of
+`SceneBuilder.cuts` confirmed their `kind` and `solid` values. No owner EXE was
+started or focused.
+
+A general filter that only fills `plain`/`window` wall backs can handle the
+bathhouse view while preserving open geometry, but it leaves the first-view
+candidate unchanged. The owner JPEGs have no camera metadata, and this
+investigation cannot distinguish an intentional pass-through from the reported
+wall leak for those `other` pieces. The name-based prototype exception is not
+safe: the candidate wall pieces share generic `Wall` names, and the geometric
+classifier says their front shape is open. No implementation was retained;
+the task remains unresolved until a reliable source-level distinction or
+camera/source match for the first view is available.
