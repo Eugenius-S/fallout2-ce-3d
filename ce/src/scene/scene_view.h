@@ -18,6 +18,10 @@ enum class View {
 // builds one per map elevation into mod-cache/scene/<map>/<elevation>).
 bool showsCurrentMap();
 
+// True when every pixel along the bottom of the map window shows floor at
+// this candidate camera center in the active 3D view.
+bool bottomViewHasDrawnGround(int tile);
+
 // Asks for `view` on every map from now on and loads the current map's scene.
 // False when the current map cannot show it: `message` says why, the game
 // shows it in 2D, and the view still comes on for maps that have a scene.

@@ -118,7 +118,7 @@ void makeFloorMvp(float aspect, const StaticPreviewCamera& camera, float* out)
     multiply4x4(projection, view, out);
 }
 
-bool currentGameView(GameView* view)
+bool makeCurrentGameView(GameView* view)
 {
     if (!gHeroProjectionLoaded || gCameraCenterTile < 0) return false;
     // Whole screen pixels keep the texel grid steady while the camera glides.
@@ -145,6 +145,11 @@ bool currentGameView(GameView* view)
         view->screenCenter[1] = screenY + 8.0;
     }
     return true;
+}
+
+bool currentGameView(GameView* view)
+{
+    return makeCurrentGameView(view);
 }
 
 void resetCamera()
@@ -188,6 +193,13 @@ bool flyCameraMvp(float aspect, float* out)
 }
 
 } // namespace internal
+
+bool gameViewAtCenterTile(int tile, GameView* view)
+{
+    if (view == nullptr || tile < 0 || tile >= HEX_GRID_SIZE || !makeCurrentGameView(view)) return false;
+    gameViewTilePixel(tile, view->centerPixel);
+    return true;
+}
 
 void setCameraZoom(double zoom)
 {
