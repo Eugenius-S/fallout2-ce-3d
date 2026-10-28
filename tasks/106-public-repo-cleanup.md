@@ -2,14 +2,14 @@
 id: 106
 title: The public repository holds only the project, no personal setup or paths
 milestone: M1
-status: doing
+status: done
 owner: gpt
 suggested: gpt
 priority: normal
 claude-only: no
 user-check: yes
 depends-on: []
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
