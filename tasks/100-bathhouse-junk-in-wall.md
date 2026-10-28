@@ -52,6 +52,53 @@ Shadows, the corner pieces (096).
 
 ## Log
 
+### 2026-10-28 glm: the tour retook against main 85a3a087; the corner spots are resample grain, not the corner cut
+
+- Merged origin/main (85a3a087: 148's bottom stop, 149's board tasks), rebuilt
+  Release. Exporter unit tests, regression unit tests and ctest 18/18 pass.
+  Main's cache re-exported from 85a3a087 in the detached worktree
+  fallout2-ce-3d-glm-main (export.py --maps klamath --cache-root
+  build/scene-cache; a bare export.py exports only kladwtwn, the first attempt
+  stopped there and was rerun with the group).
+- The tour retook against that cache: 31 of 43 spots, the same 31, and all
+  four changed sheets are byte for byte the ones already committed (cmp), so
+  nothing was replaced in runs/.
+- What the changes are, from raw-shot diffs at the tour's own threshold
+  (strongest channel over 8). The maps that free nothing (klatrap, klagraz)
+  diff 0 px in every view, so any nonzero pixel is scene content:
+  - Card-sized change in 3 spots: klamall 23145 (blobs 159x38 and 66x33: the
+    freed Stack of Tires, Metal Barrels and Junk piles 34-38 units out),
+    klamall 21700 (a 150x20 band: the same cluster from the fence side),
+    klacanyn 15909 (37x16, 21x18, 17x17, 14x26: the freed Mountain card).
+  - Every other changed spot is scattered 1-3 px specks, 23-310 px a view:
+    the atlas repack resampling. The five long-building corners (24268,
+    24292, 20268, 20292, 20690) are among them: biggest blob 3 px wide,
+    before and after indistinguishable, the corner intact in both
+    (tour-corner-24268-before-after-mask.jpg). The largest structured change
+    anywhere is a 13x13 sliver of a dark hill silhouette's edge at 22958's
+    frame top. 096's cut is in both caches; nothing of it differs.
+- The scene.json diff against the fresh main cache names the freed props:
+  kladwtwn/0 six (Junk x2, Girlie Poster x2, Stove x2), klamall/0 eighteen
+  (Stack of Tires x4, Junk x8, Metal Barrels x6), klacanyn/0 one (Mountain),
+  klaratcv/0 one (Machinery), klatoxcv/2 three (Computer x3). No table, door
+  or bed among them.
+- Which spot changes and what in it (the 31):
+  - kladwtwn e0, all 19 (24268, 24292, 20268, 20292, 20690, 19265, 17467,
+    17104, 19108, 24678, 22958, 24481, 17666, 20736, 14505, 25075, 23481,
+    22885, 17699): resampling only; the six freed props lie 70-100 units
+    from every view of this map.
+  - klamall e0: 23145 and 21700 show the freed tires, barrels and junk
+    cards; 13050, 12666, 15450, 27886, 28493 resampling only.
+  - klacanyn e0: 15909 shows the freed Mountain card; 23869 resampling only
+    (its count comes from the frame margins).
+  - klaratcv e0: 21511 and 13511 resampling only; the freed Machinery is out
+    of both views.
+  - klatoxcv e2: 15065 resampling only; the three freed Computers are out of
+    its view.
+- Regression after the merge: every reference passes except the two
+  pre-existing board items, klagraz-e0 (183 px) and klaratcv-e2 (6299 px),
+  the same counts as on origin/main. reviewed stays no.
+
 ### 2026-10-28 glm: the tour retook against a main cache rebuilt from origin/main; the corner spots are atlas resampling, not the corner cut
 
 - Merged origin/main (ff974f91: 104's farther bottom-edge camera, 105's README,
