@@ -106,7 +106,7 @@ the launcher updating itself, maps the exporter does not cover yet.
     bypass the system proxy; the URL port is honoured (the first working
     draft connected to port 80 and could not see a local test server).
   - **Evidence** (`runs/091-launcher-updates/`), on a fresh copy at
-    `E:\Projects\f2ce3d-091-test\game` (master.dat, critter.dat, data/ only;
+    `<game>` (master.dat, critter.dat, data/ only;
     `game/` was never written to), fake release served on 127.0.0.1:8119:
     - `run1-install.log` + `run1-3d-kladwtwn.png`: fresh install, 7 Klamath
       maps exported by the frozen exe, 3D scene on kladwtwn, cfg and saves

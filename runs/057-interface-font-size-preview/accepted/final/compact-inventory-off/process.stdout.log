@@ -1,6 +1,6 @@
-scene: cache E:\Projects\fallout2-ce-3d-gpt\build\scene-cache\kladwtwn\0
+scene: cache <worktree>\build\scene-cache\kladwtwn\0
 devtools: static wall+hero preview started for KLADWTWN.MAP elevation 0
 scene: preview policy=available gameState=0 gameMode=0x0 uiDisabled=0 isoDisabled=0 combat=0 dialog=0 movie=0
-UI_FIXTURE START screen=inventory engine_key=105
-scene: preview policy=game-mode gameState=0 gameMode=0x1000 uiDisabled=0 isoDisabled=1 combat=0 dialog=0 movie=0
-UI_FIXTURE PASS screen=inventory window=3 generation=70812 font=101 runs=34 screen_runs=34 visible_runs=34 visible_coverage=15492 overlay_runs=0 overlay_pixels=0 font101_lineheight=10..10 stat_box_runs=0 stat_box_lineheight=0 colors=original green=34 white=0 yellow=0 red=0 other=0 sharp_setting=0 active=0 drawn=0 preview_scale=1.29 preview_weight=semibold compact_size_role_runs=34 default_size_role_runs=0 run_scale=1.22..1.22 sample=Нарг
+UI_FIXTURE START screen=character engine_key=99
+scene: preview policy=game-mode gameState=0 gameMode=0x200 uiDisabled=0 isoDisabled=1 combat=0 dialog=0 movie=0
+UI_FIXTURE PASS screen=character window=3 generation=71114 font=101 runs=88 screen_runs=88 visible_runs=88 visible_coverage=56081 overlay_runs=85 overlay_pixels=63791 font101_lineheight=10..10 stat_box_runs=8 stat_box_lineheight=10 colors=original green=69 white=0 yellow=1 red=0 other=18 sharp_setting=1 active=1 drawn=1 preview_scale=1.29 preview_weight=semibold sample=Small Guns interface_green_rgb=63,180,25 logical=389,41 physical=778,82 alpha=255 black_text_rgb=0,0,0 logical=380,318 physical=760,636 alpha=255

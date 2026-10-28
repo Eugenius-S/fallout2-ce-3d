@@ -63,7 +63,7 @@ history it contains is already public and was left out: 88 own commits).
   account's e-mail. Fix: GitHub settings, "Keep my email addresses private"
   (new merges then use the noreply address); the two commits on `main` stay
   (rewriting `main` would break every agent's checkout). Windows user paths
-  (`C:\Users\...`) appear only on `archive/dlss5` and `archive/native-dlss5`.
+  (`<scratch>`) appear only on `archive/dlss5` and `archive/native-dlss5`.
 - Large files on `main`: screenshots in `runs/` up to 7 MB each; regression
   references about 2 MB each. Acceptable.
 - Licenses: `ce/` is under the Sustainable Use License 1.0
@@ -79,7 +79,7 @@ Check: this report.
 ### 2026-10-19 claude
 Done, as the owner decided: the `archive/*` branches are saved as a verified
 bundle outside the repository
-(`E:\Projects\fallout2-ce-3d-archive\archive-branches-2026-10-19.bundle`);
+(`<worktree>\archive-branches-2026-10-19.bundle`);
 `archive/dlss5` is deleted from GitHub; `LICENSE.md` at the root is the
 Sustainable Use License 1.0, the same text as `ce/LICENSE.md`.
 Next: the owner turns on "Keep my email addresses private"

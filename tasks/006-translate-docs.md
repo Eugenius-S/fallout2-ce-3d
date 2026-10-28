@@ -66,7 +66,7 @@ files read in English; dates, names, structure and cross-links kept
 unchanged.
 Notes for Claude (outdated statements kept as written, per Out of scope):
 both dated docs still reference the old project root
-E:\Projects\fallout2-sprite-lighting in pins/commands; the design doc's
+`<worktree>` in pins/commands; the design doc's
 §2 keeps the pre-GitHub handoff text that §8 later supersedes; README's
 "light perspective" wording predates the game-like view of docs/2026-10-17
 section 12.

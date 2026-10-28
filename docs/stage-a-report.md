@@ -1,7 +1,7 @@
 # Stage A report: the game base (fallout2-ce on a copy of the clean game)
 
 Date: 2026-10-17. Specification:
-`E:\Games\Fallout 2\docs\superpowers\specs\2026-10-17-fallout2-sprite-lighting-design.md`.
+`<game>\docs\superpowers\specs\2026-10-17-fallout2-sprite-lighting-design.md`.
 
 ## Pinned base
 
@@ -25,7 +25,7 @@ Date: 2026-10-17. Specification:
 
 ## Working copy of the game
 
-- Source: `D:\SteamLibrary\steamapps\common\Fallout 2` (read-only; the
+- Source: `<game>` (read-only; the
   reference was not modified; CE was never run in it).
 - `game/`: `master.dat`, `critter.dat`, `patch000.dat`, `fallout2.cfg`.
   Checksums (md5): `runs/a-dat-checksums.txt`:
@@ -90,7 +90,7 @@ are verified.
 ## Reproduction
 
 ```powershell
-cd E:\Projects\fallout2-sprite-lighting
+cd <worktree>
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/configure-build.ps1 Release
 Copy-Item build\fallout2-ce.exe game\
 # run: game\fallout2-ce.exe

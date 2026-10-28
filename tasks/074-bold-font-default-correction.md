@@ -21,7 +21,7 @@ Use the owner's corrected font-101 default weight: IBM Plex Mono Bold 700. Keep 
 - Keep the Bold/SemiBold preview override available for future comparison.
 - Preserve all shipped size scopes, SPECIAL-label centering, plaque lifts, dialogue spacing, colors, and SharpText-off pixels.
 - The owner reports inactive injury labels too dark, PipBoy underlines misaligned with the larger glyphs, floating character barks retaining pixel outlines, and live-owner text appearing smaller than reviewed captures. The first three are bounded rendering fixes. The live-owner size difference is investigated as a source/config mismatch and must not trigger an unrequested restart.
-- Live-game audit on 2026-10-25: owner process was `E:\Projects\fallout2-ce-3d-glm\game\fallout2-ce.exe`, SHA-256 `1C7233B89C249D987BD2B40B834A14E5600102447659991EEE19AD29D2EBFB8B`, GLM commit `e08785c8`; its config was 2310x1298, scale 2, SharpText enabled. It predates the merged font implementation. Current approved captures use the task build at 2310x1298, scale 2; no owner process was changed.
+- Live-game audit on 2026-10-25: owner process was `<game>\fallout2-ce.exe`, SHA-256 `1C7233B89C249D987BD2B40B834A14E5600102447659991EEE19AD29D2EBFB8B`, GLM commit `e08785c8`; its config was 2310x1298, scale 2, SharpText enabled. It predates the merged font implementation. Current approved captures use the task build at 2310x1298, scale 2; no owner process was changed.
 
 ## Acceptance
 
@@ -98,7 +98,7 @@ Check: run `runs/regression/20261025-144410-708-33728`; every capture sidecar id
 
 ### Final runtime evidence
 
-- All UI captures: 2310x1298, scale 2, source `b2b11252`, EXE SHA-256 `b42652371149fd364a573aba284cf1497cdf267118d88a18056148fabd3ce704`; JPEG presentation crops and matching metadata are under `runs/074-bold-font-default-correction/accepted/README.md`. Raw PNGs are local under `E:\Projects\fallout2-ce-3d\game\shots\raw-task074\`.
+- All UI captures: 2310x1298, scale 2, source `b2b11252`, EXE SHA-256 `b42652371149fd364a573aba284cf1497cdf267118d88a18056148fabd3ce704`; JPEG presentation crops and matching metadata are under `runs/074-bold-font-default-correction/accepted/README.md`. Raw PNGs are local under `<game>\shots\raw-task074\`.
 - Inventory and dialogue source-matched captures pass at this final source. Inventory logs 34 font-101 runs with effective `D1.22`; the Russian dialogue fixture reports 11 eligible font-101 runs at the global `E1.29` default. The wrapper's final PNG-copy step used the wrong folder for these two captures; each PNG was retrieved from the exact image path named in its matching JSON sidecar.
 - Character injury color: `runs/074-bold-font-default-correction/accepted/crops/character-injury.jpg` (raw PNG SHA-256 `BF269D316F5D8A53156A1C199444F0F4A6786B0C879950509BD96C1DA3EC7C32`).
 - PipBoy underline: `runs/074-bold-font-default-correction/accepted/crops/pipboy-underline.jpg` (raw PNG SHA-256 `60987C39333853CD184B6A0E35C430EC841C2E8ED9B3CBD1386EEF55A1EE571A`).

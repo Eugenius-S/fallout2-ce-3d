@@ -2,7 +2,7 @@
 
 Date: 2026-10-18. Branch `scene-renderer` off upstream `fb8ba51e`, commit `49be0b4`
 (C1 stayed on the `sprite-lighting-c1` branch, `e14218e`, not developed).
-Tech plan: `E:\Games\Fallout 2\docs\superpowers\plans\2026-10-17-fallout2-ce-3d-env-p0-p1.md`.
+Tech plan: `<game>\docs\superpowers\plans\2026-10-17-fallout2-ce-3d-env-p0-p1.md`.
 
 ## What was done
 
