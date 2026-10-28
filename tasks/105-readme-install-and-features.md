@@ -2,8 +2,8 @@
 id: 105
 title: The README tells a player how to install with the launcher and shows what works today
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: gpt
 suggested: gpt
 priority: normal
 claude-only: no
