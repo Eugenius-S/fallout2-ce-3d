@@ -183,6 +183,10 @@ that fits no task becomes a new task when the board runs dry.
   installs from Steam onto the player's own bought Fallout 2 (Steam checks
   the base game, the mod reads its data), the way Enderal ships for Skyrim.
   Needs Bethesda's written consent for the Fallout IP; GOG (Fallout: London
-  went out there for Fallout 4) is the other door. Before asking: a release
-  build, the showcase video (097), a project page; tell the authors of
-  fallout2-ce and of the donor (both Sustainable Use License) first.
+  went out there for Fallout 4) is the other door. The owner's order: first
+  a fully working game with most graphic bugs gone, a polished UI, the
+  full-screen art extended to 21:9 (the 2026-10-27 line) and every landmark
+  object remodelled (the 2026-10-27 unique-objects line); only then think
+  about Steam. Before asking: a release build, the showcase video (097), a
+  project page; tell the authors of fallout2-ce and of the donor (both
+  Sustainable Use License) first.
