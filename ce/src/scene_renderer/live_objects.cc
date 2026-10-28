@@ -335,27 +335,31 @@ bool addStaticObject(const StaticObjectFrame& frame, std::string* error)
     gObjectDraws.push_back({ texture, static_cast<int>(gObjectVertices.size()), flat,
         { frame.tint[0], frame.tint[1], frame.tint[2] }, frame.glassGray, frame.pickId, frame.pickOnly,
         frame.seeThrough, frame.fullLight ? -1 : frame.tile, anchorX, anchorZ });
-    // The straw, grass and rubble of a corral, one card each: each took one
-    // factor at its feet, and the shadow over them broke into a patchwork of
-    // whole dark and lit cards (090).
+    // A thing lying on the ground reads the shadow as the ground does, where
+    // the game's line of sight through it meets the floor (090); the corral's
+    // straw, grass and rubble, one card each, took one factor at its feet
+    // before that, and the shadow over them broke into a patchwork of whole
+    // dark and lit cards. A standing card of any height reads per pixel on
+    // its own plane (109): the tub the fence's ground shadow stains, the
+    // sandwich board that darkened whole at its feet.
     double low = corners[0].y, high = corners[0].y;
     for (const SpriteCardVertex& corner : corners) {
         low = std::min(low, corner.y);
         high = std::max(high, corner.y);
     }
-    gObjectDraws.back().groundShadow = flat || high - low < kLowCardHeight;
+    gObjectDraws.back().groundShadow = flat;
     gObjectDraws.back().groundY = lift[1]; // the floor, or the top of the solid it stands on
     if (onWall) {
         gObjectDraws.back().wallNormalX = static_cast<float>(-std::sin(plane[1]));
         gObjectDraws.back().wallNormalZ = static_cast<float>(std::cos(plane[1]));
     }
-    // The people keep the whole shadow verdict at their feet (109), and with
-    // them the plants (baked.bin's no-cast flag: a crown's own pattern is its
-    // outline, not a shadow read); a standing card of any other kind reads it
-    // per pixel on its own plane. The kind comes from the fid's type nibble,
-    // as walls.bin's rows read it.
+    // The whole verdict at the feet stays with the people (OBJ_TYPE_CRITTER
+    // by the fid's type nibble, as walls.bin's rows read it) and with a
+    // standing body taller than half a wall (a tree, a statue: a crown's own
+    // pattern is its outline, not a shadow read, and the seam metric has left
+    // such cards out since 090). Every other standing card reads per pixel.
     gObjectDraws.back().feetShadow = ((frame.fid >> 24) & 0xF) == OBJ_TYPE_CRITTER
-        || staticObjectNoCast(frame.tile, frame.fid);
+        || high - low > staticHalfWallHeight();
     const int order[6] = { 0, 1, 2, 0, 2, 3 };
     for (int index : order) {
         SpriteCardVertex corner = corners[index];

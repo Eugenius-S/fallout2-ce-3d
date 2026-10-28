@@ -40,6 +40,7 @@ struct BakedObject {
 };
 
 unsigned int gWallTriangleCount = 0;
+float gHalfWallHeight = 1.6f; // half the map's wall height, until the walls load
 std::unordered_map<unsigned long long, BakedObject> gBakedObjects;
 int gSoloTile = -1;
 int gSoloRadius = 0;
@@ -175,10 +176,9 @@ bool staticObjectFlyFlat(int tile, int fid)
     return found != gBakedObjects.end() && found->second.mode == BakedObject::FlyFlat;
 }
 
-bool staticObjectNoCast(int tile, int fid)
+float staticHalfWallHeight()
 {
-    const auto found = gBakedObjects.find(bakedObjectKey(tile, fid));
-    return found != gBakedObjects.end() && found->second.noCast;
+    return gHalfWallHeight;
 }
 
 bool staticObjectFlat(int tile, int fid)
@@ -566,6 +566,7 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
     }
     if (wallHeight <= 0.0f) wallHeight = 3.2f; // a wall with no walls on the map
     const float halfWall = wallHeight * 0.5f;
+    gHalfWallHeight = halfWall; // the cards' whole-verdict bound (109)
     // The caster triangles gather per atlas page, positions with UVs: the
     // shadow pass binds each page's texture and cuts the art's transparent
     // holes out of the depth map (063). The buffer and ranges are built after

@@ -489,7 +489,8 @@ float sunShadowCard(float selfId) {
         vec2 slope = shadowPlaneSlope(vec3(0.0, 1.0, 0.0));
         return shadowCoverage(g, vec3(1.0, 0.0, 0.0), vec3(0.0, 0.0, 1.0), slope, selfId);
     }
-    // The people keep their whole verdict at the feet (090, 109): the
+    // The feet-verdict cards keep their whole verdict at the feet (090,
+    // 109): the people, and a standing body taller than half a wall. The
     // per-pixel read straddles a shadow edge over several pixels of travel,
     // a walker came out half dark, and the read left lit contour gaps
     // between a figure in shadow and its shadow (082 round 6).
@@ -569,11 +570,11 @@ float shadowDarken(float light) {
         } else if (uLightMode == 3) {
             // A sprite darkens whole at its feet (082 round 6): the old
             // per-pixel read (063) left lit contour gaps between a character
-            // in shadow and its shadow. A low card is ground and darkens as
-            // the ground does (090). The ground, a turned card and a
+            // in shadow and its shadow. A card lying on the ground darkens
+            // as the ground does (090). The ground, a turned card and a
             // per-pixel card read like the walls (0.35), so a shadow edge
             // runs off the floor onto a card without a step; the feet
-            // verdict keeps 0.3, a whole figure darkens lighter than the
+            // verdict keeps 0.3, a whole body darkens lighter than the
             // ground and keeps its read (109).
             float density = uShadowFeet > 0.5 && uShadowGround.x <= 0.5 && !cardTurned() ? 0.3 : 0.35;
             light *= 1.0 - uShadowStrength * uShadowDensity * density * sunShadowCard(selfId);
@@ -773,13 +774,13 @@ void main() {
                 // (090, tools/shadow_seams.py). A face turned from the sun
                 // (the flat shaded value, no cast shadow) reads blue: lit
                 // ground seen between two shaded fence rails is light, not a
-                // hole in a shadow. A standing body or plant (a person, a
-                // tree: a live card darkened whole at its feet, not a door
-                // in its wall) reads green: the metric leaves its own pixels
-                // out, its outline against a lit wall is not a seam, and still
-                // counts the ground round it (090). The feet verdict belongs
-                // to the people alone since 109; a standing card of any other
-                // kind reads per pixel and stays in the factor read.
+                // hole in a shadow. A standing body (a person, a tree: a
+                // card with the whole verdict at its feet, not a door in its
+                // wall) reads green: the metric leaves its own pixels out,
+                // its outline against a lit wall is not a seam, and still
+                // counts the ground round it (090). Every other standing
+                // card reads per pixel since 109 and stays in the factor
+                // read.
                 outEmissive = vec4(0.0);
                 if (uLightMode == 3 && uShadowGround.x < 0.5
                     && dot(uShadowGround.zw, uShadowGround.zw) < 0.5 && uShadowFeet > 0.5) {
