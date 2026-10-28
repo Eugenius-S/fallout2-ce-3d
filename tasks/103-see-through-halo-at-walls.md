@@ -145,3 +145,28 @@ Next: find a wall-overlap point reproducing the reported failure, compare it
 with 018 using its matching scene cache, then bisect that same point.
 Check: `tools/dev-snapshot.ps1 -Map kladwtwn -ViewTile 19075 -HeroTile 19075
 -Still`, once normally and once with `F2CE_NO_EGG=1`.
+
+### 2026-10-28 gpt: owner settings and saved game probe
+
+Read the owner's configuration without changing it: 2310x1298, scale 2,
+3D zoom 1.024, camera rotation 0. `dev-launch.ps1` derives the window from
+monitor work area and requests 16:9; it was not run. Copied Slot 1 into an
+isolated test output directory and loaded that copy with the same resolution,
+scale and zoom. At capture the hero and egg both had tile 19086 and offsets
+(0, 0); the snapshot reported egg rect (378, 280, 129, 98) in the logical
+1155x649 view. This save's hero was outside the bathhouse, not at the owner
+screenshot's wall, so it does not reproduce the failure.
+
+A separate walking probe at the same resolution and zoom moved the hero from
+19086 to 15284; at the end both hero and egg had tile 15284 and offsets
+(0, 0). The first walking probe from 19075 could not find a path. The test
+harness resets the egg offsets when it teleports the hero; the saved-game
+probe did not use that teleport. Temporary diagnostics were removed.
+
+The 3D egg anchor uses `gameViewTilePixel(gEgg->tile)` plus FRM and object
+offsets, projected by `staticScreenFromGamePixel` into the logical viewport;
+`bindEgg` applies zoom to its dimensions. The hero card uses the hero tile and
+movement offsets in the same game projection. These checks have not isolated
+the reported displacement or verified a fix. Next: reproduce the wall case
+with the live camera and actual movement, then measure hero and egg positions
+in the same frame at both aspect ratios and zoom levels. No code fix retained.
