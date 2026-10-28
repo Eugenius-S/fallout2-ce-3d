@@ -175,6 +175,12 @@ bool staticObjectFlyFlat(int tile, int fid)
     return found != gBakedObjects.end() && found->second.mode == BakedObject::FlyFlat;
 }
 
+bool staticObjectNoCast(int tile, int fid)
+{
+    const auto found = gBakedObjects.find(bakedObjectKey(tile, fid));
+    return found != gBakedObjects.end() && found->second.noCast;
+}
+
 bool staticObjectFlat(int tile, int fid)
 {
     const auto found = gBakedObjects.find(bakedObjectKey(tile, fid));
