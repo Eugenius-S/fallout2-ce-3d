@@ -47,21 +47,29 @@ Roofs (101), corner pieces (096), the table's junk (100).
 
 ### 2026-10-28 gpt
 Investigation before implementation: exported only `kladwtwn/0` to
-`build/scene-cache`. In the bathhouse wall band near `u=22.7..27.4, v=48.0898`,
-rows 553 and 557 sample atlas sprites 1920 and 1924 on their backs
-(`wall_back`, `back=-1`): 13.8% and 3.4% of those sampled texels have alpha
-below 128. Row 556 at `u=26.7266..26.3932` uses sprite 1923, whose sampled
-window pattern is fully opaque. This makes transparent outside texture and
-opaque window detail two distinct causes to check for the bathhouse's inner
-light strips; the row positions lie in the bathhouse shell, but the supplied
-JPEG has no camera/tile metadata to prove which one is in view.
+`build/scene-cache`. The owner JPEGs have no camera/tile metadata, so their
+exact camera tiles cannot be recovered. I matched their wall patterns and
+nearby map objects to the source wall families, then reproduced both patterns
+in the runtime snapshots below.
 
-The wall-holes JPEG shows a different interior: dark wall spans between door
-panels, with outside-colored gaps at their upper edges. A plausible map source
-is row 308 (sprite 1839, `u=50.3568..49.6901, v=40.0352`), whose back sample
-contains 11.6% transparent texels, adjacent to plain wall row 305 (sprite
-1859, 0.7% transparent). The JPEG also has no camera/tile metadata, so these
-are candidates only, not a verified match. The sampled texel data and wall
-row coordinates are recorded here before implementation; next, validate the
-two causes against runtime views and implement one general rule for inner
-wall faces.
+The door-wall view matches the `doorb06.frm` room and the neighboring
+`nec` wall family: wall rows 225, 253, 264, and 292 are `nec107.frm`,
+`nec108.frm`, `nec102.frm`, and `nec079.frm`; rows 253 and 260 have about
+51% transparent texels in the sampled back strip (atlas sprites 1843 and
+1801). The scene's door object at tile 15272 is `doorb06.frm`. The runtime
+view at tile 15272 shows outside-colored pinholes in those dark inner wall
+faces. These alpha holes explain the openings in the owner's first view.
+
+The bathhouse view matches the two narrow windows on its far wall: rows 200
+and 210 are `nec151.frm` and `nec150.frm` windows at tiles 14714 and 14722;
+both sample back sprite 2216, whose dark texture has 7.3% transparent texels.
+The neighboring wall panels are `nec096.frm`, `nec097.frm`, and `nec098.frm`.
+The runtime view near tile 14900 shows the same light leaking through this
+inner window pattern. It is the back texture's transparent pixels, not bright
+opaque specks in the source, that reveal the outside.
+
+Correction: the earlier rows 553/556/557 and row 308 were unrelated nearby
+walls and are not the source pieces for these views. Do not use them as
+implementation targets. Next: one general rule that makes wall-back texture
+holes opaque and subdued for every wall, then retake the owner views and the
+other Klamath interiors.
