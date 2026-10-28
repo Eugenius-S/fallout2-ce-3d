@@ -12,3 +12,7 @@ __pycache__/
 
 # Generated regression captures; curated evidence lives in runs/NNN-slug/.
 runs/regression/
+
+# Owner-local agent configuration
+.foundation/
+.codex/
