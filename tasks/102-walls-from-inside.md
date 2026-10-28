@@ -105,3 +105,58 @@ safe: the candidate wall pieces share generic `Wall` names, and the geometric
 classifier says their front shape is open. No implementation was retained;
 the task remains unresolved until a reliable source-level distinction or
 camera/source match for the first view is available.
+
+### 2026-10-28 gpt: general mirrored-alpha implementation and verification
+
+Implemented one rule for every thick wall's fly-only back: use the front
+sprite's alpha in the same wall-local coordinates (the back geometry already
+reverses UVs), preserve openings, and replace only pixels that become opaque
+on the back with dark RGB `(24,24,24)`. The front atlas and game-only batches
+are unchanged. The exporter packs generated back images into additional
+`spritesN.png` pages and references those pages only from fly-only wall
+batches. The unit test checks alpha and RGB behavior and maps a point at a wall
+endpoint through front and back UVs to verify world-coordinate coverage.
+
+Checks:
+
+- `py -3 -m unittest discover -s tools/scene_export -p test_export.py`: 67/67
+  passed.
+- `ctest --test-dir build --output-on-failure`: 18/18 passed.
+- Exported all seven Klamath maps (12 map/elevation scenes) and ran exporter
+  `--check`, using only `build/scene-cache`. Kladwtwn has `sprites0.png` plus
+  generated `sprites1.png`; its runtime snapshot loaded in `scene-gl` with
+  29,459 wall triangles. The loader cap is 16 pages; each Klamath scene stays
+  below it. `wall_pages=4` in the snapshot is the batch count, not atlas-page
+  count.
+- Pixel comparison, same branch executable and capture settings, current main
+  `game/mod-cache/scene` vs this branch's `build/scene-cache`: all 16 original
+  game-view regression spots had 0 changed pixels. The repository's older
+  pinned-reference script separately reported six mismatches (183, 3,837,
+  5,185, 6,299, 550 and 16 pixels across its listed spots); those references
+  are not the current main-cache baseline.
+- 090 seam metric, same executable/settings for all 21 views: all 18 fixed
+  views had identical main/branch counts. For the fly pose at tile 24292,
+  yaw +45 degrees and distance 8, totals were 417/159/430 on main and
+  415/159/430 on the branch for 7/12/17h. No per-view count rose; aggregate
+  2,948 to 2,946. This fly pose differs from the historical 090 capture
+  (which recorded 557/8/457), so that historical aggregate of 3,022 is not a
+  camera-matched comparison.
+- Fly tour against current main completed: 29 of 43 spots changed. Sheets are
+  in `runs/102-walls-from-inside/fly-tour/`. Changed spots: Kladwtwn tiles
+  24268, 24292, 20268, 20292, 20690, 19265, 17104, 19108, 24678, 22958,
+  24481, 14505, 25075, 23481, 22885 and 17699; Klamall 12666, 15450 and
+  21700; Klatrap 21913; Klaratcv elevations 0/1/2 at 21511, 14701, 17107
+  plus 13511 and 22661; Klatoxcv elevations 0/1/2 at 23879, 19091, 15065
+  plus 22924. Most changes are the expected fly-side wall backs.
+
+Matched runtime pairs at 1920×1080, scale 2, with the current executable are
+saved under `runs/102-walls-from-inside/{bathhouse-14900,door-room-15272,
+north-room-14892,west-room-22885}/validated/{before,after}`. They use
+`-Fly -HeroTile=<tile> -ViewTile=<tile>` and identical angle/distance settings
+within each pair. The door-room and the two extra room views show interiors;
+the bathhouse capture is at tile 14900 and shows the nearby wall area, but the
+owner JPEG has no camera metadata and the exact bathhouse interior viewpoint
+could not be established. The mapping to rows 200/210 remains a source-based
+match, not a pixel-matched reproduction. Thus the requested four before/after
+views are present, but the specific owner bathhouse view is not proven to be
+the same scene. Keep this task in `doing`; acceptance is not fully verified.
