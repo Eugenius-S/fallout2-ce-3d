@@ -161,3 +161,8 @@ that fits no task becomes a new task when the board runs dry.
   only on roofs, not walls (103); no glow on the slime pools and no
   visible point lights in the toxic caves (111). The bottom stop (108)
   passed with no remarks.
+- 2026-10-28 A sky in the 3D view (flight and turned camera), like the
+  first-person port https://github.com/Apolotary/fallout2-first-person
+  (`runs/inbox/2026-10-28-sky-reference.webp`: a dusk gradient sky above
+  the walls instead of black). The owner: the 3D view looks better with
+  it. Could follow the time of day (sun, night look). Not now; a note only.
