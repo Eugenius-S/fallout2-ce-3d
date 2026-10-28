@@ -44,3 +44,24 @@ The owner, 2026-10-27, live with the 095 build, shots in `runs/inbox/`:
 Roofs (101), corner pieces (096), the table's junk (100).
 
 ## Log
+
+### 2026-10-28 gpt
+Investigation before implementation: exported only `kladwtwn/0` to
+`build/scene-cache`. In the bathhouse wall band near `u=22.7..27.4, v=48.0898`,
+rows 553 and 557 sample atlas sprites 1920 and 1924 on their backs
+(`wall_back`, `back=-1`): 13.8% and 3.4% of those sampled texels have alpha
+below 128. Row 556 at `u=26.7266..26.3932` uses sprite 1923, whose sampled
+window pattern is fully opaque. This makes transparent outside texture and
+opaque window detail two distinct causes to check for the bathhouse's inner
+light strips; the row positions lie in the bathhouse shell, but the supplied
+JPEG has no camera/tile metadata to prove which one is in view.
+
+The wall-holes JPEG shows a different interior: dark wall spans between door
+panels, with outside-colored gaps at their upper edges. A plausible map source
+is row 308 (sprite 1839, `u=50.3568..49.6901, v=40.0352`), whose back sample
+contains 11.6% transparent texels, adjacent to plain wall row 305 (sprite
+1859, 0.7% transparent). The JPEG also has no camera/tile metadata, so these
+are candidates only, not a verified match. The sampled texel data and wall
+row coordinates are recorded here before implementation; next, validate the
+two causes against runtime views and implement one general rule for inner
+wall faces.
