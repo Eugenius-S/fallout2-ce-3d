@@ -2,8 +2,8 @@
 id: 108
 title: The 3D bottom stop follows the map's drawn ground, with no black strip under it
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: gpt
 suggested: gpt
 priority: normal
 claude-only: no
