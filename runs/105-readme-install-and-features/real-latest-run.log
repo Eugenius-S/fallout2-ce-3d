@@ -1,0 +1,15 @@
+fallout2-ce-3d-launcher
+
+game root (from --game-root): <game>
+installed build: 623e380cd5f87fbc3234e05bbca92ccd426b8d60
+release build: 623e380cd5f87fbc3234e05bbca92ccd426b8d60
+the installed build matches the release: nothing to pull
+scenes present: kladwtwn, klatrap, klacanyn, klagraz, klamall, klaratcv, klatoxcv
+the 3D scene data is current
+fallout2.cfg sha256 before: 892a30a9cddc20815142047b46b844e9aa1a8a6e39aea2639d3f51aa213b77de
+data/savegame sha256 before: 6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d
+starting <game>\fallout2-ce.exe
+the game exited with code 0
+fallout2.cfg sha256 after:  892a30a9cddc20815142047b46b844e9aa1a8a6e39aea2639d3f51aa213b77de (unchanged)
+data/savegame sha256 after:  6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d (unchanged)
+bye
