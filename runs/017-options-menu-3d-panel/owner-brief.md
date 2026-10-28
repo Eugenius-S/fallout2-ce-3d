@@ -4,7 +4,7 @@ Replaces the look in `tasks/017-options-menu-3d-panel.md`; the model layer
 already done stays. Copy this into the task's Context and Acceptance, and the
 owner's pictures into `runs/017-options-menu-3d-panel/`:
 
-- `C:\Users\jiraf\AppData\Local\Temp\claude\E--Projects-fallout2-ce-3d\eaaa9aa9-03c9-45f4-8850-a6c042978c72\images\54.webp`: the original block, kept as is.
+- `<worktree>\images\54.webp`: the original block, kept as is.
 - `...\images\55.png`: the scroll bar style (the original slider groove and its red knob).
 - `...\images\56.png`, `...\images\57.png`: the screen frame style (the message window and the dialog screen).
 - `...\images\58.png`: the first attempt (a flat green panel over the map): not the wanted look.

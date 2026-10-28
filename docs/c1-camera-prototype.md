@@ -2,7 +2,7 @@
 
 Date: 2026-10-17. Base: fallout2-ce `fb8ba51e` + the `sprite-lighting-c1`
 branch (commit `e14218e` in `ce/`). The specification and plan are in
-`E:\Games\Fallout 2\docs\superpowers\`.
+`<game>\docs\superpowers\`.
 
 ## What was done
 

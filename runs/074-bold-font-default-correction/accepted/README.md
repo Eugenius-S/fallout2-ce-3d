@@ -1,6 +1,6 @@
 # Accepted runtime evidence for task 074
 
-The original PNG captures remain local in `E:\Projects\fallout2-ce-3d\game\shots\raw-task074\`. Their original JSON sidecars, fixture stdout/stderr, EXE identity, and raw PNG hashes are committed here. The four JPEGs under `crops/` are direct crops or sheets made from those originals. JPEG encoding changes pixel values, so these are presentation evidence, not pixel-identity artifacts. Source crops were not retouched or scaled.
+The original PNG captures remain local in `<worktree>\game\shots\raw-task074\`. Their original JSON sidecars, fixture stdout/stderr, EXE identity, and raw PNG hashes are committed here. The four JPEGs under `crops/` are direct crops or sheets made from those originals. JPEG encoding changes pixel values, so these are presentation evidence, not pixel-identity artifacts. Source crops were not retouched or scaled.
 
 ## JPEG presentation evidence
 
@@ -25,7 +25,7 @@ Both fixtures completed and emitted PASS. The snapshot wrapper looked for the PN
 
 ## Floating bark lifecycle
 
-The final scene-adapter proof uses source `dfc5ae76` and is stored in `bark/adapter-dfc5ae76/` (JSON sidecars, stdout/stderr). Raw PNGs are local at `E:\Projects\fallout2-ce-3d\game\shots\raw-task074\adapter-dfc5ae76\` and are also retained untracked beside this README. Their SHA-256 values are:
+The final scene-adapter proof uses source `dfc5ae76` and is stored in `bark/adapter-dfc5ae76/` (JSON sidecars, stdout/stderr). Raw PNGs are local at `<worktree>\game\shots\raw-task074\adapter-dfc5ae76\` and are also retained untracked beside this README. Their SHA-256 values are:
 
 - Initial `devhero-20261025-152621-000.png`: `AA7F86E2392845433E8B0B6685C72FF9F347EDC52D777D814B6396596AB004A5`.
 - Replacement `devhero-20261025-152622-000.png`: `EC6B6CD0184CC6DE6ACB083CB481A6DAF7DA78FF58B5A627E16E6E3AC79AD0B6`.

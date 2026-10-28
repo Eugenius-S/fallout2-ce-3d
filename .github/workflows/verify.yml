@@ -22,6 +22,7 @@ jobs:
           filter: blob:none
           sparse-checkout: tools
       - run: python3 tools/check_runs_size.py origin/${{ github.base_ref }}
+      - run: python3 tools/check_public_content.py origin/${{ github.base_ref }}
   windows-game:
     runs-on: windows-latest
     steps:

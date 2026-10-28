@@ -1,4 +1,4 @@
-scene: cache E:\Projects\fallout2-ce-3d-gpt\build\scene-cache\kladwtwn\0
+scene: cache <worktree>\build\scene-cache\kladwtwn\0
 scene: preview policy=available gameState=0 gameMode=0x0 uiDisabled=0 isoDisabled=0 combat=0 dialog=0 movie=0
 scene: preview policy=game-mode gameState=0 gameMode=0x80 uiDisabled=0 isoDisabled=0 combat=0 dialog=0 movie=0
 scene: preview policy=available gameState=0 gameMode=0x0 uiDisabled=0 isoDisabled=0 combat=0 dialog=0 movie=0

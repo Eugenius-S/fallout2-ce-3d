@@ -7,7 +7,7 @@ executor".
 ## The exact launch command
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File 'E:\Projects\fallout2-ce-3d\tools\dev-launch.ps1' -Map kladwtwn -Elevation 0
+powershell -NoProfile -ExecutionPolicy Bypass -File '<worktree>\tools\dev-launch.ps1' -Map kladwtwn -Elevation 0
 ```
 
 The launcher itself sets in `game\fallout2.cfg` a 16:9 window as tall as the

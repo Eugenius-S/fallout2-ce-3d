@@ -1,7 +1,7 @@
 # 091: launcher and the rolling latest release
 
 Evidence for tasks/091-launcher-updates.md. The launcher was exercised on a
-fresh copy of the game files at `E:\Projects\f2ce3d-091-test\game`
+fresh copy of the game files at `<game>`
 (`master.dat`, `critter.dat`, `data/` copied in; the owner's `game/` was
 never written to), against a fake release served on 127.0.0.1:8119 holding
 the same payload CI publishes: `fallout2-ce.exe`, `ce.dat`,

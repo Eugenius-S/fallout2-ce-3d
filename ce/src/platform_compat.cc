@@ -307,7 +307,7 @@ int compat_mkdir_recursive(const char* path)
     char pathCopy[COMPAT_MAX_PATH];
     strcpy(pathCopy, path);
 
-    // Skip drive root (e.g. "C:\\" or leading "/") to avoid mkdir("") or mkdir("C:").
+    // Skip a Windows drive root or leading separator to avoid mkdir("") or mkdir("C:").
     char* sep = pathCopy + strlen(drive);
     if (*sep == '\\' || *sep == '/') sep++;
     for (; *sep != '\0'; sep++) {

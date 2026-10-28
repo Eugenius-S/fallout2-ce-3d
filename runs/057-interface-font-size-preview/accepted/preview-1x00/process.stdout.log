@@ -1,4 +1,4 @@
-scene: cache E:\Projects\fallout2-ce-3d-gpt\build\scene-cache\kladwtwn\0
+scene: cache <worktree>\build\scene-cache\kladwtwn\0
 devtools: static wall+hero preview started for KLADWTWN.MAP elevation 0
 scene: preview policy=available gameState=0 gameMode=0x0 uiDisabled=0 isoDisabled=0 combat=0 dialog=0 movie=0
 UI_FIXTURE SETUP screen=character preview_scale=1.00 process_only=1

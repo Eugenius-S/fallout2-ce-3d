@@ -27,11 +27,11 @@ goal.
 - Windows x64. The base of the game (a user decision of 2026-10-18): the
   original Fallout 2 from Steam + the Restoration Project (RPU) v2.4.34 by
   BGforge with a Russian translation. The source install
-  D:\SteamLibrary\steamapps\common\Fallout 2 is read-only.
-- The working project E:\Projects\fallout2-ce-3d; running on the copy in
+  `<game>` is read-only.
+- The working project `<worktree>`; running on the copy in
   game/.
 - The Russian language is the translation from the RPU release
-  (`rpu_russian.dat`, `upu_russian_sound.dat`). The repack E:\Games\Fallout 2
+  (`rpu_russian.dat`, `upu_russian_sound.dat`). The repack `<game>`
   is not the base; later only the look of the bottom bar is taken from it.
 - Characters stay sprites. Simple geometry of walls, furniture, roofs and
   landmarks is in scope.
@@ -55,7 +55,7 @@ sprites.
 
 Before changes record the HEAD and the dirty state. Since 2026-10-18 the
 engine ce/ and the documents/tools live in one repository
-E:\Projects\fallout2-ce-3d (GitHub Eugenius-S/fallout2-ce-3d); one commit
+`<worktree>` (GitHub Eugenius-S/fallout2-ce-3d); one commit
 describes everything. Do not overwrite someone else's changes. The old
 experiments (DLSS5, the native prototype, C1) live in the archive/* branches.
 
@@ -369,11 +369,11 @@ formula does not replace the visual and game acceptance.
 The existing PowerShell commands:
 
 ```powershell
-git -C 'E:\Projects\fallout2-ce-3d' status --short
-git -C 'E:\Projects\fallout2-ce-3d' rev-parse HEAD
-powershell -NoProfile -ExecutionPolicy Bypass -File 'E:\Projects\fallout2-ce-3d\tools\configure-build.ps1' Release
-Get-FileHash -Algorithm SHA256 'E:\Projects\fallout2-ce-3d\game\fallout2-ce.exe'
-Start-Process -FilePath 'E:\Projects\fallout2-ce-3d\game\fallout2-ce.exe' -WorkingDirectory 'E:\Projects\fallout2-ce-3d\game'
+git -C '<worktree>' status --short
+git -C '<worktree>' rev-parse HEAD
+powershell -NoProfile -ExecutionPolicy Bypass -File '<worktree>\tools\configure-build.ps1' Release
+Get-FileHash -Algorithm SHA256 '<game>\fallout2-ce.exe'
+Start-Process -FilePath '<game>\fallout2-ce.exe' -WorkingDirectory '<game>'
 ```
 
 The build script may recreate build on a generator change: read first, keep

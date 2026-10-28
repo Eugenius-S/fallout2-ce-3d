@@ -2,11 +2,11 @@
 # Ninja + MSVC into `build/`.
 #
 # Toolchain selection:
-# 1. The owner's machine: VS BuildTools 18 with a partially broken VC
+# 1. Local VS BuildTools 18 installations with a partially broken VC
 #    workload (vswhere does not register the VC.Tools component and
 #    vcvars64.bat is missing), so the script sets PATH/INCLUDE/LIB explicitly
 #    from the on-disk MSVC 14.40 and Windows SDK 22621.
-# 2. Any other machine (e.g. CI): when those hard-coded paths are missing,
+# 2. Other machines (e.g. CI): when the expected installation paths are missing,
 #    fall back to the standard Visual Studio environment via vswhere +
 #    vcvars64.bat.
 param(
@@ -16,9 +16,10 @@ $ErrorActionPreference = 'Stop'
 $ProjectRoot = Split-Path -Parent $PSScriptRoot
 $SourceDir = Join-Path $ProjectRoot 'ce'
 
-$BtRoot = 'C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools'
+$ProgramFilesX86 = ${env:ProgramFiles(x86)}
+$BtRoot = Join-Path $ProgramFilesX86 'Microsoft Visual Studio\18\BuildTools'
 $Msvc = Join-Path $BtRoot 'VC\Tools\MSVC\14.40.33807'
-$SdkRoot = 'C:\Program Files (x86)\Windows Kits\10'
+$SdkRoot = Join-Path $ProgramFilesX86 'Windows Kits\10'
 $SdkVersion = '10.0.22621.0'
 $OwnerLayout = (Test-Path $Msvc) -and (Test-Path (Join-Path $SdkRoot "Include\$SdkVersion\um"))
 
@@ -26,7 +27,7 @@ if ($OwnerLayout) {
     $env:PATH = @(
         (Join-Path $Msvc 'bin\Hostx64\x64'),
         (Join-Path $SdkRoot "bin\$SdkVersion\x64"),
-        'C:\Program Files\CMake\bin',
+        (Join-Path $env:ProgramFiles 'CMake\bin'),
         $env:PATH
     ) -join ';'
 

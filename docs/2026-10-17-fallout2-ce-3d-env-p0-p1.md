@@ -8,9 +8,9 @@ sources in the same session; assumptions are marked explicitly.
 
 | Repository | State | Action |
 |---|---|---|
-| CE `E:\Projects\fallout2-sprite-lighting\ce` | `fb8ba51e` (master) + the experiment branch `sprite-lighting-c1` (`e14218e`, clean) | A new branch `scene-renderer` off `fb8ba51e`. C1 is not developed |
-| Donor `E:\Projects\fallout2-native-dlss5\vendor\fallout2-first-person` | `0da1cd4`, dirty: `viewer/fp.js` (my `lens` parameter from G2, documented, harmless) | Read-only; ports keep the NOTICE |
-| Project `E:\Projects\fallout2-sprite-lighting` | `1e766f5`, clean | Documents/tools/reports |
+| CE `<worktree>\ce` | `fb8ba51e` (master) + the experiment branch `sprite-lighting-c1` (`e14218e`, clean) | A new branch `scene-renderer` off `fb8ba51e`. C1 is not developed |
+| Donor `<worktree>` | `0da1cd4`, dirty: `viewer/fp.js` (my `lens` parameter from G2, documented, harmless) | Read-only; ports keep the NOTICE |
+| Project `<worktree>` | `1e766f5`, clean | Documents/tools/reports |
 | Working game `game/` | DATs from Steam (md5 in `runs/a-dat-checksums.txt`), exe = the C1 build | After P0 rebuild from the `scene-renderer` branch, record the SHA-256 |
 
 ## 1. Verified CE integration points (commit fb8ba51e)
@@ -151,11 +151,11 @@ Before mass conversion: the user accepts the look.
 ### Commands (actual ones; to be extended as the tools appear)
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File 'E:\Projects\fallout2-sprite-lighting\tools\configure-build.ps1' Release
-Copy-Item 'E:\Projects\fallout2-sprite-lighting\build\fallout2-ce.exe' 'E:\Projects\fallout2-sprite-lighting\game\'
-Get-FileHash -Algorithm SHA256 'E:\Projects\fallout2-sprite-lighting\game\fallout2-ce.exe'
-python 'E:\Projects\fallout2-sprite-lighting\tools\scene_export\fp_export.py' --map kladwtwn --elevation 0   # appears in P1
-& 'E:\Projects\fallout2-sprite-lighting\game\fallout2-ce.exe' --dev-load-game=1                              # the snapshot save of the area
+powershell -NoProfile -ExecutionPolicy Bypass -File '<worktree>\tools\configure-build.ps1' Release
+Copy-Item '<worktree>\build\fallout2-ce.exe' '<game>\'
+Get-FileHash -Algorithm SHA256 '<game>\fallout2-ce.exe'
+python '<worktree>\tools\scene_export\fp_export.py' --map kladwtwn --elevation 0   # appears in P1
+& '<game>\fallout2-ce.exe' --dev-load-game=1                                      # the snapshot save of the area
 ```
 
 ## 8. Risks (open)
@@ -201,7 +201,7 @@ after P1 is accepted.
 - [ ] Move the sun by CE game time: direction, height and color, long
   shadows in the morning/evening, no sunlight at night. Account for
   interiors, waiting, loading a save and game time jumps.
-- [ ] Take the bottom game bar from the build `E:\Games\Fallout 2`
+- [ ] Take the bottom game bar from the build `<game>`
   (Restoration Project + russification): there it is stretched to wide
   screens. First identify the concrete UI mod and its resources, then move
   the graphics and the layout of the elements onto the working CE features.
