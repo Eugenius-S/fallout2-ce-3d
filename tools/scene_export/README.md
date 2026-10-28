@@ -20,6 +20,8 @@ Requires Python 3, NumPy 2 or newer, and Pillow 10.1 or newer. Run the source-pr
 
 With CE built using `--dev-tools`, the static wall preview can include the current player sprite using `--dev-hero-preview`; it requires `projection.bin`, reads the current `gDude` frame and palette, and writes `devhero-...png` snapshots with tile/FID/frame/rotation and world-anchor metadata. Hero mode keeps the accepted wall-preview camera fixed. The scene is view-only: it does not provide picking or game UI, and it does not yet reproduce full row-plane ordering. If projection or frame data is invalid, CE does not mark the snapshot as a successful hero capture.
 
+The fly-only wall backs use a generated atlas page (`spritesN.png`) so the game-camera atlas and its pixels stay unchanged. For each wall, the back alpha mask follows the front sprite's alpha in matching wall-local coordinates, including the existing reversed back UVs. Pixels closed on the back because the front is opaque receive a dark fill; openings in the front stay open on the back. The generated page is tagged fly-only in `walls.bin`. CE's wall loader currently accepts up to 16 atlas pages; the Klamath exports were checked against that limit.
+
 ## Scope and limits
 
 The exporter is an adapter around the donor's offline `SceneBuilder`; it does not invoke the donor's game discovery or extraction flow. The result confirms that the selected game data could be parsed into a scene JSON and its PNG dependencies. It does not confirm visual correctness, CE rendering, runtime compatibility in the app, collision or lighting behavior, or performance. No game executable is launched.

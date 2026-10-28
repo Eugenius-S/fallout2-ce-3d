@@ -354,6 +354,47 @@ class WallSidecarTests(unittest.TestCase):
         for vertex in vertices:
             self.assertTrue(0.1 - 1e-6 <= vertex[3] <= 0.2 + 1e-6)
 
+    def test_back_alpha_mirrors_front_below_cap_and_darkens_only_newly_opaque_texels(self):
+        import numpy as np
+        import wall_sidecar
+
+        scene = self.sample_scene()
+        scene["sprites"] = [[0, 10, 10, 4, 4, 0, 0], [0, 30, 30, 4, 3, 0, 0]]
+        scene["walls"] = [[0, 1.0, 2.0, 3.0, 2.0, 0.0, 1.0, 0, 1,
+                            1.0 - 1.0 / scene["proj"]["hpx"], 0.25, 1]]
+        atlas = np.zeros((100, 100, 4), dtype=np.uint8)
+        front_alpha = np.array([[255, 0, 255, 255], [255, 255, 0, 255],
+                                [255, 0, 0, 255], [0, 255, 255, 0]], dtype=np.uint8)
+        atlas[10:14, 10:14, :3] = 120
+        atlas[10:14, 10:14, 3] = front_alpha
+        atlas[30:33, 30:34, :3] = (90, 80, 70)
+        atlas[30:33, 30:34, 3] = 0
+        atlas[30, 30, 3] = 255
+
+        generated_pages, row_sprites, generated_sprites = wall_sidecar._mirror_back_atlases(scene, [atlas])
+        page, x, y, width, height, *_ = generated_sprites[row_sprites[0]]
+        image = generated_pages[page - 1][y:y + height, x:x + width]
+        expected = front_alpha[1:] >= 128
+        self.assertEqual(image[..., 3].tolist(), (expected.astype(np.uint8) * 255).tolist())
+        self.assertEqual(tuple(image[0, 0, :3]), (90, 80, 70))  # existing opaque back pixel
+        self.assertEqual(tuple(image[0, 1, :3]), (24, 24, 24))  # transparent back, opaque front
+        self.assertEqual(int(image[1, 2, 3]), 0)  # transparent front stays open
+        exported_pages = []
+        sidecar = decode_wall_sidecar(encode_wall_sidecar(scene, atlas=[atlas], wall_back_pages=exported_pages))
+        self.assertEqual(len(exported_pages), 1)
+        front_batch = next(batch for batch in sidecar["batches"] if batch["page"] == 0 and not batch["fly_only"])
+        back_batch = next(batch for batch in sidecar["batches"] if batch["page"] == 1 and batch["fly_only"])
+        # At the same world endpoint (a, z=0), front and back winding/UVs
+        # already reverse together. Both therefore address their local left edge.
+        front_a = next(v for v in front_batch["vertices"]
+                       if abs(v[0] + 50.0 - 1.0) < 1e-5 and abs(v[1]) < 1e-5)
+        back_a = next(v for v in back_batch["vertices"]
+                      if abs(v[0] + 50.0 - 1.0) < 1e-5 and abs(v[1]) < 1e-5)
+        self.assertAlmostEqual(front_a[3] * 100.0 - 10.0, 0.0, places=4)
+        self.assertAlmostEqual(back_a[3] * 2048.0 - x, 0.0, places=4)
+        self.assertEqual(int(front_alpha[-1, 0]), 0)
+        self.assertEqual(int(image[-1, 0, 3]), 0)  # same world endpoint remains open on both faces
+
     def test_rejects_invalid_sprite_index_and_bad_page(self):
         scene = self.sample_scene()
         scene["walls"][0][0] = 2

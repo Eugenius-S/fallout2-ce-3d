@@ -12,6 +12,8 @@ import re
 import sys
 from pathlib import Path
 
+from PIL import Image
+
 sys.dont_write_bytecode = True
 
 HERE = Path(__file__).resolve().parent
@@ -393,8 +395,12 @@ def export_scene(gf, game_root: Path, map_name: str, elevation: int, out_dir: Pa
     if scene.get("map") != map_name or scene.get("elevation") != elevation:
         raise RuntimeError("SceneBuilder returned an unexpected map/elevation")
     live_boards, skip_props, skip_rests = live_solids(builder, scene)
+    wall_back_pages = []
     wall_payload = encode_wall_sidecar(scene, skip_props, skip_rests, builder.map.objects[elevation],
-                                       builder.atlas.pages, builder.tile_sheet[..., 3])
+                                       builder.atlas.pages, builder.tile_sheet[..., 3],
+                                       wall_back_pages=wall_back_pages)
+    for index, page in enumerate(wall_back_pages, start=len(builder.atlas.pages)):
+        Image.fromarray(page, "RGBA").save(out_dir / f"sprites{index}.png", optimize=True)
     (out_dir / "walls.bin").write_bytes(wall_payload)
     wall_data = decode_wall_sidecar(wall_payload)
     baked_payload = encode_baked_sidecar(baked_objects(scene, builder.map.objects[elevation], live_boards))
