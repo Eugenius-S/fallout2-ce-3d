@@ -79,3 +79,30 @@ The halo's shape and size.
 - Temporary coordinate instrumentation was used only for these isolated
   runs and removed after recording these results. Raw captures and logs stay
   in `build/103-*`; `game/shots` and `game/logs` were not accessed.
+
+### 2026-10-28 owner-point comparison
+
+- Mapped the owner image's lower figure to the KLADWTWN game view and used
+  `pickStaticGroundTile(243, 320)` at `ViewTile=17467`: `HeroTile=17878`,
+  world=(-10.94009,-5.06141). The marked south-wall object is row tile 19102,
+  fid `030001BB`. The target is the bathhouse room behind its south wall, not
+  the standard preview locations.
+- Captured full 3D at 1920x1080 in separate worktrees: 095 commit `dbc789af`
+  (exe SHA `9bd5c8f9785958cfee883833fd5324b59c67e55df6be298d1eea2d97bcabb849`)
+  and fresh `origin/main` commit `623e380c` (exe SHA
+  `d8661d7f115f49c62b61de90273e38d29e3d11632d99cff425d3b5e8cb8ccfa3`).
+  Both use `KLADWTWN e0`, HeroTile 17878, ViewTile 17467. Sidecars agree:
+  world anchor=(-11.04167,-5.06250), egg rect=[183,249,129,98],
+  628 wall rows marked. Decoded RGBA comparison is 0 changed pixels. In both
+  frames the marked south-wall section remains solid; the owner's wall symptom
+  is present on both revisions, with no 095-to-main behavior change.
+- Mapped the separate roof reference to `HeroTile=21263`, `ViewTile=17467`.
+  The feature match to the 038 q00 panel had 20 inliers; this is a lower
+  confidence control. Captures on the same two revisions have identical
+  metadata and 0 changed RGBA pixels; the hero is on the roof edge with the
+  egg visible.
+- Artifacts are in the isolated worktree `build/103-owner-target-095/`,
+  `build/103-owner-target-main/`, `build/103-owner-roof-095/`, and
+  `build/103-owner-roof-main/`. No game source was changed; task remains
+  `doing`, `reviewed: no`. This targeted comparison does not identify when the
+  behavior changed between 018 and 095, so it is not a completed fix or bisect.
