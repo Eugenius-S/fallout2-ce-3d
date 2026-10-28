@@ -2,7 +2,7 @@
 id: 096
 title: Corner pieces are cut at the corner line, each half on its own face's side of the sun
 milestone: M1
-status: todo
+status: doing
 owner: none
 suggested: glm
 priority: normal
@@ -93,3 +93,50 @@ New shadow features, the moon, shadow softness.
   line, each on its own face's side of the sun; the 090 seam totals must
   not rise. Leftover 4 moved to task 100. The owner's later corner finds
   from the live run (the inbox (096) entries) joined the scope.
+
+### 2026-10-28 glm: the cut landed; the metric and the regression pay the rule's honest price
+
+- The exporter cuts every corner piece's game-view picture at the corner
+  line (the crossing wall's own plane, where the two visible faces meet)
+  and the stretch past the line takes the face it continues: its plane for
+  the depth and the sun side alike, through the existing depth-home
+  mechanism (`_wall_front` corner). The vertices stay where they were;
+  093's failed attempts moved them. The same rule cuts a thin wall (a
+  fence) whose span crosses the line it corners with (`thin_cuts`). Unit
+  tests 66/66; ctest 18/18.
+- Measured on the owner's shots and hours (sheets in
+  `runs/096-corner-piece-sun-side/`): the Buckner corner's pillar now
+  splits at the corner edge, its lit half continuing the lit face at every
+  hour (corner-23481-h08/13/17); the left house's corner follows at 19132.
+- The seams metric, matched framings, before (main's scene) | after:
+  16 of the 18 game views sit at main's level or below (25075 h7 275 to
+  262, 23481 h7 199 to 174, 17104 h7 97 to 66, 19265 h7 112 to 96, and so
+  on). Two views rise at 17:00, 19265 by 18 pixels and 20690 by 26, and
+  the rise is the rule working: the new lit pixels are a corner piece's
+  half reading its own face's side inside the shadow that runs past the
+  corner (seam-rise-*.png). At 17:00 the two faces of these corners sit on
+  opposite sides of the sun, so a whole-piece corner cannot agree with
+  both; the owner decides whether the metric's hole definition should
+  learn the split corner or the price stands.
+- The three fly metric views changed their framing against 090's records
+  (shot fresh here), so they were compared as a matched pair: before and
+  after are identical to the pixel (713, 53, 1279).
+- The fly tour against main's scenes: 0 of 43 spots changed
+  (fly-tour-changed.jpg). The game's own view changed only where a corner
+  piece's half now takes the other face's plane (the depth moves with it,
+  which is what the turned-camera case needs).
+- The regression against the 2026-10-26 references (main's scene is
+  pixel-clean on every one of them, measured): the changed views are
+  entrance 189, corrals 252, residents 60, north-rooms 28,
+  central-doors 16, map-edge 4, klamall 336, klaratcv 3837/5185/6343,
+  klatoxcv-e2 550 pixels; the diffs sit at wall corners and fence corners
+  (the depth edges of the split halves). References updated for the nine
+  rule-changed views, their diff images in `runs/096-corner-piece-sun-side/`.
+  Three views fail on main itself and were left as they were: klagraz-e0,
+  klatoxcv-e0, klatoxcv-e1 (492039, the stale reference task 058 knows).
+- The pen's corner post (the owner's fault 6) is the one spot the rule
+  does not move yet: its picture is drawn by two rail-end rows whose
+  spans stop at the corner line, so the cut lands on 2-pixel slivers
+  (pen-corner-h17.jpg, before and after alike). Giving the post's halves
+  their fences' planes needs the post card split at its own axis, which
+  needs a look at the art; left for the owner's eye and a follow-up.
