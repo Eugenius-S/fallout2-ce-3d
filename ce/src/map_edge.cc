@@ -7,6 +7,7 @@
 #include "map_defs.h"
 #include "platform_compat.h"
 #include "settings.h"
+#include "scene/scene_view.h"
 #include "svga.h"
 #include "tile.h"
 #include "window_manager.h"
@@ -18,10 +19,6 @@ namespace fallout {
 // Tile size in pixels
 constexpr int kTileWidth = 32;
 constexpr int kTileHeight = 24;
-// In the scene view, let the camera move another 24 map-space pixels below
-// the authored EDG boundary while leaving the original 2D scroll limit alone.
-constexpr int kSceneBottomEdgeExtension = 24;
-
 static EdgeElevationData edgeData[ELEVATION_COUNT];
 static bool edgeDataLoaded = false;
 static bool mapperMode = false;
@@ -460,10 +457,26 @@ bool mapEdgeTileInBounds(int tile)
     }
 
     // Note: X is inverted (left > right), so check px in [right, left].
-    const int bottom = zone->scrollBorderRect.bottom
-        + (tileSceneOverlayActive() ? kSceneBottomEdgeExtension : 0);
+    const bool withinHorizontalAndTopBounds = px >= zone->scrollBorderRect.right && px <= zone->scrollBorderRect.left
+        && py >= zone->scrollBorderRect.top;
+    if (!withinHorizontalAndTopBounds) return false;
+    if (py <= zone->scrollBorderRect.bottom) {
+        return true;
+    }
+
+    // The 3D bottom stop follows the actual floor cut: keep moving while the
+    // map window's last visible row still lands on drawn ground.
+    return tileSceneOverlayActive() && scene::bottomViewHasDrawnGround(tile);
+}
+
+bool mapEdgeTilePastBottomStop(int tile)
+{
+    if (!tileIsValid(tile) || currentEdgeZone == nullptr) return false;
+    int px, py;
+    tileToPixelOffset(tile, px, py);
+    const EdgeZone* zone = currentEdgeZone;
     return px >= zone->scrollBorderRect.right && px <= zone->scrollBorderRect.left
-        && py >= zone->scrollBorderRect.top && py <= bottom;
+        && py >= zone->scrollBorderRect.top && py > zone->scrollBorderRect.bottom;
 }
 
 // Shared helper: set currentTileXAlignment if the pixel is on a scrollBorderRect edge.

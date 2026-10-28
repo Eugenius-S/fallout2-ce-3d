@@ -22,6 +22,7 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
 void unloadStaticScene();
 void staticWallStats(unsigned int* triangles, unsigned int* pages);
 MapClip staticFloorMapClip();
+bool staticFloorHasGround(double x, double z);
 bool setStaticFloorMapProjection(const SpriteCardProjection& projection);
 void setStaticMapClip(const MapClip& clip);
 MapClip staticMapClip();
