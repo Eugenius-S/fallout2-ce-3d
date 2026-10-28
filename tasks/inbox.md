@@ -179,3 +179,10 @@ that fits no task becomes a new task when the board runs dry.
   (115, with 102); the stove flat and the lockers flat (116); the message
   window's last line cut (117); the hero's halo still missing (103, in
   work).
+- 2026-10-28 The owner's goal after M1, not for profit: a free release that
+  installs from Steam onto the player's own bought Fallout 2 (Steam checks
+  the base game, the mod reads its data), the way Enderal ships for Skyrim.
+  Needs Bethesda's written consent for the Fallout IP; GOG (Fallout: London
+  went out there for Fallout 4) is the other door. Before asking: a release
+  build, the showcase video (097), a project page; tell the authors of
+  fallout2-ce and of the donor (both Sustainable Use License) first.
