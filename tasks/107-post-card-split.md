@@ -57,6 +57,25 @@ painted corner post of its kind, not one spot: name it in the PR and show
 it on more than one post. Verify at the +-hours on the pen, the bathhouse
 alley post, and at least one more post of the same kind on another map.
 
+## Acceptance
+
+- The turned perspective camera keeps the bathhouse's south corner piece
+  where the isometric camera shows it
+  (`runs/096-corner-piece-sun-side/inbox-corner-turned-before-after.jpg`,
+  tile 18930, zoom 2.5, turn 40, hour 8), and every other corner piece of
+  its kind with it: the free camera gets 096's cut pieces.
+- Posts 5 (bathhouse alley) and 6 (pen) and at least one more painted post
+  on another map read their own face's side of the sun at hours 8 and 17:
+  before|after sheets in `runs/107-post-card-split/`.
+- The 090 seam totals do not rise beyond 096's accepted ones; the fly tour
+  against main changes only at corners; the regression is 0 px on the
+  unchanged views, the changed ones with new references and diffs.
+- ctest and the exporter tests pass.
+
+## Out of scope
+
+The bottom-edge shadow step by the pen (tile 28096, outside 096's class,
+in the inbox), new shadow features.
 ## Log
 
 - 2026-10-28 glm: cut from the 096 review. The span cut cannot split the
