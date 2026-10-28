@@ -31,7 +31,7 @@ from wall_sidecar import decode_wall_sidecar, encode_wall_sidecar  # noqa: E402
 from shadow_sidecar import VERSION as SHADOW_SIDECAR_VERSION  # noqa: E402
 from shadow_sidecar import decode_shadow_sidecar, encode_shadow_sidecar  # noqa: E402
 
-EXPORTER_VERSION = "1.10.0"
+EXPORTER_VERSION = "1.11.0"
 DONOR_REVISION = "0da1cd449f1dc7f2f6986ff7e8728a4b6ae20584"
 DEFAULT_MAP = "kladwtwn"
 # Map groups for --maps: every elevation each map has.

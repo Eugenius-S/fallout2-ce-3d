@@ -2,8 +2,8 @@
 id: 100
 title: The junk on the bathhouse table stands on the table, not in the wall
 milestone: M1
-status: todo
-owner: none
+status: done
+owner: glm
 suggested: glm
 priority: normal
 claude-only: no
@@ -51,3 +51,45 @@ original, and nothing of them shows through a wall from outside.
 Shadows, the corner pieces (096).
 
 ## Log
+
+## Log
+
+### 2026-10-28 glm: the things were never on the table; the rule is the mapper's own flag word
+
+- What the objects are: not table things at all. The "junk" is two pieces of
+  `Junk` scenery (pids 0x02000110, 0x0200010F, FRMs njunk2.frm and block.frm)
+  at hexes 16478 and 16479, in the alley north of the bathhouse, leaning
+  against the alley-side wall; in the original's own view the wall hides them
+  from every inside or front scroll (the classic capture agrees). The stove
+  is `Stove` 0x020002AB (sstove2.frm) at 20937 by the alley door's house; the
+  map carries three of them. The 3D put them off any table because the prop
+  builder stood them up: the junk piles' silhouettes fit boxes (cover 0.98
+  and 0.91), and the stove was forced into a drum by name
+  (shapes/overrides.json), whose projection wraps the open lid around the
+  cylinder: from any eye but the game's the lid reads as a disc torn off the
+  body, and the junk read as boxes standing where the game shows nothing.
+- The rule: scenery whose object flag word carries nothing but light-through
+  and its own light (0x20000000, 0x20) is the mapper's loose clutter; it
+  keeps the card everywhere, no solid stands for it (build_props). The flag
+  word is engine data, not a name list: on kladwtwn e0 it flips exactly the
+  two junk piles and the two stove objects of the 256 props, and touches no
+  table, chair, bed, crate or barrel (all furniture carries structural bits,
+  0x8000 and friends); both lifts of the map (things standing on tables)
+  keep their solids. The stove override entry was removed with it: a fit's
+  refusal stands, an exception may relax an outline by pixels, not stand up
+  a solid the sprite contradicts. sstove1 (the other stove kind) was already
+  refused by the fit before this task; the kind ends uniform.
+- Exporter 1.11.0. Unit tests 66/66, regression tests ok, ctest 18/18.
+- Evidence in `runs/100-bathhouse-junk-in-wall/`: outside | inside | alley
+  before-after, the stove inside and from the street, the elevated pair,
+  the classic captures byte for byte unchanged, the wall crop that mirrors
+  the owner's 4b circle, and the fly tour sheets (31 of 43 spots changed,
+  every one a loose-flag prop taking its card back: the wheelbarrow of the
+  mall, cave clutter, the stoves).
+- The regression references of the four spots the rule moves (klamall-e0,
+  klaratcv-e0, klaratcv-e1, klatoxcv-e2) were updated with -Update; their
+  captures now match the classic pictures better than the solids did.
+  Four other spots fail the regression before and after this task
+  (klagraz-e0, klaratcv-e2, klatoxcv-e0, klatoxcv-e1): a run at 08:40,
+  before this branch, shows the same spots already failing. Left for the
+  board.
