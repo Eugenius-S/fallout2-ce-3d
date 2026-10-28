@@ -33,8 +33,11 @@ and clickable.
     running game. They use 254 colours at 6 bits. With
     `splash_screen_size=1` (`ce/src/game.cc`, `settings.ui`) a 21:9 picture
     fits by aspect and leaves bars top and bottom on 16:9: the framing at
-    16:9 is open (crop the sides to fill, or bars), decide with the owner's
-    note in the Log.
+    16:9 is decided: the owner, 2026-10-28, live, saw the wide pictures fit
+    to the screen's width; they must fit to its height instead: the picture
+    fills the screen top to bottom at its own aspect, centred, and the sides
+    beyond a narrower screen are cut off. The same for the menu and the
+    death screen.
   - Main menu: not installed. `ce/src/mainmenu.cc` loads `HR_MAINMENU.FRM`
     through the global indexed palette, and a plain conversion of the
     owner's 1820x768 picture loses colour visibly
