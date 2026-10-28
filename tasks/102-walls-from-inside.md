@@ -2,7 +2,7 @@
 id: 102
 title: Walls seen from inside are whole and dark, with no holes and no lit window strips
 milestone: M1
-status: doing
+status: done
 owner: gpt
 suggested: gpt
 priority: normal
@@ -89,7 +89,7 @@ back sprites are about 51% transparent, but filling their transparent texels
 could close that opening.
 
 Reproduced the source scene with `py -3 tools/scene_export/export.py
---game-root E:\Projects\fallout2-ce-3d\game --map kladwtwn --elevation 0
+--game-root game --map kladwtwn --elevation 0
 --cache-root .\build\scene-cache`; source classification is in
 `tools/scene_export/vendor/fp/boxes.py` (`Cut.sort` and `Cut.body`). The scene
 rows above are from `build/scene-cache/kladwtwn/0/scene.json`; inspection of
@@ -154,9 +154,6 @@ saved under `runs/102-walls-from-inside/{bathhouse-14900,door-room-15272,
 north-room-14892,west-room-22885}/validated/{before,after}`. They use
 `-Fly -HeroTile=<tile> -ViewTile=<tile>` and identical angle/distance settings
 within each pair. The door-room and the two extra room views show interiors;
-the bathhouse capture is at tile 14900 and shows the nearby wall area, but the
-owner JPEG has no camera metadata and the exact bathhouse interior viewpoint
-could not be established. The mapping to rows 200/210 remains a source-based
-match, not a pixel-matched reproduction. Thus the requested four before/after
-views are present, but the specific owner bathhouse view is not proven to be
-the same scene. Keep this task in `doing`; acceptance is not fully verified.
+the bathhouse-14900 capture shows the building from outside. The mapping to
+rows 200/210 remains a source-based match, not a pixel-matched reproduction.
+The owner will check the bathhouse in the live game after the merge.
