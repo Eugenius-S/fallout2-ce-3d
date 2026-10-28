@@ -2,7 +2,7 @@
 id: 103
 title: The see-through halo round the hero works at walls again
 milestone: M1
-status: blocked
+status: doing
 owner: gpt
 suggested: gpt
 priority: high
