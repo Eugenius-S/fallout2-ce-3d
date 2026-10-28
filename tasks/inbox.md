@@ -141,3 +141,16 @@ that fits no task becomes a new task when the board runs dry.
   roof ends and fringe (101), walls from inside and holes (102), the halo on
   walls (103), the camera's bottom edge (104).
 - KLAGRAZ e0 still differs from the stored regression reference by 132 px; clean 098 baseline has the same deviation.
+- 2026-10-27 The 4:3 full-screen art (main menu, splash and loading screens,
+  death and ending slides, the like) extended to 16:9 and 21:9. The owner's
+  method, to extend the originals rather than replace them: regenerate the art
+  wider from the original, downscale it to the game's pixel size, add dithering
+  to match, then lay the untouched original over the middle with a small mask
+  at its edges (a gradient to 0) so the original blends into the extension.
+  Not now; a note only.
+- 2026-10-27 A list of the unique objects that will need their own 3D model,
+  because the generic wall, roof and box rules cannot shape them: the big
+  stone head in Arroyo, the Vault City gate, the Reno signs, the vertibirds,
+  and the like (other one-off landmarks, vehicles and large signs). Go
+  through the maps and the prototypes once, name each object with its map and
+  shot, and order them by how much a player sees them. Not now; a note only.
