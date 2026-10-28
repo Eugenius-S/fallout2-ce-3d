@@ -9,6 +9,7 @@
 #include "scene_internal.h"
 #include "shadow.h"
 #include "static_scene.h"
+#include "../obj_types.h"
 
 namespace fallout {
 namespace scene_renderer {
@@ -348,6 +349,10 @@ bool addStaticObject(const StaticObjectFrame& frame, std::string* error)
         gObjectDraws.back().wallNormalX = static_cast<float>(-std::sin(plane[1]));
         gObjectDraws.back().wallNormalZ = static_cast<float>(std::cos(plane[1]));
     }
+    // The people keep the whole shadow verdict at their feet (109); a
+    // standing card of any other kind reads it per pixel on its own plane.
+    // The kind comes from the fid's type nibble, as walls.bin's rows read it.
+    gObjectDraws.back().feetShadow = ((frame.fid >> 24) & 0xF) == OBJ_TYPE_CRITTER;
     const int order[6] = { 0, 1, 2, 0, 2, 3 };
     for (int index : order) {
         SpriteCardVertex corner = corners[index];

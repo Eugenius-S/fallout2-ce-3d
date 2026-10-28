@@ -222,6 +222,10 @@ extern int gSceneShadowAnchorLocation;
 // 090: x 1 when a low card reads the shadow per pixel on the ground it shows,
 // y the height of that ground.
 extern int gSceneShadowGroundLocation;
+// 109: 1 when a card takes its whole shadow verdict at its feet point (the
+// people); a standing card of any other kind reads it per pixel on its own
+// plane.
+extern int gSceneShadowFeetLocation;
 
 bool createSceneShader(std::string* error);
 void destroySceneShader();
@@ -349,6 +353,10 @@ struct ObjectDraw {
     // 0 for any other card. It takes its wall's side of the sun (090).
     float wallNormalX = 0.0f;
     float wallNormalZ = 0.0f;
+    // 109: the people (OBJ_TYPE_CRITTER by the fid) keep the whole verdict at
+    // the feet point; a standing card of any other kind reads the shadow per
+    // pixel on its own plane.
+    bool feetShadow = false;
 };
 
 // Below this height (GL units) a standing card is ground clutter, not a body.
