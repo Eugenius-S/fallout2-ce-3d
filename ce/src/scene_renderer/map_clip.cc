@@ -138,6 +138,29 @@ bool mapClipContains(const MapClip& clip, double x, double z)
     return true;
 }
 
+bool extendMapClipPlaneToFloor(MapClip& clip, const MapClip& floor, int planeIndex)
+{
+    if (!clip.enabled || !floor.enabled || planeIndex < 0 || planeIndex >= 4) return false;
+    MapClipPlane& edge = clip.planes[planeIndex];
+    for (const MapClipPlane& floorPlane : floor.planes) {
+        const double dot = static_cast<double>(edge.x) * floorPlane.x
+            + static_cast<double>(edge.z) * floorPlane.z;
+        if (dot > 0.999) {
+            edge.offset = std::max(edge.offset, floorPlane.offset);
+            return true;
+        }
+    }
+    return false;
+}
+
+bool floorGridContainsWorldPoint(const unsigned char* occupied, int width, int height, double x, double z)
+{
+    if (occupied == nullptr || width <= 0 || height <= 0 || !std::isfinite(x) || !std::isfinite(z)) return false;
+    const int col = static_cast<int>(std::floor(x + width / 2.0));
+    const int row = static_cast<int>(std::floor(z + height / 2.0));
+    return col >= 0 && col < width && row >= 0 && row < height && occupied[row * width + col] != 0;
+}
+
 void edgeOffsetToGamePixel(double edgeX, double edgeY, double anchorEdgeX, double anchorEdgeY,
     double anchorGameX, double anchorGameY, double* gameX, double* gameY)
 {

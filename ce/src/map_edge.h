@@ -83,6 +83,7 @@ int mapEdgeSelectZoneAndClamp(int tile, MapElevation elevation);
 // Returns true if tile is within the EDG boundary for the given elevation.
 // Used by the stencil flood-fill as a traversal gate.
 bool mapEdgeTileInBounds(int tile);
+bool mapEdgeTilePastBottomStop(int tile);
 
 // Returns true if squareRect data (v2 EDG) is available for this elevation.
 bool mapEdgeHasSquareRect(MapElevation elevation);
