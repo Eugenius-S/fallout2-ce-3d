@@ -35,4 +35,8 @@ in the 3D view; neither stays a flat picture.
   lockers, game angle and flight, in `runs/116-stove-and-lockers-solid/`.
 - The original view regression stays pixel for pixel; ctest passes.
 
+## Out of scope
+
+Holes in solids (115), other furniture kinds, the landmark objects.
+
 ## Log

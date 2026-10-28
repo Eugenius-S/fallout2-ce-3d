@@ -34,4 +34,8 @@ full, not cut at its foot.
 - The original view regression stays pixel for pixel unless the cut is
   ours there too; ctest passes.
 
+## Out of scope
+
+The message window's art, font choice, line count and text wrapping.
+
 ## Log
