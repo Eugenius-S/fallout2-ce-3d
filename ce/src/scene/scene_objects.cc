@@ -280,6 +280,7 @@ void addObjectCard(Object* object, void* context)
     frame.pickId = pickId;
     frame.pickOnly = pickOnly;
     frame.seeThrough = seeThrough;
+    frame.noBlock = (object->flags & OBJECT_NO_BLOCK) != OBJECT_NONE;
     // The engine's translucent kinds and their tints (_obj_render_object).
     Color tint = COLOR_WHITE;
     bool translucent = true;

@@ -345,9 +345,9 @@ struct ObjectDraw {
     int tile; // its hex, for its light; -1: full light
     float anchorX; // its feet on the ground (bottom-center of the card),
     float anchorZ; // for the whole-sprite sun shadow (082 round 6)
-    // A thing lying on the ground takes the sun shadow per pixel on the
-    // ground it shows (090); a standing card takes it per pixel on its own
-    // plane (109).
+    // A thing lying on the ground, and ground clutter (OBJECT_NO_BLOCK),
+    // takes the sun shadow per pixel on the ground it shows (090); a standing
+    // card takes it per pixel on its own plane (109).
     bool groundShadow = false;
     float groundY = 0.0f; // the height of that ground
     // A card standing in a wall's plane (a door): that plane's normal (x, z),
