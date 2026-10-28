@@ -130,3 +130,18 @@ The halo's shape and size.
 - Status: blocked pending a reproducible view where the south wall actually
   crosses the hero or the intended egg area. The owner's game and its files
   were not touched.
+
+### 2026-10-28 gpt: current main wall overlap
+
+Built the current main merge and captured KLADWTWN elevation 0 at hero and
+view tile 19075, with and without `F2CE_NO_EGG=1`. The bathhouse front wall
+occludes the hero with the egg off and reveals him with it on. The matched
+crop is `runs/103-see-through-halo-at-walls/bathhouse-19075-egg-off-on.jpg`.
+Nearby hero tiles 19071, 19073, 19077 and 19079 also show an egg on the wall.
+This proves the mechanism works at these locations, not that the owner's
+reported brick-wall and bathhouse locations work. The regression point, good
+and bad bisect endpoints, and cause remain unidentified; no fix was made.
+Next: find a wall-overlap point reproducing the reported failure, compare it
+with 018 using its matching scene cache, then bisect that same point.
+Check: `tools/dev-snapshot.ps1 -Map kladwtwn -ViewTile 19075 -HeroTile 19075
+-Still`, once normally and once with `F2CE_NO_EGG=1`.
