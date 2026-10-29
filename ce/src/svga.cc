@@ -6,6 +6,8 @@
 
 #include <SDL.h>
 
+#include <vector>
+
 #include "color.h"
 #include "config.h"
 #include "dinput.h"
@@ -53,6 +55,52 @@ SDL_Surface* gSdlSurface = nullptr;
 SDL_Renderer* gSdlRenderer = nullptr;
 SDL_Texture* gSdlTexture = nullptr;
 SDL_Surface* gSdlTextureSurface = nullptr;
+
+static std::vector<unsigned char> gRgbaBackground;
+static std::vector<unsigned char> gRgbaBackgroundMask;
+static int gRgbaBackgroundWidth = 0;
+static int gRgbaBackgroundHeight = 0;
+
+void renderSetRgbaBackground(const unsigned char* rgba, const unsigned char* mask, int width, int height)
+{
+    if (rgba == nullptr || mask == nullptr || width <= 0 || height <= 0) {
+        renderClearRgbaBackground();
+        return;
+    }
+
+    size_t pixelCount = static_cast<size_t>(width) * height;
+    gRgbaBackground.assign(rgba, rgba + pixelCount * 4);
+    gRgbaBackgroundMask.assign(mask, mask + pixelCount);
+    gRgbaBackgroundWidth = width;
+    gRgbaBackgroundHeight = height;
+}
+
+void renderClearRgbaBackground()
+{
+    gRgbaBackground.clear();
+    gRgbaBackgroundMask.clear();
+    gRgbaBackgroundWidth = 0;
+    gRgbaBackgroundHeight = 0;
+}
+
+static void renderApplyRgbaBackground()
+{
+    if (gSdlTextureSurface == nullptr || gRgbaBackground.empty()
+        || gSdlTextureSurface->w != gRgbaBackgroundWidth || gSdlTextureSurface->h != gRgbaBackgroundHeight) {
+        return;
+    }
+
+    for (int y = 0; y < gRgbaBackgroundHeight; y++) {
+        unsigned char* dst = static_cast<unsigned char*>(gSdlTextureSurface->pixels) + y * gSdlTextureSurface->pitch;
+        const unsigned char* src = gRgbaBackground.data() + static_cast<size_t>(y) * gRgbaBackgroundWidth * 4;
+        const unsigned char* mask = gRgbaBackgroundMask.data() + static_cast<size_t>(y) * gRgbaBackgroundWidth;
+        for (int x = 0; x < gRgbaBackgroundWidth; x++) {
+            if (mask[x] != 0) {
+                memcpy(dst + x * 4, src + x * 4, 4);
+            }
+        }
+    }
+}
 
 // TODO: Remove once migration to update-render cycle is completed.
 FpsLimiter sharedFpsLimiter;
@@ -577,6 +625,7 @@ void renderPresent()
         // path performs every frame, so palette fades and cycling behave
         // identically under the OpenGL presentation.
         scene_renderer::presentFrameWithSharpText(gSdlSurface, gSdlTextureSurface, sharpTextReady);
+        renderApplyRgbaBackground();
         // render movie frame if present
         movieRenderDirectOverlay();
         scene_renderer::swap();
@@ -584,6 +633,7 @@ void renderPresent()
         return;
     }
 
+    renderApplyRgbaBackground();
     SDL_UpdateTexture(gSdlTexture, nullptr, gSdlTextureSurface->pixels, gSdlTextureSurface->pitch);
     SDL_RenderClear(gSdlRenderer);
     SDL_RenderCopy(gSdlRenderer, gSdlTexture, nullptr, nullptr);

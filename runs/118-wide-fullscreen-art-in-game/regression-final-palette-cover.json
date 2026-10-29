@@ -1,0 +1,157 @@
+{
+  "baseline": "fresh origin/main",
+  "baseline_commit": "0ebfd1f5",
+  "working_branch": "task/118-wide-fullscreen-art-in-game",
+  "final_release_exe_sha256": "CBFB53A9D400E6758FADF479DDF157510ECA2922E89EA9E5FF097B4FEFF2B1E1",
+  "scene_cache": "build/scene-cache",
+  "branch_capture_run": "runs\\regression\\20261029-171612-900-69920",
+  "baseline_images": "runs\\118-regression-main-reference",
+  "direct_pixel_result": "16/16 exact; 0 changed pixels",
+  "tracked_reference_runner_note": "tools/regression.ps1 still reports historical mismatches klagraz-e0=183 and klaratcv-e2=6299; fresh origin/main direct comparison is authoritative",
+  "spots": [
+    {
+      "spot": "central-doors",
+      "changed_pixels": 0,
+      "max_channel_delta": 0,
+      "size": [
+        1920,
+        1080
+      ]
+    },
+    {
+      "spot": "corrals",
+      "changed_pixels": 0,
+      "max_channel_delta": 0,
+      "size": [
+        1920,
+        1080
+      ]
+    },
+    {
+      "spot": "entrance",
+      "changed_pixels": 0,
+      "max_channel_delta": 0,
+      "size": [
+        1920,
+        1080
+      ]
+    },
+    {
+      "spot": "klacanyn-e0",
+      "changed_pixels": 0,
+      "max_channel_delta": 0,
+      "size": [
+        1920,
+        1080
+      ]
+    },
+    {
+      "spot": "klagraz-e0",
+      "changed_pixels": 0,
+      "max_channel_delta": 0,
+      "size": [
+        1920,
+        1080
+      ]
+    },
+    {
+      "spot": "klamall-e0",
+      "changed_pixels": 0,
+      "max_channel_delta": 0,
+      "size": [
+        1920,
+        1080
+      ]
+    },
+    {
+      "spot": "klaratcv-e0",
+      "changed_pixels": 0,
+      "max_channel_delta": 0,
+      "size": [
+        1920,
+        1080
+      ]
+    },
+    {
+      "spot": "klaratcv-e1",
+      "changed_pixels": 0,
+      "max_channel_delta": 0,
+      "size": [
+        1920,
+        1080
+      ]
+    },
+    {
+      "spot": "klaratcv-e2",
+      "changed_pixels": 0,
+      "max_channel_delta": 0,
+      "size": [
+        1920,
+        1080
+      ]
+    },
+    {
+      "spot": "klatoxcv-e0",
+      "changed_pixels": 0,
+      "max_channel_delta": 0,
+      "size": [
+        1920,
+        1080
+      ]
+    },
+    {
+      "spot": "klatoxcv-e1",
+      "changed_pixels": 0,
+      "max_channel_delta": 0,
+      "size": [
+        1920,
+        1080
+      ]
+    },
+    {
+      "spot": "klatoxcv-e2",
+      "changed_pixels": 0,
+      "max_channel_delta": 0,
+      "size": [
+        1920,
+        1080
+      ]
+    },
+    {
+      "spot": "klatrap-e0",
+      "changed_pixels": 0,
+      "max_channel_delta": 0,
+      "size": [
+        1920,
+        1080
+      ]
+    },
+    {
+      "spot": "map-edge",
+      "changed_pixels": 0,
+      "max_channel_delta": 0,
+      "size": [
+        1920,
+        1080
+      ]
+    },
+    {
+      "spot": "north-rooms",
+      "changed_pixels": 0,
+      "max_channel_delta": 0,
+      "size": [
+        1920,
+        1080
+      ]
+    },
+    {
+      "spot": "residents",
+      "changed_pixels": 0,
+      "max_channel_delta": 0,
+      "size": [
+        1920,
+        1080
+      ]
+    }
+  ]
+}

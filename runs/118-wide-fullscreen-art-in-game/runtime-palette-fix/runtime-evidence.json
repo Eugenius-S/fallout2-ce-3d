@@ -1,0 +1,58 @@
+{
+  "build_under_test": "temporary capture binaries compiled from branch code; all capture hooks removed before final build",
+  "loading": [
+    {
+      "language": "en",
+      "runtime_image": "loading-en-runtime.png",
+      "source_png": "splash2 2 1.png",
+      "source_sha256": "7DE131D99E1055B8DB136BE9837AB557C62026453975DEA525078CB39738DD92",
+      "runtime_size": [
+        1720,
+        720
+      ],
+      "runtime_exe_sha256": "d1ce7e3d66583e554935bc132e0238357d80f67efb4dbacaf6117a8f909348aa",
+      "test_rix_sha256": "995843271E679E730AC94ADFA6FCD71F6BB56B2DEFD7CF27C720CFE00A58A876",
+      "rgb_mae_vs_nearest_resized_source": 1.792,
+      "p95_channel_abs_error": 7,
+      "crop_note": "Runtime screen is 1720x720 logical at 2x output target 3440x1440; text is part of source image."
+    },
+    {
+      "language": "ru",
+      "runtime_image": "loading-ru-runtime.png",
+      "source_png": "splash2 1 1.png",
+      "source_sha256": "291FB624DA71A3749808844371C714E66C5303EED75F84217BCF31ABFEC4A057",
+      "runtime_size": [
+        1720,
+        720
+      ],
+      "runtime_exe_sha256": "d1ce7e3d66583e554935bc132e0238357d80f67efb4dbacaf6117a8f909348aa",
+      "test_rix_sha256": "17243FEEFB8219D21655B92E77279259F938A6E5291139D900CCE4D297FF5999",
+      "rgb_mae_vs_nearest_resized_source": 1.792,
+      "p95_channel_abs_error": 7,
+      "crop_note": "Runtime screen is 1720x720 logical at 2x output target 3440x1440; text is part of source image."
+    }
+  ],
+  "menu": {
+    "file": "menu-cover-3440x1440.jpg",
+    "source_png": "user-assets/fullscreen-20261028/wallpapers-selected/hires/menu/art__intrface__hr_mainmenu__d0_f0_21-9.png",
+    "runtime_size": [
+      1720,
+      720
+    ],
+    "runtime_target": "3440x1440 (logical 1720x720)",
+    "runtime_exe_sha256": "e234de942a95935b9869d5b76dc0e748aa138a12d5a3aa9bc9f5a1a9ccbf0f8e",
+    "checks": "background covers all edges with centered proportional crop; buttons and labels remain undistorted and visible",
+    "capture": "isolated hidden test process after main-menu palette fade",
+    "capture_exe_sha256": "E234DE942A95935B9869D5B76DC0E748AA138A12D5A3AA9BC9F5A1A9CCBF0F8E",
+    "geometry": "Owner source aspect is preserved; virtual scaled background is centered; outer edges are covered; UI controls remain at native size.",
+    "source_sha256": "95BAB3C4FE6BBD2CFA3B29812597BFD976FD1E553D62B141EF5EDE2DC4BFD943"
+  },
+  "death": {
+    "verified": false,
+    "reason": "no current-code death screenshot captured; previous force-death harness did not reach a frame"
+  },
+  "final_clean_release_exe_sha256": "CBFB53A9D400E6758FADF479DDF157510ECA2922E89EA9E5FF097B4FEFF2B1E1",
+  "test_copy_assets": "build/test-game-118/data/art/splash and russian/splash; each of 14 files matches corrected owner package; never copied into owner game/data",
+  "rix_roundtrip_metrics": "rix-roundtrip-metrics.json: 14 files, all 1147x480 RIX3, 6-bit RGB, active indexes 1..254; MAE details per file.",
+  "package_backup": "rix3-install-package-backup-20261029-prepalette-fix; verified 14 RIX files backed up before replacing package."
+}
