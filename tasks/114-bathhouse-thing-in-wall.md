@@ -2,8 +2,8 @@
 id: 114
 title: The thing in the bathhouse wall: find what it is and put it where the game has it
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: glm
 suggested: glm
 priority: high
 claude-only: no
