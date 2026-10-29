@@ -474,3 +474,58 @@ def compose(pieces):
         index[window][p.index != 0] = p.index[p.index != 0]
         rgba[window][p.index != 0] = p.rgba[p.index != 0]
     return index, rgba, x, y
+
+
+def fill_holes(rgba):
+    """The texture of a solid's faces with its enclosed transparent texels
+    filled in the colour of the nearest opaque ones, an average of the
+    neighbours, so no face shows the scene through the art's holes (the
+    owner's rule of no holes in the 3D things, 115). The open border, the
+    ground round the feet and the painted shade band, stays as it is: a
+    cut-out that is the shape's own keeps the original's pixels."""
+    alpha = rgba[..., 3] > 0
+    if alpha.all() or not alpha.any():
+        return rgba
+    # Transparent texels the border reaches stay open; only enclosed ones fill.
+    reach = np.zeros_like(alpha)
+    reach[0, :] = reach[-1, :] = reach[:, 0] = reach[:, -1] = True
+    reach &= ~alpha
+    while True:
+        grown = reach.copy()
+        grown[1:, :] |= reach[:-1, :]
+        grown[:-1, :] |= reach[1:, :]
+        grown[:, 1:] |= reach[:, :-1]
+        grown[:, :-1] |= reach[:, 1:]
+        grown &= ~alpha
+        if (grown == reach).all():
+            break
+        reach = grown
+    holes = ~alpha & ~reach
+    if not holes.any():
+        return rgba
+    out = rgba.copy()
+    colours = out[..., :3].astype(np.uint32)
+    filled = alpha
+    todo = holes
+    while todo.any():
+        up, down = np.zeros_like(filled), np.zeros_like(filled)
+        up[1:, :] = filled[:-1, :]
+        down[:-1, :] = filled[1:, :]
+        left, right = np.zeros_like(filled), np.zeros_like(filled)
+        left[:, 1:] = filled[:, :-1]
+        right[:, :-1] = filled[:, 1:]
+        count = up.astype(int) + down + left + right
+        newly = todo & (count > 0)
+        if not newly.any():
+            break
+        total = np.zeros((*newly.shape, 3), np.uint32)
+        for neighbour, mask in ((np.roll(colours, 1, 0), up), (np.roll(colours, -1, 0), down),
+                                (np.roll(colours, 1, 1), left), (np.roll(colours, -1, 1), right)):
+            total += neighbour * mask[..., None]
+        cols = (total[newly] + count[newly, None] // 2) // count[newly, None]
+        out[..., :3][newly] = cols.astype(np.uint8)
+        out[..., 3][newly] = 255
+        colours = out[..., :3].astype(np.uint32)
+        filled = filled | newly
+        todo = todo & ~newly
+    return out
