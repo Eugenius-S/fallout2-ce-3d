@@ -574,7 +574,8 @@ void textCaptureDrawText(unsigned char* buffer, const char* string, int length, 
         : lineHeight;
     const int sharpTextOffsetY = fontGetCurrent() != 101 ? 0
         : activeTextCaptureTag() == TextCaptureTag::FloatingCharacterBark ? activeTextSharpOffsetY()
-        : activeTextCaptureTag() == TextCaptureTag::InterfacePlaqueOffset
+        : activeTextCaptureTag() == TextCaptureTag::HudMessageLog
+                || activeTextCaptureTag() == TextCaptureTag::InterfacePlaqueOffset
                 || activeTextCaptureTag() == TextCaptureTag::CharacterStatsPlaque ? -2 : 0;
     const bool centeredStatDescription = fontGetCurrent() == 101
         && activeTextCaptureTag() == TextCaptureTag::SpecialStatDescription;
