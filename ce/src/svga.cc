@@ -604,6 +604,22 @@ void renderPresent()
                     scene_renderer::swap();
                     return;
                 }
+                if (!gRgbaBackground.empty()) {
+                    // Fullscreen owner art replaces the old indexed background
+                    // while preserving the screen's foreground (for example,
+                    // death subtitles) through its mask.
+                    SDL_BlitSurface(gSdlSurface, nullptr, gSdlTextureSurface, nullptr);
+                    scene::maskOverlay(static_cast<const unsigned char*>(gSdlSurface->pixels), gSdlSurface->pitch,
+                        static_cast<unsigned char*>(gSdlTextureSurface->pixels), gSdlTextureSurface->pitch,
+                        gSdlSurface->w, gSdlSurface->h);
+                    renderApplyRgbaBackground();
+                    scene_renderer::drawSceneOverlay(
+                        static_cast<const unsigned char*>(gSdlTextureSurface->pixels),
+                        gSdlTextureSurface->w, gSdlTextureSurface->h, gSdlTextureSurface->pitch);
+                    scene_renderer::swap();
+                    devtools::sceneOverlayPresented();
+                    return;
+                }
                 // The game's interface, mouse cursor and floating text over it.
                 scene_renderer::drawSceneOverlayWithSharpText(gSdlSurface, gSdlTextureSurface, sharpTextReady);
                 scene_renderer::swap();
