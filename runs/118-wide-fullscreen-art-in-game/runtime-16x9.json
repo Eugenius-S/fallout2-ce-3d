@@ -1,0 +1,21 @@
+{
+  "resolution": "1920x1080",
+  "logical_resolution": "960x540",
+  "scale": 2,
+  "loading_image": "runtime-16x9-loading.jpg",
+  "menu_image": "runtime-16x9-menu.jpg",
+  "capture_exe_sha256": "85de597b94ef574d942054dfb93a98821fbafaf5c2bb804216e666acb9cce4c2",
+  "capture_ce_commit": "12ffd925",
+  "final_slot1_exe_sha256": "30255adcd42cb6be28d70a2265ea36b4aceb1b6c842e4880ebbb85ee869f3e5b",
+  "final_slot1_map": "KLADWTWN.SAV",
+  "loading_asset": {
+    "path": "data/art/splash/splash2.rix",
+    "dimensions": "1120x480",
+    "sha256": "8c05a1f6602c18a9590083961c558f986f7c579ee72ddfcdf8cdec84800400a3"
+  },
+  "menu_asset": {
+    "path": "user-assets/fullscreen-20261028/wallpapers-selected/hires/menu/art__intrface__hr_mainmenu__d0_f0_21-9.png",
+    "dimensions": "1820x768",
+    "sha256": "95bab3c4fe6bbd2cfa3b29812597bfd976fd1e553d62b141ef5ede2dc4bfd943"
+  }
+}

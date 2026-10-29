@@ -195,12 +195,15 @@ static void mainMenuComputeAspectFit(int srcWidth, int srcHeight, int& outX, int
     outWidth = dstWidth;
     outHeight = dstHeight;
 
-    if (mainMenuHasRgbaBackground
-        && static_cast<int64_t>(srcWidth) * dstHeight > static_cast<int64_t>(srcHeight) * dstWidth) {
-        // Wide menu art fills the screen vertically. Cropping the same amount
-        // from each side keeps its controls aligned with their painted places.
-        outWidth = static_cast<int>(static_cast<int64_t>(dstHeight) * srcWidth / srcHeight);
-        outHeight = dstHeight;
+    if (mainMenuHasRgbaBackground) {
+        // Cover the screen with the owner's art and crop the excess equally.
+        if (static_cast<int64_t>(dstWidth) * srcHeight >= static_cast<int64_t>(dstHeight) * srcWidth) {
+            outWidth = dstWidth;
+            outHeight = static_cast<int>((static_cast<int64_t>(dstWidth) * srcHeight + srcWidth - 1) / srcWidth);
+        } else {
+            outWidth = static_cast<int>((static_cast<int64_t>(dstHeight) * srcWidth + srcHeight - 1) / srcHeight);
+            outHeight = dstHeight;
+        }
     } else if (static_cast<int64_t>(dstHeight) * srcWidth > static_cast<int64_t>(dstWidth) * srcHeight) {
         outHeight = static_cast<int>(static_cast<int64_t>(dstWidth) * srcHeight / srcWidth);
     } else {
@@ -299,10 +302,18 @@ static bool mainMenuLoadArt()
     unsigned int backgroundWidth = 0;
     unsigned int backgroundHeight = 0;
     unsigned error = lodepng::decode(mainMenuRgbaBackground, backgroundWidth, backgroundHeight,
-        "user-assets/fullscreen-20261028/wallpapers-selected/hires/menu/hr_mainmenu.png");
+        "user-assets/fullscreen-20261028/wallpapers-selected/hires/menu/art__intrface__hr_mainmenu__d0_f0_21-9.png");
     if (error != 0) {
         error = lodepng::decode(mainMenuRgbaBackground, backgroundWidth, backgroundHeight,
-            "game/user-assets/fullscreen-20261028/wallpapers-selected/hires/menu/hr_mainmenu.png");
+            "game/user-assets/fullscreen-20261028/wallpapers-selected/hires/menu/art__intrface__hr_mainmenu__d0_f0_21-9.png");
+    }
+    if (error != 0) {
+        error = lodepng::decode(mainMenuRgbaBackground, backgroundWidth, backgroundHeight,
+            "user-assets/fullscreen-20261028/wallpapers-selected/hires/menu/hr_mainmenu.png");
+        if (error != 0) {
+            error = lodepng::decode(mainMenuRgbaBackground, backgroundWidth, backgroundHeight,
+                "game/user-assets/fullscreen-20261028/wallpapers-selected/hires/menu/hr_mainmenu.png");
+        }
     }
     if (error == 0 && backgroundWidth > 0 && backgroundHeight > 0
         && backgroundWidth <= SHRT_MAX && backgroundHeight <= SHRT_MAX) {

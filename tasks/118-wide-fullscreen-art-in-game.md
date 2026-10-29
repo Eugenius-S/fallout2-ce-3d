@@ -94,3 +94,25 @@ Runtime loading and menu captures for both aspects are in this folder.
 
 No game assets were committed. The owner game and its `mod-cache` were not
 written.
+
+### 2026-10-29 gpt follow-up
+The owner's 1120x480 splash is 2.333:1; 2560x1080 is 2.370:1. Height-fit
+left about 20 physical pixels at each side. `splash_screen_size=1` now uses
+cover sizing, rounds up to avoid seams, and center-crops the excess. At 21:9
+the 1280x549 scaled source is cropped to 1280x540; at 16:9 the 1260x540
+source is cropped to 960x540.
+
+The menu loader now tries the existing owner wallpaper
+`user-assets/fullscreen-20261028/wallpapers-selected/hires/menu/art__intrface__hr_mainmenu__d0_f0_21-9.png`
+before the legacy image. It is 1820x768 and matches the game-folder asset by
+SHA256. The fallback remains the legacy wide image, then the stock menu art.
+No copy into `data/art/intrface` or any owner game file was needed. The test
+copy showed the exact wallpaper at 16:9 and 21:9; its capture identity and
+the final no-hook slot-1 EXE identity are in the matching JSON sidecars.
+
+Final Release build and CTest passed 18/18. Pixel comparison against fresh
+`origin/main` (`0ebfd1f5`) passed 16/16 with zero changed pixels; all test
+captures used `build/scene-cache`. The uninstrumented final EXE loaded slot 1
+to `KLADWTWN.SAV` at both aspects. The existing `game/user-assets` is where
+the owner asset lives; the updated executable reads it from the game working
+directory, so the owner will see it after updating the build and restarting.

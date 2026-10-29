@@ -1612,12 +1612,16 @@ static void showSplash()
         if (size == 2) {
             scaledWidth = screenWidth;
             scaledHeight = screenHeight;
-        } else if (size == 1
-            && static_cast<int64_t>(width) * screenHeight > static_cast<int64_t>(height) * screenWidth) {
-            // Wide art fills the screen vertically; keep its proportions and
-            // crop equal strips from the left and right on narrower screens.
-            scaledHeight = screenHeight;
-            scaledWidth = static_cast<int>(static_cast<int64_t>(screenHeight) * width / height);
+        } else if (size == 1) {
+            // Cover the screen while preserving the art's proportions. Round
+            // the scaled dimension up so integer rounding cannot leave a seam.
+            if (static_cast<int64_t>(screenWidth) * height >= static_cast<int64_t>(screenHeight) * width) {
+                scaledWidth = screenWidth;
+                scaledHeight = static_cast<int>((static_cast<int64_t>(screenWidth) * height + width - 1) / width);
+            } else {
+                scaledHeight = screenHeight;
+                scaledWidth = static_cast<int>((static_cast<int64_t>(screenHeight) * width + height - 1) / height);
+            }
         } else {
             if (screenHeight * width >= screenWidth * height) {
                 scaledWidth = screenWidth;
