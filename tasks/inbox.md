@@ -194,3 +194,6 @@ that fits no task becomes a new task when the board runs dry.
   (`runs/inbox/2026-10-29-main-menu-russian-labels.jpg`), «ВСТУПЛЕНИЕ» and
   «НОВАЯ ИГРА» extend left over the red circular button in their rows. The
   owner says both labels do not fit on the buttons. Not now.
+- 2026-10-29 FPS: during a live check, the owner felt that the frame rate
+  seemed low. No measured value or reproduction conditions were provided.
+  Not now.
