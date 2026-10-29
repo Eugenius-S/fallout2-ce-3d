@@ -1,0 +1,2 @@
+fly tour against glm-main (origin/main 85a3a087), this branch as after:
+fly tour: no spot changed of 43 (the frozen tour renders with the sun shadows off; the change only alters shadow reads)

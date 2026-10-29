@@ -5,6 +5,7 @@
 #include "gl_api.h"
 #include "scene_internal.h"
 #include "sprite_card.h"
+#include "sky.h"
 
 namespace fallout {
 namespace scene_renderer {
@@ -27,6 +28,7 @@ std::vector<unsigned char> gFloorOccupancy;
 
 void destroyStaticFloor()
 {
+    destroySceneSky();
     if (gContext != nullptr) {
         if (gFloorTexture != 0) glDeleteTextures(1, &gFloorTexture);
         if (gFloorVbo != 0) glDeleteBuffers(1, &gFloorVbo);

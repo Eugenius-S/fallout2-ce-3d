@@ -222,6 +222,10 @@ extern int gSceneShadowAnchorLocation;
 // 090: x 1 when a low card reads the shadow per pixel on the ground it shows,
 // y the height of that ground.
 extern int gSceneShadowGroundLocation;
+// 109: 1 when a card takes its whole shadow verdict at its feet point (the
+// people); a standing card of any other kind reads it per pixel on its own
+// plane.
+extern int gSceneShadowFeetLocation;
 
 bool createSceneShader(std::string* error);
 void destroySceneShader();
@@ -341,18 +345,21 @@ struct ObjectDraw {
     int tile; // its hex, for its light; -1: full light
     float anchorX; // its feet on the ground (bottom-center of the card),
     float anchorZ; // for the whole-sprite sun shadow (082 round 6)
-    // A low thing (lying flat, or a card under kLowCardHeight: straw, grass,
-    // rubble) takes the sun shadow per pixel on the ground it shows (090).
+    // A thing lying on the ground, and ground clutter (OBJECT_NO_BLOCK),
+    // takes the sun shadow per pixel on the ground it shows (090); a standing
+    // card takes it per pixel on its own plane (109).
     bool groundShadow = false;
     float groundY = 0.0f; // the height of that ground
     // A card standing in a wall's plane (a door): that plane's normal (x, z),
     // 0 for any other card. It takes its wall's side of the sun (090).
     float wallNormalX = 0.0f;
     float wallNormalZ = 0.0f;
+    // 109: a card with the whole verdict at the feet point: the people
+    // (OBJ_TYPE_CRITTER by the fid) and a standing body taller than half a
+    // wall (a tree, a statue). Every other standing card reads the shadow per
+    // pixel on its own plane.
+    bool feetShadow = false;
 };
-
-// Below this height (GL units) a standing card is ground clutter, not a body.
-constexpr float kLowCardHeight = 0.5f;
 
 extern std::vector<ObjectDraw> gObjectDraws;
 extern unsigned int gObjectVao;
