@@ -1,0 +1,16 @@
+entrance: pass 0 changed pixels
+corrals: pass 0 changed pixels
+residents: pass 0 changed pixels
+central-doors: pass 16 changed pixels
+north-rooms: pass 0 changed pixels
+map-edge: pass 4 changed pixels
+klacanyn-e0: pass 0 changed pixels
+klagraz-e0: fail 183 changed pixels
+klamall-e0: pass 0 changed pixels
+klaratcv-e0: fail 3837 changed pixels
+klaratcv-e1: fail 5185 changed pixels
+klaratcv-e2: fail 6299 changed pixels
+klatoxcv-e0: pass 3 changed pixels
+klatoxcv-e1: pass 0 changed pixels
+klatoxcv-e2: fail 550 changed pixels
+klatrap-e0: pass 1 changed pixels
