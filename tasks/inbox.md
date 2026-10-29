@@ -197,3 +197,5 @@ that fits no task becomes a new task when the board runs dry.
 - 2026-10-29 FPS: during a live check, the owner felt that the frame rate
   seemed low. No measured value or reproduction conditions were provided.
   Not now.
+- 2026-10-30 FPS counter: the owner requests an in-game FPS counter that can
+  be turned on and off. Not now.
