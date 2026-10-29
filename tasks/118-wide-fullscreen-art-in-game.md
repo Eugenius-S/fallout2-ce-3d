@@ -69,6 +69,17 @@ Making new wide art, the ending slides, movies.
 ## Log
 
 ### 2026-10-29 gpt
-Done: Added fill-height framing for wide loading screens, menu art and the death screen. Added an RGBA background path for the owner's local menu and death PNGs while keeping indexed menu controls and subtitles visible. Original 4:3 framing still uses aspect fit.
-Next: Resolve the two repeated regression capture failures and pixel mismatches, then capture every required loading screen, menu and death screen at both aspects and verify menu clicks.
-Check: Release configure-build passed. `ctest --test-dir build --output-on-failure` reports 17/18 passed; `settings_3d_tests` fails on its missing `clean_edges` default assertion. Python scene-export tests passed 67/67; regression tool tests passed 12/12. Full `tools/regression.ps1`: 9 pass, 5 fail, 2 error. Failing changed-pixel counts: entrance 191092, map-edge 453853, klacanyn-e0 246157, klagraz-e0 42372, klaratcv-e2 6299. Capture errors: residents and klatoxcv-e2, each after two 90-second attempts. No required art screenshots or button-click checks have been completed.
+Progress: The code changes remain in the branch; no art files were added to Git.
+A separate resource copy for the test instance is in `build/test-game-118`.
+The owner game and its `mod-cache` were not changed.
+
+Check: Release build passed and CTest passed 18/18. A fresh baseline build
+from main `0ebfd1f5` captured all 16 reference spots successfully. The branch
+regression capture timed out twice on `entrance`, each with
+`No snapshot within 90 s`; stderr reached OpenGL initialization but no
+snapshot metadata was produced. I stopped further captures after the second
+failure. Runtime screenshots for loading, menu and death at 16:9 and 21:9,
+menu click checks, and the 4:3 original check remain unverified.
+
+Next: Resolve why the isolated branch test instance does not produce its
+first snapshot, then complete the runtime screenshot and click checks.
