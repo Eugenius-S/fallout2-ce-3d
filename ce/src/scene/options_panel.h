@@ -25,6 +25,7 @@ public:
     unsigned char* contentBuffer();
     unsigned char* footerBuffer();
     int contentHeight() const;
+    int footerButtonTop() const;
     int rowCount() const;
     int rowTop(int index) const;
     int rowHeight(int index) const;
@@ -87,6 +88,8 @@ private:
     int pageY_ = 0;
     LabelResolver labelResolver_ = nullptr;
     int contentHeight_ = 480;
+    int panelBottom_ = 0;
+    int footerButtonTop_ = 450;
     int scroll_ = 0;
     int sliderTrackOffset_ = 0;
     std::vector<unsigned char> content_;

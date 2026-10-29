@@ -190,6 +190,7 @@ bool OptionsPanel::initialize(int windowId, unsigned char* surface, const unsign
     };
     const int legacyCropRight = kWidth - frameInset();
     for (const Rect& rect : legacyBlocks) {
+        if (screenHeight_ > kHeight && rect.y == 443) continue;
         const int left = std::max(0, rect.x);
         const int right = std::min({ kWidth, legacyCropRight, rect.x + rect.width });
         const int top = std::max(0, rect.y);
@@ -215,7 +216,7 @@ bool OptionsPanel::initialize(int windowId, unsigned char* surface, const unsign
     scrollbarGroove_.resize(static_cast<size_t>(12) * 240);
     for (int y = 0; y < 240; y++) {
         for (int x = 0; x < 12; x++) {
-            scrollbarGroove_[static_cast<size_t>(y) * 12 + x] = background_[static_cast<size_t>(52 + 11 - x) * kWidth + 384 + y];
+            scrollbarGroove_[static_cast<size_t>(y) * 12 + x] = background_[static_cast<size_t>(52) * kWidth + 384 + x];
         }
     }
     frameImage_ = std::make_unique<FrmImage>();
@@ -356,8 +357,9 @@ unsigned char OptionsPanel::backgroundTexturePixel(int x, int y) const
 }
 
 unsigned char* OptionsPanel::contentBuffer() { return content_.data(); }
-unsigned char* OptionsPanel::footerBuffer() { return content_.data() + static_cast<size_t>(kWidth) * 430; }
+unsigned char* OptionsPanel::footerBuffer() { return content_.data() + static_cast<size_t>(kWidth) * (footerButtonTop_ - 19); }
 int OptionsPanel::contentHeight() const { return contentHeight_; }
+int OptionsPanel::footerButtonTop() const { return footerButtonTop_; }
 int OptionsPanel::rowCount() const { return static_cast<int>(rows_.size()); }
 int OptionsPanel::rowTop(int index) const
 {
@@ -424,7 +426,9 @@ void OptionsPanel::buildRowLayout()
             if (hasFollowingGroup) cursor += kGroupGap;
         }
     }
-    contentHeight_ = std::max(kHeight, cursor + kPanelBottomPadding);
+    panelBottom_ = std::max(kPanelTop + kPanelBottomCap, cursor + kPanelBottomPadding);
+    footerButtonTop_ = screenHeight_ > kHeight ? panelBottom_ + 16 : 450;
+    contentHeight_ = std::max({ kHeight, panelBottom_, footerButtonTop_ + 48 });
 }
 int OptionsPanel::findRowBySettingId(const std::string& id) const
 {
@@ -526,7 +530,7 @@ void OptionsPanel::draw()
         }
     }
     unsigned char* panel = content_.data() + static_cast<size_t>(kWidth) * kPanelTop;
-    int panelHeight = contentHeight_ - kPanelTop;
+    int panelHeight = panelBottom_ - kPanelTop;
     for (int y = 0; y < panelHeight; y++) {
         for (int x = 0; x < kWidth; x++) {
             panel[static_cast<size_t>(kWidth) * y + x] = backgroundTexturePixel(pageX_ + x, pageY_ + kPanelTop + y);
@@ -554,7 +558,7 @@ void OptionsPanel::draw()
                     if (top || bottom) {
                         sy = top ? 16 + y : 47 - (y - (panelHeight - kPanelBottomCap));
                     } else {
-                        sy = 48 + (y - kPanelTopCap) % 5;
+                        sy = 48;
                     }
                 } else if (top) {
                     constexpr int edgeLeft = 520;

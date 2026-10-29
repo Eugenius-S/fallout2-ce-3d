@@ -157,7 +157,6 @@ void preferencesProbeComplete(bool success, scene::OptionsPanel* panel, int stag
     if (gMode == ProbeMode::Cancel || gMode == ProbeMode::Escape) {
         if (panel->settingValueForProbe("3d.zoom") != gZoomBefore
             || panel->settingValueForProbe("3d.enabled") != gEnabledBefore
-            || gStagedLegacyDifficulty == gLegacyDifficultyBefore
             || stagedLegacyDifficulty != gLegacyDifficultyBefore
             || static_cast<int>(settings.preferences.combat_difficulty) != gLegacyDifficultyBefore
             || std::abs(settings.scene3d.zoom - std::strtod(gZoomBefore.c_str(), nullptr)) > 0.00001
