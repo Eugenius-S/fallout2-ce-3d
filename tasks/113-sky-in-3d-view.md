@@ -49,3 +49,9 @@ of day the scene already lights by.
 Clouds and their shadows (023/069), fog on the scene, a moon light.
 
 ## Log
+
+### 2026-10-29 gpt
+Done: Added the donor-attributed full-screen sky pass for flight and turned 3D cameras, with time-blended colors, sun glow, night stars, distant ridges, and the donor's dark underground color. The pass skips the empty-floor fill in flight so the sky remains visible beyond the map boundary. Final after captures are in `runs/113-sky-in-3d-view/`.
+Next: Capture matching before views from an untouched baseline, diagnose the five pixel-regression failures, and resolve the existing `settings_3d_tests` failure before completing acceptance.
+Check: `powershell -NoProfile -ExecutionPolicy Bypass -File tools/configure-build.ps1 Release` passed. `ctest --test-dir build --output-on-failure` had 17/18 passing; `settings_3d_tests` failed on `missing clean_edges key uses its literal true default`. Final `tools/regression.ps1` had 11/16 spots pass and 5 fail: entrance 191092 pixels, map-edge 453853, klacanyn-e0 246157, klagraz-e0 42372, klaratcv-e2 6299. Other 11 spots passed, with 0 changes in 9, 3 in klatoxcv-e0 and 1 in klatrap-e0. Before captures were not obtained because the baseline build had been replaced before capture began.
+Environment note: The main checkout's `game/mod-cache/scene/kladwtwn/0` contains 11 cache files dated 2026-10-29 10:02. This task did not alter them. No verified pre-change copy or hashes are available, so their prior contents and safe restoration cannot be confirmed.
