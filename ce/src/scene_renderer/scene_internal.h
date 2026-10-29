@@ -163,6 +163,8 @@ extern int gSceneGlassGrayLocation;
 extern int gScenePickLocation;
 extern int gSceneClipEnabledLocation;
 extern int gSceneClipPlaneLocations[4];
+extern int gSceneRoofClipLocation;
+extern int gSceneRoofGridLocation;
 // The see-through circle (roofs.cc): on/off, its mask (texture unit 1), its
 // rect in game logical pixels, and the GL viewport and logical size to find
 // a fragment's game pixel.
@@ -257,6 +259,12 @@ void roofShadowCasters(unsigned int* vao, int* vertexCount);
 // Binds the egg's mask (unit 1) and sets its rect and the viewport; false when
 // no egg is shown.
 bool bindEgg(int viewportX, int viewportY, int viewportWidth, int viewportHeight);
+// The height cards are cut at where a roof covers them (114): the roof plane,
+// 0 when the map has no roofs. The game's own view hides a room's cards above
+// it behind the roof's picture; bindRoofGrid gives the shader the squares the
+// roofs cover right now, the egg's see-through circle included.
+float roofClipHeight();
+void bindRoofGrid(int unit);
 
 // --- lighting.cc: the game's light as point lights -----------------------------
 
