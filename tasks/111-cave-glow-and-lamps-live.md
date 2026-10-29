@@ -2,7 +2,7 @@
 id: 111
 title: The slime pools glow and the lamps light the walls in the live caves
 milestone: M1
-status: doing
+status: blocked
 owner: gpt
 suggested: gpt
 priority: normal
@@ -56,3 +56,30 @@ turns the glow and the lights off, then fix that cause, not the look.
 New glow kinds, the glow's look, light strength.
 
 ## Log
+
+### 2026-10-29: live reproduction blocked; no rendering cause established
+
+- Read-only owner settings: `game/fallout2.cfg` has 2310x1298, scale 2,
+  zoom 1.28, glow on, `glow_strength=1.0`, lights on. The test process used
+  the owner's main-cache scene at
+  `E:\Projects\fallout2-ce-3d\game\mod-cache\scene` and the owner executable
+  (SHA-256 `ae939665d67e718f69c086e6c842348767a0dd9ca4f95d38a71a30ea237cfe72`);
+  no owner-game process was stopped or restarted.
+- Ran the same non-still capture twice, with `-Map klatoxcv -Elevation 1
+  -ViewTile 22924 -ScreenWidth 2310 -ScreenHeight 1298 -Scale 2
+  -SceneCache E:\Projects\fallout2-ce-3d\game\mod-cache\scene
+  -CaptureConsole -Glow -GlowStrength 1 -TimeoutSeconds 90`. Both attempts
+  ended `No snapshot within 90 s.` No JSON or PNG was produced. Both logs say
+  `devtools: startup target klatoxcv e1 accepted=1 blocking=0`; stderr reports
+  OpenGL 4.1.0, NVIDIA 617.14 / GeForce RTX 5070. This does not establish why
+  glow or lights look different in the owner's live game.
+- Validation possible without live captures: `ctest --test-dir build
+  --output-on-failure` passed 15/15. `tools/regression.ps1 -Spot klatoxcv-e1`
+  passed with 0 changed pixels. Its sidecar reports resolution 1920x1080,
+  logical_resolution 960x540, scale 2, `ce_commit=1a5766a5`, executable hash
+  above, and `glow.enabled=false`; this is the still pixel baseline, not the
+  requested live glow/light before/after.
+- Known unrelated main-baseline regression differences remain as previously
+  recorded in task 100: `klagraz-e0` 183 pixels and `klaratcv-e2` 6299 pixels.
+- No source or game files changed. Cause and live before/after evidence remain
+  outstanding; status is `blocked` after two same-method attempts.
