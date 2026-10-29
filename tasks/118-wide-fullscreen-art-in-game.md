@@ -2,8 +2,8 @@
 id: 118
 title: The owner's wide loading screens, main menu and death screen in the game
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: gpt
 suggested: gpt
 priority: normal
 claude-only: no
