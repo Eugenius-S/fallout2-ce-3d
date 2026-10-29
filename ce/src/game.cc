@@ -1,6 +1,7 @@
 #include "game.h"
 #include "platform/git_version.h"
 
+#include <algorithm>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -1631,9 +1632,17 @@ static void showSplash()
         if (scaled != nullptr) {
             blitBufferToBufferStretch(data, width, height, width, scaled, scaledWidth, scaledHeight, scaledWidth);
 
-            int x = screenWidth > scaledWidth ? (screenWidth - scaledWidth) / 2 : 0;
-            int y = screenHeight > scaledHeight ? (screenHeight - scaledHeight) / 2 : 0;
-            _scr_blit(scaled, scaledWidth, scaledHeight, 0, 0, scaledWidth, scaledHeight, x, y);
+            // _GNW95_ShowRect copies the complete rectangle into the screen
+            // surface. Crop the scaled image here so neither the source rect
+            // nor the destination rect can extend past its buffer.
+            int visibleWidth = std::min(scaledWidth, screenWidth);
+            int visibleHeight = std::min(scaledHeight, screenHeight);
+            int sourceX = (scaledWidth - visibleWidth) / 2;
+            int sourceY = (scaledHeight - visibleHeight) / 2;
+            int x = (screenWidth - visibleWidth) / 2;
+            int y = (screenHeight - visibleHeight) / 2;
+            _scr_blit(scaled, scaledWidth, scaledHeight, sourceX, sourceY,
+                visibleWidth, visibleHeight, x, y);
             paletteFadeTo(palette);
 
             internal_free(scaled);

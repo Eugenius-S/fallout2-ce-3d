@@ -2,7 +2,7 @@
 id: 118
 title: The owner's wide loading screens, main menu and death screen in the game
 milestone: M1
-status: doing
+status: done
 owner: gpt
 suggested: gpt
 priority: normal
@@ -69,17 +69,28 @@ Making new wide art, the ending slides, movies.
 ## Log
 
 ### 2026-10-29 gpt
-Progress: The code changes remain in the branch; no art files were added to Git.
-A separate resource copy for the test instance is in `build/test-game-118`.
-The owner game and its `mod-cache` were not changed.
+Cause: the wide splash was scaled to 1260x540 logical pixels at 16:9, then
+passed to `_GNW95_ShowRect` with its full width for a 960-pixel screen. That
+blit writes wider than the destination pitch and extends past the final row.
+The 1120x480 source was confirmed at runtime as `art\\splash\\splash2.rix`.
 
-Check: Release build passed and CTest passed 18/18. A fresh baseline build
-from main `0ebfd1f5` captured all 16 reference spots successfully. The branch
-regression capture timed out twice on `entrance`, each with
-`No snapshot within 90 s`; stderr reached OpenGL initialization but no
-snapshot metadata was produced. I stopped further captures after the second
-failure. Runtime screenshots for loading, menu and death at 16:9 and 21:9,
-menu click checks, and the 4:3 original check remain unverified.
+Fix: crop the scaled splash to the screen before blitting, using the scaled
+buffer width as the source pitch. The source rectangle and destination are
+both clamped to their buffers and centered. The menu and death paths were
+checked: their scaled blits clip to the target surface and their loops bound
+accesses by the allocated surface dimensions.
 
-Next: Resolve why the isolated branch test instance does not produce its
-first snapshot, then complete the runtime screenshot and click checks.
+Check: the old blit was tried in the isolated game at 16:9 with scale 2 and
+scale 1; it reached the saved map but did not reproduce exception 0xc0000374.
+AddressSanitizer was not enabled because `tools/configure-build.ps1` has no
+ASan option; the changed path was checked against the surface and source
+bounds. The final uninstrumented EXE loaded slot 1 to `KLADWTWN.SAV` at
+1920x1080 and 2560x1080. Release build passed, CTest passed 18/18, and the
+pixel regression against current `origin/main` passed 16/16 with zero changed
+pixels. Main sidecars identify `0ebfd1f5`; branch sidecars identify `12ffd925`
+and final EXE SHA256
+`04291bfa0212efa578e6eda199c9893e80662d65ca9e0b77c194944fea7cbdba`.
+Runtime loading and menu captures for both aspects are in this folder.
+
+No game assets were committed. The owner game and its `mod-cache` were not
+written.
