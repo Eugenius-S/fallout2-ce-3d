@@ -2,8 +2,8 @@
 id: 113
 title: A sky above the 3D view instead of black
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: gpt
 suggested: gpt
 priority: normal
 claude-only: no
