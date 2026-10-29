@@ -230,6 +230,14 @@ bool staticFlyCameraActive()
     return gFlying;
 }
 
+bool staticFlyCamera(StaticFlyCamera* camera)
+{
+    if (!gFlying || camera == nullptr) return false;
+    *camera = gFly;
+    if (camera->fovY <= 0.0f) camera->fovY = kFlyFovY;
+    return true;
+}
+
 void staticFlyCameraAxes(const StaticFlyCamera& camera, float forward[3], float right[3])
 {
     forward[0] = std::cos(camera.pitch) * std::cos(camera.yaw);
