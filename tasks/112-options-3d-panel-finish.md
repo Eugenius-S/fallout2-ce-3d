@@ -2,8 +2,8 @@
 id: 112
 title: The options screen's 3D panel: buttons under it, a straight scrollbar, a clean side frame, shadow density 0.8
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: gpt
 suggested: gpt
 priority: normal
 claude-only: no
