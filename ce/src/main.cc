@@ -1,9 +1,14 @@
 #include "main.h"
 
+#include <lodepng.h>
+
 #include <algorithm>
 #include <limits.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <string>
+#include <vector>
 
 #include "art.h"
 #include "autorun.h"
@@ -56,6 +61,8 @@ static int main_loadgame_new();
 static void main_unload_new();
 static void mainParseCommandLineArguments(int argc, char** argv);
 static bool mainTryParseDevLoadGameSlot(const char* value, int* slotPtr);
+static bool mainLoadOwnerWideArt(const char* assetPath, int width, int height, std::vector<unsigned char>& rgba, std::vector<unsigned char>& mask);
+static void mainMaskRgbaRect(std::vector<unsigned char>& mask, int width, int height, int x, int y, int rectWidth, int rectHeight);
 static void mainHandleDevEndgameRequests();
 static void mainRequestDevEndgameIfNeeded();
 static void mainRunDevEndgameMovieIfNeeded();
@@ -521,6 +528,64 @@ static void mainRunGameLoopAndCleanup()
 }
 
 // 0x48118C
+static bool mainLoadOwnerWideArt(const char* assetPath, int width, int height, std::vector<unsigned char>& rgba, std::vector<unsigned char>& mask)
+{
+    unsigned int sourceWidth = 0;
+    unsigned int sourceHeight = 0;
+    std::vector<unsigned char> source;
+    unsigned error = lodepng::decode(source, sourceWidth, sourceHeight, assetPath);
+    if (error != 0) {
+        std::string gameRelativePath = std::string("game/") + assetPath;
+        error = lodepng::decode(source, sourceWidth, sourceHeight, gameRelativePath);
+    }
+    if (error != 0 || sourceWidth == 0 || sourceHeight == 0 || width <= 0 || height <= 0) {
+        debugPrint("MAIN: owner wide art unavailable (%s)\n", lodepng_error_text(error));
+        return false;
+    }
+
+    int drawWidth;
+    int drawHeight;
+    if (static_cast<int64_t>(sourceWidth) * height > static_cast<int64_t>(sourceHeight) * width) {
+        drawHeight = height;
+        drawWidth = static_cast<int>(static_cast<int64_t>(height) * sourceWidth / sourceHeight);
+    } else {
+        drawWidth = width;
+        drawHeight = static_cast<int>(static_cast<int64_t>(width) * sourceHeight / sourceWidth);
+    }
+
+    rgba.assign(static_cast<size_t>(width) * height * 4, 0);
+    mask.assign(static_cast<size_t>(width) * height, 0);
+    int left = (width - drawWidth) / 2;
+    int top = (height - drawHeight) / 2;
+    for (int y = 0; y < drawHeight; y++) {
+        int dstY = top + y;
+        if (dstY < 0 || dstY >= height) continue;
+        int srcY = static_cast<int64_t>(y) * sourceHeight / drawHeight;
+        for (int x = 0; x < drawWidth; x++) {
+            int dstX = left + x;
+            if (dstX < 0 || dstX >= width) continue;
+            int srcX = static_cast<int64_t>(x) * sourceWidth / drawWidth;
+            size_t sourceOffset = (static_cast<size_t>(srcY) * sourceWidth + srcX) * 4;
+            size_t destOffset = (static_cast<size_t>(dstY) * width + dstX) * 4;
+            memcpy(rgba.data() + destOffset, source.data() + sourceOffset, 4);
+            mask[static_cast<size_t>(dstY) * width + dstX] = 1;
+        }
+    }
+    return true;
+}
+
+static void mainMaskRgbaRect(std::vector<unsigned char>& mask, int width, int height, int x, int y, int rectWidth, int rectHeight)
+{
+    int left = std::max(0, x);
+    int top = std::max(0, y);
+    int right = std::min(width, x + rectWidth);
+    int bottom = std::min(height, y + rectHeight);
+    if (left >= right || top >= bottom) return;
+    for (int row = top; row < bottom; row++) {
+        memset(mask.data() + static_cast<size_t>(row) * width + left, 0, right - left);
+    }
+}
+
 static void showDeath()
 {
     artCacheFlush();
@@ -567,10 +632,19 @@ static void showDeath()
             inputEventQueueReset();
 
             colorPaletteLoad("art\\intrface\\death.pal");
-            Rect deathFrameBounds = blitBuffer2DCenteredAspectFit(backgroundFrmImage.getBuffer(),
+            Rect deathFrameBounds = blitBuffer2DCenteredAspectFitHeightIfWider(backgroundFrmImage.getBuffer(),
                 Buffer2D(windowBuffer, screenWidth, screenHeight),
                 COLOR_BLACK,
                 settings.ui.death_screen_size != 0);
+
+            std::vector<unsigned char> deathRgba;
+            std::vector<unsigned char> deathMask;
+            bool useOwnerDeathArt = mainLoadOwnerWideArt(
+                "user-assets/fullscreen-20261028/wallpapers-selected/common/death/death.png",
+                screenWidth,
+                screenHeight,
+                deathRgba,
+                deathMask);
 
             const char* deathFileName = endgameDeathEndingGetFileName();
 
@@ -589,6 +663,9 @@ static void showDeath()
                         int y = std::max(deathFrameBounds.top, deathFrameBounds.top + deathFrameHeight - textHeight - 8);
                         int x = std::max(2, deathFrameBounds.left + (deathFrameWidth - textMaxWidth) / 2);
                         bufferFill(windowBuffer + screenWidth * y + x - 2, textMaxWidth + 4, textHeight + 2, screenWidth, COLOR_FIRST);
+                        if (useOwnerDeathArt) {
+                            mainMaskRgbaRect(deathMask, screenWidth, screenHeight, x - 2, y, textMaxWidth + 4, textHeight + 2);
+                        }
                         unsigned char* p = windowBuffer + screenWidth * y + x;
                         for (int index = 0; index < count; index++) {
                             fontDrawText(p, text + beginnings[index], textMaxWidth, screenWidth, COLOR_WHITE);
@@ -596,6 +673,10 @@ static void showDeath()
                         }
                     }
                 }
+            }
+
+            if (useOwnerDeathArt) {
+                renderSetRgbaBackground(deathRgba.data(), deathMask.data(), screenWidth, screenHeight);
             }
 
             windowRefresh(win);
@@ -647,6 +728,7 @@ static void showDeath()
             }
 
             paletteFadeTo(gPaletteBlack);
+            renderClearRgbaBackground();
             colorPaletteLoad("color.pal");
         } while (0);
         windowDestroy(win);

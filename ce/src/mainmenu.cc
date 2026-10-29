@@ -1,5 +1,7 @@
 #include "mainmenu.h"
 
+#include <lodepng.h>
+
 #include <assert.h>
 #include <ctype.h>
 #include <string.h>
@@ -29,6 +31,7 @@
 #include "platform/git_version.h"
 
 #include <math.h>
+#include <stdint.h>
 
 #include <vector>
 
@@ -124,6 +127,14 @@ static FrmImage mainMenuButtonNormalFrmImage;
 static FrmImage mainMenuButtonPressedFrmImage;
 static std::vector<unsigned char> mainMenuScaledButtonData;
 static std::vector<unsigned char> mainMenuOverlayDimmedBackup;
+static std::vector<unsigned char> mainMenuRgbaBackground;
+static std::vector<unsigned char> mainMenuRgbaScreenBackground;
+static std::vector<unsigned char> mainMenuRgbaBackgroundMask;
+static int mainMenuRgbaBackgroundWidth = 0;
+static int mainMenuRgbaBackgroundHeight = 0;
+static int mainMenuRgbaScreenWidth = 0;
+static int mainMenuRgbaScreenHeight = 0;
+static bool mainMenuHasRgbaBackground = false;
 static void mainMenuSetButtonsEnabled(bool enabled);
 static void mainMenuApplyOverlayDim();
 static void mainMenuRemoveOverlayDim();
@@ -173,6 +184,9 @@ static bool mainMenuWindowIsOverlayActive();
 static void mainMenuWindowEnterOverlay();
 static void mainMenuWindowLeaveOverlay();
 static void mainMenuWindowShowOverlayDim();
+static void mainMenuMaskBackground(int x, int y, int width, int height);
+static void mainMenuEnableRgbaBackground();
+static void mainMenuPrepareRgbaBackground(const MainMenuLayout& layout);
 
 static void mainMenuComputeAspectFit(int srcWidth, int srcHeight, int& outX, int& outY, int& outWidth, int& outHeight)
 {
@@ -181,14 +195,78 @@ static void mainMenuComputeAspectFit(int srcWidth, int srcHeight, int& outX, int
     outWidth = dstWidth;
     outHeight = dstHeight;
 
-    if (dstHeight * srcWidth > dstWidth * srcHeight) {
-        outHeight = dstWidth * srcHeight / srcWidth;
+    if (mainMenuHasRgbaBackground
+        && static_cast<int64_t>(srcWidth) * dstHeight > static_cast<int64_t>(srcHeight) * dstWidth) {
+        // Wide menu art fills the screen vertically. Cropping the same amount
+        // from each side keeps its controls aligned with their painted places.
+        outWidth = static_cast<int>(static_cast<int64_t>(dstHeight) * srcWidth / srcHeight);
+        outHeight = dstHeight;
+    } else if (static_cast<int64_t>(dstHeight) * srcWidth > static_cast<int64_t>(dstWidth) * srcHeight) {
+        outHeight = static_cast<int>(static_cast<int64_t>(dstWidth) * srcHeight / srcWidth);
     } else {
-        outWidth = dstHeight * srcWidth / srcHeight;
+        outWidth = static_cast<int>(static_cast<int64_t>(dstHeight) * srcWidth / srcHeight);
     }
 
     outX = (dstWidth - outWidth) / 2;
     outY = (dstHeight - outHeight) / 2;
+}
+
+static void mainMenuMaskBackground(int x, int y, int width, int height)
+{
+    if (!mainMenuHasRgbaBackground || width <= 0 || height <= 0) {
+        return;
+    }
+
+    int left = std::max(0, x);
+    int top = std::max(0, y);
+    int right = std::min(mainMenuRgbaScreenWidth, x + width);
+    int bottom = std::min(mainMenuRgbaScreenHeight, y + height);
+    if (left >= right || top >= bottom) {
+        return;
+    }
+    for (int row = top; row < bottom; row++) {
+        memset(mainMenuRgbaBackgroundMask.data() + static_cast<size_t>(row) * mainMenuRgbaScreenWidth + left,
+            0,
+            right - left);
+    }
+}
+
+static void mainMenuEnableRgbaBackground()
+{
+    if (mainMenuHasRgbaBackground) {
+        renderSetRgbaBackground(mainMenuRgbaScreenBackground.data(), mainMenuRgbaBackgroundMask.data(),
+            mainMenuRgbaScreenWidth, mainMenuRgbaScreenHeight);
+    } else {
+        renderClearRgbaBackground();
+    }
+}
+
+static void mainMenuPrepareRgbaBackground(const MainMenuLayout& layout)
+{
+    if (!mainMenuHasRgbaBackground) {
+        return;
+    }
+
+    mainMenuRgbaScreenWidth = layout.screenWidth;
+    mainMenuRgbaScreenHeight = layout.screenHeight;
+    size_t pixelCount = static_cast<size_t>(layout.screenWidth) * layout.screenHeight;
+    mainMenuRgbaScreenBackground.assign(pixelCount * 4, 0);
+    mainMenuRgbaBackgroundMask.assign(pixelCount, 0);
+
+    for (int y = 0; y < layout.backgroundHeight; y++) {
+        int dstY = layout.backgroundY + y;
+        if (dstY < 0 || dstY >= layout.screenHeight) continue;
+        int srcY = y * mainMenuRgbaBackgroundHeight / layout.backgroundHeight;
+        for (int x = 0; x < layout.backgroundWidth; x++) {
+            int dstX = layout.backgroundX + x;
+            if (dstX < 0 || dstX >= layout.screenWidth) continue;
+            int srcX = x * mainMenuRgbaBackgroundWidth / layout.backgroundWidth;
+            size_t srcOffset = (static_cast<size_t>(srcY) * mainMenuRgbaBackgroundWidth + srcX) * 4;
+            size_t dstOffset = (static_cast<size_t>(dstY) * layout.screenWidth + dstX) * 4;
+            memcpy(mainMenuRgbaScreenBackground.data() + dstOffset, mainMenuRgbaBackground.data() + srcOffset, 4);
+            mainMenuRgbaBackgroundMask[static_cast<size_t>(dstY) * layout.screenWidth + dstX] = 1;
+        }
+    }
 }
 
 static bool mainMenuShouldAspectFit(int backgroundWidth, int backgroundHeight)
@@ -209,8 +287,37 @@ static bool mainMenuShouldUseVanillaArtForLayout(int backgroundWidth, int backgr
 
 static bool mainMenuLoadArt()
 {
+    mainMenuHasRgbaBackground = false;
+    mainMenuRgbaBackground.clear();
+    mainMenuRgbaScreenBackground.clear();
+    mainMenuRgbaBackgroundMask.clear();
+    mainMenuRgbaBackgroundWidth = 0;
+    mainMenuRgbaBackgroundHeight = 0;
+    mainMenuRgbaScreenWidth = 0;
+    mainMenuRgbaScreenHeight = 0;
+
+    unsigned int backgroundWidth = 0;
+    unsigned int backgroundHeight = 0;
+    unsigned error = lodepng::decode(mainMenuRgbaBackground, backgroundWidth, backgroundHeight,
+        "user-assets/fullscreen-20261028/wallpapers-selected/hires/menu/hr_mainmenu.png");
+    if (error != 0) {
+        error = lodepng::decode(mainMenuRgbaBackground, backgroundWidth, backgroundHeight,
+            "game/user-assets/fullscreen-20261028/wallpapers-selected/hires/menu/hr_mainmenu.png");
+    }
+    if (error == 0 && backgroundWidth > 0 && backgroundHeight > 0
+        && backgroundWidth <= SHRT_MAX && backgroundHeight <= SHRT_MAX) {
+        mainMenuHasRgbaBackground = true;
+        mainMenuRgbaBackgroundWidth = static_cast<int>(backgroundWidth);
+        mainMenuRgbaBackgroundHeight = static_cast<int>(backgroundHeight);
+        if (!mainMenuButtonPanelFrmImage.lock(InterfaceFrmId("HR_MENU_BG.FRM"))) {
+            debugPrint("MAINMENU: failed to load hires HR_MENU_BG.FRM; using the owner background without a panel\n");
+        }
+    } else {
+        debugPrint("MAINMENU: owner widescreen background unavailable (%s)\n", lodepng_error_text(error));
+    }
+
     bool canUseHiresArt = screenGetWidth() != MAIN_MENU_LOGICAL_WIDTH || screenGetHeight() != MAIN_MENU_LOGICAL_HEIGHT;
-    if (canUseHiresArt && mainMenuBackgroundFrmImage.lock(InterfaceFrmId("HR_MAINMENU.FRM"))) {
+    if (!mainMenuHasRgbaBackground && canUseHiresArt && mainMenuBackgroundFrmImage.lock(InterfaceFrmId("HR_MAINMENU.FRM"))) {
         if (mainMenuShouldUseVanillaArtForLayout(mainMenuBackgroundFrmImage.getWidth(), mainMenuBackgroundFrmImage.getHeight())) {
             // use Vanilla art if not scaling to reduce artifacts
             mainMenuBackgroundFrmImage.unlock();
@@ -246,12 +353,11 @@ static MainMenuLayout mainMenuBuildLayout()
     MainMenuLayout layout {};
     layout.screenWidth = screenGetWidth();
     layout.screenHeight = screenGetHeight();
-    layout.art = mainMenuBackgroundFrmImage.getWidth() != MAIN_MENU_LOGICAL_WIDTH || mainMenuBackgroundFrmImage.getHeight() != MAIN_MENU_LOGICAL_HEIGHT
+    int backgroundWidth = mainMenuHasRgbaBackground ? mainMenuRgbaBackgroundWidth : mainMenuBackgroundFrmImage.getWidth();
+    int backgroundHeight = mainMenuHasRgbaBackground ? mainMenuRgbaBackgroundHeight : mainMenuBackgroundFrmImage.getHeight();
+    layout.art = mainMenuHasRgbaBackground || backgroundWidth != MAIN_MENU_LOGICAL_WIDTH || backgroundHeight != MAIN_MENU_LOGICAL_HEIGHT
         ? MenuArt::Hires
         : MenuArt::Vanilla;
-
-    int backgroundWidth = mainMenuBackgroundFrmImage.getWidth();
-    int backgroundHeight = mainMenuBackgroundFrmImage.getHeight();
 
     bool aspectFit = mainMenuShouldAspectFit(backgroundWidth, backgroundHeight);
     if (aspectFit) {
@@ -277,6 +383,19 @@ static void mainMenuDrawBackground(const MainMenuLayout& layout)
 {
     Buffer2D dest(gMainMenuWindowBuffer, layout.screenWidth, layout.screenHeight);
     bufferFill2D(dest, COLOR_FIRST);
+
+    if (mainMenuHasRgbaBackground) {
+        for (int y = 0; y < layout.screenHeight; y++) {
+            for (int x = 0; x < layout.screenWidth; x++) {
+                const unsigned char* pixel = mainMenuRgbaScreenBackground.data()
+                    + (static_cast<size_t>(y) * layout.screenWidth + x) * 4;
+                if (pixel[3] == 0) continue;
+                int rgb555Index = ((pixel[0] >> 3) << 10) | ((pixel[1] >> 3) << 5) | (pixel[2] >> 3);
+                gMainMenuWindowBuffer[y * layout.screenWidth + x] = _colorTable[rgb555Index];
+            }
+        }
+        return;
+    }
 
     if (layout.backgroundWidth == mainMenuBackgroundFrmImage.getWidth()
         && layout.backgroundHeight == mainMenuBackgroundFrmImage.getHeight()) {
@@ -319,6 +438,10 @@ static MainMenuOffsets mainMenuReadOffsets(const MainMenuLayout& layout)
         }
     }
 
+    if (mainMenuHasRgbaBackground) {
+        offsets.menuX -= layout.backgroundX;
+    }
+
     return offsets;
 }
 
@@ -342,6 +465,7 @@ static void mainMenuDrawPanel(const MainMenuLayout& layout, const MainMenuOffset
         panelOrigin.y + offsets.menuY,
         panelSize.width,
         panelSize.height);
+    mainMenuMaskBackground(panelOrigin.x + offsets.menuX, panelOrigin.y + offsets.menuY, panelSize.width, panelSize.height);
 }
 
 static Point mainMenuTransformPoint(const MainMenuLayout& layout, int x, int y)
@@ -377,6 +501,9 @@ static int mainMenuGetAnchoredY(const MainMenuLayout& layout, int value)
 
 static int mainMenuGetAnchoredRightX(const MainMenuLayout& layout, int rightMargin, int width)
 {
+    if (mainMenuHasRgbaBackground) {
+        return layout.screenWidth - rightMargin - width;
+    }
     return layout.backgroundX + layout.backgroundWidth - rightMargin - width;
 }
 
@@ -408,7 +535,7 @@ static void mainMenuDrawBuildInfo(const MainMenuLayout& layout, const MainMenuOf
         windowDrawText(gMainMenuWindow,
             msg.text,
             0,
-            layout.backgroundX + offsets.creditsX + MAIN_MENU_FOOTER_LEFT_X,
+            (mainMenuHasRgbaBackground ? 0 : layout.backgroundX) + offsets.creditsX + MAIN_MENU_FOOTER_LEFT_X,
             mainMenuGetAnchoredY(layout, offsets.creditsY + MAIN_MENU_COPYRIGHT_Y),
             fontSettings | (DRAW_TEXT_FLAG_NO_BG | DRAW_TEXT_FLAG_OVERFLOW));
     }
@@ -433,6 +560,8 @@ static void mainMenuDrawBuildInfo(const MainMenuLayout& layout, const MainMenuOf
     strcat(buildDate, _BUILD_DATE);
     len = fontGetStringWidth(buildDate);
     windowDrawText(gMainMenuWindow, buildDate, 0, mainMenuGetAnchoredRightX(layout, MAIN_MENU_FOOTER_RIGHT_MARGIN, len), mainMenuGetAnchoredY(layout, MAIN_MENU_BUILD_DATE_Y), versionFontSettings | (DRAW_TEXT_FLAG_NO_BG | DRAW_TEXT_FLAG_OVERFLOW));
+
+    mainMenuMaskBackground(0, layout.screenHeight - 70, layout.screenWidth, 70);
 }
 
 static bool mainMenuCreateButtons(const MainMenuLayout& layout, const MainMenuOffsets& offsets)
@@ -472,6 +601,8 @@ static bool mainMenuCreateButtons(const MainMenuLayout& layout, const MainMenuOf
         if (gMainMenuButtons[index] == -1) {
             return false;
         }
+
+        mainMenuMaskBackground(buttonPosition.x + offsets.menuX, buttonPosition.y + offsets.menuY, buttonWidth, buttonHeight);
 
         buttonSetMask(gMainMenuButtons[index], buttonNormalData);
     }
@@ -515,6 +646,11 @@ static void mainMenuDrawButtonLabels(const MainMenuLayout& layout, const MainMen
                 fontSettings,
                 layout.scale);
         }
+
+        mainMenuMaskBackground(labelPosition.x + offsets.menuX - len / 2,
+            labelPosition.y + offsets.menuY - 2,
+            len + 4,
+            fontGetLineHeight() + 4);
     }
 }
 
@@ -548,6 +684,7 @@ int mainMenuWindowInit()
     }
 
     MainMenuLayout layout = mainMenuBuildLayout();
+    mainMenuPrepareRgbaBackground(layout);
     mainMenuOverlayBackgroundEnabled = mainMenuShouldEnableOverlayBackground(layout);
     MainMenuOffsets offsets = mainMenuReadOffsets(layout);
 
@@ -566,6 +703,10 @@ int mainMenuWindowInit()
     mainMenuDrawButtonLabels(layout, offsets);
 
     fontSetCurrent(oldFont);
+    mainMenuMaskBackground(std::max(0, layout.backgroundX),
+        layout.backgroundY + static_cast<int>(layout.backgroundHeight * 0.2f),
+        std::min(layout.screenWidth, static_cast<int>(layout.backgroundWidth * 0.28f)),
+        static_cast<int>(layout.backgroundHeight * 0.56f));
     mainMenuBackgroundFrmImage.unlock();
     mainMenuButtonPanelFrmImage.unlock();
 
@@ -588,6 +729,7 @@ static void mainMenuDestroySubscreenBackdrop()
 // 0x481968 main_menu_destroy
 void mainMenuWindowFree()
 {
+    renderClearRgbaBackground();
     mainMenuDestroySubscreenBackdrop();
 
     for (int index = 0; index < MAIN_MENU_BUTTON_COUNT; index++) {
@@ -628,6 +770,7 @@ void mainMenuWindowHide(bool animate)
     }
 
     soundContinueAll();
+    renderClearRgbaBackground();
 
     if (animate) {
         paletteFadeTo(gPaletteBlack);
@@ -654,6 +797,7 @@ void mainMenuWindowUnhide(bool animate)
     }
 
     windowShow(gMainMenuWindow);
+    mainMenuEnableRgbaBackground();
     touch_set_touchscreen_mode(true);
 
     if (animate) {
@@ -672,6 +816,7 @@ static void mainMenuWindowEnterOverlay()
 
     if (mainMenuOverlayCount == 0) {
         mainMenuSetButtonsEnabled(false);
+        renderClearRgbaBackground();
     }
 
     mainMenuOverlayCount += 1;
@@ -694,6 +839,7 @@ static void mainMenuWindowLeaveOverlay()
     if (mainMenuOverlayCount == 0) {
         mainMenuRemoveOverlayDim();
         mainMenuSetButtonsEnabled(true);
+        mainMenuEnableRgbaBackground();
         touch_set_touchscreen_mode(true);
     }
 }

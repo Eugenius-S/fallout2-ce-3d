@@ -2,6 +2,7 @@
 #include "platform/git_version.h"
 
 #include <stdio.h>
+#include <stdint.h>
 #include <string.h>
 
 #include "actions.h"
@@ -1610,6 +1611,12 @@ static void showSplash()
         if (size == 2) {
             scaledWidth = screenWidth;
             scaledHeight = screenHeight;
+        } else if (size == 1
+            && static_cast<int64_t>(width) * screenHeight > static_cast<int64_t>(height) * screenWidth) {
+            // Wide art fills the screen vertically; keep its proportions and
+            // crop equal strips from the left and right on narrower screens.
+            scaledHeight = screenHeight;
+            scaledWidth = static_cast<int>(static_cast<int64_t>(screenHeight) * width / height);
         } else {
             if (screenHeight * width >= screenWidth * height) {
                 scaledWidth = screenWidth;
