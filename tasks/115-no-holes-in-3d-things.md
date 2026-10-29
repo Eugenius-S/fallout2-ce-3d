@@ -2,8 +2,8 @@
 id: 115
 title: No holes in the 3D things: transparent texels take the colour of the edge
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: glm
 suggested: glm
 priority: high
 claude-only: no
