@@ -50,6 +50,7 @@ get the plane of the wall they close.
 """
 import numpy as np
 
+from f2lib import ids
 from . import proj, props, walls
 
 PLANAR_FIT = 0.6        # share of columns whose lower edge follows one wall slope: a sheet, if thin
@@ -304,12 +305,11 @@ def stand(obj, art, centre, sprite, order, index, stack):
         return wrong <= tolerance
 
     axis = image_axis(*sprite)
-    # Whatever the fit can stand as a box or drum keeps its card here, so
-    # build_props can stand it up: a locker is a box, not a panel on the wall.
-    # The game's own views paint the card either way, so the card cannot betray
-    # them; the fit's own thresholds vouch for the solid (the game camera sees
-    # the solid's landed pixels, which are the card's).
-    if props.fit(alpha, left, top) is not None:
+    # A container the fit can stand (a locker is a box, not a panel on the wall)
+    # keeps its card here, so build_props can stand it up. Scenery keeps its own
+    # sorting: a sign's art fits a box too, but its place is on the wall, and the
+    # game paints it over the wall from its hex's order, not from a solid's.
+    if obj.obj_type == ids.OBJ_TYPE_ITEM and props.fit(alpha, left, top) is not None:
         card = Card(obj.tile, alpha, left + obj.x, top + obj.y, order, stack)
         good(card)
         return tried[-1][2]

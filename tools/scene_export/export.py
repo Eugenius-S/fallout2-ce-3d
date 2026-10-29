@@ -317,7 +317,11 @@ class ReadOnlyGameFiles(GameFiles):
 
 def live_solids(builder, scene):
     """Solids whose object animates (a locker, a fridge opening) stay live
-    cards in the engine: (their boards, their props rows, rests near them)."""
+    cards in the engine: (their boards, their props rows, rests near them).
+
+    A fly-only solid (row[15] 1) does not stay live: the game's camera keeps the
+    live card and its animation either way, and first person gets the closed
+    box the fit stood up (the open state shows in the game's own views only)."""
     objects = builder.map.objects[builder.elevation]
     boards = scene.get("boards") or []
     live = set()
@@ -326,7 +330,8 @@ def live_solids(builder, scene):
         if frm is not None and frm.frame_count > 1:
             live.add(board)
     props = scene.get("props") or []
-    skip_props = {index for index, row in enumerate(props) if row[3] in live}
+    skip_props = {index for index, row in enumerate(props)
+                  if row[3] in live and not (len(row) > 15 and row[15] == 1)}
     centres = [(props[index][5], props[index][6]) for index in skip_props]
     skip_rests = {index for index, row in enumerate(scene.get("rests") or [])
                   if any(abs(row[1] - cu) < 0.75 and abs(row[2] - cv) < 0.75 for cu, cv in centres)}
