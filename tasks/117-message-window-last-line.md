@@ -2,8 +2,8 @@
 id: 117
 title: The message window's last line shows whole
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: gpt
 suggested: gpt
 priority: normal
 claude-only: no
