@@ -80,6 +80,9 @@ bool staticObjectFlat(int tile, int fid);
 bool staticObjectPlane(int tile, int fid, float plane[3]);
 // Low cards (a cabbage, a tin): flat under the fly camera.
 bool staticObjectFlyFlat(int tile, int fid);
+// Half the map's wall height: a standing card taller than that is a body
+// (a tree, a statue) and keeps its whole verdict at the feet (109).
+float staticHalfWallHeight();
 // Dev (--dev-solo): draw only the things within radius hexes of tile, without
 // walls and roofs, to look at one thing from every side. Set before a map loads.
 void setStaticSolo(int tile, int radius);
