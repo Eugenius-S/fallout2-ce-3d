@@ -19,6 +19,7 @@
 #include "input.h"
 #include "kb.h"
 #include "mouse.h"
+#include "owner_art_viewport.h"
 #include "palette.h"
 #include "platform_compat.h"
 #include "preferences.h"
@@ -30,6 +31,7 @@
 
 #include "platform/git_version.h"
 
+#include <algorithm>
 #include <math.h>
 #include <stdint.h>
 
@@ -144,6 +146,10 @@ static void mainMenuAnimateOverlayDim(int startIntensity, int endIntensity);
 struct MainMenuLayout {
     int screenWidth;
     int screenHeight;
+    int viewportX;
+    int viewportY;
+    int viewportWidth;
+    int viewportHeight;
     int backgroundX;
     int backgroundY;
     int backgroundWidth;
@@ -192,18 +198,22 @@ static void mainMenuComputeAspectFit(int srcWidth, int srcHeight, int& outX, int
 {
     int dstWidth = screenGetWidth();
     int dstHeight = screenGetHeight();
+    OwnerArtViewport viewport = ownerArtViewport(dstWidth, dstHeight);
     outWidth = dstWidth;
     outHeight = dstHeight;
 
     if (mainMenuHasRgbaBackground) {
-        // Cover the screen with the owner's art and crop the excess equally.
-        if (static_cast<int64_t>(dstWidth) * srcHeight >= static_cast<int64_t>(dstHeight) * srcWidth) {
-            outWidth = dstWidth;
-            outHeight = static_cast<int>((static_cast<int64_t>(dstWidth) * srcHeight + srcWidth - 1) / srcWidth);
+        // Cover the supported art viewport, then center it on the full surface.
+        if (static_cast<int64_t>(viewport.width) * srcHeight >= static_cast<int64_t>(viewport.height) * srcWidth) {
+            outWidth = viewport.width;
+            outHeight = static_cast<int>((static_cast<int64_t>(viewport.width) * srcHeight + srcWidth - 1) / srcWidth);
         } else {
-            outWidth = static_cast<int>((static_cast<int64_t>(dstHeight) * srcWidth + srcHeight - 1) / srcHeight);
-            outHeight = dstHeight;
+            outWidth = static_cast<int>((static_cast<int64_t>(viewport.height) * srcWidth + srcHeight - 1) / srcHeight);
+            outHeight = viewport.height;
         }
+        outX = viewport.x + (viewport.width - outWidth) / 2;
+        outY = viewport.y + (viewport.height - outHeight) / 2;
+        return;
     } else if (static_cast<int64_t>(dstHeight) * srcWidth > static_cast<int64_t>(dstWidth) * srcHeight) {
         outHeight = static_cast<int>(static_cast<int64_t>(dstWidth) * srcHeight / srcWidth);
     } else {
@@ -364,6 +374,11 @@ static MainMenuLayout mainMenuBuildLayout()
     MainMenuLayout layout {};
     layout.screenWidth = screenGetWidth();
     layout.screenHeight = screenGetHeight();
+    OwnerArtViewport viewport = ownerArtViewport(layout.screenWidth, layout.screenHeight);
+    layout.viewportX = viewport.x;
+    layout.viewportY = viewport.y;
+    layout.viewportWidth = viewport.width;
+    layout.viewportHeight = viewport.height;
     int backgroundWidth = mainMenuHasRgbaBackground ? mainMenuRgbaBackgroundWidth : mainMenuBackgroundFrmImage.getWidth();
     int backgroundHeight = mainMenuHasRgbaBackground ? mainMenuRgbaBackgroundHeight : mainMenuBackgroundFrmImage.getHeight();
     layout.art = mainMenuHasRgbaBackground || backgroundWidth != MAIN_MENU_LOGICAL_WIDTH || backgroundHeight != MAIN_MENU_LOGICAL_HEIGHT
@@ -439,8 +454,8 @@ static MainMenuOffsets mainMenuReadOffsets(const MainMenuLayout& layout)
     // Match HRP's extra compensation when the hires background is scaled but
     // the buttons/panel stay at their original size.  It uses this funny quadratic scaling to place the menu
     if (layout.art == MenuArt::Hires && !layout.scaleControls) {
-        if (layout.screenWidth != MAIN_MENU_LOGICAL_WIDTH) {
-            float diff = layout.screenWidth / static_cast<float>(MAIN_MENU_LOGICAL_WIDTH);
+        if (layout.viewportWidth != MAIN_MENU_LOGICAL_WIDTH) {
+            float diff = layout.viewportWidth / static_cast<float>(MAIN_MENU_LOGICAL_WIDTH);
             offsets.menuX += static_cast<int>(lround(8.0f * diff * diff));
         }
         if (layout.screenHeight != MAIN_MENU_LOGICAL_HEIGHT) {
@@ -450,8 +465,21 @@ static MainMenuOffsets mainMenuReadOffsets(const MainMenuLayout& layout)
     }
 
     if (mainMenuHasRgbaBackground) {
-        offsets.menuX -= layout.backgroundX;
+        offsets.menuX -= layout.backgroundX - layout.viewportX;
+        offsets.menuY -= layout.backgroundY - layout.viewportY;
     }
+
+    Size buttonSize = mainMenuTransformSize(layout, MAIN_MENU_BUTTON_WIDTH, MAIN_MENU_BUTTON_HEIGHT);
+    Point firstButton = mainMenuTransformPoint(layout, MAIN_MENU_BUTTON_X, MAIN_MENU_BUTTON_Y);
+    Point lastButton = mainMenuTransformPoint(layout, MAIN_MENU_BUTTON_X,
+        MAIN_MENU_BUTTON_Y + (MAIN_MENU_BUTTON_COUNT - 1) * MAIN_MENU_BUTTON_Y_STEP);
+    int firstX = firstButton.x + offsets.menuX;
+    int firstY = firstButton.y + offsets.menuY;
+    int lastY = lastButton.y + offsets.menuY;
+    if (firstX < 0) offsets.menuX -= firstX;
+    if (firstX + buttonSize.width > layout.screenWidth) offsets.menuX -= firstX + buttonSize.width - layout.screenWidth;
+    if (firstY < 0) offsets.menuY -= firstY;
+    if (lastY + buttonSize.height > layout.screenHeight) offsets.menuY -= lastY + buttonSize.height - layout.screenHeight;
 
     return offsets;
 }
@@ -507,13 +535,16 @@ static int mainMenuScaleY(const MainMenuLayout& layout, int value)
 
 static int mainMenuGetAnchoredY(const MainMenuLayout& layout, int value)
 {
-    return layout.backgroundY + layout.backgroundHeight + value - MAIN_MENU_LOGICAL_HEIGHT;
+    int bottom = mainMenuHasRgbaBackground
+        ? layout.viewportY + layout.viewportHeight
+        : layout.backgroundY + layout.backgroundHeight;
+    return bottom + value - MAIN_MENU_LOGICAL_HEIGHT;
 }
 
 static int mainMenuGetAnchoredRightX(const MainMenuLayout& layout, int rightMargin, int width)
 {
     if (mainMenuHasRgbaBackground) {
-        return layout.screenWidth - rightMargin - width;
+        return layout.viewportX + layout.viewportWidth - rightMargin - width;
     }
     return layout.backgroundX + layout.backgroundWidth - rightMargin - width;
 }
@@ -546,7 +577,7 @@ static void mainMenuDrawBuildInfo(const MainMenuLayout& layout, const MainMenuOf
         windowDrawText(gMainMenuWindow,
             msg.text,
             0,
-            (mainMenuHasRgbaBackground ? 0 : layout.backgroundX) + offsets.creditsX + MAIN_MENU_FOOTER_LEFT_X,
+            (mainMenuHasRgbaBackground ? layout.viewportX : layout.backgroundX) + offsets.creditsX + MAIN_MENU_FOOTER_LEFT_X,
             mainMenuGetAnchoredY(layout, offsets.creditsY + MAIN_MENU_COPYRIGHT_Y),
             fontSettings | (DRAW_TEXT_FLAG_NO_BG | DRAW_TEXT_FLAG_OVERFLOW));
     }
@@ -596,9 +627,14 @@ static bool mainMenuCreateButtons(const MainMenuLayout& layout, const MainMenuOf
 
     for (int index = 0; index < MAIN_MENU_BUTTON_COUNT; index++) {
         Point buttonPosition = mainMenuTransformPoint(layout, MAIN_MENU_BUTTON_X, MAIN_MENU_BUTTON_Y + index * MAIN_MENU_BUTTON_Y_STEP);
+        int buttonX = buttonPosition.x + offsets.menuX;
+        int buttonY = buttonPosition.y + offsets.menuY;
+        if (buttonX < 0 || buttonY < 0 || buttonX + buttonWidth > layout.screenWidth || buttonY + buttonHeight > layout.screenHeight) {
+            return false;
+        }
         gMainMenuButtons[index] = buttonCreate(gMainMenuWindow,
-            buttonPosition.x + offsets.menuX,
-            buttonPosition.y + offsets.menuY,
+            buttonX,
+            buttonY,
             buttonWidth,
             buttonHeight,
             -1,
@@ -613,7 +649,7 @@ static bool mainMenuCreateButtons(const MainMenuLayout& layout, const MainMenuOf
             return false;
         }
 
-        mainMenuMaskBackground(buttonPosition.x + offsets.menuX, buttonPosition.y + offsets.menuY, buttonWidth, buttonHeight);
+        mainMenuMaskBackground(buttonX, buttonY, buttonWidth, buttonHeight);
 
         buttonSetMask(gMainMenuButtons[index], buttonNormalData);
     }
@@ -643,9 +679,15 @@ static void mainMenuDrawButtonLabels(const MainMenuLayout& layout, const MainMen
         int len = fontGetStringWidth(msg.text);
         Point labelPosition = mainMenuTransformPoint(layout, MAIN_MENU_BUTTON_LABEL_X, MAIN_MENU_BUTTON_LABEL_Y + index * MAIN_MENU_BUTTON_Y_STEP);
         if (!layout.scaleControls) {
-            fontDrawText(gMainMenuWindowBuffer + (labelPosition.y + offsets.menuY) * layout.screenWidth + labelPosition.x + offsets.menuX - (len / 2),
+            int labelY = labelPosition.y + offsets.menuY;
+            int labelX = labelPosition.x + offsets.menuX - len / 2;
+            if (labelY < 0 || labelY + fontGetLineHeight() > layout.screenHeight || len > layout.screenWidth) {
+                continue;
+            }
+            labelX = std::clamp(labelX, 0, layout.screenWidth - len);
+            fontDrawText(gMainMenuWindowBuffer + labelY * layout.screenWidth + labelX,
                 msg.text,
-                layout.screenWidth - (labelPosition.x + offsets.menuX - (len / 2)) - 1,
+                layout.screenWidth - labelX,
                 layout.screenWidth,
                 fontSettings);
         } else {

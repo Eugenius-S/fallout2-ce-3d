@@ -116,3 +116,32 @@ captures used `build/scene-cache`. The uninstrumented final EXE loaded slot 1
 to `KLADWTWN.SAV` at both aspects. The existing `game/user-assets` is where
 the owner asset lives; the updated executable reads it from the game working
 directory, so the owner will see it after updating the build and restarting.
+
+### 2026-10-29 gpt ultra-wide follow-up
+The owner asked for a supported art viewport up to 8:3. Added a shared
+viewport calculation used by loading, main-menu art and death art. Displays
+wider than 8:3 keep a centered 8:3 area and black side bars on the full-size
+surface; the compositor still receives the full display-sized surface.
+
+The 8:3 menu crop also exposed an unsafe text origin: the cover-sized art can
+have a negative top edge while the menu labels remain unscaled. Menu offsets
+now account for that crop; all six button rectangles are checked against the
+surface, and native-size labels are drawn only with a valid vertical span and
+an X origin clamped to the surface. Panel blits and mask writes use their
+existing clipped bounds. Geometry was checked at 640x480, 960x540, 1920x720
+and 2560x720 logical resolutions; all button and label rectangles remain
+inside the surface.
+
+Isolated runtime captures show loading, menu and owner death art at
+3840x1440 (8:3) and 5120x1440 (32:9). The 8:3 images have no side bars; the
+32:9 images have symmetric black bars. The capture used temporary test-only
+hooks (EXE SHA256 `622c3709cd389dff25f8cea18d553b3290c420b833a1925d6cb48fad60ed9e48`);
+the hooks were removed before the final build. Contact sheets for 16:9,
+21:9, 8:3 and 32:9 are the four JPEGs in this folder, each under 1 MB.
+
+The final uninstrumented Release EXE (`6cfd6cb773118730031828f282563821d3fd29a780780c0275ad9a5951e5c82f`)
+loaded slot 1 to `KLADWTWN.SAV` at 1920x1080, 2560x1080, 3840x1440 and
+5120x1440. CTest passed 18/18. Direct map captures using
+`build/scene-cache` matched fresh `origin/main` (`0ebfd1f5`) pixel for pixel:
+16/16, zero changed pixels. No game files were committed; the owner game and
+its `mod-cache` were not written.
