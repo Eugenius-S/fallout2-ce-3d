@@ -1,0 +1,22 @@
+[
+  {
+    "spot": "klagraz-e0",
+    "different_pixels": 0,
+    "width": 1920,
+    "height": 1080,
+    "branch_ce_commit": "27ded3a6",
+    "branch_exe_sha256": "707ab34152471be1a725bf60ebdba553ba9e75e5a55d625ce0791906ef64045f",
+    "main_ce_commit": "27ded3a6",
+    "main_exe_sha256": "6d8486a55786f091cb5d6782c6f5aa0890c1515db04ea1db7b08f1fa285597b5"
+  },
+  {
+    "spot": "klaratcv-e2",
+    "different_pixels": 0,
+    "width": 1920,
+    "height": 1080,
+    "branch_ce_commit": "27ded3a6",
+    "branch_exe_sha256": "707ab34152471be1a725bf60ebdba553ba9e75e5a55d625ce0791906ef64045f",
+    "main_ce_commit": "27ded3a6",
+    "main_exe_sha256": "6d8486a55786f091cb5d6782c6f5aa0890c1515db04ea1db7b08f1fa285597b5"
+  }
+]
