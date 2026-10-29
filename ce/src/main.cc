@@ -3,6 +3,7 @@
 #include <lodepng.h>
 
 #include <algorithm>
+#include <limits>
 #include <limits.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -546,12 +547,34 @@ static bool mainLoadOwnerWideArt(const char* assetPath, int width, int height,
         return false;
     }
 
-    rgba.assign(static_cast<size_t>(width) * height * 4, 0);
-    mask.assign(static_cast<size_t>(width) * height, 0);
+    size_t pixelCount = static_cast<size_t>(width) * static_cast<size_t>(height);
+    if (pixelCount > std::numeric_limits<size_t>::max() / 4) {
+        return false;
+    }
+    rgba.assign(pixelCount * 4, 0);
+    mask.assign(pixelCount, 0);
+
+    // Scale proportionally until the image covers the target, then take a centered crop.
+    int64_t scaledWidth64;
+    int64_t scaledHeight64;
+    if (static_cast<int64_t>(width) * sourceHeight > static_cast<int64_t>(height) * sourceWidth) {
+        scaledWidth64 = width;
+        scaledHeight64 = (static_cast<int64_t>(width) * sourceHeight + sourceWidth - 1) / sourceWidth;
+    } else {
+        scaledHeight64 = height;
+        scaledWidth64 = (static_cast<int64_t>(height) * sourceWidth + sourceHeight - 1) / sourceHeight;
+    }
+    if (scaledWidth64 > INT_MAX || scaledHeight64 > INT_MAX) {
+        return false;
+    }
+    int scaledWidth = static_cast<int>(scaledWidth64);
+    int scaledHeight = static_cast<int>(scaledHeight64);
+    int cropX = (scaledWidth - width) / 2;
+    int cropY = (scaledHeight - height) / 2;
     for (int y = 0; y < height; y++) {
-        int srcY = static_cast<int64_t>(y) * sourceHeight / height;
+        int srcY = (static_cast<int64_t>(y) + cropY) * sourceHeight / scaledHeight;
         for (int x = 0; x < width; x++) {
-            int srcX = static_cast<int64_t>(x) * sourceWidth / width;
+            int srcX = (static_cast<int64_t>(x) + cropX) * sourceWidth / scaledWidth;
             size_t sourceOffset = (static_cast<size_t>(srcY) * sourceWidth + srcX) * 4;
             size_t destOffset = (static_cast<size_t>(y) * width + x) * 4;
             memcpy(rgba.data() + destOffset, source.data() + sourceOffset, 4);

@@ -202,9 +202,14 @@ static void mainMenuComputeAspectFit(int srcWidth, int srcHeight, int& outX, int
     outHeight = dstHeight;
 
     if (mainMenuHasRgbaBackground) {
-        // Owner menu art stretches to the complete screen, including extreme ratios.
-        outX = 0;
-        outY = 0;
+        // Keep owner art proportional and crop its center to fill the screen.
+        if (static_cast<int64_t>(dstWidth) * srcHeight > static_cast<int64_t>(dstHeight) * srcWidth) {
+            outHeight = static_cast<int>((static_cast<int64_t>(dstWidth) * srcHeight + srcWidth - 1) / srcWidth);
+        } else {
+            outWidth = static_cast<int>((static_cast<int64_t>(dstHeight) * srcWidth + srcHeight - 1) / srcHeight);
+        }
+        outX = (dstWidth - outWidth) / 2;
+        outY = (dstHeight - outHeight) / 2;
         return;
     } else if (static_cast<int64_t>(dstHeight) * srcWidth > static_cast<int64_t>(dstWidth) * srcHeight) {
         outHeight = static_cast<int>(static_cast<int64_t>(dstWidth) * srcHeight / srcWidth);
@@ -261,11 +266,11 @@ static void mainMenuPrepareRgbaBackground(const MainMenuLayout& layout)
     for (int y = 0; y < layout.backgroundHeight; y++) {
         int dstY = layout.backgroundY + y;
         if (dstY < 0 || dstY >= layout.screenHeight) continue;
-        int srcY = y * mainMenuRgbaBackgroundHeight / layout.backgroundHeight;
+        int srcY = static_cast<int64_t>(y) * mainMenuRgbaBackgroundHeight / layout.backgroundHeight;
         for (int x = 0; x < layout.backgroundWidth; x++) {
             int dstX = layout.backgroundX + x;
             if (dstX < 0 || dstX >= layout.screenWidth) continue;
-            int srcX = x * mainMenuRgbaBackgroundWidth / layout.backgroundWidth;
+            int srcX = static_cast<int64_t>(x) * mainMenuRgbaBackgroundWidth / layout.backgroundWidth;
             size_t srcOffset = (static_cast<size_t>(srcY) * mainMenuRgbaBackgroundWidth + srcX) * 4;
             size_t dstOffset = (static_cast<size_t>(dstY) * layout.screenWidth + dstX) * 4;
             memcpy(mainMenuRgbaScreenBackground.data() + dstOffset, mainMenuRgbaBackground.data() + srcOffset, 4);
