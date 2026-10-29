@@ -170,3 +170,32 @@ movement offsets in the same game projection. These checks have not isolated
 the reported displacement or verified a fix. Next: reproduce the wall case
 with the live camera and actual movement, then measure hero and egg positions
 in the same frame at both aspect ratios and zoom levels. No code fix retained.
+
+### 2026-10-29 gpt: camera matrix and reproduction limit
+
+- Merged current `origin/main` through `d12044de`. The task branch has no
+  renderer, exporter, or regression-tool changes relative to that main.
+- Captured the wall overlap at hero/view tile 19075 in 16:9 (1920x1080) and
+  4:3 (1440x1080), scale 2, at owner zoom 1.024 and doubled zoom 2.048.
+  Sidecars identify build `e46846e3`, EXE SHA-256
+  `86248764df0d1493c241df448f97be91321378bb34bcec9b8cd65661532ca03b`.
+  Egg on/off diffs are 33,004, 132,461, 33,005 and 132,461 pixels; each
+  bounding box follows the projected egg across both aspect ratios and zooms.
+  Four hero crops and exact capture metadata are in
+  `runs/103-see-through-halo-at-walls/accepted/`.
+- Tile 19102 at view 19075 is offscreen (zero changed pixels), so that is not
+  a valid comparison. Centering view on tile 19102 gives 19,888 changed pixels
+  at both aspect ratios and zoom 1.024, but still does not establish the
+  exact red-marked location in the supplied 2026-10-28 image. Its save state
+  and camera metadata are unavailable; feature matching did not map the mark
+  to a reliable tile. No first-bad commit or code cause is established, and
+  no renderer change or reference retake is justified.
+- CTest passed 18/18; scene-export Python tests passed 67/67; regression
+  Python tests passed 12/12. Full `tools/regression.ps1` passed 14/16: 183
+  changed pixels at `klagraz-e0` and 6,299 at `klaratcv-e2`. These are
+  current-main/reference mismatches, not caused by this task branch; refs
+  were not retaken.
+- Next: obtain a reproducible camera/player state for the marked wall, then
+  compare that exact point against 018 and bisect before changing code.
+- Check: build `e46846e3`; CTest 18/18; Python 67/67 and 12/12; full
+  regression 14/16 with the two mismatches above.
