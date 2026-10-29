@@ -31,7 +31,6 @@
 #include "mainmenu.h"
 #include "map.h"
 #include "mouse.h"
-#include "owner_art_viewport.h"
 #include "object.h"
 #include "palette.h"
 #include "platform_compat.h"
@@ -62,7 +61,7 @@ static int main_loadgame_new();
 static void main_unload_new();
 static void mainParseCommandLineArguments(int argc, char** argv);
 static bool mainTryParseDevLoadGameSlot(const char* value, int* slotPtr);
-static bool mainLoadOwnerWideArt(const char* assetPath, int width, int height, const OwnerArtViewport& viewport,
+static bool mainLoadOwnerWideArt(const char* assetPath, int width, int height,
     std::vector<unsigned char>& rgba, std::vector<unsigned char>& mask);
 static void mainMaskRgbaRect(std::vector<unsigned char>& mask, int width, int height, int x, int y, int rectWidth, int rectHeight);
 static void mainHandleDevEndgameRequests();
@@ -530,7 +529,7 @@ static void mainRunGameLoopAndCleanup()
 }
 
 // 0x48118C
-static bool mainLoadOwnerWideArt(const char* assetPath, int width, int height, const OwnerArtViewport& viewport,
+static bool mainLoadOwnerWideArt(const char* assetPath, int width, int height,
     std::vector<unsigned char>& rgba, std::vector<unsigned char>& mask)
 {
     unsigned int sourceWidth = 0;
@@ -541,38 +540,22 @@ static bool mainLoadOwnerWideArt(const char* assetPath, int width, int height, c
         std::string gameRelativePath = std::string("game/") + assetPath;
         error = lodepng::decode(source, sourceWidth, sourceHeight, gameRelativePath);
     }
-    if (error != 0 || sourceWidth == 0 || sourceHeight == 0 || width <= 0 || height <= 0) {
+    if (error != 0 || sourceWidth == 0 || sourceHeight == 0 || sourceWidth > INT_MAX || sourceHeight > INT_MAX
+        || width <= 0 || height <= 0) {
         debugPrint("MAIN: owner wide art unavailable (%s)\n", lodepng_error_text(error));
         return false;
     }
 
-    int drawWidth;
-    int drawHeight;
-    if (static_cast<int64_t>(sourceWidth) * viewport.height > static_cast<int64_t>(sourceHeight) * viewport.width) {
-        // Cover the screen without leaving a seam from integer truncation.
-        drawHeight = viewport.height;
-        drawWidth = static_cast<int>((static_cast<int64_t>(viewport.height) * sourceWidth + sourceHeight - 1) / sourceHeight);
-    } else {
-        drawWidth = viewport.width;
-        drawHeight = static_cast<int>((static_cast<int64_t>(viewport.width) * sourceHeight + sourceWidth - 1) / sourceWidth);
-    }
-
     rgba.assign(static_cast<size_t>(width) * height * 4, 0);
     mask.assign(static_cast<size_t>(width) * height, 0);
-    int left = viewport.x + (viewport.width - drawWidth) / 2;
-    int top = viewport.y + (viewport.height - drawHeight) / 2;
-    for (int y = 0; y < drawHeight; y++) {
-        int dstY = top + y;
-        if (dstY < 0 || dstY >= height) continue;
-        int srcY = static_cast<int64_t>(y) * sourceHeight / drawHeight;
-        for (int x = 0; x < drawWidth; x++) {
-            int dstX = left + x;
-            if (dstX < 0 || dstX >= width) continue;
-            int srcX = static_cast<int64_t>(x) * sourceWidth / drawWidth;
+    for (int y = 0; y < height; y++) {
+        int srcY = static_cast<int64_t>(y) * sourceHeight / height;
+        for (int x = 0; x < width; x++) {
+            int srcX = static_cast<int64_t>(x) * sourceWidth / width;
             size_t sourceOffset = (static_cast<size_t>(srcY) * sourceWidth + srcX) * 4;
-            size_t destOffset = (static_cast<size_t>(dstY) * width + dstX) * 4;
+            size_t destOffset = (static_cast<size_t>(y) * width + x) * 4;
             memcpy(rgba.data() + destOffset, source.data() + sourceOffset, 4);
-            mask[static_cast<size_t>(dstY) * width + dstX] = 1;
+            mask[static_cast<size_t>(y) * width + x] = 1;
         }
     }
     return true;
@@ -603,7 +586,6 @@ static void showDeath()
 
     int screenWidth = screenGetWidth();
     int screenHeight = screenGetHeight();
-    OwnerArtViewport viewport = ownerArtViewport(screenWidth, screenHeight);
     int deathWindowX = 0;
     int deathWindowY = 0;
     int win = windowCreate(deathWindowX,
@@ -648,14 +630,8 @@ static void showDeath()
                 "user-assets/fullscreen-20261028/wallpapers-selected/common/death/death.png",
                 screenWidth,
                 screenHeight,
-                viewport,
                 deathRgba,
                 deathMask);
-            if (useOwnerDeathArt && viewport.x > 0) {
-                bufferFill(windowBuffer, viewport.x, screenHeight, screenWidth, COLOR_BLACK);
-                int rightX = viewport.x + viewport.width;
-                bufferFill(windowBuffer + rightX, screenWidth - rightX, screenHeight, screenWidth, COLOR_BLACK);
-            }
 
             const char* deathFileName = endgameDeathEndingGetFileName();
 

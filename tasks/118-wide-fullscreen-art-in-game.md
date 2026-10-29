@@ -2,7 +2,7 @@
 id: 118
 title: The owner's wide loading screens, main menu and death screen in the game
 milestone: M1
-status: done
+status: doing
 owner: gpt
 suggested: gpt
 priority: normal
@@ -145,3 +145,18 @@ loaded slot 1 to `KLADWTWN.SAV` at 1920x1080, 2560x1080, 3840x1440 and
 `build/scene-cache` matched fresh `origin/main` (`0ebfd1f5`) pixel for pixel:
 16/16, zero changed pixels. No game files were committed; the owner game and
 its `mod-cache` were not written.
+
+### 2026-10-29 gpt follow-up: stretch art and replacement RIX
+Menu and death owner art now stretch over the full output surface at every aspect. Loading art keeps its proportional cover and 8:3 viewport. The menu layout uses the full surface when owner RGBA art is active so its panel and buttons stay inside the image. The death image scaler writes exactly `screenWidth * screenHeight` pixels and clips the subtitle mask to its allocated surface.
+
+The owner added 14 loading PNGs under `game/user-assets/fullscreen-20261028/3440x1440-originals/loading/`: 7 English and 7 Russian, each 1147x480. The old 1120x480 files remain untouched. Every new image's first 1120 columns match the older image pixel-for-pixel, with 27 pixels added on the right. Prepared RIX3 files and installation notes are in the ignored owner asset directory `game/user-assets/fullscreen-20261028/3440x1440-originals/rix3-install-package/`. Each RIX is 1147x480 and 551338 bytes; the PNGs were quantized per image to 254 colors with FFmpeg, with no dithering, then written in RIX3's 6-bit palette format. They were copied only into `build/test-game-118` for runtime testing. English splash0 rendered at the 3440x1440 output target and Russian splash0 at 1920x1080; the actual image decoder loaded both prepared RIX files.
+
+Menu runtime captures in the same isolated test copy show full coverage and visible controls at output targets 1920x1080, 3440x1440 and 5120x1440. With `main_menu_scale_mode=0`, the owner wallpaper also filled a 3840x2160 target (surface 1920x1080) with controls visible. CPU captures are logical size at `--dev-scale=2` (960x540, 1720x720 and 2560x720); these preserve the tested aspect and screen geometry. Evidence is `menu-16x9.jpg`, `menu-43x18.jpg`, `menu-32x9.jpg` and `loading-43x18.jpg`, with EXE identities in `runtime-assets.json`.
+
+Death was not visually verified: the slot-1 isolated runs loaded the map, but the temporary force-death harness did not produce a capturable `showDeath` frame. The code change is therefore not accepted as runtime-tested and PR #157 remains a draft. All temporary capture/force hooks were removed before the final build. The final Release EXE SHA-256 is `07E49F2517CCE6C74B86F79FB57929676965F9C4941D141B97724B6E2169C450`. CTest passed 18/18. The full regression export wrote only to `build/scene-cache`; its tracked-reference summary flags `klagraz-e0` (183 pixels) and `klaratcv-e2` (6299 pixels). Direct comparison of all 16 captures to the fresh `origin/main` baseline images in `runs/118-regression-main-reference/` was exact: 16/16, zero changed pixels (baseline commit `0ebfd1f5`).
+
+No files were copied into owner `game/data`; owner settings and `game/mod-cache` were not written. No game assets are staged for Git.
+
+
+
+Final direct comparison used branch run `runs/regression/20261029-160517-034-69080` and fresh main reference set `runs/118-regression-main-reference/`; evidence is in `runs/118-wide-fullscreen-art-in-game/regression-vs-origin-main.json`.

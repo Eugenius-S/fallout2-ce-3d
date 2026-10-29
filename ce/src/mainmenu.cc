@@ -198,21 +198,13 @@ static void mainMenuComputeAspectFit(int srcWidth, int srcHeight, int& outX, int
 {
     int dstWidth = screenGetWidth();
     int dstHeight = screenGetHeight();
-    OwnerArtViewport viewport = ownerArtViewport(dstWidth, dstHeight);
     outWidth = dstWidth;
     outHeight = dstHeight;
 
     if (mainMenuHasRgbaBackground) {
-        // Cover the supported art viewport, then center it on the full surface.
-        if (static_cast<int64_t>(viewport.width) * srcHeight >= static_cast<int64_t>(viewport.height) * srcWidth) {
-            outWidth = viewport.width;
-            outHeight = static_cast<int>((static_cast<int64_t>(viewport.width) * srcHeight + srcWidth - 1) / srcWidth);
-        } else {
-            outWidth = static_cast<int>((static_cast<int64_t>(viewport.height) * srcWidth + srcHeight - 1) / srcHeight);
-            outHeight = viewport.height;
-        }
-        outX = viewport.x + (viewport.width - outWidth) / 2;
-        outY = viewport.y + (viewport.height - outHeight) / 2;
+        // Owner menu art stretches to the complete screen, including extreme ratios.
+        outX = 0;
+        outY = 0;
         return;
     } else if (static_cast<int64_t>(dstHeight) * srcWidth > static_cast<int64_t>(dstWidth) * srcHeight) {
         outHeight = static_cast<int>(static_cast<int64_t>(dstWidth) * srcHeight / srcWidth);
@@ -284,7 +276,8 @@ static void mainMenuPrepareRgbaBackground(const MainMenuLayout& layout)
 
 static bool mainMenuShouldAspectFit(int backgroundWidth, int backgroundHeight)
 {
-    return settings.ui.main_menu_scale_mode != 0 || backgroundWidth > screenGetWidth() || backgroundHeight > screenGetHeight();
+    return mainMenuHasRgbaBackground || settings.ui.main_menu_scale_mode != 0
+        || backgroundWidth > screenGetWidth() || backgroundHeight > screenGetHeight();
 }
 
 static bool mainMenuShouldUseVanillaArtForLayout(int backgroundWidth, int backgroundHeight)
@@ -375,6 +368,9 @@ static MainMenuLayout mainMenuBuildLayout()
     layout.screenWidth = screenGetWidth();
     layout.screenHeight = screenGetHeight();
     OwnerArtViewport viewport = ownerArtViewport(layout.screenWidth, layout.screenHeight);
+    if (mainMenuHasRgbaBackground) {
+        viewport = { 0, 0, layout.screenWidth, layout.screenHeight };
+    }
     layout.viewportX = viewport.x;
     layout.viewportY = viewport.y;
     layout.viewportWidth = viewport.width;
