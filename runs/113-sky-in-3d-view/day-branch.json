@@ -1,0 +1,33 @@
+{
+  "map": "KLADWTWN.MAP",
+  "elevation": 0,
+  "view_tile": 25075,
+  "camera": "fixed eye=(36.64466,46.23085,86.46700), target=(-12.54167,0.00000,12.68750), fov_y=25.0, near=0.1, far=400.0, screen_right=-cross(forward,world_up)",
+  "sun": {
+    "setting": true,
+    "daylight": true,
+    "game_time": 432000,
+    "up": true,
+    "height": 90.0,
+    "azimuth": 0.0,
+    "direction": [
+      -0.0,
+      1.0,
+      0.0
+    ],
+    "color": [
+      1.0,
+      0.96,
+      0.88
+    ],
+    "strength": 1.0
+  },
+  "resolution": "1920x1080",
+  "logical_resolution": "960x540",
+  "scale": 2,
+  "ce_commit": "91e79b34",
+  "exe_sha256": "e3b53cbbfd668cf8194b9ba937e6fc07d2b5666d601d5a1baffc324b337e918a",
+  "capture_side": "branch",
+  "hour": 12,
+  "capture_json_name": "devshot-20261029-120947-000.json"
+}

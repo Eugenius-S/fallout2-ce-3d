@@ -138,7 +138,9 @@ void drawSceneSky(float aspect, int width, int height, bool flying)
     const float hour = time / 36000.0f;
     const auto smooth = [](float a, float b, float x) { float t = std::clamp((x - a) / (b - a), 0.0f, 1.0f); return t * t * (3.0f - 2.0f * t); };
     const float day = smooth(6.0f, 10.0f, hour) * (1.0f - smooth(14.0f, 18.5f, hour));
-    const float twilight = std::max(1.0f - smooth(4.2f, 8.0f, hour), smooth(16.0f, 20.0f, hour));
+    const float dawn = smooth(4.0f, 5.5f, hour) * (1.0f - smooth(6.5f, 8.0f, hour));
+    const float dusk = smooth(16.0f, 17.5f, hour) * (1.0f - smooth(18.5f, 20.0f, hour));
+    const float twilight = std::max(dawn, dusk);
     const float night = std::clamp(1.0f - day - twilight * 0.55f, 0.0f, 1.0f);
     const float zenith[3] = { 0.035f + 0.235f * day + 0.12f * twilight, 0.06f + 0.37f * day + 0.11f * twilight, 0.15f + 0.51f * day + 0.21f * twilight };
     const float horizon[3] = { 0.13f + 0.67f * day + 0.75f * twilight, 0.19f + 0.52f * day + 0.31f * twilight, 0.33f + 0.23f * day + 0.03f * twilight };
