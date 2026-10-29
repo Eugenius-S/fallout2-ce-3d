@@ -664,6 +664,10 @@ class SceneBuilder:
                                                         # the drum with its top face on the lid
             elif len(group) == 1 and not blocking and first.index.shape[1] < WALK_THROUGH and not forced:
                 continue                                # loose things: cards
+            if first.obj.obj_type == ids.OBJ_TYPE_ITEM:
+                seen = 1                                # a container's card is live (it opens): the game's
+                                                        # own views keep it with its animation, first
+                                                        # person gets the closed box the fit stood up
             if loose and not fit.lid:
                 continue                                # loose clutter stands only as a drum with a lid
             if fit.lid:
