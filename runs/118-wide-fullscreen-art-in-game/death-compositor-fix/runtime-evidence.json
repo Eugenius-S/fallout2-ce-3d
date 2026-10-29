@@ -1,7 +1,7 @@
 {
   "capture_method": "SDL surface captured after renderPresent in a temporary diagnostic build; all diagnostic and forced-death hooks were removed before the final Release build.",
-  "isolated_game_copy": "E:\\Projects\\fallout2-ce-3d-118-death\\build\\test-game-118-death",
-  "working_directory": "E:\\Projects\\fallout2-ce-3d-118-death\\build\\test-game-118-death",
+  "isolated_game_copy": "separate test-game-118-death copy, outside the user-watched test-game-118 folder",
+  "working_directory": "test-game-118-death copy root",
   "args": [
     "--dev-tools",
     "--dev-screen=2310x1298",
@@ -19,7 +19,7 @@
     1155,
     649
   ],
-  "death_source": "E:\\Projects\\fallout2-ce-3d-118-death\\build\\test-game-118-death\\user-assets\\fullscreen-20261028\\wallpapers-selected\\common\\death\\death.png",
+  "death_source": "user-assets/fullscreen-20261028/wallpapers-selected/common/death/death.png (relative to the isolated test copy)",
   "death_source_sha256": "086eb6704ab3e48d69c24ae0de6baa35dd7100335d3e5602cfcf43c75c695cdf",
   "subtitle_text_files": [
     "narrator\\nar_dth5",
