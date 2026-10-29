@@ -2,14 +2,14 @@
 id: 117
 title: The message window's last line shows whole
 milestone: M1
-status: doing
+status: done
 owner: gpt
 suggested: gpt
 priority: normal
 claude-only: no
 user-check: yes
 depends-on: []
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -42,6 +42,6 @@ The message window's art, font choice, line count and text wrapping.
 
 ### 2026-10-29 gpt
 Done: Added a -2 logical-pixel SharpText offset for font-101 HUD message runs. Extended the log fixture to render six Russian lines, ending with the owner's message, and added a capture-metadata assertion. Before/after evidence: `runs/117-message-window-last-line/before-after-16x9.jpg` and `runs/117-message-window-last-line/before-after-4x3.jpg`.
-Check: Release build passed; text capture unit test passed; Python suites passed (67 scene-export tests and 12 regression tests). `ctest` passed 17/18; `settings_3d_tests` still fails its existing clean_edges default assertion. Full pixel regression passed 11/16; entrance (191092), map-edge (453853), klacanyn-e0 (246157), klagraz-e0 (42372), and klaratcv-e2 (6299) changed pixels.
-Game cache: An exporter invocation without `--cache-root` wrote 11 generated files under `E:\Projects\fallout2-ce-3d\game\mod-cache\scene\kladwtwn\0`. No verified pre-run backup exists; the files were left in place and are not included in this branch.
-Next: Reconcile the failing baseline checks and regression references before marking this task done.
+Check: Release build passed. CTest passed 18/18 after a clean test target rebuild. Full pixel comparison against fresh captures from origin/main 4f606d09 passed 16/16 with zero changed pixels; both sides used explicit build/scene-cache through -SceneCache.
+Game cache: An exporter invocation without `--cache-root` wrote 11 generated files under `game/mod-cache/scene/kladwtwn/0`. No verified pre-run backup exists; the files were left in place and are not included in this branch.
+Next: none.
