@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import math
+import hashlib
 import struct
+
+import numpy as np
 
 from scene_check import one_map_elevation
 from solids import OVER_CARD, Projection, rest_card, rest_cross, row_plane, screen_area, solid_faces
@@ -173,7 +176,7 @@ def _split(polygons, side):
             for part in (_clip(polygon, side), _clip(polygon, lambda p: -side(p))) if len(part) >= 3]
 
 
-def _wall_back(batches, sprites, pages, row, hpx, keep=(0.0, 1.0), atlas=None):
+def _wall_back(batches, sprites, pages, row, hpx, keep=(0.0, 1.0), atlas=None, picture_override=None):
     """What the game's camera does not see of a solid wall (donor wallRest): its
     far side, `thick` behind the front, the same outline seen from behind up to
     the cap line, in the picture `back` (-1: the wall's own below its top band),
@@ -188,9 +191,11 @@ def _wall_back(batches, sprites, pages, row, hpx, keep=(0.0, 1.0), atlas=None):
     top = (z1 - zc) * hpx
     length = math.hypot(ub - ua, vb - va) or 1.0
     nu, nv = (vb - va) / length * thick, (ua - ub) / length * thick
-    picture = back if back >= 0 else s
-    x, y, h = (sprites[back][1], sprites[back][2], sprites[back][4]) if back >= 0 \
-        else (front_x, front_y + top, front_h - top)
+    picture = picture_override if picture_override is not None else (back if back >= 0 else s)
+    if picture_override is not None or back >= 0:
+        x, y, h = sprites[picture][1], sprites[picture][2], sprites[picture][4]
+    else:
+        x, y, h = front_x, front_y + top, front_h - top
     if h <= 0 or zc <= z0:
         return
     # The back runs from b to a: its stretch is the front's, seen from there.
@@ -1243,7 +1248,104 @@ def _moved_strip(trim, moved):
     return False
 
 
-def encode_wall_sidecar(scene, skip_props=frozenset(), skip_rests=frozenset(), map_objects=None, atlas=None, tiles=None):
+def _mirror_back_atlases(scene, atlas):
+    """Pack fly-only wall backs whose cutout alpha mirrors the front below its cap."""
+    pages = scene.get("pages") or []
+    sprites = scene.get("sprites") or []
+    if len(atlas) != len(pages):
+        raise ValueError("wall alpha atlas page count differs from scene.pages")
+    page_arrays = [np.asarray(page, dtype=np.uint8) for page in atlas]
+    if any(image.ndim != 3 or image.shape[2] != 4 for image in page_arrays):
+        raise ValueError("wall alpha atlas pages must be RGBA")
+    hpx = _finite(scene["proj"].get("hpx"), "scene projection hpx")
+    unique = {}
+    row_keys = {}
+    for index, row in enumerate(scene.get("walls") or []):
+        if row[10] <= 0:
+            continue
+        front_id = _int(row[0], f"wall {index} front sprite")
+        if not 0 <= front_id < len(sprites):
+            raise ValueError(f"wall {index} front sprite is outside scene.sprites")
+        front = sprites[front_id]
+        fpage, fx, fy, fw, fh = (_int(front[i], "front sprite rectangle") for i in range(5))
+        if not 0 <= fpage < len(page_arrays):
+            raise ValueError(f"wall {index} front sprite page is outside the atlas")
+        cap = int(round((_finite(row[6], "wall top") - _finite(row[9], "wall cap")) * hpx))
+        if cap < 0 or cap > fh:
+            raise ValueError(f"wall {index} cap is outside its front sprite")
+        front_alpha = page_arrays[fpage][fy:fy + fh, fx:fx + fw, 3]
+        if front_alpha.shape != (fh, fw):
+            raise ValueError(f"wall {index} front sprite rectangle is outside its atlas")
+        # _wall_back already reverses both the face winding and UV direction.
+        # Copying the same local alpha therefore mirrors the cutout at the same
+        # point along the wall in world space.
+        mask = front_alpha[cap:] >= 128
+        back_id = _int(row[11], f"wall {index} back sprite") if len(row) > 11 else -1
+        if back_id >= 0:
+            if back_id >= len(sprites):
+                raise ValueError(f"wall {index} back sprite is outside scene.sprites")
+            back = sprites[back_id]
+            bpage, bx, by, bw, bh = (_int(back[i], "back sprite rectangle") for i in range(5))
+            if mask.shape != (bh, bw):
+                raise ValueError(f"wall {index} mirrored front alpha does not match its back sprite")
+            source = page_arrays[bpage][by:by + bh, bx:bx + bw].copy()
+            rect = (bx, by, bw, bh)
+            dest_page = bpage
+        else:
+            if not 0 <= fpage < len(page_arrays) or mask.shape != (fh - cap, fw):
+                raise ValueError(f"wall {index} mirrored front alpha has invalid dimensions")
+            source = page_arrays[fpage][fy + cap:fy + fh, fx:fx + fw].copy()
+            rect = (fx, fy + cap, fw, fh - cap)
+            dest_page = fpage
+        if source.shape[:2] != mask.shape:
+            raise ValueError(f"wall {index} back texture does not match its mirrored front alpha")
+        fill = mask & (source[..., 3] == 0)
+        source[fill, :3] = (24, 24, 24)
+        source[..., 3] = mask.astype(np.uint8) * 255
+        digest = hashlib.sha256(source.tobytes()).digest()
+        key = (dest_page, rect, source.shape, digest)
+        unique.setdefault(key, source)
+        row_keys[index] = key
+
+    if not unique:
+        return [], {}, list(sprites)
+    atlas_size = 2048
+    padded = []
+    for key, image in unique.items():
+        if image.shape[1] + 2 > atlas_size or image.shape[0] + 2 > atlas_size:
+            raise ValueError("mirrored wall back is larger than the generated atlas")
+        padded.append((key, image))
+    padded.sort(key=lambda item: (-item[1].shape[0], -item[1].shape[1], item[0][3]))
+    packed, cursor_x, cursor_y, row_h, pack_index = [], 1, 1, 0, 0
+    placements = {}
+    for key, image in padded:
+        height, width = image.shape[:2]
+        if cursor_x + width + 1 > atlas_size:
+            cursor_x, cursor_y, row_h = 1, cursor_y + row_h + 1, 0
+        if cursor_y + height + 1 > atlas_size:
+            packed.append(np.zeros((atlas_size, atlas_size, 4), dtype=np.uint8))
+            pack_index += 1
+            cursor_x = cursor_y = 1
+            row_h = 0
+        if len(packed) <= pack_index:
+            packed.append(np.zeros((atlas_size, atlas_size, 4), dtype=np.uint8))
+        packed[pack_index][cursor_y:cursor_y + height, cursor_x:cursor_x + width] = image
+        placements[key] = (pack_index, cursor_x, cursor_y, width, height)
+        cursor_x += width + 1
+        row_h = max(row_h, height)
+
+    base_page_count = len(pages)
+    generated_sprites = list(sprites)
+    row_sprite = {}
+    for row_index, key in row_keys.items():
+        page, x, y, width, height = placements[key]
+        generated_sprites.append([base_page_count + page, x, y, width, height, 0, 0])
+        row_sprite[row_index] = len(generated_sprites) - 1
+    return packed, row_sprite, generated_sprites
+
+
+def encode_wall_sidecar(scene, skip_props=frozenset(), skip_rests=frozenset(), map_objects=None, atlas=None, tiles=None,
+                        wall_back_pages=None):
     """Build the donor game view's wall triangles for one scene: what the game's
     camera sees of walls (fronts and tops) and the sheets that have no
     thickness. Backs and slab ends (wallRest, trims) are first-person only in
@@ -1284,6 +1386,17 @@ def encode_wall_sidecar(scene, skip_props=frozenset(), skip_rests=frozenset(), m
         if width <= 0 or height <= 0 or width > 65535 or height > 65535:
             raise ValueError(f"sprite page {index} dimensions are outside sidecar limits")
         pages.append((width, height))
+
+    sprites = scene.get("sprites")
+    wall_atlas = atlas
+    if wall_back_pages is not None and atlas is not None:
+        generated, row_back_sprite, sprites = _mirror_back_atlases(scene, atlas)
+        wall_back_pages.extend(generated)
+        wall_atlas = list(atlas) + generated
+        for page in generated:
+            pages.append((int(page.shape[1]), int(page.shape[0])))
+    else:
+        row_back_sprite = {}
 
     batches = _Batches()
     fly = _Batches()
@@ -1352,7 +1465,8 @@ def encode_wall_sidecar(scene, skip_props=frozenset(), skip_rests=frozenset(), m
     for index, row in enumerate(walls):
         if row[10] > 0 and index not in hidden_walls:
             fly.object = owner(row[8])
-            _wall_back(fly, sprites, pages, row, hpx, corners.back_keep.get(index, (0.0, 1.0)), atlas)
+            _wall_back(fly, sprites, pages, row, hpx, corners.back_keep.get(index, (0.0, 1.0)), wall_atlas,
+                       row_back_sprite.get(index))
     decor = _decor_pieces(atlas, sprites, hpx, walls, corners)
     # Both fronts of a corner with decor run on as they stand up to it.
     decor_ends = {key for index in decor for slab, out, twin, twin_out, _, _ in [corners.pieces[index]]

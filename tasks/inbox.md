@@ -161,3 +161,32 @@ that fits no task becomes a new task when the board runs dry.
   only on roofs, not walls (103); no glow on the slime pools and no
   visible point lights in the toxic caves (111). The bottom stop (108)
   passed with no remarks.
+- 2026-10-28 A sky in the 3D view (flight and turned camera), like the
+  first-person port https://github.com/Apolotary/fallout2-first-person
+  (`runs/inbox/2026-10-28-sky-reference.webp`: a dusk gradient sky above
+  the walls instead of black). The owner: the 3D view looks better with
+  it. Could follow the time of day (sun, night look). The donor's sky is one
+  full-screen shader (`viewer/render.js`, `SKY_FS` and `MOODS`: horizon
+  haze, a gradient to the zenith, the sun's glow, stars at night, two far
+  mesa ridges), drawn first from the camera's ray. Not now; a note only.
+- 2026-10-28 (task 114) The bathhouse's corner by its door
+  (`runs/inbox/2026-10-28-bathhouse-corner-piece.png`): the grey thing on
+  the wall left of the hero is not the corner; it is the thing in the wall
+  that 100 did not fix.
+- 2026-10-28 The owner's live review on main `ff5f4ed0`
+  (`runs/inbox/2026-10-28-*`): the thing in the bathhouse wall still there
+  (114); holes in the tub and inside buildings, fill by the edge colour
+  (115, with 102); the stove flat and the lockers flat (116); the message
+  window's last line cut (117); the hero's halo still missing (103, in
+  work).
+- 2026-10-28 The owner's goal after M1, not for profit: a free release that
+  installs from Steam onto the player's own bought Fallout 2 (Steam checks
+  the base game, the mod reads its data), the way Enderal ships for Skyrim.
+  Needs Bethesda's written consent for the Fallout IP; GOG (Fallout: London
+  went out there for Fallout 4) is the other door. The owner's order: first
+  a fully working game with most graphic bugs gone, a polished UI, the
+  full-screen art extended to 21:9 (the 2026-10-27 line) and every landmark
+  object remodelled (the 2026-10-27 unique-objects line); only then think
+  about Steam. Before asking: a release build, the showcase video (097), a
+  project page; tell the authors of fallout2-ce and of the donor (both
+  Sustainable Use License) first.
