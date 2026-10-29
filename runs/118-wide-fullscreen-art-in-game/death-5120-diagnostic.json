@@ -1,0 +1,13 @@
+{
+  "commit": "7aa13c0762fd478e9c64d859087dda1280b099d9",
+  "final_release_exe_sha256": "EECAD8D7654A87C4F70C66681CE5C896B096DF79FDA03116C6C893B04A8ABEEA",
+  "capture_exe_sha256": "94F92325897D8EFCB6DA8213C0224B0F8380A511ED747EC8E3707BEA13EAEE0E",
+  "capture_exe_note": "Temporary uncommitted test harness; set DAM_DEAD before the normal main-loop death check and captured the first rendered showDeath frame.",
+  "capture": "death-5120-diagnostic.jpg",
+  "target_resolution": "5120x1440",
+  "captured_surface": "2560x720",
+  "art": "owner death.png covers the full surface with no side borders",
+  "subtitle_setting": 1,
+  "subtitle_result": "No subtitle text visible; text correctness remains unverified.",
+  "owner_game_config_or_cache_written": false
+}

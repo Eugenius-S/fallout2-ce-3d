@@ -160,3 +160,30 @@ No files were copied into owner `game/data`; owner settings and `game/mod-cache`
 
 
 Final direct comparison used branch run `runs/regression/20261029-160517-034-69080` and fresh main reference set `runs/118-regression-main-reference/`; evidence is in `runs/118-wide-fullscreen-art-in-game/regression-vs-origin-main.json`.
+
+### 2026-10-29 gpt runtime follow-up
+The current branch commit is `7aa13c07`. I tested the death display in the
+isolated copy using a temporary test-only switch that set `DAM_DEAD` immediately
+before the normal main-loop death check. The normal `showDeath` path displayed
+the owner image edge-to-edge at output targets 3440x1440 (surface 1720x720) and
+5120x1440 (surface 2560x720). The captures are `death-3440-diagnostic.jpg` and
+`death-5120-diagnostic.jpg`; their JSON sidecars record both temporary capture
+EXE identities and the final clean Release EXE identity.
+
+The isolated config had `subtitles=1`, but no caption appeared in either death
+frame. I did not isolate whether the selected narrator text file was missing,
+and did not trigger death through ordinary combat. The menu artwork is still
+visible in the earlier 16:9, 43:18 and 32:9 captures; the new click attempt did
+not reach the test window, so menu interaction is not claimed as checked in
+this follow-up. The test copy contains all 14 prepared splash RIX files (7
+English and 7 Russian, 551338 bytes each); I did not repeat the loading capture
+in this run.
+
+All temporary source hooks were removed. The final clean Release EXE is
+`EECAD8D7654A87C4F70C66681CE5C896B096DF79FDA03116C6C893B04A8ABEEA`; its copy
+in `build/test-game-118` has the same SHA-256. CTest passed 18/18. The prior
+16/16 pixel comparison used this same tracked commit and remains the regression
+result. Owner `fallout2.cfg` timestamp remained 2026-10-29 13:33 and owner
+`game/mod-cache` files remained at or before 13:14, before the 16:23 isolated
+runs. No owner game file was written. Keep PR #157 draft because subtitle text
+and a real menu click remain unverified.
