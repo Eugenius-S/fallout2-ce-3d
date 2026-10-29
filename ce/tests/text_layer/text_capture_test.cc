@@ -368,6 +368,7 @@ void testSemanticGreenCaptureRoles()
     if (captured.size() == 13) {
         rolesMatch = rolesMatch
             && captured[7].run.colorRole == scene::TextColorRole::HudMessageLogGreen
+            && captured[7].run.sharpTextOffsetY == -2
             && captured[8].run.colorRole == scene::TextColorRole::Palette
             && captured[9].run.colorRole == scene::TextColorRole::InterfaceGreen
             && captured[10].run.colorRole == scene::TextColorRole::Palette

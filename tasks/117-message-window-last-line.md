@@ -39,3 +39,9 @@ full, not cut at its foot.
 The message window's art, font choice, line count and text wrapping.
 
 ## Log
+
+### 2026-10-29 gpt
+Done: Added a -2 logical-pixel SharpText offset for font-101 HUD message runs. Extended the log fixture to render six Russian lines, ending with the owner's message, and added a capture-metadata assertion. Before/after evidence: `runs/117-message-window-last-line/before-after-16x9.jpg` and `runs/117-message-window-last-line/before-after-4x3.jpg`.
+Check: Release build passed; text capture unit test passed; Python suites passed (67 scene-export tests and 12 regression tests). `ctest` passed 17/18; `settings_3d_tests` still fails its existing clean_edges default assertion. Full pixel regression passed 11/16; entrance (191092), map-edge (453853), klacanyn-e0 (246157), klagraz-e0 (42372), and klaratcv-e2 (6299) changed pixels.
+Game cache: An exporter invocation without `--cache-root` wrote 11 generated files under `E:\Projects\fallout2-ce-3d\game\mod-cache\scene\kladwtwn\0`. No verified pre-run backup exists; the files were left in place and are not included in this branch.
+Next: Reconcile the failing baseline checks and regression references before marking this task done.

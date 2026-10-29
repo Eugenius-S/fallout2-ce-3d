@@ -65,6 +65,7 @@ int gSpeakerTile = -1;
 int gInitialDateLogCount = 0;
 bool gPipboyStatusRequested = false;
 int gLogDiagnosticFrames = 0;
+bool gLogStackSeeded = false;
 bool gFont101PreviewRequested = false;
 bool gFont101PreviewActivated = false;
 double gFont101PreviewScale = 1.29;
@@ -844,6 +845,30 @@ void uiFixtureVanillaPresented()
                 gLogDiagnosticFrames++, windowId, count, gInitialDateLogCount);
             fflush(stdout);
         }
+        return;
+    }
+
+    if (gKind == UiFixtureKind::Log && !gLogStackSeeded) {
+        std::string dateText;
+        for (const scene::TextRecord& record : eligibleRuns(window)) {
+            if (isDateLogRun(record)) {
+                dateText = record.run.text;
+                break;
+            }
+        }
+        if (dateText.empty()) return;
+        // Keep the log fixture deterministic and exercise a full six-line
+        // monitor, with the owner's Cyrillic descenders in its bottom row.
+        const char* filler[] = {
+            "\xC2\xFB \xE2\xE8\xE4\xE8\xF2\xE5: \xEC\xE5\xF2\xE0\xEB\xEB\xE8\xF7\xE5\xF1\xEA\xF3\xFE \xE4\xE2\xE5\xF0\xFC.",
+            "\xCD\xE5\xF2 \xEA\xEB\xFE\xF7\xE0.",
+            "\xC4\xE2\xE5\xF0\xFC \xE7\xE0\xEA\xF0\xFB\xF2\xE0.",
+            "\xD2\xE5\xEA\xF1\xF2 \xED\xE8\xE6\xED\xE5\xE9 \xF1\xF2\xF0\xEE\xEA\xE8.",
+        };
+        for (const char* line : filler) displayMonitorAddMessage(line);
+        displayMonitorAddMessage(dateText.c_str());
+        displayMonitorAddMessage("\xC2\xFB \xE2\xE8\xE4\xE8\xF2\xE5: \xC2\xFB\xE2\xE5\xF1\xEA\xE0 \x22\xC7\xEE\xEB\xEE\xF2\xEE\xE9 \xE3\xE5\xEA\xEA\xEE\x22");
+        gLogStackSeeded = true;
         return;
     }
 
