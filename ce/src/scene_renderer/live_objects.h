@@ -57,6 +57,9 @@ struct StaticObjectFrame {
     int variant = 0;
     // A wall or scenery the hero stands behind: the egg around him cuts it.
     bool seeThrough = false;
+    // OBJECT_NO_BLOCK: ground clutter (scrub, weeds) whatever its height; its
+    // card reads the sun shadow as the ground does (109).
+    bool noBlock = false;
 };
 
 struct StaticHeroInfo {

@@ -146,6 +146,9 @@ uniform vec2 uShadowAnchor;
 // x 1: a low card reads per pixel on the ground at height y; zw a door's
 // wall normal (x, z) (090).
 uniform vec4 uShadowGround;
+// 1: a card takes its whole verdict at the feet point (109): the people,
+// whose per-pixel read straddles a shadow edge over several pixels of travel.
+uniform float uShadowFeet;
 out vec4 outColor;
 // What a texel shines by itself for the glow (task 022): the colour a
 // full-bright texel keeps, premultiplied by its shown coverage; black
@@ -478,13 +481,37 @@ bool cardTurned() {
 }
 float sunShadowCard(float selfId) {
     if (cardTurned()) return 1.0;
-    if (uShadowGround.x < 0.5) return sunShadowAtAnchor(selfId);
-    vec3 g = vWorld;
-    vec3 toward = towardViewer();
-    if (toward.y > 0.01) g -= toward * ((vWorld.y - uShadowGround.y) / toward.y);
-    g.y = uShadowGround.y;
-    vec2 slope = shadowPlaneSlope(vec3(0.0, 1.0, 0.0));
-    return shadowCoverage(g, vec3(1.0, 0.0, 0.0), vec3(0.0, 0.0, 1.0), slope, selfId);
+    if (uShadowGround.x > 0.5) {
+        vec3 g = vWorld;
+        vec3 toward = towardViewer();
+        if (toward.y > 0.01) g -= toward * ((vWorld.y - uShadowGround.y) / toward.y);
+        g.y = uShadowGround.y;
+        vec2 slope = shadowPlaneSlope(vec3(0.0, 1.0, 0.0));
+        return shadowCoverage(g, vec3(1.0, 0.0, 0.0), vec3(0.0, 0.0, 1.0), slope, selfId);
+    }
+    // The feet-verdict cards keep their whole verdict at the feet (090,
+    // 109): the people, and a standing body taller than half a wall. The
+    // per-pixel read straddles a shadow edge over several pixels of travel,
+    // a walker came out half dark, and the read left lit contour gaps
+    // between a figure in shadow and its shadow (082 round 6).
+    if (uShadowFeet > 0.5) return sunShadowAtAnchor(selfId);
+    // A standing card reads per pixel at its own place and height on its own
+    // plane (063's read, now on 090's compare), so a shadow edge crosses the
+    // card where the caster crosses it, as it crosses the floor and the
+    // walls: the trough beside a fence's shadow stays lit, the barrel inside
+    // a shadow darkens to its own share. A billboard has no sun side: no
+    // face test, the map decides at every hour. A card that casts is
+    // coplanar with its own map texels, and the receiver-plane compare reads
+    // them equal: nothing shadows itself.
+    vec3 n = normalize(gFaceCross);
+    if (dot(n, towardViewer()) < 0.0) n = -n;
+    vec3 t1, t2;
+    shadowFaceBasis(n, t1, t2);
+    float coverage = shadowCoverage(vWorld, t1, t2, shadowPlaneSlope(n), selfId);
+    // The upright face's ramp (090): the disk's edge is a long ramp where
+    // the sun grazes the plane; a third as wide, round the same middle.
+    if (abs(n.y) < 0.5) coverage = clamp((coverage - 0.5) * 3.0 + 0.5, 0.0, 1.0);
+    return coverage;
 }
 // Whose own texels count as empty for this draw: the wall pieces carry their
 // object row in the vertices, everything else reads the uniform (0: nobody).
@@ -543,9 +570,13 @@ float shadowDarken(float light) {
         } else if (uLightMode == 3) {
             // A sprite darkens whole at its feet (082 round 6): the old
             // per-pixel read (063) left lit contour gaps between a character
-            // in shadow and its shadow. A low card is ground and darkens as
-            // the ground does (090).
-            float density = uShadowGround.x > 0.5 || cardTurned() ? 0.35 : 0.3;
+            // in shadow and its shadow. A card lying on the ground darkens
+            // as the ground does (090). The ground, a turned card and a
+            // per-pixel card read like the walls (0.35), so a shadow edge
+            // runs off the floor onto a card without a step; the feet
+            // verdict keeps 0.3, a whole body darkens lighter than the
+            // ground and keeps its read (109).
+            float density = uShadowFeet > 0.5 && uShadowGround.x <= 0.5 && !cardTurned() ? 0.3 : 0.35;
             light *= 1.0 - uShadowStrength * uShadowDensity * density * sunShadowCard(selfId);
         }
     }
@@ -743,14 +774,16 @@ void main() {
                 // (090, tools/shadow_seams.py). A face turned from the sun
                 // (the flat shaded value, no cast shadow) reads blue: lit
                 // ground seen between two shaded fence rails is light, not a
-                // hole in a shadow. A standing body or plant (a person, a
-                // tree: a live card darkened whole at its feet, not a door
-                // in its wall) reads green: the metric leaves its own pixels
-                // out, its outline against a lit wall is not a seam, and still
-                // counts the ground round it (090).
+                // hole in a shadow. A standing body (a person, a tree: a
+                // card with the whole verdict at its feet, not a door in its
+                // wall) reads green: the metric leaves its own pixels out,
+                // its outline against a lit wall is not a seam, and still
+                // counts the ground round it (090). Every other standing
+                // card reads per pixel since 109 and stays in the factor
+                // read.
                 outEmissive = vec4(0.0);
                 if (uLightMode == 3 && uShadowGround.x < 0.5
-                    && dot(uShadowGround.zw, uShadowGround.zw) < 0.5) {
+                    && dot(uShadowGround.zw, uShadowGround.zw) < 0.5 && uShadowFeet > 0.5) {
                     outColor = vec4(0.0, 1.0, 0.0, 1.0);
                     return;
                 }
@@ -875,6 +908,7 @@ int gSceneShadowSelfFromVertexLocation = -1;
 int gSceneShadowSelfIdLocation = -1;
 int gSceneShadowAnchorLocation = -1;
 int gSceneShadowGroundLocation = -1;
+int gSceneShadowFeetLocation = -1;
 
 bool createSceneShader(std::string* error)
 {
@@ -959,6 +993,7 @@ bool createSceneShader(std::string* error)
     gSceneShadowSelfIdLocation = glGetUniformLocation(gSceneProgram, "uShadowSelfId");
     gSceneShadowAnchorLocation = glGetUniformLocation(gSceneProgram, "uShadowAnchor");
     gSceneShadowGroundLocation = glGetUniformLocation(gSceneProgram, "uShadowGround");
+    gSceneShadowFeetLocation = glGetUniformLocation(gSceneProgram, "uShadowFeet");
     if (gSceneMvpLocation < 0 || gSceneTextureLocation < 0
         || gSceneTexturedLocation < 0 || gSceneCloseupFilterLocation < 0 || gSceneColorLocation < 0 || gSceneCutoffLocation < 0
         || gSceneDepthAtLocation < 0 || gSceneTranslucentLocation < 0 || gSceneTintLocation < 0
