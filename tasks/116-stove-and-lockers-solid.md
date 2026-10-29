@@ -2,8 +2,8 @@
 id: 116
 title: The stove and the lockers stand as solids
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: glm
 suggested: glm
 priority: normal
 claude-only: no
