@@ -226,6 +226,10 @@ extern int gSceneShadowGroundLocation;
 // people); a standing card of any other kind reads it per pixel on its own
 // plane.
 extern int gSceneShadowFeetLocation;
+// The drifting cloud shadows: whether they shade the ambient sun light and
+// their world-space wind offset.
+extern int gSceneCloudOnLocation;
+extern int gSceneCloudOffsetLocation;
 
 bool createSceneShader(std::string* error);
 void destroySceneShader();

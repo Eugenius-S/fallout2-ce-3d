@@ -159,7 +159,9 @@ bool gDevCyclePalette = false;
 bool gDevCycleZero = false;
 int gGlowLadderStep = -1;
 std::vector<double> gGlowLevels = { 0.5, 1.0, 2.0, 4.0, 8.0 };
-bool gBackgroundShadows = false; // --dev-shadows: shadows stay on in a background run
+bool gBackgroundShadows = false; // --dev-shadows: sun and cloud shadows stay on in a background run
+bool gBackgroundCloudShadows = false; // --dev-cloud-shadows: clouds only, for A/B captures
+double gDevCloudPhase = -1.0; // --dev-cloud-phase: cloud-only time, in game minutes
 int gShadowDebug = 0; // --dev-shadow-debug=N: 1 factor, 2 fade, 3 coverage
 bool gDevNoSpriteSides = false; // --dev-no-sprite-sides: sprites keep their own side (087's "before")
 bool gDevOpenDoors = false; // --dev-open-doors: every door of the map stands open, once
@@ -980,7 +982,19 @@ bool parseOption(const char* arg)
     }
     if (strcmp(arg, "--dev-shadows") == 0) {
         gBackgroundShadows = true;
-        debugPrint("DEVTOOLS: the shadows stay on in this background run\n");
+        debugPrint("DEVTOOLS: sun and cloud shadows stay on in this background run\n");
+        return true;
+    }
+    if (strcmp(arg, "--dev-cloud-shadows") == 0) {
+        gBackgroundCloudShadows = true;
+        debugPrint("DEVTOOLS: cloud shadows stay on in this background run\n");
+        return true;
+    }
+    const char* cloudPhasePrefix = "--dev-cloud-phase=";
+    if (strncmp(arg, cloudPhasePrefix, strlen(cloudPhasePrefix)) == 0) {
+        gBackgroundCloudShadows = true;
+        gDevCloudPhase = strtod(arg + strlen(cloudPhasePrefix), nullptr);
+        debugPrint("DEVTOOLS: cloud phase is fixed independently of game time\n");
         return true;
     }
     if (strcmp(arg, "--dev-shadow-debug") == 0) {
@@ -1200,6 +1214,7 @@ void applyFixedScreenOptions()
         settings.scene3d.glow = gBackgroundGlow;
         if (gDevGlowStrength >= 0.0) settings.scene3d.glow_strength = gDevGlowStrength;
         settings.scene3d.shadows = gBackgroundShadows;
+        settings.scene3d.cloud_shadows = gBackgroundShadows || gBackgroundCloudShadows;
         if (gDevNoSpriteSides) settings.scene3d.sprite_sides = false;
     }
     debugPrint("DEVTOOLS: fixed screen %dx%d scale %d, windowed, glow %d%s\n",
@@ -1217,7 +1232,10 @@ void applyBackgroundGlow()
 
 void applyBackgroundShadows()
 {
-    if (backgroundCaptureActive()) settings.scene3d.shadows = gBackgroundShadows;
+    if (backgroundCaptureActive()) {
+        settings.scene3d.shadows = gBackgroundShadows;
+        settings.scene3d.cloud_shadows = gBackgroundShadows || gBackgroundCloudShadows;
+    }
     if (gDevNoSpriteSides) settings.scene3d.sprite_sides = false;
 }
 
@@ -2954,6 +2972,11 @@ void gameReset()
 int shadowDebugRequested()
 {
     return gShadowDebug;
+}
+
+double cloudPhaseRequested()
+{
+    return gDevCloudPhase;
 }
 
 bool handleKey(int key)
