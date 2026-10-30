@@ -1,0 +1,55 @@
+{
+  "title": "Isolated Options transition verification",
+  "date": "2026-10-30",
+  "repository": "Eugenius-S/fallout2-ce-3d",
+  "branch": "task/118-runtime-verification",
+  "baseline_origin_main": "3a59aefb",
+  "captures": [
+    {
+      "aspect": "16:9",
+      "resolution": "1920x1080",
+      "jpeg": "runs/118-wide-fullscreen-art-in-game/options-transition-20261030/options-16x9.jpg",
+      "jpeg_sha256": "9ED579745F2186CA749E921976DC1BDB7CA1AD384488715535F502897514E8E0",
+      "source_png": "E:\\Projects\\fallout2-ce-3d-gpt\\build\\test-game-118-verify-20261030\\runs\\options-entry-16x9-v4-20261030\\shots\\game\\scr00000.png",
+      "source_png_sha256": "3C29E9AADFC2A62A41F201D0694A2D80BCFF0499FB1B0C483FC5B36E9AD30C55",
+      "executable_sha256": "E0427A192E085C6441E78558BC377E0A1AB11FB0AE10EAF2E20937D9ED025600",
+      "source_commit": "9073f994",
+      "cwd": "E:\\Projects\\fallout2-ce-3d-gpt\\build\\test-game-118-verify-20261030",
+      "isolated_config_line": "Game config loaded from E:\\Projects\\fallout2-ce-3d-gpt\\build\\test-game-118-verify-20261030\\fallout2.cfg.",
+      "dispatch_markers": [
+        "TEMP_MENU_OPTIONS loop received real queued input event=111",
+        "TEMP_MENU_OPTIONS main switch reached",
+        "TEMP_MENU_OPTIONS doPreferences entered",
+        "TEMP_MENU_OPTIONS preferences framebuffer captured=1"
+      ],
+      "input_method": "In-process synthetic mouse hover/down/up through the actual engine hit-test; actual hit-test result 111 was queued and consumed by normal inputGetInput/main menu dispatch",
+      "physical_mouse_click": "not tested",
+      "owner_game_touched": false
+    },
+    {
+      "aspect": "21:9",
+      "resolution": "2560x1080",
+      "jpeg": "runs/118-wide-fullscreen-art-in-game/options-transition-20261030/options-21x9.jpg",
+      "jpeg_sha256": "0159B6AA93F100A2C76C740E5F48A7F097980D1DC93802B3D0EEBC0572489A96",
+      "source_png": "E:\\Projects\\fallout2-ce-3d-gpt\\build\\test-game-118-verify-20261030\\runs\\options-entry-21x9-20261030\\shots\\game\\scr00000.png",
+      "source_png_sha256": "8071E1891DB6F781C7F5C4ED6709D6F1197246E6B1C7B02B4E2BB7C9EC37DC02",
+      "executable_sha256": "E0427A192E085C6441E78558BC377E0A1AB11FB0AE10EAF2E20937D9ED025600",
+      "source_commit": "9073f994",
+      "cwd": "E:\\Projects\\fallout2-ce-3d-gpt\\build\\test-game-118-verify-20261030",
+      "isolated_config_line": "Game config loaded from E:\\Projects\\fallout2-ce-3d-gpt\\build\\test-game-118-verify-20261030\\fallout2.cfg.",
+      "dispatch_markers": [
+        "TEMP_MENU_OPTIONS loop received real queued input event=111",
+        "TEMP_MENU_OPTIONS main switch reached",
+        "TEMP_MENU_OPTIONS doPreferences entered",
+        "TEMP_MENU_OPTIONS preferences framebuffer captured=1"
+      ],
+      "input_method": "In-process synthetic mouse hover/down/up through the actual engine hit-test; actual hit-test result 111 was queued and consumed by normal inputGetInput/main menu dispatch",
+      "physical_mouse_click": "not tested",
+      "owner_game_touched": false
+    }
+  ],
+  "caveat": "The test logs contain an ancillary missing ce.dat warning, but normal menu loop received event 111, entered doPreferences, and captured its rendered framebuffer.",
+  "final_clean_exe_sha256": "B9ED2793A57640F7B2DD1E3FB8815C76C71266B5C68DDF7BE850C0A5EA55B56B",
+  "final_clean_build": "Release build after removing all temporary source hooks",
+  "ctest": "18/18 passed"
+}
