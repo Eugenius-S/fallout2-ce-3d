@@ -2,8 +2,8 @@
 id: 069
 title: Cloud shadows move onto the new shadow code
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: gpt
 suggested: glm
 claude-only: no
 user-check: yes
