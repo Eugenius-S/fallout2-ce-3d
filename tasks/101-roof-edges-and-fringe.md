@@ -83,3 +83,50 @@ not treat it as the same issue.
 Next: obtain a reproducible way to capture the actual fly-camera view (or its
 camera parameters) from the owner screenshot, then isolate the wall-top
 geometry at those same roof pixels before choosing a fix.
+
+### 2026-10-30 gpt
+
+Blocked after fresh-main fly and geometry checks. Merged `origin/main`
+`3a59aefb` into this branch as `d09883b9`. The branch has no code changes from
+that main commit.
+
+- Rebuilt both checkouts. Main EXE SHA256:
+  `e3332849deaba0d63b3fcc6ac57fab52eafc0ce07cb196e1366c46bccf63e987`;
+  branch EXE SHA256:
+  `aaf818079d7dae0b7761e9942cfa6120881b2b741c58dafed4a79cdf3b4e182e`.
+  Their tour sidecars identify source commits `3a59aefb` and `d09883b9`,
+  respectively. Both use 1920x1080, logical 960x540, scale 2.
+- Exported `kladwtwn` independently to each checkout's `build/scene-cache`.
+  Both provenance fingerprints are
+  `86cb5a106cdebba03840f5647582dde92d8ef0717c58f348f22d5c7b23a03b4a`.
+  No export wrote to `game/mod-cache`.
+- Ran `tools/tour/tour.py` with `check_views` on five roof spots at turns
+  -45, 0 and +45, then two broad roof spots at distance 28. All views passed
+  map, tile and 3D-scene checks. Main and branch match at every spot because
+  there is no code change. The fly views show the thatched roof by the cow pen,
+  but do not match the exact wall-top fringe and horns in the owner's 095
+  screenshots. The wide sheet is `fly-tour-owner-roofs-wide/kladwtwn-e0.jpg`.
+- Read-only map and art inspection found the large roof near tile 22885 on roof
+  cells (37-44, 55-60), with `grof037`-`grof041`, `grof079` and `grof087`.
+  Wall rows nearby use dark top bands in `nec050`-`nec068`. This narrows the
+  candidates but does not identify which pixels in the owner's image came from
+  a particular donor.
+- A diagnostic-only exporter copy under `build/diag-roofcap-exporter` removed
+  horizontal triangles close to roof height inside roof coverage. Its separate
+  cache reduced the Klamath wall sidecar from 29308 to 26199 triangles and
+  changed the focused tile-22885 tour view. The thin roof-edge band remained,
+  so this test does not establish the cause or justify a general fix. Its
+  comparison sheet is `cap-triangle-diagnostic2/kladwtwn-e0.jpg`. No repository
+  source was modified for this experiment.
+- `ctest --test-dir build --output-on-failure` passed 18/18 on both main and
+  branch. Full regression runs against their own explicit `build/scene-cache`
+  had the same two reference failures on both checkouts: `klagraz-e0` 183
+  changed pixels and `klaratcv-e2` 6299; the other 14 spots passed. Direct
+  RGBA comparison of all 16 main and branch captures found 0 changed pixels.
+  These failures are shared with current main, not introduced by this branch.
+
+Next: get an owner screenshot with an exact map tile or camera pose for the
+remaining horns and fringe, then trace those pixels before changing the
+general wall or roof rule. Acceptance remains incomplete; keep this PR draft.
+Check: the two `fly-tour` sheets and capture sidecars under `build/tour-101-*`,
+the `cap-triangle-diagnostic2` sheet, and both full regression summaries.
