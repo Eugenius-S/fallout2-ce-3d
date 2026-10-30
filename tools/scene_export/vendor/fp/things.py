@@ -305,14 +305,6 @@ def stand(obj, art, centre, sprite, order, index, stack):
         return wrong <= tolerance
 
     axis = image_axis(*sprite)
-    # A container the fit can stand (a locker is a box, not a panel on the wall)
-    # keeps its card here, so build_props can stand it up. Scenery keeps its own
-    # sorting: a sign's art fits a box too, but its place is on the wall, and the
-    # game paints it over the wall from its hex's order, not from a solid's.
-    if obj.obj_type == ids.OBJ_TYPE_ITEM and props.fit(alpha, left, top) is not None:
-        card = Card(obj.tile, alpha, left + obj.x, top + obj.y, order, stack)
-        good(card)
-        return tried[-1][2]
     if axis and good(sheet(obj, art, centre, sprite, axis, order, index)):
         return tried[-1][2]
     if good(Card(obj.tile, alpha, left + obj.x, top + obj.y, order, stack)):

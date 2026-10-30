@@ -470,12 +470,15 @@ def fit(alpha, left, top, force=False):
         return None
     hung = _from_top(shape)
     floor = _from_floor(shape)
-    lids = [pair for pair in floor if pair[1].lid]
-    if lids:
-        # A round body under a lid: the box's straight lines contradict the art
-        # the drum's arc just vouched for, so the lid drum takes it whatever the
-        # box's foot line scored.
-        return shape, min(lids, key=lambda pair: pair[0])[1]
+    if hung:
+        floor = [pair for pair in floor if not pair[1].lid]
+    else:
+        lids = [pair for pair in floor if pair[1].lid]
+        if lids:
+            # A round body under a lid, standing on the floor: the box's straight
+            # lines contradict the art the drum's arc just vouched for, so the
+            # lid drum takes it whatever the box's foot line scored.
+            return shape, min(lids, key=lambda pair: pair[0])[1]
     for found in (floor, hung):
         if found:
             return shape, min(found, key=lambda pair: pair[0])[1]
