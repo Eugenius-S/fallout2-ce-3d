@@ -2,8 +2,8 @@
 id: 110
 title: No thin seam where two walls meet at a corner
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: gpt
 suggested: glm
 priority: normal
 claude-only: no
