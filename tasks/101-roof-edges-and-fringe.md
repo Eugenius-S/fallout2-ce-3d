@@ -2,8 +2,8 @@
 id: 101
 title: Roof edges are clean, the roof fringe stands up like a wall, no wall tops through roofs
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: gpt
 suggested: glm
 priority: normal
 claude-only: no
