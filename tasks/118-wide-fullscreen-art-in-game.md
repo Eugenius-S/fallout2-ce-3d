@@ -2,14 +2,14 @@
 id: 118
 title: The owner's wide loading screens, main menu and death screen in the game
 milestone: M1
-status: doing
+status: done
 owner: gpt
 suggested: gpt
 priority: normal
 claude-only: no
 user-check: yes
 depends-on: []
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -236,3 +236,8 @@ The six main-menu buttons (Intro, New Game, Load Game, Options, Credits, Exit) w
 All temporary source hooks were removed after capture. The clean Release build and CTest passed 18/18. The final clean EXE SHA-256 is recorded in the current follow-up evidence. A fresh full regression run exports only to `build/scene-cache`; main self-regression is 14/16: 183 pixels at `klagraz-e0`, 6299 at `klaratcv-e2`, all other captures pass (including 3 and 1 pixel changes below threshold). This is the known stale-reference delta on current main; this verification branch has no production source diff from `origin/main`. Earlier verified 4:3 fallback, menu/death artwork at 16:9 and 21:9 remain in their prior evidence folders. No owner game process, settings, or cache were touched.
 
 Final post-clean run: `tools/regression.ps1` used the clean Release executable SHA-256 `B9ED2793A57640F7B2DD1E3FB8815C76C71266B5C68DDF7BE850C0A5EA55B56B`, exported only to `build/scene-cache`, and captured under `runs/regression/20261030-232223-381-61624/`. The current-main reference checker again reports 14/16: `klagraz-e0` +183 and `klaratcv-e2` +6299; all other spots pass (including 3- and 1-pixel differences under threshold). `origin/main` is `3a59aefb`; `git diff origin/main...HEAD -- ce/src` is empty. Treat the two counts as current-main self-regression deltas against existing references, not as task-caused changes.
+
+### 2026-10-31 gpt final verification
+The current task branch (`b8eb43c5`) and fresh `origin/main` (`3a59aefb`) have no production-source diff. I rebuilt the branch with `tools/configure-build.ps1 -BuildType Release`; all 16 branch capture sidecars identify `b8eb43c5` and the rebuilt EXE SHA256 `c7af38c23acc9d198e1a3e2543a75faafbd04860734e3e16910592828eecdb4f`. Fresh-main sidecars identify `3a59aefb` and EXE SHA256 `e3332849deaba0d63b3fcc6ac57fab52eafc0ce07cb196e1366c46bccf63e987`. Direct RGBA comparison of the two independent 16-capture runs found zero changed pixels in all 16 spots. Evidence: `runs/118-wide-fullscreen-art-in-game/direct-main-branch-regression-20261031.json`; both runs used their own explicit `build/scene-cache`.
+
+CTest passed 18/18 on the rebuilt branch and on the fresh-main build. Against the existing references, both current builds report the same 14/16: `klagraz-e0` +183 pixels and `klaratcv-e2` +6299; these are existing-reference deltas, not a branch regression, and references were not changed. The existing runtime evidence covers all 14 EN/RU loading images at 16:9 and 21:9 (28/28), all six menu action routes at both aspects (12/12), death art/subtitles and 4:3 fallback. Menu actions were exercised through the in-process engine hit-test and normal action dispatch; no physical OS mouse click is claimed. No owner process, settings, or cache was touched.
