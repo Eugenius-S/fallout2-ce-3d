@@ -82,7 +82,7 @@ param(
     [string]$SceneCache,
     [ValidateSet('english', 'russian')]
     [string]$Language,
-    [ValidateSet('save', 'cancel', 'escape', 'defaults', 'verify')]
+    [ValidateSet('save', 'save-key', 'cancel', 'cancel-key', 'escape', 'defaults', 'verify')]
     [string]$PreferencesProbe,
     [switch]$ReuseTestConfig,
     [switch]$CaptureConsole,
@@ -615,10 +615,10 @@ if ($PreferencesProbe) {
     $enabledAfter = Get-TestConfigValue $configPath '3d' 'enabled'
     $difficultyAfter = Get-TestConfigValue $configPath 'preferences' 'combat_difficulty'
     switch ($PreferencesProbe) {
-        { $_ -in 'cancel', 'escape', 'verify' } {
+        { $_ -in 'cancel', 'cancel-key', 'escape', 'verify' } {
             if ($configHashAfter -ne $configHashBefore) { throw "$PreferencesProbe changed the isolated config hash." }
         }
-        'save' {
+        { $_ -in 'save', 'save-key' } {
             $zoomMatch = [regex]::Match($probeLog, 'PREFERENCES_PROBE PASS committed zoom=([0-9.]+) enabled=(true|false) combat_difficulty=(-?\d+)')
             if (-not $zoomMatch.Success) { throw 'Done commit values were not reported.' }
             $expectedEnabled = if ($zoomMatch.Groups[2].Value -eq 'true') { '1' } else { '0' }

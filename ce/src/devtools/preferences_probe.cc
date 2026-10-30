@@ -24,7 +24,9 @@ namespace {
 enum class ProbeMode {
     None,
     Save,
+    SaveKeyboard,
     Cancel,
+    CancelKeyboard,
     Escape,
     Defaults,
     Verify,
@@ -57,6 +59,14 @@ std::string gZoomBefore;
 int gLegacyDifficultyBefore = -1;
 int gStagedLegacyDifficulty = -1;
 bool gVerifyWheelOnNext = false;
+bool gWaitingForFooter = false;
+int gExpectedFooterEvent = -1;
+int gFooterInputPhase = 0;
+int gFooterMouseX = 0;
+int gFooterMouseY = 0;
+int gFooterMouseButtons = 0;
+bool gFooterOverrideLogged = false;
+bool gFooterLoopLogged = false;
 std::string gEnabledBefore;
 std::chrono::steady_clock::time_point gDeadline;
 
@@ -94,6 +104,29 @@ int pageOffsetX(const Window* window)
     return window != nullptr ? (window->width - 640) / 2 : 0;
 }
 
+void scheduleFooterMouse(int eventCode)
+{
+    Window* window = windowGetWindow(gWindowId);
+    if (window == nullptr) {
+        failProbe("preferences window disappeared before footer click injection");
+        return;
+    }
+    for (Button* button = window->buttonListHead; button != nullptr; button = button->next) {
+        if (button->leftMouseUpEventCode != eventCode) continue;
+        gFooterMouseX = window->rect.left + button->rect.left + (button->rect.right - button->rect.left) / 2;
+        gFooterMouseY = window->rect.top + button->rect.top + (button->rect.bottom - button->rect.top) / 2;
+        gFooterMouseButtons = 0;
+        gFooterInputPhase = 1;
+        gFooterOverrideLogged = false;
+        gFooterLoopLogged = false;
+        printf("PREFERENCES_PROBE injected button state event=%d at logical=%d,%d rect=%d,%d..%d,%d\n",
+            eventCode, gFooterMouseX, gFooterMouseY, button->rect.left, button->rect.top, button->rect.right, button->rect.bottom);
+        fflush(stdout);
+        return;
+    }
+    failProbe("footer button event code was not found in the current window");
+}
+
 } // namespace
 
 bool parsePreferencesProbeOption(const char* arg)
@@ -102,12 +135,14 @@ bool parsePreferencesProbeOption(const char* arg)
     if (strncmp(arg, prefix, strlen(prefix)) != 0) return false;
     const char* mode = arg + strlen(prefix);
     if (strcmp(mode, "save") == 0) gMode = ProbeMode::Save;
+    else if (strcmp(mode, "save-key") == 0) gMode = ProbeMode::SaveKeyboard;
     else if (strcmp(mode, "cancel") == 0) gMode = ProbeMode::Cancel;
+    else if (strcmp(mode, "cancel-key") == 0) gMode = ProbeMode::CancelKeyboard;
     else if (strcmp(mode, "escape") == 0) gMode = ProbeMode::Escape;
     else if (strcmp(mode, "defaults") == 0) gMode = ProbeMode::Defaults;
     else if (strcmp(mode, "verify") == 0) gMode = ProbeMode::Verify;
     else {
-        printf("PREFERENCES_PROBE FAIL: expected save, cancel, escape, defaults, or verify\n");
+        printf("PREFERENCES_PROBE FAIL: expected save, save-key, cancel, cancel-key, escape, defaults, or verify\n");
         gMode = ProbeMode::Cancel;
         gFailed = true;
     }
@@ -142,6 +177,25 @@ bool preferencesProbeUsesSimulatedMouse()
     return preferencesProbeActive();
 }
 
+bool preferencesProbeOverrideMouse(int* x, int* y, unsigned char* leftButton, unsigned char* rightButton)
+{
+    if (!preferencesProbeActive() || !gWaitingForFooter || gFooterInputPhase == 0
+        || x == nullptr || y == nullptr || leftButton == nullptr || rightButton == nullptr) {
+        return false;
+    }
+    *x = gFooterMouseX;
+    *y = gFooterMouseY;
+    *leftButton = (gFooterMouseButtons & MOUSE_STATE_LEFT_BUTTON_DOWN) != 0 ? 1 : 0;
+    *rightButton = (gFooterMouseButtons & MOUSE_STATE_RIGHT_BUTTON_DOWN) != 0 ? 1 : 0;
+    if (!gFooterOverrideLogged) {
+        printf("PREFERENCES_PROBE mouse override read phase=%d logical=%d,%d buttons=%d\n",
+            gFooterInputPhase, *x, *y, *leftButton);
+        fflush(stdout);
+        gFooterOverrideLogged = true;
+    }
+    return true;
+}
+
 void preferencesProbeComplete(bool success, scene::OptionsPanel* panel, int stagedLegacyDifficulty)
 {
     if (!preferencesProbeActive() || !gAwaitingCompletion) return;
@@ -154,7 +208,7 @@ void preferencesProbeComplete(bool success, scene::OptionsPanel* panel, int stag
         failProbe("preferences panel disappeared before result check");
         return;
     }
-    if (gMode == ProbeMode::Cancel || gMode == ProbeMode::Escape) {
+    if (gMode == ProbeMode::Cancel || gMode == ProbeMode::CancelKeyboard || gMode == ProbeMode::Escape) {
         if (panel->settingValueForProbe("3d.zoom") != gZoomBefore
             || panel->settingValueForProbe("3d.enabled") != gEnabledBefore
             || stagedLegacyDifficulty != gLegacyDifficultyBefore
@@ -167,30 +221,21 @@ void preferencesProbeComplete(bool success, scene::OptionsPanel* panel, int stag
         printf("PREFERENCES_PROBE PASS rollback zoom=%s enabled=%s combat_difficulty=%d staged_combat_difficulty=%d\n",
             panel->settingValueForProbe("3d.zoom").c_str(), panel->settingValueForProbe("3d.enabled").c_str(),
             static_cast<int>(settings.preferences.combat_difficulty), stagedLegacyDifficulty);
+    } else if (gMode == ProbeMode::Defaults) {
+        if (panel->settingValueForProbe("3d.zoom") != "1.000000"
+            || panel->settingValueForProbe("3d.enabled") != "true"
+            || settings.scene3d.zoom != 1.0 || !settings.scene3d.enabled
+            || stagedLegacyDifficulty != 1
+            || static_cast<int>(settings.preferences.combat_difficulty) != 1) {
+            failProbe("Defaults and Done did not apply the registered defaults");
+            return;
+        }
+        printf("PREFERENCES_PROBE PASS actual Defaults and Done clicks committed\n");
     } else if (gMode == ProbeMode::Verify) {
         printf("PREFERENCES_PROBE PASS readback zoom=%s enabled=%s combat_difficulty=%d\n",
             panel->settingValueForProbe("3d.zoom").c_str(), panel->settingValueForProbe("3d.enabled").c_str(),
             static_cast<int>(settings.preferences.combat_difficulty));
-    } else if (gMode == ProbeMode::Defaults) {
-        int checkedThreeDDefaults = 0;
-        for (const SettingDescriptor& descriptor : settingsGetDescriptors()) {
-            if (descriptor.section != "3d" || descriptor.readOnly || descriptor.commandLineOverride || !descriptor.applicable) continue;
-            if (settingsGetConfiguredValue(descriptor) != descriptor.defaultValue) {
-                failProbe("Defaults did not reset every editable registered 3D value");
-                return;
-            }
-            checkedThreeDDefaults++;
-        }
-        if (panel->settingValueForProbe("3d.zoom") != "1.000000"
-            || panel->settingValueForProbe("3d.enabled") != "true"
-            || settings.scene3d.zoom != 1.0 || !settings.scene3d.enabled
-            || gStagedLegacyDifficulty != 1) {
-            failProbe("Defaults did not restore registered 3D defaults");
-            return;
-        }
-        printf("PREFERENCES_PROBE PASS defaults staged zoom=%s enabled=%s checked_3d=%d\n",
-            panel->settingValueForProbe("3d.zoom").c_str(), panel->settingValueForProbe("3d.enabled").c_str(), checkedThreeDDefaults);
-    } else {
+    } else if (gMode == ProbeMode::Save || gMode == ProbeMode::SaveKeyboard) {
         const std::string committedZoom = panel->settingValueForProbe("3d.zoom");
         if (committedZoom == gZoomBefore || panel->settingValueForProbe("3d.enabled") == gEnabledBefore
             || gStagedLegacyDifficulty == gLegacyDifficultyBefore
@@ -202,6 +247,9 @@ void preferencesProbeComplete(bool success, scene::OptionsPanel* panel, int stag
         printf("PREFERENCES_PROBE PASS committed zoom=%s enabled=%s combat_difficulty=%d\n",
             panel->settingValueForProbe("3d.zoom").c_str(), panel->settingValueForProbe("3d.enabled").c_str(),
             gStagedLegacyDifficulty);
+    } else {
+        failProbe("unexpected preferences probe completion mode");
+        return;
     }
     gFinished = true;
     fflush(stdout);
@@ -227,6 +275,48 @@ int preferencesProbeNextEvent(int eventCode, scene::OptionsPanel* panel, int win
         if ((mouseGetEvent() & MOUSE_EVENT_WHEEL) == 0) return eventCode;
         gWaitingForWheel = false;
         gVerifyWheelOnNext = true;
+        return eventCode;
+    }
+    if (gWaitingForFooter) {
+        if (!gFooterLoopLogged) {
+            int x = 0, y = 0;
+            mouseGetPosition(&x, &y);
+            printf("PREFERENCES_PROBE footer loop event=%d mouse_event=%d pos=%d,%d phase=%d\n",
+                eventCode, mouseGetEvent(), x, y, gFooterInputPhase);
+            fflush(stdout);
+            gFooterLoopLogged = true;
+        }
+        if (gFooterInputPhase == 1 && eventCode == -1) {
+            Window* window = windowGetWindow(gWindowId);
+            if (window == nullptr || window->hoveredButton == nullptr
+                || window->hoveredButton->leftMouseUpEventCode != gExpectedFooterEvent) {
+                return -1;
+            }
+            gFooterMouseButtons = MOUSE_STATE_LEFT_BUTTON_DOWN;
+            gFooterInputPhase = 2;
+            printf("PREFERENCES_PROBE mouse hover reached the button; injecting down\n");
+            return -1;
+        }
+        if (gFooterInputPhase == 2 && eventCode == -2) {
+            gFooterMouseButtons = 0;
+            gFooterInputPhase = 3;
+            printf("PREFERENCES_PROBE mouse down reached the window manager; injecting up\n");
+            return -1;
+        }
+        if (eventCode == -1 || eventCode == -2) return -1;
+        bool expected = eventCode == gExpectedFooterEvent;
+        if ((gMode == ProbeMode::Save || gMode == ProbeMode::SaveKeyboard) && eventCode == KEY_RETURN) expected = true;
+        if ((gMode == ProbeMode::Cancel || gMode == ProbeMode::CancelKeyboard) && eventCode == KEY_ESCAPE) expected = true;
+        if (!expected) {
+            printf("PREFERENCES_PROBE ignored input=%d while waiting for footer=%d\n", eventCode, gExpectedFooterEvent);
+            return -1;
+        }
+        gWaitingForFooter = false;
+        gFooterInputPhase = 0;
+        gFooterMouseButtons = 0;
+        gAwaitingCompletion = eventCode == 504 || eventCode == 528 || eventCode == KEY_RETURN || eventCode == KEY_ESCAPE;
+        printf("PREFERENCES_PROBE actual footer input event=%d\n", eventCode);
+        fflush(stdout);
         return eventCode;
     }
     if (gVerifyWheelOnNext) {
@@ -402,22 +492,50 @@ int preferencesProbeNextEvent(int eventCode, scene::OptionsPanel* panel, int win
             return KEY_ESCAPE;
         }
         printf("PREFERENCES_PROBE PASS 3d.zoom %s -> %s\n", gZoomBefore.c_str(), panel->settingValueForProbe("3d.zoom").c_str());
-        if (gMode == ProbeMode::Save) {
-            gAwaitingCompletion = true;
-            return 504;
+        if (gMode == ProbeMode::Save || gMode == ProbeMode::SaveKeyboard) {
+            gWaitingForFooter = true;
+            gExpectedFooterEvent = 504;
+            if (gMode == ProbeMode::SaveKeyboard) {
+                SDL_Event key = {};
+                key.type = SDL_KEYDOWN;
+                key.key.state = SDL_PRESSED;
+                key.key.keysym.scancode = SDL_SCANCODE_RETURN;
+                key.key.keysym.sym = SDLK_RETURN;
+                SDL_PushEvent(&key);
+                printf("PREFERENCES_PROBE queued isolated Enter through SDL input\n");
+            } else {
+                scheduleFooterMouse(504);
+                printf("PREFERENCES_PROBE queued isolated mouse click for Done\n");
+            }
+            return -1;
         }
-        if (gMode == ProbeMode::Cancel) {
-            printf("PREFERENCES_PROBE Cancel button requested\n");
-            gAwaitingCompletion = true;
-            return 528;
+        if (gMode == ProbeMode::Cancel || gMode == ProbeMode::CancelKeyboard) {
+            gWaitingForFooter = true;
+            gExpectedFooterEvent = 528;
+            if (gMode == ProbeMode::CancelKeyboard) {
+                SDL_Event key = {};
+                key.type = SDL_KEYDOWN;
+                key.key.state = SDL_PRESSED;
+                key.key.keysym.scancode = SDL_SCANCODE_ESCAPE;
+                key.key.keysym.sym = SDLK_ESCAPE;
+                SDL_PushEvent(&key);
+                printf("PREFERENCES_PROBE queued isolated Escape through SDL input\n");
+            } else {
+                scheduleFooterMouse(528);
+                printf("PREFERENCES_PROBE queued isolated mouse click for Cancel\n");
+            }
+            return -1;
         }
         if (gMode == ProbeMode::Escape) {
             printf("PREFERENCES_PROBE Escape rollback requested\n");
             gAwaitingCompletion = true;
             return KEY_ESCAPE;
         }
-        printf("PREFERENCES_PROBE Defaults requested\n");
-        return 527;
+        gWaitingForFooter = true;
+        gExpectedFooterEvent = 527;
+        scheduleFooterMouse(527);
+        printf("PREFERENCES_PROBE queued isolated mouse click for Default\n");
+        return -1;
     case 12:
         if (panel->settingValueForProbe("3d.zoom") != "1.000000"
             || panel->settingValueForProbe("3d.enabled") != "true" || gStagedLegacyDifficulty != 1) {
@@ -425,8 +543,11 @@ int preferencesProbeNextEvent(int eventCode, scene::OptionsPanel* panel, int win
             return KEY_ESCAPE;
         }
         printf("PREFERENCES_PROBE PASS default values staged\n");
-        gAwaitingCompletion = true;
-        return 504;
+        gWaitingForFooter = true;
+        gExpectedFooterEvent = 504;
+        scheduleFooterMouse(504);
+        printf("PREFERENCES_PROBE queued isolated mouse click for Done after Defaults\n");
+        return -1;
     default:
         failProbe("unexpected script state");
         return KEY_ESCAPE;

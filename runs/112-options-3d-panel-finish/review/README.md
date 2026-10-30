@@ -1,13 +1,13 @@
 # Task 112 visual evidence
 
-The screen sheets pair the available before captures with the final after captures at 16:9 and 4:3. The detail sheets show the panel edge and scrollbar track.
+The screen sheets pair current `origin/main` before captures with branch after captures at 16:9 and 4:3. Detail sheets show the options panel edge and scrollbar at both aspect ratios.
 
-After captures use the task worktree build. The 16:9 top before capture is from commit `9c82d409`, before this task's source edits. The 16:9 bottom and both 4:3 before captures reuse the Task 017 matrix from `e29ef058`, because no current-main bottom/4:3 captures existed before editing. That commit is not an ancestor of current `origin/main`, so those three before images are visual context rather than exact current-main baselines.
+Capture identity:
 
-Relevant metadata:
+- Before: repository HEAD `41dfc616`, 16:9 1920x1080 (logical 960x540, scale 2), 4:3 1920x1440 (logical 640x480, scale 3), EXE SHA-256 `97440aacf315cb6ec941ce43a3a98fe6d313de5af2471eb9ed7fa26205b0e78e`.
+- After: task branch HEAD `27312a40`, same physical/logical resolutions and scale, EXE SHA-256 `f7920b3a95579eb3e3dc5cba622473402254dfd5b80a3db2b367f845e455ad7e`.
+- The JSON sidecars beside each raw PNG record the resolution, logical resolution, scale, game submodule commit, and EXE SHA-256.
 
-- Current 16:9 top before: 1920x1080, logical 960x540, scale 2, EXE SHA-256 `9ad1c156cd18843d516b7d2d871f911bd80d5ef0c8027d7b58c5872a6e1c6957`.
-- After captures: 16:9 is 1920x1080 at scale 2; 4:3 is 1920x1440 at logical 640x480, scale 3. Their JSON sidecars sit beside each raw PNG.
-- Historical Task 017 before captures: EXE SHA-256 `4c3933c595323a981b0008add8d94ef47b397c77ef709011ab16a49e349aae28`.
+Direct RGBA comparison of all 16 original-view regression captures from `origin/main` and the branch found zero changed pixels. The repository's older curated references independently report the same two existing differences on both builds: `klagraz-e0` (183 pixels) and `klaratcv-e2` (6299 pixels).
 
-Raw PNG captures are not committed. The four JPEG review sheets are each below 1 MB.
+Raw captures remain in the local `runs/112-options-3d-panel-finish/{main-before-*,branch-after-*}` folders. The four committed JPEG sheets are each below 1 MB.
