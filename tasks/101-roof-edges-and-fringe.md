@@ -130,3 +130,44 @@ remaining horns and fringe, then trace those pixels before changing the
 general wall or roof rule. Acceptance remains incomplete; keep this PR draft.
 Check: the two `fly-tour` sheets and capture sidecars under `build/tour-101-*`,
 the `cap-triangle-diagnostic2` sheet, and both full regression summaries.
+
+### 2026-10-30 gpt
+
+Blocked after a historical-build check: I could not reproduce the owner's
+wall-top strips or flat fringe from a known camera pose, so I made no code
+change.
+
+- Matched the red brick roof and its surrounding buildings in
+  `runs/inbox/2026-10-27-roof-horns.jpg` to Klamath Downtown. A p35/d12/yaw+15
+  capture gives 340 SIFT matches and 139 RANSAC inliers against that owner
+  image. This is a useful scene match, not an exact pose: the owner image has
+  no camera or tile sidecar. The current `game/fallout2.cfg` says zoom 1.28,
+  but it does not establish the setting at screenshot time; `-Zoom 1.28` also
+  leaves this static preview pixel-identical to `-Zoom 1.00`.
+- Built historical commit `dbc789af` (the 095 camera-boundary commit from
+  2026-10-27) separately and exported its Klamath cache to
+  `build/historical-095-src/build/scene-cache`. Its EXE SHA256 is
+  `01ed469f6e765aa3d8a3d9251923c5a374e8a4f8b0525e0401fd93b7dee91793`;
+  its sidecar reports `ce_commit: dbc789af`. Compared with this branch's
+  log-only build from current main `3a59aefb` (EXE SHA256
+  `aaf818079d7dae0b7761e9942cfa6120881b2b741c58dafed4a79cdf3b4e182e`), the
+  same p35/d12/yaw+15 capture changes 22,898 pixels overall, 2,945 on the
+  roof, and 10 inside the roof. Neither image contains the owner's dark
+  segmented strips. The side-by-side is
+  `runs/101-roof-edges-and-fringe/historical-vs-current-yaw15.jpg`.
+- At p35/d12, separate no-row-616, no-row-617, and no-rows-616+617 caches
+  produce identical images to one another; they do not explain the owner's
+  strips. Removing all walls changes 387,183 pixels, removing roofs changes
+  510,302, and the old roof-cap diagnostic changes 8,210 (7,197 in the roof
+  ROI), but those broad controls do not isolate the cause. The older flat
+  fringe image has only 4-6 inliers against the tested roof captures, so its
+  correct camera/roof is also unconfirmed.
+- No game/config/cache under `game/` was written. The prior current-main check
+  remains the only regression result: ctest passed 18/18 on main and branch;
+  each full regression had the same main-reference failures (`klagraz-e0`
+  183 px and `klaratcv-e2` 6,299 px), and direct main/branch comparison was
+  0 changed pixels across 16 views. No source code changed since those checks.
+
+Next: obtain the owner view's exact camera/tile or a new capture with a
+sidecar. Keep PR #168 draft and status `doing`; do not change the roof rule
+until the old strips and fringe can be tied to specific projected geometry.
