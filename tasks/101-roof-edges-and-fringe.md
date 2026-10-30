@@ -138,10 +138,11 @@ wall-top strips or flat fringe from a known camera pose, so I made no code
 change.
 
 - Matched the red brick roof and its surrounding buildings in
-  `runs/inbox/2026-10-27-roof-horns.jpg` to Klamath Downtown. A p35/d12/yaw+15
-  capture gives 340 SIFT matches and 139 RANSAC inliers against that owner
-  image. This is a useful scene match, not an exact pose: the owner image has
-  no camera or tile sidecar. The current `game/fallout2.cfg` says zoom 1.28,
+  `runs/inbox/2026-10-27-roof-horns.jpg` to Klamath Downtown. The historical
+  095 p35/d12/yaw+15 capture gives 340 SIFT matches and 139 RANSAC inliers
+  against that owner image. This is a useful scene match, not an exact pose:
+  the owner image has no camera or tile sidecar. The current
+  `game/fallout2.cfg` says zoom 1.28,
   but it does not establish the setting at screenshot time; `-Zoom 1.28` also
   leaves this static preview pixel-identical to `-Zoom 1.00`.
 - Built historical commit `dbc789af` (the 095 camera-boundary commit from
