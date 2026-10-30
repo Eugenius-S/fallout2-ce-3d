@@ -54,3 +54,27 @@ picture. One rule at the corner line for all corners, no per-map cases.
 Shadows on the corner pieces (109), the post split itself (107).
 
 ## Log
+
+### 2026-10-30 gpt independent diagnosis attempt
+Claimed the task to check whether the STOP wall corner can be investigated apart
+from task 107. Captured current-main 3D snapshots at `klamall:13050` and
+`kladwtwn:17104`, at hero rotations 0 and 40, plus classic 2D and a
+shadows-on control. Captures use the clean Release EXE and `build/scene-cache`;
+identities and compact images are in `runs/110-corner-join-seams/`.
+
+The STOP location is a wall-wall corner without an obvious separate painted
+post in the owner's image, so its wall edge can be investigated independently.
+The dark-house corner includes a decorative post/card and overlaps task 107.
+`corner_rays.py` found no through-rays at either exact target view tile; this
+rules out a large sampled mesh opening only, not a subpixel gap or texture edge.
+The broad shadows-on/off image differences did not isolate the seam pixels.
+The 0/40 images differ, but the capture sidecar still labels its camera static,
+so the camera angle itself is not accepted as proven. I did not identify
+whether the remaining line is alpha, texel color, or a narrow raster gap and
+made no code change.
+
+CTest on this unchanged source passed 18/18. Fresh-main self-regression using
+`build/scene-cache` passed 14/16 references; `klagraz-e0` differed by 183
+pixels and `klaratcv-e2` by 6299. This is not an independent branch-versus-main
+capture. Keep the task `doing`; #107 and the turned-camera/corner acceptance
+remain unresolved. Owner game/config/cache were not written.
