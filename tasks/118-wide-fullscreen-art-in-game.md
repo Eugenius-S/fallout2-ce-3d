@@ -196,3 +196,27 @@ Menu and death art now use centered proportional cover instead of stretching. Me
 Runtime evidence in `runs/118-wide-fullscreen-art-in-game/runtime-palette-fix/` contains English and Russian loading screenshots captured from the isolated test copy at logical 1720x720 for output 3440x1440, plus a 1720x720 main-menu frame captured after palette fade. The loading screenshots match the updated `splash2` source art at RGB MAE 1.79 after nearest resize; they have no blue channel swap. Menu art covers all edges and buttons/text are visible at native size. Temporary capture hooks were removed before the final clean build.
 
 Not verified: a current-code death-screen runtime capture and death subtitle. Keep PR #157 in draft. Final clean Release EXE SHA-256 `CBFB53A9D400E6758FADF479DDF157510ECA2922E89EA9E5FF097B4FEFF2B1E1`; CTest 18/18. Full regression exported only to `build/scene-cache`; direct comparison against fresh `origin/main` `0ebfd1f5` was 16/16 exact with zero changed pixels. `tools/regression.ps1` still reports the known old-reference differences for `klagraz-e0` (183) and `klaratcv-e2` (6299). No owner game/config/cache files were written.
+
+### 2026-10-30 gpt runtime verification follow-up
+The current `origin/main` build passed CTest 18/18. A fresh full regression run
+used only `build/scene-cache`: 14/16 references passed. `klagraz-e0` differed
+by 183 pixels and `klaratcv-e2` by 6299; the other two nonzero results were
+within the checker threshold. This is a main self-regression, not an
+independent branch-versus-main capture: this verification branch has no code
+diff from the tested main.
+
+In an isolated test copy, the normal `showDeath` path rendered the owner's
+death art and subtitle after `renderPresent` at 16:9 and 21:9. The two compact
+captures and full provenance are `runs/118-wide-fullscreen-art-in-game/death-runtime-current-16x9.jpg`,
+`death-runtime-current-21x9.jpg` and `runtime-verification-20261030.json`.
+The copied slot-1 save still fails at load function #3, so this death check used
+a temporary test-only `DAM_DEAD` trigger on a fresh dev character, not slot 1.
+All source hooks were removed before the clean Release build. The test copy
+alone was used; owner game files, configuration and `game/mod-cache` were not
+written.
+
+The isolated menu helper reached engine hit-testing and queued `KEY_O` (111)
+on Options mouse-up, but the Preferences transition was not visually confirmed
+and no physical click was tested. Keep this task `doing`; do not mark the
+remaining interaction acceptance complete. PR #157 is already merged; this
+follow-up records verification and its remaining limit.
