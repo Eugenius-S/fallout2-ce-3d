@@ -641,14 +641,19 @@ class SceneBuilder:
             # own light, no bit that says the game treats it as a thing of the world (usable, flat,
             # walk-through, shoot-through). Such a pile keeps the card everywhere: stood up, its box
             # read as junk standing in an alley the game's own view keeps hidden behind a wall
-            # (the bathhouse's junk piles, 2026-10-28). A stove is the exception its art carries:
-            # a drum with a lid on top. The fit below tells them apart; a refusal still keeps
-            # the card.
-            loose = all(not piece.obj.flags & ~PLAIN_OBJECT_FLAGS & 0xFFFFFFFF for piece in group)
+            # (the bathhouse's junk piles, the pot-belly stoves: 2026-10-28). The fit's lid drum
+            # (props._lid_drum, task 116) is built and tested; the rules that would stand stoves and
+            # containers on it wait for the render side: the fly solid of a seen=1 row drew at the
+            # wrong scale (a stump against its card) and the kladwtwn stove hexes sit outside the
+            # exported scene window (their cards render, their sidecar faces do not). Task 119.
+            if all(not piece.obj.flags & ~PLAIN_OBJECT_FLAGS & 0xFFFFFFFF for piece in group):
+                continue
             blocking = any(not piece.obj.flags & mapfile.OBJECT_NO_BLOCK for piece in group)
             # A box by name (tools/scene_export/shapes/overrides.json): chairs and
             # crates the fit takes for plants.
             forced = FORCED.get((self.gf.art.name(first.obj.fid) or "").lower()) if len(group) == 1 else None
+            if len(group) == 1 and not blocking and first.index.shape[1] < WALK_THROUGH and not forced:
+                continue                                # loose things: cards
             index, rgba, x, y = props.compose(group) if len(group) > 1 else (first.index, first.rgba, first.x, first.y)
             ax, ay = (int(round(c)) for c in proj.hex_px(first.obj.tile))       # the anchor: the first piece's hex
             left, top = x - ax, y - ay
@@ -656,24 +661,6 @@ class SceneBuilder:
             if not found:
                 continue
             shape, fit = found
-            if loose and not fit.lid:
-                continue                                # loose clutter stands only as a drum with a lid
-            if fit.lid:
-                seen = 1                                # the game's own views keep the card: the lid's
-                                                        # gap is transparent there; first person gets
-                                                        # the drum with its top face on the lid
-            elif len(group) == 1 and not blocking and first.index.shape[1] < WALK_THROUGH and not forced:
-                continue                                # loose things: cards
-            if first.obj.obj_type == ids.OBJ_TYPE_ITEM:
-                seen = 1                                # a container's card is live (it opens): the game's
-                                                        # own views keep it with its animation, first
-                                                        # person gets the closed box the fit stood up
-            if loose and not fit.lid:
-                continue                                # loose clutter stands only as a drum with a lid
-            if fit.lid:
-                seen = 1                                # the game's own views keep the card: the lid's
-                                                        # gap is transparent there; first person gets
-                                                        # the drum with its top face on the lid
             if fit.side_fill >= props.BULK:             # no legs to see through: the black on it is its own
                 shade = shade.copy()
                 shade[shape.top - top:shape.top - top + shape.h, shape.left - left:shape.left - left + shape.w] &= ~fit.covers(shape)
