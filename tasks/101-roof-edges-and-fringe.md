@@ -48,3 +48,32 @@ The owner, 2026-10-27, live with the 095 build, shots in `runs/inbox/`:
 Shadows on roofs, corner pieces (096), the walls' inside (102).
 
 ## Log
+
+### 2026-10-30 gpt
+
+Blocked before a code change: the current build shows the roof and facade at
+tile 22885, but it does not reproduce the separate wall-top horns from the
+owner's `runs/inbox/2026-10-27-roof-horns.jpg`. That owner screenshot came from
+the 095 build and has no sidecar or camera tile. The separate flat fringe
+symptom is visible in `runs/inbox/2026-10-27-roof-fringe-lies-flat.jpg`; I did
+not treat it as the same issue.
+
+- Refreshed the baseline build from `origin/main` `8e78b4e9` plus this branch's
+  task-claim commit `a3c4d979`; source code is otherwise identical. Rebuilt the
+  stale devtools translation unit. The executable SHA256 is
+  `dfcf209b2aa25143d13da9e1b1b68c233a37600bd266307bc6d0aaee359f2032` and its
+  sidecar reports `ce_commit: a3c4d979`.
+- Exported Klamath scenes only to `build/scene-cache-main101`. The fresh
+  tile-22885 3D frame and tile-19265 original-view frame, with matching
+  identity sidecars, are in `runs/101-roof-edges-and-fringe/`.
+- Tried `-FlyPitch`/`-FlyDistance`, `-TurnDegrees`, and `-NoPreview -Fly` in
+  the background snapshot tool. Each still produced the fixed static preview
+  camera, so none supplied the owner's flight angle. The owner game was not
+  started, focused, or modified.
+- No code was changed. `ctest` and pixel regression were not run because there
+  is no candidate implementation to validate. The before/after acceptance,
+  roof-wide review, and 090 seam comparison remain outstanding.
+
+Next: obtain a reproducible way to capture the actual fly-camera view (or its
+camera parameters) from the owner screenshot, then isolate the wall-top
+geometry at those same roof pixels before choosing a fix.

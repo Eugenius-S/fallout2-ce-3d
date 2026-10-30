@@ -1,0 +1,78 @@
+{
+  "image": "baseline-main-classic-bathhouse-19265.jpg",
+  "view": "vanilla-framebuffer",
+  "map": "KLADWTWN.MAP",
+  "elevation": 0,
+  "still_snapshot": true,
+  "snapshot_run": "b2b6d9d690db4011939d510a13bbceed",
+  "view_tile": 19265,
+  "preview_requested": false,
+  "scene_3d_enabled": true,
+  "scene_view": "off",
+  "sharp_text": {
+    "setting": false,
+    "active": false,
+    "drawn": false,
+    "runs": 0,
+    "glyphs": 0,
+    "restored_pixels": 0,
+    "prepare_ms": 0.0
+  },
+  "map_clip": {
+    "enabled": false,
+    "setting_enabled": true,
+    "variant": "authored",
+    "source": "disabled"
+  },
+  "camera": "center tile 19265",
+  "wall_triangles": 0,
+  "wall_pages": 0,
+  "hero": null,
+  "egg": {
+    "shown": false,
+    "wall_rows_marked": 0,
+    "wall_rows_any": false
+  },
+  "objects": {
+    "drawn": 0,
+    "skipped": 0
+  },
+  "preview_availability": "not-requested",
+  "renderer": "scene-gl",
+  "light": "enabled",
+  "effect_emission": true,
+  "glow": {
+    "enabled": false,
+    "strength": 2.0
+  },
+  "weapon_effect": null,
+  "muzzle": null,
+  "sun": {
+    "setting": true,
+    "daylight": false,
+    "game_time": 302400,
+    "up": false,
+    "height": 72.0,
+    "azimuth": -26.565,
+    "direction": [
+      0.27639,
+      0.95106,
+      -0.1382
+    ],
+    "color": [
+      1.0,
+      0.96,
+      0.88
+    ],
+    "strength": 0.0
+  },
+  "resolution": "1920x1080",
+  "logical_resolution": "960x540",
+  "scale": 2,
+  "windowed": true,
+  "drawable": "1920x1080",
+  "ce_commit": "a3c4d979",
+  "tools_commit": "-",
+  "exe_sha256": "dfcf209b2aa25143d13da9e1b1b68c233a37600bd266307bc6d0aaee359f2032",
+  "taken": "20261030-112232"
+}
