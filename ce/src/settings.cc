@@ -474,7 +474,7 @@ void initSettingsRegistry(bool isMapper)
     settingsRegistry.back().descriptor = shadowDensityDescriptor;
     settingsRegistry.back().write = [](bool onlyAdd) {
         if (onlyAdd && settingsKeyExists("3d", "shadow_density")) return;
-        settingsWrite("3d", "shadow_density", onlyAdd ? 1.0 : settings.scene3d.shadow_density);
+        settingsWrite("3d", "shadow_density", onlyAdd ? 0.8 : settings.scene3d.shadow_density);
     };
     registerSetting("3d", "sun_swing", settings.scene3d.sun_swing, clamp(0.0, 60.0));
     SettingDescriptor& sunSwingDescriptor = settingDescriptors.back();

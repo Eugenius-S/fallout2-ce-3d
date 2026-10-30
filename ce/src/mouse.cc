@@ -5,6 +5,7 @@
 #endif
 
 #include "color.h"
+#include "devtools/preferences_probe.h"
 #include "dinput.h"
 #include "input.h"
 #include "interface.h"
@@ -578,6 +579,7 @@ void _mouse_info()
 
     MouseData mouseData;
     if (mouseDeviceGetData(&mouseData)) {
+        devtools::preferencesProbeOverrideMouse(&mouseData.x, &mouseData.y, &mouseData.buttons[0], &mouseData.buttons[1]);
         x = mouseData.x;
         y = mouseData.y;
 
