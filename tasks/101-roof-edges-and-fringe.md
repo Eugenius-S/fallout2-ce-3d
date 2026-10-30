@@ -70,9 +70,15 @@ not treat it as the same issue.
   the background snapshot tool. Each still produced the fixed static preview
   camera, so none supplied the owner's flight angle. The owner game was not
   started, focused, or modified.
-- No code was changed. `ctest` and pixel regression were not run because there
-  is no candidate implementation to validate. The before/after acceptance,
-  roof-wide review, and 090 seam comparison remain outstanding.
+- No code was changed. Follow-up checks: `ctest --test-dir build
+  --output-on-failure` passed 18/18. Re-exported all regression maps to the
+  worktree cache `build/scene-cache` (not `game/mod-cache`) and captured the 16
+  `tools/regression/check.py --list` spots twice with `-Classic -Still
+  -SceneCache build/scene-cache`. Both passes report the same EXE SHA256 and
+  build hash above; direct RGB comparison is 0 changed pixels across all 16
+  1920x1080 frames. The source-code diff from `origin/main` is empty. The
+  before/after roof acceptance, roof-wide review, and 090 seam comparison remain
+  outstanding because no candidate fix was made.
 
 Next: obtain a reproducible way to capture the actual fly-camera view (or its
 camera parameters) from the owner screenshot, then isolate the wall-top
