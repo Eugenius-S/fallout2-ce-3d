@@ -124,9 +124,13 @@ param(
     [switch]$WalkProbe,
     [ValidateRange(0, 1000)]
     [int]$EffectFrame = -1,
-    # -Shadows: keep the sun shadows on in this background run (they are
+    # -Shadows: keep sun and cloud shadows on in this background run (they are
     # forced off by default, so captures stay byte-stable).
     [switch]$Shadows,
+    # -CloudShadows: clouds only, for an isolated cloud-shadow comparison.
+    [switch]$CloudShadows,
+    # -CloudPhase: cloud drift phase in game minutes, independent of sun time.
+    [double]$CloudPhase = -1,
     # -ShadowDebug:N: 1 the raw factor, 2 the face test (the sun hits the
     # face or it takes the flat shaded value), 3 the coverage (062
     # diagnostics); implies -Shadows.
@@ -384,6 +388,8 @@ if ($GlowLevels) { $arguments += '--dev-glow-levels=' + (($GlowLevels | ForEach-
 if ($EffectFixture) { $arguments += "--dev-effect=$($EffectFixture.ToLowerInvariant())" }
 if ($EffectFrame -ge 0) { $arguments += "--dev-effect-frame=$EffectFrame" }
 if ($Shadows) { $arguments += '--dev-shadows' }
+if ($CloudShadows) { $arguments += '--dev-cloud-shadows' }
+if ($CloudPhase -ge 0) { $arguments += "--dev-cloud-phase=$($CloudPhase.ToString([System.Globalization.CultureInfo]::InvariantCulture))" }
 if ($ShadowDebug) { $arguments += "--dev-shadow-debug=$ShadowDebug" }
 if ($NoSpriteSides) { $arguments += '--dev-no-sprite-sides' }
 if ($OpenDoors) { $arguments += '--dev-open-doors' }
