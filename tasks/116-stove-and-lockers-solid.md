@@ -41,6 +41,55 @@ Holes in solids (115), other furniture kinds, the landmark objects.
 
 ## Log
 
+### 2026-10-30 glm, blocked on the render side, handed over mid task
+
+Correction to the recon below: the tall standing lockers ARE in Klamath
+(locker5 x5, locker6 x7 - kladwtwn 14498, klamall 15283/15483/15683,
+klaratcv e1 27697, klatoxcv e0 23712, e2 19287/19289/20877/21471/21671);
+my earlier "no instances" came from grepping for "lkr" and missing the name
+"locker".
+
+Built and tested (props.py, its tests, the rules in scene.py and
+things.py): the lid-drum fit (_bulges: a two-bulge silhouette through a
+waist; LID_NECK 0.6 rejects the junk piles; the cap a solid disc; the belly
+arc with feet excused), the fit priority (a floor lid drum beats the box's
+foot line, never a top fit - a round sign on a pole keeps its stem: that
+collision was found by the cache diff, props[100] kladwtwn), the loose and
+container gates, 4 unit tests, 74 pass. The bench over the target and guard
+arts: sstove1/2/3 drum LID, barrels plain drums, njunk2 box, block None,
+locker5/6 box, walllkr None.
+
+Then stood the rules back down (commit 7615ae02): the exports are
+content-identical to the pre-116 caches again. What broke, in order:
+
+1. The scene row said z1=1.12 while the fit probe put the raise at 58 px:
+   the raise's EMPTY cost stops in the gap under the lid, so the drum is the
+   body only - a stump against its card. And seen=1 already hides the card,
+   so the lit interior pair (stove3-lit-blocker.jpg: before left, after
+   right) shows the stove VANISH from the fly view.
+2. The kladwtwn stove hexes (ground anchors 49..73) sit outside the region
+   the wall sidecar exports (its vertices span about -35..32): whatever the
+   fit says, those solids never reach the engine. The cards render (live
+   objects), so the game views never noticed.
+3. The lockers are OBJ_TYPE_ITEM containers with 3-frame arts: live_solids
+   keeps them live cards on purpose (they open). The closed-box fly solid
+   needs an engine decision (live solids, or the owner accepts fly showing
+   them closed - live_solids already exempts seen==1 rows).
+4. Wall scenery lesson (fixed on the way, kept in the Log): bladsign's art
+   fits a box, but letting it keep a card instead of its wall sheet moved it
+   44 px on screen and its wall occluded a third of it
+   (wall-sign-lesson.jpg). The stand bypass, if re-tried, is obj_type-gated.
+
+Checks at the stand-down: ctest 18/18, exporter unittests 74, the caches
+content-identical to the pre-116 ones (only fingerprints differ), the
+regression run clean. The roof trick for any future interior fly shot:
+-HeroTile on or next to the target makes the engine hide that roof
+(roof-trick-hero-tile.jpg); -Solo strips the whole sidecar; -FlyPitch takes
+positive degrees only.
+
+Next: task 119 carries the render side; this task's fit groundwork and its
+tests ride in this branch's PR (draft).
+
 ### 2026-10-29 glm, recon done mid task, work continues on this branch
 
 Branch note: branched from task/115-no-holes-in-3d-things (115 not merged yet),
