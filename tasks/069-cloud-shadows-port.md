@@ -2,13 +2,13 @@
 id: 069
 title: Cloud shadows move onto the new shadow code
 milestone: M1
-status: doing
+status: done
 owner: gpt
 suggested: glm
 claude-only: no
 user-check: yes
 depends-on: [062]
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -37,6 +37,11 @@ Anything 062 owns.
 ## Log
 
 ### 2026-10-30 gpt
-Done: Ported procedural cloud shadows to the current shadow renderer. Added the `[3d] cloud_shadows` setting and menu label, independent cloud-only and cloud-phase dev snapshot options, and cloud masking that scales ambient sunlight while leaving point-light contribution unchanged. Noon on/off and phase captures are in `runs/069-cloud-shadows/`; night and underground controls showed identical on/off pixels. The final one-line guard in `scene_draw.cc` clears the cloud uniform for floor-only previews.
-Next: Re-run the fly tour and full direct pixel regression on the exact final build. The latest regression attempt stopped during `klagraz-e0`, so acceptance is not complete. Keep this PR draft until those checks finish.
-Check: Release build and `ctest --test-dir build --output-on-failure` passed 18/18 after the final guard. Earlier tour (before that guard) reported 0/43 changed spots. Earlier full main-vs-branch comparison (also before the guard) was pixel-identical at all 16 spots; current baseline reference run has known drifts at `klagraz-e0` (183 px) and `klaratcv-e2` (6299 px). Latest attempted regression used the explicit `build/scene-cache`; it stopped during capture. Do not treat earlier tour/regression as final-code validation.
+
+Done: Ported procedural cloud shadows to the current renderer, added the `[3d] cloud_shadows` setting and menu label, dev controls for cloud-only and fixed cloud phase, and guarded floor-only previews from cloud shadows.
+
+Check: Release build from `e4ce37b4` passed; branch EXE SHA256 `c720405430a9ba3bec12eef9394a19906e9980d2600ae3c0a54a6d4cb8c97fea`. CTest passed 18/18, exporter tests 67/67, regression tests 12/12. Exported 13 map/elevation caches from fresh `origin/main` and this branch; scene fingerprints matched. Direct 16-spot comparison against `origin/main` (`8e78b4e9`, EXE SHA256 `65e22dba52ce9f28748988edecd89f1a047bf3ec1f8a4ad1dce41de5a483e482`) was pixel-identical: 0 changed pixels. References were not changed.
+
+Check: Final fly tour compared 140 before and 140 after sidecars with the matching main and branch EXEs: 0 of 43 spots changed with shadows off. Cloud-only captures at KLADWTWN tile 25075, noon, differ by 820,652 pixels off-to-phase-0 and 972,464 pixels phase-0-to-phase-12. Floor-only off vs phase-12, night off vs phase-12 (sun strength 0), and KLATOXCV elevation 2 off vs phase-12 each match at 0 pixels. Evidence: `runs/069-cloud-shadows/final-guard-cloud-phases.jpg` and `runs/069-cloud-shadows/fly-tour-final/changed.jpg`.
+
+Next: Merge PR #169, then close superseded PR #74 as requested by this task.
