@@ -728,6 +728,46 @@ class WallSidecarTests(unittest.TestCase):
                 else:
                     self.assertAlmostEqual(du + dv + dz, 0.0, places=6)
 
+    def test_a_painted_post_splits_at_its_opaque_stem_axis(self):
+        import numpy as np
+        import wall_sidecar
+
+        atlas = np.zeros((24, 24, 4), dtype=np.uint8)
+        atlas[5:15, 0:8, 3] = 255  # rail: half its height in each column
+        atlas[:, 8:15, 3] = 255  # vertical stem at the end of the first face
+        atlas[:, 16:20, 3] = 255  # perpendicular end row, same map object
+        sprites = [[0, 0, 0, 16, 24, 0, 0], [0, 16, 0, 4, 24, 0, 0]]
+        walls = [
+            [0, 1.0, 2.0, 2.0 / 3.0, 2.0, 0.0, 1.0, 0, 5, 1.0, 0.06, -1],
+            [1, 0.67, 2.0, 0.67, 3.0, 0.0, 1.0, 0, 5, 1.0, 0.06, -1],
+            [1, 0.67, 2.0, 0.67, 3.0, 0.0, 1.0, 0, 6, 1.0, 0.06, -1],
+        ]
+
+        homes = wall_sidecar._corner_post_homes(walls, sprites, [atlas], [0.49, 0.74, 0.46])
+
+        self.assertEqual(list(homes), [0])
+        split, to_end, home = homes[0][0]
+        self.assertAlmostEqual(split, 11.5 / 16.0)
+        self.assertTrue(to_end)
+        self.assertEqual(home[:2], (0, 0.67))
+
+    def test_a_post_home_changes_only_the_half_after_its_axis(self):
+        from unittest import mock
+        import wall_sidecar
+
+        proj = Projection(donor_proj.as_json())
+        row = [0, 1.0, 2.0, 2.0, 2.0, 0.0, 1.0, 0, 0, 1.0, 0.06, -1]
+        calls = []
+        with mock.patch.object(wall_sidecar, "_upright",
+                               lambda *args, **kwargs: calls.append((args[-1], kwargs.get("plane_home")))):
+            wall_sidecar._wall_front(wall_sidecar._Batches(), proj, [[0, 0, 0, 16, 24, 0, 0]],
+                                     [[100, 100]], row, proj.toward[:2], (False, False),
+                                     post_homes=[(0.5, True, (0, 1.0, proj.toward))])
+
+        self.assertEqual([part for part, _ in calls], [(0.0, 0.5), (0.5, 1.0)])
+        self.assertIsNone(calls[0][1])
+        self.assertEqual(calls[1][1], (0, 1.0, proj.toward))
+
     def test_a_thin_fence_row_across_the_other_line_is_cut_at_it(self):
         import wall_sidecar
         # A fence along u ends at a fence along v; the rows of it whose span
