@@ -83,8 +83,12 @@ in the inbox), new shadow features.
   line); the art-level split needs its own investigation of the donor
   pictures and the free-camera corner machinery.
 
-- 2026-10-30 gpt: Implemented an alpha-run-based post-card split and paired-wall plane assignment in the exporter. Candidate geometry was found on KLADWTWN (wood fence rows at tiles 11281 and 26074; wall rows at 17304 and 26112) and KLAMALL (wall row at tile 13250), spanning two FIDs/prototypes. Local checks: exporter tests 69/69; ctest 18/18.
-  - Runtime h8/h17 before/after pairs show localized corner/post changes on the pen, bathhouse, two other KLADWTWN candidates, and KLAMALL. The tour sheets show changes only over visible wall/fence corner regions on the reviewed spots; 39/57 KLADWTWN and 4/21 KLAMALL view/turn pairs differ, with unchanged pairs at 0 px. Several changed views cover broad wall faces, so these are recorded as corner-region changes rather than a pixel-by-pixel proof that every changed pixel is intended.
-  - 090 matched seam totals: 17/18 unchanged; KLADWTWN tile 17104 at h17 drops 237 to 230; no total rises. Metrics are in `runs/107-post-card-split/shadow-debug/matched-metrics.json`.
-  - Regression refs were not changed. Direct 3D preview comparison has 13/16 exact; the three unchanged-reference views differ by 2, 2, and 4 px (8 px total). The same three 2D classic captures are all 0 px. Do not treat the 3D preview as a clean regression.
-  - Free/turned-camera acceptance (bathhouse tile 18930, zoom 2.5, turn 40, h8) remains unverified: two attempted capture routes returned fixed-eye metadata and identical before/after frames. No claim of passing this acceptance. PR remains draft until a valid turned-camera capture and regression disposition are available.
+### 2026-10-30 gpt
+
+Done: Implemented an alpha-run-based post-card split and paired-wall plane assignment in the exporter. Candidate geometry was found on KLADWTWN (fence rows at tiles 11281 and 26074; wall rows at 17304 and 26112) and KLAMALL (wall row at tile 13250), across two prototypes. Exporter tests passed 69/69; ctest passed 18/18.
+
+Check: Runtime h8/h17 pairs show corner/post changes at the pen, bathhouse, two other KLADWTWN candidates, and KLAMALL. The tour sheets show visible wall/fence corner-region changes; 39/57 KLADWTWN and 4/21 KLAMALL view/turn pairs differ, with other pairs at 0 px. Some changed views cover broad wall regions, so this is not a pixel-by-pixel proof that every changed pixel is intended. Tour sheets: `runs/107-post-card-split/tour/changed.jpg` and `changed-2.jpg`.
+
+Matched 090 seam totals: 17/18 unchanged; KLADWTWN tile 17104 at h17 drops from 237 to 230; no total rises. Regression references were not changed. Direct 3D preview comparison is 13/16 exact; the remaining three views differ by 2, 2, and 4 px (8 px total). The same three classic captures are 0 px.
+
+Next: Free/turned-camera acceptance at bathhouse tile 18930, zoom 2.5, turn 40, h8 remains unverified. Two attempted capture routes reported fixed-eye metadata and produced identical before/after frames. No claim of passing this acceptance; draft PR pending a valid turned-camera capture and clean disposition of the 3D preview differences.
