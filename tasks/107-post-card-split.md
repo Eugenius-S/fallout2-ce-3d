@@ -102,3 +102,11 @@ Check: The custom fly tour captured the actual camera at tile 18930, zoom 2.5, t
 Next: Find a general free-camera rule that restores this exact post without duplicating or obscuring the corner fills, then verify its full silhouette at turn 40 and on other corners. The target acceptance and the 3D preview pixel differences remain unresolved; keep this PR draft.
 
 Check: `ctest --test-dir build -C Release --output-on-failure`; `py -3 -m unittest discover -s tools/scene_export -p 'test*.py'`; custom `tools/tour/tour.py` run with `--before build/compare-main-069-worktree`, the explicit diagnostic cache, and `-Tour kladwtwn:0:18930:-1:0:2.5,kladwtwn:0:18930:-1:40:2.5`.
+
+### 2026-10-30 gpt post/occlusion diagnostic
+
+Done: Compared the donor `nec040.frm` with the owner's 096 reference and the isolated runtime render. The donor's circular boss and base match the post in the left isometric owner panel. The isolated turn-40 render contains that same art, with a large exposed wall-plane artifact because neighboring walls were removed. Two cache controls used the same tour and executable: removing the roof layer from the full scene produced 0 changed pixels at the target views; retaining only map wall object 2247 (tile 19132) with the roof removed exposed the donor post/boss. This rules out the roof as the cause in these views, but does not identify a safe production fix.
+
+Check: The target's nearby rows are 618, 619, 1149, and 1216 (owner 2247; thickness 0.2227-0.263). `_corner_fits` marks the first three as corner pieces with `keep=(1,1)`; row 1216 retains a partial interval. `_corner_post_homes` skips rows at or above `CORE_THICK=0.15`, so the thick target art is outside that alpha-run path. Adjacent wall rows 616/617 belong to owners 2245/2246 and remain possible occluders; they have not been isolated individually.
+
+Evidence: `runs/107-post-card-split/isolated-post-no-roofs/kladwtwn-e0.jpg` and `runs/107-post-card-split/no-roof-layer-control/`. The disputed full silhouette at turn 40 and the multi-corner acceptance remain unverified. No production code or references changed; keep this PR draft.
