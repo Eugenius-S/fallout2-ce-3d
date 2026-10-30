@@ -2,8 +2,8 @@
 id: 119
 title: Lid drums render right: the raise lands on the lid, the drum matches its card, the window covers the stoves
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: glm
 suggested: glm
 priority: high
 claude-only: no
@@ -59,3 +59,25 @@ makes the engine hide the roof (frametest2); -Solo strips the whole sidecar
 New shapes for other things; engine live-solid work unless the owner asks.
 
 ## Log
+
+### 2026-10-30 glm, mid task, the rules are back and three findings are in
+
+The rules are back on this branch (the loose-lid gate, the container gate, the
+narrow-skip moved after the fit - the skip had been eating sstove3, a 52 px
+NO_BLOCK thing). The scene rows stand: sstove3 drum a=23 px seen=1 (the wall
+cut no longer shrinks it: a fly-only drum skips the wall-slab cut - its game
+views are the card's, and in flight a little overlap beats a stump), the
+klamall locker bank a=0.39 units seen=1.
+
+Coordinate mystery solved: the sidecar vertices are ground minus (50, 50)
+(floor.bin's 100x100 grid is centred at (0,0)); every earlier "the stoves are
+outside the exported window" read was made in the wrong space. All targets
+are inside.
+
+The remaining blocker is in the renderer: at the verified fly camera the
+bathhouse drum draws at the right place and size but BLACK (no light), and
+the locker boxes do not draw at all (the frame is identical to the live card).
+Suspicion: a seen=1 row's board is in hidden, and the fly faces reference the
+board's object for lighting - the renderer finds nothing to light them with.
+Next: ce/src/scene_renderer - how FLY_ONLY batches get their light and how
+hidden boards interact with the fly pass.
