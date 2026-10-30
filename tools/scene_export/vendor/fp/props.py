@@ -408,10 +408,6 @@ def _from_floor(shape, force=False):
             if force == "drum":
                 return [(error, drum)]
             out.append((error, drum))
-    if force != "drum":
-        lid = _lid_drum(shape)
-        if lid:
-            out.append(lid)
     # A top with holes will do where the solid is the whole sprite (frames, open boxes, a stove).
     return [(error, fit) for error, fit in out if fit.cover >= MIN_COVER
             and fit.top_fill >= (OPEN_TOP_FILL if fit.cover >= WHOLE and fit.side_fill < BULK else TOP_FILL)]
@@ -469,17 +465,10 @@ def fit(alpha, left, top, force=False):
     if shape.ragged > RAGGED:
         return None
     hung = _from_top(shape)
-    floor = _from_floor(shape)
-    if hung:
-        floor = [pair for pair in floor if not pair[1].lid]
-    else:
-        lids = [pair for pair in floor if pair[1].lid]
-        if lids:
-            # A round body under a lid, standing on the floor: the box's straight
-            # lines contradict the art the drum's arc just vouched for, so the
-            # lid drum takes it whatever the box's foot line scored.
-            return shape, min(lids, key=lambda pair: pair[0])[1]
-    for found in (floor, hung):
+    # The lid-drum candidate (props._lid_drum) stands ready but does not join
+    # the pick yet: stood up, the neighbour groups re-compose and the game's
+    # own views flip on eight regression spots (tasks 116/119).
+    for found in (_from_floor(shape), hung):
         if found:
             return shape, min(found, key=lambda pair: pair[0])[1]
     return None

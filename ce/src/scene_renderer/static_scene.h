@@ -69,6 +69,7 @@ void clearStaticLight();
 
 // Objects walls.bin already draws (baked.bin): the caller only picks them.
 bool staticObjectBaked(int tile, int fid);
+bool staticObjectFlyOnly(int tile, int fid);
 // Things standing on a solid (an item on a table) are moved onto it, along the
 // game's view ray: GL offset (x, y up, z). False when the object stays put.
 bool staticObjectLift(int tile, int fid, float lift[3]);

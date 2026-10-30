@@ -60,6 +60,48 @@ New shapes for other things; engine live-solid work unless the owner asks.
 
 ## Log
 
+### 2026-10-30 evening glm: the ground truth is in; the blocker is the group cascade, not the renderer
+
+Three render-side findings, all verified:
+
+1. Coordinate space solved: the sidecar vertices are ground minus (50, 50)
+   (floor.bin's 100x100 grid centred at (0,0)). Every earlier "the stoves are
+   outside the exported window" read used the wrong space - all the targets
+   are inside, their geometry reaches the sidecar (the bathhouse stove: 165
+   fly vertices at its render position).
+2. The stump was the wall cut: a fly-only drum skipped it (scene.py, the
+   rows loop, row[15]==1) and the drum drew at its card's size and place -
+   the lit pair (runs/119-lid-drums-render/, stove3) proved the shape.
+3. The black was the light: a seen=1 solid has no light of its own. Fixed in
+   the renderer (walls.cc): the load collects the rows a fly-only batch
+   references (gFlyOnlyRows + gRowTotalRefs/gRowFlyRefs), staticObjectFlyOnly
+   (tile, fid) returns true only when ALL of a row's triangles are fly-only,
+   and scene_objects marks such objects full light per frame. Verified: the
+   drum drew fully lit.
+
+Then the real blocker surfaced, and it is not the renderer: with the rules
+standing, 211 of klamall's 232 prop rows change. Stood-up things enter and
+leave props.groups' composition, the neighbours' groups re-compose, their
+fits and light models flip, and the game's own views change on eight
+regression spots (87..1153 px a view: the crate by the locker bank flips its
+light model twice as bright; the cave walls of klaratcv flip 2.5x when the
+cave walls themselves get marked - 300 wall objects are fly-referenced by
+design, their inner faces are fly-only). Two stabilisation attempts
+(the seen!=2 guard for details, the all-fly-rows-only light marking) fixed
+individual spots but the cascade moved. The rules stood down again: the
+caches are content-identical to the pre-116 ones, the regression runs
+16/16 spots with 0 changed pixels, ctest 18/18, exporter unittests 74.
+
+The renderer fixes stay (they are correct and needed by any future version):
+the fly-only row collection, staticObjectFlyOnly, the full-light marking,
+and the wall-cut skip for fly-only drums.
+
+Next (the design work, not a bugfix): make the standing rules group-safe -
+fit and stand a loose thing or container standalone (its own group, no
+re-composition of the neighbours), or gate them to single-piece groups; then
+the light marking is already in. The lid fit's raise lands correctly (the
+z1 lands on the cap: verified z1*HPX = 57 px = the cap band).
+
 ### 2026-10-30 glm, mid task, the rules are back and three findings are in
 
 The rules are back on this branch (the loose-lid gate, the container gate, the

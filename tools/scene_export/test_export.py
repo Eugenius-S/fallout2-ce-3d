@@ -1270,12 +1270,13 @@ class LidDrumTests(unittest.TestCase):
         body = self.capsule(13, 26, 46)
         cap = self.capsule(11, 6, 22)
         alpha = self.stacked([cap, body], 3)
-        res = props.fit(alpha, 0, 0)
-        self.assertIsNotNone(res)
-        shape, found = res
-        self.assertEqual(found.kind, "drum")
-        self.assertTrue(found.lid)
-        self.assertGreater(found.z1, 1.0)      # the raise climbed onto the cap
+        shape = props.Shape(alpha, 0, 0)
+        found = props._lid_drum(shape)
+        self.assertIsNotNone(found)
+        error, fit = found
+        self.assertEqual(fit.kind, "drum")
+        self.assertTrue(fit.lid)
+        self.assertGreater(fit.z1, 1.0)        # the raise climbed onto the cap
 
     def test_blobs_without_a_neck_are_no_lid(self):
         import numpy as np

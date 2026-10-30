@@ -74,6 +74,9 @@ std::vector<unsigned char> gWallSeeThrough;
 // Rows the engine paints at full light, whatever their hex (OBJECT_TRANS_WALL).
 std::vector<unsigned char> gWallFullLight;
 std::vector<unsigned char> gWallObjectTable; // as uploaded: R, G per row
+std::vector<bool> gFlyOnlyRows; // rows a fly-only batch references (task 119)
+std::vector<unsigned int> gRowTotalRefs; // triangles per object row
+std::vector<unsigned int> gRowFlyRefs;   // of those, in a fly-only batch
 
 struct WallVertex {
     DepthVertex vertex;
@@ -109,6 +112,9 @@ void destroyStaticWalls()
     gShadowVbo = 0;
     gWallsLoaded = false;
     gBakedObjects.clear();
+    gFlyOnlyRows.clear();
+    gRowTotalRefs.clear();
+    gRowFlyRefs.clear();
     if (gContext != nullptr && gWallSeeThroughTexture != 0) glDeleteTextures(1, &gWallSeeThroughTexture);
     gWallSeeThroughTexture = 0;
     gWallSeeThroughAny = false;
@@ -139,6 +145,18 @@ bool staticObjectBaked(int tile, int fid)
     double rightX, rightZ;
     return found->second.mode == BakedObject::Skip
         || (found->second.mode == BakedObject::FlySkip && flyCameraRight(&rightX, &rightZ));
+}
+
+bool staticObjectFlyOnly(int tile, int fid)
+{
+    // A fly-only solid (a row the exporter tags for the fly camera alone): the
+    // game's own views draw its card, the fly camera draws the solid. Its card
+    // lights itself; the solid does not - the caller marks it full light.
+    const auto found = gWallObjectRows.find(bakedObjectKey(tile, fid));
+    if (found == gWallObjectRows.end()) return false;
+    const unsigned int row = found->second;
+    return row < gFlyOnlyRows.size() && gFlyOnlyRows[row]
+        && gRowTotalRefs[row] > 0 && gRowFlyRefs[row] == gRowTotalRefs[row];
 }
 
 void setStaticSolo(int tile, int radius)
@@ -257,6 +275,9 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
     batches.reserve(batchCount);
     std::vector<bool> seenPages(static_cast<size_t>(pageCount) * 3, false); // by page and flags
     std::vector<bool> decodedPages(pageCount, false);
+    std::vector<bool> flyOnlyRows(objectCount, false); // rows a fly-only batch references
+    std::vector<unsigned int> rowTotalRefs(objectCount, 0);
+    std::vector<unsigned int> rowFlyRefs(objectCount, 0);
     size_t offset = kHeaderSize;
     unsigned long long observedTriangles = 0;
     unsigned long long totalDecodedBytes = 0;
@@ -335,6 +356,15 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
         offset += static_cast<size_t>(vertexBytes);
 
         // A page's second batch draws with the first one's texture.
+        for (const WallVertex& vertex : batch.vertices) {
+            if (vertex.object < 0.0f) continue;
+            const size_t row = static_cast<size_t>(vertex.object);
+            rowTotalRefs[row]++;
+            if (batch.flyOnly) {
+                rowFlyRefs[row]++;
+                flyOnlyRows[row] = true;
+            }
+        }
         if (decodedPages[page]) {
             for (const WallBatchData& other : batches) {
                 if (other.page == page && (other.width != width || other.height != height)) {
@@ -785,6 +815,9 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
         if (glGetError() != 0) return fail("OpenGL failed to upload the wall object table");
     }
     gWallObjectRows = std::move(objectRows);
+    gFlyOnlyRows = std::move(flyOnlyRows);
+    gRowTotalRefs = std::move(rowTotalRefs);
+    gRowFlyRefs = std::move(rowFlyRefs);
     gWallTriangleCount = totalTriangles;
     gBakedObjects = std::move(bakedObjects);
     gWallsLoaded = true;
