@@ -35,3 +35,8 @@ land in main on top of the shadow code as it is after 063 and 062.
 Anything 062 owns.
 
 ## Log
+
+### 2026-10-30 gpt
+Done: Ported procedural cloud shadows to the current shadow renderer. Added the `[3d] cloud_shadows` setting and menu label, independent cloud-only and cloud-phase dev snapshot options, and cloud masking that scales ambient sunlight while leaving point-light contribution unchanged. Noon on/off and phase captures are in `runs/069-cloud-shadows/`; night and underground controls showed identical on/off pixels. The final one-line guard in `scene_draw.cc` clears the cloud uniform for floor-only previews.
+Next: Re-run the fly tour and full direct pixel regression on the exact final build. The latest regression attempt stopped during `klagraz-e0`, so acceptance is not complete. Keep this PR draft until those checks finish.
+Check: Release build and `ctest --test-dir build --output-on-failure` passed 18/18 after the final guard. Earlier tour (before that guard) reported 0/43 changed spots. Earlier full main-vs-branch comparison (also before the guard) was pixel-identical at all 16 spots; current baseline reference run has known drifts at `klagraz-e0` (183 px) and `klaratcv-e2` (6299 px). Latest attempted regression used the explicit `build/scene-cache`; it stopped during capture. Do not treat earlier tour/regression as final-code validation.

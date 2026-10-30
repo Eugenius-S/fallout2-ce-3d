@@ -448,6 +448,9 @@ void initSettingsRegistry(bool isMapper)
     registerThreeDBoolean("shadows", settings.scene3d.shadows, "Sun shadows",
         "Buildings and big things cast sharp sun shadows on the floor and the walls in the 3D view.",
         SettingApplyPolicy::OnClose);
+    registerThreeDBoolean("cloud_shadows", settings.scene3d.cloud_shadows, "Cloud shadows",
+        "Soft clouds drift over the 3D view and dim the sun's light, never the lamps.",
+        SettingApplyPolicy::OnClose);
     registerSetting("3d", "shadow_pixel_size", settings.scene3d.shadow_pixel_size, clamp(1.0, 16.0));
     SettingDescriptor& shadowPixelDescriptor = settingDescriptors.back();
     shadowPixelDescriptor.category = SettingCategory::Uncategorized;
