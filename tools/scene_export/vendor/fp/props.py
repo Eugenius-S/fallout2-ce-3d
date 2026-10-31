@@ -377,7 +377,32 @@ def real_directions(frames):
     """Directions whose frame is not the engine's UNUSED ART placeholder card
     (task 120): the card is opaque edge to edge, a real view's silhouette
     leaves its canvas open somewhere. -> the count of real directions."""
-    return sum(1 for alpha in frames if alpha.any() and alpha.mean() < 0.97)
+    return sum(1 for alpha in frames if real_view(alpha))
+
+
+def real_view(alpha):
+    """A direction's frame is a real view, not the placeholder card."""
+    return alpha.any() and alpha.mean() < 0.97
+
+
+CARVE_LONG = 1.35     # the carve's profile: its widest real view is at least
+                      # this much wider than its tallest (123; the vehicles
+                      # sit at 1.39-2.57, the leaning burnt frames at 0.13-1.02)
+
+
+def real_aspect(frames):
+    """The carve candidate's profile (task 123): the widest real direction's
+    width over the tallest real direction's height. The game's big
+    multi-quarter things - a car - read long and low; a leaning burnt frame
+    does not, and the carve's ground boxes would lie it down."""
+    widest, tallest = 0, 0
+    for alpha in frames:
+        if not real_view(alpha):
+            continue
+        rows, columns = np.flatnonzero(alpha.any(axis=1)), np.flatnonzero(alpha.any(axis=0))
+        widest = max(widest, int(columns[-1] - columns[0] + 1))
+        tallest = max(tallest, int(rows[-1] - rows[0] + 1))
+    return widest / tallest if tallest else 0.0
 
 
 def carved(shape, fit):

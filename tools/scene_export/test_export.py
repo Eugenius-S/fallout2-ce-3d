@@ -8,7 +8,8 @@ import struct
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from baked_sidecar import (ENTRY as BAKED_ENTRY, HEADER as BAKED_HEADER, LIFT as BAKED_LIFT, MAGIC as BAKED_MAGIC,
+from baked_sidecar import (ENTRY as BAKED_ENTRY, GL_MAP_OFFSET, HEADER as BAKED_HEADER, LIFT as BAKED_LIFT,
+                           MAGIC as BAKED_MAGIC,
                            NOCAST as BAKED_NOCAST, SKIP as BAKED_SKIP, FLAT as BAKED_FLAT, FLY_FLAT as BAKED_FLY_FLAT,
                            FLY_SKIP as BAKED_FLY_SKIP, PLANE as BAKED_PLANE,
                            baked_objects, decode_baked_sidecar, encode_baked_sidecar)
@@ -1373,6 +1374,39 @@ class CarveTests(unittest.TestCase):
         self.assertEqual(props.real_directions([view, view, card, card]), 2)
         self.assertEqual(props.real_directions([card]), 0)
         self.assertEqual(props.real_directions([view]), 1)
+
+    def test_the_carve_takes_long_low_arts_only(self):
+        # 123: the carve's ground boxes would lie a tall leaning frame down;
+        # the vehicles' profile is long and low.
+        import numpy as np
+        from vendor.fp import props
+        wide = np.zeros((40, 130), bool)
+        wide[10:32, 4:126] = True                               # a car's side view
+        tall = np.zeros((140, 100), bool)
+        tall[6:134, 20:80] = True                               # a leaning burnt frame
+        self.assertGreaterEqual(props.real_aspect([wide, wide]), props.CARVE_LONG)
+        self.assertLess(props.real_aspect([tall, tall]), props.CARVE_LONG)
+        # the placeholder cards count in neither measure
+        card = np.ones((22, 46), bool)
+        self.assertLess(props.real_aspect([tall, tall, card, card]), props.CARVE_LONG)
+
+
+class WallCardTests(unittest.TestCase):
+    """123: a burnt rebar piece joins its wall - the baked sidecar's PLANE."""
+
+    def test_a_wall_card_row_names_the_run_s_plane(self):
+        import math
+        row = [51.5339, 20.9883, 51.5339, 24.7695, 1]           # a run along v, one object
+        scene = {"walls": [], "boards": [], "wallCards": [row]}
+        objects = [BakedSidecarTests.MapObject(9302, 0x2000505), BakedSidecarTests.MapObject(9303, 0x2000506)]
+        entries = baked_objects(scene, objects)
+        self.assertEqual(len(entries), 1)
+        tile, fid, mode, du, dv, dz = entries[0]
+        self.assertEqual((tile, fid), (9303, 0x2000506))
+        self.assertEqual(mode & 0x7FFFFFFF, BAKED_PLANE)
+        self.assertAlmostEqual(du, row[0] - GL_MAP_OFFSET)
+        self.assertAlmostEqual(dv, row[1] - GL_MAP_OFFSET)
+        self.assertAlmostEqual(dz, math.atan2(row[3] - row[1], row[2] - row[0]))
 
 
 if __name__ == "__main__":
