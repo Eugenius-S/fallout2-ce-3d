@@ -327,6 +327,14 @@ bool addStaticObject(const StaticObjectFrame& frame, std::string* error)
     // is for the fly camera, which sees the room from anywhere.
     float lift[3] = { 0.0f, 0.0f, 0.0f };
     const bool lifted = staticFlyCameraActive() && staticObjectLift(frame.tile, frame.fid, lift);
+    // The baked horizontal delta preserves the donor's oblique 2D projection
+    // when a card is raised. In the perspective fly view it moves the card
+    // across the floor (the bathhouse tabletop item crosses its wall, 114).
+    // Keep the support's map-space position and apply only its measured height.
+    if (lifted) {
+        lift[0] = 0.0f;
+        lift[2] = 0.0f;
+    }
     const double liftedRow = row + lift[2];
     // The card's feet on the ground: the bottom-center of a standing card,
     // the middle of a flat one. The whole-sprite sun shadow reads the map
