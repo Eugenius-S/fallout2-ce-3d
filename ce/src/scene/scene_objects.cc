@@ -2,7 +2,10 @@
 
 #include <stdio.h>
 #include <string>
+#include <algorithm>
 #include <map>
+#include <mutex>
+#include <vector>
 
 #include "../art.h"
 #include "../color.h"
@@ -37,13 +40,106 @@ unsigned char spriteAlpha(unsigned char colorIndex)
     return colorIndex >= 0xE5 ? 254 : 255;
 }
 
+// 122: a scenery art turns when its six stored directions are six sides of one
+// thing: every adjacent pair of silhouettes, anchored at their bottom centres,
+// overlaps by at least 40%. Variant slots (six different cacti, a shelf's
+// damage states) and the unused-art placeholders fail the overlap and keep the
+// game's own rotation.
+bool sceneryArtTurns(const FrmId& frmId)
+{
+    static std::map<unsigned int, bool> cache;
+    static std::mutex cacheMutex;
+    constexpr unsigned int kRotationBits = 0x70000000;
+    const unsigned int key = frmId.fid() & ~kRotationBits;
+    std::lock_guard<std::mutex> guard(cacheMutex);
+    const auto found = cache.find(key);
+    if (found != cache.end()) return found->second;
+    FrmImage images[ROTATION_COUNT];
+    bool lockable = true;
+    for (int d = 0; d < ROTATION_COUNT && lockable; d++) {
+        lockable = images[d].lock(FrmId(frmId.fid() & ~kRotationBits), 0, static_cast<Rotation>(d));
+        fprintf(stderr, "sat: %x d%d lock %d\n", key, d, lockable);
+        fflush(stderr);
+    }
+    fprintf(stderr, "sat: %x locks done\n", key);
+    fflush(stderr);
+    bool turns = false;
+    if (lockable) {
+        // A direction with an absurd frame (a broken placeholder) fails the
+        // turning: the card pass rejects frames over 2048 either way.
+        for (int d = 0; d < ROTATION_COUNT; d++) {
+            if (images[d].getWidth() <= 0 || images[d].getHeight() <= 0
+                || images[d].getWidth() > 2048 || images[d].getHeight() > 2048) {
+                lockable = false;
+                break;
+            }
+        }
+    }
+    if (lockable) {
+        struct Silhouette {
+            std::vector<unsigned char> mask;
+            int minX = 0, maxX = -1, maxY = -1, w = 0, h = 0;
+        };
+        Silhouette sides[ROTATION_COUNT];
+        for (int d = 0; d < ROTATION_COUNT; d++) {
+            Silhouette& s = sides[d];
+            s.w = images[d].getWidth();
+            s.h = images[d].getHeight();
+            const unsigned char* p = images[d].getData();
+            s.mask.assign(static_cast<size_t>(s.w) * s.h, 0);
+            s.minX = s.w;
+            for (int y = 0; y < s.h; y++) {
+                for (int x = 0; x < s.w; x++) {
+                    if (p[y * s.w + x] != 0) {
+                        s.mask[y * s.w + x] = 1;
+                        if (x < s.minX) s.minX = x;
+                        if (x > s.maxX) s.maxX = x;
+                        if (y > s.maxY) s.maxY = y;
+                    }
+                }
+            }
+        }
+        double minIou = 1.0;
+        for (int d = 0; d < ROTATION_COUNT; d++) {
+            const Silhouette& a = sides[d];
+            const Silhouette& b = sides[(d + 1) % ROTATION_COUNT];
+            const int h = std::max(a.h, b.h);
+            const int w = std::max(a.w, b.w) * 2 + 8;
+            std::vector<unsigned char> ma(static_cast<size_t>(h) * w, 0), mb(static_cast<size_t>(h) * w, 0);
+            for (int y = 0; y < a.h; y++) {
+                for (int x = 0; x < a.w; x++) {
+                    if (a.mask[y * a.w + x]) ma[(y - a.maxY + h - 1) * w + x - a.minX - (a.maxX - a.minX) / 2 + w / 2] = 1;
+                }
+            }
+            for (int y = 0; y < b.h; y++) {
+                for (int x = 0; x < b.w; x++) {
+                    if (b.mask[y * b.w + x]) mb[(y - b.maxY + h - 1) * w + x - b.minX - (b.maxX - b.minX) / 2 + w / 2] = 1;
+                }
+            }
+            int inter = 0, unionPx = 0;
+            for (size_t i = 0; i < ma.size(); i++) {
+                inter += ma[i] && mb[i];
+                unionPx += ma[i] || mb[i];
+            }
+            minIou = std::min(minIou, unionPx ? static_cast<double>(inter) / unionPx : 0.0);
+        }
+        turns = minIou >= 0.4;
+        fprintf(stderr, "sat: %x iou %.2f turns %d\n", key, minIou, turns);
+        fflush(stderr);
+    }
+    cache[key] = turns;
+    fprintf(stderr, "sat: %x done\n", key);
+    fflush(stderr);
+    return turns;
+}
+
 // The art and rotation a standing sprite is drawn in (087). A fly or turned
 // camera sees another side of a critter, item or projectile whose art has more
 // than one: its art in the rotation that side faces. Art with fewer sides
 // shows the nearest one it has, as the game would for that rotation. Scenery
-// keeps its own rotation: its art spends rotations on variants (wrecks, cacti,
-// a shelf breaking up; tools/shapes/art_sides.py), not on sides. So do flat
-// sprites, which turn with the ground, and things walls.bin draws.
+// turns too when its art's six directions are six sides of one thing (122);
+// arts that spend the slots on variants or placeholders keep their own. Flat
+// sprites turn with the ground, and things walls.bin draws never do.
 using ShownArt = SceneObjectArt;
 
 ShownArt shownArt(Object* object, bool flat)
@@ -51,7 +147,9 @@ ShownArt shownArt(Object* object, bool flat)
     const ShownArt own = { object->fid, object->rotation };
     const FrmId frmId(object);
     const ObjectType type = frmId.objectType();
-    if (!settings.scene3d.sprite_sides || flat || (type != OBJ_TYPE_CRITTER && type != OBJ_TYPE_ITEM && type != OBJ_TYPE_MISC)) return own;
+    if (!settings.scene3d.sprite_sides || flat
+        || (type != OBJ_TYPE_CRITTER && type != OBJ_TYPE_ITEM && type != OBJ_TYPE_MISC
+            && (type != OBJ_TYPE_SCENERY || !sceneryArtTurns(frmId)))) return own;
     const int rotation = scene_renderer::staticShownRotation(object->rotation);
     if (rotation == object->rotation) return own;
     // Art stored a file per side (.fr0 .. .fr5) names its side in the fid; a
