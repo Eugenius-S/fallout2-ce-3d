@@ -41,10 +41,10 @@ unsigned char spriteAlpha(unsigned char colorIndex)
 }
 
 // 122: a scenery art turns when its six stored directions are six sides of one
-// thing: every adjacent pair of silhouettes, anchored at their bottom centres,
-// overlaps by at least 40%. Variant slots (six different cacti, a shelf's
-// damage states) and the unused-art placeholders fail the overlap and keep the
-// game's own rotation.
+// thing: no direction is the unused-art placeholder card or empty, and every
+// adjacent pair of silhouettes, anchored at their bottom centres, overlaps by
+// at least 40%. Variant slots (six different cacti, a shelf's damage states)
+// and the unused-art placeholders fail and keep the game's own rotation.
 bool sceneryArtTurns(const FrmId& frmId)
 {
     static std::map<unsigned int, bool> cache;
@@ -58,11 +58,7 @@ bool sceneryArtTurns(const FrmId& frmId)
     bool lockable = true;
     for (int d = 0; d < ROTATION_COUNT && lockable; d++) {
         lockable = images[d].lock(FrmId(frmId.fid() & ~kRotationBits), 0, static_cast<Rotation>(d));
-        fprintf(stderr, "sat: %x d%d lock %d\n", key, d, lockable);
-        fflush(stderr);
     }
-    fprintf(stderr, "sat: %x locks done\n", key);
-    fflush(stderr);
     bool turns = false;
     if (lockable) {
         // A direction with an absurd frame (a broken placeholder) fails the
@@ -70,6 +66,27 @@ bool sceneryArtTurns(const FrmId& frmId)
         for (int d = 0; d < ROTATION_COUNT; d++) {
             if (images[d].getWidth() <= 0 || images[d].getHeight() <= 0
                 || images[d].getWidth() > 2048 || images[d].getHeight() > 2048) {
+                lockable = false;
+                break;
+            }
+        }
+    }
+    if (lockable) {
+        // A direction that is opaque edge to edge is the arts' UNUSED ART
+        // placeholder card, and an empty one is no side at all: such slots are
+        // not sides of one thing (the tire piles' TIRE004 turned its four
+        // placeholder cards into the fly view; 120 measured the placeholders
+        // in the multi-direction arts). The empty check also keeps the
+        // silhouette anchoring below away from masks without pixels, which
+        // would land outside the comparison grid.
+        for (int d = 0; d < ROTATION_COUNT; d++) {
+            const int w = images[d].getWidth();
+            const int h = images[d].getHeight();
+            const unsigned char* p = images[d].getData();
+            const long long total = static_cast<long long>(w) * h;
+            long long opaque = 0;
+            for (long long i = 0; i < total; i++) opaque += p[i] != 0;
+            if (opaque == 0 || opaque * 100 >= total * 97) {
                 lockable = false;
                 break;
             }
@@ -124,12 +141,8 @@ bool sceneryArtTurns(const FrmId& frmId)
             minIou = std::min(minIou, unionPx ? static_cast<double>(inter) / unionPx : 0.0);
         }
         turns = minIou >= 0.4;
-        fprintf(stderr, "sat: %x iou %.2f turns %d\n", key, minIou, turns);
-        fflush(stderr);
     }
     cache[key] = turns;
-    fprintf(stderr, "sat: %x done\n", key);
-    fflush(stderr);
     return turns;
 }
 

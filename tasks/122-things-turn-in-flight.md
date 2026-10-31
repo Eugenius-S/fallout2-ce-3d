@@ -43,6 +43,34 @@ Critters (087 did them), solids re-projecting per quarter, unique objects.
 
 ## Log
 
+### 2026-10-31 glm: the gate really rejects placeholders now, and the debug prints left the build
+
+Two cleanups on the gate after the 120 session's measurements:
+
+- The five fprintf(stderr, "sat: ...") traces from the hang hunt rode the
+  committed branch and would have spammed the game's stderr; removed.
+- The gate now also fails an art whose any direction is the arts' UNUSED ART
+  placeholder card (a frame opaque edge to edge, the same 97% rule the
+  exporter's props.real_directions uses) or empty. The overlap loop alone did
+  not promise that: the tire piles' TIRE004 holds four placeholder slots and
+  its adjacent-pair IoU is 0.48 - over the 0.4 bar - because the tire's own
+  side views are wide low ovals that overlap the 46x22 card.
+
+The measured truth about the bug's reach (so nobody hunts a ghost): in the
+shipped game the gate never runs for TIRE004 at all. Every one of its 36
+placements is covered by the baked-card pass (walls rows / SKIP in
+baked.bin), so its card is pick-only and shownArt passes flat=true before the
+gate. The placeholder-holding arts that DO stand as live cards (truck2 on
+newrcs, truck3 on coast4/navarro, car1 on denres1/newrcs) all fail the overlap
+bar (IoU 0.01-0.02, the engine's own trace agrees with the replication:
+CAR4b 0.7530 turns, the tire never reached). So no shipped map shows a turned
+placeholder today; the check makes the gate's documented contract true and
+guards mapper-made maps, where a tire pile can stand as a live card. The
+before/after fly shots of the tire (runs/_122fix_shots) are byte-identical,
+which is the point: the fix's surface in the shipped game is empty.
+
+Checks: ctest 18/18; the 16 regression spots after this commit.
+
 ### 2026-10-31 glm: the owner's correction: the cars are not for turning - they convert to 3D models
 
 The owner, on the turning pairs: «по машинам - их надо в 3д модели
