@@ -133,9 +133,14 @@ with no hand work and no name lists:
    The art's own opposite view (the mirrored-equal direction, truck2 and
    truck3's d2) is a later per-face-source refinement.
 
-Side finding for 122: truck2/truck3 pass the engine's turning gate while
-holding placeholder directions - a turned truck card can show the green
-UNUSED ART card. The turning gate needs the same placeholder rejection.
+Side finding for 122 (corrected after the engine trace and a whole-game scan):
+the placeholder-holding arts that pass the turning gate's overlap bar are the
+tire piles' TIRE004 (IoU 0.48, four placeholder slots); truck2/truck3 fail the
+bar (0.01). The engine never runs the gate for TIRE004 in the shipped game -
+all 36 of its placements stand behind solids, the card is pick-only - and the
+placeholder-holding live cards (the trucks, car1) fail the bar. The gate got
+the placeholder rejection anyway (122's branch), so the contract holds for
+mapper-made maps.
 
 On this branch's stack the qualifying Den arts stood: CAR4b as two boxes
 (body 0.77 tall, a second band 0.55), CAR3b as three bands, the car3 wrecks
