@@ -353,6 +353,7 @@ class SceneBuilder:
         (boxes.py) and emit a row each."""
         runs = walls.align(self.pieces)
         runs_by_tile = {(run.along_u, face.obj.tile): run for run in runs for face in run.faces}
+        self.wall_runs = runs_by_tile
         self.join_odd_walls(runs_by_tile)
         wall_faces = [face for piece in self.pieces for face in piece]
         wall_faces += walls.fold_ends(runs)
@@ -625,21 +626,38 @@ class SceneBuilder:
             self._solids[key] = shade, props.fit((index != 0) & ~shade, left, top, force, allow_lid)
         return self._solids[key]
 
+    def wall_join(self, piece, centre, left, top, run):
+        """(123) A burnt rebar piece stands on its wall: the fly camera draws
+        its live card on the wall run's plane (baked.bin's PLANE, the doors'
+        machinery), and the game's views keep the card they always had. The
+        row carries the wall line's two ground points and the card's object."""
+        obj = piece.obj
+        axis = "u" if run.along_u else "v"
+        slope, c, x_from, x_to = walls.floor_line(piece.index, left, top, axis)
+        face = walls.Face(obj, (obj.fid, obj.rotation, 0), centre, slope, c, x_from, x_to, False, False, "panel", 0,
+                          (piece.index, left, top))
+        face.move_to(run.plane)
+        (ua, va), (ub, vb) = face.ends()
+        self.wall_cards.append(_round((ua, va, ub, vb)) + [self.serial[id(obj)]])
+
     def carve_art(self, fid):
         """The art holds more than one real stored direction (task 120's carve
         candidates): a direction whose only frame fills its own bounding box
         is the engine's UNUSED ART placeholder card, not a view, and drops
-        out; at least two real directions must remain. Cached per art."""
+        out; at least two real directions must remain. -> the real views'
+        frames, or None. Cached per art."""
         key = fid & 0x0FFFFFFF
-        got = self._carve_arts.get(key)
-        if got is None:
-            got = False
+        got = self._carve_arts.get(key, "")
+        if got == "":
+            got = None
             try:
                 frm = self.gf.art.load(fid)
             except (FileNotFoundError, ValueError, KeyError):
                 frm = None
             if frm is not None and frm.direction_count > 1:
-                got = props.real_directions([frm.frame(d, 0).array() != 0 for d in range(frm.direction_count)]) >= 2
+                frames = [frm.frame(d, 0).array() != 0 for d in range(frm.direction_count)]
+                if props.real_directions(frames) >= 2:
+                    got = frames
             self._carve_arts[key] = got
         return got
 
@@ -707,16 +725,28 @@ class SceneBuilder:
             # the card either way (a lid's gap is transparent there), so nothing they see moves.
             shade, found = self.solid_of(index, left, top, forced, allow_lid=loose or narrow)
             carve = False
-            if not found and first.obj.obj_type == ids.OBJ_TYPE_SCENERY and self.carve_art(first.obj.fid):
-                # The carve fallback (task 120): a multi-view scenery art the
-                # plain fit refused - the game's big multi-quarter things, a
-                # car - stands as the forced box raised to the art's own
-                # height bands, and only the fly camera draws it: the game's
-                # views keep the card.
-                _, forced_found = self.solid_of(index, left, top, "box")
-                if forced_found and forced_found[1].cover >= 0.7:
-                    found = forced_found[0], props.carved(forced_found[0], forced_found[1])
-                    carve = True
+            if not found and first.obj.obj_type == ids.OBJ_TYPE_SCENERY:
+                frames = self.carve_art(first.obj.fid)
+                if frames is not None and props.real_aspect(frames) >= props.CARVE_LONG:
+                    # The carve fallback (task 120): a multi-view scenery art the
+                    # plain fit refused - the game's big multi-quarter things, a
+                    # car - stands as the forced box raised to the art's own
+                    # height bands, and only the fly camera draws it: the game's
+                    # views keep the card. Long and low only (123): the carve's
+                    # ground boxes would lie a tall leaning frame down.
+                    _, forced_found = self.solid_of(index, left, top, "box")
+                    if forced_found and forced_found[1].cover >= 0.7:
+                        found = forced_found[0], props.carved(forced_found[0], forced_found[1])
+                        carve = True
+                if not found and frames is not None:
+                    # The burnt rebar (123): a tall multi-view piece the carve
+                    # declines stands on its wall - the fly camera draws its
+                    # live card on the wall run that passes beside it (the
+                    # doors' plane machinery), and the game's views keep the
+                    # card they always had.
+                    run = walls.line_through(first.obj.tile, self.wall_runs) if self.wall_runs else None
+                    if run is not None:
+                        self.wall_join(first, (ax, ay), left, top, run)
             if not found:
                 continue
             shape, fit = found
@@ -882,6 +912,9 @@ class SceneBuilder:
         self.sheets = []                # their faces, where they are wall-like
         self.panels = []                # (face, frm, scene row) of those that are not doors
         self.door_quads = []
+        self.wall_cards = []            # (123) burnt rebar rows: [ua, va, ub, vb, object]; their
+                                        # cards stand on the wall run's plane for the fly camera
+        self.wall_runs = {}             # the walls' runs by (along_u, tile), for the rebar's join
         self.shadows = []               # [board, sprite without its painted shadow, the shadow, frame, rotation]
         self.plants = []                # boards of plants: their crowns throw no real shadow
         self.exits = []                 # which decals are exit grid hatching
@@ -1146,6 +1179,8 @@ class SceneBuilder:
             "walls": self.walls,                            # [sprite, ua, va, ub, vb, z0, z1, name, object, zc, thick, back]
             "trims": self.trims,                            # [sprite, ua, va, ub, vb, z0, z1, tx, ty, tw, th]: ends of slabs
             "doors": self.door_quads,                       # [sprite, ua, va, ub, vb, z0, z1, name, object]; they open
+            "wallCards": self.wall_cards,                   # [ua, va, ub, vb, object]: the burnt rebar's cards stand
+                                                            # on their wall run's plane for the fly camera (123)
             "boards": self.boards,                          # [sprite, u, v, stack, name, object]: stack = see proj.row_plane
             "shadows": self.shadows,                        # [board, sprite without painted shadow, shadow sprite, frame, rotation]
             # First person only (props.py). A solid shows `sprite`, whose anchor is ground point
