@@ -69,7 +69,13 @@ guards mapper-made maps, where a tire pile can stand as a live card. The
 before/after fly shots of the tire (runs/_122fix_shots) are byte-identical,
 which is the point: the fix's surface in the shipped game is empty.
 
-Checks: ctest 18/18; the 16 regression spots after this commit.
+Checks: ctest 18/18; the 16 regression spots captured on the fixed build are
+PIXEL-IDENTICAL to the 121-bandfill run's captures (spot-by-spot delta 0, runs
+regression/20261031-215038-288-122fix vs 20261031-154643-201-121-bandfill) -
+the fix adds no deltas of its own. The standing references predate the
+bandfill, so the check against them carries 121's fill deltas (121's log: the
+deltas are the fill working; the references update after the owner's visual
+pass).
 
 ### 2026-10-31 glm: the owner's correction: the cars are not for turning - they convert to 3D models
 
