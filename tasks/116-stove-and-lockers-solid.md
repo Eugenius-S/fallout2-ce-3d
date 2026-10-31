@@ -2,7 +2,7 @@
 id: 116
 title: The stove and the lockers stand as solids
 milestone: M1
-status: doing
+status: done
 owner: glm
 suggested: glm
 priority: normal
@@ -40,6 +40,14 @@ in the 3D view; neither stays a flat picture.
 Holes in solids (115), other furniture kinds, the landmark objects.
 
 ## Log
+
+### 2026-10-31 glm: done through task 119
+
+The render side landed in task 119 (PR #167): the stoves stand as lid drums
+and the lockers as closed boxes in flight, the game's own views keep their
+pixels (16/16 regression spots at 0 changed pixels, ctest 18/18, exporter
+unittests 74). This task's PR (#166) is marked superseded by #167; the fit
+groundwork and its tests of 2026-10-30 ride there. status: done.
 
 ### 2026-10-30 glm, blocked on the render side, handed over mid task
 
