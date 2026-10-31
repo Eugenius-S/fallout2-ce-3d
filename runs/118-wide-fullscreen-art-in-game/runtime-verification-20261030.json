@@ -1,0 +1,47 @@
+{
+  "checked_at": "2026-10-30",
+  "repository_head": "3a59aefb128a5b25b4df9836390fb7bfe5ef4d40",
+  "current_clean_release_exe_sha256": "116181B911D5763202F968544709480761F979F0093FEBD811B36ACD737002AC",
+  "runtime_capture_exe_sha256": "19CF2B4273619F52B6C23BA37E410C7BA4A3A43FC04D5EDAE303F43FEF482AFA",
+  "runtime_capture_source_head": "1d93e00c9356846f2c5eff429f3c93ed02ed6524",
+  "test_copy": "build/test-game-118-verify-20261030",
+  "working_directory": "build/test-game-118-verify-20261030",
+  "runtime_args": "--dev-tools --dev-screen=1920x1080 or 2560x1080 --dev-scale=2 --dev-new-game --dev-map=kladwtwn --dev-elevation=0",
+  "scene_cache": "build/scene-cache",
+  "death_trigger": "Temporary test-only hook set DAM_DEAD before normal main-loop death check; ordinary showDeath path and post-render SDL texture capture",
+  "death_art_source": "game/user-assets/fullscreen-20261028/death (read-only test-copy asset)",
+  "subtitle": "Visible in the captured post-render SDL texture at both aspects",
+  "screenshots": [
+    {
+      "file": "death-runtime-current-16x9.jpg",
+      "bytes": 177183,
+      "sha256": "3E201C5F2ABDD0487EDB91D77613EECC18909640255AFD96F9B68C8B3568C853",
+      "logical_resolution": "960x540"
+    },
+    {
+      "file": "death-runtime-current-21x9.jpg",
+      "bytes": 237913,
+      "sha256": "AF6490659F652E7A3A173F894D48073099933EB16AF6947E3BED1AB69206C5E0",
+      "logical_resolution": "1280x540"
+    }
+  ],
+  "ctest": "18/18 passed",
+  "regression_run": "runs/regression/20261030-204623-215-60284",
+  "regression_summary": {
+    "other_nonzero_but_passed": {
+      "klatoxcv_e0": 3,
+      "klatrap_e0": 1
+    },
+    "passed": 14,
+    "total": 16,
+    "failed": {
+      "klaratcv_e2": 6299,
+      "klagraz_e0": 183
+    }
+  },
+  "regression_interpretation": "This run is fresh-origin/main self-regression against tracked references, not an independent branch-vs-main capture. The task branch has no code diff against this main.",
+  "options_input": "Isolated helper exercised engine hit testing and queued KEY_O=111 on Options mouse-up; visual Preferences transition and physical click not confirmed",
+  "slot1": "Could not load copied owner slot: LOADSAVE error reading load function #3; no claim of slot1 death test",
+  "hooks": "Temporary source hooks removed; clean Release build follows; source tree search clear",
+  "safety": "Owner game, config and game/mod-cache not written; test copy only"
+}
