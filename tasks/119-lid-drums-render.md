@@ -2,7 +2,7 @@
 id: 119
 title: Lid drums render right: the raise lands on the lid, the drum matches its card, the window covers the stoves
 milestone: M1
-status: doing
+status: done
 owner: glm
 suggested: glm
 priority: high
@@ -104,6 +104,25 @@ unittests 74. The stands: the bathhouse stove (klamall 24138), the three
 downtown stoves (kladwtwn 20937, 22528, 26106), two Robot Receptacles
 (klatoxcv), and the animating containers (lockers, fridges: FLY_SKIP entries)
 fly as solids; everything else is bit-for-bit main's scene.
+
+Acceptance set committed in `runs/119-lid-drums-render/`: the bathhouse stove's
+drum shows through the fence gap in flight (stove-bathhouse-fly-pair.jpg; the
+game's angle, camera turned two quarters, is identical either way,
+stove-bathhouse-game-pair.jpg); the east stove drum stands against its building
+(stove-east), the warehouse stove reads from above (stove-warehouse), the
+downtown drum stands by its fence (stove-downtown); the mall lockers stand as
+closed boxes on their shelf where cards lay flat (lockers-mall-fly-pair.jpg)
+and the rat-cave locker flips card to box (locker-ratcave). Fly framing notes:
+the orbit centres on the target's tile; the bathhouse needs FlyTurn 135 (45
+looks from behind the building), the street stoves 225; FlyPitch 35-45 (25
+puts the camera inside roofs at distance 6-9); -HeroTile on the target opens
+interiors. The 10-30 shots stay (stove3-fly-rules-back.jpg = the black-drum
+blocker pair; locker6-fly-no-solid.jpg = the pre-renderer-fix frame).
+
+Done: the drums and boxes render at their card's size and place, the game's
+own views keep their pixels everywhere (16/16 spots, 0 changed pixels), the
+window covers every target. status: done; PR #167 carries the rule and the
+evidence.
 
 ### 2026-10-30 evening glm: the ground truth is in; the blocker is the group cascade, not the renderer
 
