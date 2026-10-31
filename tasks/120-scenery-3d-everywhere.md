@@ -63,6 +63,104 @@ Things turning in flight (a separate task), unique objects, hole filling
 
 ## Log
 
+### 2026-10-31 glm: the carve landed and verified; the light-bake leak found and closed
+
+The carve shipped on this branch and went through the full discipline:
+
+- The exporter unittests 78 (three new: a body-and-cabin profile splits into
+  the bands, a flat profile keeps one raised block, placeholder cards are no
+  directions).
+- The whole-game build sweep (every map file the game ships, all their
+  elevations): 268 elevations build, the only 2 failures are the
+  pre-existing truncated epamain1/epamain2 third elevations (the exporter's
+  own --maps flow skips them per map). Nothing new broke anywhere.
+- The 16 regression spots: 16/16 at 0 changed pixels. The FIRST run failed
+  7 spots (41 to 230 px) and the leak was real: a carved board goes
+  fly_hidden, and the bake drops hidden boards' painted shadows
+  (scene.py's shadows filter), so the light map changed around the carved
+  things. The fix puts carved boards into fly_shadows and fly_sprites
+  exactly like the lid-drum branch - a thing main kept a card keeps its
+  painted shadow in the bake. The rerun after the fix is the clean 16/16.
+- The pairs: runs/120-scenery-3d-everywhere/car4b-turn{0,90,180,270}-pair.jpg
+  and car3b-... (the Den's cars, before = the card as the game had it,
+  after = the carved fly-only solid) plus the close-up set at a steeper
+  orbit (car4b-close*, car3b-close*). The solid follows its art closely at
+  the game pitch - the volume shows at the steeper angles.
+
+On the Den the rule stood CAR4b (two boxes: the body 0.77 tall and a second
+band 0.55), CAR3b (three bands up to 0.99) and the car3 wreck piles (two-
+and three-band rows, six rows on one tile). The qualification found them by
+the art alone: nothing was named.
+
+### 2026-10-31 glm: the carve measured, the art measured, the design landed on per-face sources
+
+The visual-hull carve (six silhouettes, hex-rotation cameras, voxel
+intersection) was built and run on the real arts before any pipeline work.
+What the arts themselves turned out to hold killed it, with evidence:
+
+- bath01/bath02's direction slots 3-5 hold literal "UNUSED ART" placeholder
+  cards (a 46x22 full rectangle, opaque edge to edge - algorithmically
+  rejectable). The baths are OUT of the candidate set.
+- The other multi-direction files hold a few distinct views duplicated
+  across slots, not six azimuths: car4b's six slots are two near-identical
+  trios (124 px x3 then 134 px x3), car2b's are 142 px x3 then 99 px x3,
+  truck2/truck3 alternate two views and hold placeholders in d4/d5.
+- truck2/truck3's direction 2 is BYTE-EQUAL to the mirrored game view
+  (IoU 1.00, equal pixel counts): the artists themselves used the flipped
+  frame as the opposite view. That is the game's own convention for these
+  vehicles.
+- Cross-frame registration wanders up to 28 px between slots (the
+  coordinate-descent search found it), so no metric hull can be consistent
+  across views. This also explains why 122's card turning read poorly on
+  cars: the six slots snap between two quarters.
+
+The slice therefore builds the model from what the art truly holds, still
+with no hand work and no name lists:
+
+1. Qualify (per art, automatic): all stored directions decode; a direction
+   whose frame is opaque edge to edge is a placeholder card and drops out;
+   at least two real directions must remain (props.real_directions).
+2. Fit from the game view as today: qualifying arts that refuse the plain
+   fit take the forced box (the overrides.json path, cover at least 0.7)
+   raised to the art's own height bands (props.carved: the length cuts into
+   strips, each as high as the sprite rises over the strip's far edge, the
+   bands are the body, the cabin). The solids stand fly-only (seen=1, the
+   119 machinery, wall clips included), so the game's views keep their
+   cards pixel for pixel.
+3. Textures: nothing new needed - the box faces already sample what they
+   land on and the away faces already mirror the near sides' pixels
+   (solids.solid_faces), which is the same treatment the drum sides get.
+   The art's own opposite view (the mirrored-equal direction, truck2 and
+   truck3's d2) is a later per-face-source refinement.
+
+Side finding for 122: truck2/truck3 pass the engine's turning gate while
+holding placeholder directions - a turned truck card can show the green
+UNUSED ART card. The turning gate needs the same placeholder rejection.
+
+On this branch's stack the qualifying Den arts stood: CAR4b as two boxes
+(body 0.77 tall, a second band 0.55), CAR3b as three bands, the car3 wrecks
+as two- and three-band rows. The regression, the caches and the pairs below
+ran on this branch (121's texture fill comes later in the stack and is not
+part of these pairs).
+
+### 2026-10-31 glm: the conversion is one algorithm, not a model shop
+
+The owner asked the models come out as algorithmically as possible. So the
+slice is a rule that runs itself over every art that qualifies, no
+hand-built objects: the qualification reads the art's own frames (real
+directions against placeholder cards), the geometry comes from the game
+view's forced box and the art's own height profile, the faces texture by
+the standing projection rules. No name lists anywhere.
+
+### 2026-10-31 glm: the owner's addition: the multi-side big things become real 3D models
+
+The owner, on the 122 turning pairs: «по машинам - их надо в 3д модели
+конвертировать». The multi-side big things (the cars, the trucks) are not
+for card turning - they convert to 3D models: fitted solids whose faces
+texture from the art's own views instead of the single game-view
+projection. This is this task's umbrella work; the candidate list comes
+from the art itself (the qualification rule), not name lists.
+
 ### 2026-10-31 glm: the cut plane settled; the price at one fence gap is on the table
 
 Three cut-plane designs were tried against the probe views. Cutting at the
