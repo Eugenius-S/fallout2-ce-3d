@@ -9,7 +9,7 @@ priority: high
 claude-only: no
 user-check: yes
 depends-on: [116]
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -59,6 +59,16 @@ makes the engine hide the roof (frametest2); -Solo strips the whole sidecar
 New shapes for other things; engine live-solid work unless the owner asks.
 
 ## Log
+
+### 2026-10-31 glm: the owner's visual pass: accepted overall; two follow-ups move to task 120
+
+The owner walked the 12 acceptance pairs: «в целом ок» (accepted overall),
+with two things to carry on in his words: the cylinders poke through the
+walls behind them, and the rat-cave locker's box reads badly. Both belong to
+the broader scenery 3D-ification he ordered next and moved to task 120; this
+PR keeps the state he reviewed. The same pass measured for 120: which slabs
+each stove drum crosses and by how much, and which box faces clip because
+their texels leave the sprite (one mall locker loses its whole top face).
 
 ### 2026-10-31 glm: the cascade decoded; the rules stand and the regression stays 16/16 at 0 changed pixels
 
