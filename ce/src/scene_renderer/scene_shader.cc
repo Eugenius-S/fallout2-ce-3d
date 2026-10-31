@@ -149,6 +149,8 @@ uniform vec4 uShadowGround;
 // 1: a card takes its whole verdict at the feet point (109): the people,
 // whose per-pixel read straddles a shadow edge over several pixels of travel.
 uniform float uShadowFeet;
+uniform bool uCloudOn;
+uniform vec2 uCloudOffset;
 out vec4 outColor;
 // What a texel shines by itself for the glow (task 022): the colour a
 // full-bright texel keeps, premultiplied by its shown coverage; black
@@ -170,7 +172,24 @@ vec2 hexAt(vec3 w) {
 // between hex centers; the big ones smooth, from their own point, and a wall
 // (`facing`, normal n) takes more of one it faces.
 )" R"(
-vec4 pointLights(vec3 w, vec3 n, bool facing) {
+float cloudHash(vec2 cell) {
+    return fract(sin(dot(cell, vec2(127.1, 311.7))) * 43758.5453);
+}
+float cloudNoise(vec2 lattice, float wrap) {
+    vec2 whole = floor(lattice), part = fract(lattice);
+    part = part * part * (3.0 - 2.0 * part);
+    float a = cloudHash(mod(whole, wrap)), b = cloudHash(mod(whole + vec2(1.0, 0.0), wrap));
+    float c = cloudHash(mod(whole + vec2(0.0, 1.0), wrap)), d = cloudHash(mod(whole + vec2(1.0, 1.0), wrap));
+    return mix(mix(a, b, part.x), mix(c, d, part.x), part.y);
+}
+float cloudAmbient(vec3 w) {
+    if (!uCloudOn) return 1.0;
+    vec2 t = w.xz + uCloudOffset;
+    float cover = cloudNoise(mod(t, 48.0) / 12.0, 4.0) * 0.65
+        + cloudNoise(mod(t + 17.0, 48.0) / 6.0, 8.0) * 0.35;
+    return 1.0 - uShadowStrength * 0.35 * smoothstep(0.52, 0.74, cover);
+}
+vec4 pointLights(vec3 w, vec3 n, bool facing, float ambientScale) {
     vec2 hex = hexAt(w);
     vec4 small = texture(uLightMap, (hex + 0.5) / 200.0);
     float sum = small.a;
@@ -191,9 +210,10 @@ vec4 pointLights(vec3 w, vec3 n, bool facing) {
         sum += c;
         colored += c * uLightColor[i].rgb;
     }
-    float light = min(max(uAmbient, 655.0 / 65536.0 + sum), 1.0);
+    float ambient = uAmbient * ambientScale;
+    float light = min(max(ambient, 655.0 / 65536.0 + sum), 1.0);
     vec3 tint = vec3(1.0);
-    if (sum > 0.0 && light > uAmbient) tint = (vec3(uAmbient) + (light - uAmbient) * colored / sum) / light;
+    if (sum > 0.0 && light > ambient) tint = (vec3(ambient) + (light - ambient) * colored / sum) / light;
     // A colour changes the hue, not how bright the engine lights it.
     tint = min(tint / max(dot(tint, vec3(0.299, 0.587, 0.114)), 0.001), vec3(1.6));
     return vec4(tint, light);
@@ -206,14 +226,17 @@ vec4 pointLights(vec3 w, vec3 n, bool facing) {
 // every tile joint and around every window.
 vec3 gFaceCross;
 vec4 sceneLighting() {
-    if (uLightMode == 1) return pointLights(vWorld, vec3(0.0, 1.0, 0.0), false);
+    if (uLightMode == 1) return pointLights(vWorld, vec3(0.0, 1.0, 0.0), false, cloudAmbient(vWorld));
     if (uLightMode == 2) {
         if (vFullLight > 0.75) return vec4(1.0);
         vec3 n = normalize(gFaceCross);
         if (dot(n, uTowardCamera) < 0.0) n = -n;
-        return pointLights(vWorld, n, true);
+        return pointLights(vWorld, n, true, cloudAmbient(vWorld));
     }
-    if (uLightMode == 3) return pointLights(vec3(uLightAnchor.x, 0.0, uLightAnchor.y), vec3(0.0, 1.0, 0.0), false);
+    if (uLightMode == 3) {
+        vec3 anchor = vec3(uLightAnchor.x, 0.0, uLightAnchor.y);
+        return pointLights(anchor, vec3(0.0, 1.0, 0.0), false, cloudAmbient(anchor));
+    }
     if (uLightMode == 4) return vec4(vec3(1.0), uLightValue);
     return vec4(1.0);
 }
@@ -909,6 +932,8 @@ int gSceneShadowSelfIdLocation = -1;
 int gSceneShadowAnchorLocation = -1;
 int gSceneShadowGroundLocation = -1;
 int gSceneShadowFeetLocation = -1;
+int gSceneCloudOnLocation = -1;
+int gSceneCloudOffsetLocation = -1;
 
 bool createSceneShader(std::string* error)
 {
@@ -994,6 +1019,8 @@ bool createSceneShader(std::string* error)
     gSceneShadowAnchorLocation = glGetUniformLocation(gSceneProgram, "uShadowAnchor");
     gSceneShadowGroundLocation = glGetUniformLocation(gSceneProgram, "uShadowGround");
     gSceneShadowFeetLocation = glGetUniformLocation(gSceneProgram, "uShadowFeet");
+    gSceneCloudOnLocation = glGetUniformLocation(gSceneProgram, "uCloudOn");
+    gSceneCloudOffsetLocation = glGetUniformLocation(gSceneProgram, "uCloudOffset");
     if (gSceneMvpLocation < 0 || gSceneTextureLocation < 0
         || gSceneTexturedLocation < 0 || gSceneCloseupFilterLocation < 0 || gSceneColorLocation < 0 || gSceneCutoffLocation < 0
         || gSceneDepthAtLocation < 0 || gSceneTranslucentLocation < 0 || gSceneTintLocation < 0
@@ -1006,6 +1033,7 @@ bool createSceneShader(std::string* error)
         || gSceneLightOriginLocation < 0 || gSceneLightAnchorLocation < 0 || gSceneAmbientLocation < 0
         || gSceneHexUnitLocation < 0 || gSceneTowardCameraLocation < 0 || gSceneLightCountLocation < 0
         || gSceneLightPosLocation < 0 || gSceneLightColorLocation < 0 || gSceneLightWindowLocation < 0
+        || gSceneCloudOnLocation < 0 || gSceneCloudOffsetLocation < 0
         || gSceneClipEnabledLocation < 0
         || gSceneClipPlaneLocations[0] < 0 || gSceneClipPlaneLocations[1] < 0
         || gSceneClipPlaneLocations[2] < 0 || gSceneClipPlaneLocations[3] < 0) {

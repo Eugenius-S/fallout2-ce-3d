@@ -76,6 +76,7 @@ void drawStaticPreview(bool withWalls, bool withHero)
     // The sun's shadow map renders before the scene; the floor and the walls
     // sample it (uShadowOn). It restores the framebuffer and the viewport.
     const bool shadowed = withWalls && bindStaticShadows(mvp);
+    if (!withWalls) glUniform1i(gSceneCloudOnLocation, 0);
     glUniform1i(gSceneShadowOnLocation, shadowed ? 1 : 0);
     // Nobody's own texels count as empty, until a draw says otherwise (the
     // wall pieces take the number from their vertices, 082 round 6).

@@ -1,0 +1,73 @@
+{
+  "capture_method": "SDL surface captured after renderPresent in a temporary diagnostic build; all diagnostic and forced-death hooks were removed before the final Release build.",
+  "isolated_game_copy": "separate test-game-118-death copy, outside the user-watched test-game-118 folder",
+  "working_directory": "test-game-118-death copy root",
+  "args": [
+    "--dev-tools",
+    "--dev-screen=2310x1298",
+    "--dev-scale=2",
+    "--dev-load-game=1",
+    "--dev-map=kladwtwn",
+    "--dev-elevation=0"
+  ],
+  "screen_output": [
+    2310,
+    1298
+  ],
+  "scale": 2,
+  "texture_logical": [
+    1155,
+    649
+  ],
+  "death_source": "user-assets/fullscreen-20261028/wallpapers-selected/common/death/death.png (relative to the isolated test copy)",
+  "death_source_sha256": "086eb6704ab3e48d69c24ae0de6baa35dd7100335d3e5602cfcf43c75c695cdf",
+  "subtitle_text_files": [
+    "narrator\\nar_dth5",
+    "narrator\\nar_dth4"
+  ],
+  "subtitle_forced_on_only_in_isolated_death_test": true,
+  "runtime_test_exe_sha256": "not recorded for the temporary diagnostic build",
+  "final_regression_exe_sha256": "707ab34152471be1a725bf60ebdba553ba9e75e5a55d625ce0791906ef64045f",
+  "captures": [
+    {
+      "file": "before-3d-bars.jpg",
+      "sha256": "dde98022b11685d29afe1a2c8500bb282a551d7d35518cdede39019c54eea511",
+      "size": [
+        1155,
+        649
+      ],
+      "mode": "3d-before-fix",
+      "subtitle_visible": false
+    },
+    {
+      "file": "after-3d-with-subtitle.jpg",
+      "sha256": "27597608869d78927e4ad43d055f88b163434d999024daa0814ee45696242e70",
+      "size": [
+        1155,
+        649
+      ],
+      "mode": "3d-after-fix",
+      "subtitle_visible": true
+    },
+    {
+      "file": "after-2d-with-subtitle.jpg",
+      "sha256": "6b16690c2c6e618ff1194b2e77d0829ddc3fc28e2d351273d16a81b436e905f4",
+      "size": [
+        1155,
+        649
+      ],
+      "mode": "2d-after-fix",
+      "subtitle_visible": true
+    },
+    {
+      "file": "menu-after-fade.jpg",
+      "sha256": "0ee3eb81c91d022675e889c9fa8bb3dc394cd0051508993c006f49967983e2cc",
+      "size": [
+        1155,
+        649
+      ],
+      "mode": "3d-main-menu",
+      "subtitle_visible": null
+    }
+  ]
+}
