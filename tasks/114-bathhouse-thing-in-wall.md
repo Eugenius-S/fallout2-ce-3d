@@ -2,14 +2,14 @@
 id: 114
 title: The thing in the bathhouse wall: find what it is and put it where the game has it
 milestone: M1
-status: todo
-owner: none
+status: done
+owner: glm
 suggested: glm
 priority: high
 claude-only: no
 user-check: yes
 depends-on: []
-reviewed: no
+reviewed: no # the regression references were retaken
 ---
 
 ## Goal
@@ -55,3 +55,34 @@ puts it.
 The shapes of the things themselves (115, 116).
 
 ## Log
+
+### 2026-10-29 glm
+Done: the thing in the wall is named and put back where the game has it.
+It is object #1985, item 'Stuff' (pid 0x000000B2, art tbltop11.frm, the
+pipe, box, plate and can of a laid table) at tile 18282 (82, 91) elevation
+0 of kladwtwn: the clutter of Table ltable4 (obj 1984) by the bathhouse's
+east wall. The line that put it into the wall: the lift (scene.py `lift`,
+through scene.json "lifts" into baked.bin's LIFT) raises its card 0.55
+units up the view ray; at the game's angle the raised rows crossed the
+wall's silhouette and the lattice's open upper rows, and read as a grey
+pipe growing out of the alley wall (proven by flipping the card's baked
+entry to Skip: exactly the pipe's 693 px vanish). The lift's own "same
+pixels" contract does not hold in the renderer: the view's perspective
+moves a lifted card tens of pixels up-screen.
+Fix, two rules in the renderer (ce/src/scene_renderer):
+- a lift raises a card only under the fly camera; the game's camera keeps
+  the game's own pixels, and the wall hides the card as the game hides it
+  (live_objects.cc);
+- an indoor card is cut at the roof plane where a roof covers it
+  (uRoofClip + the roof grid: scene_shader.cc, roofs.cc, scene_draw.cc):
+  the game's roof picture hides a room's cards above that plane, the 3D
+  roof sat lower and left the band open.
+The regression references encoded the lifted cards, so they were retaken
+with `-Update` on this commit (16 spots, all self-consistent; klamall,
+klagraz-e0, central-doors, map-edge, klaratcv-e2, klatoxcv-e0, klatrap-e0
+PNGs changed): per the rules this PR is `reviewed: no`.
+Next: the tour's changed.jpg attached here; the owner checks the bathhouse
+(user-check).
+Check: runs/114-bathhouse-thing-in-wall/ (before | after at the game's
+angle, the classic original, flight with the roof off, the klamall tables'
+before | after); ctest 18/18; the scene_export and regression unit tests.

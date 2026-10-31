@@ -320,8 +320,13 @@ bool addStaticObject(const StaticObjectFrame& frame, std::string* error)
         gObjectTextures.emplace(key, texture);
     }
     // A thing standing on a solid moves onto it, and so does its row plane.
+    // Under the game's camera the card keeps the game's own pixels: the art
+    // sits where the artists drew it, and the wall's picture hides what it
+    // hid in the game (114: the bathhouse's table stuff read over its wall
+    // from the street, lifted into the lattice's open upper rows). The lift
+    // is for the fly camera, which sees the room from anywhere.
     float lift[3] = { 0.0f, 0.0f, 0.0f };
-    const bool lifted = staticObjectLift(frame.tile, frame.fid, lift);
+    const bool lifted = staticFlyCameraActive() && staticObjectLift(frame.tile, frame.fid, lift);
     const double liftedRow = row + lift[2];
     // The card's feet on the ground: the bottom-center of a standing card,
     // the middle of a flat one. The whole-sprite sun shadow reads the map

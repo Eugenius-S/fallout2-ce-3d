@@ -461,6 +461,7 @@ bool bindStaticShadows(const float* sceneMvp)
     glUniform1i(gSceneDepthAtLocation, 0);
     glUniform1i(gSceneLightModeLocation, 0);
     glUniform1i(gSceneSeeThroughLocation, 0);
+    glUniform2f(gSceneRoofClipLocation, 0.0f, 0.0f);
     glActiveTexture(kTexture0);
     if (gWallCasterVao != 0 && !gWallCasterRanges.empty()) {
         glBindVertexArray(gWallCasterVao);
