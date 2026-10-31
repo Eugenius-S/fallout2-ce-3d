@@ -150,12 +150,39 @@ def solid_faces(proj, sprites, boards, row):
         plane = row_plane(proj, bu, bv, stack) + OVER_CARD
     page, x, y, w, h, ox, oy = sprites[s]
     ax, ay = proj.ground_to_px(u, v)
+    # A fly-only drum's wall planes (scene.keep_apart, task 120): [axis, limit,
+    # keep the greater side]. The mesh is cut at them in plan and keeps its size.
+    clips = [(int(c[0]), float(c[1]), bool(c[2])) for c in row[16]] if len(row) > 16 else ()
 
     def texel_at(point):
         px, py = proj.ground_to_px(*point)
         return [x + px - ax - ox, y + py - ay - oy]
 
     faces = []
+
+    def sliced(points, sources=None):
+        """The part of a convex face whose plan position stays this side of every
+        clip plane, with the points it samples cut by the same fractions."""
+        points = [list(p) for p in points]
+        sources = [list(p) for p in (points if sources is None else sources)]
+        for axis, limit, keep_ge in clips:
+            sign = 1.0 if keep_ge else -1.0
+            kept_p, kept_s = [], []
+            for i, p in enumerate(points):
+                q = points[(i + 1) % len(points)]
+                s, t = sources[i], sources[(i + 1) % len(points)]
+                dp, dq = (p[axis] - limit) * sign, (q[axis] - limit) * sign
+                if dp >= 0:
+                    kept_p.append(p)
+                    kept_s.append(s)
+                if dp * dq < 0:
+                    f = dp / (dp - dq)
+                    kept_p.append([c + (d - c) * f for c, d in zip(p, q)])
+                    kept_s.append([c + (d - c) * f for c, d in zip(s, t)])
+            points, sources = kept_p, kept_s
+            if not points:
+                return [], []
+        return points, sources
 
     def face(points, from_points=None, away=False, camera="both"):
         shows = from_points or points
@@ -193,14 +220,41 @@ def solid_faces(proj, sprites, boards, row):
             def source(n):
                 return quarter / 2 + (quarter - n if turn % 2 else n)
 
-            around = side(source(within), source(within + 1))
-            if plane is None:
-                face(side(i, i + 1), around, away=i >= DRUM_SIDES // 2)
+            pts, srcs = sliced(side(i, i + 1), side(source(within), source(within + 1)))
+            if pts:
+                if plane is None:
+                    face(pts, srcs, away=i >= DRUM_SIDES // 2)
+                else:
+                    if i < DRUM_SIDES // 2:
+                        face(side(i, i + 1), camera="game")     # the game's camera never draws a clipped drum
+                    face(pts, srcs, away=i >= DRUM_SIDES // 2, camera="fly")
+        cap, cap_srcs = sliced([rim(i, z1) for i in range(DRUM_SIDES)])
+        if cap:
+            face(cap, cap_srcs)
+        # Each cut gets its own face: the ellipse's chord at the plane, from z0 to
+        # z1, wound both ways (a view into the cut reads the drum's body, not its
+        # hollow inside). Its texels come from the sprite's centre column at the
+        # chord's heights: the cut's own plan points can project onto the art's
+        # transparent edge, and a transparent cut reads as a hole into the drum.
+        for caxis, limit, _ in clips:
+            ends = []
+            for i in range(DRUM_SIDES):
+                p, q = rim(i, 0.0), rim(i + 1, 0.0)
+                dp, dq = p[caxis] - limit, q[caxis] - limit
+                if dp == 0.0:
+                    ends.append([p[0], p[1]])
+                elif dp * dq < 0:
+                    f = dp / (dp - dq)
+                    ends.append([p[0] + (q[0] - p[0]) * f, p[1] + (q[1] - p[1]) * f])
+            if len(ends) < 2:
                 continue
-            if i < DRUM_SIDES // 2:
-                face(side(i, i + 1), camera="game")
-            face(side(i, i + 1), around, away=i >= DRUM_SIDES // 2, camera="fly")
-        face([rim(i, z1) for i in range(DRUM_SIDES)])
+            (x0, y0_), (x1, y1_) = ends[0], ends[-1]
+            chord = [[x0, y0_, z0], [x1, y1_, z0], [x1, y1_, z1], [x0, y0_, z1]]
+            chord, _ = sliced(chord)
+            chord_srcs = [[cu, cv, p[2]] for p in chord]
+            for wound, srcs in ((chord, chord_srcs), (chord[::-1], chord_srcs[::-1])):
+                if len(wound) >= 3:
+                    face(wound, srcs, away=wound is not chord, camera="fly")
         return _forced(row, faces)
 
     u0, u1, v0, v1 = cu - a / 2, cu + a / 2, cv - b / 2, cv + b / 2

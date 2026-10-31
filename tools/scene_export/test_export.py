@@ -513,6 +513,30 @@ class WallSidecarTests(unittest.TestCase):
         self.assertAlmostEqual(max(body), max(rim), places=3)
         self.assertAlmostEqual(max(rim) - min(rim), 2 * 18.0, places=3)
 
+    def test_a_fly_drum_is_sliced_at_the_walls_it_crosses(self):
+        # A fly-only drum annotated with a wall plane (scene.keep_apart, 120)
+        # keeps its size and ends flat at the plane: the fly mesh loses the part
+        # past it and keeps the rest whole. The game's faces are not drawn anyway.
+        scene = self.sample_scene()
+        scene["walls"] = []
+        scene["pages"][0]["size"] = [400, 400]
+        scene["sprites"].append([0, 100, 100, 200, 200, -100, -150])
+        scene["props"] = [[2, 10.0, 10.0, 0, 1, 10.0, 10.0, 18.0, 8.0, 0.0, 0.5, 0.0, 0.0,
+                           0, 0, 1, [[0, 10.0, 1]]]]
+        scene["boards"] = [[2, 10.0, 10.0, 0, 0, 0]]
+        decoded = decode_wall_sidecar(encode_wall_sidecar(scene))
+        fly = [v for b in decoded["batches"] if b["fly_only"] for v in b["vertices"]]
+        self.assertTrue(fly)
+        us = [v[0] + 50.0 for v in fly]         # the sidecar vertices are ground minus (50, 50)
+        self.assertGreaterEqual(min(us), 10.0 - 1e-4)
+        # The kept side reaches as far as the whole drum did.
+        whole = [2, 10.0, 10.0, 0, 1, 10.0, 10.0, 18.0, 8.0, 0.0, 0.5, 0.0, 0.0, 0, 0, 1]
+        scene["props"] = [whole]
+        whole_us = [v[0] + 50.0 for b in decode_wall_sidecar(encode_wall_sidecar(scene))["batches"]
+                    if b["fly_only"] for v in b["vertices"]]
+        self.assertLess(min(whole_us), 10.0)    # the drum did cross the plane
+        self.assertAlmostEqual(max(us), max(whole_us), places=3)
+
     def test_faces_name_the_map_object_they_show(self):
         from types import SimpleNamespace
         scene = self.sample_scene()

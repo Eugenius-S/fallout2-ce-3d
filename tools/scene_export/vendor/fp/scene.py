@@ -516,7 +516,10 @@ class SceneBuilder:
         beside a wall came out through it (a round stove in a corner), and two things side by
         side overlapped in plan and showed through each other from the air (a dresser and the
         crates against it). A box is cut back at the slabs of the walls as it is made
-        (out_of_walls); a drum here, on the side of its own hex. Two solids whose heights meet
+        (out_of_walls); a drum here, on the side of its own hex. A fly-only drum (row[15] 1)
+        is not cut here at all: the game's views are its card's, and solids.solid_faces
+        slices its mesh at the walls it crosses instead (row[16]), so it keeps its size and
+        ends flat at the wall face (120). Two solids whose heights meet
         are each cut back by half of their overlap, across the axis where they overlap less. A
         drum is cut as its square and becomes the largest drum within what is left: it keeps
         its near side and moves off the cut, so it still shows the sprite it was made of.
@@ -542,8 +545,30 @@ class SceneBuilder:
             if not row[4] or not seen:
                 continue
             if row[15] == 1:
-                continue        # a fly-only drum keeps its size: the game's own views are its
-                                # card's, and in flight a little wall overlap beats a stump
+                # A fly-only drum keeps its size: the game's own views are its card's
+                # either way. What it would lose to a wall the mesh loses instead
+                # (solids.solid_faces slices the drum at row[16]'s planes, task 120):
+                # the old shrink stumped a drum whose center sat on the slab, keeping
+                # at most 2 * MIN_DRUM of a full diameter, and it took the kept side
+                # from the hex while the fit may put the drum's center half a unit
+                # away from it. The cut runs at the slab face the drum's center is
+                # nearest, and the mesh's cut face (solids.solid_faces) closes the
+                # end there: the drum ends flush at the wall, nothing pokes out the
+                # far side, and no view into the cut sees the hollow inside.
+                radius = row[7] / proj.BB_PX
+                for u0, v0, u1, v1 in self.boxes:
+                    if math.hypot(row[5] - min(max(row[5], u0), u1), row[6] - min(max(row[6], v0), v1)) >= radius:
+                        continue
+                    axis = int(u1 - u0 > v1 - v0)               # across the slab
+                    slab, home = ((u0, u1), (v0, v1))[axis], row[5 + axis]
+                    keep_ge = home > (slab[0] + slab[1]) / 2
+                    face = slab[1] if keep_ge else slab[0]
+                    if len(row) == 16:
+                        row.append([])
+                    clip = [axis, face, 1 if keep_ge else 0]
+                    if clip not in row[16]:
+                        row[16].append(clip)
+                continue
             for u0, v0, u1, v1 in self.boxes:
                 radius = row[7] / proj.BB_PX
                 if math.hypot(row[5] - min(max(row[5], u0), u1), row[6] - min(max(row[6], v0), v1)) >= radius:

@@ -63,6 +63,64 @@ Things turning in flight (a separate task), unique objects, hole filling
 
 ## Log
 
+### 2026-10-31 glm: the cut plane settled; the price at one fence gap is on the table
+
+Three cut-plane designs were tried against the probe views. Cutting at the
+slab edge away from the drum's center kept the most drum but left the mesh
+open along the cut: through a gap in the fence's art the view reached the
+drum's hollow inside, and even with the cut closed by its own chord face the
+strip did not return to main's look. The design that stands: cut at the slab
+face the drum's center is nearest, and close the end with its chord face (the
+ellipse's chord at the plane, z0 to z1, wound both ways, texels from the
+sprite's centre column so the cut never samples the art's transparent edge).
+The drum ends flush at the wall; nothing pokes out the far side; the fly view
+shows a full-bodied drum with a flat cut end. Measured: the bathhouse stove
+keeps 95% of its drum, the east stove 58%, the downtown stove 50% (those two
+stand deep in their buildings' depth; the fit put them there). No
+game-camera faces anywhere: the exporter unittests 75 (the sliced-drum test
+checks the kept reach and the flat end), ctest 18/18.
+
+The known price, on the table: at the bathhouse's game-angle probe (not one
+of the 16 regression spots) a 14 px wide strip through the fence gap differs
+from main - main shows the card's overhang hanging past the wall's plane,
+which after any trim physically cannot reappear; the gap now reads as the
+fence's inner side. The official 16 regression spots stay at 0 changed
+pixels, and the engine's true game camera (flying=false) draws no fly-only
+batch at all (scene_draw.cc gates them); the strip shows up in the still
+captures because they render through the free-camera path. The owner judges
+the pairs.
+
+### 2026-10-31 glm: the drums are trimmed; the locker's light theory disproven
+
+The drum trim landed: scene.keep_apart annotates a fly-only drum row with the
+wall planes it crosses (row[16]: the slab face nearest the drum's center,
+keeping the center's side), and solids.solid_faces slices the drum's side
+quads and top cap at those planes before texel assignment. Measured on the
+export: the bathhouse stove keeps 95% of its drum and ends flat at the
+fence's far face, the east stove keeps 58% flat at its building, the
+downtown stove keeps half; the game's faces are untouched (the game camera
+never draws a clipped drum), so the regression stayed 16/16 at 0 changed
+pixels, ctest 18/18, exporter unittests 75 (a new test: the sliced fly drum
+keeps its far reach and loses exactly the part past the plane).
+
+The locker went the other way: the "glare" theory died. The full-light mark
+of 10-30 never fires for prop solids at all (their top caps land in the
+both-cameras batch, so a row is never all-fly triangles), and the scene
+shader's pointLights already samples the per-hex light map plus the big
+lamps: the box is lit by the same model its live card is. Removing the mark
+(left in place until this task, then reverted) changed nothing: three locker
+fly views, 0 changed pixels. What the owner sees is the art: a live card
+turns its front (and animates through frames, the open door darker) at every
+azimuth, while the box shows the art's own side and back bands, which for a
+locker are plain light wood, and its top face is large at a steep fly pitch.
+No engine change can make the back of a frontal art look like a front; the
+honest options for a later slice are fit-side (a shallower or shorter box)
+or art-side, and the owner judges the pairs.
+
+Branch note: the experiment cache is build/cache-120 (klamath group), the
+pairs 119-fix | 120 in runs/120-scenery-3d-everywhere/, the shot tool
+tools/shots120.ps1, the pair composer tools/pairs120.py.
+
 ### 2026-10-31 glm: opened with the measured drum and box fixes
 
 Branch note: branched from task/119-lid-drums-render (119 not merged yet),
