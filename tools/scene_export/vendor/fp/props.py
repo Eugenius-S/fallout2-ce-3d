@@ -370,9 +370,10 @@ def _slices(shape, box):
     return blocks if len(blocks) > 1 else [box]
 
 
-def _from_floor(shape, force=False):
+def _from_floor(shape, force=False, allow_lid=False):
     """Solids standing on the floor: [(outline error, Fit)] for a box and a drum, where they exist.
-    force: "box" or "drum", that solid wherever one stands at all (an exception by name, overrides.json)."""
+    force: "box" or "drum", that solid wherever one stands at all (an exception by name, overrides.json).
+    allow_lid: the lid-drum candidate joins the pick (the loose clutter a lid vouches for; task 119)."""
     out = []
     steps = shape.x[shape.some], shape.lower[shape.some]
     cv, cu = walls._kth(steps[1] - V * steps[0], True), walls._kth(steps[1] - U * steps[0], True)
@@ -408,6 +409,10 @@ def _from_floor(shape, force=False):
             if force == "drum":
                 return [(error, drum)]
             out.append((error, drum))
+    if allow_lid and force != "drum":
+        lid = _lid_drum(shape)
+        if lid:
+            out.append(lid)
     # A top with holes will do where the solid is the whole sprite (frames, open boxes, a stove).
     return [(error, fit) for error, fit in out if fit.cover >= MIN_COVER
             and fit.top_fill >= (OPEN_TOP_FILL if fit.cover >= WHOLE and fit.side_fill < BULK else TOP_FILL)]
@@ -452,23 +457,33 @@ def _from_top(shape):
     return out
 
 
-def fit(alpha, left, top, force=False):
+def fit(alpha, left, top, force=False, allow_lid=False):
     """The solid for a sprite (its opaque pixels without the floor's shade, light.outer_dark;
     left / top: px of its first pixel from the anchor), or None if it had better stay a card.
-    force: "box" or "drum" whenever one stands (chairs and crates are as ragged as plants). -> (Shape, Fit)"""
+    force: "box" or "drum" whenever one stands (chairs and crates are as ragged as plants).
+    allow_lid: a drum with a lid may win the pick (the mapper's loose clutter only: stood up,
+    a lid's gap is transparent in the game's own views, so those keep the card; task 119).
+    -> (Shape, Fit)"""
     if not alpha.any():
         return None
     shape = Shape(alpha, left, top)
     if force:
-        found = _from_floor(shape, force=force)
+        found = _from_floor(shape, force=force, allow_lid=allow_lid)
         return (shape, found[0][1]) if found else None
     if shape.ragged > RAGGED:
         return None
     hung = _from_top(shape)
-    # The lid-drum candidate (props._lid_drum) stands ready but does not join
-    # the pick yet: stood up, the neighbour groups re-compose and the game's
-    # own views flip on eight regression spots (tasks 116/119).
-    for found in (_from_floor(shape), hung):
+    floor = _from_floor(shape, allow_lid=allow_lid)
+    if hung:
+        floor = [pair for pair in floor if not pair[1].lid]
+    else:
+        lids = [pair for pair in floor if pair[1].lid]
+        if lids:
+            # A round body under a lid, standing on the floor: the box's straight
+            # lines contradict the art the drum's arc just vouched for, so the
+            # lid drum takes it whatever the box's foot line scored.
+            return shape, min(lids, key=lambda pair: pair[0])[1]
+    for found in (floor, hung):
         if found:
             return shape, min(found, key=lambda pair: pair[0])[1]
     return None

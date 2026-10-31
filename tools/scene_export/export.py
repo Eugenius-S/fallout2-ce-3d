@@ -332,7 +332,9 @@ def live_solids(builder, scene):
     props = scene.get("props") or []
     skip_props = {index for index, row in enumerate(props)
                   if row[3] in live and not (len(row) > 15 and row[15] == 1)}
-    centres = [(props[index][5], props[index][6]) for index in skip_props]
+    # Rests near a live solid's centre stay dropped whoever bakes the solid: the
+    # row the fly camera alone sees stands for it just as well (task 119).
+    centres = [(row[5], row[6]) for row in props if row[3] in live]
     skip_rests = {index for index, row in enumerate(scene.get("rests") or [])
                   if any(abs(row[1] - cu) < 0.75 and abs(row[2] - cv) < 0.75 for cu, cv in centres)}
     return live, skip_props, skip_rests

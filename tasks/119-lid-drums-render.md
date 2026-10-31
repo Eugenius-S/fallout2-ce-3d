@@ -60,6 +60,51 @@ New shapes for other things; engine live-solid work unless the owner asks.
 
 ## Log
 
+### 2026-10-31 glm: the cascade decoded; the rules stand and the regression stays 16/16 at 0 changed pixels
+
+The "group cascade" was never groups re-composing (props.groups runs once over
+the pieces; standing a thing up cannot change it). Reading the failing exports
+against the baseline cache row by row showed all nine failing spots came from
+ONE gate: `obj_type == OBJ_TYPE_ITEM -> seen = 1` flipped every ITEM container
+(Dresser, Footlocker, Bookcase, Crate, Desk, Shelves, Fridge, Locker) from a
+stood solid to a fly-only row. Each flip (a) swapped the game view's solid for
+its card, (b) swapped the light bake's solid blob for the card blob
+(build_light's `hidden - flyBoards` stopped excluding the board), and (c)
+pulled the thing out of self.solids, which moved the rock faces and their
+hiddenWalls downstream. The renderer fixes of 10-30 were already right.
+
+The rules stand again, narrowed to what cannot move a game pixel:
+
+- A container whose art animates and that main stood (not loose, not narrow)
+  flies as its closed box: seen = 1, and every mark main's stood solid left is
+  replicated - the board hidden, the thing propped, the prop blob, the blocks,
+  the cast, the solids list entry - plus the new flyBoards mark (live_fly_boards)
+  that keeps the light bake's blob exclusion. live_solids' centres now take every
+  live row, so rests near a flipped container stay dropped as main's were; and
+  baked_sidecar gives a live board in flyBoards a FLY_SKIP entry (the game keeps
+  the animating card, flight skips it for the solid). Static containers stand
+  exactly as main stood them.
+- A thing main kept a card (loose clutter, a narrow thing) stands only as a drum
+  with a lid (allow_lid threaded through props.fit into _from_floor's pick). Its
+  game views keep the card either way, so the stand is game-invisible by design;
+  its painted shadow row stays (fly_shadows) so the light bake reads the same
+  sprite.
+- The atlas pins the new stands' images to a trailing page of their own
+  (atlas.pack(pinned)): every sprite any other row names keeps the texel it had,
+  so the game's views sample exactly what they sampled before - no atlas-repack
+  grain at all. Lesson: the scene's sprite table indexes references, the atlas
+  indexes images; pin by image, and only images no other row names.
+
+Checks: the 16 regression spots all pass with 0 changed pixels against the
+EXISTING references (no retake); game triangles, object-resolved, byte-identical
+on all 13 exported elevations; light.png, floor.bin, shadows.bin, tiles.png
+byte-identical; the walls.bin game batches differ only in the object-table
+renumbering (1268 -> 1269 style ids, resolved-identical). ctest 18/18, exporter
+unittests 74. The stands: the bathhouse stove (klamall 24138), the three
+downtown stoves (kladwtwn 20937, 22528, 26106), two Robot Receptacles
+(klatoxcv), and the animating containers (lockers, fridges: FLY_SKIP entries)
+fly as solids; everything else is bit-for-bit main's scene.
+
 ### 2026-10-30 evening glm: the ground truth is in; the blocker is the group cascade, not the renderer
 
 Three render-side findings, all verified:
