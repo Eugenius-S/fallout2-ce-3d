@@ -187,6 +187,11 @@ void addObjectCard(Object* object, void* context)
     if (pickOnly && (object->flags & OBJECT_FLAG_0xFC000) == OBJECT_TRANS_WALL) {
         scene_renderer::markStaticWallFullLight(object->tile, object->fid);
     }
+    // A fly-only solid's game views are its card's (which lights itself); the
+    // solid has no light of its own, so first person draws it fully lit.
+    if (pickOnly && scene_renderer::staticObjectFlyOnly(object->tile, object->fid)) {
+        scene_renderer::markStaticWallFullLight(object->tile, object->fid);
+    }
     const int stack = pickOnly ? (object->tile == pass.lastTile ? pass.onTile : 0) : nextStackOnTile(pass, object);
     if (object == gDude) {
         gHeroStack = stack; // the hero card is drawn on its own
