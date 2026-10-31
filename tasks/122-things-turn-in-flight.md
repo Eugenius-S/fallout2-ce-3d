@@ -43,6 +43,18 @@ Critters (087 did them), solids re-projecting per quarter, unique objects.
 
 ## Log
 
+### 2026-10-31 glm: the owner's correction: the cars are not for turning - they convert to 3D models
+
+The owner, on the turning pairs: «по машинам - их надо в 3д модели
+конвертировать». The multi-side big things (the cars CAR2b/CAR4b, the
+trucks, the bath) are not for sprite turning at all: they belong to task
+120's 3D-ification as real models - a fitted solid whose faces can take
+their textures from the matching rotation views of the art (the six true
+sides are exactly the material a proper model needs). The turning rule of
+this task stays for the smaller multi-side scenery (the cola machine, the
+wall lamp, the windows) pending the owner's word; the Den car pairs here
+remain as the rule's evidence.
+
 ### 2026-10-31 glm: the rule is a silhouette-overlap test, and the Den's car turns
 
 The turn rule, by measurement: a scenery art turns when every ADJACENT pair
