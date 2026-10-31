@@ -1377,3 +1377,28 @@ class CarveTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class FillHolesBandTests(unittest.TestCase):
+    """121: the band pass - a transparent gap the shape straddles fills."""
+
+    def test_a_lid_gap_over_a_body_fills(self):
+        from vendor.fp.props import fill_holes
+        import numpy as np
+        rgba = np.zeros((12, 10, 4), np.uint8)
+        rgba[..., :3] = 200
+        rgba[1:4, 2:8, 3] = 255          # the lid
+        rgba[7:11, 1:9, 3] = 255         # the body
+        out = fill_holes(rgba)
+        self.assertTrue((out[4:7, 3:7, 3] == 255).all())   # the gap between them filled
+        self.assertTrue((out[0, :, 3] == 0).all())          # the open border stays
+
+    def test_an_open_sky_cutout_stays_open(self):
+        from vendor.fp.props import fill_holes
+        import numpy as np
+        rgba = np.zeros((10, 10, 4), np.uint8)
+        rgba[..., :3] = 200
+        rgba[1:9, 1:3, 3] = 255           # a left post
+        rgba[1:9, 7:9, 3] = 255           # a right post
+        out = fill_holes(rgba)
+        self.assertTrue((out[1:9, 4:6, 3] == 0).all())      # between the posts: open to the top

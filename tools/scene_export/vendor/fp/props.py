@@ -667,12 +667,16 @@ def compose(pieces):
 
 
 def fill_holes(rgba):
-    """The texture of a solid's faces with its enclosed transparent texels
-    filled in the colour of the nearest opaque ones, an average of the
-    neighbours, so no face shows the scene through the art's holes (the
-    owner's rule of no holes in the 3D things, 115). The open border, the
-    ground round the feet and the painted shade band, stays as it is: a
-    cut-out that is the shape's own keeps the original's pixels."""
+    """The texture of a solid's faces with its transparent texels filled in the
+    colour of the nearest opaque ones, an average of the neighbours, so no face
+    shows the scene through the art's holes (the owner's rule of no holes in
+    the 3D things, 115). Two classes fill: the texels enclosed on all sides,
+    and (121's pass) the ones with opaque art both above and below in their
+    column - a band the shape straddles, the gap a hovering lid leaves over a
+    body, which the border-reach rule kept open but a 3D face shows as a slit
+    straight through the thing. The open border, the ground round the feet and
+    the painted shade band, stays as it is: a cut-out that the art holds open
+    to the sky keeps the original's pixels."""
     alpha = rgba[..., 3] > 0
     if alpha.all() or not alpha.any():
         return rgba
@@ -691,6 +695,42 @@ def fill_holes(rgba):
             break
         reach = grown
     holes = ~alpha & ~reach
+    # A band the shape straddles: transparent, with opaque art above and below
+    # in the same column that belong to DIFFERENT pieces of the art - the gap a
+    # hovering lid leaves over its body. A bite out of one piece (a notch open
+    # to the side) stays: its above and below are the same connected piece.
+    label = np.zeros(alpha.shape, np.int32)
+    remaining = alpha.copy()
+    piece = 0
+    while remaining.any():
+        piece += 1
+        r, c = np.argwhere(remaining)[0]
+        front = np.zeros_like(remaining)
+        front[r, c] = True
+        while True:
+            grown = front.copy()
+            grown[1:, :] |= front[:-1, :]
+            grown[:-1, :] |= front[1:, :]
+            grown[:, 1:] |= front[:, :-1]
+            grown[:, :-1] |= front[:, 1:]
+            grown &= remaining
+            if (grown == front).all():
+                break
+            front = grown
+        label[front] = piece
+        remaining &= ~front
+    nearest_above = np.zeros(alpha.shape, np.int32)
+    carry = np.zeros(alpha.shape[1], np.int32)
+    for r in range(alpha.shape[0]):
+        nearest_above[r] = carry
+        carry = np.where(alpha[r], label[r], carry)
+    nearest_below = np.zeros(alpha.shape, np.int32)
+    carry = np.zeros(alpha.shape[1], np.int32)
+    for r in range(alpha.shape[0] - 1, -1, -1):
+        nearest_below[r] = carry
+        carry = np.where(alpha[r], label[r], carry)
+    holes = holes | (~alpha & (nearest_above > 0) & (nearest_below > 0)
+                     & (nearest_above != nearest_below))
     if not holes.any():
         return rgba
     out = rgba.copy()
