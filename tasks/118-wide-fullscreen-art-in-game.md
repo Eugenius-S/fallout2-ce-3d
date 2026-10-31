@@ -2,14 +2,14 @@
 id: 118
 title: The owner's wide loading screens, main menu and death screen in the game
 milestone: M1
-status: doing
+status: done
 owner: gpt
 suggested: gpt
 priority: normal
 claude-only: no
 user-check: yes
 depends-on: []
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -196,3 +196,48 @@ Menu and death art now use centered proportional cover instead of stretching. Me
 Runtime evidence in `runs/118-wide-fullscreen-art-in-game/runtime-palette-fix/` contains English and Russian loading screenshots captured from the isolated test copy at logical 1720x720 for output 3440x1440, plus a 1720x720 main-menu frame captured after palette fade. The loading screenshots match the updated `splash2` source art at RGB MAE 1.79 after nearest resize; they have no blue channel swap. Menu art covers all edges and buttons/text are visible at native size. Temporary capture hooks were removed before the final clean build.
 
 Not verified: a current-code death-screen runtime capture and death subtitle. Keep PR #157 in draft. Final clean Release EXE SHA-256 `CBFB53A9D400E6758FADF479DDF157510ECA2922E89EA9E5FF097B4FEFF2B1E1`; CTest 18/18. Full regression exported only to `build/scene-cache`; direct comparison against fresh `origin/main` `0ebfd1f5` was 16/16 exact with zero changed pixels. `tools/regression.ps1` still reports the known old-reference differences for `klagraz-e0` (183) and `klaratcv-e2` (6299). No owner game/config/cache files were written.
+
+### 2026-10-30 gpt runtime verification follow-up
+The current `origin/main` build passed CTest 18/18. A fresh full regression run
+used only `build/scene-cache`: 14/16 references passed. `klagraz-e0` differed
+by 183 pixels and `klaratcv-e2` by 6299; the other two nonzero results were
+within the checker threshold. This is a main self-regression, not an
+independent branch-versus-main capture: this verification branch has no code
+diff from the tested main.
+
+In an isolated test copy, the normal `showDeath` path rendered the owner's
+death art and subtitle after `renderPresent` at 16:9 and 21:9. The two compact
+captures and full provenance are `runs/118-wide-fullscreen-art-in-game/death-runtime-current-16x9.jpg`,
+`death-runtime-current-21x9.jpg` and `runtime-verification-20261030.json`.
+The copied slot-1 save still fails at load function #3, so this death check used
+a temporary test-only `DAM_DEAD` trigger on a fresh dev character, not slot 1.
+All source hooks were removed before the clean Release build. The test copy
+alone was used; owner game files, configuration and `game/mod-cache` were not
+written.
+
+The isolated menu helper reached engine hit-testing and queued `KEY_O` (111)
+on Options mouse-up, but the Preferences transition was not visually confirmed
+and no physical click was tested. Keep this task `doing`; do not mark the
+remaining interaction acceptance complete. PR #157 is already merged; this
+follow-up records verification and its remaining limit.
+
+### 2026-10-30 gpt Options transition verification
+The previous entry's input test was incomplete. A revised in-process test used the real Options button hit-test and queued its resulting event 111 through `inputGetInput`; the normal main-menu dispatch entered `doPreferences`, whose rendered framebuffer was captured. This was confirmed in the isolated copy at 1920x1080 (16:9) and 2560x1080 (21:9). The screenshots and provenance are in `runs/118-wide-fullscreen-art-in-game/options-transition-20261030/`.
+
+This verifies the engine input and Preferences transition path, not a physical mouse click. The game owner's process, configuration and cache were not touched. The run log included a `ce.dat` open warning, although the Options screen rendered successfully. Temporary diagnostic hooks have now been removed from the source.
+
+The existing loading captures do not establish that every one of the 14 English/Russian RIX files was displayed at both 16:9 and 21:9. Keep the task `doing` and its follow-up PR draft; do not claim complete acceptance. Re-run the clean build and CTest after hook removal. The latest full pixel comparison is the main self-regression recorded above; this branch has no game-code diff.
+
+### 2026-10-30 gpt full loading and menu input verification
+All 14 installed English/Russian loading RIX files were selected by the normal startup setting and rendered by `showSplash` in an isolated game copy. Captured the actual framebuffer after palette fade for each splash0–6 at 1920x1080 and 2560x1080 (28/28). The four contact sheets and per-frame source RIX hashes, dimensions, screenshot hashes, EXE SHA and sidecars are in `runs/118-wide-fullscreen-art-in-game/loading-audit-20261030/`. Visual review confirms the intended language text and image colors in both aspects.
+
+The six main-menu buttons (Intro, New Game, Load Game, Options, Credits, Exit) were each exercised at both aspects (12/12). A temporary in-process harness positioned over the actual button rectangle, simulated the mouse-down, observed engine hit-test result 1111, and verified that the ordinary menu loop consumed the expected key and entered its matching action case. This did not use the OS cursor or focus another window. A physical mouse click was not tested. The per-run stdout traces and EXE identity are in `runs/118-wide-fullscreen-art-in-game/options-transition-20261030/button-dispatch-results.json`; the two actual Preferences screen frames are beside it.
+
+All temporary source hooks were removed after capture. The clean Release build and CTest passed 18/18. The final clean EXE SHA-256 is recorded in the current follow-up evidence. A fresh full regression run exports only to `build/scene-cache`; main self-regression is 14/16: 183 pixels at `klagraz-e0`, 6299 at `klaratcv-e2`, all other captures pass (including 3 and 1 pixel changes below threshold). This is the known stale-reference delta on current main; this verification branch has no production source diff from `origin/main`. Earlier verified 4:3 fallback, menu/death artwork at 16:9 and 21:9 remain in their prior evidence folders. No owner game process, settings, or cache were touched.
+
+Final post-clean run: `tools/regression.ps1` used the clean Release executable SHA-256 `B9ED2793A57640F7B2DD1E3FB8815C76C71266B5C68DDF7BE850C0A5EA55B56B`, exported only to `build/scene-cache`, and captured under `runs/regression/20261030-232223-381-61624/`. The current-main reference checker again reports 14/16: `klagraz-e0` +183 and `klaratcv-e2` +6299; all other spots pass (including 3- and 1-pixel differences under threshold). `origin/main` is `3a59aefb`; `git diff origin/main...HEAD -- ce/src` is empty. Treat the two counts as current-main self-regression deltas against existing references, not as task-caused changes.
+
+### 2026-10-31 gpt final verification
+The current task branch (`b8eb43c5`) and fresh `origin/main` (`3a59aefb`) have no production-source diff. I rebuilt the branch with `tools/configure-build.ps1 -BuildType Release`; all 16 branch capture sidecars identify `b8eb43c5` and the rebuilt EXE SHA256 `c7af38c23acc9d198e1a3e2543a75faafbd04860734e3e16910592828eecdb4f`. Fresh-main sidecars identify `3a59aefb` and EXE SHA256 `e3332849deaba0d63b3fcc6ac57fab52eafc0ce07cb196e1366c46bccf63e987`. Direct RGBA comparison of the two independent 16-capture runs found zero changed pixels in all 16 spots. Evidence: `runs/118-wide-fullscreen-art-in-game/direct-main-branch-regression-20261031.json`; both runs used their own explicit `build/scene-cache`.
+
+CTest passed 18/18 on the rebuilt branch and on the fresh-main build. Against the existing references, both current builds report the same 14/16: `klagraz-e0` +183 pixels and `klaratcv-e2` +6299; these are existing-reference deltas, not a branch regression, and references were not changed. The existing runtime evidence covers all 14 EN/RU loading images at 16:9 and 21:9 (28/28), all six menu action routes at both aspects (12/12), death art/subtitles and 4:3 fallback. Menu actions were exercised through the in-process engine hit-test and normal action dispatch; no physical OS mouse click is claimed. No owner process, settings, or cache was touched.
