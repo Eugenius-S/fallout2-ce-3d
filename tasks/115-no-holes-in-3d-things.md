@@ -2,8 +2,8 @@
 id: 115
 title: No holes in the 3D things: transparent texels take the colour of the edge
 milestone: M1
-status: todo
-owner: none
+status: done
+owner: glm
 suggested: glm
 priority: high
 claude-only: no
@@ -48,3 +48,65 @@ nearest opaque pixels.
 New shapes for things (116), wall backs (102).
 
 ## Log
+
+- 2026-10-29, glm, work in progress, handed over mid task:
+  - Survey: the njunk arts carry no texture holes (061's junk holes were
+    fitter gaps, closed by 075). The real holes are enclosed transparent
+    texels inside solid and wall art: 12984 across kladwtwn/klamall/
+    klacanyn (Beds 842 each, Shelves 714, Cars 696, Bars 113, Crates 70,
+    Bath Tub 70, Bookcases 162; 94 solids over 20 texels). The owner's
+    `inside-holes.webp` sparkle is wall inner faces with pinholes.
+  - Fix: `props.fill_holes()` in the exporter, flood fill from the border
+    to find enclosed transparent texels, then onion peel: every new texel
+    takes the rounded average of its already filled 4 neighbours, alpha
+    255; border and shade band untouched. Applied at two choke points in
+    `scene.py`: build_props for solids and their rests, and build_walls
+    right after `walls.unshear` (backs, ends and trims read their
+    material from the atlas image, so they inherit the fill; doorway
+    openings stay transparent, they touch the border).
+  - Unit tests: `FillHolesTests` in `test_export.py`, 3 tests, 70 pass.
+  - Caches: `build/scene-cache` re-exported with the fill (kladwtwn,
+    klamall, klacanyn); `build/scene-cache-before115` keeps the pre fill
+    export for before | after pairs (use it as the `-SceneCache` of the
+    "before" shot).
+  - Shots taken, pairs not yet diffed or viewed: `runs/_115_shots/`
+    {tub,tubF,tubS,bed,bedF,bedT,boxes,nook,inside}_{before,after}.
+  - Left to do: view the pairs and pick the acceptance set into
+    `runs/115-no-holes-in-3d-things/` (tub game angle and flight, two
+    junk piles with the 061/075 note, one interior wall); ctest;
+    regression (`-Update` retake: solid and wall textures changed, so
+    expect diffs wherever filled holes were visible; keep `reviewed:
+    no`); fly tour vs main; rebase on fresh origin/main first (113 sky
+    merged while this ran); status: done; PR.
+
+### 2026-10-29 glm
+Done: pairs viewed by eye, task closed. Acceptance set in
+`runs/115-no-holes-in-3d-things/`: tub-game.jpg (17 px changed at the fixed
+game camera), tub-flight.jpg (39 px), junk-boxes.jpg (50 px), junk-nook.jpg
+(24 px), inside-wall.jpg (2761 px, klamall wall inner faces and the dark
+door panel), window-slot.jpg (the owner note), regression-corrals.jpg
+(4797 px) and regression-klamall.jpg (12388 px) against the old references,
+changed.jpg plus changed-2..5.jpg (the fly tour, 5 pages). The 061 caveat:
+njunk art carries no real holes; 061's junk holes were fitter seams and 075
+closed them, so both junk-pile pairs show the piles themselves
+pixel-identical, and the few changed pixels around them are fence plank,
+crate and car pinholes. The owner's tub holes
+(`runs/inbox/2026-10-28-tub-holes-iso.png`) sit on faces the fixed cameras
+catch at a glancing angle: at our cameras the fill shows as single pixels on
+the rim, faucet and basin.
+Checks: ctest 18/18, exporter unittests 70, regression unittests 12.
+Rebased on origin/main `0ebfd1f5` (#160 sky), rebuilt, regression references
+retaken with `-Update` in one pass after the rebase. Note: `-Update` mode
+skips the old-reference comparison by design (the log's "0 changed pixels"
+is a placeholder); the counts above are old-vs-new reference pixel diffs,
+`reference-before.png` kept in run folder `runs/regression/20261029-143502-070-42680`.
+Fly tour vs origin/main, rendered in `fallout2-ce-3d-glm-main` (the main
+checkout sits on the owner's local `look/2026-10-29` branch, so the tour
+base is a detached worktree at `0ebfd1f5`, sky included, no sky caveat
+needed): 38 of 43 spots changed, every diff at pinhole scale (tens to low
+thousands of px per turn, on walls, fences, dark panels), no layout or
+geometry shifts on the sheets.
+Next: task 116 (stove and lockers as solids), its depends-on is this task.
+Check: the sheets in `runs/115-no-holes-in-3d-things/`; tour sheets
+`build/tour/sheets/changed*.jpg`; regression run
+`runs/regression/20261029-143502-070-42680`.

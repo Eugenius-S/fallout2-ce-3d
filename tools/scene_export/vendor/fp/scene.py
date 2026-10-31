@@ -381,6 +381,12 @@ class SceneBuilder:
                 frm = self.gf.art.load(fid)
                 cut = walls.unshear(frm.rgba(self.gf.palette.glow_tile, rotation, frame), face.left, face.top,
                                     face.slope, face.x_from, face.x_to, face.mask)
+                # A wall's face carries no holes: the art's enclosed transparent
+                # texels fill with the edge colours, so a wall does not sparkle
+                # with the room behind it (115). The backs and ends take their
+                # material from this picture, and the openings of doors stay:
+                # they open at the picture's border.
+                cut = cut and (props.fill_holes(cut[0]),) + cut[1:]
                 textures[key] = cut and (self.sprite(cut[0]),) + cut[1:]
             if textures[key] is not None:
                 sprite, x0, x1, y_top = textures[key]           # the floor line is un-sheared y = c
@@ -635,7 +641,11 @@ class SceneBuilder:
             # own light, no bit that says the game treats it as a thing of the world (usable, flat,
             # walk-through, shoot-through). Such a pile keeps the card everywhere: stood up, its box
             # read as junk standing in an alley the game's own view keeps hidden behind a wall
-            # (the bathhouse's junk piles, the pot-belly stoves: 2026-10-28).
+            # (the bathhouse's junk piles, the pot-belly stoves: 2026-10-28). The fit's lid drum
+            # (props._lid_drum, task 116) is built and tested; the rules that would stand stoves and
+            # containers on it wait for the render side: the fly solid of a seen=1 row drew at the
+            # wrong scale (a stump against its card) and the kladwtwn stove hexes sit outside the
+            # exported scene window (their cards render, their sidecar faces do not). Task 119.
             if all(not piece.obj.flags & ~PLAIN_OBJECT_FLAGS & 0xFFFFFFFF for piece in group):
                 continue
             blocking = any(not piece.obj.flags & mapfile.OBJECT_NO_BLOCK for piece in group)
@@ -657,7 +667,7 @@ class SceneBuilder:
             u, v = self.anchor(first.obj)
             du, dv = fit.ground()
             cu, cv = u + du, v + dv
-            body = rgba * ~shade[..., None]
+            body = props.fill_holes(rgba * ~shade[..., None])
             sprite = self.cropped(body, left, top)
             if shade.any() and not forced and seen != 1:   # a solid by name: its card keeps the shade
                 self.casts.append([self.cropped(rgba * shade[..., None], left, top)] + _round((u, v)))

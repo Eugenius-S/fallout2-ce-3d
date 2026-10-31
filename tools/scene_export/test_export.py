@@ -1169,5 +1169,134 @@ class ThingShapeTests(unittest.TestCase):
         self.assertEqual([], solids._forced(fake.props[0], [(0, [], False, "both")]))
         self.assertAlmostEqual(0.4, fake.props[2][5] + fake.props[2][7] / 2, places=3)
 
+class FillHolesTests(unittest.TestCase):
+    """Task 115: a solid's texture has no enclosed holes; the open border stays."""
+
+    @staticmethod
+    def rgba(pattern):
+        import numpy as np
+        out = np.zeros((len(pattern), len(pattern[0]), 4), np.uint8)
+        for y, row in enumerate(pattern):
+            for x, cell in enumerate(row):
+                if cell == 'x':
+                    out[y, x] = (200, 100, 50, 255)
+                elif cell == 'o':
+                    out[y, x] = (10, 200, 30, 255)
+        return out
+
+    def test_an_enclosed_hole_takes_the_average_of_its_neighbours(self):
+        import numpy as np
+        from vendor.fp import props
+        rgba = self.rgba([
+            'xxxxx',
+            'xooox',
+            'xo.ox',
+            'xooox',
+            'xxxxx',
+        ])
+        filled = props.fill_holes(rgba)
+        self.assertEqual(255, filled[2, 2, 3])
+        # the ring around the hole is two 'o' columns and two 'o' rows: the
+        # average of the four neighbours of the centre texel
+        self.assertEqual(int(rgba[1, 2, 0] + rgba[3, 2, 0] + rgba[2, 1, 0] + rgba[2, 3, 0]) // 4,
+                         int(filled[2, 2, 0]))
+
+    def test_the_open_border_stays_transparent(self):
+        import numpy as np
+        from vendor.fp import props
+        rgba = self.rgba([
+            'xxx.x',
+            'x....',
+            'xxx.x',
+        ])
+        filled = props.fill_holes(rgba)
+        self.assertEqual(0, filled[1, 3, 3])   # the notch open to the border
+        self.assertEqual(0, filled[1, 2, 3])
+        self.assertEqual(0, filled[1, 1, 3])
+
+    def test_a_fully_opaque_or_empty_texture_is_returned_as_is(self):
+        import numpy as np
+        from vendor.fp import props
+        full = self.rgba(['xxx', 'xxx'])
+        empty = self.rgba(['...', '...'])
+        self.assertTrue((props.fill_holes(full) == full).all())
+        self.assertTrue((props.fill_holes(empty) == empty).all())
+
+class LidDrumTests(unittest.TestCase):
+    """Task 116: a round body under a lid cap fits a drum whose top face takes
+    the lid; blobs without a neck and plain drums do not."""
+
+    @staticmethod
+    def capsule(r, lift, foot, width=None):
+        """A drum silhouette in the game's screen slopes: columns 0..2r, its
+        lower outline on the floor ellipse, its top `lift` px above the floor."""
+        import numpy as np
+        from vendor.fp import props
+        cols = 2 * int(r)
+        half = props.K * r * np.sqrt(np.clip(1 - ((np.arange(cols) + 0.5 - r) / r) ** 2, 0, 1))
+        height = int(foot + half.max() + 1)
+        alpha = np.zeros((height, cols), bool)
+        for x in range(cols):
+            top = max(0, int(foot - lift - half[x]))
+            alpha[top:int(foot + half[x]), x] = True
+        return alpha
+
+    @staticmethod
+    def stacked(parts, gap):
+        """Sprite of parts stacked top to bottom, `gap` empty rows between, centred."""
+        import numpy as np
+        width = max(p.shape[1] for p in parts)
+        height = sum(p.shape[0] for p in parts) + gap * (len(parts) - 1)
+        alpha = np.zeros((height, width), bool)
+        at = 0
+        for p in parts:
+            x0 = (width - p.shape[1]) // 2
+            alpha[at:at + p.shape[0], x0:x0 + p.shape[1]] |= p
+            at += p.shape[0] + gap
+        return alpha
+
+    def test_a_plain_drum_is_no_lid(self):
+        import numpy as np
+        from vendor.fp import props
+        res = props.fit(self.capsule(12, 25, 40), 0, 0)
+        self.assertIsNotNone(res)
+        shape, found = res
+        self.assertEqual(found.kind, "drum")
+        self.assertFalse(found.lid)
+
+    def test_a_stove_is_a_drum_whose_top_takes_the_lid(self):
+        import numpy as np
+        from vendor.fp import props
+        body = self.capsule(13, 26, 46)
+        cap = self.capsule(11, 6, 22)
+        alpha = self.stacked([cap, body], 3)
+        res = props.fit(alpha, 0, 0)
+        self.assertIsNotNone(res)
+        shape, found = res
+        self.assertEqual(found.kind, "drum")
+        self.assertTrue(found.lid)
+        self.assertGreater(found.z1, 1.0)      # the raise climbed onto the cap
+
+    def test_blobs_without_a_neck_are_no_lid(self):
+        import numpy as np
+        from vendor.fp import props
+        top = np.zeros((12, 14), bool)
+        top[:] = True
+        bottom = np.zeros((26, 20), bool)
+        bottom[:] = True                       # a pile: the seam stays as wide as the top
+        alpha = self.stacked([top, bottom], 0)
+        res = props.fit(alpha, 0, 0)
+        self.assertTrue(res is None or not res[1].lid)   # a pile is never a drum with a lid
+
+    def test_a_footed_drum_never_reads_as_a_lid(self):
+        import numpy as np
+        from vendor.fp import props
+        body = self.capsule(12, 22, 38)
+        alpha = self.stacked([body, self.capsule(4, 2, 8)], 2)   # small feet under the belly
+        res = props.fit(alpha, 0, 0)
+        self.assertIsNotNone(res)
+        self.assertFalse(res[1].lid)   # the feet are not a cap: no lid drum, whatever wins
+
+
 if __name__ == "__main__":
     unittest.main()
