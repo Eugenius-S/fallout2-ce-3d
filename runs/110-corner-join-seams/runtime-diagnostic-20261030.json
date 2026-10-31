@@ -1,0 +1,95 @@
+{
+  "checked_at": "2026-10-30",
+  "source_main": "3a59aefb128a5b25b4df9836390fb7bfe5ef4d40",
+  "task_branch": "task/110-corner-join-seams",
+  "task_commit": "1eeec12f",
+  "capture_exe_sha256": "116181B911D5763202F968544709480761F979F0093FEBD811B36ACD737002AC",
+  "scene_cache": "build/scene-cache",
+  "captures": [
+    {
+      "sha256": "F2563633CAC8392A654B115787060A331795AFAA78506D327D15C64F2A7DDC60",
+      "map": "KLAMALL.MAP",
+      "hero_rotation": 3,
+      "file": "stop-klamall-13050-0.jpg",
+      "logical_resolution": "960x540",
+      "exe_sha256": "116181b911d5763202f968544709480761f979f0093febd811b36acd737002ac",
+      "scale": 2,
+      "bytes": 481548,
+      "ce_commit": "d09883b9",
+      "source_devshot": "main-klamall-13050/turn-0/devshot-20261030-205301-000.json",
+      "view_tile": 13050,
+      "resolution": "1920x1080"
+    },
+    {
+      "sha256": "1ACA159425D8A2CE6302D6DAF093093E71BDF76E3D83FEFDCACCB07CADE28128",
+      "map": "KLAMALL.MAP",
+      "hero_rotation": 4,
+      "file": "stop-klamall-13050-40.jpg",
+      "logical_resolution": "960x540",
+      "exe_sha256": "116181b911d5763202f968544709480761f979f0093febd811b36acd737002ac",
+      "scale": 2,
+      "bytes": 471016,
+      "ce_commit": "d09883b9",
+      "source_devshot": "main-klamall-13050/turn-40/devshot-20261030-205312-000.json",
+      "view_tile": 13050,
+      "resolution": "1920x1080"
+    },
+    {
+      "sha256": "94CA474F2E0A0A0077E66C3B1020C77672BD661AC4C848BA1AA51EBC82258C80",
+      "map": "KLADWTWN.MAP",
+      "hero_rotation": 3,
+      "file": "dark-house-kladwtwn-17104-0.jpg",
+      "logical_resolution": "960x540",
+      "exe_sha256": "116181b911d5763202f968544709480761f979f0093febd811b36acd737002ac",
+      "scale": 2,
+      "bytes": 679488,
+      "ce_commit": "d09883b9",
+      "source_devshot": "main-kladwtwn-17104/turn-0/devshot-20261030-205534-000.json",
+      "view_tile": 17104,
+      "resolution": "1920x1080"
+    },
+    {
+      "sha256": "6A8A0C6B90F3CA9CEA367DB074AD5E5C4E177C21530939EA27C2C1F0C99B9146",
+      "map": "KLADWTWN.MAP",
+      "hero_rotation": 4,
+      "file": "dark-house-kladwtwn-17104-40.jpg",
+      "logical_resolution": "960x540",
+      "exe_sha256": "116181b911d5763202f968544709480761f979f0093febd811b36acd737002ac",
+      "scale": 2,
+      "bytes": 652823,
+      "ce_commit": "d09883b9",
+      "source_devshot": "main-kladwtwn-17104/turn-40/devshot-20261030-205545-000.json",
+      "view_tile": 17104,
+      "resolution": "1920x1080"
+    }
+  ],
+  "owner_references": [
+    "runs/inbox/2026-10-28-stop-corner-seam.png",
+    "runs/inbox/2026-10-28-dark-corner-seam.png"
+  ],
+  "controls": {
+    "shadows_off": "default still snapshots",
+    "shadow_comparison": "Changed broad image regions; did not isolate owner seam pixels from other lighting changes.",
+    "shadows_on": "runs/110-corner-join-seams/main-controls-shadows/",
+    "classic_2d_captures": "runs/110-corner-join-seams/main-classic/",
+    "corner_rays": {
+      "interpretation": "No detected through-rays at owner target view tiles 13050 or 17104; this does not exclude thin raster cracks or alpha/texture edges.",
+      "kladwtwn": "3 corners: 16276, 19140, 13494",
+      "klamall": "5 corners: 29536, 27886, 29524, 15902, 19438"
+    }
+  },
+  "observation": "STOP at klamall 13050 is a wall corner with no separate painted post apparent in the owner reference. The dark house at kladwtwn 17104 includes a decorative corner card/pillar and may overlap task 107. Main snapshots cover both positions and 0/40 images differ, although sidecar camera field reports static preview camera, so the field alone is not accepted as angle proof.",
+  "result": "No causal seam source isolated. No code changes. Full task acceptance remains dependent on task 107 and is unproven.",
+  "validation": {
+    "regression": "Current main self-regression 14/16 against tracked references using build/scene-cache",
+    "ctest": "18/18 passed on same source HEAD",
+    "owner_config": "Not written",
+    "regression_failures": {
+      "klagraz_e0": 183,
+      "klaratcv_e2": 6299
+    },
+    "branch_vs_main": "No independent branch-vs-main capture. Task branch code is identical to origin/main.",
+    "owner_game": "Not run or modified",
+    "owner_mod_cache": "Not written"
+  }
+}
