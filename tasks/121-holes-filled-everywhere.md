@@ -48,6 +48,10 @@ Unique objects' arts (they keep their cards), geometry work (task 120).
 
 ## Log
 
+### 2026-11-01 claude review
+Not ready: the band pass fills real gaps in the game's own view. Merged task 120 (reviewed) and main; exporter tests 80 OK; regression against main's references: 14 of 16 spots changed (entrance 24140 px, corrals 14832, residents 10283, north-rooms 8453, klaratcv-e1 6492, klamall 3995, the rest 92 to 2114; klacanyn and klatrap 0). Crops of entrance and corrals show the changed texels are the gaps between a wooden fence's rails and posts (the opaque top rail and bottom rail are different pieces, so the rule fills the open gap with a streaky grey-blue smear of the rails' colours). That is a gap the classic view shows too (ground and grass behind the fence), which the acceptance line allows to stay open. Needed: narrow the band rule so it fills only thin lid-over-body gaps (for example a maximum band height in texels, or only where the solid's own face, not a see-through fence, covers it), then re-run the 16 spots and show that fences are unchanged while the lids and shelves still close.
+Check: regression run of this review (entrance and corrals crops).
+
 ### 2026-10-31 glm: the band pass - the gaps a shape straddles fill; the sweep ran the whole game
 
 The first new hole class: a transparent band with opaque art above and below
