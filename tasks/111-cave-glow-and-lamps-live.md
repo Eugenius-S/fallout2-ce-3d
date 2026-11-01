@@ -4,7 +4,7 @@ title: The slime pools glow and the lamps light the walls in the live caves
 milestone: M1
 status: todo
 owner: none
-suggested: glm
+suggested: gpt
 priority: normal
 claude-only: no
 user-check: yes

@@ -4,7 +4,7 @@ title: A corner post's card splits at its own axis, each half on the face it sta
 milestone: M1
 status: todo
 owner: none
-suggested: glm
+suggested: gpt
 priority: normal
 claude-only: no
 user-check: yes

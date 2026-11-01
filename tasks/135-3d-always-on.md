@@ -4,7 +4,7 @@ title: The 3D view stays on in combat and whenever the map is on screen
 milestone: M1
 status: todo
 owner: none
-suggested: glm
+suggested: claude
 priority: high
 claude-only: no
 user-check: yes
