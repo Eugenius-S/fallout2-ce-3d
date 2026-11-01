@@ -60,7 +60,6 @@ static void _obj_insert(ObjectListNode* ptr);
 static int _obj_remove(ObjectListNode* a1, ObjectListNode* a2);
 static int _obj_connect_to_tile(ObjectListNode* node, int tile_index, MapElevation elev, Rect* rect);
 static int _obj_adjust_light(Object* obj, int a2, Rect* rect);
-static void objectDrawOutline(Object* object, Rect* rect);
 static void _obj_render_object(Object* object, Rect* rect, int light);
 static int _obj_preload_sort(const void* fid1, const void* fid2);
 static Object* objectPrepareWhoHitMeForSave(CritterCombatData* combatData);
@@ -254,6 +253,9 @@ static Rect gObjectsWindowRect;
 
 // Likely outlined objects on the screen.
 static std::vector<Object*> outlinedObjects;
+
+// The 3D scene's combat outlines (objectSetSceneOutlines).
+static void (*gSceneOutlines)(Rect* rect) = nullptr;
 
 // 0x639D90 updateAreaPixelBounds
 static Rect gObjectsUpdateAreaPixelBounds;
@@ -928,6 +930,24 @@ void _obj_render_post_roof(Rect* rect, MapElevation elevation)
     }
 }
 
+void objectSetSceneOutlines(void (*draw)(Rect* rect))
+{
+    gSceneOutlines = draw;
+}
+
+void objectVisitOutlined(int elevation, void (*visit)(Object* object, void* context), void* context)
+{
+    for (int tile = 0; tile < HEX_GRID_SIZE; tile++) {
+        for (ObjectListNode* node = gObjectListHeadByTile[tile]; node != nullptr; node = node->next) {
+            Object* object = node->obj;
+            if (object->elevation == elevation && (object->flags & OBJECT_HIDDEN) == OBJECT_NONE
+                && objectHasVisibleOutline(object)) {
+                visit(object, context);
+            }
+        }
+    }
+}
+
 void _obj_render_scene_overlay(Rect* rect)
 {
     if (!gObjectsInitialized) {
@@ -939,21 +959,8 @@ void _obj_render_scene_overlay(Rect* rect)
         return;
     }
 
-    // Combat outlines (friend, foe, line of fire) round each critter, drawn
-    // where the scene shows its hex, as the 2D picture draws them after the
-    // roofs.
-    for (Object* object : outlinedObjects) {
-        if (object->tile == -1) {
-            continue;
-        }
-        int outlineDx = 0;
-        int outlineDy = 0;
-        tileSceneShift(object->tile, &outlineDx, &outlineDy);
-        object->x += outlineDx;
-        object->y += outlineDy;
-        objectDrawOutline(object, &updatedRect);
-        object->x -= outlineDx;
-        object->y -= outlineDy;
+    if (gSceneOutlines != nullptr) {
+        gSceneOutlines(&updatedRect);
     }
 
     textObjectsRenderInRect(&updatedRect);
@@ -4829,7 +4836,7 @@ static int objectSpreadLightWith(Object* obj, AdjustLightIntensityProc* adjustLi
 }
 
 // 0x48EABC obj_render_outline
-static void objectDrawOutline(Object* object, Rect* rect)
+void objectDrawOutline(Object* object, Rect* rect)
 {
     CacheEntry* cacheEntry;
     Art* art = artLock(FrmId(object), &cacheEntry);
