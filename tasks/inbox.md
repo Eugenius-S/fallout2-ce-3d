@@ -211,3 +211,5 @@ that fits no task becomes a new task when the board runs dry.
   covers sfall only partly. First find which sfall opcodes, hooks and ini
   settings the mod uses that CE lacks, and whether its new maps and art pass
   through our scene export; then cut the work. Not now.
+- 2026-11-01 Cut for gpt: the Russian menu labels (126), the FPS counter and
+  the frame rate (127), the wide HUD bar source (128).
