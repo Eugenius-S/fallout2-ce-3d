@@ -4,7 +4,7 @@ title: The game scale picked in the options menu in steps of 0.1x, not only whol
 milestone: M1
 status: todo
 owner: none
-suggested: glm
+suggested: claude
 priority: normal
 claude-only: no
 user-check: yes

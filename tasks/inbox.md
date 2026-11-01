@@ -223,6 +223,10 @@ that fits no task becomes a new task when the board runs dry.
 - 2026-11-01 The 3D view stops in combat, dialogue and open windows; the owner wants it always on (135). The toxic caves 2D shots were combat, 111 corrected.
 - 2026-11-01 The street blotches are cloud shadows (#169), not a regression; the owner wants fewer, smaller, soft-edged desert clouds (138).
 - 2026-11-01 The owner: the game scale in the options menu in 0.1x steps
-  (139, glm); letters cut in the dialogue answers
+  (139); letters cut in the dialogue answers
   (`runs/inbox/2026-11-01-dialogue-letters-cut.png`, 140, gpt); the 3D
   options checkboxes out of line, "[ ]" narrower than "[X]" (141, gpt).
+- 2026-11-01 The owner: glm is not with us for now; every task goes to gpt
+  or claude. Moved: 107, 111, 137 to gpt; 135, 136, 139 to claude. 103 and
+  129 still read `doing` by glm; whoever takes them continues from their
+  branches.

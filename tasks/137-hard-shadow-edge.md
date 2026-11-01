@@ -4,7 +4,7 @@ title: No long straight hard shadow edge across the street
 milestone: M1
 status: todo
 owner: none
-suggested: glm
+suggested: gpt
 priority: high
 claude-only: no
 user-check: yes
