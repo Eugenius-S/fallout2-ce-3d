@@ -2,14 +2,14 @@
 id: 133
 title: Refine the settings window layout and frame
 milestone: M1
-status: doing
+status: done
 owner: gpt
 suggested: gpt
 priority: normal
 claude-only: no
 user-check: yes
 depends-on: []
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -37,3 +37,16 @@ headings, round the cut-out blocks and separate groups with dividers.
 Changes to the owner's active game or unrelated rendering.
 
 ## Log
+
+### 2026-11-01 gpt
+Done: Used the owner's eight edited frame pieces, rounded the legacy cutouts,
+shifted the two left legacy columns below the heading on tall screens, reduced
+3D heading size, spaced group headings and added dividers. The Russian labels
+clarify the sun path angle and game lighting. Camera rotation already defaults
+to off; existing saved values are preserved. At 640x480 the original column
+position is retained to keep the footer usable.
+Check: Release build and CTest 18/18; isolated preferences save/cancel probes
+cover the shifted legacy control, 3D slider, scrolling and footer buttons.
+Sixteen regression scenes matched current origin/main e5063d0a pixel for pixel
+on the pre-divider-color build; the final build's entrance also matched.
+Russian outcome captures are in runs/133-options-layout.

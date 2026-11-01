@@ -2,6 +2,9 @@
 #include "text_capture.h"
 #include "menu_text.h"
 #include "scene_view.h"
+#include "options_frame_owner.h"
+
+#include <lodepng.h>
 
 #include <algorithm>
 #include <array>
@@ -13,6 +16,7 @@
 #include "../devtools/preferences_probe.h"
 #include "../art.h"
 #include "../draw.h"
+#include "../debug.h"
 #include "../game.h"
 #include "../input.h"
 #include "../kb.h"
@@ -37,12 +41,15 @@ const char* localized(const char* text)
 
 constexpr int kWidth = 640;
 constexpr int kHeight = 480;
+constexpr int kLegacyColumnsBottom = 439;
+constexpr int kLegacyColumnsShift = 35;
+constexpr int kLegacyColumnsRight = 365;
 constexpr int kPanelTop = 494;
-constexpr int kHeaderHeight = 90;
+constexpr int kHeaderHeight = 112;
 constexpr int kToggleRowHeight = 28;
 constexpr int kSliderRowHeight = 40;
-constexpr int kGroupHeadingHeight = 14;
-constexpr int kGroupGap = 24;
+constexpr int kGroupHeadingHeight = 24;
+constexpr int kGroupGap = 32;
 constexpr int kPanelBottomPadding = 32;
 constexpr int kLabelX = 55;
 constexpr int kValueX = 405;
@@ -89,6 +96,31 @@ struct RgbColor {
 RgbColor paletteRgb(unsigned char index)
 {
     return { _cmap[3 * index] * 4.0f, _cmap[3 * index + 1] * 4.0f, _cmap[3 * index + 2] * 4.0f };
+}
+
+struct OwnerFramePiece {
+    std::vector<unsigned char> rgba;
+    unsigned width = 0;
+    unsigned height = 0;
+};
+
+const std::array<OwnerFramePiece, 8>& ownerFramePieces()
+{
+    static const auto pieces = [] {
+        std::array<OwnerFramePiece, 8> result;
+        const unsigned char* bytes[] = { owner_frame::topLeft, owner_frame::top, owner_frame::topRight,
+            owner_frame::left, owner_frame::right, owner_frame::bottomLeft, owner_frame::bottom, owner_frame::bottomRight };
+        const size_t sizes[] = { sizeof(owner_frame::topLeft), sizeof(owner_frame::top), sizeof(owner_frame::topRight),
+            sizeof(owner_frame::left), sizeof(owner_frame::right), sizeof(owner_frame::bottomLeft), sizeof(owner_frame::bottom), sizeof(owner_frame::bottomRight) };
+        for (size_t i = 0; i < result.size(); ++i) {
+            if (lodepng::decode(result[i].rgba, result[i].width, result[i].height, bytes[i], sizes[i]) != 0) {
+                debugPrint("3D options: owner frame could not be decoded; using the original frame\n");
+                return std::array<OwnerFramePiece, 8>{};
+            }
+        }
+        return result;
+    }();
+    return pieces;
 }
 
 RgbColor mixRgb(const RgbColor& first, const RgbColor& second, float weight)
@@ -197,6 +229,12 @@ bool OptionsPanel::initialize(int windowId, unsigned char* surface, const unsign
         const int bottom = std::min(kHeight, rect.y + rect.height);
         for (int y = top; y < bottom; y++) {
             for (int x = left; x < right; x++) {
+                // Clip the corners of each original settings block against the
+                // extended background instead of copying rectangular corners.
+                const int radius = rect.y >= 39 && rect.y < 443 ? 5 : 0;
+                const int dx = std::max({ rect.x + radius - x, x - (rect.x + rect.width - 1 - radius), 0 });
+                const int dy = std::max({ rect.y + radius - y, y - (rect.y + rect.height - 1 - radius), 0 });
+                if (dx * dx + dy * dy > radius * radius) continue;
                 const unsigned char source = background_[static_cast<size_t>(kWidth) * y + x];
                 if (rect.feather == 0) {
                     content_[static_cast<size_t>(kWidth) * y + x] = source;
@@ -376,6 +414,7 @@ int OptionsPanel::frameInset() const
     const int pageRight = pageX_ + kWidth;
     return screenWidth_ - pageRight >= kScrollbarWidth + kScrollbarOutsideGap ? 0 : kFrameNarrowInset;
 }
+int OptionsPanel::legacyColumnOffset() const { return screenHeight_ > kHeight ? kLegacyColumnsShift : 0; }
 int OptionsPanel::sliderTrackLeft() const { return kSliderX + frameInset(); }
 int OptionsPanel::sliderTrackRight() const { return kSliderRight - frameInset(); }
 int OptionsPanel::sliderTrackTargetX(double ratio) const
@@ -464,7 +503,15 @@ int OptionsPanel::scrollbarThumbTop() const
     const int travel = std::max(0, scrollbarHeight() - scrollbarThumbHeight());
     return scrollbarTop() + travel * scroll_ / std::max(1, maxScroll());
 }
-void OptionsPanel::mouseToPageCoordinates(int& x, int& y) const { x -= pageX_; y = y - pageY_ + scroll_; }
+void OptionsPanel::mouseToPageCoordinates(int& x, int& y) const
+{
+    x -= pageX_;
+    y = y - pageY_ + scroll_;
+    if (screenHeight_ > kHeight && x < kLegacyColumnsRight
+        && y >= 40 + kLegacyColumnsShift && y < kLegacyColumnsBottom + kLegacyColumnsShift) {
+        y -= kLegacyColumnsShift;
+    }
+}
 void OptionsPanel::setLabelResolver(LabelResolver resolver) { labelResolver_ = resolver; }
 
 void OptionsPanel::setButtonLayout(const std::vector<std::pair<int, int>>& legacyButtons, int speedButton, int speedTop, const std::vector<int>& rowButtons)
@@ -516,7 +563,11 @@ void OptionsPanel::updateButtons()
             break;
         }
     };
-    for (const auto& item : legacyButtons_) place(item.first, item.second, screenHeight_);
+    for (const auto& item : legacyButtons_) {
+        const bool shifted = screenHeight_ > kHeight && item.second < kLegacyColumnsBottom
+            && buttonLefts_[item.first] < kLegacyColumnsRight;
+        place(item.first, item.second + (shifted ? kLegacyColumnsShift : 0), screenHeight_);
+    }
     place(speedButton_, speedTop_, screenHeight_);
     for (size_t index = 0; index < rowButtons_.size(); index++) place(rowButtons_[index], rowTop(static_cast<int>(index)), screenHeight_);
 }
@@ -599,8 +650,46 @@ void OptionsPanel::draw()
             }
         }
     }
+    // The supplied pieces include the dark inset and transparent outer corners.
+    // Preserve the tiled glass centre while repeating only the edited edges.
+    const auto& pieces = ownerFramePieces();
+    if (pieces[0].width == 47 && pieces[1].width == 352 && pieces[2].width == 47
+        && pieces[3].width == 47 && pieces[4].width == 47 && pieces[5].width == 47
+        && pieces[6].width == 352 && pieces[7].width == 47 && panelHeight >= 96) {
+        const int inset = frameInset();
+        const int width = kWidth - 2 * inset;
+        for (int y = 0; y < panelHeight; ++y) {
+            for (int x = 0; x < width; ++x) {
+                panel[static_cast<size_t>(kWidth) * y + inset + x] = backgroundTexturePixel(pageX_ + inset + x, pageY_ + kPanelTop + y);
+                int part = -1, sx = 0, sy = 0;
+                if (y < 48) {
+                    part = x < 47 ? 0 : (x >= width - 47 ? 2 : 1);
+                    sx = x < 47 ? x : (x >= width - 47 ? x - (width - 47) : (x - 47) % 352);
+                    sy = y;
+                } else if (y >= panelHeight - 48) {
+                    part = x < 47 ? 5 : (x >= width - 47 ? 7 : 6);
+                    sx = x < 47 ? x : (x >= width - 47 ? x - (width - 47) : (x - 47) % 352);
+                    sy = y - (panelHeight - 48);
+                } else if (x < 47 || x >= width - 47) {
+                    part = x < 47 ? 3 : 4;
+                    sx = x < 47 ? x : x - (width - 47);
+                    sy = (y - 48) % 32;
+                } else {
+                    panel[static_cast<size_t>(kWidth) * y + inset + x] = frame_[static_cast<size_t>(frameWidth_) * (200 + (y - 32) % 32) + 340 + (x - 32) % 32];
+                }
+                if (part >= 0 && sy < static_cast<int>(pieces[part].height)) {
+                    const size_t offset = (static_cast<size_t>(sy) * pieces[part].width + sx) * 4;
+                    const auto& rgba = pieces[part].rgba;
+                    if (rgba[offset + 3] >= 128) {
+                        const int rgb = (rgba[offset] << 16) | (rgba[offset + 1] << 8) | rgba[offset + 2];
+                        panel[static_cast<size_t>(kWidth) * y + inset + x] = _colorTable[rgb555(rgb)];
+                    }
+                }
+            }
+        }
+    }
     rowFrameBackground_.assign(panel, panel + static_cast<size_t>(kWidth) * panelHeight);
-    fontSetCurrent(104);
+    fontSetCurrent(103);
     fontDrawText(panel + kWidth * 62 + 52 + frameInset(), localized("3D OPTIONS"), 520, kWidth, COLOR_GREEN);
     fontSetCurrent(101);
     drawRows();
@@ -612,8 +701,12 @@ void OptionsPanel::drawRows()
     if (model_ == nullptr) return;
     const int inset = frameInset();
     unsigned char* panel = content_.data() + static_cast<size_t>(kWidth) * kPanelTop;
-    for (const GroupLayout& group : groupLayouts_) {
+    for (size_t groupIndex = 0; groupIndex < groupLayouts_.size(); ++groupIndex) {
+        const GroupLayout& group = groupLayouts_[groupIndex];
         const int groupY = group.top - kPanelTop;
+        if (groupIndex > 0) {
+            bufferDrawLine(panel, kWidth, kLabelX + inset, groupY - 16, kWidth - kLabelX - inset, groupY - 16, COLOR_DARK_GREEN);
+        }
         fontSetCurrent(101);
         fontDrawText(panel + kWidth * (groupY + 1) + kLabelX + inset, localized(group.title.c_str()), 270, kWidth, COLOR_GREEN);
     }
@@ -691,11 +784,33 @@ void OptionsPanel::compose()
     const int pastVisibleRow = std::min(screenHeight_, contentHeight_ - sourceTop);
     const int left = std::max(0, pageX_);
     const int right = std::min(screenWidth_, pageX_ + kWidth);
-    if (firstVisibleRow < pastVisibleRow && left < right) {
+    if (screenHeight_ <= kHeight && firstVisibleRow < pastVisibleRow && left < right) {
         const int sourceY = sourceTop + firstVisibleRow;
         blitBufferToBuffer(content_.data() + static_cast<size_t>(kWidth) * sourceY + left - pageX_,
             right - left, pastVisibleRow - firstVisibleRow, kWidth,
             surface_ + static_cast<size_t>(screenWidth_) * firstVisibleRow + left, screenWidth_);
+    }
+    if (screenHeight_ > kHeight) {
+        // Keep the standard title at the top, but give the two left columns
+        // more air below it. Copy each region separately so sharp text follows
+        // the same transformation as the indexed framebuffer.
+        auto copyRegion = [&](int sx, int sy, int width, int height, int offsetY) {
+            int dx = pageX_ + sx;
+            int dy = pageY_ + sy + offsetY - scroll_;
+            if (dx < 0) { sx -= dx; width += dx; dx = 0; }
+            if (dy < 0) { sy -= dy; height += dy; dy = 0; }
+            width = std::min(width, screenWidth_ - dx);
+            height = std::min(height, screenHeight_ - dy);
+            if (width > 0 && height > 0) {
+                blitBufferToBuffer(content_.data() + static_cast<size_t>(sy) * kWidth + sx,
+                    width, height, kWidth, surface_ + static_cast<size_t>(dy) * screenWidth_ + dx, screenWidth_);
+            }
+        };
+        copyRegion(0, 0, kLegacyColumnsRight, 40, 0);
+        copyRegion(0, 40, kLegacyColumnsRight, kLegacyColumnsBottom - 40, kLegacyColumnsShift);
+        copyRegion(0, kLegacyColumnsBottom + kLegacyColumnsShift, kLegacyColumnsRight,
+            contentHeight_ - kLegacyColumnsBottom - kLegacyColumnsShift, 0);
+        copyRegion(kLegacyColumnsRight, 0, kWidth - kLegacyColumnsRight, contentHeight_, 0);
     }
     if (maxScroll() > 0) {
         const int barX = scrollbarX();
