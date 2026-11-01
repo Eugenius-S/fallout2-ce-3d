@@ -50,6 +50,7 @@ Unique objects' arts (they keep their cards), geometry work (task 120).
 
 ### 2026-11-01 claude review
 The band pass filled real gaps in the game's own view: crops of entrance and corrals showed the gaps between a wooden fence's rails (different pieces of the art) smeared with grey-blue. Fixed in props.fill_holes: the band fills only when it is at most BAND_MAX = 4 texels tall (a lid's slit; a fence's open space is taller), with a new unit test (a tall gap stays open). Exporter tests 81 OK. Regression against main's references after the fix: entrance 24140 -> 776 px, corrals 14832 -> 449, residents 10283 -> 219, north-rooms 8453 -> 684, klamall 3995 -> 1681, klatoxcv-e0 1711 -> 736, the others 16 to 436; klacanyn, klatrap 0. Crops of klamall, north-rooms, klatoxcv-e0 show thin gaps plugged on shrubs and dark panels, no smears. The references still wait for the owner's visual pass.
+Fly tour against main: 38 of 43 spots changed, every change at pinhole scale (hundreds of px per turn on walls, fences, shrubs), no geometry shift (runs/121-holes-filled-everywhere/tour-changed.jpg, first page).
 Check: regression run of this review (entrance and corrals crops).
 
 ### 2026-10-31 glm: the band pass - the gaps a shape straddles fill; the sweep ran the whole game
