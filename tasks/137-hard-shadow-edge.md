@@ -1,5 +1,5 @@
 ---
-id: 130
+id: 137
 title: No long straight hard shadow edge across the street
 milestone: M1
 status: todo
@@ -34,7 +34,7 @@ as soft as the other sun shadows.
 ## Acceptance
 
 - before | after of the owner's spot at morning, noon and evening, in
-  `runs/130-hard-shadow-edge/`, and the cause written in the Log.
+  `runs/137-hard-shadow-edge/`, and the cause written in the Log.
 - ctest passes; the original view regression changes only where the edge
   was; the fly tour changes are explained.
 

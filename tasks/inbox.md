@@ -216,5 +216,5 @@ that fits no task becomes a new task when the board runs dry.
   screen finish to the owner's notes (130).
 - 2026-11-01 Cut for glm: a non-stop Klamath graphics sweep (129).
 - 2026-11-01 The owner's live check on main `e434c327`: a long straight hard
-  shadow edge across the downtown street (130); the loading screens blue
+  shadow edge across the downtown street (137); the loading screens blue
   (131); a blocky band in the main menu's lower left (132).
