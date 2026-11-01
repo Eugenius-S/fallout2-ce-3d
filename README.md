@@ -4,10 +4,18 @@
 
 https://github.com/user-attachments/assets/e2fb04bc-243a-49a0-a775-7aa46c1ee8d2
 
-This project gives Fallout 2 a volumetric 3D world around its original sprites.
-Turn-based combat, dialogs, quests, saves and the rules stay the same. The view
-keeps Fallout's oblique angle and atmosphere; this is still the same game, not
-a shooter.
+This project is made out of love for, and as a tribute to, Fallout 2, the
+best game in the world: the game I grew up on and still play through every
+couple of years.
+
+The main goal: make the game run, and run smoothly, on modern computers with
+monitors of any resolution. Along the way the visuals get a gentle lift, with
+nothing extreme: the 3D view is there, but mostly for fun. Fallout 2's
+atmosphere is kept whole; the original game is at the core.
+
+It is a non-commercial project made for myself, but anyone is welcome to
+contribute. If you want to take part, message me on
+[Telegram](https://t.me/stepanov_e) or just send a PR.
 
 ## Install
 
@@ -20,35 +28,61 @@ from the rolling [latest release](https://github.com/Eugenius-S/fallout2-ce-3d/r
 3. The first install and later updates need an internet connection.
 
 The launcher installs or updates `fallout2-ce.exe`, `ce.dat` and
-`scene-exporter.exe`, then builds scene data from your game files. An existing
-`fallout2.cfg` is kept; a default is installed only when it is missing. The
-launcher does not replace the original `fallout2.exe` or alter save files. The
-game may add missing `[3d]` defaults when it saves its settings.
+`scene-exporter.exe`, then builds scene data from your game files. An
+existing `fallout2.cfg` is kept; a default is installed only when it is
+missing. The launcher does not replace the original `fallout2.exe` or alter
+save files.
 
 ## What works
 
-- Floors, walls, roofs and large objects form a 3D scene. Characters remain
-  the original sprites and move as they do in Fallout 2.
-- Sun and moon lighting and shadows follow game time. Lamps and other point
-  lights add local light and glow.
-- The perspective camera follows the game smoothly and can turn. Mouse-wheel
-  zoom eases to its new level. The scene works at any screen resolution.
-- The in-game `3D OPTIONS` panel includes `Camera zoom` and
-  `Shadow edge softness` for softer shadow borders. A developer fly camera is
-  available for scene inspection.
-- Scene data is currently generated for Klamath areas. Where scene data is
-  unavailable, the game uses its original 2D view.
+- Buildings and many objects are converted into full 3D by algorithm.
+- A sky above the 3D view instead of black.
+- Sun and moon shadows: every solid 3D object casts a shadow that follows
+  game time. Characters darken as they step into a building's shadow.
+- Cloud shadows.
+- Glow: toxic slime pools, burning barrels, lamps, screens and energy
+  weapons.
+- Dynamic light: lamps, fires and muzzle flashes light the walls and floor
+  around them.
+- The camera can turn; mouse-wheel zoom is smooth. Characters and objects
+  that have several views in the game turn with the camera.
+- Sharp text: a more readable, softer-contrast font, and dialogue and small
+  interface text are no longer blurry (can be turned off in the menu).
+- The game runs at any resolution and on wide monitors; loading screens and
+  menus fill the screen.
+- A launcher installs the game in one click over Fallout 2 from Steam or GOG
+  and pulls updates by itself.
 
-## Switch to 2D
+Every new feature can be turned off and tuned in the `3D OPTIONS` menu.
+During combat and dialogue the game shows the original view for now.
 
-The in-game `3D OPTIONS` panel and the `[3d]` section of `fallout2.cfg` control
-the scene. Press `Ctrl+F10` to return to the original view. To start with 3D
-off, set:
+## Where it works
+
+Klamath for now: downtown, the mall, the pastures, the canyon, the trapping
+grounds, the rat caves and the toxic caves. Other maps show the original 2D
+view.
+
+## Keys
+
+- `Ctrl+F10`: switch between the original and the new view
+- `Ctrl+F12`: free fly camera over the 3D scene
+
+To start with 3D off, set in `fallout2.cfg`:
 
 ```ini
 [3d]
 enabled=0
 ```
+
+## Plans
+
+- Convert the remaining maps
+- Restoration Project support
+- 3D models of unique landmarks: the Vault Dweller's head, the New Reno
+  sign, the Vault City gate and more
+- A full installer
+- macOS support
+- DLSS 5 support (a long shot, but worth a try)
 
 ## Build from source
 
@@ -65,8 +99,9 @@ py -3 -m unittest discover -s tools/scene_export -p 'test*.py' -v
 py -3 tools/scene_export/export.py --game-root ./game --maps klamath
 ```
 
-The game files and generated scene data stay local. See [game setup](docs/game-setup.md),
-the [technical plan](docs/2026-10-17-fallout2-ce-3d-env-p0-p1.md) and the
+The game files and generated scene data stay local. See
+[game setup](docs/game-setup.md), the
+[technical plan](docs/2026-10-17-fallout2-ce-3d-env-p0-p1.md) and the
 [3D design](docs/2026-10-17-fallout2-sprite-lighting-design.md).
 
 ## Thanks
