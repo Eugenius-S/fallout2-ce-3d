@@ -75,3 +75,4 @@ Check: ctest; the toxic caves entrance in 3D in the background run.
 Not checked yet: a whole fight (no combat fixture). Next: the owner plays a
 fight in Klamath and the toxic caves; a combat fixture for the background
 run; the to-hit cursor, outlines and floating text in 3D; dialogue.
+- 2026-11-02 The owner played a fight in Klamath on `a4d47b26`: it stays in 3D start to finish; the only flaw seen is the unscaled outlines (149).
