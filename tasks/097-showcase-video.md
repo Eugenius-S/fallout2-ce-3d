@@ -2,13 +2,13 @@
 id: 097
 title: A showcase video for GitHub shows the original next to the 3D view and every feature
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: claude
 suggested: claude
 priority: low
 claude-only: yes
 user-check: yes
-depends-on: []
+depends-on: [112, 118]
 reviewed: no
 ---
 
@@ -21,9 +21,11 @@ what is on screen.
 ## Context
 
 - The owner, 2026-10-27: a video near the end of the Klamath slice. Claude
-  records and writes it in a chat with a full weekly limit; the edit is made
-  with the Higgsfield skills (`higgsfield:higgsfield-video-explainer`,
-  `higgsfield:higgsfield-generate` for the pieces they cover).
+  records and writes it in a chat with a full weekly limit.
+- The owner, 2026-11-01: the edit is made in After Effects through the
+  Higgsfield use-after-effects MCP (`higgsfield-use-after-effects`, npm
+  `fnf-after-effects-mcp`, entry skill `ae-clean-rig`). Recording starts once
+  tasks 112 (options panel) and 118 (widescreen art) are on `main`.
 - Take it when the slice is close to done, so the shots show the finished
   look; until then this task waits.
 - Recording goes through the background test instance
@@ -32,20 +34,29 @@ what is on screen.
 
 ## What the video shows
 
-Each segment is the original (Ctrl+F10) and the 3D view of the same place,
-side by side or one after the other:
+About 90 seconds, in this order; the caption in the corner is in brackets.
 
-1. Any resolution: the same map at several window sizes, the picture and
-   the interface fit each.
-2. Smoothing: edges and textures in the 3D view against the original.
-3. Shooting: a laser shot and a plasma shot in flight, with their glow.
-4. Signs: a lit sign switching on and off, its glow following.
-5. Light: burning barrels and the slime glowing in the dark.
-6. Shadows: the shadows of buildings turning as the sun crosses the day.
-7. Camera: isometric tile by tile movement against the perspective view and
-   its smooth movement.
-8. Turning the camera inside the safe zone in the 3D view.
-9. A closing run through Klamath: before and after.
+1. 0-6 s: the original at 640x480 in Klamath, a wipe turns the same spot
+   into the 3D view (Fallout 2, now in 3D).
+2. 6-14 s: the launcher installs onto a clean Fallout 2 in one click and the
+   game starts (One-click install).
+3. 14-22 s: the main menu and the death screen with the owner's widescreen
+   art while the window changes size (Any resolution, widescreen art).
+4. 22-32 s: Ctrl+F10 back and forth on one spot in Klamath: walls, roofs,
+   corners (Original vs 3D).
+5. 32-42 s: the camera turns up to 45 degrees, the characters turn with it
+   (Camera rotation).
+6. 42-50 s: the fly camera over the map, the sky above (Free camera).
+7. 50-60 s: a sped-up day, the sun crosses overhead and the building shadows
+   turn (Sun and shadows).
+8. 60-70 s: night: burning barrels, the glowing slime, a sign switching on
+   and off (Light and glow).
+9. 70-78 s: a laser and a plasma shot: the muzzle flash and the glow of the
+   shot in flight (Weapon light).
+10. 78-84 s: the options menu on its 3D panel, graphics options switching
+    (3D options).
+11. 84-92 s: a closing run through Klamath, split screen original and 3D,
+    then the title and the GitHub link (fallout2-ce-3d).
 
 ## Acceptance
 
