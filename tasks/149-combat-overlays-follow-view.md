@@ -44,3 +44,4 @@ hex, floating text above the head.
 ## Log
 
 - 2026-11-01 Cut from Codex's review of #211.
+- 2026-11-02 The owner, live: the outlines keep their size on a zoomed view (`runs/inbox/2026-11-02-combat-outlines-unscaled.png`).
