@@ -114,14 +114,11 @@ bool init()
 
 void drawSceneSky(float aspect, int width, int height, bool flying)
 {
-    // Keep the original fixed game camera byte-for-byte; the sky belongs only
-    // to the free-flight or deliberately turned 3D camera.
-    if (!flying && !scene::cameraTurned()) return;
+    // The normal game view keeps a black background at every camera angle.
+    if (!flying || scene::cameraTurned()) return;
     if (width <= 0 || height <= 0 || !init()) return;
     StaticFlyCamera camera{};
-    if (flying) {
-        if (!staticFlyCamera(&camera)) return;
-    } else if (!staticGameViewCamera(&camera)) return;
+    if (!staticFlyCamera(&camera)) return;
     float forward[3], right[3];
     staticFlyCameraAxes(camera, forward, right);
     const float fov = std::clamp(camera.fovY > 0.0f ? camera.fovY : 55.0f, 1.0f, 150.0f) * 0.00872664626f;
