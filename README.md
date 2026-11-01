@@ -1,5 +1,7 @@
 # Fallout 2 CE 3D
 
+**English** | [Русский](README.ru.md)
+
 https://github.com/user-attachments/assets/e2fb04bc-243a-49a0-a775-7aa46c1ee8d2
 
 This project gives Fallout 2 a volumetric 3D world around its original sprites.
