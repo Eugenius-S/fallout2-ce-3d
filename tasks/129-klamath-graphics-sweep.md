@@ -31,6 +31,10 @@ before any release: "a fully working game without most graphic bugs".
   override in `shapes/overrides.json` is allowed only where the task of that
   kind already allows it, and the Log says why a rule cannot do it.
 
+- Folded in: 101 (roof edges clean, the roof fringe stands up, no wall tops
+  through roofs) and 110 (no thin seam where two walls meet at a corner).
+  Neither reproduced on main in earlier rounds; check both on every sweep.
+
 ## How to work
 
 A loop, without waiting for anyone between rounds:
