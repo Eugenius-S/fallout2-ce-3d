@@ -189,12 +189,22 @@ float cloudNoise(vec2 lattice, float wrap) {
     float c = cloudHash(mod(whole + vec2(0.0, 1.0), wrap)), d = cloudHash(mod(whole + vec2(1.0, 1.0), wrap));
     return mix(mix(a, b, part.x), mix(c, d, part.x), part.y);
 }
+// Desert cloud shadows: tune density, patch size, and their soft edge here.
+const float kCloudWorldPeriod = 48.0;
+const float kCloudPrimaryScale = 8.0;
+const float kCloudPrimaryWrap = 6.0;
+const float kCloudDetailScale = 4.0;
+const float kCloudDetailWrap = 12.0;
+const float kCloudCoverLow = 0.63;
+const float kCloudCoverHigh = 0.88;
+const float kCloudShadowStrength = 0.22;
 float cloudAmbient(vec3 w) {
     if (!uCloudOn) return 1.0;
     vec2 t = w.xz + uCloudOffset;
-    float cover = cloudNoise(mod(t, 48.0) / 12.0, 4.0) * 0.65
-        + cloudNoise(mod(t + 17.0, 48.0) / 6.0, 8.0) * 0.35;
-    return 1.0 - uShadowStrength * 0.35 * smoothstep(0.52, 0.74, cover);
+    float cover = cloudNoise(mod(t, kCloudWorldPeriod) / kCloudPrimaryScale, kCloudPrimaryWrap) * 0.65
+        + cloudNoise(mod(t + 17.0, kCloudWorldPeriod) / kCloudDetailScale, kCloudDetailWrap) * 0.35;
+    return 1.0 - uShadowStrength * kCloudShadowStrength
+        * smoothstep(kCloudCoverLow, kCloudCoverHigh, cover);
 }
 vec4 pointLights(vec3 w, vec3 n, bool facing, float ambientScale) {
     vec2 hex = hexAt(w);

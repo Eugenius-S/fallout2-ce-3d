@@ -42,3 +42,20 @@ as soft as the other sun shadows.
 
 Cloud shadows (023), shadow softness tuning beyond matching the other sun
 shadows.
+
+## Log
+
+### 2026-11-01 gpt
+Check: Compared Klamath downtown at 08:00, view tile 24678, with cloud
+shadows alone and with shadows off. The captures use the same map, camera,
+resolution and executable. See `runs/138-desert-clouds/137-cloud-edge-check.jpg`
+and its JSON sidecars.
+
+Result: The reported long, hard edge did not reproduce. Cloud-only shading
+appears as irregular patches. The shader applies a broad `smoothstep` to
+noisy coverage, so its current cloud path has no straight clipping boundary.
+
+Limit: The cloud-only run has sun shadows off, and the comparison does not
+recreate the owner's exact view. This is preliminary evidence against a cloud
+edge, not a confirmed root cause. The shadow-map, caster and receiver-mask
+suspects remain open; task 137 stays todo.

@@ -2,14 +2,14 @@
 id: 138
 title: Cloud shadows fit a desert sky, fewer, smaller and soft-edged
 milestone: M1
-status: todo
-owner: none
+status: done
+owner: gpt
 suggested: gpt
 priority: high
 claude-only: no
 user-check: yes
 depends-on: []
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -47,3 +47,22 @@ under and between the clouds.
 A visible sky or cloud bodies (113), the sun's own shadows.
 
 ## Log
+
+### 2026-11-01 gpt
+Done: Reduced cloud cover and darkness, made the broad noise cells smaller,
+and widened the soft transition. The named tuning values are together in
+`ce/src/scene_renderer/scene_shader.cc`.
+
+Evidence: Three before/after strips and all 18 full-resolution JPEG captures
+with sidecars are in `runs/138-desert-clouds/`. Each uses KLADWTWN, view tile
+24678, 1920x1080, at 08:00, 12:00 or 17:00 and cloud phase 0, 12 or 24.
+The building shadows remain visible. `137-cloud-edge-check.jpg` records the
+matched cloud-only and shadows-off diagnostic; its limits are written in
+task 137's Log.
+
+Check: Release build passed. CTest passed 18/18; scene export tests passed
+88/88; regression tool tests passed 12/12. The full pixel regression passed
+16/16 with zero changed pixels. Captures used `build/scene-cache`; no
+`game/mod-cache` path was used.
+
+Next: None.
