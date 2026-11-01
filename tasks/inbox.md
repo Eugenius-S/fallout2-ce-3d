@@ -244,3 +244,6 @@ that fits no task becomes a new task when the board runs dry.
   137.
 - 2026-11-01 The owner: Claude stops only reviewing and takes tasks. Closed at merge: 103, 126, 132. To claude: 129 (glm out), 137 with the sun shadow blotches above. Claude starts with 137.
 - 2026-11-01 137 closed: the patches and the straight edge are the asphalt art, the same in 2D and with all shadows off. Found on the way: an orange dithered band at the map edge in 3D (145, gpt).
+- 2026-11-01 The owner asked gpt directly: cloud shadows become an option, off by default, for now (143 notes it).
+- 2026-11-01 The owner: the camera turn step should ease in and out on the brackets (150, gpt).
+- 2026-11-01 Task pool: 146 combat fixture, 147 map transitions in 3D, 148 README turn and combat (gpt); 149 combat overlays follow the turn and zoom (claude, from Codex on #211). 139 moved to gpt. Claude's order: 135, 149, 129, 136.

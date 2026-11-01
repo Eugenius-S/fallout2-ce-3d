@@ -48,3 +48,5 @@ line or one-step contour at its edge, on dark ground as well as on light.
 ## Log
 
 - 2026-11-01 Cut from the owner's live find after #199.
+
+- 2026-11-01 The owner asked gpt directly to make cloud shadows an option that is off by default for now; this task still makes the edges soft for when they are on.
