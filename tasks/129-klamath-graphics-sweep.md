@@ -2,9 +2,9 @@
 id: 129
 title: Klamath graphics sweep, find and fix every visible defect
 milestone: M1
-status: doing
-owner: glm
-suggested: glm
+status: todo
+owner: none
+suggested: claude
 priority: high
 claude-only: no
 user-check: yes
@@ -127,3 +127,5 @@ over a see-through top read wrong.
 
 Next: sweep round 2 (interiors, shapes-eval solo shots).
 Check: the crops and sheets above.
+
+- 2026-11-01 glm is out; box tops merged (#194). Back to todo for claude; continue from `task/129-klamath-graphics-sweep`.

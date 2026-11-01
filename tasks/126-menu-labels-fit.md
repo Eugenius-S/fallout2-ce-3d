@@ -2,7 +2,7 @@
 id: 126
 title: Russian main menu labels fit their buttons
 milestone: M1
-status: doing
+status: done
 owner: gpt
 suggested: gpt
 priority: normal
@@ -48,3 +48,5 @@ The menu art, its framing (task 118), the font choice and the translation.
 - `ctest --test-dir build --output-on-failure`: 18/18 passed.
 - Full scene regression against current `origin/main`, using `build/scene-cache`: 16 spots passed with 0 changed pixels.
 - Status remains `doing` until Intro playback can be verified with a working movie asset/runtime.
+
+- 2026-11-01 Closed at merge (#183); the owner checks it live.

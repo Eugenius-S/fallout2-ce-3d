@@ -233,3 +233,13 @@ that fits no task becomes a new task when the board runs dry.
 - 2026-11-01 The 3D sky is a saturated blue with daylight stars and soft orange ridges; the owner wants a dusty post-nuclear desert sky (142).
 - 2026-11-01 After #199 the cloud shadows show a hard edge on the dark street; cut as 143.
 - 2026-11-01 The owner: camera turn in 10-degree steps, 30 by default; edge scrolling goes the wrong way on a turned camera (144).
+- 2026-11-01 Bolt clips in the README: put the two night projectile clips
+  from 097 (laser pistol, plasma rifle) side by side in one video, compress it for GitHub, and insert it in the middle of the repository
+  description. Not now.
+- 2026-11-01 Sun shadow blotches: on main `fc37980e` (with the 138 cloud fix)
+  and `cloud_shadows=0`, the Klamath downtown street still shows big dark
+  shapeless patches (`runs/inbox/2026-11-01-sun-shadow-blotches.png`). With
+  the clouds off these are the sun shadows: `shadows=1`, `sun_swing=44`,
+  `shadow_pixel_size=3`, `shadow_density=0.85`. Find what casts them; may be
+  137.
+- 2026-11-01 The owner: Claude stops only reviewing and takes tasks. Closed at merge: 103, 126, 132. To claude: 129 (glm out), 137 with the sun shadow blotches above. Claude starts with 137.
