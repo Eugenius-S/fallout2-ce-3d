@@ -2,7 +2,7 @@
 id: 120
 title: Scenery stands in 3D everywhere: drums trimmed at walls, no solid loses a face
 milestone: M1
-status: doing
+status: done
 owner: glm
 suggested: owner
 priority: high
@@ -62,6 +62,10 @@ Things turning in flight (a separate task), unique objects, hole filling
 (separate task), engine work unless a slice needs it.
 
 ## Log
+
+### 2026-11-01 claude review
+Done: merged origin/main (119 landed squashed; the branch's 119 commits were replaced by main's, code identical to the branch tip). Clean Release build, ctest 18/18, exporter tests 78, regression tests 12, regression 16/16 at 0 changed pixels against main's references. Fly tour against main's cache: 4 of 43 spots changed (kladwtwn 22958; klamall 23145, 27886, 28493), all the intended drum trims and carved boxes at pinhole scale; no spot changed that should not. Note: the locker acceptance line (read as lockers from every quarter) is not met by geometry, see the 2026-10-31 log: it is art-side and left to the owner.
+Check: build/tour/sheets/changed.jpg, runs/regression of the review run.
 
 ### 2026-10-31 glm: the carve landed and verified; the light-bake leak found and closed
 

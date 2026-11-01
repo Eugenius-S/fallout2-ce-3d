@@ -2,7 +2,7 @@
 id: 122
 title: Things turn in flight: objects with full rotation sets face the fly camera
 milestone: M1
-status: doing
+status: done
 owner: glm
 suggested: owner
 priority: normal
@@ -42,6 +42,10 @@ the rotation frame for that quarter instead of staying at its made rotation.
 Critters (087 did them), solids re-projecting per quarter, unique objects.
 
 ## Log
+
+### 2026-11-01 claude review
+Done: merged task 121 (reviewed, with its band cap). Fresh Release build, ctest 18/18, exporter tests 81. Regression 16/16 at 0 changed pixels against 121's captures (the checked-in references carry 121's fill deltas until the owner's pass; this branch adds no pixel). Fly tour against the 121 build: 0 of 43 Klamath spots changed (no multi-side scenery stands on those spots; the turning shows in the Den, evidence in runs/122-things-turn-in-flight/). The code is the C++ silhouette gate (sceneryArtTurns, cached per art under a mutex, placeholder and empty directions rejected); no name lists. Open for the owner: the cars still pass the gate (CAR4b IoU 0.73) although 120/123 stand them as carved boxes; pick-only baked cards never turn, so a stood solid keeps its projection.
+Check: the pairs in runs/122-things-turn-in-flight/.
 
 ### 2026-10-31 glm: the gate really rejects placeholders now, and the debug prints left the build
 
