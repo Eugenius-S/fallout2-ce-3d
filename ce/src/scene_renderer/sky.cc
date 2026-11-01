@@ -40,12 +40,10 @@ uniform vec3 uUp;
 uniform vec3 uSun;
 uniform vec3 uZenith;
 uniform vec3 uHorizon;
-uniform vec3 uMesa;
 uniform float uStars;
 uniform float uGlow;
 uniform int uUnderground;
 uniform vec2 uResolution;
-float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5453); }
 float hash3(vec3 p) { return fract(sin(dot(p, vec3(127.1,311.7,74.7))) * 43758.5453); }
 void main() {
     if (uUnderground != 0) { outColor = vec4(0.012, 0.012, 0.016, 1.0); return; }
@@ -63,13 +61,6 @@ void main() {
     float starPoint = 1.0 - smoothstep(0.04, 0.12, length(starOffset));
     float stars = step(0.90, hash3(starCell)) * starPoint * smoothstep(0.08, 0.25, elevation) * uStars;
     color += vec3(stars);
-    float azimuth = atan(ray.z, ray.x);
-    float ridgeSection = floor((azimuth + 3.14159) * 9.0);
-    float plateauHeight = floor(hash(vec2(ridgeSection, 73.0)) * 4.0);
-    float ridge = -0.055 - plateauHeight * 0.018
-        - abs(sin(azimuth * 35.0 + 1.7)) * 0.002;
-    float mesa = (1.0 - smoothstep(ridge - 0.002, ridge + 0.002, elevation)) * step(-0.2, elevation);
-    color = mix(color, uMesa, mesa * (1.0 - h));
     outColor = vec4(color, 1.0);
 }
 )";
@@ -157,14 +148,10 @@ void drawSceneSky(float aspect, int width, int height, bool flying)
     constexpr float horizonNight[3] = { 0.12f, 0.10f, 0.085f };
     constexpr float horizonDay[3] = { 0.69f, 0.59f, 0.43f };
     constexpr float horizonTwilight[3] = { 0.72f, 0.40f, 0.24f };
-    constexpr float ridgeNight[3] = { 0.035f, 0.032f, 0.029f };
-    constexpr float ridgeDay[3] = { 0.24f, 0.19f, 0.13f };
-    constexpr float ridgeTwilight[3] = { 0.31f, 0.15f, 0.09f };
-    float zenith[3], horizon[3], mesa[3];
+    float zenith[3], horizon[3];
     for (int i = 0; i < 3; ++i) {
         zenith[i] = zenithNight[i] + (zenithDay[i] - zenithNight[i]) * day + (zenithTwilight[i] - zenithNight[i]) * twilight;
         horizon[i] = horizonNight[i] + (horizonDay[i] - horizonNight[i]) * day + (horizonTwilight[i] - horizonNight[i]) * twilight;
-        mesa[i] = ridgeNight[i] + (ridgeDay[i] - ridgeNight[i]) * day + (ridgeTwilight[i] - ridgeNight[i]) * twilight;
     }
     const scene::Sun& sun = scene::currentSun();
     glDisable(internal::kDepthTest);
@@ -176,7 +163,6 @@ void drawSceneSky(float aspect, int width, int height, bool flying)
     glUniform3f(glGetUniformLocation(gProgram, "uSun"), sun.direction[0], sun.direction[1], sun.direction[2]);
     glUniform3f(glGetUniformLocation(gProgram, "uZenith"), zenith[0], zenith[1], zenith[2]);
     glUniform3f(glGetUniformLocation(gProgram, "uHorizon"), horizon[0], horizon[1], horizon[2]);
-    glUniform3f(glGetUniformLocation(gProgram, "uMesa"), mesa[0], mesa[1], mesa[2]);
     glUniform1f(glGetUniformLocation(gProgram, "uStars"), sun.up ? 0.0f : night);
     glUniform1f(glGetUniformLocation(gProgram, "uGlow"), 0.35f + twilight * 0.35f + sun.strength * 0.3f);
     glUniform1i(glGetUniformLocation(gProgram, "uUnderground"), scene::sceneDaylight() ? 0 : 1);
