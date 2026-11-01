@@ -9,7 +9,7 @@ priority: high
 claude-only: no
 user-check: yes
 depends-on: []
-reviewed: no # the regression references were retaken
+reviewed: yes # the regression references were retaken
 ---
 
 ## Goal
