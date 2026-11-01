@@ -2,8 +2,8 @@
 id: 132
 title: The main menu's lower left shows the art clean, no blocky band
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: gpt
 suggested: gpt
 priority: normal
 claude-only: no
@@ -43,3 +43,4 @@ left under the buttons.
 ## Out of scope
 
 The menu art itself, its framing (118), the labels (126).
+
