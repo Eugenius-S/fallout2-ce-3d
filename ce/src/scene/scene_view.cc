@@ -345,10 +345,8 @@ PreviewRuntimeState runtimeState()
 {
     return {
         gameGetState() == GameState::Normal,
-        GameMode::getCurrentGameMode() == GameMode::kNone,
-        !gameUiIsDisabled(),
+        gameModeShowsMap(static_cast<unsigned int>(GameMode::getCurrentGameMode())),
         !isoIsDisabled(),
-        !isInCombat(),
         _inDialog == 0,
         _moviePlaying() == 0,
     };
@@ -360,9 +358,7 @@ const char* blockReasonName(PreviewBlockReason reason)
     case PreviewBlockReason::None: return "available";
     case PreviewBlockReason::GameState: return "game-state";
     case PreviewBlockReason::GameMode: return "game-mode";
-    case PreviewBlockReason::UiDisabled: return "ui-disabled";
     case PreviewBlockReason::IsoDisabled: return "iso-disabled";
-    case PreviewBlockReason::Combat: return "combat";
     case PreviewBlockReason::Dialog: return "dialog";
     case PreviewBlockReason::Movie: return "movie";
     }

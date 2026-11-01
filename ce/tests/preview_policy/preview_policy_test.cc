@@ -7,7 +7,7 @@ using namespace fallout::scene;
 int main()
 {
 #define CHECK(expr) do { if (!(expr)) { std::fprintf(stderr, "CHECK failed at %s:%d: %s\n", __FILE__, __LINE__, #expr); return 1; } } while (0)
-    const PreviewRuntimeState normal = { true, true, true, true, true, true, true };
+    const PreviewRuntimeState normal = { true, true, true, true, true };
     CHECK(previewMayPresent(normal));
 
     PreviewRuntimeState state = normal;
@@ -16,7 +16,7 @@ int main()
     CHECK(previewBlockReason(state) == PreviewBlockReason::GameState);
 
     state = normal;
-    state.gameModeClear = false; // options/preferences modal
+    state.gameModeShowsMap = false; // the world map
     CHECK(!previewMayPresent(state));
     CHECK(previewBlockReason(state) == PreviewBlockReason::GameMode);
 
@@ -24,11 +24,6 @@ int main()
     state.isoEnabled = false; // pause window
     CHECK(!previewMayPresent(state));
     CHECK(previewBlockReason(state) == PreviewBlockReason::IsoDisabled);
-
-    state = normal;
-    state.uiEnabled = false;
-    CHECK(!previewMayPresent(state));
-    CHECK(previewBlockReason(state) == PreviewBlockReason::UiDisabled);
 
     state = normal;
     state.noDialog = false;
@@ -40,8 +35,9 @@ int main()
     CHECK(!previewMayPresent(state));
     CHECK(previewBlockReason(state) == PreviewBlockReason::Movie);
 
-    state = normal;
-    state.notCombat = false;
-    CHECK(!previewMayPresent(state));
-    CHECK(previewBlockReason(state) == PreviewBlockReason::Combat);
+    // Windows over the map, combat and the enemies' turn keep the 3D view.
+    CHECK(gameModeShowsMap(0x40 | 0x800)); // combat, the player's turn
+    CHECK(gameModeShowsMap(0x1000)); // inventory
+    CHECK(gameModeShowsMap(0x8)); // options
+    CHECK(!gameModeShowsMap(0x1)); // the world map
 }
