@@ -29,8 +29,9 @@ scene data exists only for Klamath, so the first hour of the game is still
 - Arroyo has terrain Klamath lacks: cave rock in the temple, stone walls,
   the village's huts and fences, the bridge, cliffs. Expect new shapes the
   exporter has never seen. Fix by general rules in the exporter or the
-  renderer; a per-object override in `shapes/overrides.json` only where a
-  rule cannot do it, and the Log says why.
+  renderer that hold for every map and object of that kind; no per-object,
+  per-tile or per-map case. A defect no general rule fixes goes into the Log
+  as "owner:".
 - Everything that already makes Klamath clean (tasks 100-125, 129) must keep
   working: Klamath's regression and fly tour stay pixel for pixel or every
   change is explained.
