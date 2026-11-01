@@ -1,5 +1,5 @@
 ---
-id: 133
+id: 136
 title: Arroyo in 3D, the game's opening area stands and looks clean
 milestone: M1
 status: todo
@@ -46,11 +46,11 @@ A loop, without waiting for anyone between rounds:
    tasks keep it clean.
 3. Sweep: walk every map and camera, write each defect as one numbered line
    in this task's Log (map, tile or spot, camera, hour, a crop in
-   `runs/133-arroyo-in-3d/finds/`, the likely cause).
+   `runs/136-arroyo-in-3d/finds/`, the likely cause).
 4. Group the finds by cause, take the most visible group, fix it on its own
-   branch `task/133-<short-cause>` from current origin/main with before |
+   branch `task/136-<short-cause>` from current origin/main with before |
    after crops, ctest, the Klamath regression and fly tour against
-   origin/main. One PR per cause group, titled `133: <cause>`; mark the finds
+   origin/main. One PR per cause group, titled `136: <cause>`; mark the finds
    it closes in the Log.
 5. Go back to 4. When the list is empty, sweep again (3). A defect that needs
    the owner's eye or a design decision goes into the Log as "owner:" and
