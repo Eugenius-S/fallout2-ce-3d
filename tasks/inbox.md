@@ -205,3 +205,9 @@ that fits no task becomes a new task when the board runs dry.
   panels with a round vault-gear ornament filling the space to each edge.
   Find which mod ships that art and its license, and take it into our wide
   HUD if the license allows. Not now.
+- 2026-11-01 Restoration Project compatibility: the owner wants our build to
+  run with Killap's Fallout 2 Restoration Project installed on top. It is a
+  content mod (maps, scripts, dialogue) that leans on sfall; fallout2-ce
+  covers sfall only partly. First find which sfall opcodes, hooks and ini
+  settings the mod uses that CE lacks, and whether its new maps and art pass
+  through our scene export; then cut the work. Not now.
