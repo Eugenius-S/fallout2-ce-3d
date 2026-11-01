@@ -85,6 +85,10 @@ void setCameraTurnNow(double degrees);
 bool cameraTurned();
 // Degrees the camera is turned now (0 unless cameraTurned()).
 double cameraTurnAngle();
+// The game scroll step (dx right, dy down) that moves the turned view toward
+// the screen edge (dx, dy) best, from the game's real ground projection. Left
+// untouched when the camera is not turned or the projection is not known.
+void cameraTurnScrollStepNow(int dx, int dy, int* outDx, int* outDy);
 // Every frame, from the main loop.
 void updateCameraTurn();
 

@@ -207,48 +207,98 @@ int main()
             && scene::limitedCameraTurn(40.0) == 30.0,
             "revoking unlimited rotation wraps then clamps the current view")) return 1;
     // Edge scroll on a turned camera: (dx, dy) is the edge on the turned screen,
-    // dy down. Unturned it is untouched; turned it points where that edge is on
-    // the ground, in the game's unturned directions.
+    // dy down. Unturned it is untouched; turned, the game step whose real ground
+    // move looks closest to that edge on the turned screen wins.
+    const double pi = 3.14159265358979323846;
+    const double gameYaw = 0.6; // the unturned camera's yaw (rad)
+    const double gamePitch = -0.62; // looking down
+    // The ground (x, z) under a screen move of `right`, `up` units at the view
+    // center of the unturned camera: right along the camera's right, up along
+    // the way it faces, stretched by 1 / sin(pitch) (the floor is foreshortened).
+    auto groundFor = [&](double right, double up, double out[2]) {
+        const double stretch = up / -std::sin(gamePitch);
+        out[0] = right * std::sin(gameYaw) + stretch * std::cos(gameYaw);
+        out[1] = -right * std::cos(gameYaw) + stretch * std::sin(gameYaw);
+    };
+    scene::ScrollGroundBasis basis {};
+    groundFor(scene::kScrollStepX, 0.0, basis.horizontal);
+    groundFor(0.0, -scene::kScrollStepY, basis.vertical);
+    basis.yaw = gameYaw;
+    basis.pitch = gamePitch;
     int sx = 9, sy = 9;
     bool unturnedSame = true;
     for (int dx = -1; dx <= 1; ++dx) {
         for (int dy = -1; dy <= 1; ++dy) {
-            scene::cameraTurnScrollStep(dx, dy, 0.0, &sx, &sy);
+            scene::cameraTurnScrollStep(dx, dy, 0.0, basis, &sx, &sy);
             unturnedSame = unturnedSame && sx == dx && sy == dy;
         }
     }
     if (!check(unturnedSame, "unturned edge scroll is unchanged")) return 1;
-    scene::cameraTurnScrollStep(1, 0, 30.0, &sx, &sy);
-    const bool rightAt30 = sx == 1 && sy == -1; // right edge at +30: the map moves right and up
-    scene::cameraTurnScrollStep(1, 0, -30.0, &sx, &sy);
-    const bool rightAtMinus30 = sx == 1 && sy == 1;
-    scene::cameraTurnScrollStep(0, -1, 30.0, &sx, &sy);
-    const bool topAt30 = sx == -1 && sy == -1; // top edge at +30: up and left
-    scene::cameraTurnScrollStep(-1, 0, 30.0, &sx, &sy);
-    const bool leftAt30 = sx == -1 && sy == 1;
-    scene::cameraTurnScrollStep(1, 0, 20.0, &sx, &sy);
-    const bool rightAt20 = sx == 1 && sy == 0;
-    scene::cameraTurnScrollStep(1, 0, 10.0, &sx, &sy);
-    const bool rightAt10 = sx == 1 && sy == 0;
-    if (!check(rightAt30 && rightAtMinus30 && topAt30 && leftAt30 && rightAt20 && rightAt10,
-            "edge scroll on a turned camera maps each edge to the ground toward it on screen")) return 1;
-    // Every edge and corner at 10, 20, 30 and -30: the result is the game direction
-    // nearest to the turned screen direction (within 22.5 degrees of the exact one).
+    // The turned screen, spelled out with the camera vectors: forward, right and
+    // up in GL world, then each step's ground move dotted with right and up.
+    auto projectedAngle = [&](int stepDx, int stepDy, double turn, int edgeDx, int edgeDy) {
+        const double yaw = gameYaw + turn * pi / 180.0;
+        const double right[3] = { std::sin(yaw), 0.0, -std::cos(yaw) };
+        const double up[3] = { -std::sin(gamePitch) * std::cos(yaw), std::cos(gamePitch),
+            -std::sin(gamePitch) * std::sin(yaw) };
+        const double gx = stepDx * basis.horizontal[0] + stepDy * basis.vertical[0];
+        const double gz = stepDx * basis.horizontal[1] + stepDy * basis.vertical[1];
+        const double screenRight = gx * right[0] + gz * right[2];
+        const double screenUp = gx * up[0] + gz * up[2];
+        return std::abs(std::remainder(std::atan2(screenUp, screenRight) - std::atan2(-edgeDy, edgeDx), 2.0 * pi));
+    };
     bool nearest = true;
-    const double pi = 3.14159265358979323846;
-    for (const double turn : { 10.0, 20.0, 30.0, -30.0 }) {
+    for (const double turn : { 0.0, 10.0, 20.0, 30.0, -30.0 }) {
         for (int dx = -1; dx <= 1; ++dx) {
             for (int dy = -1; dy <= 1; ++dy) {
                 if (dx == 0 && dy == 0) continue;
-                scene::cameraTurnScrollStep(dx, dy, turn, &sx, &sy);
-                const double want = std::atan2(-dy, dx) + turn * pi / 180.0;
-                const double got = std::atan2(-sy, sx);
-                nearest = nearest && (sx != 0 || sy != 0)
-                    && std::abs(std::remainder(got - want, 2.0 * pi)) <= pi / 8.0 + 1e-9;
+                scene::cameraTurnScrollStep(dx, dy, turn, basis, &sx, &sy);
+                const double chosen = projectedAngle(sx, sy, turn, dx, dy);
+                for (int candidateDx = -1; candidateDx <= 1; ++candidateDx) {
+                    for (int candidateDy = -1; candidateDy <= 1; ++candidateDy) {
+                        if (candidateDx == 0 && candidateDy == 0) continue;
+                        nearest = nearest && chosen <= projectedAngle(candidateDx, candidateDy, turn, dx, dy) + 1e-9;
+                    }
+                }
             }
         }
     }
-    if (!check(nearest, "every edge and corner at 10, 20, 30 and -30 degrees scrolls toward it on screen")) return 1;
+    if (!check(nearest, "every edge and corner at 0, 10, 20, 30 and -30 degrees picks the step with the smallest projected angle")) return 1;
+    // The basis measured in the game on kladwtwn (the game view's real, oblique
+    // ground move of one step, and its camera yaw and pitch).
+    scene::ScrollGroundBasis measured {};
+    measured.horizontal[0] = -0.5;
+    measured.horizontal[1] = 0.25;
+    measured.vertical[0] = 0.500032;
+    measured.vertical[1] = 0.750048;
+    measured.yaw = -2.158799;
+    measured.pitch = -0.480597;
+    // The reviewer's case: at +20 the top edge is 38 degrees off vertical for
+    // the plain up step (0,-1) but 28 for up-and-left (-1,-1), which wins.
+    const double gameStepAngleTop = [&] {
+        double right, up;
+        scene::groundToTurnedScreen(measured, 20.0, measured.vertical[0] * -1.0, measured.vertical[1] * -1.0, &right, &up);
+        return scene::screenAngleBetween(right, up, 0.0, 1.0) * 180.0 / pi;
+    }();
+    scene::cameraTurnScrollStep(0, -1, 20.0, measured, &sx, &sy);
+    if (!check(sx == -1 && sy == -1 && gameStepAngleTop > 37.0 && gameStepAngleTop < 39.0,
+            "at +20 degrees the top edge picks up-and-left, not the plain up step")) return 1;
+    // Unturned, the measured basis puts each step nearest its own screen direction
+    // (so the projection and its signs agree with the game's own scroll).
+    bool measuredUnturned = true;
+    for (int dx = -1; dx <= 1; ++dx) {
+        for (int dy = -1; dy <= 1; ++dy) {
+            if (dx == 0 && dy == 0) continue;
+            scene::cameraTurnScrollStep(dx, dy, 1e-9, measured, &sx, &sy);
+            measuredUnturned = measuredUnturned && sx == dx && sy == dy;
+        }
+    }
+    if (!check(measuredUnturned, "with the measured basis a barely turned camera still picks the same step")) return 1;
+    scene::cameraTurnScrollStep(1, 0, 30.0, measured, &sx, &sy);
+    const bool rightAt30 = sx == 1 && sy == 0;
+    scene::cameraTurnScrollStep(0, -1, 30.0, measured, &sx, &sy);
+    const bool topAt30 = sx == -1 && sy == -1;
+    if (!check(rightAt30 && topAt30, "measured basis at +30: right edge steps right, top edge steps up-and-left")) return 1;
     if (!check(unrelatedDescriptor != nullptr, "real unrelated setting descriptor is registered")) return 1;
     if (!check(settingsGetRevision(*descriptor) == 0 && settingsGetRevision(*unrelatedDescriptor) == 1,
             "config read increments only the changed setting revision")) return 1;

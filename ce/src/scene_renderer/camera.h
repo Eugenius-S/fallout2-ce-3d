@@ -61,6 +61,10 @@ bool staticGameViewPose(StaticFlyCamera* camera);
 // The game view's camera itself: its eye and field of view (camera rotation
 // circles it).
 bool staticGameViewCamera(StaticFlyCamera* camera);
+// The ground (GL x, z) distance the game view moves for a screen step of
+// stepX right and stepY down (game pixels) at its center: what an edge scroll
+// step really does on the ground. False before the view is known.
+bool gameViewGroundStep(double stepX, double stepY, double horizontal[2], double vertical[2]);
 // The direction a fly camera looks in, and its screen right, in GL world.
 void staticFlyCameraAxes(const StaticFlyCamera& camera, float forward[3], float right[3]);
 

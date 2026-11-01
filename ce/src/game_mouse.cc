@@ -2700,7 +2700,7 @@ int gameMouseHandleScrolling(int x, int y, MouseCursorType cursor)
     int scrollDx = dx;
     int scrollDy = dy;
     if (scene::cameraTurned()) {
-        scene::cameraTurnScrollStep(dx, dy, scene::cameraTurnAngle(), &scrollDx, &scrollDy);
+        scene::cameraTurnScrollStepNow(dx, dy, &scrollDx, &scrollDy);
     }
 
     int rc = mapScroll(scrollDx, scrollDy);
