@@ -2,8 +2,8 @@
 id: 144
 title: The camera turns in 10-degree steps, up to 30 by default, and edge scrolling follows it
 milestone: M1
-status: todo
-owner: none
+status: done
+owner: claude
 suggested: gpt
 priority: high
 claude-only: no
@@ -56,3 +56,8 @@ unturned.
 ## Log
 
 - 2026-11-01 Cut from the owner's live find.
+
+### 2026-11-01 claude
+Done: step 10 and limit 30 are `kCameraTurnStep` and `kCameraTurnLimit` in `ce/src/scene/camera_turn.h`. Edge scroll on a turned camera goes through `cameraTurnScrollStep` (same header), called from `gameMouseHandleScrolling`: it rotates the edge direction by the turn into the game's eight scroll directions. Tests are in `ce/tests/settings_3d/settings_3d_test.cc`. Sprite sides read the camera angle itself, so they follow the new stops without a change.
+Next: the owner checks live that each edge moves the map toward it at 10, 20 and 30 degrees (see `runs/144-camera-turn-steps/README.md`).
+Check: `ctest --test-dir build --output-on-failure`.

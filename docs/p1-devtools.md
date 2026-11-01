@@ -120,8 +120,8 @@ or a scene cache folder; a cache side runs this checkout's build with
 quarter turns round (legacy snapshot units). `-TurnDegrees D`
 (`--dev-camera-degrees=D`) accepts an exact angle, e.g. -45 or 45. Both
 snapshot overrides bypass player settings; the dev fly camera is unlimited.
-For players, `[3d] camera_rotation` enables [ and ] in 45-degree steps,
-clamped to -45..+45. `[3d] camera_rotation_unlimited` (off by default,
+For players, `[3d] camera_rotation` enables [ and ] in 10-degree steps,
+clamped to -30..+30. `[3d] camera_rotation_unlimited` (off by default,
 marked not recommended in the Camera menu) permits a full turn. Turning rotation
 off returns to the game view; turning unlimited off clamps any current turn
 back into the safe range.
