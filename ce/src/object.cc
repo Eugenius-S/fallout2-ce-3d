@@ -939,6 +939,23 @@ void _obj_render_scene_overlay(Rect* rect)
         return;
     }
 
+    // Combat outlines (friend, foe, line of fire) round each critter, drawn
+    // where the scene shows its hex, as the 2D picture draws them after the
+    // roofs.
+    for (Object* object : outlinedObjects) {
+        if (object->tile == -1) {
+            continue;
+        }
+        int outlineDx = 0;
+        int outlineDy = 0;
+        tileSceneShift(object->tile, &outlineDx, &outlineDy);
+        object->x += outlineDx;
+        object->y += outlineDy;
+        objectDrawOutline(object, &updatedRect);
+        object->x -= outlineDx;
+        object->y -= outlineDy;
+    }
+
     textObjectsRenderInRect(&updatedRect);
 
     // The mouse's cursor objects. In move mode they stand on the hex under the
