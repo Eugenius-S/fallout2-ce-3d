@@ -35,13 +35,12 @@ So the snapshots and the live game may differ: settings (the `[3d]`
 section of the owner's ini against the snapshot's), the palette cycle in a
 running game, or the scene cache the game loads.
 
-- The owner, 2026-11-01, live on main `e434c327`: in the toxic caves, at
-  elevations 1 and 2, the game stays in the original 2D view, so there is no
-  glow because there is no 3D. `runs/inbox/2026-11-01-toxic-caves-2d-e1.webp`,
-  `runs/inbox/2026-11-01-toxic-caves-2d-e2.webp`. The owner's cache
-  `game/mod-cache/scene/klatoxcv/{0,1,2}` holds every file, and `scene.log`
-  has no line for klatoxcv. Find why the live game leaves these maps 2D
-  first; the glow and the lights come after.
+- The owner, 2026-11-01, live on main `e434c327`: the shots of the toxic
+  caves at elevations 1 and 2 (`runs/inbox/2026-11-01-toxic-caves-2d-e1.webp`,
+  `runs/inbox/2026-11-01-toxic-caves-2d-e2.webp`) are the original 2D view
+  because the hero was in combat, and the 3D view stops in combat (135). So
+  the 10-28 finds may have been 2D too. Check the glow and the lights in 3D
+  out of combat first; if they work there, close this task on that.
 
 ## Direction
 
