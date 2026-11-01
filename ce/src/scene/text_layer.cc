@@ -382,6 +382,9 @@ void TextLayer::copy(TextBufferId source, TextBufferId destination, bool destina
         clone.ownerOffsetX = destinationOwnerWindow >= 0 ? 0 : sourceRecord.ownerOffsetX + static_cast<int>(shiftX);
         clone.ownerOffsetY = destinationOwnerWindow >= 0 ? 0 : sourceRecord.ownerOffsetY + static_cast<int>(shiftY);
         clone.run.x = static_cast<int>(static_cast<std::int64_t>(clone.run.x) + shiftX);
+        if (clone.run.sharpRightAlignX >= 0) {
+            clone.run.sharpRightAlignX = static_cast<int>(static_cast<std::int64_t>(clone.run.sharpRightAlignX) + shiftX);
+        }
         clone.run.y = static_cast<int>(static_cast<std::int64_t>(clone.run.y) + shiftY);
         if (clone.run.verticalAlignmentBoxHeight > 0) {
             clone.run.verticalAlignmentBoxY = static_cast<int>(

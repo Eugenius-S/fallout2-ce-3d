@@ -435,7 +435,7 @@ int preferencesProbeNextEvent(int eventCode, scene::OptionsPanel* panel, int win
             return KEY_ESCAPE;
         }
         Window* window = windowGetWindow(windowId);
-        const int y = 170 - panel->scroll();
+        const int y = 170 + panel->legacyColumnOffset() - panel->scroll();
         if (y < 0 || y >= window->height) {
             failProbe("scrolled legacy preference was outside the viewport");
             return KEY_ESCAPE;
@@ -492,6 +492,7 @@ int preferencesProbeNextEvent(int eventCode, scene::OptionsPanel* panel, int win
             return KEY_ESCAPE;
         }
         printf("PREFERENCES_PROBE PASS 3d.zoom %s -> %s\n", gZoomBefore.c_str(), panel->settingValueForProbe("3d.zoom").c_str());
+        panel->setScroll(panel->maxScroll());
         if (gMode == ProbeMode::Save || gMode == ProbeMode::SaveKeyboard) {
             gWaitingForFooter = true;
             gExpectedFooterEvent = 504;

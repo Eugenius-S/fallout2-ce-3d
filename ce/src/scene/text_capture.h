@@ -21,6 +21,7 @@ enum class TextCaptureTag {
     InterfacePlaqueOffset,
     CharacterStatsPlaque,
     FloatingCharacterBark,
+    PreferencesControl,
 };
 
 class ScopedTextOutlineCapture {
@@ -52,6 +53,16 @@ private:
     TextCaptureTag previous_;
     ColorWithFlags previousOutlineColor_;
     int previousSharpTextOffsetY_;
+};
+
+class ScopedTextRightAlign {
+public:
+    explicit ScopedTextRightAlign(int right);
+    ~ScopedTextRightAlign();
+    ScopedTextRightAlign(const ScopedTextRightAlign&) = delete;
+    ScopedTextRightAlign& operator=(const ScopedTextRightAlign&) = delete;
+private:
+    int previous_;
 };
 
 class ScopedTextSizeRole {
