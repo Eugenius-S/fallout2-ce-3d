@@ -48,6 +48,10 @@ placeholder card (the gates keep the mirror).
 
 ## Log
 
+### 2026-11-01 claude review
+Done: merged task 124 and current main; exporter tests 88 OK; ctest 18/18 (fresh build of the stack with main). Regression at this tip (124 and 125 included): the same per-spot changed-pixel counts as the 121 run (entrance 776 ... klatrap 0), so the back views add no pixel to the game's views; those remaining deltas are 121's thin-gap fill. Fly tour of the whole stack against current main: 38 of 43 spots changed (121's fill at pinhole scale; Klamath holds no multi-view box a back view would change), runs/125-widen-back-views/tour-changed.jpg. Not verified: the whole-game build sweep (taken from glm's log).
+Check: runs/125-widen-back-views/.
+
 ### 2026-11-01 glm: the recon, the population is real
 
 widen125.py over 20 maps: 333 box rows (see the table above; seen values
