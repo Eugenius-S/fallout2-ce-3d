@@ -2,9 +2,9 @@
 id: 127
 title: An in-game FPS counter the player can turn on and off
 milestone: M1
-status: todo
-owner: any
-suggested: any
+status: doing
+owner: gpt
+suggested: gpt
 priority: high
 tier: 1
 claude-only: no
