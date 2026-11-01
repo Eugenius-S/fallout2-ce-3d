@@ -199,3 +199,8 @@ that fits no task becomes a new task when the board runs dry.
   Not now.
 - 2026-10-30 FPS counter: the owner requests an in-game FPS counter that can
   be turned on and off. Not now.
+- 2026-11-01 The 3D options screen must be finished before the showcase
+  video (097) is shot and edited: 097 waits for it. Open now: task 112
+  (buttons under the panel, straight scrollbar, side frame; PR #158 draft,
+  the mouse click on the moved buttons unverified). The owner's further
+  changes to the screen go here as they come.

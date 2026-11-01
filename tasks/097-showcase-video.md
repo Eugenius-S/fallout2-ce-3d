@@ -26,6 +26,8 @@ what is on screen.
   Higgsfield use-after-effects MCP (`higgsfield-use-after-effects`, npm
   `fnf-after-effects-mcp`, entry skill `ae-clean-rig`). Recording starts once
   tasks 112 (options panel) and 118 (widescreen art) are on `main`.
+- The owner, 2026-11-01: the 3D options screen is finished before shooting
+  and editing (inbox line of that date); it is on screen in segment 11.
 - The owner, 2026-11-01: the music is the game's own Vault City track.
 - Take it when the slice is close to done, so the shots show the finished
   look; until then this task waits.
