@@ -757,10 +757,6 @@ int mainMenuWindowInit()
     mainMenuDrawButtonLabels(layout, offsets);
 
     fontSetCurrent(oldFont);
-    mainMenuMaskBackground(std::max(0, layout.backgroundX),
-        layout.backgroundY + static_cast<int>(layout.backgroundHeight * 0.2f),
-        std::min(layout.screenWidth, static_cast<int>(layout.backgroundWidth * 0.28f)),
-        static_cast<int>(layout.backgroundHeight * 0.56f));
     mainMenuBackgroundFrmImage.unlock();
     mainMenuButtonPanelFrmImage.unlock();
 
