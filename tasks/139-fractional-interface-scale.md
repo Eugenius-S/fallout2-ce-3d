@@ -4,7 +4,7 @@ title: The game scale picked in the options menu in steps of 0.1x, not only whol
 milestone: M1
 status: todo
 owner: none
-suggested: claude
+suggested: gpt
 priority: normal
 claude-only: no
 user-check: yes
@@ -52,3 +52,5 @@ whole-number `scale` in fallout2.cfg (now x2 on the owner's screen).
 The 3D camera zoom, new art for any size, the font clipping (140).
 
 ## Log
+
+- 2026-11-01 Moved to gpt so claude takes 135, 149 and 129.
