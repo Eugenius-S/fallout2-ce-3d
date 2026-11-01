@@ -2,8 +2,8 @@
 id: 137
 title: No long straight hard shadow edge across the street
 milestone: M1
-status: todo
-owner: none
+status: done
+owner: claude
 suggested: claude
 priority: high
 claude-only: no
@@ -80,3 +80,22 @@ material or geometry source remains unknown. Task 137 stays unresolved; this
 is preliminary attribution only.
 
 - 2026-11-01 Moved to claude with the owner's sun shadow blotches find (inbox).
+
+### 2026-11-01 claude
+Cause: no shadow defect. The straight edge and the shapeless patches are the
+Klamath asphalt itself: the road art has near-black and dark grey zones with
+fairly sharp borders, and they read the same in the game's 2D picture.
+
+Check: the owner's spot (lamp post at the curb by the Buckner building,
+`-ViewTile 22491`) with the owner's shadow values (`shadow_pixel_size=3`,
+`shadow_density=0.85`, `sun_swing=44`), in the background test run:
+- `runs/137-hard-shadow-edge/blotches-are-art.jpg`: the owner's shot, the
+  2D picture, 3D with every shadow off and 3D with sun shadows at 08:00. The
+  patches are in all four.
+- `runs/137-hard-shadow-edge/sun-shadow-only-08-12-17.jpg`: shadows off
+  minus sun shadows at 08:00, 12:00 and 17:00, amplified. The sun shadows
+  darken only the building walls, the sidewalk at their foot and the fence;
+  nothing on the road.
+
+Next: if the owner still sees a patch that turns off with `shadows=0`, a new
+task with that view.
