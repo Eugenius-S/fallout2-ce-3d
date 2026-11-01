@@ -2,8 +2,8 @@
 id: 111
 title: The slime pools glow and the lamps light the walls in the live caves
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: glm
 suggested: glm
 priority: normal
 claude-only: no
@@ -63,3 +63,31 @@ turns the glow and the lights off, then fix that cause, not the look.
 New glow kinds, the glow's look, light strength.
 
 ## Log
+
+### 2026-11-01 glm: the live-game side investigated, the cause narrowed to two items
+
+Done (no code changed; the read-only inspection of the owner's game):
+- The owner's mod-cache scene folders: klatoxcv 0/1/2 are COMPLETE (all 12
+  files each). kladwtwn holds elevation 0 ONLY; artemple and vault15 have
+  no folders at all. The owner's game\logs\scene.log tail agrees: artemple,
+  vault15 and kladwtwn elevation 1 each log "stays 2D: floor.bin is missing
+  or unreadable" - those maps are correctly 2D for want of a cache.
+- klatoxcv has NO lines in the owner's scene.log: the loader never failed
+  there, so the live 2D in the caves was the 3D view being off - per the
+  owner's 11-01 note, the hero was in combat, and the 3D view stops in
+  combat (135). Out of combat the caves are 3D: the sweep's fly tour
+  (build/tour/after/klatoxcv-e0..e2 in the glm worktree) shows all three
+  elevations in 3D.
+- The glow round the slime: every snapshot fixture runs with the glow
+  forced OFF (dev-snapshot keeps captures byte-stable; -Glow keeps it on),
+  so the tour stills show the pools flat by design and prove nothing about
+  the live look.
+
+Next: one live-like shot - dev-snapshot -Map klatoxcv -Elevation 1
+-ViewTile 19091 -Glow WITHOUT -Still (the palette cycles, the glow on) -
+and judge the slime's halo and one lit wall; if they work there, close
+this task on that (the task's own 11-01 direction). kladwtwn/1 and the
+arroyo maps on the owner's side ride with 136's group export and an
+owner-side re-export.
+
+Check: game/logs/scene.log tail; the mod-cache listings above.
