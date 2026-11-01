@@ -9,7 +9,7 @@ priority: high
 claude-only: no
 user-check: yes
 depends-on: []
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -110,3 +110,19 @@ Next: task 116 (stove and lockers as solids), its depends-on is this task.
 Check: the sheets in `runs/115-no-holes-in-3d-things/`; tour sheets
 `build/tour/sheets/changed*.jpg`; regression run
 `runs/regression/20261029-143502-070-42680`.
+
+### 2026-10-31 gpt review
+Done: independently reviewed the exporter fill rule against current
+`origin/main` `b2223f39`. The changed pixels are localized to enclosed
+transparent pixels on wall and solid textures; open border-connected cuts
+remain transparent. The tub's open leg shape remains visible. Classic output
+is unchanged at all 16 regression locations. The 3D fly tour changed 38 of
+43 spots, with changes confined to wall/solid texture holes and no geometry
+or camera displacement.
+Check: `ctest --test-dir build --output-on-failure` 18/18 on the current-main
+CE build (the PR has no CE source changes); scene_export tests 70/70;
+regression tests 12/12; PR regression 16/16; direct Classic comparison
+16/16 with 0 changed pixels; current-main vs PR fly tour 43 spots, 129 angles
+per side, 38 changed spots. Both sides used EXE SHA
+`c7af38c23acc9d198e1a3e2543a75faafbd04860734e3e16910592828eecdb4f`,
+`ce_commit=b8eb43c5`, and separate explicit `build/scene-cache` folders.

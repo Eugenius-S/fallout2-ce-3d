@@ -60,6 +60,19 @@ New shapes for other things; engine live-solid work unless the owner asks.
 
 ## Log
 
+### 2026-11-01 claude review
+
+Done: reviewed PR #167 (it carries all of task 116's fit work; PR #166 is superseded and
+must not merge). Merged origin/main `2ec07ab0` (conflicts only in the 115 task Log and the
+exporter test file; kept main's 115 Log and both test classes). The rules are general (the
+lid-drum fit by silhouette, the animating-container gate, the atlas pin), no per-object
+names. Regression references equal main's.
+Check: ctest 18/18; exporter unittests 74; regression unittests 12; tools/regression.ps1
+16/16 with 0 changed pixels against main's references; fly tour against main's scene
+cache (`runs/119-lid-drums-render/tour-changed.jpg`): 7 of 43 spots changed, all stove
+drums or the Robot Receptacle drum in flight (55 to 25650 px, the cave 95185 px at one turn
+is the receptacle drum), no geometry or camera displacement elsewhere.
+
 ### 2026-10-31 glm: the owner's visual pass: accepted overall; two follow-ups move to task 120
 
 The owner walked the 12 acceptance pairs: «в целом ок» (accepted overall),
