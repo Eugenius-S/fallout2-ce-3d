@@ -858,10 +858,12 @@ class WallSidecarTests(unittest.TestCase):
         self.assertGreater(fly(solid), fly(mesh))
         self.assertEqual(fly(None), fly(solid))  # without the atlas every wall counts as solid
         # A lower wall gets no fin: the core's arm in it stays below its top.
+        # (The corner's cap piece stands a hair above the top by design, and a
+        # clear mesh takes no cap at all: no column of its band stays opaque.)
         scene["walls"][1][6], scene["walls"][1][9] = 0.9, 0.8
         vertices = lambda atlas: {tuple(round(n, 4) for n in v[:3]) for batch in decode_wall_sidecar(
             encode_wall_sidecar(scene, atlas=[atlas]))["batches"] if batch["fly_only"] for v in batch["vertices"]}
-        arm = [z for x, z, y in vertices(solid) - vertices(mesh) if y + 50.0 < 1.7]
+        arm = [z for x, z, y in vertices(solid) - vertices(mesh) if y + 50.0 < 1.7 and z < 0.8 + 0.002]
         self.assertTrue(arm)
         self.assertLessEqual(max(arm), 0.8)
 
