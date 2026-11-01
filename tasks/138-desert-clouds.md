@@ -9,7 +9,7 @@ priority: high
 claude-only: no
 user-check: yes
 depends-on: []
-reviewed: yes
+reviewed: no
 ---
 
 ## Goal
@@ -65,4 +65,43 @@ Check: Release build passed. CTest passed 18/18; scene export tests passed
 16/16 with zero changed pixels. Captures used `build/scene-cache`; no
 `game/mod-cache` path was used.
 
-Next: None.
+### 2026-11-01 follow-up
+Added independent `--dev-sun-shadows` capture mode for matched cloud-only,
+sun-only and combined comparisons.
+
+The original combined shader applied ambient cloud attenuation and solar
+attenuation before converting light to 128 steps and RGB555-like channels.
+That quantization hid the solar contribution in 16.07% of overlap pixels.
+The final compositor computes cloud-only and sun-only RGB5 contributions,
+then adds their darkening deltas for the combined mode. Cloud-only and
+sun-only modes are unchanged.
+
+Matched four-mode evidence at KLADWTWN/tile 24678, 08:25, swing 44, phase 12
+is in `ab-final-0825-s44-p12-shadow-modes.jpg` with mode sidecars and metric
+manifest. The overlap is 86,265 pixels (4.16% of frame). Mean solar luminance
+contrast is 17.20/255 without clouds, 10.66/255 with the old compositor, and
+16.20/255 (94.2%) with the RGB5 additive compositor. Pixels with no solar RGB
+change fall from 16.07% to 11.01%. Cloud darkening remains visible in the
+overlap at 7.10/255 versus 8.09/255 cloud-only.
+
+Tradeoff: the combined overlap is locally darker. Pixels whose maximum RGB
+channel is at most 8/255 rise from 10.95% to 28.99% within that overlap mask.
+Matched 08:00, 12:00 and 17:00 phase-12 crops retain visible wall and curb
+detail, but the increased local darkness needs the owner's visual review.
+All nine matched before/after pairs (18 individual JPEGs, <=714 KB each) use
+swing 44, identical camera/time/resolution per pair, and phases 0, 12 and 24.
+The three comparison sheets are
+`08-before-after-composite.jpg`, `12-before-after-composite.jpg` and
+`17-before-after-composite.jpg`.
+
+Task 137 follow-up remains preliminary: the clipboard crop has no runtime
+metadata; its strong image match persists with both shadow modes off, while
+cloud-only changes its pixels and sun-only does not. No shadow-pass source
+for that edge is established. Forced-ambient runs are excluded because the
+override also changed reported sun-up state.
+
+Check: Release build passed; CTest 18/18, scene-export tests 88/88,
+regression-tool tests 12/12, and the full pixel regression 16/16 with zero
+changed pixels. Captures use `build/scene-cache`; `game/mod-cache` was not
+used. PR #199 remains draft and depends on #198; request owner visual review
+before treating the compositor as accepted.

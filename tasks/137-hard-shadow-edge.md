@@ -59,3 +59,16 @@ Limit: The cloud-only run has sun shadows off, and the comparison does not
 recreate the owner's exact view. This is preliminary evidence against a cloud
 edge, not a confirmed root cause. The shadow-map, caster and receiver-mask
 suspects remain open; task 137 stays todo.
+
+### 2026-11-01 follow-up
+The newer clipboard crop is 193x321 and has no game metadata. Its strongest
+image match in the matched KLADWTWN/tile 24678 captures is at (333, 601),
+normalized correlation about 0.932. At 08:25, swing 44 and cloud phase 505,
+that region is unchanged when both shadow modes are off; clouds change it,
+while sun shadows alone do not. The edge persists with both modes off, so
+neither shadow pass is shown to create it in this matched region. See
+`runs/138-desert-clouds/ab-0825-s44-p505-shadow-modes.jpg` and sidecars.
+
+Limit: the image match does not prove identical owner runtime state, and the
+material or geometry source remains unknown. Task 137 stays unresolved; this
+is preliminary attribution only.
