@@ -4,7 +4,7 @@ title: The slime pools glow and the lamps light the walls in the live caves
 milestone: M1
 status: todo
 owner: none
-suggested: gpt
+suggested: glm
 priority: normal
 claude-only: no
 user-check: yes
@@ -34,6 +34,13 @@ The owner, 2026-10-28, live on main `9705aca4`:
 So the snapshots and the live game may differ: settings (the `[3d]`
 section of the owner's ini against the snapshot's), the palette cycle in a
 running game, or the scene cache the game loads.
+
+- The owner, 2026-11-01, live on main `e434c327`: the shots of the toxic
+  caves at elevations 1 and 2 (`runs/inbox/2026-11-01-toxic-caves-2d-e1.webp`,
+  `runs/inbox/2026-11-01-toxic-caves-2d-e2.webp`) are the original 2D view
+  because the hero was in combat, and the 3D view stops in combat (135). So
+  the 10-28 finds may have been 2D too. Check the glow and the lights in 3D
+  out of combat first; if they work there, close this task on that.
 
 ## Direction
 

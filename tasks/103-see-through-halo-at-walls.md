@@ -35,6 +35,14 @@ A wall in front of the hero turns see-through round him in the 3D view, as
   objects, walls.bin names each face's map object. Something since then
   stopped walls from taking it.
 
+- The owner, 2026-11-01, live on main `e434c327`, found the exact spot:
+  Klamath downtown, the hero in the lane between the low building and the
+  bathhouse, behind the low building's wall. In 3D the wall is not cut and
+  the hero is drawn over it; the original view cuts the halo.
+  `runs/inbox/2026-11-01-halo-3d.webp` | `runs/inbox/2026-11-01-halo-original.webp`.
+  The save of that moment (read only, copy it before loading):
+  `game/user-assets/saves/2026-11-01-103-halo-slot01/` (slot 01, "123").
+
 ## Acceptance
 
 - Name the commit that lost it (git bisect with a dev snapshot of that
