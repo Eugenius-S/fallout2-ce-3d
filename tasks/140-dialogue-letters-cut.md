@@ -45,3 +45,8 @@ letters cut off where a line meets the next one or the edge of its box.
 The fractional scale (139), new fonts, text layout changes beyond the clip.
 
 ## Log
+
+### 2026-11-01 gpt
+Done: Expanded the sharp font-101 visibility mask through the logical line box, bounded by the owning window and its occluders. Added a unit assertion for the expanded area.
+Next: Reproduce the exact clipped owner dialogue state and confirm a visible before/after change before setting this task done. The Kcsulik fixture opened a real game dialogue through `gameDialogEnter`, but its old and new screenshots were pixel-identical, so it does not reproduce the reported cut.
+Check: Release build passed; ctest 18/18; `tools/regression.ps1` passed 16 spots with 0 changed pixels. The isolated dialogue fixture rendered 10 runs and 295 glyphs. English and Russian message/log and character fixtures rendered at 1920x1080, scale 2. Compact evidence: `runs/140-dialogue-letters-cut/`.
