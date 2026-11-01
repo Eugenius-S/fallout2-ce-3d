@@ -575,6 +575,46 @@ void renderFpsCounter()
 
 void renderPresent()
 {
+    static Uint32 fpsWindowStart = 0;
+    static unsigned int fpsWindowFrames = 0;
+    static unsigned int fpsValue = 0;
+    static double frameTimeMs = 0.0;
+    static bool fpsWasDrawn = false;
+    static int fpsX = 0;
+    static int fpsWidth = 0;
+    const bool showFps = settings.scene3d.fps_counter && scene_renderer::isActive() && gSdlSurface != nullptr;
+    if (!showFps) {
+        if (fpsWasDrawn && gSdlSurface != nullptr) {
+            textCaptureEraseTextRuns(static_cast<unsigned char*>(gSdlSurface->pixels), "FPS ");
+        }
+        fpsWasDrawn = false;
+        fpsWindowStart = 0;
+        fpsWindowFrames = 0;
+    } else {
+        const Uint32 now = SDL_GetTicks();
+        if (fpsWindowStart == 0) fpsWindowStart = now;
+        ++fpsWindowFrames;
+        const Uint32 elapsed = now - fpsWindowStart;
+        if (elapsed >= 500 && fpsWindowFrames > 0) {
+            fpsValue = static_cast<unsigned int>((static_cast<Uint64>(fpsWindowFrames) * 1000 + elapsed / 2) / elapsed);
+            frameTimeMs = static_cast<double>(elapsed) / fpsWindowFrames;
+            fpsWindowStart = now;
+            fpsWindowFrames = 0;
+        }
+        textCaptureEraseTextRuns(static_cast<unsigned char*>(gSdlSurface->pixels), "FPS ");
+        char fpsText[48];
+        snprintf(fpsText, sizeof(fpsText), "FPS %3u  %5.1f ms", fpsValue, frameTimeMs);
+        ScopedFont fpsFont(101);
+        const int width = fontGetStringWidth(fpsText);
+        const int x = gSdlSurface->w - width - 8;
+        if (x >= 0) {
+            fpsX = x;
+            fpsWidth = width;
+            fontDrawText(static_cast<unsigned char*>(gSdlSurface->pixels) + gSdlSurface->pitch * 8 + x,
+                fpsText, width, gSdlSurface->pitch, COLOR_GREEN | DRAW_TEXT_FLAG_SHADOWED);
+            fpsWasDrawn = true;
+        }
+    }
     // The 3D scene shows the world: the tile window keeps only what the game
     // draws over it.
     if (scene_renderer::isActive()) {
@@ -610,6 +650,29 @@ void renderPresent()
                 scene_renderer::perfMark("glow");
                 // A fly camera shows the world alone.
                 if (scene_renderer::staticFlyCameraActive()) {
+                    if (fpsWasDrawn && fpsWidth > 0 && gSdlSurface->format != nullptr
+                        && gSdlSurface->format->palette != nullptr) {
+                        const int overlayHeight = std::min(fontGetLineHeight(), gSdlSurface->h - 8);
+                        const int overlayWidth = std::min(fpsWidth, gSdlSurface->w - fpsX);
+                        const int rgbaPitch = overlayWidth * 4;
+                        std::vector<unsigned char> rgba(static_cast<size_t>(rgbaPitch) * overlayHeight, 0);
+                        SDL_Palette* palette = gSdlSurface->format->palette;
+                        for (int y = 0; y < overlayHeight; ++y) {
+                            for (int x = 0; x < overlayWidth; ++x) {
+                                const unsigned char index = static_cast<const unsigned char*>(gSdlSurface->pixels)
+                                    [static_cast<size_t>(y + 8) * gSdlSurface->pitch + fpsX + x];
+                                if (index == COLOR_FIRST || index >= palette->ncolors) continue;
+                                const SDL_Color& color = palette->colors[index];
+                                unsigned char* pixel = rgba.data() + static_cast<size_t>(y) * rgbaPitch + x * 4;
+                                pixel[0] = color.r;
+                                pixel[1] = color.g;
+                                pixel[2] = color.b;
+                                pixel[3] = 255;
+                            }
+                        }
+                        scene_renderer::drawOverlay(rgba.data(), overlayWidth, overlayHeight, rgbaPitch,
+                            fpsX, 8, overlayWidth, overlayHeight);
+                    }
                     scene_renderer::swap();
                     scene_renderer::perfEnd();
                     return;

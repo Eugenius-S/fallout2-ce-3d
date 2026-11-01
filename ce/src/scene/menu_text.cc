@@ -56,6 +56,8 @@ const std::vector<Translation>& catalog()
         { "Show the 3D world view where a scene is available.", cp1251(u8"Показывать мир в 3D там, где доступна сцена.") },
         { "Sharp interface text", cp1251(u8"Чёткий текст интерфейса") },
         { "Draw small interface text with a high-resolution font.", cp1251(u8"Рисовать мелкий текст интерфейса шрифтом высокого разрешения.") },
+        { "FPS counter", cp1251(u8"Счётчик FPS") },
+        { "Show average frames per second and frame time. Press F8 to toggle it while playing.", cp1251(u8"Показывать среднюю частоту кадров и время кадра. Нажмите F8, чтобы переключить счётчик во время игры.") },
         { "Clean map edges", cp1251(u8"Чёткие границы карты") },
         { "Cut the 3D scene to the map boundary, leaving black beyond it.", cp1251(u8"Обрезать 3D-сцену по границам карты. За границами остаётся чёрный фон.") },
         { "Sun", cp1251(u8"Солнце") },

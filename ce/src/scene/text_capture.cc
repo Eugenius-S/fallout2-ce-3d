@@ -523,6 +523,25 @@ void textCaptureUnregisterExternalBuffer(void* buffer)
     }
 }
 
+void textCaptureEraseTextRuns(unsigned char* buffer, const char* prefix)
+{
+    if (buffer == nullptr || prefix == nullptr || *prefix == '\0') return;
+    std::lock_guard<std::recursive_mutex> lock(captureMutex());
+    BufferRange* range = findRange(buffer);
+    if (range == nullptr || range->pitch <= 0) return;
+    const std::string runPrefix(prefix);
+    const std::vector<scene::TextRecord> records = layer().records();
+    for (const scene::TextRecord& record : records) {
+        if (record.buffer != range->id || record.run.text.compare(0, runPrefix.size(), runPrefix) != 0) continue;
+        for (const scene::TextPixelRecord& pixel : record.pixels) {
+            if (pixel.x < 0 || pixel.y < 0 || pixel.x >= range->width || pixel.y >= range->height) continue;
+            unsigned char& current = buffer[static_cast<std::size_t>(pixel.y) * range->pitch + pixel.x];
+            if (current == pixel.after) current = pixel.before;
+        }
+    }
+    layer().eraseTextRuns(range->id, runPrefix);
+}
+
 void textCaptureMarkBufferOwned(void* buffer)
 {
     std::lock_guard<std::recursive_mutex> lock(captureMutex());

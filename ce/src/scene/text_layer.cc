@@ -714,6 +714,13 @@ void TextLayer::eraseBuffer(TextBufferId buffer)
     }), records_.end());
 }
 
+void TextLayer::eraseTextRuns(TextBufferId buffer, const std::string& prefix)
+{
+    records_.erase(std::remove_if(records_.begin(), records_.end(), [&buffer, &prefix](const TextRecord& record) {
+        return record.buffer == buffer && record.run.text.compare(0, prefix.size(), prefix) == 0;
+    }), records_.end());
+}
+
 void TextLayer::eraseOwner(int window, TextBufferId generation)
 {
     records_.erase(std::remove_if(records_.begin(), records_.end(), [window, generation](const TextRecord& record) {

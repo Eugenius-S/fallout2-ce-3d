@@ -47,3 +47,23 @@ the real FPS while playing.
 
 Performance fixes. If the numbers show a problem, write it in the Log for a
 new task.
+
+## Log
+
+### 2026-11-01 gpt implementation
+
+Added the default-off `[3d] fps_counter` setting, an F8 toggle, and a green
+font-101 readout with average FPS and frame time. The fly camera uses the same
+half-second measurement window and draws only the counter over its view.
+
+The isolated 2D runtime capture is `runs/127-fps-counter/2d/scr00000.png`;
+it showed 68 FPS and 14.8 ms on Klamath downtown. The full task regression
+against the branch references passed 16/16 with zero changed pixels, and CTest
+passed 18/18. A direct current-`origin/main` comparison before the fly-only
+overlay change also matched 16/16 exactly; the counter-off path is unchanged.
+
+Acceptance remains incomplete: the dev snapshot tool writes a static 3D
+preview rather than a live game frame, and the isolated live launch did not
+enter a loaded-game state with the setting enabled. Therefore there is no
+verified 3D/Fly counter screenshot or fly-camera FPS reading yet. Keep this
+task `doing` until those live captures are obtained.

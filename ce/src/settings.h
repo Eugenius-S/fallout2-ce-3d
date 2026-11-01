@@ -309,6 +309,7 @@ struct Scene3dSettings {
     double zoom_min = 0.5;
     double zoom_max = 2.0;
     bool clean_edges = true;
+    bool fps_counter = false;
 };
 
 struct MapperSettings {
