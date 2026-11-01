@@ -212,5 +212,6 @@ that fits no task becomes a new task when the board runs dry.
   settings the mod uses that CE lacks, and whether its new maps and art pass
   through our scene export; then cut the work. Not now.
 - 2026-11-01 Cut for gpt: the Russian menu labels (126), the FPS counter and
-  the frame rate (127), the wide HUD bar source (128).
+  the frame rate (127), the wide HUD bar source (128), the 3D options
+  screen finish to the owner's notes (130).
 - 2026-11-01 Cut for glm: a non-stop Klamath graphics sweep (129).
