@@ -316,6 +316,25 @@ void testFont101SharpEligibility()
     gCurrentFont = 101;
 }
 
+void testPreferencesControlKeepsPixelLabels()
+{
+    using namespace fallout;
+    std::vector<unsigned char> pixels(32, 1);
+    textCaptureRegisterExternalBuffer(pixels.data(), pixels.size(), 8, 4, 8, false);
+    const auto id = textCaptureBufferId(pixels.data());
+    fontDrawTextPtr = drawTwoGlyphs;
+    gCurrentFont = 101;
+    {
+        ScopedTextCaptureTag tag(TextCaptureTag::PreferencesControl);
+        fontDrawText(pixels.data(), "ab", 8, 8, static_cast<ColorWithFlags>(5));
+    }
+    fontDrawText(pixels.data() + 4, "ab", 8, 8, static_cast<ColorWithFlags>(5));
+    const auto records = scene::textCaptureRecords(id);
+    check(records.size() == 2 && !records[0].run.sharpEligible && records[1].run.sharpEligible,
+        "legacy preference value labels stay pixel-aligned while other text remains sharp");
+    textCaptureUnregisterExternalBuffer(pixels.data());
+}
+
 void testSemanticGreenCaptureRoles()
 {
     using namespace fallout;
@@ -991,6 +1010,7 @@ int main()
     fallout::fontGetMonospacedCharacterWidth = fallout::fakeMonospacedWidth;
     testAllocatorGenerationAndShadowGuard();
     testFont101SharpEligibility();
+    testPreferencesControlKeepsPixelLabels();
     testSemanticGreenCaptureRoles();
     testSafeClippedCaptureAndBlit();
     testAllocationEdgeBounds();

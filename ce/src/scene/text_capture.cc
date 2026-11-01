@@ -616,7 +616,10 @@ void textCaptureDrawText(unsigned char* buffer, const char* string, int length, 
     run.colorAndFlags = static_cast<unsigned int>(color);
     run.hasOutline = outlinedRun;
     run.outlineColor = outlinedRun ? static_cast<unsigned int>(activeTextOutlineColor()) : 0;
-    run.sharpEligible = run.font == 101;
+    // The original preferences knobs overlap the font's line box. Keep their
+    // compact value labels in the pixel font so the sharp overlay cannot move
+    // or draw them on top of the knob artwork.
+    run.sharpEligible = run.font == 101 && activeTextCaptureTag() != TextCaptureTag::PreferencesControl;
     const Color sourceColor = static_cast<Color>(static_cast<unsigned int>(color) & 0xFF);
     if (run.sharpEligible && isSemanticGreenColor(sourceColor)) {
         if (activeTextCaptureTag() == TextCaptureTag::CharacterStatsPlaque && sourceColor == COLOR_DARK_GREEN_2) {

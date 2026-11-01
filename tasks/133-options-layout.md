@@ -60,3 +60,14 @@ Check: Release build and CTest 18/18; isolated save/cancel probes exercised
 scrollbar dragging, the 3D slider and legacy controls. Russian snapshots cover
 16:9 and 4:3. The final build's entrance scene matched current origin/main
 (e5063d0a) pixel for pixel. Updated outcome images are in runs/133.
+
+### 2026-11-01 gpt control-label and alignment follow-up
+Done: Kept legacy preference value text in the original pixel font so the
+sharp overlay no longer shifts it behind the knobs. Right-aligned 3D values
+in one column and centred checkboxes at the slider endpoint.
+Check: CTest 18/18, including a scoped text-capture test. All five primary
+knob regions and all six secondary controls match current main's original
+pixel text exactly after accounting for the intentional column shift. Isolated
+sharp-text save/cancel probes passed; Russian and English snapshots cover 16:9
+and Russian 4:3. The entrance scene matches origin/main e5063d0a pixel for
+pixel. Earlier screenshot variants remain in the Git history and build folder.

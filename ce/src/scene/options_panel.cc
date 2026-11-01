@@ -740,10 +740,12 @@ void OptionsPanel::drawRows()
         switch (row.control) {
         case OptionsPanelControl::Toggle: {
             bool value = std::get<bool>(row.edit->value);
-            std::snprintf(valueText, sizeof(valueText), "[%c] %s", value ? 'X' : ' ', localized(value ? "On" : "Off"));
-            const int labelX = sliderTrackRight() - fontGetStringWidth("[X]") / 2;
-            fontDrawText(panel + kWidth * (rowY + kLabelTextOffset) + labelX,
-                valueText, kWidth - inset - labelX - 32, kWidth, color);
+            const char* checkbox = value ? "[X]" : "[ ]";
+            const int checkboxX = sliderTrackRight() - fontGetStringWidth(checkbox) / 2;
+            fontDrawText(panel + kWidth * (rowY + kLabelTextOffset) + checkboxX,
+                checkbox, kWidth - inset - checkboxX - 32, kWidth, color);
+            drawRightAlignedControlText(panel, rowY, kSliderValueX - inset,
+                kSliderValueX + kSliderValueWidth - inset, localized(value ? "On" : "Off"), color);
             break;
         }
         case OptionsPanelControl::Slider: {

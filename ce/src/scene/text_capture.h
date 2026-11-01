@@ -21,6 +21,7 @@ enum class TextCaptureTag {
     InterfacePlaqueOffset,
     CharacterStatsPlaque,
     FloatingCharacterBark,
+    PreferencesControl,
 };
 
 class ScopedTextOutlineCapture {
