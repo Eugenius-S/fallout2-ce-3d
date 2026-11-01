@@ -186,21 +186,69 @@ int main()
             && unlimited->fallbackLabel.find("not recommended") != std::string::npos,
             "rotation and unrestricted rotation are independent default-off menu options")) return 1;
     double angle = 0.0;
+    if (!check(scene::kCameraTurnStep == 10.0 && scene::kCameraTurnLimit == 30.0
+            && scene::cameraTurnTarget(0.0, 1, false) == 10.0,
+            "one press turns 10 degrees, the limit is 30")) return 1;
     for (int i = 0; i < 100; ++i) angle = scene::cameraTurnTarget(angle, 1, false);
-    if (!check(angle == 45.0 && scene::cameraTurnTarget(angle, -1, false) == 0.0,
-            "held right stops at +45 and one left returns to game view")) return 1;
+    if (!check(angle == 30.0 && scene::cameraTurnTarget(angle, -3, false) == 0.0,
+            "held right stops at +30 and three left return to game view")) return 1;
     for (int i = 0; i < 100; ++i) angle = scene::cameraTurnTarget(angle, -1, false);
-    if (!check(angle == -45.0 && scene::cameraTurnTarget(angle, 1, false) == 0.0,
-            "held left stops at -45 and one right returns to game view")) return 1;
+    if (!check(angle == -30.0 && scene::cameraTurnTarget(angle, 3, false) == 0.0,
+            "held left stops at -30 and three right return to game view")) return 1;
     angle = 0.0;
-    for (int i = 0; i < 8; ++i) angle = scene::cameraTurnTarget(angle, 1, true);
-    if (!check(angle == 360.0 && scene::cameraTurnTarget(0.0, -8, true) == -360.0,
-            "own-risk option permits a full turn in both directions")) return 1;
-    if (!check(scene::limitedCameraTurn(270.0) == -45.0
-            && scene::limitedCameraTurn(-270.0) == 45.0
+    for (int i = 0; i < 36; ++i) angle = scene::cameraTurnTarget(angle, 1, true);
+    if (!check(angle == 360.0 && scene::cameraTurnTarget(0.0, -36, true) == -360.0
+            && std::fmod(angle, 360.0) == 0.0,
+            "own-risk option permits a full turn in 36 steps both ways and lands on the game view")) return 1;
+    if (!check(scene::limitedCameraTurn(270.0) == -30.0
+            && scene::limitedCameraTurn(-270.0) == 30.0
             && scene::limitedCameraTurn(360.0) == 0.0
-            && scene::limitedCameraTurn(22.5) == 22.5,
+            && scene::limitedCameraTurn(22.5) == 22.5
+            && scene::limitedCameraTurn(40.0) == 30.0,
             "revoking unlimited rotation wraps then clamps the current view")) return 1;
+    // Edge scroll on a turned camera: (dx, dy) is the edge on the turned screen,
+    // dy down. Unturned it is untouched; turned it points where that edge is on
+    // the ground, in the game's unturned directions.
+    int sx = 9, sy = 9;
+    bool unturnedSame = true;
+    for (int dx = -1; dx <= 1; ++dx) {
+        for (int dy = -1; dy <= 1; ++dy) {
+            scene::cameraTurnScrollStep(dx, dy, 0.0, &sx, &sy);
+            unturnedSame = unturnedSame && sx == dx && sy == dy;
+        }
+    }
+    if (!check(unturnedSame, "unturned edge scroll is unchanged")) return 1;
+    scene::cameraTurnScrollStep(1, 0, 30.0, &sx, &sy);
+    const bool rightAt30 = sx == 1 && sy == -1; // right edge at +30: the map moves right and up
+    scene::cameraTurnScrollStep(1, 0, -30.0, &sx, &sy);
+    const bool rightAtMinus30 = sx == 1 && sy == 1;
+    scene::cameraTurnScrollStep(0, -1, 30.0, &sx, &sy);
+    const bool topAt30 = sx == -1 && sy == -1; // top edge at +30: up and left
+    scene::cameraTurnScrollStep(-1, 0, 30.0, &sx, &sy);
+    const bool leftAt30 = sx == -1 && sy == 1;
+    scene::cameraTurnScrollStep(1, 0, 20.0, &sx, &sy);
+    const bool rightAt20 = sx == 1 && sy == 0;
+    scene::cameraTurnScrollStep(1, 0, 10.0, &sx, &sy);
+    const bool rightAt10 = sx == 1 && sy == 0;
+    if (!check(rightAt30 && rightAtMinus30 && topAt30 && leftAt30 && rightAt20 && rightAt10,
+            "edge scroll on a turned camera maps each edge to the ground toward it on screen")) return 1;
+    // Every edge and corner at 10, 20, 30 and -30: the result is the game direction
+    // nearest to the turned screen direction (within 22.5 degrees of the exact one).
+    bool nearest = true;
+    const double pi = 3.14159265358979323846;
+    for (const double turn : { 10.0, 20.0, 30.0, -30.0 }) {
+        for (int dx = -1; dx <= 1; ++dx) {
+            for (int dy = -1; dy <= 1; ++dy) {
+                if (dx == 0 && dy == 0) continue;
+                scene::cameraTurnScrollStep(dx, dy, turn, &sx, &sy);
+                const double want = std::atan2(-dy, dx) + turn * pi / 180.0;
+                const double got = std::atan2(-sy, sx);
+                nearest = nearest && (sx != 0 || sy != 0)
+                    && std::abs(std::remainder(got - want, 2.0 * pi)) <= pi / 8.0 + 1e-9;
+            }
+        }
+    }
+    if (!check(nearest, "every edge and corner at 10, 20, 30 and -30 degrees scrolls toward it on screen")) return 1;
     if (!check(unrelatedDescriptor != nullptr, "real unrelated setting descriptor is registered")) return 1;
     if (!check(settingsGetRevision(*descriptor) == 0 && settingsGetRevision(*unrelatedDescriptor) == 1,
             "config read increments only the changed setting revision")) return 1;
@@ -341,8 +389,8 @@ int main()
     }
     if (!check(std::string(scene::menuText("On", "RuSsIaN")) == "\xC2\xEA\xEB",
             "Russian menu text uses CP1251 and case-insensitive language selection")) return 1;
-    if (!check(std::string(scene::menuText("Camera rotation", "russian")).find("-45\xB0") != std::string::npos
-            && std::string(scene::menuText("Camera rotation", "russian")).find("+45\xB0") != std::string::npos
+    if (!check(std::string(scene::menuText("Camera rotation", "russian")).find("-30\xB0") != std::string::npos
+            && std::string(scene::menuText("Camera rotation", "russian")).find("+30\xB0") != std::string::npos
             && std::string(scene::menuText("Camera rotation", "russian")).find('?') == std::string::npos,
             "camera range preserves signs and degree symbols in the game's encoding")) return 1;
     if (!check(static_cast<unsigned char>(scene::menuText("Sharp interface text", "russian")[1]) == 0xB8,

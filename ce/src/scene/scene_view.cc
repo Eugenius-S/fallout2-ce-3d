@@ -661,6 +661,11 @@ bool cameraTurned()
     return gTurnOwnsCamera;
 }
 
+double cameraTurnAngle()
+{
+    return gTurnOwnsCamera ? gTurnAt : 0.0;
+}
+
 void updateCameraTurn()
 {
     if (!gTurnOwnsCamera && gTurnAt == 0.0 && gTurnTo == 0.0) return;
