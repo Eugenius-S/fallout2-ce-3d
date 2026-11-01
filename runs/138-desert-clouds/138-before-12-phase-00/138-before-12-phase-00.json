@@ -1,0 +1,35 @@
+{
+  "image": "138-before-12-phase-00.jpg",
+  "source_png_sha256": "6f9024673e670e9baadd5f3ec3ca3645a84fb5b79de283d8e37572964fc5a228",
+  "map": "KLADWTWN.MAP",
+  "view_tile": 24678,
+  "camera": "fixed eye=(38.14466,46.23085,85.71700), target=(-11.04167,0.00000,11.93750), fov_y=25.0, near=0.1, far=400.0, screen_right=-cross(forward,world_up)",
+  "game_time": 432000,
+  "sun": {
+    "setting": true,
+    "daylight": true,
+    "game_time": 432000,
+    "up": true,
+    "height": 90.0,
+    "azimuth": 0.0,
+    "direction": [
+      -0.0,
+      1.0,
+      0.0
+    ],
+    "color": [
+      1.0,
+      0.96,
+      0.88
+    ],
+    "strength": 1.0
+  },
+  "sun_swing": 44,
+  "cloud_phase_minutes": 0,
+  "shadows": "sun and clouds enabled",
+  "resolution": "1920x1080",
+  "logical_resolution": "960x540",
+  "scale": 2,
+  "ce_commit": "32005181",
+  "exe_sha256": "66341b1b1bd92a85683cd060dbfe3cfee4d9072b25e307b58a26781766725956"
+}

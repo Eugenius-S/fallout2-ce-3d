@@ -189,12 +189,27 @@ float cloudNoise(vec2 lattice, float wrap) {
     float c = cloudHash(mod(whole + vec2(0.0, 1.0), wrap)), d = cloudHash(mod(whole + vec2(1.0, 1.0), wrap));
     return mix(mix(a, b, part.x), mix(c, d, part.x), part.y);
 }
+// Desert cloud shadows: tune density, patch size, and their soft edge here.
+const float kCloudWorldPeriod = 48.0;
+const float kCloudPrimaryScale = 8.0;
+const float kCloudPrimaryWrap = 6.0;
+const float kCloudDetailScale = 4.0;
+const float kCloudDetailWrap = 12.0;
+const float kCloudCoverLow = 0.63;
+const float kCloudCoverHigh = 0.88;
+const float kCloudShadowStrength = 0.22;
+const float kCloudShadeInSunShadow = 1.0;
+float gCloudDarkening = 0.0;
+float gUncloudedLight = 1.0;
+float gSunOnlyLight = 1.0;
 float cloudAmbient(vec3 w) {
     if (!uCloudOn) return 1.0;
     vec2 t = w.xz + uCloudOffset;
-    float cover = cloudNoise(mod(t, 48.0) / 12.0, 4.0) * 0.65
-        + cloudNoise(mod(t + 17.0, 48.0) / 6.0, 8.0) * 0.35;
-    return 1.0 - uShadowStrength * 0.35 * smoothstep(0.52, 0.74, cover);
+    float cover = cloudNoise(mod(t, kCloudWorldPeriod) / kCloudPrimaryScale, kCloudPrimaryWrap) * 0.65
+        + cloudNoise(mod(t + 17.0, kCloudWorldPeriod) / kCloudDetailScale, kCloudDetailWrap) * 0.35;
+    float cloudAmount = smoothstep(kCloudCoverLow, kCloudCoverHigh, cover);
+    return 1.0 - uShadowStrength * kCloudShadowStrength
+        * cloudAmount;
 }
 vec4 pointLights(vec3 w, vec3 n, bool facing, float ambientScale) {
     vec2 hex = hexAt(w);
@@ -219,6 +234,10 @@ vec4 pointLights(vec3 w, vec3 n, bool facing, float ambientScale) {
     }
     float ambient = uAmbient * ambientScale;
     float light = min(max(ambient, 655.0 / 65536.0 + sum), 1.0);
+    float uncloudedLight = min(max(uAmbient, 655.0 / 65536.0 + sum), 1.0);
+    gUncloudedLight = uncloudedLight;
+    gSunOnlyLight = uncloudedLight;
+    if (uCloudOn) gCloudDarkening = max(uncloudedLight - light, 0.0);
     vec3 tint = vec3(1.0);
     if (sum > 0.0 && light > ambient) tint = (vec3(ambient) + (light - ambient) * colored / sum) / light;
     // A colour changes the hue, not how bright the engine lights it.
@@ -589,14 +608,22 @@ float shadowDarken(float light) {
         if (texels <= 8.0) return 0.8;
         return 0.95;
     }
+    float cloudDarkening = (uShadowOn && uCloudOn) ? gCloudDarkening : 0.0;
+    float solarFactor = 1.0;
     if (uShadowOn && uShadowStrength > 0.0) {
+        // Keep cloud ambient darkening additive when a caster shadows the
+        // fragment: solar attenuation acts on the unclouded base, then the
+        // same cloud delta is applied once. This preserves solar-shadow
+        // contrast while retaining cloud shade in the overlap.
+        light += cloudDarkening;
         if (uLightMode == 1 || uLightMode == 2) {
             // The ground and the walls: crisp shadows, even inside, the flat
             // shaded value on the faces the sun does not hit (082). 0.35 by
             // the owner's eye (082 round 2): 0.425 read too saturated; the
             // [3d] shadow_density setting scales it, 0 turns the cast
             // shadows off.
-            light *= 1.0 - uShadowStrength * uShadowDensity * 0.35 * sunShadow(selfId);
+            solarFactor = 1.0 - uShadowStrength * uShadowDensity * 0.35 * sunShadow(selfId);
+            light *= solarFactor;
         } else if (uLightMode == 3) {
             // A sprite darkens whole at its feet (082 round 6): the old
             // per-pixel read (063) left lit contour gaps between a character
@@ -607,10 +634,12 @@ float shadowDarken(float light) {
             // verdict keeps 0.3, a whole body darkens lighter than the
             // ground and keeps its read (109).
             float density = uShadowFeet > 0.5 && uShadowGround.x <= 0.5 && !cardTurned() ? 0.3 : 0.35;
-            light *= 1.0 - uShadowStrength * uShadowDensity * density * sunShadowCard(selfId);
+            solarFactor = 1.0 - uShadowStrength * uShadowDensity * density * sunShadowCard(selfId);
+            light *= solarFactor;
         }
     }
-    return light;
+    gSunOnlyLight = gUncloudedLight * solarFactor;
+    return max(light - cloudDarkening, 0.0);
 }
 )"
 R"(// _intensity_mask_buf_to_buf: inside the egg a nonzero mask value is the
@@ -829,8 +858,22 @@ void main() {
                 outColor = !receiver ? vec4(1.0, 0.0, 1.0, 1.0) : turned ? vec4(0.0, 0.0, 1.0, 1.0) : vec4(vec3(lit.a), 1.0);
                 return;
             }
+)" R"(
             float steps = floor(lit.a * 128.0 + 0.0001);
-            if (steps < 128.0) outColor.rgb = floor(floor(outColor.rgb * 31.0 + 0.5) * steps / 128.0) / 31.0;
+            if (uShadowOn && uCloudOn && (uLightMode == 1 || uLightMode == 2)) {
+                float baseSteps = floor(gUncloudedLight * 128.0 + 0.0001);
+                float cloudSteps = floor(max(gUncloudedLight - gCloudDarkening, 0.0) * 128.0 + 0.0001);
+                float sunSteps = floor(gSunOnlyLight * 128.0 + 0.0001);
+                vec3 color5 = floor(outColor.rgb * 31.0 + 0.5);
+                vec3 cloudColor5 = floor(color5 * cloudSteps / 128.0);
+                vec3 sunColor5 = floor(color5 * sunSteps / 128.0);
+                vec3 baseColor5 = floor(color5 * baseSteps / 128.0);
+                vec3 cloudLoss5 = max(baseColor5 - cloudColor5, 0.0);
+                vec3 combinedColor5 = clamp(sunColor5 - floor(cloudLoss5 * kCloudShadeInSunShadow), 0.0, 31.0);
+                outColor.rgb = combinedColor5 / 31.0;
+            } else if (steps < 128.0) {
+                outColor.rgb = floor(floor(outColor.rgb * 31.0 + 0.5) * steps / 128.0) / 31.0;
+            }
             outColor.rgb *= lit.rgb;
             if (uEgg != 0) {
                 float m = eggShare();
