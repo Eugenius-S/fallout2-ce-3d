@@ -57,3 +57,8 @@ read as distant land, not soft orange waves.
 ## Log
 
 - 2026-11-01 Cut from the owner's live find.
+- 2026-11-01 gpt
+  Done: named the day, twilight and night palette values in one place in `ce/src/scene_renderer/sky.cc`; removed daytime stars, made nighttime stars point-shaped, and changed the far ridge to stepped land silhouettes.
+  Evidence: before/after sky-up and horizon pairs for Klamath at 08:00, 12:00, 17:30 and 23:00 are in `runs/142-desert-sky/`.
+  Check: Release build passed; 18 scene-related C++ test executables passed, including `sun_tests`. `ctest -R "sky|scene"` found no registered CTest tests. There is no sky-specific test executable.
+  Next: complete the after side of the fly tour and attach its `changed.jpg`; the before side captured all 57 Klamath views. A direct tour call failed because Windows PowerShell could not resolve `Get-FileHash`; the PowerShell 7 workaround started but was stopped before the after side completed.
