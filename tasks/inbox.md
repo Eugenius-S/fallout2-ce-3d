@@ -236,3 +236,9 @@ that fits no task becomes a new task when the board runs dry.
 - 2026-11-01 Bolt clips in the README: put the two night projectile clips
   from 097 (laser pistol, plasma rifle) side by side in one video, compress it for GitHub, and insert it in the middle of the repository
   description. Not now.
+- 2026-11-01 Sun shadow blotches: on main `fc37980e` (with the 138 cloud fix)
+  and `cloud_shadows=0`, the Klamath downtown street still shows big dark
+  shapeless patches (`runs/inbox/2026-11-01-sun-shadow-blotches.png`). With
+  the clouds off these are the sun shadows: `shadows=1`, `sun_swing=44`,
+  `shadow_pixel_size=3`, `shadow_density=0.85`. Find what casts them; may be
+  137.
