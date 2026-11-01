@@ -666,6 +666,20 @@ double cameraTurnAngle()
     return gTurnOwnsCamera ? gTurnAt : 0.0;
 }
 
+void cameraTurnScrollStepNow(int dx, int dy, int* outDx, int* outDy)
+{
+    *outDx = dx;
+    *outDy = dy;
+    if (!gTurnOwnsCamera || gTurnAt == 0.0) return;
+    ScrollGroundBasis basis {};
+    scene_renderer::StaticFlyCamera pose;
+    if (!scene_renderer::gameViewGroundStep(kScrollStepX, kScrollStepY, basis.horizontal, basis.vertical)
+        || !scene_renderer::staticGameViewCamera(&pose)) return;
+    basis.yaw = pose.yaw;
+    basis.pitch = pose.pitch;
+    cameraTurnScrollStep(dx, dy, gTurnAt, basis, outDx, outDy);
+}
+
 void updateCameraTurn()
 {
     if (!gTurnOwnsCamera && gTurnAt == 0.0 && gTurnTo == 0.0) return;
