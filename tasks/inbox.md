@@ -199,3 +199,9 @@ that fits no task becomes a new task when the board runs dry.
   Not now.
 - 2026-10-30 FPS counter: the owner requests an in-game FPS counter that can
   be turned on and off. Not now.
+- 2026-11-01 Wide HUD bar: the owner found a screenshot
+  (`runs/inbox/2026-11-01-wide-hud-bar.webp`) where the bottom interface bar
+  spans the whole wide screen: the stock panel in the middle, metal side
+  panels with a round vault-gear ornament filling the space to each edge.
+  Find which mod ships that art and its license, and take it into our wide
+  HUD if the license allows. Not now.
