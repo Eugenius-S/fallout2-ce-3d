@@ -2,7 +2,7 @@
 id: 142
 title: A dusty post-nuclear desert sky
 milestone: M1
-status: ready
+status: todo
 owner: none
 suggested: gpt
 priority: high
