@@ -46,16 +46,13 @@ constexpr int kLegacyColumnsShift = 35;
 constexpr int kLegacyColumnsRight = 365;
 constexpr int kPanelTop = 494;
 constexpr int kHeaderHeight = 112;
-constexpr int kToggleRowHeight = 28;
-constexpr int kSliderRowHeight = 40;
-constexpr int kGroupHeadingHeight = 24;
-constexpr int kGroupGap = 32;
+constexpr int kOptionRowHeight = 28;
+constexpr int kGroupHeadingHeight = 36;
+constexpr int kGroupGap = 38;
 constexpr int kPanelBottomPadding = 32;
 constexpr int kLabelX = 55;
 constexpr int kValueX = 405;
 constexpr int kValueWidth = 180;
-constexpr int kToggleX = 485;
-constexpr int kToggleWidth = 100;
 constexpr int kSliderX = 355;
 constexpr int kSliderRight = 540;
 constexpr int kSliderValueX = 500;
@@ -64,7 +61,7 @@ constexpr int kLabelTextOffset = 4;
 constexpr int kSliderHitTolerance = 7;
 constexpr int kFrameNarrowInset = 16;
 constexpr int kScrollbarWidth = 12;
-constexpr int kScrollbarOutsideGap = 4;
+constexpr int kScrollbarOutsideGap = 12;
 constexpr int kRowButtonX = 42;
 constexpr int kRowButtonWidth = 556;
 constexpr int kRowEvent = 600;
@@ -405,7 +402,7 @@ int OptionsPanel::rowTop(int index) const
 }
 int OptionsPanel::rowHeight(int index) const
 {
-    return index >= 0 && index < static_cast<int>(rowLayouts_.size()) ? rowLayouts_[index].height : kToggleRowHeight;
+    return index >= 0 && index < static_cast<int>(rowLayouts_.size()) ? rowLayouts_[index].height : kOptionRowHeight;
 }
 int OptionsPanel::rowButtonX() const { return kRowButtonX; }
 int OptionsPanel::rowButtonWidth() const { return kRowButtonWidth; }
@@ -451,7 +448,7 @@ void OptionsPanel::buildRowLayout()
         layout.top = cursor;
         cursor += kGroupHeadingHeight;
         for (int index : groupedRows[group]) {
-            const int height = rows_[index].control == OptionsPanelControl::Slider ? kSliderRowHeight : kToggleRowHeight;
+            const int height = kOptionRowHeight;
             rowLayouts_[index] = { cursor, height };
             displayOrder_.push_back(index);
             cursor += height;
@@ -492,11 +489,19 @@ int OptionsPanel::maxScroll() const { return std::max(0, contentHeight_ - screen
 int OptionsPanel::scrollbarX() const
 {
     const int pageRight = pageX_ + kWidth;
-    if (screenWidth_ - pageRight >= kScrollbarWidth + kScrollbarOutsideGap) return pageRight + kScrollbarOutsideGap;
+    if (screenWidth_ - pageRight >= kScrollbarWidth) {
+        return pageRight + std::min(kScrollbarOutsideGap, screenWidth_ - pageRight - kScrollbarWidth);
+    }
     return pageRight - kScrollbarWidth;
 }
 int OptionsPanel::scrollbarTop() const { return kTrackMargin; }
-int OptionsPanel::scrollbarHeight() const { return std::max(1, screenHeight_ - 2 * kTrackMargin); }
+int OptionsPanel::scrollbarHeight() const
+{
+    // On tall screens the footer sits below the frame. End the track at the
+    // frame's lower edge when the page is scrolled to the bottom.
+    const int footerSpace = screenHeight_ > kHeight ? contentHeight_ - panelBottom_ : kTrackMargin;
+    return std::max(kScrollbarThumbHeight, screenHeight_ - kTrackMargin - std::max(kTrackMargin, footerSpace));
+}
 int OptionsPanel::scrollbarThumbHeight() const { return kScrollbarThumbHeight; }
 int OptionsPanel::scrollbarThumbTop() const
 {
@@ -661,6 +666,9 @@ void OptionsPanel::draw()
         for (int y = 0; y < panelHeight; ++y) {
             for (int x = 0; x < width; ++x) {
                 panel[static_cast<size_t>(kWidth) * y + inset + x] = backgroundTexturePixel(pageX_ + inset + x, pageY_ + kPanelTop + y);
+                // Do not draw the outermost source column: the user's trimmed
+                // corner and side pieces must share the same outside edge.
+                if (x == 0 || x == width - 1) continue;
                 int part = -1, sx = 0, sy = 0;
                 if (y < 48) {
                     part = x < 47 ? 0 : (x >= width - 47 ? 2 : 1);
@@ -704,11 +712,10 @@ void OptionsPanel::drawRows()
     for (size_t groupIndex = 0; groupIndex < groupLayouts_.size(); ++groupIndex) {
         const GroupLayout& group = groupLayouts_[groupIndex];
         const int groupY = group.top - kPanelTop;
-        if (groupIndex > 0) {
-            bufferDrawLine(panel, kWidth, kLabelX + inset, groupY - 16, kWidth - kLabelX - inset, groupY - 16, COLOR_DARK_GREEN);
-        }
         fontSetCurrent(101);
         fontDrawText(panel + kWidth * (groupY + 1) + kLabelX + inset, localized(group.title.c_str()), 270, kWidth, COLOR_GREEN);
+        const int dividerY = groupY + fontGetLineHeight() + 3;
+        bufferDrawLine(panel, kWidth, kLabelX + inset, dividerY, kWidth - kLabelX - inset, dividerY, COLOR_DARK_GREEN);
     }
     for (int index : displayOrder_) {
         const OptionsPanelRow& row = rows_[index];
@@ -734,7 +741,9 @@ void OptionsPanel::drawRows()
         case OptionsPanelControl::Toggle: {
             bool value = std::get<bool>(row.edit->value);
             std::snprintf(valueText, sizeof(valueText), "[%c] %s", value ? 'X' : ' ', localized(value ? "On" : "Off"));
-            drawRightAlignedControlText(panel, rowY, kToggleX - inset, kToggleX + kToggleWidth - inset, valueText, color);
+            const int labelX = sliderTrackRight() - fontGetStringWidth("[X]") / 2;
+            fontDrawText(panel + kWidth * (rowY + kLabelTextOffset) + labelX,
+                valueText, kWidth - inset - labelX - 32, kWidth, color);
             break;
         }
         case OptionsPanelControl::Slider: {

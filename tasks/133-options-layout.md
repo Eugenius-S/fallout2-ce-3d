@@ -50,3 +50,13 @@ cover the shifted legacy control, 3D slider, scrolling and footer buttons.
 Sixteen regression scenes matched current origin/main e5063d0a pixel for pixel
 on the pre-divider-color build; the final build's entrance also matched.
 Russian outcome captures are in runs/133-options-layout.
+
+### 2026-11-01 gpt follow-up
+Done: Removed the outer frame pixel, unified option row spacing, moved each
+section divider below its heading and aligned checkboxes with slider ends.
+Moved the scrollbar farther right where space permits and ended its track at
+the bottom of the 3D frame on tall screens.
+Check: Release build and CTest 18/18; isolated save/cancel probes exercised
+scrollbar dragging, the 3D slider and legacy controls. Russian snapshots cover
+16:9 and 4:3. The final build's entrance scene matched current origin/main
+(e5063d0a) pixel for pixel. Updated outcome images are in runs/133.
