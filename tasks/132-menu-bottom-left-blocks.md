@@ -2,8 +2,8 @@
 id: 132
 title: The main menu's lower left shows the art clean, no blocky band
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: gpt
 suggested: gpt
 priority: normal
 claude-only: no
@@ -43,3 +43,11 @@ left under the buttons.
 ## Out of scope
 
 The menu art itself, its framing (118), the labels (126).
+
+
+## Log
+
+### 2026-11-01 gpt
+Done: confirmed the supplied wallpaper PNG is clean. The defect comes from a broad `mainMenuMaskBackground` rectangle that leaves a large area to the indexed framebuffer. Removed that mask; button, panel, label, and footer masks remain. Added the owner's before screenshot and a mapped lower-left crop beside the matching source-art crop under `runs/132-menu-bottom-left-blocks/`.
+Check: Release build passed; `ctest --test-dir build --output-on-failure` passed 18/18. `tools/regression.ps1` passed all 16 spots against `origin/main` references with 0 changed pixels, using `build/scene-cache` and the isolated `build/task132-game` copy. Two attempts to capture the live menu in that copy returned a white frame through `PrintWindow`, including a no-activate window capture; the owner's game was not started, closed, focused, or modified.
+Next: Claude should capture the patched menu in-game at 16:9 and 21:9, verify the menu buttons by mouse click, and add those before/after captures before marking this task done. This source-only fix has no art or data payload to install; do not copy files into `game/data` or alter the existing RIX3 package.
