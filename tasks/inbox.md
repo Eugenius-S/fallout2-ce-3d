@@ -221,3 +221,4 @@ that fits no task becomes a new task when the board runs dry.
 - 2026-11-01 Cut for glm: Arroyo in 3D, the opening area exported and swept (136).
 - 2026-11-01 Live check: the halo spot and its save went to 103, the toxic caves staying 2D to 111, the save preview in 3D to 134.
 - 2026-11-01 The 3D view stops in combat, dialogue and open windows; the owner wants it always on (135). The toxic caves 2D shots were combat, 111 corrected.
+- 2026-11-01 The street blotches are cloud shadows (#169), not a regression; the owner wants fewer, smaller, soft-edged desert clouds (138).
