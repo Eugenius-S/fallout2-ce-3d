@@ -89,3 +89,6 @@ the owner's pass.
 
 Branch note: branched from task/120-scenery-3d-everywhere (that PR carries
 the stands this fills; both wait on 119).
+
+### 2026-11-01 claude landing
+The references were retaken on landing (tools/regression.ps1 -Update on the folded 121-125 branch, after 120 squashed into main). Against main's references the same spots changed as listed in the review: entrance 776 px, corrals 449, residents 219, klamall-e0 1681, north-rooms 684, klatoxcv-e0 736, central-doors 200, map-edge 92, klaratcv e0/e1/e2 122/436/277, klatoxcv e1/e2 24/275; klacanyn-e0, klatrap-e0 0, klagraz-e0 16 (under the threshold). After the update the regression is 16/16 at 0 changed pixels.
