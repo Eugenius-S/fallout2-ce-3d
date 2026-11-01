@@ -1,0 +1,43 @@
+---
+id: 130
+title: The 3D options screen finished the way the owner says, ready for the showcase video
+milestone: M1
+status: todo
+owner: none
+suggested: gpt
+priority: normal
+claude-only: no
+user-check: yes
+depends-on: [112]
+reviewed: no
+---
+
+## Goal
+
+The options screen with the 3D panel looks finished to the owner, so it can
+be shot for the showcase video (097, segment 11: every 3D feature switched
+off one by one, a slider moved).
+
+## Context
+
+- The owner, 2026-11-01: the screen needs more work before it goes into the
+  video, done to the owner's notes. The notes come in chat; the agent asks
+  the owner for them when it takes the task and copies them here, with the
+  pictures in `runs/inbox/`.
+- Builds on 112 (buttons under the panel, straight scrollbar, side frame,
+  shadow density 0.8; PR #158) and the layout of 017
+  (`runs/017-options-menu-3d-panel-owner-brief.md` on the owner's machine).
+  Code: `ce/src/scene/options_panel.cc`.
+
+## Acceptance
+
+- Every note of the owner's copied into Context holds; before | after of
+  the whole options screen at 16:9 and 4:3 in
+  `runs/130-options-screen-owner-finish/`.
+- ctest passes; the original view regression stays pixel for pixel.
+
+## Out of scope
+
+The game's own preferences page art, the video itself.
+
+## Log

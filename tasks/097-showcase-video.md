@@ -8,7 +8,7 @@ suggested: claude
 priority: low
 claude-only: yes
 user-check: yes
-depends-on: [112, 118]
+depends-on: [118]
 reviewed: no
 ---
 
@@ -26,8 +26,8 @@ what is on screen.
   Higgsfield use-after-effects MCP (`higgsfield-use-after-effects`, npm
   `fnf-after-effects-mcp`, entry skill `ae-clean-rig`). Recording starts once
   tasks 112 (options panel) and 118 (widescreen art) are on `main`.
-- The owner, 2026-11-01: the 3D options screen is finished before shooting
-  and editing (inbox line of that date); it is on screen in segment 11.
+- The owner, 2026-11-01: the 3D options screen is not shot for now;
+  segment 11 stays out of the video until task 130 finishes the screen.
 - The owner, 2026-11-01: the music is the game's own Vault City track.
 - Take it when the slice is close to done, so the shots show the finished
   look; until then this task waits.
@@ -65,7 +65,7 @@ clouds" and so on, so the difference is obvious without explanation.
    and off (Light and glow).
 10. 75-83 s: a laser and a plasma shot: the muzzle flash and the glow of the
     shot in flight (Weapon light).
-11. 83-92 s: the options menu: each 3D feature switched off one by one down
+11. Not shot for now (waits for task 130). 83-92 s: the options menu: each 3D feature switched off one by one down
     to the original look, a slider moved (Every feature can be switched off
     and tuned).
 12. 92-100 s: a closing run through Klamath, split screen original and 3D,

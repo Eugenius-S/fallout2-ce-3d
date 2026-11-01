@@ -65,6 +65,11 @@ void drawStaticPreview(bool withWalls, bool withHero)
     glUniform1i(gScenePickLocation, 0);
     glUniform1i(gSceneSeeThroughLocation, 0);
     glUniform1i(gSceneEggPassLocation, 0);
+    glUniform2f(gSceneRoofClipLocation, 0.0f, 0.0f);
+    // The roof cut (114) rides with the roofs: where they draw, a card's part
+    // above their plane hides as the game's roof picture hides it.
+    const bool roofsDrawn = withHero && staticSoloKeeps(-1);
+    auto roofClip = [&]() { glUniform2f(gSceneRoofClipLocation, roofClipHeight(), roofsDrawn ? 1.0f : 0.0f); };
     // The game shows the hero through the walls and scenery he stands behind,
     // inside its egg: they are drawn without the egg's part first, and that
     // part blended over the hero and what lies behind at the end.
@@ -130,6 +135,8 @@ void drawStaticPreview(bool withWalls, bool withHero)
         // paint over earlier ones, and they hide nothing drawn after them.
         glDepthMask(0);
         glUniform1f(gSceneCutoffLocation, 0.5f);
+        roofClip();
+        if (roofsDrawn) bindRoofGrid(7);
         glBindVertexArray(gObjectVao);
         for (const ObjectDraw& draw : gObjectDraws) {
             if (draw.pickOnly || !draw.flat || draw.tint[0] >= 0.0f) continue;
@@ -144,6 +151,7 @@ void drawStaticPreview(bool withWalls, bool withHero)
     // Depth anchors are made for the game camera: a fly camera looks from
     // anywhere and takes each vertex's own depth.
     glUniform1i(gSceneDepthAtLocation, flying ? 0 : 1);
+    glUniform2f(gSceneRoofClipLocation, 0.0f, 0.0f);
     if (withWalls) {
         // Wall faces are seen from outside only, as in the donor's game view.
         glEnable(kCullFace);
@@ -166,6 +174,8 @@ void drawStaticPreview(bool withWalls, bool withHero)
     if (withObjects) {
         glUniform1f(gSceneCutoffLocation, 0.5f);
         glUniform1i(gSceneEggPassLocation, egg ? 1 : 0);
+        roofClip();
+        if (roofsDrawn) bindRoofGrid(7);
         glBindVertexArray(gObjectVao);
         for (const ObjectDraw& draw : gObjectDraws) {
             if (draw.pickOnly || draw.flat || draw.tint[0] >= 0.0f) continue;
@@ -178,6 +188,7 @@ void drawStaticPreview(bool withWalls, bool withHero)
     }
     glUniform1i(gSceneSeeThroughLocation, 0);
     glUniform1i(gSceneEggPassLocation, 0);
+    glUniform2f(gSceneRoofClipLocation, 0.0f, 0.0f);
     if (withHero && gHeroLoaded) {
         StaticHeroInfo hero;
         lightSprite(staticHeroInfo(&hero) ? hero.tile : -1);
@@ -198,6 +209,7 @@ void drawStaticPreview(bool withWalls, bool withHero)
         glDepthMask(0);
         glUniform1i(gSceneEggPassLocation, 2);
         glUniform1f(gSceneCutoffLocation, 0.5f);
+        glUniform2f(gSceneRoofClipLocation, 0.0f, 0.0f);
         if (wallEgg) {
             glEnable(kCullFace);
             glUniform1i(gSceneSeeThroughLocation, 1);
@@ -212,6 +224,8 @@ void drawStaticPreview(bool withWalls, bool withHero)
         }
         if (withObjects) {
             glUniform1i(gSceneSeeThroughLocation, 2);
+            roofClip();
+            if (roofsDrawn) bindRoofGrid(7);
             glBindVertexArray(gObjectVao);
             for (const ObjectDraw& draw : gObjectDraws) {
                 if (draw.pickOnly || draw.flat || draw.tint[0] >= 0.0f || !draw.seeThrough) continue;
@@ -234,6 +248,8 @@ void drawStaticPreview(bool withWalls, bool withHero)
         glDepthMask(0);
         glUniform1i(gSceneTranslucentLocation, 1);
         glUniform1f(gSceneCutoffLocation, 0.5f);
+        roofClip();
+        if (roofsDrawn) bindRoofGrid(7);
         glBindVertexArray(gObjectVao);
         for (const ObjectDraw& draw : gObjectDraws) {
             if (draw.pickOnly || draw.tint[0] < 0.0f) continue;
@@ -248,6 +264,7 @@ void drawStaticPreview(bool withWalls, bool withHero)
         glDepthMask(1);
         glDisable(kBlend);
     }
+    glUniform2f(gSceneRoofClipLocation, 0.0f, 0.0f);
     glUniform1i(gSceneLightModeLocation, 4); // roof material, also when lights are disabled
     glUniform1f(gSceneLightValueLocation, lightAmbient());
     if (withHero && staticSoloKeeps(-1)) drawRoofs(x, y, width, height); // solo: no roofs
