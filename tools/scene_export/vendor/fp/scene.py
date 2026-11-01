@@ -772,28 +772,31 @@ class SceneBuilder:
             # the card either way (a lid's gap is transparent there), so nothing they see moves.
             shade, found = self.solid_of(index, left, top, forced, allow_lid=loose or narrow)
             carve = False
-            if not found and first.obj.obj_type == ids.OBJ_TYPE_SCENERY:
-                frames = self.carve_art(first.obj.fid)
-                if frames is not None and props.real_aspect(frames) >= props.CARVE_LONG:
-                    # The carve fallback (task 120): a multi-view scenery art the
-                    # plain fit refused - the game's big multi-quarter things, a
-                    # car - stands as the forced box raised to the art's own
-                    # height bands, and only the fly camera draws it: the game's
-                    # views keep the card. Long and low only (123): the carve's
-                    # ground boxes would lie a tall leaning frame down.
-                    _, forced_found = self.solid_of(index, left, top, "box")
-                    if forced_found and forced_found[1].cover >= 0.7:
-                        found = forced_found[0], props.carved(forced_found[0], forced_found[1])
-                        carve = True
-                if not found and frames is not None:
-                    # The burnt rebar (123): a tall multi-view piece the carve
-                    # declines stands on its wall - the fly camera draws its
-                    # live card on the wall run that passes beside it (the
-                    # doors' plane machinery), and the game's views keep the
-                    # card they always had.
-                    run = walls.line_through(first.obj.tile, self.wall_runs) if self.wall_runs else None
-                    if run is not None:
-                        self.wall_join(first, (ax, ay), left, top, run)
+            # (125) every scenery box may carry the art's own back view, the plain
+            # fit's no less than the carve's; carve_art caches per art, so the ask
+            # costs a dict look. A drum keeps its mirror: its row 16 holds the
+            # keep-apart clip planes and a drum's art has no sides to speak of.
+            frames = self.carve_art(first.obj.fid) if first.obj.obj_type == ids.OBJ_TYPE_SCENERY else None
+            if not found and frames is not None and props.real_aspect(frames) >= props.CARVE_LONG:
+                # The carve fallback (task 120): a multi-view scenery art the
+                # plain fit refused - the game's big multi-quarter things, a
+                # car - stands as the forced box raised to the art's own
+                # height bands, and only the fly camera draws it: the game's
+                # views keep the card. Long and low only (123): the carve's
+                # ground boxes would lie a tall leaning frame down.
+                _, forced_found = self.solid_of(index, left, top, "box")
+                if forced_found and forced_found[1].cover >= 0.7:
+                    found = forced_found[0], props.carved(forced_found[0], forced_found[1])
+                    carve = True
+            if not found and frames is not None:
+                # The burnt rebar (123): a tall multi-view piece the carve
+                # declines stands on its wall - the fly camera draws its
+                # live card on the wall run that passes beside it (the
+                # doors' plane machinery), and the game's views keep the
+                # card they always had.
+                run = walls.line_through(first.obj.tile, self.wall_runs) if self.wall_runs else None
+                if run is not None:
+                    self.wall_join(first, (ax, ay), left, top, run)
             if not found:
                 continue
             shape, fit = found
@@ -816,7 +819,12 @@ class SceneBuilder:
             cu, cv = u + du, v + dv
             body = props.fill_holes(rgba * ~shade[..., None])
             sprite = self.cropped(body, left, top)
-            back = self.back_sprite(first, body, frames, left, top) if carve else -1
+            back = -1
+            if frames is not None and (carve or fit.kind != "drum"):
+                                                            # (125) any scenery box's far sides may take
+                                                            # the art's own back view; a drum keeps its
+                                                            # mirror (its row 16 holds the clip planes)
+                back = self.back_sprite(first, body, frames, left, top)
             if shade.any() and not forced and (seen != 1 or animating):
                                                             # a solid by name: its card keeps the shade; a live
                                                             # card's cast stays as main's stood solid had left it
@@ -854,6 +862,9 @@ class SceneBuilder:
                 row += [int(bool(forced)), seen]
                 if back >= 0:                       # (124) the art's own back view rides the row at 17;
                     row += [[], back]               # the empty 16 reads as a box's no clip planes
+                    self.fly_sprites.add(back)      # (125) only the away faces sample it, and the
+                                                    # game's camera culls away faces - so the sprite
+                                                    # pins to the fly page whatever the row's seen
                 self.props.append(row)
                 things.append(thing)
                 half = (radius, radius) if round_ else (a / 2, b / 2)
@@ -891,8 +902,7 @@ class SceneBuilder:
                                                         # stays, so the light bake reads the same sprite
                         for row in self.props[props_start:] + self.rests[rests_start:]:
                             self.fly_sprites.add(row[0])    # its sprites are the fly camera's own
-                            if len(row) > 17:               # (124) and the row's back view with them
-                                self.fly_sprites.add(row[17])
+                                                            # (a row's back view pins at its emit site)
                 for piece in group:
                     if piece.board is None and piece.sheet is not None:
                         self.hidden_sheets.append(piece.sheet)
