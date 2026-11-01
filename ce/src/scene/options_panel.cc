@@ -222,7 +222,6 @@ bool OptionsPanel::initialize(int windowId, unsigned char* surface, const unsign
     }
     struct Rect { int x; int y; int width; int height; int feather = 0; };
     constexpr Rect legacyBlocks[] = {
-        { 7, 4, 44, 31 }, { 301, 4, 44, 31 },
         { 6, 40, 190, 74 }, { 6, 116, 190, 80 }, { 6, 197, 190, 82 },
         { 6, 279, 190, 81 }, { 6, 359, 190, 80 },
         { 200, 39, 165, 70 }, { 200, 109, 165, 66 }, { 200, 175, 165, 66 },

@@ -1112,7 +1112,7 @@ static int preferencesWindowInit()
     fontSetCurrent(104);
 
     messageItemText = getmsg(&gPreferencesMessageList, &gPreferencesMessageListItem, 100);
-    fontDrawText(gPreferencesWindowBuffer + PREFERENCES_WINDOW_WIDTH * 10 + 74, messageItemText, PREFERENCES_WINDOW_WIDTH, PREFERENCES_WINDOW_WIDTH, COLOR_DARK_YELLOW);
+    fontDrawText(gPreferencesWindowBuffer + PREFERENCES_WINDOW_WIDTH * 10 + 10, messageItemText, PREFERENCES_WINDOW_WIDTH, PREFERENCES_WINDOW_WIDTH, COLOR_DARK_YELLOW);
 
     fontSetCurrent(103);
 

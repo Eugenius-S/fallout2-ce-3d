@@ -84,3 +84,11 @@ all 13 controls at x=1419, both with sharp text on and off. Checked Russian
 entrance scene matched main e5063d0a, whose game and regression sources are
 unchanged at current origin/main 59ef4a2a. Earlier images remain in Git
 history and build/task133-before-ink-alignment.
+
+### 2026-11-01 gpt settings heading follow-up
+Done: Removed both decorative vents from the top of the settings page and
+aligned the title with the left settings column, following the owner's second
+reference. The earlier screenshot remains in Git history and build.
+Check: Release build and CTest 18/18; isolated Russian and English 16:9 and
+Russian 4:3 screenshots. The entrance scene matched the main baseline pixel
+for pixel; game and regression sources match current origin/main 59ef4a2a.
