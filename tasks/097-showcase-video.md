@@ -109,3 +109,19 @@ build/record-run/game, links to game/ with its own mods_order.txt without the
 English panel.
 Next: as above.
 Check: `tools/record-clip.ps1 -Name test -Seconds 4`, the panel reads PUNCH.
+
+### 2026-11-01 claude
+Done: `tools/record-clip.ps1` holds keys (`2:W~3`), sends `[` `]`, sets
+config keys (`-Config camera_rotation=1`) and reads ffmpeg's exit code.
+Preview sheets in `runs/097-showcase-video/`: segment 1 (original, perspective,
+shadows, clouds), 3 (1x, 2x), 4 (dialogue and character screen in both fonts),
+6, 7, 8 (08:00, 18:00), 9 (23:00), 10 (laser and plasma fixtures).
+Found: the After Effects MCP in this Claude home has no `AE_MCP_EXE`, AE 2026
+lives in `C:\Programs\Adobe After Effects 2026`; the shadows and cloud
+shadows barely show in the fly view; `--dev-shadows` turns the clouds on too;
+`]` did not turn the camera in the clip; W in the fly camera flew into the
+sky; the effect fixtures and the night glow did not show at the Klamath spot;
+there is no time-lapse; the launcher and the live window resize are outside
+what the clip script records.
+Next: the owner's answers on segments 2, 3, 7, 8, 9, 10, then full clips.
+Check: the two preview sheets.

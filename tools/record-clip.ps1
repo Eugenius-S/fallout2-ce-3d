@@ -11,7 +11,9 @@
 # -Keys drives the game during the clip with window messages (no real cursor,
 # no focus): "2:F,1.5:RIGHT,1:ctrl+F10" waits 2 s and presses F, waits 1.5 s
 # and presses Right, waits 1 s and presses Ctrl+F10. Times count from the
-# start of the recording.
+# start of the recording. "2:W~3" holds W for 3 s (the fly camera reads the
+# held keys); the next step waits for the release.
+# -Config sets config keys for the clip: 'camera_rotation=1'.
 # -GameArgs passes extra dev flags (e.g. '--dev-fly','--dev-fly-turn=30').
 #
 # The clip goes to game/shots/097/<Name>.mp4 (H.264, 30 fps, no sound).
@@ -27,6 +29,7 @@ param(
     [double]$Warmup = 12,
     [string]$Keys = '',
     [string[]]$GameArgs = @(),
+    [string[]]$Config = @(),
     # The game text language; the video is for the GitHub page.
     [ValidateSet('english', 'russian')]
     [string]$Language = 'english',
@@ -74,7 +77,8 @@ public static class RecWin {
 
 # Parse the key script up front so a typo fails before the game starts.
 $keyMap = @{ ESC = 0x1B; ENTER = 0x0D; TAB = 0x09; SPACE = 0x20; UP = 0x26; DOWN = 0x28;
-    LEFT = 0x25; RIGHT = 0x27; PGUP = 0x21; PGDN = 0x22; HOME = 0x24; END = 0x23; BACKSPACE = 0x08 }
+    LEFT = 0x25; RIGHT = 0x27; PGUP = 0x21; PGDN = 0x22; HOME = 0x24; END = 0x23; BACKSPACE = 0x08;
+    LBRACKET = 0xDB; RBRACKET = 0xDD }
 $steps = @()
 $at = 0.0
 foreach ($item in ($Keys -split ',' | Where-Object { $_.Trim() })) {
@@ -83,12 +87,17 @@ foreach ($item in ($Keys -split ',' | Where-Object { $_.Trim() })) {
     $at += [double]::Parse($parts[0], [System.Globalization.CultureInfo]::InvariantCulture)
     $mods = @()
     $keyName = $parts[1].ToUpperInvariant()
+    $hold = 0.06
+    if ($keyName -match '^(.+)~([0-9.]+)$') {
+        $keyName = $Matches[1]
+        $hold = [double]::Parse($Matches[2], [System.Globalization.CultureInfo]::InvariantCulture)
+    }
     while ($keyName -match '^(CTRL|ALT|SHIFT)\+(.+)$') { $mods += $Matches[1]; $keyName = $Matches[2] }
     $vk = if ($keyMap.ContainsKey($keyName)) { $keyMap[$keyName] }
         elseif ($keyName -match '^F([1-9]|1[0-2])$') { 0x6F + [int]$Matches[1] }
         elseif ($keyName -match '^[A-Z0-9]$') { [int][char]$keyName }
         else { throw "Unsupported key '$keyName'." }
-    $steps += [pscustomobject]@{ At = $at; Vk = $vk; Mods = $mods }
+    $steps += [pscustomobject]@{ At = $at; Vk = $vk; Mods = $mods; Hold = $hold }
 }
 
 $exeDirectory = Join-Path $Root 'build\record-run'
@@ -99,6 +108,11 @@ if (Get-Process fallout2-ce-record -ErrorAction SilentlyContinue | Where-Object 
 }
 $config = [System.IO.File]::ReadAllText((Join-Path $PSScriptRoot 'test-config\fallout2.cfg'))
 $config = [regex]::Replace($config, '(?m)^language=.*$', "language=$Language")
+foreach ($pair in $Config) {
+    $key, $value = $pair -split '=', 2
+    if (-not [regex]::IsMatch($config, "(?m)^$([regex]::Escape($key))=")) { throw "No config key '$key' in tools/test-config/fallout2.cfg." }
+    $config = [regex]::Replace($config, "(?m)^$([regex]::Escape($key))=.*$", "$key=$value")
+}
 [System.IO.File]::WriteAllText((Join-Path $exeDirectory 'fallout2.cfg'), $config, [System.Text.UTF8Encoding]::new($false))
 if (-not (Test-Path $exe) -or (Get-FileHash $built).Hash -ne (Get-FileHash $exe).Hash) { Copy-Item $built $exe -Force }
 $runId = [guid]::NewGuid().ToString('N').Substring(0, 12)
@@ -181,6 +195,7 @@ try {
         '-draw_mouse', '0', '-i', 'desktop', '-t', $secondsText,
         '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '16', '-pix_fmt', 'yuv420p', $clip)
     $ffmpeg = Start-Process ffmpeg -ArgumentList $ffArgs -PassThru -NoNewWindow
+    $null = $ffmpeg.Handle # without a cached handle ExitCode stays empty
     Remove-Item Env:__COMPAT_LAYER
     $start = Get-Date
     foreach ($step in $steps) {
@@ -189,7 +204,7 @@ try {
         foreach ($m in $step.Mods) { [RecWin]::PostMessage($h, 0x0100, [IntPtr]$modVk[$m], [IntPtr]1) | Out-Null }
         $sc = [RecWin]::MapVirtualKey([uint32]$step.Vk, 0)
         [RecWin]::PostMessage($h, 0x0100, [IntPtr]$step.Vk, [IntPtr](1 -bor ($sc -shl 16))) | Out-Null
-        Start-Sleep -Milliseconds 60
+        Start-Sleep -Milliseconds ([int]($step.Hold * 1000))
         [RecWin]::PostMessage($h, 0x0101, [IntPtr]$step.Vk, [IntPtr]([int64]0xC0000001 -bor ($sc -shl 16))) | Out-Null
         foreach ($m in $step.Mods) { [RecWin]::PostMessage($h, 0x0101, [IntPtr]$modVk[$m], [IntPtr]([int64]0xC0000001)) | Out-Null }
     }
