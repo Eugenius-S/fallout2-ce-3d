@@ -63,6 +63,8 @@ TOP_FILL = 0.8          # share of the top face that must be opaque
 OPEN_TOP_FILL, WHOLE = 0.6, 0.9     # ... or this, if the solid holds this share of the sprite and stands on legs
 STEM_TOP_FILL = 0.9     # ... when the outline was read from the top (nothing else vouches for it)
 OUTLINE_PX = 1.6        # mean distance (px) of the sprite's outline from the model's, at most
+LID_OUTLINE_PX = 3.5    # ... for a lid drum: its sides are the fly camera's alone, the base may
+                        # tuck under the belly a little more than a plain drum's may
 CLIP_PX = 6.0           # a column counts for no more than this in that mean
 CORNER_PX = 10          # a box's three near floor corners have sprite within this distance (legs, at least)
 LEG_STRIP, LEGS = 0.15, 0.5     # ... and legs: sprite in the outer 15% of the sides on half their height
@@ -75,10 +77,20 @@ MIN_RADIUS = 7          # px: narrower drums are poles
 MIN_HEIGHT = 5          # px: lower solids are things lying on the floor
 MIN_COVER = 0.55        # share of the sprite that the solid must account for
 STEM_FILL = 0.5         # a stem and its foot fill no more of the space under the top
+FEET_PX = 4             # a drum's outline this far under its arc is feet (a stove's legs): not error
+LID_MIN_SEP = 4         # rows between the cap's bulge and the body's at least
+LID_DIP_PX = 3          # the waist between the cap's bulge and the body's is at least this deep
+LID_NECK = 0.6          # the waist carries at most this share of the cap's and body's width:
+                        # a lid necks off the body (two blobs without a neck are not lid and body)
+LID_FILL = 0.6          # the cap is a solid disc, not flames: it fills this much of its rows
+LID_MAX_BODY = 0.65     # the cap is at most this high against the body's height
 STEM_OFF = 0.3          # ... and stand no further from under its middle than this share of its width
 RIM_PX = 3              # px under a top face that may still be its rim
 LONG, SLICE = 1.5, 0.5  # units: a box at least this long is cut into slices about this long
 SAME_PX = 4             # px: neighbouring slices whose heights differ by less are one box
+CARVE_STRIPS = 8        # the carve fallback's length samples (task 120)
+CARVE_STEP_PX = 8       # px: neighbouring strips whose heights differ by less are one band
+CARVE_MIN_RUN = 2       # strips: a shorter band joins its closer neighbour
 MIN_REST = 12           # px: fewer pixels outside the solid are not worth drawing
 FAR = 1e6               # px: where a box is not
 
@@ -129,14 +141,17 @@ class Fit:
     far, near   y of the top face's far and near edge at each of the shape's columns
     z0, z1      heights of its underside and its top (units)
     stem        it stands on a stem (its rest goes under it), not on the floor
+    lid         a drum whose cap hovers over a gap: the top face is the lid; the
+                game's own views keep the card, the solid is the fly camera's
     blocks      a box found from the floor: the boxes it is drawn as (_slices)
     top_fill, side_fill   share of its top face / of its sides that the sprite fills
     cover       share of the sprite inside its outline;  legs: see LEGS
     """
 
-    def __init__(self, kind, shape, centre, a, b, far, near, z0, z1, stem=False):
+    def __init__(self, kind, shape, centre, a, b, far, near, z0, z1, stem=False, lid=False):
         self.kind, self.centre, self.a, self.b, self.far, self.near = kind, centre, a, b, far, near
         self.z0, self.z1, self.stem, self.along_u = z0, z1, stem, a >= b
+        self.lid = lid
         depth = (z1 - z0) * proj.HPX
         inside, _ = shape.count(far, near + depth)
         top, area = shape.count(far, near)
@@ -219,10 +234,98 @@ def _box(shape, corner):
     return Block(shape, corner, a, b, 0) if min(a, b) >= MIN_SIDE else None
 
 
-def _drum(shape):
+def _drum(shape, radius=None):
     """Half width, and the half height of its ellipse at the shape's columns."""
-    radius = shape.w / 2
+    if radius is None:
+        radius = shape.w / 2
     return radius, K * radius * np.sqrt(np.clip(1 - ((shape.x - shape.left - radius) / radius) ** 2, 0, 1))
+
+
+def _bulges(alpha):
+    """The rows of the width profile's real bulges: local maxima a waist
+    LID_DIP_PX deep separates, at least LID_MIN_SEP apart.
+
+    A drum with a lid bulges twice: the cap's arc over the body's arc. A plain
+    drum, a box or a pile bulge once."""
+    rows = np.flatnonzero(alpha.any(axis=1))
+    if len(rows) < 2 * LID_MIN_SEP:
+        return []
+    widths = alpha.sum(axis=1)[rows].astype(float)
+    n = len(widths)
+    cand, i = [], 0
+    while i < n:
+        near = widths[max(0, i - 1):min(n, i + 2)]
+        if widths[i] >= near.max():
+            j = i
+            while j + 1 < n and widths[j + 1] == widths[i]:
+                j += 1
+            cand.append(((i + j) // 2, widths[i]))
+            i = j + 1
+        else:
+            i += 1
+    merged = []
+    for row, w in cand:
+        if merged and row - merged[-1][0] < LID_MIN_SEP:
+            if w > merged[-1][1]:
+                merged[-1] = (row, w)
+        else:
+            merged.append((row, w))
+    peaks = [merged[0]]
+    for row, w in merged[1:]:
+        between = widths[peaks[-1][0] + 1:row]
+        waist = between.min() if len(between) else w
+        if waist <= min(peaks[-1][1], w) - LID_DIP_PX:
+            peaks.append((row, w))
+    return [int(rows[p[0]]) for p in peaks]
+
+
+def _lid_drum(shape):
+    """(outline error, Fit) of a drum whose body stands on feet under a lid cap, or None.
+
+    The art tells it: the silhouette bulges twice (the cap over the body), the
+    cap is a solid disc about the body's width and much lower than it, and the
+    lower outline hugs the body's arc with nothing but feet under it. The raise
+    climbs past the cap and the top face takes the lid; the game's own views
+    keep the card (the gap under the lid is transparent there), so build_props
+    makes this solid the fly camera's."""
+    peaks = _bulges(shape.alpha)
+    if len(peaks) < 2:
+        return None
+    rows = np.arange(shape.h)
+    widths = shape.alpha.sum(axis=1)
+    cap = peaks[0]
+    body = max(peaks[1:], key=lambda p: widths[p])       # the body: the widest bulge under the cap
+    waist = cap + int(np.argmin(widths[cap:body])) if body > cap + 1 else cap
+    cap_rows = rows[rows <= waist]
+    body_rows = rows[(rows > waist) & (rows <= body)]
+    if len(body_rows) < LID_MIN_SEP * 2:
+        return None
+    radius = widths[body_rows].max() / 2
+    body_h = rows[-1] - waist
+    span_cols = np.flatnonzero(shape.alpha[cap_rows].any(axis=0))
+    cap_fill = shape.alpha[cap_rows][:, span_cols].mean() if len(cap_rows) and len(span_cols) else 0.0
+    if radius < MIN_RADIUS or body_h <= 0 \
+            or not len(cap_rows) or widths[cap_rows].max() / 2 < MIN_RADIUS \
+            or len(cap_rows) > LID_MAX_BODY * body_h \
+            or widths[cap_rows].mean() / widths[body_rows].max() < 0.55 \
+            or cap_fill < LID_FILL \
+            or widths[waist] > LID_NECK * min(widths[cap], widths[body]):
+        return None
+    _, half = _drum(shape, radius)
+    span = (shape.lower - half)[shape.some]
+    foot = float(np.median(span))
+    arc = foot + half
+    hang = arc - shape.lower                      # the arc below the outline: the drum pokes out under it
+    on = shape.lower - arc <= FEET_PX             # deeper than that the thing stands on feet, a stem
+    if on.sum() < shape.some.sum() // 2:
+        return None
+    error = float(np.minimum(np.maximum(hang[on], 0), CLIP_PX).mean())
+    lift = _raise(shape, foot - half, foot + half)
+    if lift < MIN_HEIGHT or error > LID_OUTLINE_PX:
+        return None
+    fit = Fit("drum", shape, (shape.left + radius, foot - lift),
+              radius, radius, foot - half - lift, foot + half - lift, 0.0, lift / proj.HPX, lid=True)
+    return error, fit
 
 
 def _raise(shape, far, near):
@@ -270,9 +373,79 @@ def _slices(shape, box):
     return blocks if len(blocks) > 1 else [box]
 
 
-def _from_floor(shape, force=False):
+def real_directions(frames):
+    """Directions whose frame is not the engine's UNUSED ART placeholder card
+    (task 120): the card is opaque edge to edge, a real view's silhouette
+    leaves its canvas open somewhere. -> the count of real directions."""
+    return sum(1 for alpha in frames if alpha.any() and alpha.mean() < 0.97)
+
+
+def carved(shape, fit):
+    """The forced box raised to what the art shows over its plan (task 120's
+    carve fallback: a multi-view scenery art the plain fit refused - the
+    game's big multi-quarter things, a car). The length cuts into strips,
+    each as high as the sprite rises over the strip's far edge (the _slices
+    measure at a car's shorter length), and neighbours of one height join:
+    the bands are the body, the cabin. -> the fit with blocks set and z1 at
+    the tallest band, or the fit unchanged when the strips hold nothing
+    above the floor."""
+    box = Block(shape, (fit.centre[0] + (fit.a * proj.SQ_U[0] + fit.b * proj.SQ_V[0]) / 2,
+                        fit.centre[1] + (fit.a * proj.SQ_U[1] + fit.b * proj.SQ_V[1]) / 2 + fit.z1 * proj.HPX),
+                fit.a, fit.b, fit.z1 * proj.HPX)
+    along_u = fit.along_u
+    size_step = proj.SQ_U if along_u else proj.SQ_V
+    size = (fit.a if along_u else fit.b) / CARVE_STRIPS
+    pieces = []
+    for n in range(CARVE_STRIPS):
+        corner = box.corner[0] - n * size * size_step[0], box.corner[1] - n * size * size_step[1]
+        piece = Block(shape, corner, size if along_u else fit.a, fit.b if along_u else size, 0)
+        pieces.append((corner, piece, corner[0] + piece.a * PX_U - piece.b * PX_V))
+    strips = []
+    for n, (corner, piece, peak) in enumerate(pieces):
+        # the strip's own columns: between the previous strip's far corner and
+        # its own (the outer boundary there is this strip's alone)
+        if along_u:
+            lo = box.corner[0] - fit.b * PX_V if n == 0 else pieces[n - 1][2]
+            side = piece.on & shape.some & (shape.x > lo) & (shape.x <= peak)
+        else:
+            hi = box.corner[0] + fit.a * PX_U - fit.b * PX_V if n == 0 else pieces[n - 1][2]
+            side = piece.on & shape.some & (shape.x >= peak) & (shape.x < hi)
+        strips.append((corner, max(0.0, float(np.median((piece.far - shape.upper)[side]))) if side.any() else 0.0))
+    bands = []                                              # [first strip, last strip, height]
+    for n, (_, height) in enumerate(strips):
+        if bands and abs(height - bands[-1][2]) <= CARVE_STEP_PX:
+            bands[-1][1] = n
+            bands[-1][2] = float(np.mean([h for _, h in strips[bands[-1][0]:n + 1]]))
+        else:
+            bands.append([n, n, height])
+    for n in range(len(bands) - 1, -1, -1):                 # a short band joins the closer one
+        if len(bands) > 1 and bands[n][1] - bands[n][0] + 1 < CARVE_MIN_RUN:
+            if n + 1 >= len(bands) or (n > 0 and abs(bands[n][2] - bands[n - 1][2]) <= abs(bands[n][2] - bands[n + 1][2])):
+                other = bands[n - 1]
+            else:
+                other = bands[n + 1]
+            lo, hi = min(bands[n][0], other[0]), max(bands[n][1], other[1])
+            other[0], other[1] = lo, hi
+            other[2] = float(np.mean([h for _, h in strips[lo:hi + 1]]))
+            bands.pop(n)
+    blocks = []
+    for first, last, height in bands:
+        if height < MIN_HEIGHT:
+            continue
+        corner = box.corner[0] - first * size * size_step[0], box.corner[1] - first * size * size_step[1]
+        run = (last - first + 1) * size
+        blocks.append(Block(shape, corner, run if along_u else fit.a, fit.b if along_u else run, height))
+    if not blocks:
+        return fit
+    fit.blocks = blocks
+    fit.z1 = max(block.lift for block in blocks) / proj.HPX
+    return fit
+
+
+def _from_floor(shape, force=False, allow_lid=False):
     """Solids standing on the floor: [(outline error, Fit)] for a box and a drum, where they exist.
-    force: "box" or "drum", that solid wherever one stands at all (an exception by name, overrides.json)."""
+    force: "box" or "drum", that solid wherever one stands at all (an exception by name, overrides.json).
+    allow_lid: the lid-drum candidate joins the pick (the loose clutter a lid vouches for; task 119)."""
     out = []
     steps = shape.x[shape.some], shape.lower[shape.some]
     cv, cu = walls._kth(steps[1] - V * steps[0], True), walls._kth(steps[1] - U * steps[0], True)
@@ -308,6 +481,10 @@ def _from_floor(shape, force=False):
             if force == "drum":
                 return [(error, drum)]
             out.append((error, drum))
+    if allow_lid and force != "drum":
+        lid = _lid_drum(shape)
+        if lid:
+            out.append(lid)
     # A top with holes will do where the solid is the whole sprite (frames, open boxes, a stove).
     return [(error, fit) for error, fit in out if fit.cover >= MIN_COVER
             and fit.top_fill >= (OPEN_TOP_FILL if fit.cover >= WHOLE and fit.side_fill < BULK else TOP_FILL)]
@@ -352,20 +529,33 @@ def _from_top(shape):
     return out
 
 
-def fit(alpha, left, top, force=False):
+def fit(alpha, left, top, force=False, allow_lid=False):
     """The solid for a sprite (its opaque pixels without the floor's shade, light.outer_dark;
     left / top: px of its first pixel from the anchor), or None if it had better stay a card.
-    force: "box" or "drum" whenever one stands (chairs and crates are as ragged as plants). -> (Shape, Fit)"""
+    force: "box" or "drum" whenever one stands (chairs and crates are as ragged as plants).
+    allow_lid: a drum with a lid may win the pick (the mapper's loose clutter only: stood up,
+    a lid's gap is transparent in the game's own views, so those keep the card; task 119).
+    -> (Shape, Fit)"""
     if not alpha.any():
         return None
     shape = Shape(alpha, left, top)
     if force:
-        found = _from_floor(shape, force=force)
+        found = _from_floor(shape, force=force, allow_lid=allow_lid)
         return (shape, found[0][1]) if found else None
     if shape.ragged > RAGGED:
         return None
     hung = _from_top(shape)
-    for found in (_from_floor(shape), hung):
+    floor = _from_floor(shape, allow_lid=allow_lid)
+    if hung:
+        floor = [pair for pair in floor if not pair[1].lid]
+    else:
+        lids = [pair for pair in floor if pair[1].lid]
+        if lids:
+            # A round body under a lid, standing on the floor: the box's straight
+            # lines contradict the art the drum's arc just vouched for, so the
+            # lid drum takes it whatever the box's foot line scored.
+            return shape, min(lids, key=lambda pair: pair[0])[1]
+    for found in (floor, hung):
         if found:
             return shape, min(found, key=lambda pair: pair[0])[1]
     return None
@@ -474,3 +664,58 @@ def compose(pieces):
         index[window][p.index != 0] = p.index[p.index != 0]
         rgba[window][p.index != 0] = p.rgba[p.index != 0]
     return index, rgba, x, y
+
+
+def fill_holes(rgba):
+    """The texture of a solid's faces with its enclosed transparent texels
+    filled in the colour of the nearest opaque ones, an average of the
+    neighbours, so no face shows the scene through the art's holes (the
+    owner's rule of no holes in the 3D things, 115). The open border, the
+    ground round the feet and the painted shade band, stays as it is: a
+    cut-out that is the shape's own keeps the original's pixels."""
+    alpha = rgba[..., 3] > 0
+    if alpha.all() or not alpha.any():
+        return rgba
+    # Transparent texels the border reaches stay open; only enclosed ones fill.
+    reach = np.zeros_like(alpha)
+    reach[0, :] = reach[-1, :] = reach[:, 0] = reach[:, -1] = True
+    reach &= ~alpha
+    while True:
+        grown = reach.copy()
+        grown[1:, :] |= reach[:-1, :]
+        grown[:-1, :] |= reach[1:, :]
+        grown[:, 1:] |= reach[:, :-1]
+        grown[:, :-1] |= reach[:, 1:]
+        grown &= ~alpha
+        if (grown == reach).all():
+            break
+        reach = grown
+    holes = ~alpha & ~reach
+    if not holes.any():
+        return rgba
+    out = rgba.copy()
+    colours = out[..., :3].astype(np.uint32)
+    filled = alpha
+    todo = holes
+    while todo.any():
+        up, down = np.zeros_like(filled), np.zeros_like(filled)
+        up[1:, :] = filled[:-1, :]
+        down[:-1, :] = filled[1:, :]
+        left, right = np.zeros_like(filled), np.zeros_like(filled)
+        left[:, 1:] = filled[:, :-1]
+        right[:, :-1] = filled[:, 1:]
+        count = up.astype(int) + down + left + right
+        newly = todo & (count > 0)
+        if not newly.any():
+            break
+        total = np.zeros((*newly.shape, 3), np.uint32)
+        for neighbour, mask in ((np.roll(colours, 1, 0), up), (np.roll(colours, -1, 0), down),
+                                (np.roll(colours, 1, 1), left), (np.roll(colours, -1, 1), right)):
+            total += neighbour * mask[..., None]
+        cols = (total[newly] + count[newly, None] // 2) // count[newly, None]
+        out[..., :3][newly] = cols.astype(np.uint8)
+        out[..., 3][newly] = 255
+        colours = out[..., :3].astype(np.uint32)
+        filled = filled | newly
+        todo = todo & ~newly
+    return out

@@ -23,6 +23,11 @@ std::vector<RoofSquare> gRoofSquares;
 unsigned char gRoofVisible[kSquareCount] = {};
 bool gRoofVisibilityKnown = false;
 bool gRoofBufferStale = true;
+// What the roofs cover right now, for the cards' roof cut (114): a square per
+// byte, 255 covered, as the shader's uRoofGrid reads it.
+unsigned char gRoofGrid[kSquareCount] = {};
+bool gRoofGridStale = true;
+unsigned int gRoofGridTexture = 0;
 unsigned int gRoofVao = 0;
 unsigned int gRoofVbo = 0;
 int gRoofVertexCount = 0;
@@ -69,6 +74,28 @@ void rebuildRoofBuffer()
     gRoofBufferStale = false;
 }
 
+// The grid as the shader reads it: a square's roof, less where the egg shows
+// through it right now.
+void rebuildRoofGrid()
+{
+    std::memset(gRoofGrid, 0, sizeof(gRoofGrid));
+    for (const RoofSquare& square : gRoofSquares) {
+        if (gRoofVisibilityKnown && gRoofVisible[square.index] == 0) continue;
+        gRoofGrid[square.index] = 255;
+    }
+    if (gRoofGridTexture == 0) glGenTextures(1, &gRoofGridTexture);
+    glBindTexture(kTexture2D, gRoofGridTexture);
+    glPixelStorei(kUnpackAlignment, 1);
+    glPixelStorei(kUnpackRowLength, 0);
+    glTexImage2D(kTexture2D, 0, 0x8229 /* GL_R8 */, 100, 100, 0, 0x1903 /* GL_RED */, kUnsignedByte, gRoofGrid);
+    glPixelStorei(kUnpackAlignment, 4);
+    glTexParameteri(kTexture2D, kTextureMinFilter, kNearest);
+    glTexParameteri(kTexture2D, kTextureMagFilter, kNearest);
+    glTexParameteri(kTexture2D, kTextureWrapS, kClampToEdge);
+    glTexParameteri(kTexture2D, kTextureWrapT, kClampToEdge);
+    gRoofGridStale = false;
+}
+
 } // namespace
 
 namespace internal {
@@ -78,6 +105,7 @@ void setRoofSquares(std::vector<RoofSquare> squares)
     gRoofSquares = std::move(squares);
     gRoofVisibilityKnown = false;
     gRoofBufferStale = true;
+    gRoofGridStale = true;
     gRoofShadowStale = true;
 }
 
@@ -138,6 +166,7 @@ void destroyRoofs()
         if (gRoofVao != 0) glDeleteVertexArrays(1, &gRoofVao);
         if (gRoofShadowVbo != 0) glDeleteBuffers(1, &gRoofShadowVbo);
         if (gRoofShadowVao != 0) glDeleteVertexArrays(1, &gRoofShadowVao);
+        if (gRoofGridTexture != 0) glDeleteTextures(1, &gRoofGridTexture);
         if (gEggTexture != 0) glDeleteTextures(1, &gEggTexture);
     }
     setShadowRoofCasters(0, 0);
@@ -151,6 +180,8 @@ void destroyRoofs()
     gRoofSquares.clear();
     gRoofVisibilityKnown = false;
     gRoofBufferStale = true;
+    gRoofGridTexture = 0;
+    gRoofGridStale = true;
     gEggTexture = 0;
     gEggMask = nullptr;
     gEggShown = false;
@@ -188,6 +219,24 @@ void drawRoofs(int viewportX, int viewportY, int viewportWidth, int viewportHeig
     if (flying) glDepthMask(1);
 }
 
+// The height the cards are cut at where a roof covers them (114): the roofs'
+// plane, 0 with no roofs on the map.
+float roofClipHeight()
+{
+    return gRoofSquares.empty() || !gHeroProjectionLoaded
+        ? 0.0f
+        : static_cast<float>(kRoofPixels / gHeroProjection.hpx);
+}
+
+void bindRoofGrid(int unit)
+{
+    if (gRoofGridStale) rebuildRoofGrid();
+    glActiveTexture(kTexture0 + unit);
+    glBindTexture(kTexture2D, gRoofGridTexture);
+    glUniform1i(gSceneRoofGridLocation, unit);
+    glActiveTexture(kTexture0);
+}
+
 bool bindEgg(int viewportX, int viewportY, int viewportWidth, int viewportHeight)
 {
     // The egg is a place on the game's screen: a fly camera has none.
@@ -223,6 +272,7 @@ void setStaticRoofVisibility(const unsigned char* visible)
     std::memcpy(gRoofVisible, visible, kSquareCount);
     gRoofVisibilityKnown = true;
     gRoofBufferStale = true;
+    gRoofGridStale = true;
 }
 
 void setStaticEgg(const unsigned char* mask, int width, int height, int left, int top)
