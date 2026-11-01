@@ -13,7 +13,11 @@
 # and presses Right, waits 1 s and presses Ctrl+F10. Times count from the
 # start of the recording. "2:W~3" holds W for 3 s (the fly camera reads the
 # held keys); the next step waits for the release.
-# -Config sets config keys for the clip: 'camera_rotation=1'.
+# WHEELUP and WHEELDOWN turn the mouse wheel over the middle of the map
+# (the 3D zoom).
+# -Config sets config keys for the clip: 'camera_rotation=1'; a key the test
+# config lacks is added to [3d]. The clip keeps these 3D options (the game
+# sees F2CE_DEV_RECORD), unlike a background test run.
 # -GameArgs passes extra dev flags (e.g. '--dev-fly','--dev-fly-turn=30').
 #
 # The clip goes to game/shots/097/<Name>.mp4 (H.264, 30 fps, no sound).
@@ -38,6 +42,11 @@ param(
 $ErrorActionPreference = 'Stop'
 $Root = Split-Path -Parent $PSScriptRoot
 $GameDir = Join-Path $Root 'game'
+if (-not (Test-Path $GameDir)) {
+    # A worktree has no game/: use the main checkout's.
+    $main = ((git -C $Root worktree list --porcelain | Select-Object -First 1) -replace '^worktree ', '')
+    $GameDir = Join-Path $main 'game'
+}
 $built = Join-Path $Root 'build\fallout2-ce.exe'
 if (-not (Test-Path $built)) { throw "No build at $built; run tools/configure-build.ps1 first." }
 if (-not (Get-Command ffmpeg -ErrorAction SilentlyContinue)) { throw 'ffmpeg is not on PATH.' }
@@ -93,11 +102,13 @@ foreach ($item in ($Keys -split ',' | Where-Object { $_.Trim() })) {
         $hold = [double]::Parse($Matches[2], [System.Globalization.CultureInfo]::InvariantCulture)
     }
     while ($keyName -match '^(CTRL|ALT|SHIFT)\+(.+)$') { $mods += $Matches[1]; $keyName = $Matches[2] }
-    $vk = if ($keyMap.ContainsKey($keyName)) { $keyMap[$keyName] }
+    $wheel = if ($keyName -eq 'WHEELUP') { 120 } elseif ($keyName -eq 'WHEELDOWN') { -120 } else { 0 }
+    $vk = if ($wheel -ne 0) { 0 }
+        elseif ($keyMap.ContainsKey($keyName)) { $keyMap[$keyName] }
         elseif ($keyName -match '^F([1-9]|1[0-2])$') { 0x6F + [int]$Matches[1] }
         elseif ($keyName -match '^[A-Z0-9]$') { [int][char]$keyName }
         else { throw "Unsupported key '$keyName'." }
-    $steps += [pscustomobject]@{ At = $at; Vk = $vk; Mods = $mods; Hold = $hold }
+    $steps += [pscustomobject]@{ At = $at; Vk = $vk; Mods = $mods; Hold = $hold; Wheel = $wheel }
 }
 
 $exeDirectory = Join-Path $Root 'build\record-run'
@@ -110,8 +121,12 @@ $config = [System.IO.File]::ReadAllText((Join-Path $PSScriptRoot 'test-config\fa
 $config = [regex]::Replace($config, '(?m)^language=.*$', "language=$Language")
 foreach ($pair in $Config) {
     $key, $value = $pair -split '=', 2
-    if (-not [regex]::IsMatch($config, "(?m)^$([regex]::Escape($key))=")) { throw "No config key '$key' in tools/test-config/fallout2.cfg." }
-    $config = [regex]::Replace($config, "(?m)^$([regex]::Escape($key))=.*$", "$key=$value")
+    if ([regex]::IsMatch($config, "(?m)^$([regex]::Escape($key))=")) {
+        $config = [regex]::Replace($config, "(?m)^$([regex]::Escape($key))=.*$", "$key=$value")
+    } else {
+        # A key the test config leaves out goes into [3d] (glow, sun, ...).
+        $config = [regex]::Replace($config, '(?m)^\[3d\]\r?$', "[3d]`r`n$key=$value")
+    }
 }
 [System.IO.File]::WriteAllText((Join-Path $exeDirectory 'fallout2.cfg'), $config, [System.Text.UTF8Encoding]::new($false))
 if (-not (Test-Path $exe) -or (Get-FileHash $built).Hash -ne (Get-FileHash $exe).Hash) { Copy-Item $built $exe -Force }
@@ -151,8 +166,10 @@ $clip = Join-Path $outDirectory "$Name.mp4"
 
 $arguments = @('--dev-tools', "--dev-screen=${ScreenWidth}x${ScreenHeight}", "--dev-scale=$Scale",
     '--dev-new-game', "--dev-map=$Map", "--dev-elevation=$Elevation") + $GameArgs
-$saved = @{ B = $env:F2CE_DEV_BACKGROUND; O = $env:F2CE_DEV_OUT; S = $env:F2CE_SCENE_CACHE }
+$saved = @{ B = $env:F2CE_DEV_BACKGROUND; O = $env:F2CE_DEV_OUT; S = $env:F2CE_SCENE_CACHE; R = $env:F2CE_DEV_RECORD }
 $env:F2CE_DEV_BACKGROUND = '1'
+# The clip keeps its own config's 3D options (turn, zoom, shadows, glow).
+$env:F2CE_DEV_RECORD = '1'
 $env:F2CE_DEV_OUT = $runDirectory
 $cache = Join-Path $Root 'build\scene-cache'
 if (Test-Path -LiteralPath $cache -PathType Container) { $env:F2CE_SCENE_CACHE = $cache }
@@ -200,6 +217,17 @@ try {
     $start = Get-Date
     foreach ($step in $steps) {
         while (((Get-Date) - $start).TotalSeconds -lt $step.At) { Start-Sleep -Milliseconds 20 }
+        if ($step.Wheel -ne 0) {
+            # WM_MOUSEMOVE to the middle of the map (client), then WM_MOUSEWHEEL
+            # (screen coordinates).
+            $cx = [int]($w / 2); $cy = [int]($hh * 0.4)
+            [RecWin]::PostMessage($h, 0x0200, [IntPtr]0, [IntPtr](($cy -shl 16) -bor $cx)) | Out-Null
+            Start-Sleep -Milliseconds 30
+            $sx = $origin.X + $cx; $sy = $origin.Y + $cy
+            [RecWin]::PostMessage($h, 0x020A, [IntPtr]([int64]($step.Wheel -band 0xFFFF) -shl 16),
+                [IntPtr]((($sy -band 0xFFFF) -shl 16) -bor ($sx -band 0xFFFF))) | Out-Null
+            continue
+        }
         $modVk = @{ CTRL = 0x11; ALT = 0x12; SHIFT = 0x10 }
         foreach ($m in $step.Mods) { [RecWin]::PostMessage($h, 0x0100, [IntPtr]$modVk[$m], [IntPtr]1) | Out-Null }
         $sc = [RecWin]::MapVirtualKey([uint32]$step.Vk, 0)
@@ -216,5 +244,6 @@ try {
     $env:F2CE_DEV_BACKGROUND = $saved.B
     $env:F2CE_DEV_OUT = $saved.O
     $env:F2CE_SCENE_CACHE = $saved.S
+    $env:F2CE_DEV_RECORD = $saved.R
     if (-not $KeepRunFolder) { Remove-Item -LiteralPath $runDirectory -Recurse -Force -ErrorAction SilentlyContinue }
 }

@@ -1199,6 +1199,14 @@ bool backgroundCaptureActive()
     return fixedScreenOptionsEnabled() && SDL_getenv("F2CE_DEV_BACKGROUND") != nullptr;
 }
 
+// A recording (tools/record-clip.ps1, F2CE_DEV_RECORD) runs in the background
+// with its own config and keeps it: the clip turns, zooms, shades and glows
+// as that config says.
+static bool backgroundOverridesOptions()
+{
+    return backgroundCaptureActive() && SDL_getenv("F2CE_DEV_RECORD") == nullptr;
+}
+
 void applyFixedScreenOptions()
 {
     if (!gFixedScreenOptions.enabled) return;
@@ -1208,7 +1216,7 @@ void applyFixedScreenOptions()
     settings.screen.windowed = WindowMode::Windowed;
     // A background test run shares game/fallout2.cfg with the owner's game:
     // the owner's zoom and camera rotation must not move its views.
-    if (backgroundCaptureActive()) {
+    if (backgroundOverridesOptions()) {
         settings.scene3d.zoom = 1.0;
         settings.scene3d.camera_rotation = false;
         settings.scene3d.glow = gBackgroundGlow;
@@ -1224,7 +1232,7 @@ void applyFixedScreenOptions()
 
 void applyBackgroundGlow()
 {
-    if (backgroundCaptureActive()) {
+    if (backgroundOverridesOptions()) {
         settings.scene3d.glow = gBackgroundGlow;
         if (gDevGlowStrength >= 0.0) settings.scene3d.glow_strength = gDevGlowStrength;
     }
@@ -1232,7 +1240,7 @@ void applyBackgroundGlow()
 
 void applyBackgroundShadows()
 {
-    if (backgroundCaptureActive()) {
+    if (backgroundOverridesOptions()) {
         settings.scene3d.shadows = gBackgroundShadows;
         settings.scene3d.cloud_shadows = gBackgroundShadows || gBackgroundCloudShadows;
     }
