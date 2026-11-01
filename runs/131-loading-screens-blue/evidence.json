@@ -1,0 +1,90 @@
+{
+  "build_base": "e434c327",
+  "method": "source PNG cover-fit with nearest resize compared against the in-game framebuffer capture; view placed side by side",
+  "captures": [
+    {
+      "language": "en",
+      "splash": 2,
+      "aspect": "16x9",
+      "capture": "<test-copy>/runs/loading-audit-20261030/english/splash2/16x9/shots/game/scr00000.png",
+      "capture_sha256": "f503d055c3c88c1050c6f157b2a3736140e5c045b364f2947799fb6bb81e9420",
+      "source_png": "<game>/user-assets/fullscreen-20261028/3440x1440-originals/loading/en/splash2 2 1.png",
+      "source_sha256": "7de131d99e1055b8db136be9837ab557c62026453975dea525078cb39738dd92",
+      "output": "en-16x9.jpg",
+      "size": [
+        1920,
+        1080
+      ],
+      "mae_rgb": [
+        4.744247202932098,
+        4.3589048032407405,
+        4.531048900462963
+      ],
+      "p95_channel_abs_error": 19.0,
+      "capture_png": "prior Task 118 isolated test-copy capture; showSplash unchanged between that build and e434c327"
+    },
+    {
+      "language": "en",
+      "splash": 2,
+      "aspect": "21x9",
+      "capture": "<test-copy>/runs/loading-audit-20261030/english/splash2/21x9/shots/game/scr00000.png",
+      "capture_sha256": "624cd82a386ba631dd9bfcb28d34dc787ed29d07d2d93808ba923a75bfe581fc",
+      "source_png": "<game>/user-assets/fullscreen-20261028/3440x1440-originals/loading/en/splash2 2 1.png",
+      "source_sha256": "7de131d99e1055b8db136be9837ab557c62026453975dea525078cb39738dd92",
+      "output": "en-21x9.jpg",
+      "size": [
+        2560,
+        1080
+      ],
+      "mae_rgb": [
+        4.3737615740740745,
+        4.084079499421296,
+        4.215601490162037
+      ],
+      "p95_channel_abs_error": 16.0,
+      "capture_png": "prior Task 118 isolated test-copy capture; showSplash unchanged between that build and e434c327"
+    },
+    {
+      "language": "ru",
+      "splash": 2,
+      "aspect": "16x9",
+      "capture": "<test-copy>/runs/loading-audit-20261030/russian/splash2/16x9/shots/game/scr00000.png",
+      "capture_sha256": "7445f4c2b3c6cad4c58d0136e0cf0f9fddd13893ae250ffbb9d49c6868267ca6",
+      "source_png": "<game>/user-assets/fullscreen-20261028/3440x1440-originals/loading/ru/splash2 1 1.png",
+      "source_sha256": "291fb624da71a3749808844371c714e66c5303eed75f84217bcf31abfec4a057",
+      "output": "ru-16x9.jpg",
+      "size": [
+        1920,
+        1080
+      ],
+      "mae_rgb": [
+        4.763103298611111,
+        4.482038966049383,
+        4.5424455054012345
+      ],
+      "p95_channel_abs_error": 19.0,
+      "capture_png": "prior Task 118 isolated test-copy capture; showSplash unchanged between that build and e434c327"
+    },
+    {
+      "language": "ru",
+      "splash": 2,
+      "aspect": "21x9",
+      "capture": "<test-copy>/runs/loading-audit-20261030/russian/splash2/21x9/shots/game/scr00000.png",
+      "capture_sha256": "0dcf8503bb56317cba8d192626c56c395ef6ef25a645ecbb5571f514b06386fc",
+      "source_png": "<game>/user-assets/fullscreen-20261028/3440x1440-originals/loading/ru/splash2 1 1.png",
+      "source_sha256": "291fb624da71a3749808844371c714e66c5303eed75f84217bcf31abfec4a057",
+      "output": "ru-21x9.jpg",
+      "size": [
+        2560,
+        1080
+      ],
+      "mae_rgb": [
+        4.505792100694444,
+        4.281009837962963,
+        4.314511357060185
+      ],
+      "p95_channel_abs_error": 18.0,
+      "capture_png": "prior Task 118 isolated test-copy capture; showSplash unchanged between that build and e434c327"
+    }
+  ]
+}
