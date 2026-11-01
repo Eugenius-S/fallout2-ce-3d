@@ -172,3 +172,6 @@ change.
 Next: obtain the owner view's exact camera/tile or a new capture with a
 sidecar. Keep PR #168 draft and status `doing`; do not change the roof rule
 until the old strips and fringe can be tied to specific projected geometry.
+
+### 2026-11-01 claude review
+Reviewed on main 629c042b merged in. The branch has no source change (ce and tools identical to main), so build, ctest 18/18, exporter tests and the 16-spot regression equal main's (0 px on all 16 with fresh references). No acceptance line holds: no roof before|after, no fix. Missing: a fly capture with a known camera that shows the strips and the flat fringe on current main, then a general roof-edge rule with before|after of the three roofs and the other Klamath roofs, the fly tour and the 090 seam totals. Stays draft, status doing.
