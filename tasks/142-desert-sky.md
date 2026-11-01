@@ -1,0 +1,59 @@
+---
+id: 142
+title: A dusty post-nuclear desert sky
+milestone: M1
+status: todo
+owner: none
+suggested: gpt
+priority: high
+claude-only: no
+user-check: yes
+depends-on: []
+reviewed: no
+---
+
+## Goal
+
+The sky above the 3D view reads as a dusty, washed-out desert sky after the
+war, not a clean saturated blue. No stars in daylight, and the far ridges
+read as distant land, not soft orange waves.
+
+## Context
+
+- The owner, 2026-11-01 (`runs/inbox/2026-11-01-sky-garish.webp`, Klamath,
+  daytime, fly camera looking up): "the sky in the 3D view looks garish;
+  make it more desert and post-nuclear in colour", "and some kind of
+  waves".
+- What the shot shows:
+  - the zenith is a bright saturated blue, the horizon a clean pale
+    yellow: a modern postcard sky, not Fallout 2;
+  - star specks cover the sky in full daylight and stretch into short
+    streaks toward the horizon;
+  - the two mesa ridges are smooth orange humps with blurred tops, which
+    the owner reads as waves.
+- The code: `ce/src/scene_renderer/sky.cc` (113). The colours are the
+  `zenith`, `horizon` and `mesa` arrays blended by `day`, `twilight` and
+  `night`; the stars are `uStars` (the `night` factor) in the fragment
+  shader; the ridges are `uMesa` from noise over the compass direction.
+- Fallout 2's palette for reference: dusty ochre, rust, faded khaki and
+  grey-brown. The sky may keep a faint, desaturated blue high up, but the
+  whole of it sits closer to a hazy beige-grey than to blue.
+
+## Acceptance
+
+- Day, dusk and night each read as a desert sky after the war: low
+  saturation, a dusty horizon haze, no saturated blue anywhere.
+- No stars while the sun is up; at night the stars are points, not
+  streaks.
+- The far ridges read as distant land: darker than the haze, with a
+  harder top line, or removed if no general shape reads as land. No
+  smooth blobs.
+- The colours sit as named constants in one place in `sky.cc`.
+- Evidence in `runs/142-desert-sky/`: fly-camera shots looking up and at
+  the horizon over kladwtwn at 08:00, 12:00, 17:30 and 23:00, before and
+  after, side by side.
+- The sky tests and the scene tests pass.
+
+## Log
+
+- 2026-11-01 Cut from the owner's live find.
