@@ -2,7 +2,7 @@
 id: 125
 title: Every multi-view box's far sides take the art's own back views
 milestone: M1
-status: doing
+status: done
 owner: glm
 suggested: glm
 priority: normal
@@ -55,3 +55,49 @@ span 0 / 1 / 2 - game-visible solids, keep_apart's fly copies, and the
 game-only cut originals). The art-level check only: the coverage gate
 trims further (car3 rot 0 measured 0.25 in 124's recon, TRUCK2 0.38 one
 way). The emit change is one condition plus one pinning line.
+
+### 2026-11-01 glm: the widening landed, the gates did the trimming
+
+The emit site now asks back_sprite for every scenery box whose fit is not
+a drum (carve_art hoisted out of the carve-only branch; it caches per
+art, so the plain-fit rows' ask costs a dict look). The row layout is
+124's (the back at 17 behind an empty 16), the pinning moved to the emit
+site: a back sprite is never a row's near view, and the game's camera
+culls away faces, so it pins to the fly page whatever the row's seen
+value - the seen==1 branch's own back pinning became redundant and went.
+The keep_apart cut copies carry the row whole (list(row)), so the fly
+copies of cut solids keep their backs. Items (the animating containers'
+machinery) are out of scope: frames stays None for non-scenery, their
+rows keep their shape.
+
+The recon's art-level 333 rows trimmed to 86 rows carrying backs on the
+20 surveyed maps - the coverage gate did real work: truck2 (0.38 one
+way), car3 rot 0 (0.25), cac2000, the shelf variants SHELF002 / 006 and
+most of TRUCK3 stay on the mirror. What passed: CAR4b (34 rows across
+seen 0 / 1 / 2), car5 20, cola 13, CAR2b 13, CAR1b 4, SHELF003 1.
+
+Checks: the exporter unittests 87 (the compose's own tests unchanged;
+the emit gate is one condition, exercised by the survey and the
+regression); ctest 18/18; the 16 regression spots are PIXEL-IDENTICAL to
+the 123-rebar run's captures (0 changed pixels; the standing 115-era
+numbers are 121's bandfill deltas, 121's log); the whole-game sweep
+builds all 176 maps except the six elevations that already fail on the
+123 base (124's log has the stash proof). The atlas note: the pinned
+page repacks sorted by height, so its images' rects move - but every
+image there is fly-only by construction, and the unpinned pack keeps its
+order, so the game's sprites keep their texels (the pixel regression is
+the proof).
+
+Pairs (runs/125-widen-back-views/): the Den's game-visible CAR4b solid
+(tile 16648, seen 0 - exactly the new population) from behind. Turn 240
+is the statement: before, the far flank shows the near view's front
+smeared; after, the art's own rear drawing. Turn 0 is the control. The
+cola and shelf targets were shot but their framings failed (the machine
+sits behind a fence, the shelf reads too small at the fly distance) -
+their raw shots stay in runs/_125_shots/, and the whole-screen pixel
+counts of the pairs are dominated by critter animation between the two
+passes; the regression's zero is the honest number. The semantic risk
+the owner may want to judge: a shelf's opposite slot could be a variant
+rather than a true rear (122's turning gate rejected shelves for that);
+the coverage gate cannot tell a rear from a variant - the pairs would
+show it, this shelf's pair did not frame it.
