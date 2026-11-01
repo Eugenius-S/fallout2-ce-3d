@@ -55,6 +55,16 @@ private:
     int previousSharpTextOffsetY_;
 };
 
+class ScopedTextRightAlign {
+public:
+    explicit ScopedTextRightAlign(int right);
+    ~ScopedTextRightAlign();
+    ScopedTextRightAlign(const ScopedTextRightAlign&) = delete;
+    ScopedTextRightAlign& operator=(const ScopedTextRightAlign&) = delete;
+private:
+    int previous_;
+};
+
 class ScopedTextSizeRole {
 public:
     explicit ScopedTextSizeRole(scene::TextSizeRole role, bool enabled = true);

@@ -54,7 +54,7 @@ constexpr int kLabelX = 55;
 constexpr int kValueX = 405;
 constexpr int kValueWidth = 180;
 constexpr int kSliderX = 355;
-constexpr int kSliderRight = 540;
+constexpr int kSliderRight = 550;
 constexpr int kSliderValueX = 500;
 constexpr int kSliderValueWidth = 85;
 constexpr int kLabelTextOffset = 4;
@@ -169,7 +169,23 @@ int sliderTextCenterOffset(int ownerWindow)
 void drawRightAlignedControlText(unsigned char* panel, int rowY, int left, int right, const char* text, Color color)
 {
     const int width = std::min(fontGetStringWidth(text), right - left);
-    fontDrawText(panel + kWidth * (rowY + kLabelTextOffset) + right - width, text, width, kWidth, color);
+    if (width <= 0) return;
+    const int height = std::max(1, fontGetLineHeight());
+    const int pitch = width + 4;
+    std::vector<unsigned char> pixels(static_cast<size_t>(pitch) * height, 0);
+    // Measure the actual original-font ink, not its advance or side bearing.
+    // The probe must not be captured as visible text.
+    fontDrawTextPtr(pixels.data(), text, width, pitch, color | DRAW_TEXT_FLAG_NO_BG);
+    int inkRight = 0;
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            if (pixels[static_cast<size_t>(y) * pitch + x] != 0) inkRight = std::max(inkRight, x + 1);
+        }
+    }
+    if (inkRight == 0) inkRight = width;
+    const int x = std::max(left, right - inkRight);
+    ScopedTextRightAlign align(right);
+    fontDrawText(panel + kWidth * (rowY + kLabelTextOffset) + x, text, width, kWidth, color);
 }
 
 } // namespace
@@ -741,9 +757,8 @@ void OptionsPanel::drawRows()
         case OptionsPanelControl::Toggle: {
             bool value = std::get<bool>(row.edit->value);
             const char* checkbox = value ? "[X]" : "[ ]";
-            const int checkboxX = sliderTrackRight() - fontGetStringWidth(checkbox) / 2;
-            fontDrawText(panel + kWidth * (rowY + kLabelTextOffset) + checkboxX,
-                checkbox, kWidth - inset - checkboxX - 32, kWidth, color);
+            drawRightAlignedControlText(panel, rowY, sliderTrackRight() - 40,
+                sliderTrackRight(), checkbox, color);
             drawRightAlignedControlText(panel, rowY, kSliderValueX - inset,
                 kSliderValueX + kSliderValueWidth - inset, localized(value ? "On" : "Off"), color);
             break;

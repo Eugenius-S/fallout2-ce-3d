@@ -71,3 +71,16 @@ pixel text exactly after accounting for the intentional column shift. Isolated
 sharp-text save/cancel probes passed; Russian and English snapshots cover 16:9
 and Russian 4:3. The entrance scene matches origin/main e5063d0a pixel for
 pixel. Earlier screenshot variants remain in the Git history and build folder.
+
+### 2026-11-01 gpt visible-ink alignment follow-up
+Done: Right-aligned the actual visible ink of option values in both the pixel
+and sharp font, and aligned the rightmost checkbox pixels with slider ends.
+The sharp-text alignment anchor follows text through buffer copies.
+Check: Clean Release build; CTest 18/18, including actual sharp glyph edges at
+output scales 1, 2 and 3 and scoped alignment through buffer copies. On the
+1920x1080 Russian captures all 13 visible values ended at physical x=1489 and
+all 13 controls at x=1419, both with sharp text on and off. Checked Russian
+4:3 and English captures. Sharp-text save and cancel probes passed. The final
+entrance scene matched main e5063d0a, whose game and regression sources are
+unchanged at current origin/main 59ef4a2a. Earlier images remain in Git
+history and build/task133-before-ink-alignment.

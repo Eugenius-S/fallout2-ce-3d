@@ -91,6 +91,35 @@ int main()
     palette[255 * 3 + 1] = 255;
     palette[255 * 3 + 2] = 255;
     SharpTextSurface surface;
+    // Numeric values, different-length Russian states and both checkbox
+    // states must end on the same visible pixel, not just the same advance.
+    for (const char* value : { "0.80", "30.00", "\xC2\xEA\xEB", "\xC2\xFB\xEA\xEB", "[X]", "[ ]" }) {
+        fallout::scene::TextRecord aligned;
+        aligned.run.text = value;
+        aligned.run.font = 101;
+        aligned.run.colorAndFlags = 255;
+        aligned.run.x = 100;
+        aligned.run.y = 2;
+        aligned.run.width = 100;
+        aligned.run.lineHeight = 12;
+        aligned.run.sharpRightAlignX = 200;
+        for (int outputScale : { 1, 2, 3 }) {
+            if (!renderSharpText({ aligned }, 256, 32, 256 * outputScale, 32 * outputScale,
+                    palette, 256, visibility, &surface)) return 1;
+            int rightmost = -1;
+            for (int y = 0; y < surface.height; ++y) {
+                for (int x = 0; x < surface.width; ++x) {
+                    if (surface.pixels[(static_cast<std::size_t>(y) * surface.width + x) * 4 + 3] != 0) {
+                        rightmost = std::max(rightmost, x);
+                    }
+                }
+            }
+            if (rightmost != 200 * outputScale - 1) {
+                std::fprintf(stderr, "Sharp right alignment failed for %s at scale %d: %d\n", value, outputScale, rightmost);
+                return 1;
+            }
+        }
+    }
     if (!renderSharpText({ record }, 256, 32, 512, 64, palette, 256, visibility, &surface)
         || std::none_of(surface.pixels.begin(), surface.pixels.end(), [](unsigned char value) { return value != 0; })) {
         std::fprintf(stderr, "CP1251 sharp text did not rasterize\n");
