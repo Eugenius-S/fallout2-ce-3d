@@ -2,8 +2,8 @@
 id: 129
 title: Klamath graphics sweep, find and fix every visible defect
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: glm
 suggested: glm
 priority: high
 claude-only: no
@@ -62,3 +62,68 @@ A loop, without waiting for anyone between rounds:
 
 The interface, menus, wallpapers and text (gpt's tasks 126-128), the sky
 (113), new 3D models of landmark objects from scratch (a later task).
+
+### 2026-11-01 glm: sweep round 1, the tour over all Klamath maps
+
+Done: the fresh export of all seven Klamath maps into build/scene-cache
+(origin/main's exporter), the fly tour over all 43 spots at -45, 0, +45
+(the sheets in build/tour/sheets/, the raw views in build/tour/after/),
+the sheet-scale review of every map. Find list:
+
+1. klatoxcv e1, tile 19091, fly +45: the cave wall boxes' TOP faces are
+   flat untextured grey caps (two boxes right of the drums). Crop:
+   runs/129-klamath-graphics-sweep/finds/klatoxcv-e1-19091-p45-grey-caps.jpg.
+   Likely cause: the solid boxes extruded from the wall art carry a
+   colourless top cap; the game camera never sees it, the fly camera does.
+2. klatoxcv e1, tile 22924, fly +45: the same - the big wall box top is
+   flat grey, a second box top right is flat pink-brown. Crop:
+   runs/129-klamath-graphics-sweep/finds/klatoxcv-e1-22924-p45-grey-pink-caps.jpg.
+   Same cause as 1.
+3. Checked, not a defect: the slime pools read flat bright green from
+   above and in the game view - the vanilla 2D lights the slime by its own
+   light source the same way; the pools keep their texture shape. The
+   map-edge voids (kladwtwn 22958, klacanyn 23869, klatoxcv e0 23879) are
+   the designed map ends, the 2D shows the same.
+4. No defects at the sheet scale: kladwtwn e0 (19 spots), klamall e0 (7),
+   klatrap e0 (3), klacanyn e0 (2), klagraz e0 (2), klaratcv e0-e2,
+   klatoxcv e0 and e2. The round 2 needs the closer inspection the tour
+   cannot give: the building interiors, the shapes-eval solo shots.
+
+Marked: 1 and 2 = open, one cause group (the solid caps' top faces).
+
+### 2026-11-01 glm: the cause group fixed on task/129-box-tops
+
+Done: the corner caps (_corner_cap, the pieces that close the notch where
+the sheared tops end at a corner) took one texel of their lender row's top
+band, so every cap was one flat colour; in the cave art that reads as a
+grey or pink-brown plastic sheet (finds 1 and 2), and some lenders' bands
+sampled clear edge texels. Now the cap takes the art's own top band the
+way the wall's top takes it (_wall_front): each corner samples the texel
+the game drew it on; past the band's width the piece runs on in whole runs
+of the band's columns (_corner_fill's repeat), the run whose brightness is
+nearest the band's median (task 076); a column counts only opaque over the
+rows the piece's depth reaches (the soft rise rows never take part). The
+cap's lender is a row at least half as wide as the columns the piece
+needs, else the widest banded row of its line, never a corner piece (task
+076). Find list after the fix:
+
+1. fixed (this PR): runs/129-box-tops/find1-klatoxcv-e1-19091-p45.jpg.
+2. fixed (this PR): runs/129-box-tops/find2-klatoxcv-e1-22924-p45.jpg.
+3. not a defect, unchanged.
+4. open, next round.
+
+Checks: the exporter unit tests and the 12 regression unit tests pass, the
+18 ctest tests pass. The game view: the walls.bin game batches are
+byte-identical on all eleven Klamath maps against the origin/main
+exporter's; the regression run passes 12 of 16 spots with 0 changed
+pixels - the 4 fails (central-doors, map-edge, klagraz-e0, klamall-e0)
+reproduce on origin/main: their references were taken today from the
+unmerged task/125-widen-back-views stack (ce a8d0b83e), whose engine
+differs from origin/main. The fly tour against the origin/main exporter's
+cache: 38 of 43 spots changed, every change is a corner cap taking its
+band (the sheets in runs/129-box-tops/tour-changed*.jpg); 5 caps on
+see-through band art (klamall's wire fences) are dropped - a solid sheet
+over a see-through top read wrong.
+
+Next: sweep round 2 (interiors, shapes-eval solo shots).
+Check: the crops and sheets above.
