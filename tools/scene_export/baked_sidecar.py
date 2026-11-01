@@ -103,6 +103,15 @@ def baked_objects(scene, map_objects, live_boards=frozenset()):
         ua, va, ub, vb = (float(value) for value in row[1:5])
         entries.setdefault((obj.tile, obj.fid), (PLANE, ua - GL_MAP_OFFSET, va - GL_MAP_OFFSET,
                                                  math.atan2(vb - va, ub - ua)))
+    for index, row in enumerate(scene.get("wallCards") or []):
+        # (123) the burnt rebar: its live card stands on its wall run's plane
+        # for the fly camera; the game's views keep the card they always had.
+        if not isinstance(row, list) or len(row) < 5:
+            raise ValueError(f"invalid wall card {index} record")
+        obj = _object(map_objects, row[4], f"wall card {index}")
+        ua, va, ub, vb = (float(value) for value in row[:4])
+        entries.setdefault((obj.tile, obj.fid), (PLANE, ua - GL_MAP_OFFSET, va - GL_MAP_OFFSET,
+                                                 math.atan2(vb - va, ub - ua)))
     # A plant's crown throws no shadow (task 045's follow-up): the mark rides
     # the mode's high bit, on whatever the object's entry is.
     for board in scene.get("plants") or []:

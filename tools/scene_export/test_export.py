@@ -8,7 +8,8 @@ import struct
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from baked_sidecar import (ENTRY as BAKED_ENTRY, HEADER as BAKED_HEADER, LIFT as BAKED_LIFT, MAGIC as BAKED_MAGIC,
+from baked_sidecar import (ENTRY as BAKED_ENTRY, GL_MAP_OFFSET, HEADER as BAKED_HEADER, LIFT as BAKED_LIFT,
+                           MAGIC as BAKED_MAGIC,
                            NOCAST as BAKED_NOCAST, SKIP as BAKED_SKIP, FLAT as BAKED_FLAT, FLY_FLAT as BAKED_FLY_FLAT,
                            FLY_SKIP as BAKED_FLY_SKIP, PLANE as BAKED_PLANE,
                            baked_objects, decode_baked_sidecar, encode_baked_sidecar)
@@ -474,6 +475,43 @@ class WallSidecarTests(unittest.TestCase):
         self.assertGreater(drum["triangles"], 16)
         for vertex in drum["batches"][0]["vertices"]:
             self.assertEqual(vertex[5:8], vertex[:3])
+
+    def test_a_back_view_row_points_the_away_faces_at_it_mirrored(self):
+        # 124: a row naming a back view (row[17]) sends its away faces to that
+        # sprite's page, sampled mirrored about the anchor; without the field
+        # they stay on the near sprite's page as they always were.
+        scene = self.sample_scene()
+        scene["walls"] = []
+        scene["pages"].append({"image": "sprites1.png", "size": [100, 100]})
+        scene["sprites"].append([0, 40, 40, 50, 50, -25, -40])       # 2: the near view
+        scene["sprites"].append([1, 0, 0, 100, 100, -50, -50])       # 3: the back view, the whole page
+        scene["props"] = [[2, 10.0, 10.0, 0, 0, 10.0, 10.1, 0.5, 0.4, 0.0, 0.3, 0.0, 0.6,
+                           0, 0, 0, [], 3]]
+        scene["boards"] = [[2, 10.0, 10.0, 1, 0, 0]]
+        decoded = decode_wall_sidecar(encode_wall_sidecar(scene))
+        self.assertIn(1, [batch["page"] for batch in decoded["batches"]])
+        p = scene["proj"]
+
+        def px(u, v, z):
+            return (p["origin"][0] + u * p["squ"][0] + v * p["sqv"][0],
+                    p["origin"][1] + u * p["squ"][1] + v * p["sqv"][1] - p["hpx"] * z)
+
+        ax_, ay_ = px(10.0, 10.0, 0.0)
+        vertices = next(batch["vertices"] for batch in decoded["batches"] if batch["page"] == 1)
+        self.assertEqual(len(vertices), 12)                      # the two away faces, unclipped
+        for k, (x, y, z, s_, t, *_) in enumerate(vertices):
+            u, v, height = x + 50.0, z + 50.0, y
+            # the away faces sample the near faces' points: the v0 face from
+            # the v1 face, the u0 face from the u1 face (six vertices each)
+            su, sv = (u, 10.3) if k < 6 else (10.25, v)
+            sx, sy = px(su, sv, height)
+            # the back view is read mirrored: the texel of the mirrored
+            # world pixel, in the back sprite's own rect
+            self.assertAlmostEqual(s_ * 100.0, 0 + (ax_ - sx) + 50, places=3)
+            self.assertAlmostEqual(t * 100.0, 0 + (sy - ay_) + 50, places=3)
+        scene["props"][0] = scene["props"][0][:16]                   # no back view field
+        decoded = decode_wall_sidecar(encode_wall_sidecar(scene))
+        self.assertNotIn(1, [batch["page"] for batch in decoded["batches"]])
 
     def test_the_fly_camera_gets_a_whole_drum_of_its_own(self):
         # Its near half, for the game's camera alone, shows the sprite's outline
@@ -1374,6 +1412,197 @@ class CarveTests(unittest.TestCase):
         self.assertEqual(props.real_directions([card]), 0)
         self.assertEqual(props.real_directions([view]), 1)
 
+    def test_the_carve_takes_long_low_arts_only(self):
+        # 123: the carve's ground boxes would lie a tall leaning frame down;
+        # the vehicles' profile is long and low.
+        import numpy as np
+        from vendor.fp import props
+        wide = np.zeros((40, 130), bool)
+        wide[10:32, 4:126] = True                               # a car's side view
+        tall = np.zeros((140, 100), bool)
+        tall[6:134, 20:80] = True                               # a leaning burnt frame
+        self.assertGreaterEqual(props.real_aspect([wide, wide]), props.CARVE_LONG)
+        self.assertLess(props.real_aspect([tall, tall]), props.CARVE_LONG)
+        # the placeholder cards count in neither measure
+        card = np.ones((22, 46), bool)
+        self.assertLess(props.real_aspect([tall, tall, card, card]), props.CARVE_LONG)
+
+
+class WallCardTests(unittest.TestCase):
+    """123: a burnt rebar piece joins its wall - the baked sidecar's PLANE."""
+
+    def test_a_wall_card_row_names_the_run_s_plane(self):
+        import math
+        row = [51.5339, 20.9883, 51.5339, 24.7695, 1]           # a run along v, one object
+        scene = {"walls": [], "boards": [], "wallCards": [row]}
+        objects = [BakedSidecarTests.MapObject(9302, 0x2000505), BakedSidecarTests.MapObject(9303, 0x2000506)]
+        entries = baked_objects(scene, objects)
+        self.assertEqual(len(entries), 1)
+        tile, fid, mode, du, dv, dz = entries[0]
+        self.assertEqual((tile, fid), (9303, 0x2000506))
+        self.assertEqual(mode & 0x7FFFFFFF, BAKED_PLANE)
+        self.assertAlmostEqual(du, row[0] - GL_MAP_OFFSET)
+        self.assertAlmostEqual(dv, row[1] - GL_MAP_OFFSET)
+        self.assertAlmostEqual(dz, math.atan2(row[3] - row[1], row[2] - row[0]))
+
+
+class BackSpriteTests(unittest.TestCase):
+    """Task 124: the carve's back view - the art's own opposite direction
+    composed into the near view's pixel frame, and the gates that keep the
+    plain mirror."""
+
+    palette_rgba = None                                        # built once, below
+
+    @classmethod
+    def setUpClass(cls):
+        import numpy as np
+        cls.palette_rgba = np.zeros((4, 4), np.uint8)
+        cls.palette_rgba[1] = (200, 30, 30, 255)               # the near view's colour
+        cls.palette_rgba[2] = (30, 30, 200, 255)               # the opposite view's colour
+
+    @staticmethod
+    def stub_frm(views, x_offsets):
+        """A directions-wide Frm stub over index-array views, the real
+        placement math, one frame per direction."""
+        import types
+
+        class StubFrm:
+            direction_count, frame_count = len(views), 1
+            y_offsets = [0] * len(views)
+
+            def __init__(self):
+                self.x_offsets = x_offsets
+
+            def frame(self, direction, index=0):
+                return types.SimpleNamespace(array=lambda: views[direction])
+
+            def placement(self, direction, index=0, obj_x=0, obj_y=0):
+                height, width = views[direction].shape
+                return (self.x_offsets[direction] + obj_x - width // 2, self.y_offsets[direction] + obj_y - (height - 1),
+                        width, height)
+
+            def rgba(self, palette, direction, index=0):
+                return palette.rgba[views[direction]]
+
+        return StubFrm()
+
+    def builder(self, stub):
+        import types
+        from vendor.fp.atlas import Atlas
+        from vendor.fp.scene import SceneBuilder
+        box = SceneBuilder.__new__(SceneBuilder)
+        box.atlas = Atlas()
+        box.sprites = []
+        box._sprite_ids = {}
+        palette = types.SimpleNamespace(rgba=self.palette_rgba)
+        box.gf = types.SimpleNamespace(art=types.SimpleNamespace(load=lambda fid: stub),
+                                       palette=types.SimpleNamespace(glow_sprite=palette))
+        return box
+
+    def views(self, opposite):
+        """Six views: the near view (direction 0) a red 23x15 blob on a 20x30
+        canvas, direction `opposite` a blue 27x17 blob covering it at the
+        world alignment (its x_offset sits 4 px round), the rest red."""
+        import numpy as np
+        near = np.zeros((20, 30), np.uint8)
+        near[3:18, 4:27] = 1
+        views = [near.copy() for _ in range(6)]
+        if opposite is not None:
+            back = np.zeros((20, 30), np.uint8)
+            back[2:19, 2:29] = 2
+            views[opposite] = back
+        return views
+
+    def piece(self):
+        import types
+        return types.SimpleNamespace(
+            obj=types.SimpleNamespace(fid=0x2000500, rotation=0, frame=0, x=0, y=0))
+
+    def test_the_opposite_view_composes_over_the_near_body(self):
+        import numpy as np
+        from vendor.fp.scene import SceneBuilder
+        views = self.views(3)
+        stub = self.stub_frm(views, [0, 0, 0, 4, 0, 0])
+        box = self.builder(stub)
+        frames = [view != 0 for view in views]
+        left, top, _, _ = stub.placement(0, 0)
+        back = SceneBuilder.back_sprite(box, self.piece(), self.palette_rgba[views[0]], frames, left, top)
+        self.assertGreaterEqual(back, 0)
+        image, ox, oy = box.sprites[back]
+        got = box.atlas.images[image]
+        col0, row0 = ox - left, oy - top
+        # where only the opposite is opaque, its blue; where only the near is,
+        # the near's red as the fallback; and the near silhouette stays whole
+        self.assertEqual(tuple(got[10 - row0, 28 - col0]), (30, 30, 200, 255))
+        self.assertEqual(tuple(got[10 - row0, 5 - col0]), (200, 30, 30, 255))
+        near_alpha = views[0] != 0
+        for i, j in zip(*np.nonzero(near_alpha)):
+            self.assertTrue(got[i - row0, j - col0, 3] > 0, f"hole over the near body at {i}, {j}")
+
+    def test_a_placeholder_opposite_keeps_the_mirror(self):
+        import numpy as np
+        from vendor.fp.scene import SceneBuilder
+        views = self.views(3)
+        views[3] = np.ones((22, 46), np.uint8)                  # the UNUSED ART card
+        stub = self.stub_frm(views, [0, 0, 0, 4, 0, 0])
+        back = SceneBuilder.back_sprite(self.builder(stub), self.piece(), self.palette_rgba[views[0]],
+                                        [v != 0 for v in views], *stub.placement(0, 0)[:2])
+        self.assertEqual(back, -1)
+
+    def test_an_opposite_too_small_against_the_near_body_keeps_the_mirror(self):
+        import numpy as np
+        from vendor.fp.scene import SceneBuilder
+        views = self.views(3)
+        views[3] = np.zeros((20, 30), np.uint8)
+        views[3][8:12, 12:16] = 2                               # 16 texels of 345: under BACK_COVER
+        stub = self.stub_frm(views, [0, 0, 0, 4, 0, 0])
+        back = SceneBuilder.back_sprite(self.builder(stub), self.piece(), self.palette_rgba[views[0]],
+                                        [v != 0 for v in views], *stub.placement(0, 0)[:2])
+        self.assertEqual(back, -1)
+
+    def test_an_art_without_opposite_directions_keeps_the_mirror(self):
+        from vendor.fp.scene import SceneBuilder
+        views = self.views(3)[:3]                               # three stored directions
+        stub = self.stub_frm(views, [0, 0, 0])
+        back = SceneBuilder.back_sprite(self.builder(stub), self.piece(), self.palette_rgba[views[0]],
+                                        [v != 0 for v in views], *stub.placement(0, 0)[:2])
+        self.assertEqual(back, -1)
+
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class FillHolesBandTests(unittest.TestCase):
+    """121: the band pass - a transparent gap the shape straddles fills."""
+
+    def test_a_lid_gap_over_a_body_fills(self):
+        from vendor.fp.props import fill_holes
+        import numpy as np
+        rgba = np.zeros((12, 10, 4), np.uint8)
+        rgba[..., :3] = 200
+        rgba[1:4, 2:8, 3] = 255          # the lid
+        rgba[7:11, 1:9, 3] = 255         # the body
+        out = fill_holes(rgba)
+        self.assertTrue((out[4:7, 3:7, 3] == 255).all())   # the gap between them filled
+        self.assertTrue((out[0, :, 3] == 0).all())          # the open border stays
+
+    def test_an_open_sky_cutout_stays_open(self):
+        from vendor.fp.props import fill_holes
+        import numpy as np
+        rgba = np.zeros((10, 10, 4), np.uint8)
+        rgba[..., :3] = 200
+        rgba[1:9, 1:3, 3] = 255           # a left post
+        rgba[1:9, 7:9, 3] = 255           # a right post
+        out = fill_holes(rgba)
+        self.assertTrue((out[1:9, 4:6, 3] == 0).all())      # between the posts: open to the top
+
+    def test_a_tall_gap_between_rails_stays_open(self):
+        from vendor.fp.props import fill_holes
+        import numpy as np
+        rgba = np.zeros((20, 10, 4), np.uint8)
+        rgba[..., :3] = 200
+        rgba[1:4, 1:9, 3] = 255           # the upper rail
+        rgba[12:15, 1:9, 3] = 255         # the lower rail: 8 open rows between
+        out = fill_holes(rgba)
+        self.assertTrue((out[4:12, 3:7, 3] == 0).all())     # a real gap the game's view shows too

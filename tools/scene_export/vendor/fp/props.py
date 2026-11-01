@@ -377,7 +377,32 @@ def real_directions(frames):
     """Directions whose frame is not the engine's UNUSED ART placeholder card
     (task 120): the card is opaque edge to edge, a real view's silhouette
     leaves its canvas open somewhere. -> the count of real directions."""
-    return sum(1 for alpha in frames if alpha.any() and alpha.mean() < 0.97)
+    return sum(1 for alpha in frames if real_view(alpha))
+
+
+def real_view(alpha):
+    """A direction's frame is a real view, not the placeholder card."""
+    return alpha.any() and alpha.mean() < 0.97
+
+
+CARVE_LONG = 1.35     # the carve's profile: its widest real view is at least
+                      # this much wider than its tallest (123; the vehicles
+                      # sit at 1.39-2.57, the leaning burnt frames at 0.13-1.02)
+
+
+def real_aspect(frames):
+    """The carve candidate's profile (task 123): the widest real direction's
+    width over the tallest real direction's height. The game's big
+    multi-quarter things - a car - read long and low; a leaning burnt frame
+    does not, and the carve's ground boxes would lie it down."""
+    widest, tallest = 0, 0
+    for alpha in frames:
+        if not real_view(alpha):
+            continue
+        rows, columns = np.flatnonzero(alpha.any(axis=1)), np.flatnonzero(alpha.any(axis=0))
+        widest = max(widest, int(columns[-1] - columns[0] + 1))
+        tallest = max(tallest, int(rows[-1] - rows[0] + 1))
+    return widest / tallest if tallest else 0.0
 
 
 def carved(shape, fit):
@@ -666,13 +691,20 @@ def compose(pieces):
     return index, rgba, x, y
 
 
+BAND_MAX = 4   # texels: the widest gap between two pieces of the art that fills (task 121 review)
+
+
 def fill_holes(rgba):
-    """The texture of a solid's faces with its enclosed transparent texels
-    filled in the colour of the nearest opaque ones, an average of the
-    neighbours, so no face shows the scene through the art's holes (the
-    owner's rule of no holes in the 3D things, 115). The open border, the
-    ground round the feet and the painted shade band, stays as it is: a
-    cut-out that is the shape's own keeps the original's pixels."""
+    """The texture of a solid's faces with its transparent texels filled in the
+    colour of the nearest opaque ones, an average of the neighbours, so no face
+    shows the scene through the art's holes (the owner's rule of no holes in
+    the 3D things, 115). Two classes fill: the texels enclosed on all sides,
+    and (121's pass) the ones with opaque art both above and below in their
+    column - a band the shape straddles, the gap a hovering lid leaves over a
+    body, which the border-reach rule kept open but a 3D face shows as a slit
+    straight through the thing. The open border, the ground round the feet and
+    the painted shade band, stays as it is: a cut-out that the art holds open
+    to the sky keeps the original's pixels."""
     alpha = rgba[..., 3] > 0
     if alpha.all() or not alpha.any():
         return rgba
@@ -691,6 +723,56 @@ def fill_holes(rgba):
             break
         reach = grown
     holes = ~alpha & ~reach
+    # A band the shape straddles: transparent, with opaque art above and below
+    # in the same column that belong to DIFFERENT pieces of the art - the gap a
+    # hovering lid leaves over its body. A bite out of one piece (a notch open
+    # to the side) stays: its above and below are the same connected piece.
+    label = np.zeros(alpha.shape, np.int32)
+    remaining = alpha.copy()
+    piece = 0
+    while remaining.any():
+        piece += 1
+        r, c = np.argwhere(remaining)[0]
+        front = np.zeros_like(remaining)
+        front[r, c] = True
+        while True:
+            grown = front.copy()
+            grown[1:, :] |= front[:-1, :]
+            grown[:-1, :] |= front[1:, :]
+            grown[:, 1:] |= front[:, :-1]
+            grown[:, :-1] |= front[:, 1:]
+            grown &= remaining
+            if (grown == front).all():
+                break
+            front = grown
+        label[front] = piece
+        remaining &= ~front
+    nearest_above = np.zeros(alpha.shape, np.int32)
+    carry = np.zeros(alpha.shape[1], np.int32)
+    for r in range(alpha.shape[0]):
+        nearest_above[r] = carry
+        carry = np.where(alpha[r], label[r], carry)
+    nearest_below = np.zeros(alpha.shape, np.int32)
+    carry = np.zeros(alpha.shape[1], np.int32)
+    for r in range(alpha.shape[0] - 1, -1, -1):
+        nearest_below[r] = carry
+        carry = np.where(alpha[r], label[r], carry)
+    band = ~alpha & (nearest_above > 0) & (nearest_below > 0) & (nearest_above != nearest_below)
+    # only a thin gap: a lid's slit is a few texels, a fence's open space between
+    # its rails is a real gap the game's own view shows (review 2026-11-01)
+    for c in range(band.shape[1]):
+        r = 0
+        while r < band.shape[0]:
+            if band[r, c]:
+                e = r
+                while e < band.shape[0] and band[e, c]:
+                    e += 1
+                if e - r > BAND_MAX:
+                    band[r:e, c] = False
+                r = e
+            else:
+                r += 1
+    holes = holes | band
     if not holes.any():
         return rgba
     out = rgba.copy()
