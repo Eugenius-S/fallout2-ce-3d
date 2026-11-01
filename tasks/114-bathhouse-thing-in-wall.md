@@ -86,3 +86,13 @@ Next: the tour's changed.jpg attached here; the owner checks the bathhouse
 Check: runs/114-bathhouse-thing-in-wall/ (before | after at the game's
 angle, the classic original, flight with the roof off, the klamall tables'
 before | after); ctest 18/18; the scene_export and regression unit tests.
+
+### 2026-11-01 claude (review)
+Done: merged origin/main (10 commits ahead); only the regression references
+conflicted, took main's and retook the four spots this change moves
+(central-doors 1807 px, map-edge 1957, klagraz-e0 3106, klamall-e0 3306; the
+other 12 spots are pixel for pixel): the pipe on the bathhouse wall and the
+other lifted table or clutter cards return to the game's own pixels in the
+game camera. ctest 18/18, scene_export 70 and regression unit tests pass.
+PR #173 (diagnostic follow-up with a fly-only horizontal-lift reset, never
+rebuilt) is superseded by this PR.
