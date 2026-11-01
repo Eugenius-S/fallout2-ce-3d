@@ -231,3 +231,4 @@ that fits no task becomes a new task when the board runs dry.
   129 still read `doing` by glm; whoever takes them continues from their
   branches.
 - 2026-11-01 The 3D sky is a saturated blue with daylight stars and soft orange ridges; the owner wants a dusty post-nuclear desert sky (142).
+- 2026-11-01 The owner: camera turn in 10-degree steps, 30 by default; edge scrolling goes the wrong way on a turned camera (144).
