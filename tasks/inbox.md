@@ -215,3 +215,4 @@ that fits no task becomes a new task when the board runs dry.
   the frame rate (127), the wide HUD bar source (128), the 3D options
   screen finish to the owner's notes (130).
 - 2026-11-01 Cut for glm: a non-stop Klamath graphics sweep (129).
+- 2026-11-01 Cut for glm: Arroyo in 3D, the opening area exported and swept (133).
