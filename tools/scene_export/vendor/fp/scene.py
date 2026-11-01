@@ -62,6 +62,9 @@ ON_TOP = 0.05       # units outside a solid's footprint that still count as on i
 AT_SOLID = 0.3      # an invisible blocker this close to a solid is part of it (units)
 PLANT = (0.33, 0.45, 0.5)   # a plant: this share of its pixels on its outline at least, this share of its rectangle
                             # filled at most, and this share of its pixels covered by its mirror image
+BACK_COVER = 0.5    # the carve's back view: the opposite body must cover this share of the near
+                    # body's opaque texels at the world alignment, or the faces keep the mirror
+                    # (124; the Den's real pairs measured 0.55-0.82, CAR1's tiny slot 0.10)
 
 
 def _b64(array):
@@ -661,6 +664,50 @@ class SceneBuilder:
             self._carve_arts[key] = got
         return got
 
+    def back_sprite(self, piece, body, frames, left, top):
+        """(124) The carve's back view: the art's own opposite direction
+        composed into the near view's pixel frame - the opposite body where
+        it is opaque, the near body's own texel where it is not - so the far
+        sides' mirrored sampling reads the artist's back drawing and never
+        lands on a transparent texel, whatever the two silhouettes do. A
+        byte-mirror pair composes into the mirror itself and reads exactly
+        as the plain mirror did. -> the sprite index, or -1: the art holds
+        no opposite direction (1 or 3 stored directions), the slot is the
+        placeholder card, or too little of the near body is covered
+        (BACK_COVER)."""
+        obj = piece.obj
+        frm = self.gf.art.load(obj.fid)
+        count = frm.direction_count
+        if count not in (2, 6):
+            return -1
+        opposite = (obj.rotation + count // 2) % count
+        if not props.real_view(frames[opposite]):
+            return -1
+        frame = min(max(obj.frame, 0), frm.frame_count - 1)
+        index = frm.frame(opposite, frame).array()
+        rgba = frm.rgba(self.gf.palette.glow_sprite, opposite, frame)
+        opp_left, opp_top, _, _ = frm.placement(opposite, frame, obj.x, obj.y)
+        shade = light.outer_dark(index)
+        painted = light.painted_shadow(index, opp_top)
+        if painted is not None:
+            shade |= painted
+        back_body = props.fill_holes(rgba * ~shade[..., None])
+        # the opposite body aligned by world position: its array pixel (i, j)
+        # stands at the anchor-relative point (opp_top + i, opp_left + j),
+        # the near body's at (top + i, left + j)
+        rows = np.arange(body.shape[0])[:, None] + top - opp_top
+        columns = np.arange(body.shape[1])[None, :] + left - opp_left
+        inside = (rows >= 0) & (rows < back_body.shape[0]) & (columns >= 0) & (columns < back_body.shape[1])
+        there = back_body[np.clip(rows, 0, back_body.shape[0] - 1), np.clip(columns, 0, back_body.shape[1] - 1)]
+        take = inside & (there[..., 3] > 0)
+        composite = body.copy()
+        composite[take] = there[take]
+        near_opaque = body[..., 3] > 0
+        cover = float((take & near_opaque).sum()) / max(1, int(near_opaque.sum()))
+        if cover < BACK_COVER:
+            return -1
+        return self.cropped(composite, left, top)
+
     def build_props(self):
         """What first person shows as solids instead of cards and sheets (props.py).
 
@@ -769,6 +816,7 @@ class SceneBuilder:
             cu, cv = u + du, v + dv
             body = props.fill_holes(rgba * ~shade[..., None])
             sprite = self.cropped(body, left, top)
+            back = self.back_sprite(first, body, frames, left, top) if carve else -1
             if shade.any() and not forced and (seen != 1 or animating):
                                                             # a solid by name: its card keeps the shade; a live
                                                             # card's cast stays as main's stood solid had left it
@@ -801,9 +849,12 @@ class SceneBuilder:
                 if not round_:
                     (pu, pv), a, b = self.out_of_walls(u + pu, v + pv, a, b)
                     pu, pv = pu - u, pv - v
-                self.props.append([sprite] + _round((u, v)) + [board, int(round_)]
-                                  + _round((u + pu, v + pv, a, b, z0, z1, wall_u, wall_v)) + [self.name_id(first.obj.pid)]
-                                  + [int(bool(forced)), seen])
+                row = [sprite] + _round((u, v)) + [board, int(round_)]
+                row += _round((u + pu, v + pv, a, b, z0, z1, wall_u, wall_v)) + [self.name_id(first.obj.pid)]
+                row += [int(bool(forced)), seen]
+                if back >= 0:                       # (124) the art's own back view rides the row at 17;
+                    row += [[], back]               # the empty 16 reads as a box's no clip planes
+                self.props.append(row)
                 things.append(thing)
                 half = (radius, radius) if round_ else (a / 2, b / 2)
                 area = math.pi * radius ** 2 if round_ else a * b
@@ -840,6 +891,8 @@ class SceneBuilder:
                                                         # stays, so the light bake reads the same sprite
                         for row in self.props[props_start:] + self.rests[rests_start:]:
                             self.fly_sprites.add(row[0])    # its sprites are the fly camera's own
+                            if len(row) > 17:               # (124) and the row's back view with them
+                                self.fly_sprites.add(row[17])
                 for piece in group:
                     if piece.board is None and piece.sheet is not None:
                         self.hidden_sheets.append(piece.sheet)

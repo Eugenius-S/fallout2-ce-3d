@@ -7,6 +7,10 @@ the 3D view sees a thing with depth: a bed lies on the floor, a shelf stands
 square to the walls. The faces the game's camera sees show what they land on; the far
 sides face away from it (it culls them) and show their near sides' pixels
 mirrored, as the donor's first person does, for a free camera behind a thing.
+A row may name a back view (row[17], task 124): the art's own opposite
+direction composed in the near view's pixel frame (scene.back_sprite), which
+the far sides then sample mirrored - the artist's back drawing where the art
+holds one, the near mirror where it does not.
 
 As in the donor's game view, a solid's faces take the depth of its card: the
 upright plane of its hex row (a hair nearer), reached along the game's view
@@ -154,9 +158,13 @@ def solid_faces(proj, sprites, boards, row):
     # keep the greater side]. The mesh is cut at them in plan and keeps its size.
     clips = [(int(c[0]), float(c[1]), bool(c[2])) for c in row[16]] if len(row) > 16 else ()
 
-    def texel_at(point):
+    def texel_at(point, sprite=None, mirror=False):
+        """The sprite texel a world point samples: where it lands on the game's
+        screen - or there mirrored about the anchor, for a back view composed
+        to be read that way (124)."""
+        spage, sx, sy, sw, sh, sox, soy = sprite if sprite is not None else sprites[s]
         px, py = proj.ground_to_px(*point)
-        return [x + px - ax - ox, y + py - ay - oy]
+        return [sx + (ax - px if mirror else px - ax) - sox, sy + py - ay - soy]
 
     faces = []
 
@@ -184,12 +192,14 @@ def solid_faces(proj, sprites, boards, row):
                 return [], []
         return points, sources
 
-    def face(points, from_points=None, away=False, camera="both"):
+    def face(points, from_points=None, away=False, camera="both", back=-1):
         shows = from_points or points
-        corners = clip([[*point, *texel_at(shows[i])] for i, point in enumerate(points)], x, y, w, h)
+        sprite = sprites[back] if back >= 0 else sprites[s]
+        corners = clip([[*point, *texel_at(shows[i], sprite, back >= 0)] for i, point in enumerate(points)],
+                       sprite[1], sprite[2], sprite[3], sprite[4])
         if len(corners) >= 3:
-            faces.append((page, [corner + (depth_home(proj, corner, plane) if plane is not None else [0.0, 0.0, 0.0])
-                                 for corner in corners], away, camera))
+            faces.append((sprite[0], [corner + (depth_home(proj, corner, plane) if plane is not None else [0.0, 0.0, 0.0])
+                                      for corner in corners], away, camera))
 
     if round_:
         # The cylinder over the floor ellipse a x b px on the game's screen. Taking
@@ -258,6 +268,7 @@ def solid_faces(proj, sprites, boards, row):
         return _forced(row, faces)
 
     u0, u1, v0, v1 = cu - a / 2, cu + a / 2, cv - b / 2, cv + b / 2
+    back = row[17] if len(row) > 17 else -1      # (124) the art's own back view, -1: the near mirror
 
     def along_u(vv, low, high):
         return [[u0, vv, low], [u1, vv, low], [u1, vv, high], [u0, vv, high]]
@@ -268,8 +279,8 @@ def solid_faces(proj, sprites, boards, row):
     face([[u0, v0, z1], [u1, v0, z1], [u1, v1, z1], [u0, v1, z1]])
     face(along_u(v1, z0, z1))
     face(along_v(u1, z0, z1))
-    face(along_u(v0, z0, z1), along_u(v1, z0, z1), away=True)
-    face(along_v(u0, z0, z1), along_v(u1, z0, z1), away=True)
+    face(along_u(v0, z0, z1), along_u(v1, z0, z1), away=True, back=back)
+    face(along_v(u0, z0, z1), along_v(u1, z0, z1), away=True, back=back)
     # What rises behind the top (a headboard): on the far sides, seen from inside.
     if wall_u > z1:
         face(along_u(v0, z1, wall_u))
