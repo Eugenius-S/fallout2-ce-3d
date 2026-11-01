@@ -2,7 +2,7 @@
 id: 101
 title: Roof edges are clean, the roof fringe stands up like a wall, no wall tops through roofs
 milestone: M1
-status: todo
+status: done
 owner: none
 suggested: glm
 priority: normal
@@ -48,3 +48,5 @@ The owner, 2026-10-27, live with the 095 build, shots in `runs/inbox/`:
 Shadows on roofs, corner pieces (096), the walls' inside (102).
 
 ## Log
+
+- 2026-11-01 claude: not reproduced on main after two rounds (PR #168 / #172 closed, diagnostics only). Folded into the Klamath graphics sweep (129): the sweep checks for this defect and fixes it if it shows.

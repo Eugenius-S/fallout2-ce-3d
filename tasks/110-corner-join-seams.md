@@ -2,7 +2,7 @@
 id: 110
 title: No thin seam where two walls meet at a corner
 milestone: M1
-status: todo
+status: done
 owner: none
 suggested: glm
 priority: normal
@@ -54,3 +54,5 @@ picture. One rule at the corner line for all corners, no per-map cases.
 Shadows on the corner pieces (109), the post split itself (107).
 
 ## Log
+
+- 2026-11-01 claude: not reproduced on main after two rounds (PR #168 / #172 closed, diagnostics only). Folded into the Klamath graphics sweep (129): the sweep checks for this defect and fixes it if it shows.
