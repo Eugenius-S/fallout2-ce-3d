@@ -50,7 +50,8 @@ get the plane of the wall they close.
 """
 import numpy as np
 
-from . import proj, walls
+from f2lib import ids
+from . import proj, props, walls
 
 PLANAR_FIT = 0.6        # share of columns whose lower edge follows one wall slope: a sheet, if thin
 PLANAR_MIN_WIDTH = 24   # px; narrower things stay cards (a card that narrow looks the same)

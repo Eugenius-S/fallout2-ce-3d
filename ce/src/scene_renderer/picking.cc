@@ -94,6 +94,7 @@ int pickStaticObjects(int logicalX, int logicalY, bool (*wanted)(int pickId, voi
     glUniform1i(gSceneTranslucentLocation, 0);
     glUniform1i(gScenePickLocation, 1);
     glUniform1f(gSceneCutoffLocation, 0.5f);
+    glUniform2f(gSceneRoofClipLocation, 0.0f, 0.0f);
     glActiveTexture(kTexture0);
     glUniform1i(gSceneTextureLocation, 0);
 
