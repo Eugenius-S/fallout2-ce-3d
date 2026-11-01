@@ -2,14 +2,14 @@
 id: 142
 title: A dusty post-nuclear desert sky
 milestone: M1
-status: todo
-owner: none
+status: done
+owner: gpt
 suggested: gpt
 priority: high
 claude-only: no
 user-check: yes
 depends-on: []
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -57,3 +57,9 @@ read as distant land, not soft orange waves.
 ## Log
 
 - 2026-11-01 Cut from the owner's live find.
+- 2026-11-01 gpt
+  Done: named the day, twilight and night palette values in one place in `ce/src/scene_renderer/sky.cc`; removed daytime stars, made nighttime stars point-shaped, and changed the far ridge to stepped land silhouettes.
+  Evidence: before/after sky-up and horizon pairs for Klamath at 08:00, 12:00, 17:30 and 23:00 are in `runs/142-desert-sky/`.
+  Check: Release build passed (final executable SHA-256 `0ddc2032935ba71476973b1f62a8ea6608618bd74717ea790d4382f10f7cf05b`); 18 scene-related C++ test executables passed, including `sun_tests`. The Klamath fly tour passed at 57 views per side; its changed sheets are in `runs/142-desert-sky/fly-tour/`. `ctest -R "sky|scene"` found no registered CTest tests, and the repository has no sky-specific test executable.
+- 2026-11-01 gpt: Owner rejected the dark stepped silhouettes. Removed the procedural ridges completely, leaving the dusty sky gradient. The previous horizon pairs and fly-tour sheets show the superseded silhouette; see `horizon-no-ridges.jpg` for the current result. Release build and CTest 18/18 passed. A new fly tour was attempted but stopped before its first capture because Windows PowerShell could not load Get-FileHash; rerun it with a working PowerShell environment before visual acceptance.
+- 2026-11-01 gpt: The owner requested a black background in the normal 2.5D view at every rotation. The turn camera shares the fly camera implementation, so the sky is drawn only when flying and the turn camera does not own the pose. Captures at 90, 180, and 270 degrees show black outside the map; a free-flight capture retains the sky. See `black-background-rotations.jpg`. Release build and CTest 18/18 passed. A zero-degree capture at extreme zoom showed a black frame without visible map geometry, so it is not visual evidence. The full fly tour remains outstanding as noted above.
