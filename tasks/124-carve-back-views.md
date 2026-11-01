@@ -41,6 +41,10 @@ Non-carve rows (their away faces keep the mirror), drums, the engine.
 
 ## Log
 
+### 2026-11-01 claude review
+Done: merged task 123 and current main; exporter tests 88 OK. The runs-size check failed on four PNG pairs over 1 MB: converted the five big pairs in runs/124-carve-back-views/ to JPEG under 0.8 MB each. The game-view regression and the fly tour were run once on the combined 124+125 tip (see task 125's log), since both only add away-face sprites that the game's camera culls. The pairs show the changed far sides (turn 120: 40736 changed px; the turn 180 control: 0).
+Check: runs/124-carve-back-views/*.jpg.
+
 ### 2026-11-01 glm: the recon: opposite slots measured, the composite closes the holes
 
 The Den's scenery arts through the carve's own qualification
