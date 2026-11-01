@@ -2,7 +2,7 @@
 id: 103
 title: The see-through halo round the hero works at walls again
 milestone: M1
-status: doing
+status: done
 owner: glm
 suggested: gpt
 priority: high
@@ -91,3 +91,5 @@ on and off brackets the cause.
 
 Next: the owner checks it in the game with their save.
 Check: the crops above; the fixture command in the Log of the PR.
+
+- 2026-11-01 Closed at merge (#196); the owner checks it live.

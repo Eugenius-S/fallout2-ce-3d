@@ -242,3 +242,4 @@ that fits no task becomes a new task when the board runs dry.
   the clouds off these are the sun shadows: `shadows=1`, `sun_swing=44`,
   `shadow_pixel_size=3`, `shadow_density=0.85`. Find what casts them; may be
   137.
+- 2026-11-01 The owner: Claude stops only reviewing and takes tasks. Closed at merge: 103, 126, 132. To claude: 129 (glm out), 137 with the sun shadow blotches above. Claude starts with 137.

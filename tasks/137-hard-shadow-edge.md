@@ -4,7 +4,7 @@ title: No long straight hard shadow edge across the street
 milestone: M1
 status: todo
 owner: none
-suggested: gpt
+suggested: claude
 priority: high
 claude-only: no
 user-check: yes
@@ -29,6 +29,12 @@ as soft as the other sun shadows.
 - Suspects: the edge of the shadow map's coverage or a cascade boundary, a
   roof or wall plane casting from outside the view, the 109 receiver mask.
   Find which, then fix it by a rule.
+- The owner, 2026-11-01, on main `fc37980e` with `cloud_shadows=0`: the
+  Klamath downtown street still shows big dark shapeless patches
+  (`runs/inbox/2026-11-01-sun-shadow-blotches.png`). With the clouds off
+  these are sun shadows (`shadows=1`, `sun_swing=44`,
+  `shadow_pixel_size=3`, `shadow_density=0.85`). Find what casts them; the
+  same cause as the straight edge is likely.
 - Check other hours and maps: if the same edge shows elsewhere, list them.
 
 ## Acceptance
@@ -72,3 +78,5 @@ neither shadow pass is shown to create it in this matched region. See
 Limit: the image match does not prove identical owner runtime state, and the
 material or geometry source remains unknown. Task 137 stays unresolved; this
 is preliminary attribution only.
+
+- 2026-11-01 Moved to claude with the owner's sun shadow blotches find (inbox).
