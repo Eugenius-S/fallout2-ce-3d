@@ -41,6 +41,9 @@ Holes in solids (115), other furniture kinds, the landmark objects.
 
 ## Log
 
+### 2026-11-01 claude review
+Folded into task 119 (PR #167); PR #166 is superseded and closes unmerged.
+
 ### 2026-10-31 glm: done through task 119
 
 The render side landed in task 119 (PR #167): the stoves stand as lid drums
