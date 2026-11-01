@@ -89,6 +89,13 @@ uniform vec3 uClipPlane0;
 uniform vec3 uClipPlane1;
 uniform vec3 uClipPlane2;
 uniform vec3 uClipPlane3;
+// The roof plane (114): x its height, y 1 while the roofs draw. The game's
+// roof picture hides a room's cards above that plane; the 3D roof sits lower
+// and leaves the band open, so a tall card inside (the bathhouse's table
+// stuff) read over its wall from the street. uRoofGrid says where the roofs
+// cover right now, the egg's see-through circle included.
+uniform vec2 uRoofClip;
+uniform sampler2D uRoofGrid;
 uniform int uEgg; // the see-through circle around the hero
 uniform sampler2D uEggMask;
 uniform vec4 uEggRect; // game logical pixels: left, top, width, height
@@ -670,6 +677,11 @@ void main() {
             || dot(uClipPlane2.xy, vWorldXZ) + uClipPlane2.z < -0.00001
             || dot(uClipPlane3.xy, vWorldXZ) + uClipPlane3.z < -0.00001) discard;
     }
+    if (uRoofClip.y > 0.5 && vWorld.y > uRoofClip.x) {
+        vec2 square = floor(vWorld.xz + 50.0);
+        if (square == clamp(square, vec2(0.0), vec2(99.0))
+            && texelFetch(uRoofGrid, ivec2(square), 0).r > 0.5) discard;
+    }
     if (uTextured == 0) {
         outColor = uColor;
         outEmissive = vec4(0.0);
@@ -891,6 +903,8 @@ int gSceneGlassGrayLocation = -1;
 int gScenePickLocation = -1;
 int gSceneClipEnabledLocation = -1;
 int gSceneClipPlaneLocations[4] = { -1, -1, -1, -1 };
+int gSceneRoofClipLocation = -1;
+int gSceneRoofGridLocation = -1;
 int gSceneEggLocation = -1;
 int gSceneEggMaskLocation = -1;
 int gSceneEggRectLocation = -1;
@@ -978,6 +992,8 @@ bool createSceneShader(std::string* error)
     gSceneClipPlaneLocations[1] = glGetUniformLocation(gSceneProgram, "uClipPlane1");
     gSceneClipPlaneLocations[2] = glGetUniformLocation(gSceneProgram, "uClipPlane2");
     gSceneClipPlaneLocations[3] = glGetUniformLocation(gSceneProgram, "uClipPlane3");
+    gSceneRoofClipLocation = glGetUniformLocation(gSceneProgram, "uRoofClip");
+    gSceneRoofGridLocation = glGetUniformLocation(gSceneProgram, "uRoofGrid");
     gSceneEggLocation = glGetUniformLocation(gSceneProgram, "uEgg");
     gSceneEggMaskLocation = glGetUniformLocation(gSceneProgram, "uEggMask");
     gSceneEggRectLocation = glGetUniformLocation(gSceneProgram, "uEggRect");
@@ -1036,7 +1052,8 @@ bool createSceneShader(std::string* error)
         || gSceneCloudOnLocation < 0 || gSceneCloudOffsetLocation < 0
         || gSceneClipEnabledLocation < 0
         || gSceneClipPlaneLocations[0] < 0 || gSceneClipPlaneLocations[1] < 0
-        || gSceneClipPlaneLocations[2] < 0 || gSceneClipPlaneLocations[3] < 0) {
+        || gSceneClipPlaneLocations[2] < 0 || gSceneClipPlaneLocations[3] < 0
+        || gSceneRoofClipLocation < 0 || gSceneRoofGridLocation < 0) {
         *error = "static floor shader uniforms are missing";
         return false;
     }
@@ -1061,6 +1078,8 @@ void destroySceneShader()
     gSceneLightOriginLocation = -1;
     gSceneClipEnabledLocation = -1;
     for (int index = 0; index < 4; index++) gSceneClipPlaneLocations[index] = -1;
+    gSceneRoofClipLocation = -1;
+    gSceneRoofGridLocation = -1;
 }
 
 } // namespace internal

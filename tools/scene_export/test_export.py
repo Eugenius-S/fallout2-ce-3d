@@ -1436,3 +1436,13 @@ class FillHolesBandTests(unittest.TestCase):
         rgba[1:9, 7:9, 3] = 255           # a right post
         out = fill_holes(rgba)
         self.assertTrue((out[1:9, 4:6, 3] == 0).all())      # between the posts: open to the top
+
+    def test_a_tall_gap_between_rails_stays_open(self):
+        from vendor.fp.props import fill_holes
+        import numpy as np
+        rgba = np.zeros((20, 10, 4), np.uint8)
+        rgba[..., :3] = 200
+        rgba[1:4, 1:9, 3] = 255           # the upper rail
+        rgba[12:15, 1:9, 3] = 255         # the lower rail: 8 open rows between
+        out = fill_holes(rgba)
+        self.assertTrue((out[4:12, 3:7, 3] == 0).all())     # a real gap the game's view shows too
