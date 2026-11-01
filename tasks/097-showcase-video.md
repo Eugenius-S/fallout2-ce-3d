@@ -86,3 +86,15 @@ clouds" and so on, so the difference is obvious without explanation.
 A voice-over, a trailer for anything beyond Klamath, other languages.
 
 ## Log
+
+### 2026-11-01 claude
+Done: `tools/record-clip.ps1` records a clip of a separate test game
+(build/record-run, its own exe and config, never the owner's game) into
+`game/shots/097/<name>.mp4`, 1920x1080 at 30 fps, driving it with timed keys
+sent as window messages; test clips `test-01`, `test-02` (Ctrl+F10 toggles
+mid-clip). The Vault City track is decoded with the engine's own ACM decoder
+to `game/shots/097/audio/22vcity.wav` (197.8 s, 44.1 kHz stereo; ffmpeg's
+ACM decoder fails on this file). Task 118's code is already on `main`.
+Next: in a new chat with the After Effects MCP loaded, check `ae_project_info`,
+record segments 1-10 and 12, edit.
+Check: `tools/record-clip.ps1 -Name test -Seconds 6`.
