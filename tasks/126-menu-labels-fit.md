@@ -2,8 +2,8 @@
 id: 126
 title: Russian main menu labels fit their buttons
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: gpt
 suggested: gpt
 priority: normal
 claude-only: no
