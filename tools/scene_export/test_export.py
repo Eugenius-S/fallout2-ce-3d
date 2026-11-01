@@ -513,6 +513,30 @@ class WallSidecarTests(unittest.TestCase):
         self.assertAlmostEqual(max(body), max(rim), places=3)
         self.assertAlmostEqual(max(rim) - min(rim), 2 * 18.0, places=3)
 
+    def test_a_fly_drum_is_sliced_at_the_walls_it_crosses(self):
+        # A fly-only drum annotated with a wall plane (scene.keep_apart, 120)
+        # keeps its size and ends flat at the plane: the fly mesh loses the part
+        # past it and keeps the rest whole. The game's faces are not drawn anyway.
+        scene = self.sample_scene()
+        scene["walls"] = []
+        scene["pages"][0]["size"] = [400, 400]
+        scene["sprites"].append([0, 100, 100, 200, 200, -100, -150])
+        scene["props"] = [[2, 10.0, 10.0, 0, 1, 10.0, 10.0, 18.0, 8.0, 0.0, 0.5, 0.0, 0.0,
+                           0, 0, 1, [[0, 10.0, 1]]]]
+        scene["boards"] = [[2, 10.0, 10.0, 0, 0, 0]]
+        decoded = decode_wall_sidecar(encode_wall_sidecar(scene))
+        fly = [v for b in decoded["batches"] if b["fly_only"] for v in b["vertices"]]
+        self.assertTrue(fly)
+        us = [v[0] + 50.0 for v in fly]         # the sidecar vertices are ground minus (50, 50)
+        self.assertGreaterEqual(min(us), 10.0 - 1e-4)
+        # The kept side reaches as far as the whole drum did.
+        whole = [2, 10.0, 10.0, 0, 1, 10.0, 10.0, 18.0, 8.0, 0.0, 0.5, 0.0, 0.0, 0, 0, 1]
+        scene["props"] = [whole]
+        whole_us = [v[0] + 50.0 for b in decode_wall_sidecar(encode_wall_sidecar(scene))["batches"]
+                    if b["fly_only"] for v in b["vertices"]]
+        self.assertLess(min(whole_us), 10.0)    # the drum did cross the plane
+        self.assertAlmostEqual(max(us), max(whole_us), places=3)
+
     def test_faces_name_the_map_object_they_show(self):
         from types import SimpleNamespace
         scene = self.sample_scene()
@@ -1297,6 +1321,58 @@ class LidDrumTests(unittest.TestCase):
         res = props.fit(alpha, 0, 0)
         self.assertIsNotNone(res)
         self.assertFalse(res[1].lid)   # the feet are not a cap: no lid drum, whatever wins
+
+
+class CarveTests(unittest.TestCase):
+    """Task 120: the carve fallback - a multi-view art the plain fit refused
+    stands as the forced box raised to the art's own height bands."""
+
+    @staticmethod
+    def box_sprite(a, b, lifts):
+        """The true projection of a row of floor-standing boxes (the carve's
+        body and cabin): the near corner right of centre, the boxes marching
+        along the long axis, each `lift` px tall."""
+        import numpy as np
+        from vendor.fp import props
+        ones = np.ones((150, 280), bool)
+        geom = props.Shape(ones, 0, 0)
+        corner = (190.0, 100.0)
+        alpha = np.zeros_like(ones)
+        y = geom.top + np.arange(geom.h)[:, None] + 0.5
+        for n, (run, lift) in enumerate(lifts):
+            block = props.Block(geom, (corner[0] - n * run * props.proj.SQ_U[0], corner[1] - n * run * props.proj.SQ_U[1]),
+                                run, b, 0)
+            alpha |= (y >= block.far[None, :] - lift) & (y < block.near[None, :]) & block.on[None, :]
+        return alpha
+
+    def test_a_car_profile_splits_into_body_and_cabin(self):
+        from vendor.fp import props
+        alpha = self.box_sprite(1.3, 0.9, [(0.8, 22), (0.5, 36)])
+        shape, fit = props.fit(alpha, 0, 0, force="box")
+        carved = props.carved(shape, fit)
+        lifts = sorted(block.lift for block in carved.blocks)
+        self.assertGreaterEqual(len(lifts), 2)                  # the bands split
+        self.assertLess(lifts[0], 22 + 7)                       # the body's own height
+        self.assertGreater(lifts[-1], 36 - 7)                   # the cabin's own height
+        self.assertAlmostEqual(carved.z1, lifts[-1] / props.proj.HPX, places=3)
+
+    def test_a_flat_profile_keeps_one_block_at_the_sprites_height(self):
+        from vendor.fp import props
+        alpha = self.box_sprite(1.4, 0.9, [(1.4, 28)])
+        shape, fit = props.fit(alpha, 0, 0, force="box")
+        carved = props.carved(shape, fit)
+        self.assertEqual(len(carved.blocks), 1)
+        self.assertAlmostEqual(carved.blocks[0].lift, 28.0, delta=7)
+
+    def test_placeholder_cards_are_no_directions(self):
+        from vendor.fp import props
+        import numpy as np
+        view = np.zeros((20, 30), bool)
+        view[4:16, 3:26] = True                                 # a silhouette: open canvas around it
+        card = np.ones((22, 46), bool)                          # the UNUSED ART card: edge to edge
+        self.assertEqual(props.real_directions([view, view, card, card]), 2)
+        self.assertEqual(props.real_directions([card]), 0)
+        self.assertEqual(props.real_directions([view]), 1)
 
 
 if __name__ == "__main__":

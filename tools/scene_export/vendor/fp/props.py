@@ -88,6 +88,9 @@ STEM_OFF = 0.3          # ... and stand no further from under its middle than th
 RIM_PX = 3              # px under a top face that may still be its rim
 LONG, SLICE = 1.5, 0.5  # units: a box at least this long is cut into slices about this long
 SAME_PX = 4             # px: neighbouring slices whose heights differ by less are one box
+CARVE_STRIPS = 8        # the carve fallback's length samples (task 120)
+CARVE_STEP_PX = 8       # px: neighbouring strips whose heights differ by less are one band
+CARVE_MIN_RUN = 2       # strips: a shorter band joins its closer neighbour
 MIN_REST = 12           # px: fewer pixels outside the solid are not worth drawing
 FAR = 1e6               # px: where a box is not
 
@@ -368,6 +371,75 @@ def _slices(shape, box):
                 blocks.append(Block(shape, slices[first][0], run if along_u else box.a, box.b if along_u else run, height))
             first = n
     return blocks if len(blocks) > 1 else [box]
+
+
+def real_directions(frames):
+    """Directions whose frame is not the engine's UNUSED ART placeholder card
+    (task 120): the card is opaque edge to edge, a real view's silhouette
+    leaves its canvas open somewhere. -> the count of real directions."""
+    return sum(1 for alpha in frames if alpha.any() and alpha.mean() < 0.97)
+
+
+def carved(shape, fit):
+    """The forced box raised to what the art shows over its plan (task 120's
+    carve fallback: a multi-view scenery art the plain fit refused - the
+    game's big multi-quarter things, a car). The length cuts into strips,
+    each as high as the sprite rises over the strip's far edge (the _slices
+    measure at a car's shorter length), and neighbours of one height join:
+    the bands are the body, the cabin. -> the fit with blocks set and z1 at
+    the tallest band, or the fit unchanged when the strips hold nothing
+    above the floor."""
+    box = Block(shape, (fit.centre[0] + (fit.a * proj.SQ_U[0] + fit.b * proj.SQ_V[0]) / 2,
+                        fit.centre[1] + (fit.a * proj.SQ_U[1] + fit.b * proj.SQ_V[1]) / 2 + fit.z1 * proj.HPX),
+                fit.a, fit.b, fit.z1 * proj.HPX)
+    along_u = fit.along_u
+    size_step = proj.SQ_U if along_u else proj.SQ_V
+    size = (fit.a if along_u else fit.b) / CARVE_STRIPS
+    pieces = []
+    for n in range(CARVE_STRIPS):
+        corner = box.corner[0] - n * size * size_step[0], box.corner[1] - n * size * size_step[1]
+        piece = Block(shape, corner, size if along_u else fit.a, fit.b if along_u else size, 0)
+        pieces.append((corner, piece, corner[0] + piece.a * PX_U - piece.b * PX_V))
+    strips = []
+    for n, (corner, piece, peak) in enumerate(pieces):
+        # the strip's own columns: between the previous strip's far corner and
+        # its own (the outer boundary there is this strip's alone)
+        if along_u:
+            lo = box.corner[0] - fit.b * PX_V if n == 0 else pieces[n - 1][2]
+            side = piece.on & shape.some & (shape.x > lo) & (shape.x <= peak)
+        else:
+            hi = box.corner[0] + fit.a * PX_U - fit.b * PX_V if n == 0 else pieces[n - 1][2]
+            side = piece.on & shape.some & (shape.x >= peak) & (shape.x < hi)
+        strips.append((corner, max(0.0, float(np.median((piece.far - shape.upper)[side]))) if side.any() else 0.0))
+    bands = []                                              # [first strip, last strip, height]
+    for n, (_, height) in enumerate(strips):
+        if bands and abs(height - bands[-1][2]) <= CARVE_STEP_PX:
+            bands[-1][1] = n
+            bands[-1][2] = float(np.mean([h for _, h in strips[bands[-1][0]:n + 1]]))
+        else:
+            bands.append([n, n, height])
+    for n in range(len(bands) - 1, -1, -1):                 # a short band joins the closer one
+        if len(bands) > 1 and bands[n][1] - bands[n][0] + 1 < CARVE_MIN_RUN:
+            if n + 1 >= len(bands) or (n > 0 and abs(bands[n][2] - bands[n - 1][2]) <= abs(bands[n][2] - bands[n + 1][2])):
+                other = bands[n - 1]
+            else:
+                other = bands[n + 1]
+            lo, hi = min(bands[n][0], other[0]), max(bands[n][1], other[1])
+            other[0], other[1] = lo, hi
+            other[2] = float(np.mean([h for _, h in strips[lo:hi + 1]]))
+            bands.pop(n)
+    blocks = []
+    for first, last, height in bands:
+        if height < MIN_HEIGHT:
+            continue
+        corner = box.corner[0] - first * size * size_step[0], box.corner[1] - first * size * size_step[1]
+        run = (last - first + 1) * size
+        blocks.append(Block(shape, corner, run if along_u else fit.a, fit.b if along_u else run, height))
+    if not blocks:
+        return fit
+    fit.blocks = blocks
+    fit.z1 = max(block.lift for block in blocks) / proj.HPX
+    return fit
 
 
 def _from_floor(shape, force=False, allow_lid=False):

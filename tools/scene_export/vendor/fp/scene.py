@@ -516,7 +516,10 @@ class SceneBuilder:
         beside a wall came out through it (a round stove in a corner), and two things side by
         side overlapped in plan and showed through each other from the air (a dresser and the
         crates against it). A box is cut back at the slabs of the walls as it is made
-        (out_of_walls); a drum here, on the side of its own hex. Two solids whose heights meet
+        (out_of_walls); a drum here, on the side of its own hex. A fly-only drum (row[15] 1)
+        is not cut here at all: the game's views are its card's, and solids.solid_faces
+        slices its mesh at the walls it crosses instead (row[16]), so it keeps its size and
+        ends flat at the wall face (120). Two solids whose heights meet
         are each cut back by half of their overlap, across the axis where they overlap less. A
         drum is cut as its square and becomes the largest drum within what is left: it keeps
         its near side and moves off the cut, so it still shows the sprite it was made of.
@@ -542,8 +545,30 @@ class SceneBuilder:
             if not row[4] or not seen:
                 continue
             if row[15] == 1:
-                continue        # a fly-only drum keeps its size: the game's own views are its
-                                # card's, and in flight a little wall overlap beats a stump
+                # A fly-only drum keeps its size: the game's own views are its card's
+                # either way. What it would lose to a wall the mesh loses instead
+                # (solids.solid_faces slices the drum at row[16]'s planes, task 120):
+                # the old shrink stumped a drum whose center sat on the slab, keeping
+                # at most 2 * MIN_DRUM of a full diameter, and it took the kept side
+                # from the hex while the fit may put the drum's center half a unit
+                # away from it. The cut runs at the slab face the drum's center is
+                # nearest, and the mesh's cut face (solids.solid_faces) closes the
+                # end there: the drum ends flush at the wall, nothing pokes out the
+                # far side, and no view into the cut sees the hollow inside.
+                radius = row[7] / proj.BB_PX
+                for u0, v0, u1, v1 in self.boxes:
+                    if math.hypot(row[5] - min(max(row[5], u0), u1), row[6] - min(max(row[6], v0), v1)) >= radius:
+                        continue
+                    axis = int(u1 - u0 > v1 - v0)               # across the slab
+                    slab, home = ((u0, u1), (v0, v1))[axis], row[5 + axis]
+                    keep_ge = home > (slab[0] + slab[1]) / 2
+                    face = slab[1] if keep_ge else slab[0]
+                    if len(row) == 16:
+                        row.append([])
+                    clip = [axis, face, 1 if keep_ge else 0]
+                    if clip not in row[16]:
+                        row[16].append(clip)
+                continue
             for u0, v0, u1, v1 in self.boxes:
                 radius = row[7] / proj.BB_PX
                 if math.hypot(row[5] - min(max(row[5], u0), u1), row[6] - min(max(row[6], v0), v1)) >= radius:
@@ -599,6 +624,24 @@ class SceneBuilder:
                 shade |= painted
             self._solids[key] = shade, props.fit((index != 0) & ~shade, left, top, force, allow_lid)
         return self._solids[key]
+
+    def carve_art(self, fid):
+        """The art holds more than one real stored direction (task 120's carve
+        candidates): a direction whose only frame fills its own bounding box
+        is the engine's UNUSED ART placeholder card, not a view, and drops
+        out; at least two real directions must remain. Cached per art."""
+        key = fid & 0x0FFFFFFF
+        got = self._carve_arts.get(key)
+        if got is None:
+            got = False
+            try:
+                frm = self.gf.art.load(fid)
+            except (FileNotFoundError, ValueError, KeyError):
+                frm = None
+            if frm is not None and frm.direction_count > 1:
+                got = props.real_directions([frm.frame(d, 0).array() != 0 for d in range(frm.direction_count)]) >= 2
+            self._carve_arts[key] = got
+        return got
 
     def build_props(self):
         """What first person shows as solids instead of cards and sheets (props.py).
@@ -663,6 +706,17 @@ class SceneBuilder:
             # only as a drum with a lid: its art vouches for the shape, and its game views keep
             # the card either way (a lid's gap is transparent there), so nothing they see moves.
             shade, found = self.solid_of(index, left, top, forced, allow_lid=loose or narrow)
+            carve = False
+            if not found and first.obj.obj_type == ids.OBJ_TYPE_SCENERY and self.carve_art(first.obj.fid):
+                # The carve fallback (task 120): a multi-view scenery art the
+                # plain fit refused - the game's big multi-quarter things, a
+                # car - stands as the forced box raised to the art's own
+                # height bands, and only the fly camera draws it: the game's
+                # views keep the card.
+                _, forced_found = self.solid_of(index, left, top, "box")
+                if forced_found and forced_found[1].cover >= 0.7:
+                    found = forced_found[0], props.carved(forced_found[0], forced_found[1])
+                    carve = True
             if not found:
                 continue
             shape, fit = found
@@ -673,7 +727,7 @@ class SceneBuilder:
             # alone now, and every other mark stays as main's had been (tasks 116/119).
             animating = not loose and not narrow and first.obj.obj_type == ids.OBJ_TYPE_ITEM \
                 and first.board is not None and self.card_info[first.board][1].frame_count > 1
-            if fit.lid or animating:
+            if carve or fit.lid or animating:
                 seen = 1                                # their game views keep the card: a lid's gap is
                                                         # transparent there and a container's card is
                                                         # live (it opens); first person gets the solid
@@ -751,7 +805,7 @@ class SceneBuilder:
                 else:
                     made.add(frozenset(map(id, group)))
                     fly_hidden += [piece.board for piece in group if piece.board is not None]
-                    if fit.lid:                     # a thing main kept a card: its painted shadow row
+                    if carve or fit.lid:            # a thing main kept a card: its painted shadow row
                         self.fly_shadows.update(piece.board for piece in group if piece.board is not None)
                                                         # stays, so the light bake reads the same sprite
                         for row in self.props[props_start:] + self.rests[rests_start:]:
@@ -836,6 +890,7 @@ class SceneBuilder:
         self.card_info = []             # (object, frm, draw order) of every board
         self.sheet_rows = {}            # id(face) -> its row in self.walls
         self._solids = {}
+        self._carve_arts = {}           # of the carve fallback's qualifying arts (task 120)
         self.faced = set()              # objects whose collision is their wall face
         set_ids = {}
         self.wall_tiles = {o.tile for o in self.objects if o.obj_type == ids.OBJ_TYPE_WALL}
