@@ -98,3 +98,14 @@ ACM decoder fails on this file). Task 118's code is already on `main`.
 Next: in a new chat with the After Effects MCP loaded, check `ae_project_info`,
 record segments 1-10 and 12, edit.
 Check: `tools/record-clip.ps1 -Name test -Seconds 6`.
+
+### 2026-11-01 claude
+Done: the owner wants the game in English with an English interface. The
+Russian lettering on the panel (PUNCH, Skilldex, HP/AC, MAP/CHA/PIP) came from
+the Restoration Project Russian packs in game/mods (`rpu_russian.dat`,
+`upu_russian_sound.dat`), not from master.dat. An English clip now runs from
+build/record-run/game, links to game/ with its own mods_order.txt without the
+*_russian packs; the owner's files are not written. `test-03` shows the
+English panel.
+Next: as above.
+Check: `tools/record-clip.ps1 -Name test -Seconds 4`, the panel reads PUNCH.

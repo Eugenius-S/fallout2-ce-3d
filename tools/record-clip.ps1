@@ -104,6 +104,33 @@ if (-not (Test-Path $exe) -or (Get-FileHash $built).Hash -ne (Get-FileHash $exe)
 $runId = [guid]::NewGuid().ToString('N').Substring(0, 12)
 $runDirectory = Join-Path $exeDirectory "runs\$runId"
 New-Item -ItemType Directory -Path $runDirectory -Force | Out-Null
+# The game loads game/mods/mods_order.txt from its working directory, and the
+# owner's list carries the Russian Restoration Project packs, which replace
+# the interface art (PUNCH, SKILLDEX, ...) with Russian lettering. An English
+# clip runs from build/record-run/game instead: junctions and hard links to
+# every entry of game/ except mods/, whose own copy links the same files with
+# a mods_order.txt that leaves the *_russian packs out. The owner's files are
+# never written. Links are only added, never removed: deleting a junction
+# recursively would delete the owner's files behind it.
+$workDir = $GameDir
+if ($Language -eq 'english') {
+    $workDir = Join-Path $exeDirectory 'game'
+    New-Item -ItemType Directory -Path (Join-Path $workDir 'mods') -Force | Out-Null
+    foreach ($entry in Get-ChildItem -LiteralPath $GameDir -Force) {
+        if ($entry.Name -eq 'mods') { continue }
+        $link = Join-Path $workDir $entry.Name
+        if (Test-Path -LiteralPath $link) { continue }
+        if ($entry.PSIsContainer) { New-Item -ItemType Junction -Path $link -Target $entry.FullName | Out-Null }
+        else { New-Item -ItemType HardLink -Path $link -Target $entry.FullName | Out-Null }
+    }
+    foreach ($entry in Get-ChildItem -LiteralPath (Join-Path $GameDir 'mods') -File) {
+        if ($entry.Name -eq 'mods_order.txt') { continue }
+        $link = Join-Path $workDir "mods\$($entry.Name)"
+        if (-not (Test-Path -LiteralPath $link)) { New-Item -ItemType HardLink -Path $link -Target $entry.FullName | Out-Null }
+    }
+    $order = Get-Content -LiteralPath (Join-Path $GameDir 'mods\mods_order.txt') | Where-Object { $_ -notmatch '_russian' }
+    [System.IO.File]::WriteAllLines((Join-Path $workDir 'mods\mods_order.txt'), [string[]]$order)
+}
 $outDirectory = Join-Path $GameDir 'shots\097'
 New-Item -ItemType Directory -Path $outDirectory -Force | Out-Null
 $clip = Join-Path $outDirectory "$Name.mp4"
@@ -117,7 +144,7 @@ $cache = Join-Path $Root 'build\scene-cache'
 if (Test-Path -LiteralPath $cache -PathType Container) { $env:F2CE_SCENE_CACHE = $cache }
 $process = $null
 try {
-    $process = Start-Process -FilePath $exe -ArgumentList $arguments -WorkingDirectory $GameDir -PassThru
+    $process = Start-Process -FilePath $exe -ArgumentList $arguments -WorkingDirectory $workDir -PassThru
     $deadline = (Get-Date).AddSeconds(60)
     while (([RecWin]::FindProcessWindow([uint32]$process.Id)) -eq [IntPtr]::Zero) {
         if ($process.HasExited) { throw "The game exited with code $($process.ExitCode) before showing a window." }
