@@ -666,6 +666,9 @@ def compose(pieces):
     return index, rgba, x, y
 
 
+BAND_MAX = 4   # texels: the widest gap between two pieces of the art that fills (task 121 review)
+
+
 def fill_holes(rgba):
     """The texture of a solid's faces with its transparent texels filled in the
     colour of the nearest opaque ones, an average of the neighbours, so no face
@@ -729,8 +732,22 @@ def fill_holes(rgba):
     for r in range(alpha.shape[0] - 1, -1, -1):
         nearest_below[r] = carry
         carry = np.where(alpha[r], label[r], carry)
-    holes = holes | (~alpha & (nearest_above > 0) & (nearest_below > 0)
-                     & (nearest_above != nearest_below))
+    band = ~alpha & (nearest_above > 0) & (nearest_below > 0) & (nearest_above != nearest_below)
+    # only a thin gap: a lid's slit is a few texels, a fence's open space between
+    # its rails is a real gap the game's own view shows (review 2026-11-01)
+    for c in range(band.shape[1]):
+        r = 0
+        while r < band.shape[0]:
+            if band[r, c]:
+                e = r
+                while e < band.shape[0] and band[e, c]:
+                    e += 1
+                if e - r > BAND_MAX:
+                    band[r:e, c] = False
+                r = e
+            else:
+                r += 1
+    holes = holes | band
     if not holes.any():
         return rgba
     out = rgba.copy()

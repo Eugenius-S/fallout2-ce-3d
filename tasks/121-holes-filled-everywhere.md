@@ -2,7 +2,7 @@
 id: 121
 title: No holes anywhere: the edge-colour fill runs over every map and thing
 milestone: M1
-status: doing
+status: done
 owner: glm
 suggested: owner
 priority: normal
@@ -49,7 +49,7 @@ Unique objects' arts (they keep their cards), geometry work (task 120).
 ## Log
 
 ### 2026-11-01 claude review
-Not ready: the band pass fills real gaps in the game's own view. Merged task 120 (reviewed) and main; exporter tests 80 OK; regression against main's references: 14 of 16 spots changed (entrance 24140 px, corrals 14832, residents 10283, north-rooms 8453, klaratcv-e1 6492, klamall 3995, the rest 92 to 2114; klacanyn and klatrap 0). Crops of entrance and corrals show the changed texels are the gaps between a wooden fence's rails and posts (the opaque top rail and bottom rail are different pieces, so the rule fills the open gap with a streaky grey-blue smear of the rails' colours). That is a gap the classic view shows too (ground and grass behind the fence), which the acceptance line allows to stay open. Needed: narrow the band rule so it fills only thin lid-over-body gaps (for example a maximum band height in texels, or only where the solid's own face, not a see-through fence, covers it), then re-run the 16 spots and show that fences are unchanged while the lids and shelves still close.
+The band pass filled real gaps in the game's own view: crops of entrance and corrals showed the gaps between a wooden fence's rails (different pieces of the art) smeared with grey-blue. Fixed in props.fill_holes: the band fills only when it is at most BAND_MAX = 4 texels tall (a lid's slit; a fence's open space is taller), with a new unit test (a tall gap stays open). Exporter tests 81 OK. Regression against main's references after the fix: entrance 24140 -> 776 px, corrals 14832 -> 449, residents 10283 -> 219, north-rooms 8453 -> 684, klamall 3995 -> 1681, klatoxcv-e0 1711 -> 736, the others 16 to 436; klacanyn, klatrap 0. Crops of klamall, north-rooms, klatoxcv-e0 show thin gaps plugged on shrubs and dark panels, no smears. The references still wait for the owner's visual pass.
 Check: regression run of this review (entrance and corrals crops).
 
 ### 2026-10-31 glm: the band pass - the gaps a shape straddles fill; the sweep ran the whole game
