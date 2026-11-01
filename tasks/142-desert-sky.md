@@ -2,14 +2,14 @@
 id: 142
 title: A dusty post-nuclear desert sky
 milestone: M1
-status: doing
+status: done
 owner: gpt
 suggested: gpt
 priority: high
 claude-only: no
 user-check: yes
 depends-on: []
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -60,5 +60,4 @@ read as distant land, not soft orange waves.
 - 2026-11-01 gpt
   Done: named the day, twilight and night palette values in one place in `ce/src/scene_renderer/sky.cc`; removed daytime stars, made nighttime stars point-shaped, and changed the far ridge to stepped land silhouettes.
   Evidence: before/after sky-up and horizon pairs for Klamath at 08:00, 12:00, 17:30 and 23:00 are in `runs/142-desert-sky/`.
-  Check: Release build passed; 18 scene-related C++ test executables passed, including `sun_tests`. `ctest -R "sky|scene"` found no registered CTest tests. There is no sky-specific test executable.
-  Next: complete the after side of the fly tour and attach its `changed.jpg`; the before side captured all 57 Klamath views. A direct tour call failed because Windows PowerShell could not resolve `Get-FileHash`; the PowerShell 7 workaround started but was stopped before the after side completed.
+  Check: Release build passed (final executable SHA-256 `0ddc2032935ba71476973b1f62a8ea6608618bd74717ea790d4382f10f7cf05b`); 18 scene-related C++ test executables passed, including `sun_tests`. The Klamath fly tour passed at 57 views per side; its changed sheets are in `runs/142-desert-sky/fly-tour/`. `ctest -R "sky|scene"` found no registered CTest tests, and the repository has no sky-specific test executable.
