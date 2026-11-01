@@ -2,7 +2,7 @@
 id: 123
 title: Burnt rebar stands: second-floor wall ruins continue the wall
 milestone: M1
-status: doing
+status: done
 owner: glm
 suggested: owner
 priority: normal
@@ -40,6 +40,10 @@ roof.
 New art, engine work, other ruin fixes.
 
 ## Log
+
+### 2026-11-01 claude review
+Done: merged task 122 (with 121's band cap) and current main (114 landed). Fresh Release build, ctest 18/18, exporter tests 83. Regression: the 16 spots give the same changed-pixel counts as the 121 run (entrance 776, corrals 449, ..., klatrap 0): 123 adds no pixel to the game's views, the remaining deltas are 121's thin-gap fill. The rule is general (long-low gate by measured aspect; a tall piece beside a wall run joins it through the doors' PLANE machinery), no name lists. Not verified: no Klamath tour spot shows wdbeams, so the abbey pairs in runs/123-rebar-stands/ are the evidence; the combined tour of the whole stack is in task 125's log.
+Check: runs/123-rebar-stands/abbey9303-join-turns-pair.png.
 
 ### 2026-10-31 glm: the recon: three wdbeam populations, the carve is the liar
 
