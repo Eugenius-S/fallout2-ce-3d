@@ -34,7 +34,10 @@
       "on": "sun and cloud shadows enabled",
       "off": "sun shadows enabled, cloud shadows disabled",
       "template_correlation_at_half_scale": 0.386,
-      "candidate_location_xy": [396, 523],
+      "candidate_location_xy": [
+        396,
+        523
+      ],
       "gray_mean_absolute_difference_at_candidate": 1.57,
       "gray_pixels_over_10_at_candidate_fraction": 0.0,
       "gray_mean_absolute_difference_full_frame": 0.97,
@@ -46,8 +49,9 @@
     "release_build": "passed, 763 of 763",
     "ctest": "passed, 18 of 18",
     "scene_export_resources_read": 1467,
-    "pixel_regression": "not run because no renderer change was made",
-    "game_mod_cache_used": false
+    "pixel_regression": "passed, 16 of 16 spots, zero changed pixels",
+    "game_mod_cache_used": false,
+    "pixel_regression_run": "runs/regression/20261101-231614-494-54244"
   },
   "next": "Provide a source capture sidecar or exact camera, zoom, and time for the owner frame, then repeat the matched cloud-on/cloud-off comparison."
 }

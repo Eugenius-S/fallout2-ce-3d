@@ -68,8 +68,9 @@ on/off grayscale mean absolute difference is 1.57/255, with no pixels over
 08:00 and cloud phase 0 had the same camera-mapping limitation.
 
 Check: Release build completed (763/763); CTest passed 18/18. The exporter
-read 1467 resources into `build/scene-cache`. Pixel regression was not run
-because no renderer change was made. `game/mod-cache` was not used.
+read 1467 resources into `build/scene-cache`. Pixel regression passed 16/16
+with zero changed pixels (`runs/regression/20261101-231614-494-54244`).
+`game/mod-cache` was not used.
 
 Next: Obtain a capture sidecar or exact camera, zoom, and time for the owner
 frame, then repeat the matched cloud-on/cloud-off comparison before changing
