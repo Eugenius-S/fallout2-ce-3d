@@ -491,7 +491,7 @@ void initSettingsRegistry(bool isMapper)
     settingsRegistry.back().descriptor = sunSwingDescriptor;
     settingsRegistry.back().write = [](bool onlyAdd) {
         if (onlyAdd && settingsKeyExists("3d", "sun_swing")) return;
-        settingsWrite("3d", "sun_swing", onlyAdd ? 30.0 : settings.scene3d.sun_swing);
+        settingsWrite("3d", "sun_swing", onlyAdd ? 40.0 : settings.scene3d.sun_swing);
     };
     registerThreeDBoolean("glow", settings.scene3d.glow, "Glow",
         "Things that shine in Fallout 2 (fire, monitors, signs) bleed light softly in the 3D view.",

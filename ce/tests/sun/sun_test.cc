@@ -31,14 +31,14 @@ int main()
     int failures = 0;
     const unsigned int day = 3 * 24 * kHour; // some day of the game
 
-    // 082 round 2: one vertical plane, the tilt linear through the day: -30
-    // degrees at 6:00, 0 at noon, +30 at 18:00.
-    const Sun dawn = sunAt(day + 6 * kHour, 1.0, true);
+    // 082 round 2: one vertical plane, the tilt linear through the day: with
+    // a 30 degree swing, -30 degrees at 6:00, 0 at noon, +30 at 18:00.
+    const Sun dawn = sunAt(day + 6 * kHour, 1.0, true, 30.0);
     failures += !check(!dawn.up, "6:00: not shining yet");
     failures += !check(close(dawn.tilt, -30.0, 1e-9), "6:00: tilted -30 degrees");
     failures += !check(close(dawn.height, 60.0, 1e-9), "6:00: 60 degrees above the horizon");
 
-    const Sun noon = sunAt(day + 12 * kHour, 1.0, true);
+    const Sun noon = sunAt(day + 12 * kHour, 1.0, true, 30.0);
     failures += !check(noon.up && close(noon.tilt, 0.0, 1e-9), "12:00: straight overhead");
     failures += !check(close(noon.direction[0], 0.0, 1e-6) && close(noon.direction[1], 1.0, 1e-6)
             && close(noon.direction[2], 0.0, 1e-6),
@@ -46,13 +46,13 @@ int main()
     failures += !check(std::fabs(noon.strength - 1.0f) < 1e-6f, "12:00 full ambient: full strength");
     failures += !check(noon.color[2] > 0.85f, "12:00: nearly white, the sun stays high");
 
-    const Sun dusk = sunAt(day + 18 * kHour, 1.0, true);
+    const Sun dusk = sunAt(day + 18 * kHour, 1.0, true, 30.0);
     failures += !check(!dusk.up, "18:00: the day's end, no light");
     failures += !check(close(dusk.tilt, 30.0, 1e-9), "18:00: tilted +30 degrees");
 
     // Linear between, in one plane, always a unit vector.
-    const Sun morning = sunAt(day + 7 * kHour, 1.0, true);
-    const Sun evening = sunAt(day + 17 * kHour, 1.0, true);
+    const Sun morning = sunAt(day + 7 * kHour, 1.0, true, 30.0);
+    const Sun evening = sunAt(day + 17 * kHour, 1.0, true, 30.0);
     failures += !check(morning.up && close(morning.tilt, -25.0, 1e-9), "7:00: linear tilt of -25 degrees");
     failures += !check(evening.up && close(evening.tilt, 25.0, 1e-9), "17:00: linear tilt of +25 degrees");
     failures += !check(close(morning.height, 65.0, 1e-9) && morning.height > 60.0 && morning.height < 90.0,
@@ -71,6 +71,8 @@ int main()
         "dawn and dusk lean to opposite sides of the plane");
 
     // The [3d] sun_swing setting (082 round 2): the swing is a parameter.
+    failures += !check(close(sunAt(day + 6 * kHour, 1.0, true).tilt, -40.0, 1e-9),
+        "the default swing is 40 degrees");
     const Sun wide = sunAt(day + 7 * kHour, 1.0, true, 60.0);
     failures += !check(wide.up && close(wide.tilt, -50.0, 1e-9), "swing 60 at 7:00: tilted -50 degrees");
     failures += !check(close(wide.height, 40.0, 1e-9), "swing 60 at 7:00: 40 degrees above the horizon");
