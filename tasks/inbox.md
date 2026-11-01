@@ -216,3 +216,4 @@ that fits no task becomes a new task when the board runs dry.
   screen finish to the owner's notes (130).
 - 2026-11-01 Cut for glm: a non-stop Klamath graphics sweep (129).
 - 2026-11-01 Cut for glm: Arroyo in 3D, the opening area exported and swept (133).
+- 2026-11-01 Live check: the halo spot and its save went to 103, the toxic caves staying 2D to 111, the save preview in 3D to 134.
