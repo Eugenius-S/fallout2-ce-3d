@@ -35,28 +35,38 @@ what is on screen.
 
 ## What the video shows
 
-About 90 seconds, in this order; the caption in the corner is in brackets.
+About 100 seconds, in this order; the caption in the corner is in brackets.
 
-1. 0-6 s: the original at 640x480 in Klamath, a wipe turns the same spot
-   into the 3D view (Fallout 2, now in 3D).
-2. 6-14 s: the launcher installs onto a clean Fallout 2 in one click and the
+The caption always says plainly what is on screen. Whenever the original
+is shown it reads "Original"; the 3D view is then built up one layer at a
+time, each with its own caption: "Perspective", "With shadows", "With
+clouds" and so on, so the difference is obvious without explanation.
+
+1. 0-8 s: Klamath at 640x480 in the original (Original), then the same
+   spot step by step: the perspective view (Perspective), the sun shadows
+   (With shadows), the sky with clouds (With clouds).
+2. 8-15 s: the launcher installs onto a clean Fallout 2 in one click and the
    game starts (One-click install).
-3. 14-22 s: the main menu and the death screen with the owner's widescreen
-   art while the window changes size (Any resolution, widescreen art).
-4. 22-32 s: Ctrl+F10 back and forth on one spot in Klamath: walls, roofs,
-   corners (Original vs 3D).
-5. 32-42 s: the camera turns up to 45 degrees, the characters turn with it
+3. 15-24 s: the window changes size and the picture fits each, then the
+   interface scale switches from 1x to 2x (Any resolution, any scale); the
+   main menu and the death screen with the owner's widescreen art.
+4. 24-32 s: a dialogue and the character screen in the original font
+   (Original), then in the new sharp font (New fonts).
+5. 32-42 s: Ctrl+F10 back and forth on one spot in Klamath: walls, roofs,
+   corners (Original / 3D).
+6. 42-50 s: the camera turns up to 45 degrees, the characters turn with it
    (Camera rotation).
-6. 42-50 s: the fly camera over the map, the sky above (Free camera).
-7. 50-60 s: a sped-up day, the sun crosses overhead and the building shadows
+7. 50-57 s: the fly camera over the map, the sky above (Free camera).
+8. 57-66 s: a sped-up day, the sun crosses overhead and the building shadows
    turn (Sun and shadows).
-8. 60-70 s: night: burning barrels, the glowing slime, a sign switching on
+9. 66-75 s: night: burning barrels, the glowing slime, a sign switching on
    and off (Light and glow).
-9. 70-78 s: a laser and a plasma shot: the muzzle flash and the glow of the
-   shot in flight (Weapon light).
-10. 78-84 s: the options menu on its 3D panel, graphics options switching
-    (3D options).
-11. 84-92 s: a closing run through Klamath, split screen original and 3D,
+10. 75-83 s: a laser and a plasma shot: the muzzle flash and the glow of the
+    shot in flight (Weapon light).
+11. 83-92 s: the options menu: each 3D feature switched off one by one down
+    to the original look, a slider moved (Every feature can be switched off
+    and tuned).
+12. 92-100 s: a closing run through Klamath, split screen original and 3D,
     then the title and the GitHub link (fallout2-ce-3d).
 
 ## Acceptance
