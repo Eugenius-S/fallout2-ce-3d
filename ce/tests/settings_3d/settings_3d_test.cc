@@ -13,6 +13,7 @@ namespace fallout {
 Config gGameConfig = {};
 static const char* gConfiguredThreeDValue = nullptr;
 static const char* gConfiguredCleanEdgesValue = nullptr;
+static double gConfiguredShadowDensityValue = -1.0;
 static const char* gConfiguredLanguage = nullptr;
 static bool gInterruptWalkConfigPresent = true;
 static bool gInterruptWalkConfigValue = false;
@@ -85,7 +86,13 @@ bool configSetBool(Config*, const char* section, const char* key, bool value)
     }
     return true;
 }
-bool configSetDouble(Config*, const char*, const char*, double) { return true; }
+bool configSetDouble(Config*, const char* section, const char* key, double value)
+{
+    if (std::strcmp(section, "3d") == 0 && std::strcmp(key, "shadow_density") == 0) {
+        gConfiguredShadowDensityValue = value;
+    }
+    return true;
+}
 
 int compat_stricmp(const char* left, const char* right)
 {
@@ -150,8 +157,12 @@ int main()
     if (!check(initializeWith(nullptr), "settings initialize with missing key")) return 1;
     const SettingDescriptor* descriptor = findThreeDDescriptor();
     const SettingDescriptor* cleanEdgesDescriptor = findCleanEdgesDescriptor();
+    const SettingDescriptor* shadowDensity = findDescriptor("3d.shadow_density");
     if (!check(descriptor != nullptr, "real [3d].enabled descriptor is registered")) return 1;
     if (!check(cleanEdgesDescriptor != nullptr, "real [3d].clean_edges descriptor is registered")) return 1;
+    if (!check(shadowDensity != nullptr && std::get<double>(shadowDensity->defaultValue) == 0.8
+            && settings.scene3d.shadow_density == 0.8 && gConfiguredShadowDensityValue == 0.8,
+            "new settings write shadow density as 0.8")) return 1;
     if (!check(cleanEdgesDescriptor->id == "3d.clean_edges"
             && cleanEdgesDescriptor->valueType == SettingValueType::Boolean
             && std::get<bool>(cleanEdgesDescriptor->defaultValue), "clean_edges is a default-on boolean")) return 1;

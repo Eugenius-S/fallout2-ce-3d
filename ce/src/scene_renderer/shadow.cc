@@ -12,6 +12,7 @@
 #include "scene_internal.h"
 
 namespace fallout {
+unsigned int gameTimeGetTime();
 namespace scene_renderer {
 namespace internal {
 
@@ -350,9 +351,20 @@ void destroyStaticShadows()
 bool bindStaticShadows(const float* sceneMvp)
 {
     gShadowRendered = false;
-    if (!settings.scene3d.shadows || sceneMvp == nullptr) return false;
+    glUniform1i(gSceneCloudOnLocation, 0);
+    if (sceneMvp == nullptr) return false;
     const scene::Sun& sun = scene::currentSun();
     if (!sun.up || sun.strength <= 0.0f) return false;
+    glUniform1i(gSceneCloudOnLocation, settings.scene3d.cloud_shadows ? 1 : 0);
+    glUniform1f(gSceneShadowStrengthLocation, sun.strength);
+    if (settings.scene3d.cloud_shadows) {
+        const double phase = devtools::cloudPhaseRequested();
+        const double ticks = phase >= 0.0 ? phase * 600.0 : static_cast<double>(gameTimeGetTime());
+        glUniform2f(gSceneCloudOffsetLocation,
+            static_cast<float>(std::fmod(ticks * 0.8 / 600.0, 48.0)),
+            static_cast<float>(std::fmod(ticks * 0.6 / 600.0, 48.0)));
+    }
+    if (!settings.scene3d.shadows) return false;
     // The binding is saved before ensureResources: creating the shadow
     // framebuffer binds it, and the scene must draw where it did.
     int savedFbo = 0;

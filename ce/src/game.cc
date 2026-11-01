@@ -1,7 +1,9 @@
 #include "game.h"
 #include "platform/git_version.h"
 
+#include <algorithm>
 #include <stdio.h>
+#include <stdint.h>
 #include <string.h>
 
 #include "actions.h"
@@ -41,6 +43,7 @@
 #include "movie.h"
 #include "movie_effect.h"
 #include "object.h"
+#include "owner_art_viewport.h"
 #include "options.h"
 #include "palette.h"
 #include "party_member.h"
@@ -1602,21 +1605,32 @@ static void showSplash()
 
     int screenWidth = screenGetWidth();
     int screenHeight = screenGetHeight();
+    OwnerArtViewport viewport = ownerArtViewport(screenWidth, screenHeight);
 
     if (size != 0 || screenWidth < width || screenHeight < height) {
         int scaledWidth;
         int scaledHeight;
 
         if (size == 2) {
-            scaledWidth = screenWidth;
-            scaledHeight = screenHeight;
-        } else {
-            if (screenHeight * width >= screenWidth * height) {
-                scaledWidth = screenWidth;
-                scaledHeight = screenWidth * height / width;
+            scaledWidth = viewport.width;
+            scaledHeight = viewport.height;
+        } else if (size == 1) {
+            // Cover the screen while preserving the art's proportions. Round
+            // the scaled dimension up so integer rounding cannot leave a seam.
+            if (static_cast<int64_t>(viewport.width) * height >= static_cast<int64_t>(viewport.height) * width) {
+                scaledWidth = viewport.width;
+                scaledHeight = static_cast<int>((static_cast<int64_t>(viewport.width) * height + width - 1) / width);
             } else {
-                scaledWidth = screenHeight * width / height;
-                scaledHeight = screenHeight;
+                scaledHeight = viewport.height;
+                scaledWidth = static_cast<int>((static_cast<int64_t>(viewport.height) * width + height - 1) / height);
+            }
+        } else {
+            if (viewport.height * width >= viewport.width * height) {
+                scaledWidth = viewport.width;
+                scaledHeight = viewport.width * height / width;
+            } else {
+                scaledWidth = viewport.height * width / height;
+                scaledHeight = viewport.height;
             }
         }
 
@@ -1624,9 +1638,20 @@ static void showSplash()
         if (scaled != nullptr) {
             blitBufferToBufferStretch(data, width, height, width, scaled, scaledWidth, scaledHeight, scaledWidth);
 
-            int x = screenWidth > scaledWidth ? (screenWidth - scaledWidth) / 2 : 0;
-            int y = screenHeight > scaledHeight ? (screenHeight - scaledHeight) / 2 : 0;
-            _scr_blit(scaled, scaledWidth, scaledHeight, 0, 0, scaledWidth, scaledHeight, x, y);
+            // _GNW95_ShowRect copies the complete rectangle into the screen
+            // surface. Crop the scaled image here so neither the source rect
+            // nor the destination rect can extend past its buffer.
+            int visibleWidth = std::min(scaledWidth, viewport.width);
+            int visibleHeight = std::min(scaledHeight, viewport.height);
+            int sourceX = (scaledWidth - visibleWidth) / 2;
+            int sourceY = (scaledHeight - visibleHeight) / 2;
+            int x = viewport.x + (viewport.width - visibleWidth) / 2;
+            int y = viewport.y + (viewport.height - visibleHeight) / 2;
+            if (gSdlSurface != nullptr && gSdlSurface->pixels != nullptr) {
+                bufferFill(static_cast<unsigned char*>(gSdlSurface->pixels), screenWidth, screenHeight, gSdlSurface->pitch, COLOR_BLACK);
+            }
+            _scr_blit(scaled, scaledWidth, scaledHeight, sourceX, sourceY,
+                visibleWidth, visibleHeight, x, y);
             paletteFadeTo(palette);
 
             internal_free(scaled);

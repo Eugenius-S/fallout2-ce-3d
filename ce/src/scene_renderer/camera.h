@@ -54,6 +54,7 @@ struct StaticFlyCamera {
 // nullptr: back to the game view.
 void setStaticFlyCamera(const StaticFlyCamera* camera);
 bool staticFlyCameraActive();
+bool staticFlyCamera(StaticFlyCamera* camera);
 // Where the game view looks from and at (GL), as a fly camera's start; false
 // before the view is known.
 bool staticGameViewPose(StaticFlyCamera* camera);

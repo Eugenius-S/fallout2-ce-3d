@@ -1,0 +1,58 @@
+{
+  "note": "Runtime captures use isolated build/test-game-118 with package RIX assets and owner menu PNG. Dev screen is the requested output target; captured CPU surface is logical size at scale 2.",
+  "menu": [
+    {
+      "file": "menu-16x9.jpg",
+      "dev_screen": "1920x1080",
+      "surface": "960x540",
+      "exe_sha256": "89A3E676BEC48224C8313159AD141EB2721E45E5B68BDC5155B3BF79817C71BC"
+    },
+    {
+      "file": "menu-43x18.jpg",
+      "dev_screen": "3440x1440",
+      "surface": "1720x720",
+      "exe_sha256": "89A3E676BEC48224C8313159AD141EB2721E45E5B68BDC5155B3BF79817C71BC"
+    },
+    {
+      "file": "menu-32x9.jpg",
+      "dev_screen": "5120x1440",
+      "surface": "2560x720",
+      "exe_sha256": "89A3E676BEC48224C8313159AD141EB2721E45E5B68BDC5155B3BF79817C71BC"
+    },
+    {
+      "scale_mode_zero_check": true,
+      "verified_in_isolated_copy": true,
+      "setting": "main_menu_scale_mode=0",
+      "dev_screen": "3840x2160",
+      "surface": "1920x1080",
+      "temporary_capture_exe_sha256": "71EA2651FA795B200CFCB36C0DD8DFAD4AE321092B00271BBA79C554D4FCB329",
+      "capture_note": "Rendered full-screen owner art and visible controls; temporary capture was not kept."
+    }
+  ],
+  "loading": {
+    "english": {
+      "file": "loading-43x18.jpg",
+      "verified_in_isolated_copy": true,
+      "splash": 0,
+      "dev_screen": "3440x1440",
+      "surface": "1720x720",
+      "test_asset": "data/art/splash/splash0.rix, 1147x480",
+      "exe_sha256": "5A16E2722D5CE2DF6C7627359AA1333730A581B8A56449C31B3C22FC4A218F5C"
+    },
+    "russian": {
+      "verified_in_isolated_copy": true,
+      "splash": 0,
+      "dev_screen": "1920x1080",
+      "surface": "960x540",
+      "test_asset": "data/art/russian/splash/splash0.rix, 1147x480",
+      "exe_sha256": "89A3E676BEC48224C8313159AD141EB2721E45E5B68BDC5155B3BF79817C71BC",
+      "screenshot_included": false
+    }
+  },
+  "death": {
+    "status": "not captured",
+    "limitation": "Isolated slot-1 runs loaded the map but the temporary force-death test hook did not reach a capturable showDeath frame. No death runtime pass is claimed."
+  },
+  "final_uninstrumented_release_exe_sha256": "07E49F2517CCE6C74B86F79FB57929676965F9C4941D141B97724B6E2169C450",
+  "capture_note": "The menu/loading captures were collected from temporary instrumented test binaries. All capture-only hooks were removed before the final uninstrumented build and checks."
+}

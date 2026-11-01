@@ -2,14 +2,14 @@
 id: 117
 title: The message window's last line shows whole
 milestone: M1
-status: todo
-owner: none
+status: done
+owner: gpt
 suggested: gpt
 priority: normal
 claude-only: no
 user-check: yes
 depends-on: []
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -39,3 +39,9 @@ full, not cut at its foot.
 The message window's art, font choice, line count and text wrapping.
 
 ## Log
+
+### 2026-10-29 gpt
+Done: Added a -2 logical-pixel SharpText offset for font-101 HUD message runs. Extended the log fixture to render six Russian lines, ending with the owner's message, and added a capture-metadata assertion. Before/after evidence: `runs/117-message-window-last-line/before-after-16x9.jpg` and `runs/117-message-window-last-line/before-after-4x3.jpg`.
+Check: Release build passed. CTest passed 18/18 after a clean test target rebuild. Full pixel comparison against fresh captures from origin/main 4f606d09 passed 16/16 with zero changed pixels; both sides used explicit build/scene-cache through -SceneCache.
+Game cache: An exporter invocation without `--cache-root` wrote 11 generated files under `game/mod-cache/scene/kladwtwn/0`. No verified pre-run backup exists; the files were left in place and are not included in this branch.
+Next: none.

@@ -1,0 +1,109 @@
+{
+  "baseline": "origin/main",
+  "baseline_commit": "0ebfd1f5",
+  "working_tree": "task/118-wide-fullscreen-art-in-game",
+  "final_release_exe_sha256": "07E49F2517CCE6C74B86F79FB57929676965F9C4941D141B97724B6E2169C450",
+  "scene_cache": "build/scene-cache",
+  "branch_capture_run": "runs/regression/20261029-160517-034-69080",
+  "baseline_images": "runs/118-regression-main-reference",
+  "direct_pixel_result": "16/16 exact, zero changed pixels",
+  "tracked_reference_runner": "tools/regression.ps1 reports klagraz-e0=183 and klaratcv-e2=6299; direct comparison with origin/main captures is exact",
+  "spots": [
+    {
+      "spot": "entrance",
+      "size": "1920x1080",
+      "pixels_over_2": 0,
+      "max_channel_delta": 0
+    },
+    {
+      "spot": "corrals",
+      "size": "1920x1080",
+      "pixels_over_2": 0,
+      "max_channel_delta": 0
+    },
+    {
+      "spot": "residents",
+      "size": "1920x1080",
+      "pixels_over_2": 0,
+      "max_channel_delta": 0
+    },
+    {
+      "spot": "central-doors",
+      "size": "1920x1080",
+      "pixels_over_2": 0,
+      "max_channel_delta": 0
+    },
+    {
+      "spot": "north-rooms",
+      "size": "1920x1080",
+      "pixels_over_2": 0,
+      "max_channel_delta": 0
+    },
+    {
+      "spot": "map-edge",
+      "size": "1920x1080",
+      "pixels_over_2": 0,
+      "max_channel_delta": 0
+    },
+    {
+      "spot": "klacanyn-e0",
+      "size": "1920x1080",
+      "pixels_over_2": 0,
+      "max_channel_delta": 0
+    },
+    {
+      "spot": "klagraz-e0",
+      "size": "1920x1080",
+      "pixels_over_2": 0,
+      "max_channel_delta": 0
+    },
+    {
+      "spot": "klamall-e0",
+      "size": "1920x1080",
+      "pixels_over_2": 0,
+      "max_channel_delta": 0
+    },
+    {
+      "spot": "klaratcv-e0",
+      "size": "1920x1080",
+      "pixels_over_2": 0,
+      "max_channel_delta": 0
+    },
+    {
+      "spot": "klaratcv-e1",
+      "size": "1920x1080",
+      "pixels_over_2": 0,
+      "max_channel_delta": 0
+    },
+    {
+      "spot": "klaratcv-e2",
+      "size": "1920x1080",
+      "pixels_over_2": 0,
+      "max_channel_delta": 0
+    },
+    {
+      "spot": "klatoxcv-e0",
+      "size": "1920x1080",
+      "pixels_over_2": 0,
+      "max_channel_delta": 0
+    },
+    {
+      "spot": "klatoxcv-e1",
+      "size": "1920x1080",
+      "pixels_over_2": 0,
+      "max_channel_delta": 0
+    },
+    {
+      "spot": "klatoxcv-e2",
+      "size": "1920x1080",
+      "pixels_over_2": 0,
+      "max_channel_delta": 0
+    },
+    {
+      "spot": "klatrap-e0",
+      "size": "1920x1080",
+      "pixels_over_2": 0,
+      "max_channel_delta": 0
+    }
+  ]
+}

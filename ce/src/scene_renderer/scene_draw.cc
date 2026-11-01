@@ -14,6 +14,7 @@
 #include "scene_internal.h"
 #include "shadow.h"
 #include "static_scene.h"
+#include "sky.h"
 
 namespace fallout {
 namespace scene_renderer {
@@ -45,6 +46,7 @@ void drawStaticPreview(bool withWalls, bool withHero)
     glDepthFunc(kLess);
     glDepthMask(1);
     glDisable(kCullFace);
+    if (withWalls) drawSceneSky(static_cast<float>(width) / height, width, height, flying);
     if (withWalls) {
         glDisable(kBlend);
     } else {
@@ -79,6 +81,7 @@ void drawStaticPreview(bool withWalls, bool withHero)
     // The sun's shadow map renders before the scene; the floor and the walls
     // sample it (uShadowOn). It restores the framebuffer and the viewport.
     const bool shadowed = withWalls && bindStaticShadows(mvp);
+    if (!withWalls) glUniform1i(gSceneCloudOnLocation, 0);
     glUniform1i(gSceneShadowOnLocation, shadowed ? 1 : 0);
     // Nobody's own texels count as empty, until a draw says otherwise (the
     // wall pieces take the number from their vertices, 082 round 6).
@@ -116,7 +119,9 @@ void drawStaticPreview(bool withWalls, bool withHero)
     glUniform1i(gSceneTexturedLocation, 0);
     glUniform1f(gSceneCutoffLocation, 0.01f);
     glUniform4f(gSceneColorLocation, 0.0f, 0.0f, 0.0f, 1.0f);
-    glDrawArrays(kTriangles, 0, 6);
+    // The map's empty floor fill belongs to the game camera. In flight, it
+    // would paint a black sheet over the sky where the map ends.
+    if (!flying) glDrawArrays(kTriangles, 0, 6);
     glDepthMask(flying ? 1 : 0);
     glUniform1i(gSceneTexturedLocation, 1);
     glUniform1f(gSceneCutoffLocation, 0.01f);

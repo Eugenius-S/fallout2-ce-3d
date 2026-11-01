@@ -19,6 +19,11 @@ extern SDL_Texture* gSdlTexture;
 extern SDL_Surface* gSdlTextureSurface;
 extern FpsLimiter sharedFpsLimiter;
 
+// Optional RGBA background for art that cannot use the game's indexed palette.
+// The mask keeps menu controls and labels on top of the image.
+void renderSetRgbaBackground(const unsigned char* rgba, const unsigned char* mask, int width, int height);
+void renderClearRgbaBackground();
+
 enum class WindowMode : int {
     Fullscreen = 0,
     Windowed = 1,

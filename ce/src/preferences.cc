@@ -1229,7 +1229,7 @@ static int preferencesWindowInit()
         BUTTON_FLAG_TRANSPARENT);
     if (btn != -1) {
         buttonSetCallbacks(btn, _gsound_red_butt_press, _gsound_red_butt_release);
-        legacyButtons.push_back({ btn, 450 });
+        legacyButtons.push_back({ btn, gOptionsPanel->footerButtonTop() });
     }
 
     // DONE
@@ -1248,7 +1248,7 @@ static int preferencesWindowInit()
         BUTTON_FLAG_TRANSPARENT);
     if (btn != -1) {
         buttonSetCallbacks(btn, _gsound_red_butt_press, _gsound_red_butt_release);
-        legacyButtons.push_back({ btn, 450 });
+        legacyButtons.push_back({ btn, gOptionsPanel->footerButtonTop() });
     }
 
     // CANCEL
@@ -1267,7 +1267,7 @@ static int preferencesWindowInit()
         BUTTON_FLAG_TRANSPARENT);
     if (btn != -1) {
         buttonSetCallbacks(btn, _gsound_red_butt_press, _gsound_red_butt_release);
-        legacyButtons.push_back({ btn, 450 });
+        legacyButtons.push_back({ btn, gOptionsPanel->footerButtonTop() });
     }
 
     std::vector<int> panelButtons;

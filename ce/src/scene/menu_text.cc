@@ -62,6 +62,8 @@ const std::vector<Translation>& catalog()
         { "A sun that follows game time on maps under the sky: low and warm in the morning and evening, none at night or underground.", cp1251(u8"Солнце следует игровому времени: утром и вечером свет низкий и тёплый. Ночью и под землёй солнца нет.") },
         { "Sun shadows", cp1251(u8"Тени от солнца") },
         { "Buildings and big things cast sharp sun shadows on the floor and the walls in the 3D view.", cp1251(u8"Здания и крупные объекты отбрасывают чёткие тени на пол и стены 3D-сцены.") },
+        { "Cloud shadows", cp1251(u8"Тени от облаков") },
+        { "Soft clouds drift over the 3D view and dim the sun's light, never the lamps.", cp1251(u8"Мягкие облака движутся над 3D-сценой и приглушают солнечный свет, не лампы.") },
         { "Shadow edge softness", cp1251(u8"Мягкость краёв теней") },
         { "How wide, in game pixels, a shadow's edge softens over; the shadow itself stays crisp.", cp1251(u8"Ширина смягчения края тени в игровых пикселях. Сама тень остаётся чёткой.") },
         { "Shadow density", cp1251(u8"Плотность теней") },

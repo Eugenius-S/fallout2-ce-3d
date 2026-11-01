@@ -40,7 +40,8 @@ foreach ($entry in $spots) {
         if (Test-Path -LiteralPath $failure) { Move-Item -Force -LiteralPath $failure (Join-Path $directory 'capture-error-1.txt') }
         try {
             & (Join-Path $PSScriptRoot 'dev-snapshot.ps1') -Map $entry.map -Elevation $entry.elevation -ViewTile $entry.tile -Still -CaptureConsole `
-                -ScreenWidth $screen.width -ScreenHeight $screen.height -Scale $screen.scale -OutputDirectory $directory |
+                -ScreenWidth $screen.width -ScreenHeight $screen.height -Scale $screen.scale `
+                -SceneCache (Join-Path $Root 'build\scene-cache') -OutputDirectory $directory |
                 Set-Content -LiteralPath (Join-Path $directory 'capture.log') -Encoding UTF8
             break
         } catch {

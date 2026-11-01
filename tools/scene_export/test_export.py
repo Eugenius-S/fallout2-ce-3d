@@ -1169,5 +1169,58 @@ class ThingShapeTests(unittest.TestCase):
         self.assertEqual([], solids._forced(fake.props[0], [(0, [], False, "both")]))
         self.assertAlmostEqual(0.4, fake.props[2][5] + fake.props[2][7] / 2, places=3)
 
+class FillHolesTests(unittest.TestCase):
+    """Task 115: a solid's texture has no enclosed holes; the open border stays."""
+
+    @staticmethod
+    def rgba(pattern):
+        import numpy as np
+        out = np.zeros((len(pattern), len(pattern[0]), 4), np.uint8)
+        for y, row in enumerate(pattern):
+            for x, cell in enumerate(row):
+                if cell == 'x':
+                    out[y, x] = (200, 100, 50, 255)
+                elif cell == 'o':
+                    out[y, x] = (10, 200, 30, 255)
+        return out
+
+    def test_an_enclosed_hole_takes_the_average_of_its_neighbours(self):
+        import numpy as np
+        from vendor.fp import props
+        rgba = self.rgba([
+            'xxxxx',
+            'xooox',
+            'xo.ox',
+            'xooox',
+            'xxxxx',
+        ])
+        filled = props.fill_holes(rgba)
+        self.assertEqual(255, filled[2, 2, 3])
+        # the ring around the hole is two 'o' columns and two 'o' rows: the
+        # average of the four neighbours of the centre texel
+        self.assertEqual(int(rgba[1, 2, 0] + rgba[3, 2, 0] + rgba[2, 1, 0] + rgba[2, 3, 0]) // 4,
+                         int(filled[2, 2, 0]))
+
+    def test_the_open_border_stays_transparent(self):
+        import numpy as np
+        from vendor.fp import props
+        rgba = self.rgba([
+            'xxx.x',
+            'x....',
+            'xxx.x',
+        ])
+        filled = props.fill_holes(rgba)
+        self.assertEqual(0, filled[1, 3, 3])   # the notch open to the border
+        self.assertEqual(0, filled[1, 2, 3])
+        self.assertEqual(0, filled[1, 1, 3])
+
+    def test_a_fully_opaque_or_empty_texture_is_returned_as_is(self):
+        import numpy as np
+        from vendor.fp import props
+        full = self.rgba(['xxx', 'xxx'])
+        empty = self.rgba(['...', '...'])
+        self.assertTrue((props.fill_holes(full) == full).all())
+        self.assertTrue((props.fill_holes(empty) == empty).all())
+
 if __name__ == "__main__":
     unittest.main()

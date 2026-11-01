@@ -292,6 +292,22 @@ Rect blitBuffer2DCenteredAspectFit(ConstBuffer2D src, Buffer2D dst, Color backgr
     return blitBuffer2DCenteredAspectFit(src, 0, 0, src.width, src.height, dst, backgroundColor, scaleUp);
 }
 
+Rect blitBuffer2DCenteredAspectFitHeightIfWider(ConstBuffer2D src, Buffer2D dst, Color backgroundColor, bool scaleUp)
+{
+    if (!src || !dst || src.width <= 0 || src.height <= 0 || dst.width <= 0 || dst.height <= 0
+        || static_cast<int64_t>(src.width) * dst.height <= static_cast<int64_t>(dst.width) * src.height) {
+        return blitBuffer2DCenteredAspectFit(src, dst, backgroundColor, scaleUp);
+    }
+
+    bufferFill2D(dst, backgroundColor);
+    int dstWidth = std::max(1, static_cast<int>(static_cast<int64_t>(dst.height) * src.width / src.height));
+    int dstX = (dst.width - dstWidth) / 2;
+    blitBuffer2DScaled(src, dst, dstX, 0, dstWidth, dst.height);
+
+    Rect bounds = { 0, 0, dst.width - 1, dst.height - 1 };
+    return bounds;
+}
+
 Rect blitBuffer2DCenteredAspectFit(ConstBuffer2D src, int srcX, int srcY, int srcWidth, int srcHeight,
     Buffer2D dst, Color backgroundColor, bool scaleUp)
 {

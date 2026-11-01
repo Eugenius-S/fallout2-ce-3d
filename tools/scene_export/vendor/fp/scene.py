@@ -381,6 +381,12 @@ class SceneBuilder:
                 frm = self.gf.art.load(fid)
                 cut = walls.unshear(frm.rgba(self.gf.palette.glow_tile, rotation, frame), face.left, face.top,
                                     face.slope, face.x_from, face.x_to, face.mask)
+                # A wall's face carries no holes: the art's enclosed transparent
+                # texels fill with the edge colours, so a wall does not sparkle
+                # with the room behind it (115). The backs and ends take their
+                # material from this picture, and the openings of doors stay:
+                # they open at the picture's border.
+                cut = cut and (props.fill_holes(cut[0]),) + cut[1:]
                 textures[key] = cut and (self.sprite(cut[0]),) + cut[1:]
             if textures[key] is not None:
                 sprite, x0, x1, y_top = textures[key]           # the floor line is un-sheared y = c
@@ -657,7 +663,7 @@ class SceneBuilder:
             u, v = self.anchor(first.obj)
             du, dv = fit.ground()
             cu, cv = u + du, v + dv
-            body = rgba * ~shade[..., None]
+            body = props.fill_holes(rgba * ~shade[..., None])
             sprite = self.cropped(body, left, top)
             if shade.any() and not forced and seen != 1:   # a solid by name: its card keeps the shade
                 self.casts.append([self.cropped(rgba * shade[..., None], left, top)] + _round((u, v)))

@@ -190,3 +190,12 @@ that fits no task becomes a new task when the board runs dry.
   about Steam. Before asking: a release build, the showcase video (097), a
   project page; tell the authors of fallout2-ce and of the donor (both
   Sustainable Use License) first.
+- 2026-10-29 Main menu, Russian labels: on the owner's screenshot
+  (`runs/inbox/2026-10-29-main-menu-russian-labels.jpg`), «ВСТУПЛЕНИЕ» and
+  «НОВАЯ ИГРА» extend left over the red circular button in their rows. The
+  owner says both labels do not fit on the buttons. Not now.
+- 2026-10-29 FPS: during a live check, the owner felt that the frame rate
+  seemed low. No measured value or reproduction conditions were provided.
+  Not now.
+- 2026-10-30 FPS counter: the owner requests an in-game FPS counter that can
+  be turned on and off. Not now.

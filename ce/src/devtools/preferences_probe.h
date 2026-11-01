@@ -14,6 +14,7 @@ bool preferencesProbeRequested();
 bool preferencesProbeActive();
 bool preferencesProbeFinished();
 bool preferencesProbeUsesSimulatedMouse();
+bool preferencesProbeOverrideMouse(int* x, int* y, unsigned char* leftButton, unsigned char* rightButton);
 void preferencesProbeComplete(bool success, scene::OptionsPanel* panel, int stagedLegacyDifficulty);
 int preferencesProbeNextEvent(int eventCode, scene::OptionsPanel* panel, int windowId, int stagedLegacyDifficulty);
 void preferencesProbePump();

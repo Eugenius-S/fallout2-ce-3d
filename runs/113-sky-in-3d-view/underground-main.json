@@ -1,0 +1,33 @@
+{
+  "map": "KLATOXCV.MAP",
+  "elevation": 1,
+  "view_tile": 19091,
+  "camera": "fixed eye=(44.64466,46.23085,71.46700), target=(-4.54167,0.00000,-2.31250), fov_y=25.0, near=0.1, far=400.0, screen_right=-cross(forward,world_up)",
+  "sun": {
+    "setting": true,
+    "daylight": false,
+    "game_time": 432000,
+    "up": false,
+    "height": 90.0,
+    "azimuth": 0.0,
+    "direction": [
+      -0.0,
+      1.0,
+      0.0
+    ],
+    "color": [
+      1.0,
+      0.96,
+      0.88
+    ],
+    "strength": 0.0
+  },
+  "resolution": "1920x1080",
+  "logical_resolution": "960x540",
+  "scale": 2,
+  "ce_commit": "a8591799",
+  "exe_sha256": "fa4bea84045eea66f79ecbab94806d278293c068e79d4f73459bd5c5b2dda9af",
+  "capture_side": "main",
+  "hour": 12,
+  "capture_json_name": "devshot-20261029-121102-000.json"
+}

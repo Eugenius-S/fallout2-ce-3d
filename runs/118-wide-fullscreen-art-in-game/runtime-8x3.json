@@ -1,0 +1,41 @@
+{
+  "resolution": "3840x1440",
+  "logical_resolution": "1920x720",
+  "scale": 2,
+  "art_viewport_logical": "1920x720",
+  "side_bars_physical_each": 0,
+  "image": "runtime-8x3-all.jpg",
+  "captures": {
+    "loading": {
+      "sha256": "622c3709cd389dff25f8cea18d553b3290c420b833a1925d6cb48fad60ed9e48",
+      "asset": {
+        "path": "data/art/splash/splash2.rix",
+        "dimensions": "1120x480",
+        "sha256": "8c05a1f6602c18a9590083961c558f986f7c579ee72ddfcdf8cdec84800400a3"
+      },
+      "after_palette_fade": true
+    },
+    "menu": {
+      "sha256": "622c3709cd389dff25f8cea18d553b3290c420b833a1925d6cb48fad60ed9e48",
+      "asset": {
+        "path": "user-assets/fullscreen-20261028/wallpapers-selected/hires/menu/art__intrface__hr_mainmenu__d0_f0_21-9.png",
+        "dimensions": "1820x768",
+        "sha256": "95bab3c4fe6bbd2cfa3b29812597bfd976fd1e553d62b141ef5ede2dc4bfd943"
+      },
+      "after_palette_fade": true
+    },
+    "death": {
+      "sha256": "622c3709cd389dff25f8cea18d553b3290c420b833a1925d6cb48fad60ed9e48",
+      "asset": {
+        "path": "user-assets/fullscreen-20261028/wallpapers-selected/common/death/death.png",
+        "dimensions": "1916x821",
+        "sha256": "086eb6704ab3e48d69c24ae0de6baa35dd7100335d3e5602cfcf43c75c695cdf"
+      },
+      "after_palette_fade": true
+    }
+  },
+  "capture_ce_commit": "12ffd925",
+  "final_uninstrumented_exe_sha256": "6cfd6cb773118730031828f282563821d3fd29a780780c0275ad9a5951e5c82f",
+  "slot1_final_map": "KLADWTWN.SAV",
+  "slot1_final_resolution": "3840x1440"
+}

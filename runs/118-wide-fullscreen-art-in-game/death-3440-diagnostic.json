@@ -1,0 +1,13 @@
+{
+  "commit": "7aa13c0762fd478e9c64d859087dda1280b099d9",
+  "final_release_exe_sha256": "EECAD8D7654A87C4F70C66681CE5C896B096DF79FDA03116C6C893B04A8ABEEA",
+  "capture": "death-3440-diagnostic.jpg",
+  "capture_exe_sha256": "967B25086F76640AE77C5802A53E8338777C8B6C066F5BF39FF17B31288EF505",
+  "capture_exe_note": "Temporary uncommitted harness only; captured after the game entered the standard showDeath path from the isolated slot-1 runtime.",
+  "target_resolution": "3440x1440",
+  "captured_surface": "1720x720",
+  "art": "owner death.png displayed across the full surface with no side bars",
+  "subtitle_setting": 1,
+  "subtitle_result": "No subtitle text visible in captured frame; text correctness remains unverified.",
+  "owner_game_config_or_cache_written": false
+}

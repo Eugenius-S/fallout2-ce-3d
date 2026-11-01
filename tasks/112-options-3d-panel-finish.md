@@ -2,14 +2,14 @@
 id: 112
 title: The options screen's 3D panel: buttons under it, a straight scrollbar, a clean side frame, shadow density 0.8
 milestone: M1
-status: todo
-owner: none
+status: done
+owner: gpt
 suggested: gpt
 priority: normal
 claude-only: no
 user-check: yes
 depends-on: []
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -57,3 +57,20 @@ New settings, the panel's text and layout of rows, the game's own
 preferences page art.
 
 ## Log
+
+### 2026-10-29 gpt
+Done: moved Default/Done/Cancel below the panel on screens taller than 480 logical pixels and removed their old background blocks there; straightened the scrollbar groove and side edge; set shadow density default and add-key write to 0.8; added a settings test assertion and fixed the preferences probe's stale cancel check. Added four review sheets under `runs/112-options-3d-panel-finish/review/`.
+Next: verify physical mouse clicks at relocated action buttons; get exact current-main 4:3/bottom before captures; resolve or identify the five original-view regression differences before marking done.
+Check: `tools/configure-build.ps1 Release` passed. `ctest --test-dir build --output-on-failure` passed 17/18; `settings_3d_tests` still fails at `missing clean_edges key uses its literal true default` (known on main); `options_panel_model_tests` passed. Preferences `cancel` and `defaults` probes passed, including keyboard toggle and simulated wheel, scrollbar groove/thumb, legacy row, and slider interactions. Python scene-export tests passed 67/67; regression unit tests passed 12/12. Final `tools/regression.ps1` failed 5/16: entrance 191092, map-edge 453853, klacanyn-e0 246157, klagraz-e0 42372, klaratcv-e2 6299 changed pixels; the other 11 passed (klatoxcv-e0 3 and klatrap-e0 1 are within tolerance). The five failed counts total 939773 changed pixels. No references were updated. Review README records that three before captures use the older Task 017 commit; a physical click at the relocated action-button hitboxes remains unverified.
+
+
+### 2026-10-29 gpt recheck
+
+Fresh current-main build `0ebfd1f5` (isolated worktree) passed ctest 18/18 and produced 16/16 baseline captures. After merging main, this branch was rebuilt from `733463fd`; ctest passed 18/18 and the original-view regression passed 16/16 with 0 changed pixels against the fresh main captures. Both capture runs used explicit `build/scene-cache`.
+
+The relocated action-button mouse check remains blocked. Two attempts on the freshly rebuilt branch binary found the actual Done hitbox but the test click did not dispatch its event, so the preferences window did not close. The earlier click attempts used a stale executable and are not evidence. The temporary probe edits were restored; the tracked source is unchanged. Task remains `doing`, review remains `no`, and PR #158 stays draft until the physical button clicks are verified.
+
+### 2026-10-30 gpt
+Done: verified the relocated Default, Done, and Cancel hitboxes through the normal button manager with isolated mouse-state input; verified Enter saves and Escape rolls back through SDL keyboard events. Captures and review sheets are in `runs/112-options-3d-panel-finish/`; before images use current main `41dfc616`, after images use this branch.
+Next: none.
+Check: Release build passed; `ctest --test-dir build --output-on-failure` passed 18/18. `tools/regression.ps1` captured all 16 views on both fresh main and this branch with explicit `build/scene-cache`; direct RGBA comparison reported 16/16 exact, 0 changed pixels. Existing curated references show the same two differences on both builds (`klagraz-e0`: 183 pixels, `klaratcv-e2`: 6299 pixels). Verified mouse results are recorded in `runs/112-options-3d-panel-finish/verified-defaults-mouse`, `verified-done-mouse`, and `verified-cancel-mouse`; keyboard results are in `verified-done-enter` and `verified-cancel-escape`.
