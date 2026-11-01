@@ -2,8 +2,8 @@
 id: 135
 title: The 3D view stays on in combat and whenever the map is on screen
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: claude
 suggested: claude
 priority: high
 claude-only: no
@@ -56,3 +56,22 @@ the player sees it in 3D; a fight in Klamath is played start to finish in
 New combat effects, the look of the outlines, the combat interface's layout.
 
 ## Log
+
+### 2026-11-01 claude, step 1
+Block reasons (`preview_policy.h`):
+- game-state: kept. Outside normal play (loading, the main menu) the game
+  shows no map.
+- game-mode: narrowed to the world map, the only mode that shows no map.
+  Combat, the player's turn, inventory, loot, barter, options, the automap
+  and the rest keep the 3D view: a window covers the scene as it covers the
+  2D map (the overlay mask from `windowShownMask`).
+- ui-disabled: removed. The enemies' turn and scripted moments show the map.
+- iso-disabled: kept. The game does not draw the map (loads, fades).
+- combat: removed.
+- dialog: kept for now; 066 draws the dialogue backdrop in 2D. Step 2.
+- movie: kept. A movie covers the screen.
+
+Check: ctest; the toxic caves entrance in 3D in the background run.
+Not checked yet: a whole fight (no combat fixture). Next: the owner plays a
+fight in Klamath and the toxic caves; a combat fixture for the background
+run; the to-hit cursor, outlines and floating text in 3D; dialogue.
