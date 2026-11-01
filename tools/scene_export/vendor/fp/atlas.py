@@ -55,25 +55,36 @@ class Atlas:
             self.images.append(rgba)
         return index
 
-    def pack(self):
+    def pack(self, pinned=frozenset()):
+        """Shelf-pack every image; `pinned` (the fly camera's own sprites) go on a
+        trailing page of their own, so the game's sprites keep the texels they had
+        and the game's own views sample exactly what they sampled before."""
         pad = self.pad
-        order = sorted(range(len(self.images)), key=lambda i: -self.images[i].shape[0])
+
+        def place(indices, page, x, y, shelf, heights):
+            for i in indices:
+                h, w = self.images[i].shape[:2]
+                if w + 2 * pad > self.page_width or h + 2 * pad > self.max_height:
+                    raise ValueError(f"sprite {w}x{h} does not fit an atlas page")
+                if x + w + pad > self.page_width:                  # next shelf
+                    x, y, shelf = pad, y + shelf + pad, 0
+                if y + h + pad > self.max_height:                  # next page
+                    page, x, y, shelf = page + 1, pad, pad, 0
+                    heights.append(0)
+                self._rects[i] = (page, x, y, w, h)
+                x += w + pad
+                shelf = max(shelf, h)
+                heights[page] = max(heights[page], y + h + pad)
+            return page, x, y, shelf
+
         self._rects = [None] * len(self.images)
-        page, x, y, shelf = 0, pad, pad, 0
         heights = [0]
-        for i in order:
-            h, w = self.images[i].shape[:2]
-            if w + 2 * pad > self.page_width or h + 2 * pad > self.max_height:
-                raise ValueError(f"sprite {w}x{h} does not fit an atlas page")
-            if x + w + pad > self.page_width:                  # next shelf
-                x, y, shelf = pad, y + shelf + pad, 0
-            if y + h + pad > self.max_height:                  # next page
-                page, x, y, shelf = page + 1, pad, pad, 0
-                heights.append(0)
-            self._rects[i] = (page, x, y, w, h)
-            x += w + pad
-            shelf = max(shelf, h)
-            heights[page] = max(heights[page], y + h + pad)
+        page, x, y, shelf = place(sorted((i for i in range(len(self.images)) if i not in pinned),
+                                         key=lambda i: -self.images[i].shape[0]), 0, pad, pad, 0, heights)
+        if pinned:                                                 # the fly camera's page: the game's never move
+            page, x, y, shelf = page + 1, pad, pad, 0
+            heights.append(0)
+            place(sorted(pinned, key=lambda i: -self.images[i].shape[0]), page, x, y, shelf, heights)
         self.pages = []
         for p, height in enumerate(heights):
             canvas = np.zeros((max(height, 1), self.page_width, 4), np.uint8)
