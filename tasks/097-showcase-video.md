@@ -26,6 +26,7 @@ what is on screen.
   Higgsfield use-after-effects MCP (`higgsfield-use-after-effects`, npm
   `fnf-after-effects-mcp`, entry skill `ae-clean-rig`). Recording starts once
   tasks 112 (options panel) and 118 (widescreen art) are on `main`.
+- The owner, 2026-11-01: the music is the game's own Vault City track.
 - Take it when the slice is close to done, so the shots show the finished
   look; until then this task waits.
 - Recording goes through the background test instance
@@ -61,7 +62,7 @@ About 90 seconds, in this order; the caption in the corner is in brackets.
 ## Acceptance
 
 - One video, 1 to 2 minutes, 1080p, a caption in the corner for each
-  segment in English, no music without a licence.
+  segment in English, the Vault City track under it.
 - The video sits where the GitHub page can show it (a release asset or a
   link in `README.md`), not committed into the repo; raw clips stay in
   `game/shots/`, and `runs/097-showcase-video/` holds only the edit plan and
