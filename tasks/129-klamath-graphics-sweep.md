@@ -253,3 +253,10 @@ fringe on those two maps). `reviewed: no` (format change). Not changed: the
 torn thatch edge tiles (solid roof with ragged holes) stay flat, they are roof.
 Next: 7 and 10 are 145 (map-edge quad).
 Check: runs/129-roof-fringe/klamall-16098-before-after.jpg.
+
+### 2026-11-02 claude: find 6 reopened, #223 rejected
+
+Owner: "This is not moss, it is concrete and rebar. They must be a continuation of the walls, going up. Stretch them the way walls are stretched. Right now they look like some trees."
+Tried on branch task/129-wall-tops-up (pushed, no PR): the same art rule, each tile's art stood in the plane of the roof edge it sits on, first at the art's own screen position, then folded up about the edge (ground distance in from the edge becomes height). Both still read as rows of thin dark spikes, not concrete: the tile art is near black and mostly holes. Crops: runs/129-wall-tops-up/klamall-16098-attempts.jpg.
+Also found: the dark torn roof-edge tiles (ids 436 to 467) are shingle roof with a dark ragged part in the same diamond, and stay flat; they are the flat dark streaks left on the roofs.
+Next: owner decision on what the wall tops should look like (solid concrete from the art's silhouette, or a wall-coloured box).
