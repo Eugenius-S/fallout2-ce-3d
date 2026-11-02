@@ -81,6 +81,8 @@ bool staticObjectFlat(int tile, int fid);
 bool staticObjectPlane(int tile, int fid, float plane[3]);
 // Low cards (a cabbage, a tin): flat under the fly camera.
 bool staticObjectFlyFlat(int tile, int fid);
+// A card on the hand list of flat items (task 129): it keeps its game-view plane in flight.
+bool staticObjectFixedCard(int tile, int fid);
 // Half the map's wall height: a standing card taller than that is a body
 // (a tree, a statue) and keeps its whole verdict at the feet (109).
 float staticHalfWallHeight();

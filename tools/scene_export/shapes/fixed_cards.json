@@ -1,0 +1,8 @@
+{
+ "about": "Task 129 (owner, 2026-11-02: a hand list): flat items and scenery that keep their game-view plane in world space when the camera flies or turns, instead of turning to face it. Keyed by FRM name; the value says why. The renderer draws such a card upright in the plane the art was drawn for, never edge-on to the game's own view, so a turn of up to 45 degrees skews it and a turn of 90 shows it edge-on, as a slab would be.",
+ "frms": {
+  "njunk1.frm": "a mattress lying on a floor, drawn as a slab with a pipe; a card that faces the camera reads as a billboard",
+  "njunk7.frm": "a mattress leaning on a wall, a slab with sides",
+  "njunk2.frm": "a slab leaning on a wall (a board or a mattress edge)"
+ }
+}
