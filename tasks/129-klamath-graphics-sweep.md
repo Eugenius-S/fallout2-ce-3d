@@ -224,3 +224,18 @@ as it is. STATUS: BLOCKED, no branch task/129-fixed-flat-cards was cut.
 Needs: the set that must stop facing the camera named by something other than
 the outline (for example the scenery kinds "Junk" and "Bed" by proto, or a
 per-FRM flag in the frozen label set), or the owner saying which.
+
+### 2026-11-02 claude: find 5 fixed (#222)
+
+Owner exception, 2026-11-02 ("Да, списком"): find 5 may be solved by a
+hand-kept list of FRMs, an explicit exception to the no-per-object-override
+rule for this kind only.
+Done: PR #222 `129: flat cards stay put`, merged. List in
+tools/scene_export/shapes/fixed_cards.json (njunk1, njunk7, njunk2, one
+reason each); baked mode FIXED_CARD, baked.bin version 7; walls.cc reads it;
+`addStaticObject` skips `faceFlyCamera` for those cards. ctest 18/18,
+exporter tests 89 OK, original-view regression 16/16 with 0 changed pixels,
+fly tour vs main 2 of 43 spots changed (klamall 23145, kladwtwn 17104), both
+the listed cards. Crops: runs/129-flat-cards/. `reviewed: no` (format change).
+Next: 6 is 101 (flat roof moss fringe); 7 and 10 are 145 (map-edge quad).
+Check: runs/129-flat-cards/mattress-floor.jpg.
