@@ -26,6 +26,24 @@ private:
     bool prepared_ = false;
 };
 
+// The iso window keeps its id and owner references while its pixel storage is
+// exchanged. Only windows without embedded buttons or menu bars are eligible.
+class WindowBufferSwap {
+public:
+    WindowBufferSwap() = default;
+    ~WindowBufferSwap();
+    WindowBufferSwap(const WindowBufferSwap&) = delete;
+    WindowBufferSwap& operator=(const WindowBufferSwap&) = delete;
+
+    bool prepare(int width, int height);
+    bool exchange(Window* window);
+
+private:
+    unsigned char* buffer_ = nullptr;
+    int width_ = 0, height_ = 0;
+    int ownerWindow_ = -1;
+};
+
 } // namespace scene
 } // namespace fallout
 
