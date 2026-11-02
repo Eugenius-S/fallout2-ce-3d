@@ -330,6 +330,8 @@ set(FALLOUT_PLATFORM_SOURCES
     "src/scene/options_panel.cc"
     "src/scene/options_panel.h"
     "src/scene/display_dimensions.h"
+    "src/scene/display_window_transaction.cc"
+    "src/scene/display_window_transaction.h"
     "src/scene/scene_objects.cc"
     "src/scene/scene_objects.h"
     "src/scene/scene_overlay.cc"
