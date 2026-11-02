@@ -33,7 +33,8 @@ void main() {
 }
 )";
 constexpr const char* kFragment = R"(#version 330 core
-out vec4 outColor;
+layout(location = 0) out vec4 outColor;
+layout(location = 1) out vec4 outEmissive;
 uniform vec3 uForward;
 uniform vec3 uRight;
 uniform vec3 uUp;
@@ -46,6 +47,10 @@ uniform int uUnderground;
 uniform vec2 uResolution;
 float hash3(vec3 p) { return fract(sin(dot(p, vec3(127.1,311.7,74.7))) * 43758.5453); }
 void main() {
+    // The sky is background, not a glow source. Write the scene capture's
+    // emissive attachment explicitly so an unwritten MRT output cannot turn
+    // the sky into a bright-pass or marked source.
+    outEmissive = vec4(0.0);
     if (uUnderground != 0) { outColor = vec4(0.012, 0.012, 0.016, 1.0); return; }
     vec2 ndc = gl_FragCoord.xy / uResolution * 2.0 - 1.0;
     vec3 ray = normalize(uForward + ndc.x * uRight + ndc.y * uUp);
