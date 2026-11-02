@@ -24,6 +24,7 @@ namespace devtools {
 namespace {
 constexpr Uint32 kScriptMouse = 0x154154u;
 std::ifstream gInputScript;
+bool gInputSceneMode = false; // --dev-scene-input: pumped from the main loop, no options screen
 bool gInputActive = false;
 bool gInputSeen = false;
 bool gInputStarted = false;
@@ -35,13 +36,22 @@ unsigned char gInputLeft = 0, gInputRight = 0;
 
 bool parseScriptedInputOption(const char* arg)
 {
+    const char* scenePrefix = "--dev-scene-input=";
     const char* prefix = "--dev-input=";
-    if (strncmp(arg, prefix, strlen(prefix)) != 0) return false;
-    gInputScript.open(arg + strlen(prefix));
+    if (strncmp(arg, scenePrefix, strlen(scenePrefix)) == 0) {
+        gInputSceneMode = true;
+        gInputScript.open(arg + strlen(scenePrefix));
+    } else if (strncmp(arg, prefix, strlen(prefix)) == 0) {
+        gInputScript.open(arg + strlen(prefix));
+    } else {
+        return false;
+    }
     gInputActive = gInputScript.is_open();
     if (!gInputActive) fprintf(stderr, "DEV_INPUT FAIL: cannot open script\n");
     return true;
 }
+
+bool scriptedInputSceneMode() { return gInputSceneMode; }
 
 bool scriptedInputActive() { return gInputActive; }
 void scriptedInputBegin() { gInputStarted = true; }

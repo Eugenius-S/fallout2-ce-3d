@@ -180,6 +180,7 @@ bool gDevFly = false; // --dev-fly: the fly camera takes off at the first 3D fra
 // from it (a side view of a thing).
 double gDevFlyTurn = 0.0;
 double gDevCameraTurn = 0; // degrees; legacy --dev-camera-turn=N still means quarter turns
+bool gDevCameraTurnKeys = false; // --dev-camera-turn-keys: this background run wants [ and ] to work
 double gDevFlyPitch = -1.0;
 double gDevFlyDistance = -1.0;
 double gDevFlyLift = 0.0; // move the inspection camera vertically after aiming
@@ -762,7 +763,9 @@ bool parseOption(const char* arg)
         return true;
     }
     if (gEnabled && parseScriptedInputOption(arg)) {
-        gPreferencesSnapshotPending = true;
+        // A scene script is pumped from the main loop itself; only the
+        // options-panel script opens the options screen.
+        if (!scriptedInputSceneMode()) gPreferencesSnapshotPending = true;
         return true;
     }
     if (strcmp(arg, "--dev-panel-snapshot") == 0) {
@@ -1090,6 +1093,10 @@ bool parseOption(const char* arg)
         gDevZoom = std::clamp(strtod(arg + strlen(zoomPrefix), nullptr), 0.25, 4.0);
         return true;
     }
+    if (strcmp(arg, "--dev-camera-turn-keys") == 0) {
+        gDevCameraTurnKeys = true;
+        return true;
+    }
     const char* heroPrefix = "--dev-hero-tile=";
     if (strncmp(arg, heroPrefix, strlen(heroPrefix)) == 0) {
         const long tile = strtol(arg + strlen(heroPrefix), nullptr, 10);
@@ -1266,10 +1273,12 @@ void applyBackgroundShadows()
 
 // Runs after the command line is parsed (applyFixedScreenOptions is earlier),
 // so --dev-zoom reaches the scene: a background run is pinned to zoom 1
-// unless the dev argument names another one.
+// unless the dev argument names another one. --dev-camera-turn-keys restores
+// the turn its isolated config asked for.
 void applyBackgroundZoom()
 {
     if (backgroundCaptureActive() && gDevZoom > 0.0) settings.scene3d.zoom = gDevZoom;
+    if (backgroundCaptureActive() && gDevCameraTurnKeys) settings.scene3d.camera_rotation = true;
 }
 
 bool isEnabled()

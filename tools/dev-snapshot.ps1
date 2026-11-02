@@ -54,6 +54,11 @@ param(
     [switch]$Classic,
     [switch]$Preferences,
     [string]$DevInput,
+    # -SceneInput: a scripted-input script pumped by the main loop itself, with
+    # the 3D scene up and no options screen on top (the scene begins the script
+    # once its view shows). The script's actions are the -DevInput ones plus
+    # "key <scancode>" (one pressed key, SDL_SCANCODE_* number) and "waitms".
+    [string]$SceneInput,
     # Snapshots the script takes; the run waits for exactly this many (and the
     # script's PASS line). 5 matches the options-panel resolution script.
     [ValidateRange(1, 400)]
@@ -170,10 +175,14 @@ param(
     [double]$Scale = 2.0
 )
 $ErrorActionPreference = 'Stop'
-if ($DevInput -and (-not $OutputDirectory -or -not $CaptureConsole)) {
-    throw '-DevInput requires -OutputDirectory and -CaptureConsole.'
+if ($DevInput -and (-not $Preferences -or -not $ConfiguredDisplay -or -not $ReuseTestConfig -or -not $OutputDirectory -or -not $CaptureConsole)) {
+    throw '-DevInput requires -Preferences, -ConfiguredDisplay, -ReuseTestConfig, -OutputDirectory and -CaptureConsole.'
 }
-if ($TurnKeys -and -not $DevInput) { throw '-TurnKeys requires -DevInput.' }
+if ($SceneInput -and (-not $OutputDirectory -or -not $CaptureConsole)) {
+    throw '-SceneInput requires -OutputDirectory and -CaptureConsole.'
+}
+if ($SceneInput -and $DevInput) { throw '-SceneInput and -DevInput are two different script modes.' }
+if ($TurnKeys -and -not $SceneInput) { throw '-TurnKeys requires -SceneInput.' }
 if ($ClockLadder) {
     if (-not $OutputDirectory -or $Tour -or $Classic -or $Probe -or $Preferences -or $MuzzleWeapon -or $GlowLadder -or $GlowPair -or $GlowLevels -or $EffectFixture -or $DialogFixture -or $UiFixture) { throw '-ClockLadder requires its own scene run and -OutputDirectory.' }
     $Still=$true; $CaptureConsole=$true
@@ -376,7 +385,7 @@ $configHashBefore = (Get-FileHash -LiteralPath $configPath -Algorithm SHA256).Ha
 $initialZoom = Get-TestConfigValue $configPath '3d' 'zoom'
 $initialEnabled = Get-TestConfigValue $configPath '3d' 'enabled'
 $initialDifficulty = Get-TestConfigValue $configPath 'preferences' 'combat_difficulty'
-if ($DevInput) {
+if ($DevInput -and $Preferences -and $ConfiguredDisplay) {
     $initialDisplayWidth = Get-TestConfigValue $configPath 'screen' 'resolution_x'
     $initialDisplayHeight = Get-TestConfigValue $configPath 'screen' 'resolution_y'
     $initialDisplayScale = Get-TestConfigValue $configPath 'screen' 'scale_factor'
@@ -398,6 +407,8 @@ $runDirectory = Join-Path $exeDirectory "runs\$($runId.Substring(0, 12))"
 New-Item -ItemType Directory -Path $runDirectory -Force | Out-Null
 $arguments = @('--dev-tools')
 if ($DevInput) { $arguments += "--dev-input=$([System.IO.Path]::GetFullPath($DevInput))" }
+if ($SceneInput) { $arguments += "--dev-scene-input=$([System.IO.Path]::GetFullPath($SceneInput))" }
+if ($TurnKeys) { $arguments += '--dev-camera-turn-keys' }
 if ($MuzzleWeapon -gt 0) {$arguments += @("--dev-muzzle=$MuzzleWeapon", "--dev-muzzle-animation=$MuzzleAnimation", "--dev-muzzle-rotation=$MuzzleRotation")}
 if ($ClockLadder) { $arguments += '--dev-clock-ladder' }
     if ($ScrollStep) { $arguments += "--dev-scroll-step=$ScrollStep" }
@@ -477,7 +488,7 @@ if ($Still) {
     if ($Probe) { throw '-Still cannot be combined with the interactive -Probe.' }
     $arguments += '--dev-still-snapshot'
 }
-if ($DevInput) {
+if ($DevInput -or $SceneInput) {
     $shots = $DevInputShots
 } elseif ($PreferencesProbe) {
     $shots = 0
@@ -566,7 +577,7 @@ try {
             }
             $log = Join-Path $runDirectory 'logs\devprobe.log'
             $probed = -not $Probe -or ((Test-Path $log) -and (Select-String -Path $log -Pattern 'probe done' -Quiet))
-            if ($DevInput) {
+            if ($DevInput -or $SceneInput) {
                 $inputLog = Join-Path $OutputDirectory 'process.stdout.log'
                 if ((Test-Path -LiteralPath $inputLog) -and (Select-String -LiteralPath $inputLog -Pattern '^DEV_INPUT FAIL' -Quiet)) { break }
                 if ($snapshots.Count -ge $shots -and (Test-Path -LiteralPath $inputLog) -and (Select-String -LiteralPath $inputLog -Pattern '^DEV_INPUT PASS script complete' -Quiet)) { break }
@@ -648,13 +659,13 @@ try {
     }
     Release-TestSlot
 }
-if ($DevInput) {
+if ($DevInput -or $SceneInput) {
     $inputLog = Get-Content -Raw -LiteralPath (Join-Path $OutputDirectory 'process.stdout.log')
     $inputErrors = Get-Content -Raw -LiteralPath (Join-Path $OutputDirectory 'process.stderr.log')
     if ($inputLog -notmatch '(?m)^DEV_INPUT PASS script complete' -or $inputErrors -match 'DEV_INPUT FAIL' -or $snapshots.Count -ne $DevInputShots) {
         throw "Scripted input did not complete with exactly $DevInputShots snapshots."
     }
-    if ($Preferences -and $ConfiguredDisplay) {
+    if ($DevInput -and $Preferences -and $ConfiguredDisplay) {
         # The options-panel resolution script must have saved both a new
         # resolution and a new scale into the isolated config.
         $afterWidth = Get-TestConfigValue $configPath 'screen' 'resolution_x'
