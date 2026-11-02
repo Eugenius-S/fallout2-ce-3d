@@ -350,6 +350,8 @@ set(FALLOUT_PLATFORM_SOURCES
     "src/scene_renderer/gl_api.cc"
     "src/scene_renderer/gl_api.h"
     "src/scene_renderer/gl_procs.h"
+    "src/scene_renderer/perf.cc"
+    "src/scene_renderer/perf.h"
     "src/scene_renderer/camera.cc"
     "src/scene_renderer/camera.h"
     "src/scene_renderer/context.cc"
