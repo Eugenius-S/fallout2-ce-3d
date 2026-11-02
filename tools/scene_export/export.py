@@ -453,10 +453,11 @@ def export_scene(gf, game_root: Path, map_name: str, elevation: int, out_dir: Pa
         "elevation": elevation,
     }
     fingerprint = hashlib.sha256(json.dumps(fingerprint_data, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
-    # The roof's fringe tiles keep their own art in an image of its own, to stand up (roof_fringe.py).
-    roof_cells = {int(cell): int(tile) for cell, tile in zip(builder.roof.ravel(), builder.roof_ids.ravel()) if cell}
+    # The roof's wall tops are unrolled into strips in an image of their own, to stand up as bands (roof_fringe.py).
+    roof_squares = {index: int(tile) for index, (cell, tile) in
+                    enumerate(zip(builder.roof.ravel(), builder.roof_ids.ravel())) if cell}
     fringe = write_fringe_art(
-        out_dir / "roof_fringe.png", roof_cells,
+        out_dir / "roof_fringe.png", roof_squares,
         lambda tile: gf.art.load(ids.make_fid(ids.OBJ_TYPE_TILE, tile)).rgba(gf.palette.glow_tile))
     scene["_modCache"] = {
         "exporterVersion": EXPORTER_VERSION,

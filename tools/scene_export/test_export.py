@@ -18,7 +18,7 @@ from baked_sidecar import (ENTRY as BAKED_ENTRY, GL_MAP_OFFSET, HEADER as BAKED_
                            baked_objects, decode_baked_sidecar, encode_baked_sidecar)
 from export import ReadOnlyGameFiles, choose_source, main, parse_args, patch_paths, scene_directory, validate_output_contents
 from floor_sidecar import HEADER, MAGIC, VERSION, cell_content_rect, decode_floor_sidecar, encode_floor_sidecar
-from roof_fringe import is_fringe, write_fringe_art
+from roof_fringe import STRIP_ROWS, is_fringe, runs_of, unroll, write_fringe_art
 from projection_sidecar import (HEADER as PROJECTION_HEADER, MAGIC as PROJECTION_MAGIC,
                                 VERSION as PROJECTION_VERSION, decode_projection_sidecar,
                                 encode_projection_sidecar, hero_anchor, standing_card)
@@ -267,10 +267,11 @@ class FloorSidecarTests(unittest.TestCase):
         self.assertEqual(len(payload), HEADER.size + 2 * 10000 * 2 + 2 * 4 + 2)
 
     def test_roof_fringe_list_round_trips_and_is_validated(self):
-        payload = encode_floor_sidecar(self.sample_scene(), [(2, 0, 37, 80, 36)])
-        self.assertEqual(decode_floor_sidecar(payload)["fringe"], [(2, 0, 37, 80, 36)])
+        run = (1, 20, 10, 3, 1, 37, 144, 40)
+        payload = encode_floor_sidecar(self.sample_scene(), [run])
+        self.assertEqual(decode_floor_sidecar(payload)["fringe"], [run])
         with self.assertRaisesRegex(ValueError, "roof fringe"):
-            encode_floor_sidecar(self.sample_scene(), [(3, 0, 0, 80, 36)])
+            encode_floor_sidecar(self.sample_scene(), [(1, 20, 99, 3, 1, 37, 144, 40)])
         with self.assertRaisesRegex(ValueError, "truncated"):
             decode_floor_sidecar(payload[:-1])
 
@@ -333,11 +334,37 @@ class RoofFringeTests(unittest.TestCase):
         blades = [(y, x) for x in range(30, 60, 5) for y in range(8, 20 + x % 7)]
         with TemporaryDirectory() as temp:
             png = Path(temp) / "roof_fringe.png"
-            entries = write_fringe_art(png, {1: 7, 2: 8, 3: 7}, lambda tile: self.art(blades if tile == 7 else []))
-            self.assertEqual(entries, [(1, 0, 0, 80, 36), (3, 81, 0, 80, 36)])
-            self.assertEqual(Image.open(png).size, (162, 37))
-            self.assertEqual(write_fringe_art(png, {1: 8}, lambda tile: self.art([])), [])
+            # squares 101, 102 (a run of two) and 105 (another): the same tile art on one wall line
+            entries = write_fringe_art(png, {101: 7, 102: 7, 103: 8, 105: 7},
+                                       lambda tile: self.art(blades if tile == 7 else []))
+            self.assertTrue(entries)
+            for edge, plane, start, count, x, y, width, height in entries:
+                self.assertIn((start, count), [(1, 2), (5, 1), (1, 1)])  # 103 is no fringe: the runs break there
+                self.assertEqual((width, height), (count * (-donor_proj.SQ_U[0] if edge < 2 else donor_proj.SQ_V[0]), STRIP_ROWS))
+            self.assertEqual(Image.open(png).height, sum(entry[7] + 1 for entry in entries) + 1)
+            self.assertEqual(write_fringe_art(png, {101: 8}, lambda tile: self.art([])), [])
             self.assertFalse(png.exists())
+
+    def test_pieces_of_one_wall_line_that_follow_each_other_are_one_run(self):
+        art = np.zeros((36, 80, 4), np.uint8)
+        # edge 1 of squares (3, 4), (4, 4), (6, 4): the line v = 5; edge 0 of (4, 5) lies on it too
+        runs = runs_of({403: [(1, art)], 404: [(1, art)], 406: [(1, art)], 504: [(0, art)]})
+        self.assertEqual([(edge, plane, start, len(members)) for edge, plane, start, members in runs],
+                         [(0, 5, 4, 1), (1, 5, 3, 2), (1, 5, 6, 1)])
+
+    def test_unrolled_strip_lays_the_wall_line_flat(self):
+        # a slab of ground (u, v) = (0..1, 0..0.2) on square 0, a wall along u at v = 0 (edge 0)
+        ys, xs = np.mgrid[0:36, 0:80]
+        u, v = donor_proj.delta_to_ground(xs + 0.5 - 48, ys + 0.5)
+        art = np.zeros((36, 80, 4), np.uint8)
+        art[(u >= 0) & (u < 1) & (v >= 0) & (v < 0.2)] = (10, 12, 8, 255)
+        strip = unroll(0, 0, 0, [(0, art)])
+        self.assertEqual(strip.shape, (STRIP_ROWS, 48, 4))
+        rows = np.nonzero(strip[..., 3].any(axis=1))[0]
+        # the slab is one band along the bottom of the strip, as thick as its depth on the screen
+        self.assertEqual(rows[-1], STRIP_ROWS - 1)
+        self.assertLessEqual(len(rows), int(0.2 * 32) + 2)
+        self.assertEqual(len(rows), rows[-1] - rows[0] + 1)
 
 
 class WallSidecarTests(unittest.TestCase):
