@@ -348,6 +348,7 @@ set(FALLOUT_PLATFORM_SOURCES
     "src/devtools/test_run_state.h"
     "src/devtools/ui_fixture.h"
     "src/scene_renderer/gl_api.cc"
+    "src/scene_renderer/band_span.h"
     "src/scene_renderer/gl_api.h"
     "src/scene_renderer/gl_procs.h"
     "src/scene_renderer/perf.cc"
@@ -467,6 +468,7 @@ if(BUILD_TESTING)
     add_subdirectory(tests/effect_emission)
     add_subdirectory(tests/muzzle_mask)
     add_subdirectory(tests/sun)
+    add_subdirectory(tests/band_span)
     add_subdirectory(tests/text_layer)
     add_subdirectory(tests/dialogue_layout)
 endif()

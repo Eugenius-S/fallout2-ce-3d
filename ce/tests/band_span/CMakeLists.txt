@@ -1,0 +1,8 @@
+cmake_minimum_required(VERSION 3.18)
+project(band_span_tests LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+enable_testing()
+add_executable(band_span_tests band_span_test.cc)
+target_include_directories(band_span_tests PRIVATE ../../src/scene_renderer)
+add_test(NAME band_span_tests COMMAND band_span_tests)

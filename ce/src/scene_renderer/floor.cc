@@ -5,6 +5,7 @@
 #include <cmath>
 #include <cstring>
 
+#include "band_span.h"
 #include "gl_api.h"
 #include "scene_internal.h"
 #include "sprite_card.h"
@@ -232,8 +233,8 @@ bool loadStaticFloor(const std::filesystem::path& cacheDirectory, std::string* e
             piece.plane = face - kHalfMap;
             piece.bottom = top;
             // The band's own span: the run's squares, the ends following the wall's.
-            const float low = along == start ? spanLow : static_cast<float>(along);
-            const float high = along == start + count - 1 ? spanHigh : static_cast<float>(along + 1);
+            float low = 0, high = 0;
+            if (!::fallout::scene::bandPieceSpan(along, along == start, along == start + count - 1, spanLow, spanHigh, &low, &high)) continue;
             piece.span0 = low - kHalfMap;
             piece.span1 = high - kHalfMap;
             piece.uLow = stripAt(low);
