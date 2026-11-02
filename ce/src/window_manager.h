@@ -11,6 +11,9 @@
 
 namespace fallout {
 
+namespace scene { class ScreenBufferSwap; }
+bool windowManagerExchangeScreenBuffer(scene::ScreenBufferSwap& buffer);
+
 // The maximum number of buttons in one radio group.
 #define BUTTON_GROUP_BUTTON_LIST_CAPACITY (64)
 

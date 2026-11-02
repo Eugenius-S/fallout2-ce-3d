@@ -17,6 +17,7 @@
 #include "palette.h"
 #include "svga.h"
 #include "scene/text_capture.h"
+#include "scene/screen_buffer_swap.h"
 #include "text_font.h"
 #include "win32.h"
 #include "window_manager_private.h"
@@ -95,6 +96,11 @@ static int _window_flags;
 
 // 0x6ADF2C buffering
 static bool _buffering = false;
+
+bool windowManagerExchangeScreenBuffer(scene::ScreenBufferSwap& buffer)
+{
+    return gWindowSystemInitialized && gWindowsLength > 0 && buffer.exchange(_screen_buffer, _scr_size, gWindows[0]);
+}
 
 // 0x6ADF30 bk_color
 static Color _bk_color;
