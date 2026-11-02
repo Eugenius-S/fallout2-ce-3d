@@ -685,7 +685,9 @@ bool bindStaticShadows(const float* sceneMvp)
         std::pow(static_cast<double>(sun.direction[0]) - gRenderedDirection[0], 2.0)
         + std::pow(static_cast<double>(sun.direction[1]) - gRenderedDirection[1], 2.0)
         + std::pow(static_cast<double>(sun.direction[2]) - gRenderedDirection[2], 2.0));
-    const bool reuse = gRenderedGeneration == gCasterGeneration && turn <= kReuseAngle
+    // F2CE_SHADOW_NO_CACHE (dev): the map is drawn every frame, as before 155.
+    static const bool noCache = SDL_getenv("F2CE_SHADOW_NO_CACHE") != nullptr;
+    const bool reuse = !noCache && gRenderedGeneration == gCasterGeneration && turn <= kReuseAngle
         && !(!mapDumped && devtools::shadowDebugRequested() == 6);
     if (!reuse) {
         // The sun leans casters across the ground: the box grows with the shadow
