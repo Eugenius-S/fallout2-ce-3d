@@ -1,5 +1,6 @@
 #include "../../src/devtools/fixed_screen_options.h"
 #include "../../src/scene/display_dimensions.h"
+#include "../../src/scene/tile_display_swap.h"
 
 #include <initializer_list>
 #include <string>
@@ -29,6 +30,16 @@ int main()
         || width != 1280 || height != 720) return 19;
     if (fallout::scene::displayLogicalDimensions(1920, 1080, 3.0, &width, &height)
         || width != 1280 || height != 720) return 20;
+    unsigned char oldBuffer = 0, newBuffer = 0;
+    unsigned char* active = &oldBuffer;
+    int tileWidth = 1371, tileHeight = 671, tilePitch = 1371;
+    fallout::Rect bounds = { 0, 0, 1370, 670 };
+    fallout::scene::TileDisplaySwap tileSwap;
+    if (!tileSwap.prepare(&newBuffer, 1280, 620, 1280)
+        || !tileSwap.exchange(active, tileWidth, tileHeight, tilePitch, bounds)
+        || active != &newBuffer || tileWidth != 1280 || bounds.bottom != 619) return 21;
+    if (!tileSwap.exchange(active, tileWidth, tileHeight, tilePitch, bounds)
+        || active != &oldBuffer || tileWidth != 1371 || bounds.bottom != 670) return 22;
 
     if (!parse({ "game" }, &options, &error) || options.enabled) return 1;
     if (!parse({ "game", "--dev-tools", "--dev-screen=1920x1080", "--dev-scale=2" }, &options, &error)
