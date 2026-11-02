@@ -352,9 +352,11 @@ $configHashBefore = (Get-FileHash -LiteralPath $configPath -Algorithm SHA256).Ha
 $initialZoom = Get-TestConfigValue $configPath '3d' 'zoom'
 $initialEnabled = Get-TestConfigValue $configPath '3d' 'enabled'
 $initialDifficulty = Get-TestConfigValue $configPath 'preferences' 'combat_difficulty'
-$initialDisplayWidth = Get-TestConfigValue $configPath 'screen' 'resolution_x'
-$initialDisplayHeight = Get-TestConfigValue $configPath 'screen' 'resolution_y'
-$initialDisplayScale = Get-TestConfigValue $configPath 'screen' 'scale_factor'
+if ($DevInput) {
+    $initialDisplayWidth = Get-TestConfigValue $configPath 'screen' 'resolution_x'
+    $initialDisplayHeight = Get-TestConfigValue $configPath 'screen' 'resolution_y'
+    $initialDisplayScale = Get-TestConfigValue $configPath 'screen' 'scale_factor'
+}
 $logicalWidth = [int][Math]::Round($ScreenWidth / $Scale, [MidpointRounding]::AwayFromZero)
 $logicalHeight = [int][Math]::Round($ScreenHeight / $Scale, [MidpointRounding]::AwayFromZero)
 if ($logicalWidth -lt 640 -or $logicalHeight -lt 480) {
