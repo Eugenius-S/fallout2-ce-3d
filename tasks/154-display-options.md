@@ -70,3 +70,8 @@ The 3D camera zoom, new art for any size, the dialogue font clipping (140).
 ## Log
 
 - 2026-11-02 Cut from the owner's request; 139 folded in.
+
+### 2026-11-02 gpt
+Done: claimed task on a branch from origin/main; no implementation changes.
+Next: run this task with the requested gpt-6-luna, high effort, then implement and verify all acceptance criteria.
+Check: no build or runtime checks run; the current chat cannot verify or switch its model.
