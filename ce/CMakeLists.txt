@@ -329,6 +329,7 @@ set(FALLOUT_PLATFORM_SOURCES
     "src/scene/text_capture.h"
     "src/scene/options_panel.cc"
     "src/scene/options_panel.h"
+    "src/scene/display_dimensions.h"
     "src/scene/scene_objects.cc"
     "src/scene/scene_objects.h"
     "src/scene/scene_overlay.cc"

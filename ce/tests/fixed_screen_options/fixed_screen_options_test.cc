@@ -1,4 +1,5 @@
 #include "../../src/devtools/fixed_screen_options.h"
+#include "../../src/scene/display_dimensions.h"
 
 #include <initializer_list>
 #include <string>
@@ -20,6 +21,14 @@ int main()
 {
     FixedScreenOptions options;
     const char* error = nullptr;
+
+    int width = 0, height = 0;
+    if (!fallout::scene::displayLogicalDimensions(1920, 1080, 1.4, &width, &height)
+        || width != 1371 || height != 771) return 18;
+    if (!fallout::scene::displayLogicalDimensions(2560, 1440, 2.0, &width, &height)
+        || width != 1280 || height != 720) return 19;
+    if (fallout::scene::displayLogicalDimensions(1920, 1080, 3.0, &width, &height)
+        || width != 1280 || height != 720) return 20;
 
     if (!parse({ "game" }, &options, &error) || options.enabled) return 1;
     if (!parse({ "game", "--dev-tools", "--dev-screen=1920x1080", "--dev-scale=2" }, &options, &error)

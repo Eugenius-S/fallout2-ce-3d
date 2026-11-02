@@ -21,6 +21,7 @@
 #include "scan_unimplemented.h"
 #include "settings.h"
 #include "scene/text_capture.h"
+#include "scene/display_dimensions.h"
 #include "devtools/devtools.h"
 #include "scene/scene_overlay.h"
 #include "scene/scene_view.h"
@@ -177,11 +178,8 @@ int _GNW95_init_mode_ex(int width, int height, int bpp)
         outputHeight = settings.screen.resolution_mode % 10000;
     }
     double factor = settings.screen.scale_factor;
-    width = static_cast<int>(std::lround(outputWidth / factor));
-    height = static_cast<int>(std::lround(outputHeight / factor));
-
     // Preserve the minimum game surface size even for a stale configuration.
-    if (width < 640 || height < 480) {
+    if (!scene::displayLogicalDimensions(outputWidth, outputHeight, factor, &width, &height)) {
         width = outputWidth;
         height = outputHeight;
     }
