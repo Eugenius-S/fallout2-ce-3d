@@ -197,6 +197,7 @@ void roofShadowCasters(unsigned int* vao, int* vertexCount)
         glBindVertexArray(0);
         gRoofShadowVertexCount = static_cast<int>(positions.size() / 3);
         gRoofShadowStale = false;
+        shadowCastersChanged();
         // One-shot load diagnostics (082 round 6), alongside the walls'
         // CASTERS print: the shadow map's content vs the receivers' lookups.
         float rx0 = 1e9f, rx1 = -1e9f, rz0 = 1e9f, rz1 = -1e9f;

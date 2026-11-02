@@ -33,6 +33,11 @@ struct WallCasterRange {
 void setShadowWallCasters(unsigned int vao, float maxCasterHeight, std::vector<WallCasterRange> ranges);
 // Takes the all-squares roof buffer roofs.cc keeps for the shadow pass.
 void setShadowRoofCasters(unsigned int vao, int vertexCount);
+// The roof casters' buffer was rebuilt: the map must be drawn again.
+void shadowCastersChanged();
+// Builds the map's resources now, in one go (a scene load), instead of over
+// the first frames after a toggle.
+void prepareStaticShadows();
 void destroyStaticShadows();
 
 // Renders the depth map with the frame's sun and sets the scene shader's

@@ -1,0 +1,41 @@
+#ifndef FALLOUT_SCENE_RENDERER_PERF_H
+#define FALLOUT_SCENE_RENDERER_PERF_H
+
+namespace fallout {
+namespace scene_renderer {
+
+// Dev-only frame profiler (task 155). Off unless F2CE_PERF is set in the
+// environment; then devperf.log in the run's log folder gets, every two
+// seconds, the frame rate, the average, 99th percentile and worst frame time,
+// the CPU time spent submitting a frame, and the GPU time of each span between
+// two marks.
+//
+// A frame is perfBegin(), any number of perfMark("name") (each ends the span
+// that began at the previous mark and names it), perfEnd() after the swap.
+// F2CE_PERF_TOGGLE="shadows=0@3,shadows=1@6" flips [3d] shadows, glow or
+// clouds at the given seconds into the run, to measure what a toggle costs.
+bool perfEnabled();
+void perfBegin();
+void perfMark(const char* name);
+void perfEnd();
+// F2CE_PERF_HOLD=N: true until N seconds after the first measured frame, so a
+// one-shot test run keeps drawing long enough to measure.
+bool perfHolding();
+
+// A load stage's wall time, logged when the profiler is on.
+class PerfScope {
+public:
+    explicit PerfScope(const char* what);
+    ~PerfScope();
+    PerfScope(const PerfScope&) = delete;
+    PerfScope& operator=(const PerfScope&) = delete;
+
+private:
+    const char* what_;
+    unsigned long long started_;
+};
+
+} // namespace scene_renderer
+} // namespace fallout
+
+#endif /* FALLOUT_SCENE_RENDERER_PERF_H */

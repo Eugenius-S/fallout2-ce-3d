@@ -57,6 +57,7 @@
 #include "../scene/scene_objects.h"
 #include "../scene/scene_settings.h"
 #include "../scene/scene_view.h"
+#include "../scene_renderer/perf.h"
 #include "../scene_renderer/game_view.h"
 #include "../scene_renderer/camera.h"
 #include "../scene_renderer/context.h"
@@ -2414,6 +2415,7 @@ void scenePresented(const scene::RefreshResult& refreshed)
         return; // still settling
     }
     if (refreshed.heroUpdated && gSnapshotOncePending) {
+        if (scene_renderer::perfHolding()) return;
         if (focusMuzzleFixture() || focusWeaponEffectFixture()) return;
         if ((gScrollProbeKey >= 0 && gScrollProbeStage < 2) || (gScrollEdgeDirection >= 0 && gScrollEdgeStage < 2)
             || (gFollowHeroProbe && gFollowHeroStage < 2) || (gWalkProbe && gWalkProbeStage < 2)) return;

@@ -25,6 +25,7 @@
 #include "../map_edge.h"
 #include "../object.h"
 #include "../scene_renderer/game_view.h"
+#include "../scene_renderer/perf.h"
 #include "../scene_renderer/ground_pick.h"
 #include "../scene_renderer/picking.h"
 #include "../combat.h"
@@ -274,14 +275,21 @@ bool loadScene(View view, const std::string& map, int elevation, std::string* me
     printf("scene: cache %s\n", cacheDirectory.string().c_str());
     fflush(stdout);
     std::string error;
-    if (!scene_renderer::loadStaticFloor(cacheDirectory, &error)) {
-        *message = "floor preview unavailable: " + error;
-        return false;
+    scene_renderer::PerfScope total("scene_total");
+    {
+        scene_renderer::PerfScope stage("floor");
+        if (!scene_renderer::loadStaticFloor(cacheDirectory, &error)) {
+            *message = "floor preview unavailable: " + error;
+            return false;
+        }
     }
     setSceneDaylight(readDaylight(cacheDirectory));
-    if (view != View::Floor && !scene_renderer::loadStaticWalls(cacheDirectory, &error)) {
-        *message = "wall preview unavailable: " + error;
-        return false;
+    if (view != View::Floor) {
+        scene_renderer::PerfScope stage("walls");
+        if (!scene_renderer::loadStaticWalls(cacheDirectory, &error)) {
+            *message = "wall preview unavailable: " + error;
+            return false;
+        }
     }
     if (view == View::Full && !scene_renderer::loadStaticProjection(cacheDirectory, &error)) {
         *message = "hero projection unavailable: " + error;
