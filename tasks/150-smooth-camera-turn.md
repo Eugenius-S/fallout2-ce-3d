@@ -2,8 +2,8 @@
 id: 150
 title: The camera turn step eases in and out
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: glm
 suggested: gpt
 priority: normal
 claude-only: no

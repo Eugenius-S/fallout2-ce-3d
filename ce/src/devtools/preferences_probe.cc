@@ -60,6 +60,26 @@ void scriptedInputPump()
             return;
         }
         if (action == "snap") { gInputSnapshot = true; printf("DEV_INPUT snap\n"); fflush(stdout); return; }
+        if (action == "key") {
+            // One press: a down and an up pushed in the same batch, so a held
+            // key's repeat never fires. The value is an SDL_SCANCODE_* number.
+            int scancode;
+            if (!(input >> scancode) || scancode <= 0 || scancode >= SDL_NUM_SCANCODES) { fprintf(stderr, "DEV_INPUT FAIL: invalid key\n"); gInputActive = false; return; }
+            SDL_Event down = {};
+            down.type = SDL_KEYDOWN;
+            down.key.keysym.scancode = static_cast<SDL_Scancode>(scancode);
+            down.key.state = SDL_PRESSED;
+            down.key.repeat = 0;
+            SDL_Event up = {};
+            up.type = SDL_KEYUP;
+            up.key.keysym.scancode = down.key.keysym.scancode;
+            up.key.state = SDL_RELEASED;
+            up.key.repeat = 0;
+            if (SDL_PushEvent(&down) != 1 || SDL_PushEvent(&up) != 1) fprintf(stderr, "DEV_INPUT FAIL: %s\n", SDL_GetError());
+            else printf("DEV_INPUT pushed key %d\n", scancode);
+            fflush(stdout);
+            return;
+        }
         SDL_Event event = {};
         if (action == "wheel") {
             event.type = SDL_MOUSEWHEEL;

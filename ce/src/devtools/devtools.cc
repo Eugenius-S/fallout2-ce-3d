@@ -3597,6 +3597,7 @@ bool takeSnapshot()
         "  \"sharp_text\": {\"setting\":%s,\"active\":%s,\"drawn\":%s,\"runs\":%u,\"glyphs\":%u,\"restored_pixels\":%u,\"prepare_ms\":%.3f},\n"
         "  \"map_clip\": %s,\n"
         "  \"camera\": \"%s\",\n"
+        "  \"camera_turn\": %.4f,\n"
         "  \"wall_triangles\": %u,\n"
         "  \"wall_pages\": %u,\n"
         "  \"hero\": %s,\n"
@@ -3645,6 +3646,7 @@ bool takeSnapshot()
         sharpText.prepareMilliseconds,
         clipMetadata,
         camera,
+        scene::cameraTurnAngle(),
         wallTriangles,
         wallPages,
         heroMetadata,

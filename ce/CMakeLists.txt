@@ -429,6 +429,12 @@ set(FALLOUT_PLATFORM_SOURCES
 
 include(CTest)
 if(BUILD_TESTING)
+    add_executable(camera_turn_tests
+        "tests/camera_turn/camera_turn_test.cc"
+    )
+    target_include_directories(camera_turn_tests PRIVATE "src/scene")
+    add_test(NAME camera_turn_tests COMMAND camera_turn_tests)
+
     add_executable(preview_policy_tests
         "src/scene/preview_policy.cc"
         "tests/preview_policy/preview_policy_test.cc"
