@@ -504,6 +504,7 @@ void handleWindowSizeChanged()
     if (scene_renderer::isActive()) {
         // The GL presentation letterboxes into the current window size on
         // every frame; there is nothing to recreate.
+        scene_renderer::setLogicalDimensions(screenGetWidth(), screenGetHeight());
         mouseDeviceRefreshWindowMapping();
         return;
     }

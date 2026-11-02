@@ -289,6 +289,14 @@ bool init(SDL_Window* window, int logicalWidth, int logicalHeight)
     return true;
 }
 
+bool setLogicalDimensions(int width, int height)
+{
+    if (!gInitialized || width <= 0 || height <= 0) return false;
+    gLogicalWidth = width;
+    gLogicalHeight = height;
+    return true;
+}
+
 void shutdown()
 {
     gInitialized = false;
