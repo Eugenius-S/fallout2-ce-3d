@@ -2,14 +2,14 @@
 id: 154
 title: Resolution, window mode and picture scale in the 3D settings
 milestone: M1
-status: doing
+status: done
 owner: gpt
 suggested: gpt
 priority: high
 claude-only: no
 user-check: yes
 depends-on: []
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -106,3 +106,8 @@ Next: implement and validate a complete press/release F9 sequence and scripted S
 Done: tried the requested one-shot `snap` mechanism without F9 keyboard events. Each of two scripted-input runs produced five snapshots and logged SDL mouse motion and button events. The screenshot and event-log summaries are in `runs/154-display-options/snap-input-diagnostic-20261102/`.
 Check: attempt 1 logged `DEV_INPUT snap`, `DEV_INPUT motion 910 244`, `DEV_INPUT button 1 at 910 244`, then motion and button events at `810 307`: the resolution dropdown opened, but the item selection did not take effect. Attempt 2 followed an experimental change to dropdown event handling: the popup did not remain open through selection, and subsequent slider, wheel and confirmation events did not produce the requested saved changes. Both logged five `DEV_INPUT snap` actions. The isolated config after attempt 2 contained `resolution_x=1920`, `resolution_y=1080`, `scale=2` and no `scale_factor`; this does not prove a successful selection or scale change. These are synthetic logical mouse coordinates, not a physical-pointer test. Per the owner's two-attempt stop condition there was no third run.
 Next: investigate why the row event closes the dropdown before the selection and validate the full input path and config readback. The unvalidated source changes and test script remain locally in `build/task154-snap-input-unverified.patch` and `build/task154-input-snap.txt`; they are not part of the PR. Keep task doing and PR #217 draft.
+
+### 2026-11-02 gpt
+Done: Scripted SDL logical mouse input opens the resolution list, selects 2560x1440, drags the picture scale to 2.0x and presses Done while the running screen is 1920x1080 at 1.4x. The isolated fallout2.cfg reads resolution_x=2560, resolution_y=1440, scale_factor=2.000000 after applying; the active window remains at 1.4x until restart. Five JPEG frames, SDL metadata, input events and config hash are in runs/154-display-options/scripted-clicks-20261102/. Dropdown handling consumes the opening and selection mouse press until release, restores the popup background on close, and writes the legacy resolution keys alongside the pending choice. The dev-only input path uses SDL events in logical coordinates; it does not move the owner's system cursor or assert physical device behavior.
+Check: clean build, ctest 18/18; Python scene-export 95 and regression-tool 12 tests pass. Full visual regression: 16/16, zero changed pixels (runs/regression/20261102-152136-838-72264). Previously accepted original-view scale comparisons and window-mode captures remain in this task's evidence. CI run 41412249631 passed all required checks, including windows-game and settings_3d. The controller checked all five post-merge frames and the isolated config hash. Main ff69d7cb was merged before the final interaction capture.
+Next: owner review in PR #217; the changes take effect after the game restarts.
