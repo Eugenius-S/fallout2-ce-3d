@@ -129,3 +129,40 @@ Next: sweep round 2 (interiors, shapes-eval solo shots).
 Check: the crops and sheets above.
 
 - 2026-11-01 glm is out; box tops merged (#194). Back to todo for claude; continue from `task/129-klamath-graphics-sweep`.
+
+### 2026-11-02 claude: sweep round 2, interiors and hours
+
+Done: fresh export of the seven Klamath maps from origin/main's exporter;
+the hero put inside every building (roofs open, `-HeroTile`) and shot from
+the fly camera at -45, 0, +45, pitch 50, distance 8: kladwtwn 12 buildings,
+klamall 14 spots over the town block, klagraz 1, klatrap 1 (the other klatrap
+roof sits in the map void); kladwtwn at hour 7 over four tour spots. The caves
+have no roofs and no interiors, round 1's tour covers them. Find list (1 to 4
+are round 1's):
+
+1. fixed (#194), 2. fixed (#194), 3. not a defect, 4. superseded by this entry.
+5. klamall e0, view 21490 (hero 21292), fly 0 and +45, noon: the big pale
+   green mattress-like thing with a pipe stands upright, leaning against the
+   wall like a billboard; the floor items lying beside it (blankets) lie
+   flat. Crop: runs/129-klamath-graphics-sweep/finds/klamall-e0-21490-p0-p45-mattress-stands.jpg.
+   Cause: a floor-lying object's art is taller than the 20 pixel limit for
+   cards that lie flat, so it takes the standing card path. Needs a "lying
+   on the floor" kind that the owner's frozen shape labels do not have.
+   owner: design decision (a new shape kind), not a one-line rule.
+6. klamall e0, view 16098, fly -45, noon: the ragged dark moss fringe along a
+   roof's edge lies flat on the roof (101's "fringe lies flat"). Crop:
+   .../klamall-e0-16098-p0-roof-fringe-flat.jpg. Open, belongs to 101.
+7. kladwtwn e0, view 24268, fly -45 and +45, hour 7: an orange translucent
+   band over the ground at the map edge, ending in a straight slanted line.
+   Crop: .../kladwtwn-e0-24268-h7-translucent-edge-quad.jpg. Already task 145.
+8. No defects in: the wall tops through roofs (101), corner seams (110) and
+   roof ends in the 36 interior and roof views; the klagraz and klatrap
+   closer views (the near dead trees read as black blocks, the vanilla art
+   magnified, not a geometry fault); the interiors of all kladwtwn and klamall
+   buildings seen (floors, wall backs, doors, furniture, posters).
+
+Next: nothing in the sweep has a rule-level fix this round (5 needs the
+owner, 6 is 101, 7 is 145). Round 3: hours 7 and 18 over klamall and the
+caves, and the 18:00 sheet of kladwtwn (shot, not read).
+Check: the views were shot by a scratch script (not committed);
+re-run with `dev-snapshot.ps1 -HeroTile T -ViewTile T -Fly -FlyPitch 50`.
