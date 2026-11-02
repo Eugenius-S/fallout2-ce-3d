@@ -1,0 +1,45 @@
+{
+  "status": "owner_exact_camera_unavailable",
+  "owner_image": "runs/inbox/2026-11-01-cloud-hard-edge.png",
+  "owner_sidecar": null,
+  "owner_vs_candidate_template_correlation_half_scale": 0.386,
+  "valid_sand_pair": {
+    "map": "KLATRAP.MAP",
+    "view_tile": 13913,
+    "elevation": 0,
+    "game_time": 288000,
+    "resolution": "1920x1080",
+    "camera": "fixed eye=(55.64466,46.23085,58.46700), target=(6.45833,0.00000,-15.31250), fov_y=25.0",
+    "cloud_on_mode": "--dev-shadows",
+    "cloud_off_mode": "--dev-sun-shadows",
+    "phase": "both runs use game time; no phase override because --dev-cloud-phase itself enables cloud shadows",
+    "exe_sha256": "d513aec0439771b7c19416d720d5dc6f13f9261e85f1a50f1d4ef0b57f2bc9a8",
+    "on_sidecar": "runs/143-cloud-edges-soft/sand-08-cloud-sun/devshot-20261102-092229-000.json",
+    "off_sidecar": "runs/143-cloud-edges-soft/sand-08-sun-only-default/devshot-20261102-092244-000.json",
+    "changed_pixels": 1373362,
+    "mean_abs_rgb": 2.6479041280864197,
+    "pixels_over_10": 136063,
+    "edge_assessment": "no hard edge observed on this sand camera; this is not the owner spot",
+    "branch_head": "87d9ae9f",
+    "comparison_sheet": "runs/143-cloud-edges-soft/sand-08-cloud-vs-sun.jpg"
+  },
+  "failed_attempts": [
+    {
+      "attempt": "KLATRAP tile 13913, 08:00, phase 12: purported clouds-off pair",
+      "reason": "--dev-cloud-phase implicitly enables cloud shadows even without --dev-cloud-shadows; both captures were clouds-on, so zero pixel delta did not measure clouds-off."
+    },
+    {
+      "attempt": "KLATRAP tile 13913, 12:00, clouds-only phase 505",
+      "reason": "capture rendered mostly black; isolated cloud-only mode omitted sun shadows, so it is not a usable lighting/edge comparison. No attribution to shader or cloud quantization."
+    }
+  ],
+  "checks": {
+    "release_build": "passed",
+    "ctest": "18/18 passed",
+    "scene_export_tests": "88 passed",
+    "regression_tool_tests": "12 passed",
+    "scene_export_resources_read": 1467,
+    "pixel_regression": "aborted by controller after three captures; fourth timed out when the background test process was stopped"
+  },
+  "shader_change": "none"
+}

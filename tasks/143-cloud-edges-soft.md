@@ -49,7 +49,6 @@ line or one-step contour at its edge, on dark ground as well as on light.
 ## Log
 
 - 2026-11-01 Cut from the owner's live find after #199.
-
 - 2026-11-01 The owner asked gpt directly to make cloud shadows an option that is off by default for now; this task still makes the edges soft for when they are on.
 
 ### 2026-11-01 gpt
@@ -75,3 +74,31 @@ with zero changed pixels (`runs/regression/20261101-231614-494-54244`).
 Next: Obtain a capture sidecar or exact camera, zoom, and time for the owner
 frame, then repeat the matched cloud-on/cloud-off comparison before changing
 the shader.
+
+### 2026-11-02 gpt
+Blocked: The owner image still has no sidecar; the candidate camera match remains
+0.386. No shader change was made.
+
+Failed attempts: At KLATRAP tile 13913, 08:00, the supposed clouds-off command
+included `--dev-cloud-phase`; that option itself enables cloud shadows, so the
+zero-pixel delta was not an off comparison. A 12:00 cloud-only capture at the
+same tile was mostly black and had no matched sun-only baseline, so it cannot
+measure cloud-edge softness or sun-shadow contrast.
+
+Evidence: The valid 08:00 light-ground pair is
+`runs/143-cloud-edges-soft/sand-08-cloud-vs-sun.jpg` with details in
+`runs/143-cloud-edges-soft/diagnostic-followup-2026-11-02.json`. At matched
+camera, game time, and executable, cloud plus sun versus sun-only changed
+1,373,362 pixels, mean absolute RGB 2.648, with 136,063 pixels above 10. This
+outdoor KLATRAP surface has no lamps; a hard cloud edge did not reproduce there.
+This is not the owner's dark-street camera. Captures at 12:00 and 17:00 on the
+light ground and the owner's spot remain unverified.
+
+Check: Release build passed; CTest passed 18/18; scene-export tests passed
+88/88; regression-tool tests passed 12/12; export read 1,467 resources into
+`build/scene-cache`. Full pixel regression was stopped on controller direction
+after three captures; the script reports no snapshot for the fourth. No shader
+change was made. PR #208 remains draft.
+
+Next: Get the owner's exact camera, zoom, and game time, then repeat matched
+cloud-on and cloud-off captures before changing the shader.
