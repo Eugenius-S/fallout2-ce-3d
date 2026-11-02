@@ -29,3 +29,5 @@ The exporter is an adapter around the donor's offline `SceneBuilder`; it does no
 ## Donor code and license
 
 The `vendor/f2lib` and `vendor/fp` files are a modified subset of `fallout2-first-person`, revision `0da1cd449f1dc7f2f6986ff7e8728a4b6ae20584`. The donor is licensed under Sustainable Use License 1.0; it is not described here as OSI-approved open source. Original notices and license texts are retained in this directory. This package adds an adapter around the copied donor modules: it checks configured CE sources in priority order, fixes the export to one map/elevation, and writes provenance. The copied donor module files remain verbatim, and the donor repository is untouched.
+
+`floor.bin` version 3 adds a roof fringe list after the cells: a count, then per fringe roof tile its cell number and the rect of the tile's own iso art in `roof_fringe.png` (tiles told by their art, see `roof_fringe.py`). Under the fly camera CE draws such a roof square as two crossed upright sheets of that art in place of the flat square; the game's camera keeps the flat square.

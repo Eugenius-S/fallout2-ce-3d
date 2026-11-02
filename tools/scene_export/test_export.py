@@ -8,6 +8,9 @@ import struct
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
+import numpy as np
+from PIL import Image
+
 from baked_sidecar import (ENTRY as BAKED_ENTRY, GL_MAP_OFFSET, HEADER as BAKED_HEADER, LIFT as BAKED_LIFT,
                            MAGIC as BAKED_MAGIC,
                            NOCAST as BAKED_NOCAST, SKIP as BAKED_SKIP, FLAT as BAKED_FLAT, FLY_FLAT as BAKED_FLY_FLAT,
@@ -15,6 +18,7 @@ from baked_sidecar import (ENTRY as BAKED_ENTRY, GL_MAP_OFFSET, HEADER as BAKED_
                            baked_objects, decode_baked_sidecar, encode_baked_sidecar)
 from export import ReadOnlyGameFiles, choose_source, main, parse_args, patch_paths, scene_directory, validate_output_contents
 from floor_sidecar import HEADER, MAGIC, VERSION, cell_content_rect, decode_floor_sidecar, encode_floor_sidecar
+from roof_fringe import is_fringe, write_fringe_art
 from projection_sidecar import (HEADER as PROJECTION_HEADER, MAGIC as PROJECTION_MAGIC,
                                 VERSION as PROJECTION_VERSION, decode_projection_sidecar,
                                 encode_projection_sidecar, hero_anchor, standing_card)
@@ -177,7 +181,7 @@ class OutputSafetyTests(unittest.TestCase):
         with TemporaryDirectory() as temp:
             out = Path(temp)
             for name in ("scene.json", "provenance.json", "floor.bin", "walls.bin", "projection.bin",
-                         "baked.bin", "tiles.png", "light.png", "rock.png", "sprites10.png"):
+                         "baked.bin", "tiles.png", "light.png", "rock.png", "roof_fringe.png", "sprites10.png"):
                 (out / name).touch()
             validate_output_contents(out)
 
@@ -259,7 +263,16 @@ class FloorSidecarTests(unittest.TestCase):
         self.assertEqual(decoded["cells"], [(0, 0), (89, 0)])
         self.assertEqual(decoded["floor"][:2], (1, 2))
         self.assertEqual(decoded["roof"][:3], (0, 0, 2))
-        self.assertEqual(len(payload), HEADER.size + 2 * 10000 * 2 + 2 * 4)
+        self.assertEqual(decoded["fringe"], [])
+        self.assertEqual(len(payload), HEADER.size + 2 * 10000 * 2 + 2 * 4 + 2)
+
+    def test_roof_fringe_list_round_trips_and_is_validated(self):
+        payload = encode_floor_sidecar(self.sample_scene(), [(2, 0, 37, 80, 36)])
+        self.assertEqual(decode_floor_sidecar(payload)["fringe"], [(2, 0, 37, 80, 36)])
+        with self.assertRaisesRegex(ValueError, "roof fringe"):
+            encode_floor_sidecar(self.sample_scene(), [(3, 0, 0, 80, 36)])
+        with self.assertRaisesRegex(ValueError, "truncated"):
+            decode_floor_sidecar(payload[:-1])
 
     def test_cell_coordinates_select_inner_square_and_validate_outer_cell(self):
         self.assertEqual(cell_content_rect((0, 0), (100, 100)), (6, 6, 94, 94))
@@ -290,6 +303,41 @@ class FloorSidecarTests(unittest.TestCase):
             decode_floor_sidecar(bad_version)
         with self.assertRaisesRegex(ValueError, "truncated"):
             decode_floor_sidecar(payload[:-1])
+
+
+class RoofFringeTests(unittest.TestCase):
+    @staticmethod
+    def art(painted, colour=(10, 12, 8)):
+        rgba = np.zeros((36, 80, 4), np.uint8)
+        for y, x in painted:
+            rgba[y, x] = (*colour, 255)
+        return rgba
+
+    def test_sparse_dark_ragged_growth_is_a_fringe(self):
+        # blades: a few thin strokes of a dark colour on a mostly empty tile
+        blades = [(y, x) for x in range(30, 60, 5) for y in range(8, 20 + x % 7)]
+        self.assertTrue(is_fringe(self.art(blades)))
+
+    def test_whole_roofs_solid_strips_metal_and_light_growth_are_not(self):
+        ys, xs = np.mgrid[0:36, 0:80]
+        u, v = donor_proj.delta_to_ground(xs + 0.5 - 48, ys + 0.5)
+        diamond = [(y, x) for y, x in zip(*np.nonzero((u >= 0) & (u < 1) & (v >= 0) & (v < 1)))]
+        self.assertFalse(is_fringe(self.art(diamond)))                      # a whole roof tile
+        strip = [(y, x) for y in range(14, 20) for x in range(10, 70)]
+        self.assertFalse(is_fringe(self.art(strip)))                        # a solid trim strip
+        blades = [(y, x) for x in range(30, 60, 5) for y in range(8, 20 + x % 7)]
+        self.assertFalse(is_fringe(self.art(blades, (120, 130, 110))))      # bright: a metal roof with holes
+        self.assertFalse(is_fringe(self.art([])))
+
+    def test_art_image_and_entries(self):
+        blades = [(y, x) for x in range(30, 60, 5) for y in range(8, 20 + x % 7)]
+        with TemporaryDirectory() as temp:
+            png = Path(temp) / "roof_fringe.png"
+            entries = write_fringe_art(png, {1: 7, 2: 8, 3: 7}, lambda tile: self.art(blades if tile == 7 else []))
+            self.assertEqual(entries, [(1, 0, 0, 80, 36), (3, 81, 0, 80, 36)])
+            self.assertEqual(Image.open(png).size, (162, 37))
+            self.assertEqual(write_fringe_art(png, {1: 8}, lambda tile: self.art([])), [])
+            self.assertFalse(png.exists())
 
 
 class WallSidecarTests(unittest.TestCase):

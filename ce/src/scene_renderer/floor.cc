@@ -93,9 +93,13 @@ bool loadStaticFloor(const std::filesystem::path& cacheDirectory, std::string* e
     const unsigned short cellSize = readU16(sidecar.data() + 16);
     const unsigned short cellMargin = readU16(sidecar.data() + 18);
     // Version 2 has a roof layer after the floor layer; version 1 has none.
-    const size_t layerBytes = version == 2 ? 2 * kFloorBytes : kFloorBytes;
-    const size_t expectedSize = kHeaderSize + layerBytes + static_cast<size_t>(tileCount) * 4;
-    if ((version != 1 && version != 2) || gridWidth != 100 || gridHeight != 100 || tileCount == 0
+    // Version 3 adds the roof fringe list after the cells: a count, then per
+    // fringe tile its cell number and the rect of its own art in the atlas.
+    const size_t layerBytes = version >= 2 ? 2 * kFloorBytes : kFloorBytes;
+    const size_t cellsEnd = kHeaderSize + layerBytes + static_cast<size_t>(tileCount) * 4;
+    const size_t fringeCount = version == 3 && sidecar.size() >= cellsEnd + 2 ? readU16(sidecar.data() + cellsEnd) : 0;
+    const size_t expectedSize = cellsEnd + (version == 3 ? 2 + fringeCount * 10 : 0);
+    if ((version < 1 || version > 3) || gridWidth != 100 || gridHeight != 100 || tileCount == 0
         || cellSize != 88 || cellMargin != 6 || imageWidth == 0 || imageHeight == 0
         || imageWidth > 8192 || imageHeight > 8192
         || sidecar.size() != expectedSize) {
@@ -129,7 +133,7 @@ bool loadStaticFloor(const std::filesystem::path& cacheDirectory, std::string* e
     constexpr float kHalfMap = 50.0f;
     quad(-kHalfMap, -0.08f, -kHalfMap, kHalfMap, kHalfMap, 0.0f, 0.0f, 1.0f, 1.0f);
     const unsigned char* floorData = sidecar.data() + kHeaderSize;
-    const unsigned char* roofData = version == 2 ? floorData + kFloorBytes : nullptr;
+    const unsigned char* roofData = version >= 2 ? floorData + kFloorBytes : nullptr;
     const unsigned char* cellData = floorData + layerBytes;
     for (int row = 0; row < 100; row++) {
         for (int col = 0; col < 100; col++) {
@@ -163,6 +167,30 @@ bool loadStaticFloor(const std::filesystem::path& cacheDirectory, std::string* e
         }
     }
 
+    // The fringe tiles' art (roof_fringe.png), by cell number (null: a tile that lies flat).
+    std::vector<const unsigned char*> fringeOf(static_cast<size_t>(tileCount) + 1, nullptr);
+    std::vector<unsigned char> fringeRgba;
+    unsigned fringeWidth = 0, fringeHeight = 0;
+    if (fringeCount > 0) {
+        std::vector<unsigned char> fringePng;
+        if (!readBinary(cacheDirectory / "roof_fringe.png", fringePng)) {
+            return fail("roof_fringe.png is missing or unreadable");
+        }
+        const unsigned fringeError = lodepng::decode(fringeRgba, fringeWidth, fringeHeight, fringePng);
+        if (fringeError != 0) {
+            return fail(std::string("roof_fringe.png decode failed: ") + lodepng_error_text(fringeError));
+        }
+    }
+    for (size_t entry = 0; entry < fringeCount; entry++) {
+        const unsigned char* data = sidecar.data() + cellsEnd + 2 + entry * 10;
+        const unsigned short number = readU16(data);
+        const unsigned short x = readU16(data + 2), y = readU16(data + 4);
+        const unsigned short w = readU16(data + 6), h = readU16(data + 8);
+        if (number == 0 || number > tileCount || w == 0 || h == 0 || x + w > fringeWidth || y + h > fringeHeight) {
+            return fail("floor.bin contains a bad roof fringe entry");
+        }
+        fringeOf[number] = data;
+    }
     std::vector<RoofSquare> roofs;
     for (int index = 0; roofData != nullptr && index < 100 * 100; index++) {
         const unsigned short cellIndex = readU16(roofData + index * 2);
@@ -179,10 +207,21 @@ bool loadStaticFloor(const std::filesystem::path& cacheDirectory, std::string* e
         const float grow = static_cast<float>(cellMargin) / cellSize;
         const float x0 = static_cast<float>(index % 100) - kHalfMap;
         const float z0 = static_cast<float>(index / 100) - kHalfMap;
-        roofs.push_back({ index, x0 - grow, z0 - grow, x0 + 1.0f + grow, z0 + 1.0f + grow,
+        RoofSquare square = { index, x0 - grow, z0 - grow, x0 + 1.0f + grow, z0 + 1.0f + grow,
             static_cast<float>(cellX) / imageWidth, static_cast<float>(cellY) / imageHeight,
             static_cast<float>(cellX + cellSize + 2 * cellMargin) / imageWidth,
-            static_cast<float>(cellY + cellSize + 2 * cellMargin) / imageHeight });
+            static_cast<float>(cellY + cellSize + 2 * cellMargin) / imageHeight };
+        if (const unsigned char* art = fringeOf[cellIndex]) {
+            const float ax = readU16(art + 2), ay = readU16(art + 4), aw = readU16(art + 6), ah = readU16(art + 8);
+            square.fringe = true;
+            square.artU0 = ax / fringeWidth;
+            square.artV0 = ay / fringeHeight;
+            square.artU1 = (ax + aw) / fringeWidth;
+            square.artV1 = (ay + ah) / fringeHeight;
+            square.artWidth = aw;
+            square.artHeight = ah;
+        }
+        roofs.push_back(square);
     }
 
     std::string shaderError;
@@ -215,6 +254,18 @@ bool loadStaticFloor(const std::filesystem::path& cacheDirectory, std::string* e
     }
     gFloorOccupancy = std::move(floorOccupancy);
     setRoofSquares(std::move(roofs));
+    if (!fringeRgba.empty()) {
+        unsigned int fringeTexture = 0;
+        glGenTextures(1, &fringeTexture);
+        glBindTexture(kTexture2D, fringeTexture);
+        glPixelStorei(kUnpackRowLength, 0);
+        glTexImage2D(kTexture2D, 0, kRgba8, fringeWidth, fringeHeight, 0, kRGBA, kUnsignedByte, fringeRgba.data());
+        glTexParameteri(kTexture2D, kTextureMinFilter, kNearest);
+        glTexParameteri(kTexture2D, kTextureMagFilter, kNearest);
+        glTexParameteri(kTexture2D, kTextureWrapS, kClampToEdge);
+        glTexParameteri(kTexture2D, kTextureWrapT, kClampToEdge);
+        setRoofFringeTexture(fringeTexture);
+    }
     gFloorLoaded = true;
     if (error != nullptr) error->clear();
     return true;

@@ -6,7 +6,7 @@ import struct
 from scene_check import one_map_elevation
 
 MAGIC = b"F2FL"
-VERSION = 2  # 2: a roof layer follows the floor layer
+VERSION = 3  # 2: a roof layer follows the floor layer; 3: a roof fringe list follows the cells
 GRID_WIDTH = 100
 GRID_HEIGHT = 100
 CELL_SIZE = 88
@@ -14,6 +14,7 @@ CELL_MARGIN = 6
 CELL_OUTER_SIZE = CELL_SIZE + 2 * CELL_MARGIN
 HEADER = struct.Struct("<4s8H")
 FLOOR_BYTES = GRID_WIDTH * GRID_HEIGHT * 2
+FRINGE_ENTRY = struct.Struct("<5H")  # tile cell number (1-based), then the raw art rect in roof_fringe.png: x, y, width, height
 
 
 def cell_content_rect(cell, image_size):
@@ -26,8 +27,13 @@ def cell_content_rect(cell, image_size):
             x + CELL_MARGIN + CELL_SIZE, y + CELL_MARGIN + CELL_SIZE)
 
 
-def encode_floor_sidecar(scene):
-    """Encode floor and roof atlas indices and tile cells from one format-6 scene."""
+def encode_floor_sidecar(scene, fringe=()):
+    """Encode floor and roof atlas indices and tile cells from one format-6 scene.
+
+    fringe: (cell number, x, y, width, height) of each roof tile that stands up
+    as a fringe (roof_fringe.py): the cell number as roof indices count it, the
+    rect of the tile's own art in roof_fringe.png.
+    """
     if scene.get("format") != 6 or not one_map_elevation(scene):
         raise ValueError("floor sidecar expects one map elevation in scene format 6")
     tiles = scene.get("tiles")
@@ -69,9 +75,14 @@ def encode_floor_sidecar(scene):
     if max(floor) > len(cells) or max(roof) > len(cells):
         raise ValueError("floor references a missing tiles.cells entry")
 
+    trailer = struct.pack("<H", len(fringe))
+    for number, x, y, width, height in fringe:
+        if not 1 <= number <= len(cells) or width == 0 or height == 0:
+            raise ValueError("roof fringe entry is outside the cell list or empty")
+        trailer += FRINGE_ENTRY.pack(number, x, y, width, height)
     header = HEADER.pack(MAGIC, VERSION, GRID_WIDTH, GRID_HEIGHT, len(cells),
                          image_width, image_height, CELL_SIZE, CELL_MARGIN)
-    return header + floor_bytes + roof_bytes + bytes(encoded_cells)
+    return header + floor_bytes + roof_bytes + bytes(encoded_cells) + trailer
 
 
 def decode_floor_sidecar(data):
@@ -83,7 +94,11 @@ def decode_floor_sidecar(data):
         raise ValueError("unsupported floor sidecar magic/version")
     if (grid_w, grid_h, cell_size, margin) != (GRID_WIDTH, GRID_HEIGHT, CELL_SIZE, CELL_MARGIN):
         raise ValueError("unsupported floor sidecar geometry")
-    expected = HEADER.size + 2 * FLOOR_BYTES + tile_count * 4
+    cells_end = HEADER.size + 2 * FLOOR_BYTES + tile_count * 4
+    if len(data) < cells_end + 2:
+        raise ValueError("truncated floor sidecar")
+    fringe_count = struct.unpack_from("<H", data, cells_end)[0]
+    expected = cells_end + 2 + fringe_count * FRINGE_ENTRY.size
     if len(data) < expected:
         raise ValueError("truncated floor sidecar")
     if len(data) != expected or tile_count == 0 or image_w == 0 or image_h == 0:
@@ -99,8 +114,13 @@ def decode_floor_sidecar(data):
     for x, y in cells:
         if x + cell_size + 2 * margin > image_w or y + cell_size + 2 * margin > image_h:
             raise ValueError("tile cell is outside tiles image")
+    fringe = [FRINGE_ENTRY.unpack_from(data, cells_end + 2 + i * FRINGE_ENTRY.size) for i in range(fringe_count)]
+    for number, x, y, width, height in fringe:
+        if not 1 <= number <= tile_count or width == 0 or height == 0:
+            raise ValueError("roof fringe entry is outside the cell list or empty")
     return {
         "version": version,
+        "fringe": fringe,
         "grid_size": (grid_w, grid_h),
         "image_size": (image_w, image_h),
         "cell_size": cell_size,
