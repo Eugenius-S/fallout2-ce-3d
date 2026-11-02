@@ -27,6 +27,7 @@
 #include "item.h"
 #include "kb.h"
 #include "devtools/devtools.h"
+#include "scene/camera_turn.h"
 #include "scene/scene_view.h"
 #include "scene/scene_objects.h"
 #include "map_edge.h"
@@ -2693,7 +2694,16 @@ int gameMouseHandleScrolling(int x, int y, MouseCursorType cursor)
         return -1;
     }
 
-    int rc = mapScroll(dx, dy);
+    // A turned 3D camera: the edge the mouse is at is a direction on the turned
+    // screen, while the game scrolls along the unturned axes. The cursor keeps
+    // showing the edge.
+    int scrollDx = dx;
+    int scrollDy = dy;
+    if (scene::cameraTurned()) {
+        scene::cameraTurnScrollStepNow(dx, dy, &scrollDx, &scrollDy);
+    }
+
+    int rc = mapScroll(scrollDx, scrollDy);
     switch (rc) {
     case -1:
         // Scrolling is blocked for whatever reason, upgrade cursor to

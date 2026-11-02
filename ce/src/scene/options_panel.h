@@ -32,6 +32,7 @@ public:
     int rowButtonX() const;
     int rowButtonWidth() const;
     int frameInset() const;
+    int legacyColumnOffset() const;
     int sliderTrackLeft() const;
     int sliderTrackRight() const;
     int sliderTrackTargetX(double ratio) const;

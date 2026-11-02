@@ -666,11 +666,32 @@ def _corner_fits(walls, hidden, toward_camera, width=None, px=(1.0, 1.0)):
         reach_to = max(front_t, back_t, key=lambda t: out * t)
         corners.extent[id(slab)] = (stop, reach_to) if out > 0 else (reach_to, stop)
         reach = min(top_t - out * max(2 * slab.thick, 0.35), start, key=lambda t: out * t)
-        corners.caps.append((slab, lender, max(reach, stop) if out > 0 else min(reach, stop), top_t))
+
+        def cap_lender(s0, s1):
+            """The row whose top band lends the cap over s0 .. s1 its picture:
+            a row at least half as wide as the columns the piece needs (task
+            076), the nearest to the piece first; when none is that wide, the
+            widest there is (the narrow end strips read as stripes), then the
+            nearest; never a corner piece, whose band shows the other wall's
+            top."""
+            banded = [index for index in slab.rows if walls[index][6] > walls[index][9] and index not in pieces]
+            fits = [index for index in banded if wide(index, max(abs(s1 - s0) * px[slab.axis] / 2, 4))]
+            pool = fits or banded
+            if not pool:
+                return lender
+            centre = (s0 + s1) / 2
+            at = lambda index: (walls[index][1 + slab.axis] + walls[index][3 + slab.axis]) / 2
+            wide_px = lambda index: width(index) if width else 0
+            if fits:
+                return min(pool, key=lambda index: (abs(at(index) - centre), -wide_px(index)))
+            return min(pool, key=lambda index: (-wide_px(index), abs(at(index) - centre)))
+
+        corners.caps.append((slab, cap_lender(max(reach, stop) if out > 0 else min(reach, stop), top_t),
+                             max(reach, stop) if out > 0 else min(reach, stop), top_t))
         if other is not None and (id(slab), out) in pairs:
             # The square where the two walls cross: one cap over it.
             twin = pairs[(id(slab), out)][0]
-            corners.caps.append((slab, lender, near(twin, out), far(twin, out)))
+            corners.caps.append((slab, cap_lender(near(twin, out), far(twin, out)), near(twin, out), far(twin, out)))
     # No face takes its material from a corner piece.
     plain_pool = lambda pool: [index for index in pool if index not in pieces] or pool
     corners.fills = [(slab, plain_pool(pool), s0, s1, back) for slab, pool, s0, s1, back in corners.fills]
@@ -829,11 +850,18 @@ def _corner_end(batches, proj, sprites, pages, hpx, px, toward_camera, walls, po
         _polygon(batches, proj, page, pages[page], corners, out * toward_camera[slab.axis] < 0)
 
 
-def _corner_cap(batches, proj, sprites, pages, hpx, row, slab, s0, s1):
+def _corner_cap(batches, proj, sprites, pages, hpx, row, slab, s0, s1, atlas=None):
     """The wall's top over s0 .. s1 as one flat piece, a hair above the tops it
     covers: the sheared tops end in a slant at a corner and leave a notch
-    there. Its colour is the texel the game drew the top on at its middle,
-    as the wall's own top samples it (_wall_front)."""
+    there. It takes the art's own top band the way the wall's top takes it
+    (_wall_front): each corner of the piece samples the texel the game drew it
+    on, so the piece carries the art's rock, not one flat colour (129). Past
+    the band's width the piece runs on in whole runs of the band's columns
+    (_corner_fill's repeat), the run whose brightness is nearest the band's
+    median column (task 076): no column stretches over the piece, and a lit
+    edge or a moss patch one column wide does not lead it. A column is usable
+    only opaque over the rows the piece's depth reaches: a clear texel would
+    open the piece."""
     page, x, y, w, h, top = _picture(sprites, row, hpx)
     if top < 1:
         return
@@ -842,16 +870,71 @@ def _corner_cap(batches, proj, sprites, pages, hpx, row, slab, s0, s1):
     dx = e1[0] - e0[0]
     if abs(dx) < 1e-9:
         return
-    middle = slab.point((s0 + s1) / 2, slab.thick / 2)
-    qx, qy = proj.ground_to_px(*middle, zc)
-    column = min(max((qx - e0[0]) * w / dx, 0.5), w - 0.5)
-    rows = min(max(e0[1] + (e1[1] - e0[1]) / dx * (qx - e0[0]) - qy, 0.5), top - 0.5)
-    tx, ty = x + column, y + top - rows
+    slope = (e1[1] - e0[1]) / dx
+
+    def unclamped(point):
+        """(column, rows above the front's top line) the game drew `point` on."""
+        qx, qy = proj.ground_to_px(*point)
+        return (qx - e0[0]) * w / dx, e0[1] + slope * (qx - e0[0]) - qy
+
     z = zc + 0.004
     p = slab.point
     lo, hi = sorted((s0, s1))
-    _polygon(batches, proj, page, pages[page], [[*p(lo, 0.0), z, tx, ty], [*p(hi, 0.0), z, tx, ty],
-                                                [*p(hi, slab.thick), z, tx, ty], [*p(lo, slab.thick), z, tx, ty]])
+    plan = [(lo, 0.0), (hi, 0.0), (hi, slab.thick), (lo, slab.thick)]
+    samples = [unclamped((*p(s, d), z)) for s, d in plan]
+    spread = max(column for column, _ in samples) - min(column for column, _ in samples)
+    c0, k = 0, min(max(math.ceil(spread), 1), w)
+    if atlas is not None:
+        # the rows the piece's depth reaches sit at the band's bottom: rows grow
+        # upwards from the front's top line, the band hangs above it
+        deep = min(top, max(math.ceil(rows) + 1 for _, rows in samples))
+        block = atlas[page][int(y + top - deep):int(y + top), int(x):int(x + w)]
+        flags = (block[:, :, 3] >= 128).all(axis=0)
+        runs, start = [], None
+        for j in range(w):
+            if flags[j] and start is None:
+                start = j
+            if start is not None and not flags[j]:
+                runs.append((start, j))
+                start = None
+        if start is not None:
+            runs.append((start, w))
+        if not runs:
+            return
+        k = min(k, max(hi_ - lo_ for lo_, hi_ in runs))
+        shade = (block[:, :, :3].sum(axis=2) * (block[:, :, 3] >= 128)).mean(axis=0)
+        values = sorted(shade[j] for j in flags.nonzero()[0])
+        target = values[len(values) // 2]
+        best = None
+        for lo_, hi_ in runs:
+            for j in range(lo_, hi_ - k + 1):
+                miss = abs(shade[j:j + k].mean() - target)
+                if best is None or miss < best - 1e-9:
+                    best, c0 = miss, j
+
+    def texel(point):
+        column, rows = unclamped(point)
+        # fold the columns into the run: the band repeats along the piece
+        return x + c0 + 0.5 + (column - c0) % max(k - 1.0, 0.5), y + top - min(max(rows, 0.5), top - 0.5)
+
+    # Whole runs along the piece: split it where a corner's column folds, so
+    # no quad spans the seam between two runs of the band.
+    cuts = [lo, hi]
+    for depth in (0.0, slab.thick):
+        column = lambda s: unclamped((*p(s, depth), z))[0]
+        step = (column(hi) - column(lo)) / (hi - lo) if hi > lo else 0.0
+        if abs(step) < 1e-9:
+            continue
+        first = math.ceil((min(column(lo), column(hi)) - c0) / max(k - 1.0, 0.5))
+        last = math.floor((max(column(lo), column(hi)) - c0) / max(k - 1.0, 0.5))
+        for i in range(first, last + 1):
+            s = lo + ((c0 + i * max(k - 1.0, 0.5)) - column(lo)) / step
+            if lo + 1e-9 < s < hi - 1e-9:
+                cuts.append(s)
+    for a, b in zip(sorted(cuts), sorted(cuts)[1:]):
+        _polygon(batches, proj, page, pages[page], [
+            [*p(a, 0.0), z, *texel((*p(a, 0.0), z))], [*p(b, 0.0), z, *texel((*p(b, 0.0), z))],
+            [*p(b, slab.thick), z, *texel((*p(b, slab.thick), z))], [*p(a, slab.thick), z, *texel((*p(a, slab.thick), z))]])
 
 
 DECOR_LIFT = 0.004  # a folded corner picture stands this far out of the faces it lies on, over their fill
@@ -1484,7 +1567,7 @@ def encode_wall_sidecar(scene, skip_props=frozenset(), skip_rests=frozenset(), m
         _corner_end(fly, proj, sprites, pages, hpx, px, toward_camera, walls, pool, slab, out, at, atlas)
     for slab, lender, s0, s1 in corners.caps:
         fly.object = owner(walls[lender][8])
-        _corner_cap(fly, proj, sprites, pages, hpx, walls[lender], slab, s0, s1)
+        _corner_cap(fly, proj, sprites, pages, hpx, walls[lender], slab, s0, s1, atlas)
     solidity = {}
     solid = lambda slab: solidity.setdefault(id(slab), _solidity(walls, sprites, hpx, atlas, slab))
     for slab, other, lender in corners.cores:

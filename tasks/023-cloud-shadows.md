@@ -2,7 +2,7 @@
 id: 023
 title: Cloud shadows
 milestone: M1
-status: todo
+status: done
 owner: none
 suggested: glm
 claude-only: no
@@ -33,3 +33,5 @@ dim the sun's light only, not lamps; the sun term comes from task 021.
 Weather.
 
 ## Log
+
+- 2026-11-01 claude: cloud shadows shipped with #169; the look goes on in 138.

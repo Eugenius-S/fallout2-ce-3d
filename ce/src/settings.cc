@@ -448,7 +448,7 @@ void initSettingsRegistry(bool isMapper)
     registerThreeDBoolean("shadows", settings.scene3d.shadows, "Sun shadows",
         "Buildings and big things cast sharp sun shadows on the floor and the walls in the 3D view.",
         SettingApplyPolicy::OnClose);
-    registerThreeDBoolean("cloud_shadows", settings.scene3d.cloud_shadows, "Cloud shadows",
+    registerThreeDBoolean("cloud_shadows", settings.scene3d.cloud_shadows, "Cloud shadows (not recommended)",
         "Soft clouds drift over the 3D view and dim the sun's light, never the lamps.",
         SettingApplyPolicy::OnClose);
     registerSetting("3d", "shadow_pixel_size", settings.scene3d.shadow_pixel_size, clamp(1.0, 16.0));
@@ -491,7 +491,7 @@ void initSettingsRegistry(bool isMapper)
     settingsRegistry.back().descriptor = sunSwingDescriptor;
     settingsRegistry.back().write = [](bool onlyAdd) {
         if (onlyAdd && settingsKeyExists("3d", "sun_swing")) return;
-        settingsWrite("3d", "sun_swing", onlyAdd ? 30.0 : settings.scene3d.sun_swing);
+        settingsWrite("3d", "sun_swing", onlyAdd ? 40.0 : settings.scene3d.sun_swing);
     };
     registerThreeDBoolean("glow", settings.scene3d.glow, "Glow",
         "Things that shine in Fallout 2 (fire, monitors, signs) bleed light softly in the 3D view.",
@@ -510,7 +510,7 @@ void initSettingsRegistry(bool isMapper)
         settingsWrite("3d", "glow_strength", onlyAdd ? 2.0 : settings.scene3d.glow_strength);
     };
     registerThreeDBoolean("camera_rotation", settings.scene3d.camera_rotation, "Camera rotation",
-        "[ and ] turn the camera up to 45 degrees left or right. "
+        "[ and ] turn the camera up to 30 degrees left or right. "
         "Return to the original view to control the game with the mouse.",
         SettingApplyPolicy::OnClose);
     registerThreeDBoolean("camera_rotation_unlimited", settings.scene3d.camera_rotation_unlimited,

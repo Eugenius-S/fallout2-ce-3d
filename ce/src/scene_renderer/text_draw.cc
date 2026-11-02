@@ -390,6 +390,22 @@ bool renderSharpText(const std::vector<scene::TextRecord>& records,
             positioned.push_back({ glyph, anchorX });
             if (!monospaced) cursorX += logicalAdvance * proportionalCondense;
         }
+        if (run.sharpRightAlignX >= 0) {
+            int inkRight = std::numeric_limits<int>::min();
+            for (const PositionedGlyph& glyph : positioned) {
+                for (int y = 0; y < glyph.bitmap->height; ++y) {
+                    for (int x = 0; x < glyph.bitmap->width; ++x) {
+                        if (glyph.bitmap->pixels[static_cast<std::size_t>(y) * glyph.bitmap->width + x] != 0) {
+                            inkRight = std::max(inkRight, glyph.x + glyph.bitmap->xoff + x + 1);
+                        }
+                    }
+                }
+            }
+            if (inkRight != std::numeric_limits<int>::min()) {
+                const int shift = static_cast<int>(std::lround(run.sharpRightAlignX * sx)) - inkRight;
+                for (PositionedGlyph& glyph : positioned) glyph.x += shift;
+            }
+        }
         if (run.verticalAlignmentBoxHeight > 0) {
             int inkTop = std::numeric_limits<int>::max();
             int inkBottom = std::numeric_limits<int>::min();

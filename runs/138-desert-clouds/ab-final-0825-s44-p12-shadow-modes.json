@@ -1,0 +1,156 @@
+{
+  "scene": "KLADWTWN.MAP",
+  "time": "08:25",
+  "cloud_phase_minutes": 12,
+  "sun_swing": 44,
+  "matched_executable_camera_and_time": true,
+  "overlap_metrics": {
+    "overlap_pixels": 86265,
+    "frame_share_percent": 4.16,
+    "sun_shadow_luma_contrast_without_cloud": 17.196,
+    "original_sun_contrast_with_cloud": 10.656,
+    "rgb5_additive_sun_contrast_with_cloud": 16.2,
+    "sun_contrast_retained_percent": 94.21,
+    "pixels_with_no_solar_rgb_change_original_percent": 16.07,
+    "pixels_with_no_solar_rgb_change_rgb5_additive_percent": 11.01,
+    "cloud_delta_in_overlap_original": 1.555,
+    "cloud_delta_in_overlap_cloud_only": 8.095,
+    "cloud_delta_in_overlap_rgb5_additive": 7.099,
+    "near_black_overlap_original_percent": 10.95,
+    "near_black_overlap_rgb5_additive_percent": 28.99
+  },
+  "modes": [
+    {
+      "mode": "off",
+      "image": "ab-final-0825-s44-p12-off.jpg",
+      "source_png_sha256": "6bf194f5d0dc806d305e33c84caf17083fc0c254287f8b075022ebedeb445a85",
+      "map": "KLADWTWN.MAP",
+      "view_tile": 24678,
+      "camera": "fixed eye=(38.14466,46.23085,85.71700), target=(-11.04167,0.00000,11.93750), fov_y=25.0, near=0.1, far=400.0, screen_right=-cross(forward,world_up)",
+      "game_time": 303000,
+      "sun": {
+        "setting": true,
+        "daylight": true,
+        "game_time": 303000,
+        "up": true,
+        "height": 63.722,
+        "azimuth": -26.565,
+        "direction": [
+          0.39598,
+          0.89666,
+          -0.19799
+        ],
+        "color": [
+          1.0,
+          0.96,
+          0.88
+        ],
+        "strength": 1.0
+      },
+      "sun_swing": 44,
+      "cloud_phase_minutes": 12,
+      "resolution": "1920x1080",
+      "ce_commit": "32005181",
+      "exe_sha256": "f3e2acad06ef8093750bb33fc9dac449c12068614035fbdf73bd56600343cf8a"
+    },
+    {
+      "mode": "cloud-only",
+      "image": "ab-final-0825-s44-p12-cloud-only.jpg",
+      "source_png_sha256": "ce3cabddeb20c0996305a1f2bfacc528fdb6115aca59d2dde88db62cee9e6f5b",
+      "map": "KLADWTWN.MAP",
+      "view_tile": 24678,
+      "camera": "fixed eye=(38.14466,46.23085,85.71700), target=(-11.04167,0.00000,11.93750), fov_y=25.0, near=0.1, far=400.0, screen_right=-cross(forward,world_up)",
+      "game_time": 303000,
+      "sun": {
+        "setting": true,
+        "daylight": true,
+        "game_time": 303000,
+        "up": true,
+        "height": 63.722,
+        "azimuth": -26.565,
+        "direction": [
+          0.39598,
+          0.89666,
+          -0.19799
+        ],
+        "color": [
+          1.0,
+          0.96,
+          0.88
+        ],
+        "strength": 1.0
+      },
+      "sun_swing": 44,
+      "cloud_phase_minutes": 12,
+      "resolution": "1920x1080",
+      "ce_commit": "32005181",
+      "exe_sha256": "f3e2acad06ef8093750bb33fc9dac449c12068614035fbdf73bd56600343cf8a"
+    },
+    {
+      "mode": "sun-only",
+      "image": "ab-final-0825-s44-p12-sun-only.jpg",
+      "source_png_sha256": "0b352ef237e4b71b532c23917d8747ccd857088e2e50da8b33760228ec1fb48f",
+      "map": "KLADWTWN.MAP",
+      "view_tile": 24678,
+      "camera": "fixed eye=(38.14466,46.23085,85.71700), target=(-11.04167,0.00000,11.93750), fov_y=25.0, near=0.1, far=400.0, screen_right=-cross(forward,world_up)",
+      "game_time": 303000,
+      "sun": {
+        "setting": true,
+        "daylight": true,
+        "game_time": 303000,
+        "up": true,
+        "height": 63.722,
+        "azimuth": -26.565,
+        "direction": [
+          0.39598,
+          0.89666,
+          -0.19799
+        ],
+        "color": [
+          1.0,
+          0.96,
+          0.88
+        ],
+        "strength": 1.0
+      },
+      "sun_swing": 44,
+      "cloud_phase_minutes": 12,
+      "resolution": "1920x1080",
+      "ce_commit": "32005181",
+      "exe_sha256": "f3e2acad06ef8093750bb33fc9dac449c12068614035fbdf73bd56600343cf8a"
+    },
+    {
+      "mode": "together",
+      "image": "ab-final-0825-s44-p12-together.jpg",
+      "source_png_sha256": "044b1892fc8ade657bbef3e60cd53cb3a15885fdfb29705b08673708191ce6fa",
+      "map": "KLADWTWN.MAP",
+      "view_tile": 24678,
+      "camera": "fixed eye=(38.14466,46.23085,85.71700), target=(-11.04167,0.00000,11.93750), fov_y=25.0, near=0.1, far=400.0, screen_right=-cross(forward,world_up)",
+      "game_time": 303000,
+      "sun": {
+        "setting": true,
+        "daylight": true,
+        "game_time": 303000,
+        "up": true,
+        "height": 63.722,
+        "azimuth": -26.565,
+        "direction": [
+          0.39598,
+          0.89666,
+          -0.19799
+        ],
+        "color": [
+          1.0,
+          0.96,
+          0.88
+        ],
+        "strength": 1.0
+      },
+      "sun_swing": 44,
+      "cloud_phase_minutes": 12,
+      "resolution": "1920x1080",
+      "ce_commit": "32005181",
+      "exe_sha256": "f3e2acad06ef8093750bb33fc9dac449c12068614035fbdf73bd56600343cf8a"
+    }
+  ]
+}

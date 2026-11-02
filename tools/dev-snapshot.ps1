@@ -129,6 +129,8 @@ param(
     [switch]$Shadows,
     # -CloudShadows: clouds only, for an isolated cloud-shadow comparison.
     [switch]$CloudShadows,
+    # -SunShadows: sun shadows only, for an isolated sun-shadow comparison.
+    [switch]$SunShadows,
     # -CloudPhase: cloud drift phase in game minutes, independent of sun time.
     [double]$CloudPhase = -1,
     # -ShadowDebug:N: 1 the raw factor, 2 the face test (the sun hits the
@@ -180,6 +182,7 @@ if ($MuzzleWeapon -gt 0) {
 if (([int][bool]$GlowLadder + [int][bool]$GlowPair + [int][bool]$GlowLevels) -gt 1) { throw 'Choose one glow comparison mode.' }
 if ($EffectLightCheck -and (-not $EffectFixture -or $EffectFixture -like 'sign*' -or $NoEffectEmission)) { throw '-EffectLightCheck requires an emitting projectile or explosion fixture.' }
 if ($EffectFrame -ge 0 -and -not $EffectFixture) { throw '-EffectFrame requires -EffectFixture.' }
+if ($SunShadows -and ($Shadows -or $CloudShadows -or $ShadowDebug)) { throw '-SunShadows cannot be combined with -Shadows, -CloudShadows, or -ShadowDebug.' }
 if ($GlowLadder -or $GlowPair -or $GlowLevels -or $EffectFixture) {
     if ($Glow -or $GlowStrength -ge 0 -or $Preferences -or $Classic -or $Probe -or $Tour -or $DialogFixture -or $UiFixture -or $DevPanel -or $PreferencesProbe) {
         throw 'Glow comparisons and effect fixtures require an ordinary scene capture without other glow overrides or fixtures.'
@@ -389,6 +392,7 @@ if ($EffectFixture) { $arguments += "--dev-effect=$($EffectFixture.ToLowerInvari
 if ($EffectFrame -ge 0) { $arguments += "--dev-effect-frame=$EffectFrame" }
 if ($Shadows) { $arguments += '--dev-shadows' }
 if ($CloudShadows) { $arguments += '--dev-cloud-shadows' }
+if ($SunShadows) { $arguments += '--dev-sun-shadows' }
 if ($CloudPhase -ge 0) { $arguments += "--dev-cloud-phase=$($CloudPhase.ToString([System.Globalization.CultureInfo]::InvariantCulture))" }
 if ($ShadowDebug) { $arguments += "--dev-shadow-debug=$ShadowDebug" }
 if ($NoSpriteSides) { $arguments += '--dev-no-sprite-sides' }

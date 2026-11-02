@@ -27,6 +27,7 @@
 #include "scripts.h"
 #include "settings.h"
 #include "scene/options_panel.h"
+#include "scene/text_capture.h"
 #include "svga.h"
 #include "text_font.h"
 #include "text_object.h"
@@ -670,6 +671,7 @@ static int preferencesGetRangeOptionLabelX(int optionIndex, int valuesCount, con
 // 0x491A68 UpdateThing
 static void _UpdateThing(int index)
 {
+    ScopedTextCaptureTag legacyControlText(TextCaptureTag::PreferencesControl);
     fontSetCurrent(101);
 
     PreferenceDescription* meta = &(gPreferenceDescriptions[index]);
@@ -1110,7 +1112,7 @@ static int preferencesWindowInit()
     fontSetCurrent(104);
 
     messageItemText = getmsg(&gPreferencesMessageList, &gPreferencesMessageListItem, 100);
-    fontDrawText(gPreferencesWindowBuffer + PREFERENCES_WINDOW_WIDTH * 10 + 74, messageItemText, PREFERENCES_WINDOW_WIDTH, PREFERENCES_WINDOW_WIDTH, COLOR_DARK_YELLOW);
+    fontDrawText(gPreferencesWindowBuffer + PREFERENCES_WINDOW_WIDTH * 10 + 10, messageItemText, PREFERENCES_WINDOW_WIDTH, PREFERENCES_WINDOW_WIDTH, COLOR_DARK_YELLOW);
 
     fontSetCurrent(103);
 

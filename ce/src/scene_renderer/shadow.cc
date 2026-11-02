@@ -501,12 +501,17 @@ bool bindStaticShadows(const float* sceneMvp)
         glBindTexture(kTexture2D, gShadowMapTexture);
         glUniform1i(gShadowDilateDepthLocation, 0);
         glActiveTexture(kTexture0 + 1);
+        // The scene draws read the egg mask on this unit (bindEgg); the pass
+        // borrows it and puts it back, or the walls' see-through egg dies
+        // until the roofs re-bind it (103).
+        int savedBinding = 0;
+        glGetIntegerv(0x8069 /* GL_TEXTURE_BINDING_2D */, &savedBinding);
         glBindTexture(kTexture2D, gShadowIdTexture);
         glUniform1i(gShadowDilateIdLocation, 1);
         glBindVertexArray(gShadowDilateVao);
         glDrawArrays(kTriangles, 0, 3);
         glBindVertexArray(0);
-        glBindTexture(kTexture2D, 0);
+        glBindTexture(kTexture2D, savedBinding);
         glActiveTexture(kTexture0);
         glUseProgram(gSceneProgram);
         glEnable(kDepthTest);

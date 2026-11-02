@@ -345,11 +345,8 @@ PreviewRuntimeState runtimeState()
 {
     return {
         gameGetState() == GameState::Normal,
-        GameMode::getCurrentGameMode() == GameMode::kNone,
-        !gameUiIsDisabled(),
+        gameModeShowsMap(static_cast<unsigned int>(GameMode::getCurrentGameMode())),
         !isoIsDisabled(),
-        !isInCombat(),
-        _inDialog == 0,
         _moviePlaying() == 0,
     };
 }
@@ -360,10 +357,7 @@ const char* blockReasonName(PreviewBlockReason reason)
     case PreviewBlockReason::None: return "available";
     case PreviewBlockReason::GameState: return "game-state";
     case PreviewBlockReason::GameMode: return "game-mode";
-    case PreviewBlockReason::UiDisabled: return "ui-disabled";
     case PreviewBlockReason::IsoDisabled: return "iso-disabled";
-    case PreviewBlockReason::Combat: return "combat";
-    case PreviewBlockReason::Dialog: return "dialog";
     case PreviewBlockReason::Movie: return "movie";
     }
     return "unknown";
@@ -659,6 +653,25 @@ void setCameraTurnNow(double degrees)
 bool cameraTurned()
 {
     return gTurnOwnsCamera;
+}
+
+double cameraTurnAngle()
+{
+    return gTurnOwnsCamera ? gTurnAt : 0.0;
+}
+
+void cameraTurnScrollStepNow(int dx, int dy, int* outDx, int* outDy)
+{
+    *outDx = dx;
+    *outDy = dy;
+    if (!gTurnOwnsCamera || gTurnAt == 0.0) return;
+    ScrollGroundBasis basis {};
+    scene_renderer::StaticFlyCamera pose;
+    if (!scene_renderer::gameViewGroundStep(kScrollStepX, kScrollStepY, basis.horizontal, basis.vertical)
+        || !scene_renderer::staticGameViewCamera(&pose)) return;
+    basis.yaw = pose.yaw;
+    basis.pitch = pose.pitch;
+    cameraTurnScrollStep(dx, dy, gTurnAt, basis, outDx, outDy);
 }
 
 void updateCameraTurn()

@@ -92,6 +92,8 @@ struct TextRunInfo {
     int verticalAlignmentBoxHeight = 0;
     // Logical vertical shift for the modern glyph overlay only.
     int sharpTextOffsetY = 0;
+    // Right edge of visible ink in logical coordinates, or -1 for normal text.
+    int sharpRightAlignX = -1;
     bool sharpEligible = false;
     std::vector<int> characterX;
     std::vector<int> characterCellX;

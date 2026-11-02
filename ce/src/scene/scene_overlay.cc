@@ -6,6 +6,8 @@
 #include "scene_view.h"
 #include "../color.h"
 #include "../game_mouse.h"
+#include "../map.h"
+#include "../object.h"
 #include "../scene_renderer/context.h"
 #include "../scene_renderer/game_view.h"
 #include "../scene_renderer/picking.h"
@@ -38,13 +40,35 @@ int sceneTileAt(int x, int y)
     return scene_renderer::pickStaticGroundTile(x, y, &picked) && hexGridTileIsValid(picked.tile) ? picked.tile : -1;
 }
 
+// Combat outlines (friend, foe, line of fire) round each critter, at the hex
+// the scene shows it on, as the 2D picture draws them after the roofs.
+void drawOutline(Object* object, void* context)
+{
+    int dx = 0;
+    int dy = 0;
+    if (!sceneTileShift(object->tile, &dx, &dy)) return;
+    object->x += dx;
+    object->y += dy;
+    objectDrawOutline(object, static_cast<Rect*>(context));
+    object->x -= dx;
+    object->y -= dy;
+}
+
+void drawOutlines(Rect* rect)
+{
+    objectVisitOutlined(gElevation, drawOutline, rect);
+}
+
 } // namespace
 
 bool syncOverlay()
 {
     const bool on = scene_renderer::isActive() && activeView() == View::Full && shouldPresent();
     const bool was = tileSceneOverlayActive();
-    if (on != was) tileSetSceneOverlay(on ? sceneTileShift : nullptr, sceneTileAt);
+    if (on != was) {
+        tileSetSceneOverlay(on ? sceneTileShift : nullptr, sceneTileAt);
+        objectSetSceneOutlines(on ? drawOutlines : nullptr);
+    }
     // While on, every frame: floating text and the hex cursor follow the
     // scene's camera as it glides.
     if (on || was) tileWindowRefresh();

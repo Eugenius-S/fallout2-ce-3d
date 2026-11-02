@@ -3,8 +3,8 @@ id: 129
 title: Klamath graphics sweep, find and fix every visible defect
 milestone: M1
 status: doing
-owner: glm
-suggested: glm
+owner: claude
+suggested: claude
 priority: high
 claude-only: no
 user-check: yes
@@ -30,6 +30,10 @@ before any release: "a fully working game without most graphic bugs".
 - Fix by general rules in the exporter or the renderer. A per-object
   override in `shapes/overrides.json` is allowed only where the task of that
   kind already allows it, and the Log says why a rule cannot do it.
+
+- Folded in: 101 (roof edges clean, the roof fringe stands up, no wall tops
+  through roofs) and 110 (no thin seam where two walls meet at a corner).
+  Neither reproduced on main in earlier rounds; check both on every sweep.
 
 ## How to work
 
@@ -87,7 +91,41 @@ the sheet-scale review of every map. Find list:
 
 Marked: 1 and 2 = open, one cause group (the solid caps' top faces).
 
-Next: the fix thread for the group "the solid boxes' top caps take the
-art's own top texels instead of the flat colour", branch
-task/129-solid-cap-tops from current origin/main; then sweep round 2.
-Check: the sheets and the finds crops above.
+### 2026-11-01 glm: the cause group fixed on task/129-box-tops
+
+Done: the corner caps (_corner_cap, the pieces that close the notch where
+the sheared tops end at a corner) took one texel of their lender row's top
+band, so every cap was one flat colour; in the cave art that reads as a
+grey or pink-brown plastic sheet (finds 1 and 2), and some lenders' bands
+sampled clear edge texels. Now the cap takes the art's own top band the
+way the wall's top takes it (_wall_front): each corner samples the texel
+the game drew it on; past the band's width the piece runs on in whole runs
+of the band's columns (_corner_fill's repeat), the run whose brightness is
+nearest the band's median (task 076); a column counts only opaque over the
+rows the piece's depth reaches (the soft rise rows never take part). The
+cap's lender is a row at least half as wide as the columns the piece
+needs, else the widest banded row of its line, never a corner piece (task
+076). Find list after the fix:
+
+1. fixed (this PR): runs/129-box-tops/find1-klatoxcv-e1-19091-p45.jpg.
+2. fixed (this PR): runs/129-box-tops/find2-klatoxcv-e1-22924-p45.jpg.
+3. not a defect, unchanged.
+4. open, next round.
+
+Checks: the exporter unit tests and the 12 regression unit tests pass, the
+18 ctest tests pass. The game view: the walls.bin game batches are
+byte-identical on all eleven Klamath maps against the origin/main
+exporter's; the regression run passes 12 of 16 spots with 0 changed
+pixels - the 4 fails (central-doors, map-edge, klagraz-e0, klamall-e0)
+reproduce on origin/main: their references were taken today from the
+unmerged task/125-widen-back-views stack (ce a8d0b83e), whose engine
+differs from origin/main. The fly tour against the origin/main exporter's
+cache: 38 of 43 spots changed, every change is a corner cap taking its
+band (the sheets in runs/129-box-tops/tour-changed*.jpg); 5 caps on
+see-through band art (klamall's wire fences) are dropped - a solid sheet
+over a see-through top read wrong.
+
+Next: sweep round 2 (interiors, shapes-eval solo shots).
+Check: the crops and sheets above.
+
+- 2026-11-01 glm is out; box tops merged (#194). Back to todo for claude; continue from `task/129-klamath-graphics-sweep`.

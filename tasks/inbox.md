@@ -212,5 +212,41 @@ that fits no task becomes a new task when the board runs dry.
   settings the mod uses that CE lacks, and whether its new maps and art pass
   through our scene export; then cut the work. Not now.
 - 2026-11-01 Cut for gpt: the Russian menu labels (126), the FPS counter and
-  the frame rate (127), the wide HUD bar source (128).
+  the frame rate (127), the wide HUD bar source (128), the 3D options
+  screen finish to the owner's notes (130).
 - 2026-11-01 Cut for glm: a non-stop Klamath graphics sweep (129).
+- 2026-11-01 The owner's live check on main `e434c327`: a long straight hard
+  shadow edge across the downtown street (137); the loading screens blue
+  (131); a blocky band in the main menu's lower left (132).
+- 2026-11-01 Cut for glm: Arroyo in 3D, the opening area exported and swept (136).
+- 2026-11-01 Live check: the halo spot and its save went to 103, the toxic caves staying 2D to 111, the save preview in 3D to 134.
+- 2026-11-01 The 3D view stops in combat, dialogue and open windows; the owner wants it always on (135). The toxic caves 2D shots were combat, 111 corrected.
+- 2026-11-01 The street blotches are cloud shadows (#169), not a regression; the owner wants fewer, smaller, soft-edged desert clouds (138).
+- 2026-11-01 The owner: the game scale in the options menu in 0.1x steps
+  (139); letters cut in the dialogue answers
+  (`runs/inbox/2026-11-01-dialogue-letters-cut.png`, 140, gpt); the 3D
+  options checkboxes out of line, "[ ]" narrower than "[X]" (141, gpt).
+- 2026-11-01 The owner: glm is not with us for now; every task goes to gpt
+  or claude. Moved: 107, 111, 137 to gpt; 135, 136, 139 to claude. 103 and
+  129 still read `doing` by glm; whoever takes them continues from their
+  branches.
+- 2026-11-01 The 3D sky is a saturated blue with daylight stars and soft orange ridges; the owner wants a dusty post-nuclear desert sky (142).
+- 2026-11-01 After #199 the cloud shadows show a hard edge on the dark street; cut as 143.
+- 2026-11-01 The owner: camera turn in 10-degree steps, 30 by default; edge scrolling goes the wrong way on a turned camera (144).
+- 2026-11-01 Bolt clips in the README: put the two night projectile clips
+  from 097 (laser pistol, plasma rifle) side by side in one video, compress it for GitHub, and insert it in the middle of the repository
+  description. Not now.
+- 2026-11-01 Sun shadow blotches: on main `fc37980e` (with the 138 cloud fix)
+  and `cloud_shadows=0`, the Klamath downtown street still shows big dark
+  shapeless patches (`runs/inbox/2026-11-01-sun-shadow-blotches.png`). With
+  the clouds off these are the sun shadows: `shadows=1`, `sun_swing=44`,
+  `shadow_pixel_size=3`, `shadow_density=0.85`. Find what casts them; may be
+  137.
+- 2026-11-01 The owner: Claude stops only reviewing and takes tasks. Closed at merge: 103, 126, 132. To claude: 129 (glm out), 137 with the sun shadow blotches above. Claude starts with 137.
+- 2026-11-01 137 closed: the patches and the straight edge are the asphalt art, the same in 2D and with all shadows off. Found on the way: an orange dithered band at the map edge in 3D (145, gpt).
+- 2026-11-01 The owner asked gpt directly: cloud shadows become an option, off by default, for now (143 notes it).
+- 2026-11-01 The owner: the camera turn step should ease in and out on the brackets (150, gpt).
+- 2026-11-01 Task pool: 146 combat fixture, 147 map transitions in 3D, 148 README turn and combat (gpt); 149 combat overlays follow the turn and zoom (claude, from Codex on #211). 139 moved to gpt. Claude's order: 135, 149, 129, 136.
+- 2026-11-02 The owner played a fight in Klamath on main `a4d47b26` (135 step 1): combat stays in 3D. The only flaw: the target outlines do not scale with the 3D zoom (`runs/inbox/2026-11-02-combat-outlines-unscaled.png`, 149). UI finds: the message log lines start at different left edges (151, gpt); a dark pixel fringe round the main menu's yellow letters (152, gpt).
+- 2026-11-02 After #204 the sky glows bright yellow in flight and haloes the map; the glow pass likely takes the sky as an emitter (153, gpt).
+- 2026-11-02 The owner: in the 3D settings' Main section a resolution dropdown, a fullscreen / window / borderless dropdown and a 1x-3x scale slider in 0.2x steps, high priority (154, gpt; 139 folded in).

@@ -72,6 +72,12 @@ Object* objectFindFirst();
 Object* objectFindNext();
 Object* objectFindFirstAtElevation(MapElevation elevation);
 Object* objectFindNextAtElevation();
+// 3D scene hooks: the combat outline drawn the 2D way, every visible outlined
+// object on an elevation, and the scene's own outline pass, called by
+// _obj_render_scene_overlay before the floating text (null: none).
+void objectDrawOutline(Object* object, Rect* rect);
+void objectVisitOutlined(int elevation, void (*visit)(Object* object, void* context), void* context);
+void objectSetSceneOutlines(void (*draw)(Rect* rect));
 void objectForEachAtElevation(MapElevation elevation, void (*visit)(Object* object, void* context), void* context);
 // Whether `object` is still in the map's list of `tile` (compares pointers only).
 bool objectIsOnTile(const Object* object, int tile);

@@ -23,7 +23,8 @@ in `tools/shapes/eval/` (`eval.py shoot | sheets | score`), the fly tour
 
 ## Rules
 
-- Everything in the repository is in English. Never write the long dash
+- Everything in the repository is in English, except `README.ru.md`, the
+  Russian copy of `README.md`: change both together. Never write the long dash
   (U+2014): use a colon, a comma, a full stop or parentheses.
 - Never commit `game/`, `game-vanilla/`, `build/`, game files, tokens or keys.
 - The owner may have `game/fallout2-ce.exe` open: never close it, never steal

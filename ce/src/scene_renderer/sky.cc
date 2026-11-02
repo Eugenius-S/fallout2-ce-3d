@@ -40,12 +40,11 @@ uniform vec3 uUp;
 uniform vec3 uSun;
 uniform vec3 uZenith;
 uniform vec3 uHorizon;
-uniform vec3 uMesa;
 uniform float uStars;
 uniform float uGlow;
 uniform int uUnderground;
 uniform vec2 uResolution;
-float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5453); }
+float hash3(vec3 p) { return fract(sin(dot(p, vec3(127.1,311.7,74.7))) * 43758.5453); }
 void main() {
     if (uUnderground != 0) { outColor = vec4(0.012, 0.012, 0.016, 1.0); return; }
     vec2 ndc = gl_FragCoord.xy / uResolution * 2.0 - 1.0;
@@ -57,11 +56,11 @@ void main() {
     color = mix(color, uHorizon, haze * 0.32);
     float sun = pow(max(dot(ray, normalize(uSun)), 0.0), 90.0) * uGlow;
     color += vec3(1.0, 0.66, 0.36) * sun;
-    float stars = step(0.997, hash(floor(ray.xz * 850.0))) * smoothstep(0.02, 0.35, elevation) * uStars;
+    vec3 starCell = floor(ray * 420.0);
+    vec3 starOffset = fract(ray * 420.0) - 0.5;
+    float starPoint = 1.0 - smoothstep(0.04, 0.12, length(starOffset));
+    float stars = step(0.90, hash3(starCell)) * starPoint * smoothstep(0.08, 0.25, elevation) * uStars;
     color += vec3(stars);
-    float ridge = sin(atan(ray.z, ray.x) * 11.0 + sin(atan(ray.z, ray.x) * 3.0) * 2.0) * 0.035 - 0.11;
-    float mesa = (1.0 - smoothstep(ridge, ridge + 0.012, elevation)) * step(-0.2, elevation);
-    color = mix(color, uMesa, mesa * (1.0 - h));
     outColor = vec4(color, 1.0);
 }
 )";
@@ -115,14 +114,11 @@ bool init()
 
 void drawSceneSky(float aspect, int width, int height, bool flying)
 {
-    // Keep the original fixed game camera byte-for-byte; the sky belongs only
-    // to the free-flight or deliberately turned 3D camera.
-    if (!flying && !scene::cameraTurned()) return;
+    // The normal game view keeps a black background at every camera angle.
+    if (!flying || scene::cameraTurned()) return;
     if (width <= 0 || height <= 0 || !init()) return;
     StaticFlyCamera camera{};
-    if (flying) {
-        if (!staticFlyCamera(&camera)) return;
-    } else if (!staticGameViewCamera(&camera)) return;
+    if (!staticFlyCamera(&camera)) return;
     float forward[3], right[3];
     staticFlyCameraAxes(camera, forward, right);
     const float fov = std::clamp(camera.fovY > 0.0f ? camera.fovY : 55.0f, 1.0f, 150.0f) * 0.00872664626f;
@@ -142,9 +138,18 @@ void drawSceneSky(float aspect, int width, int height, bool flying)
     const float dusk = smooth(16.0f, 17.5f, hour) * (1.0f - smooth(18.5f, 20.0f, hour));
     const float twilight = std::max(dawn, dusk);
     const float night = std::clamp(1.0f - day - twilight * 0.55f, 0.0f, 1.0f);
-    const float zenith[3] = { 0.035f + 0.235f * day + 0.12f * twilight, 0.06f + 0.37f * day + 0.11f * twilight, 0.15f + 0.51f * day + 0.21f * twilight };
-    const float horizon[3] = { 0.13f + 0.67f * day + 0.75f * twilight, 0.19f + 0.52f * day + 0.31f * twilight, 0.33f + 0.23f * day + 0.03f * twilight };
-    const float mesa[3] = { 0.03f + 0.39f * day + 0.17f * twilight, 0.04f + 0.23f * day + 0.07f * twilight, 0.09f + 0.11f * day + 0.04f * twilight };
+    // Dust-muted palette: each named color lives here and is blended by time.
+    constexpr float zenithNight[3] = { 0.075f, 0.075f, 0.082f };
+    constexpr float zenithDay[3] = { 0.49f, 0.47f, 0.40f };
+    constexpr float zenithTwilight[3] = { 0.43f, 0.31f, 0.22f };
+    constexpr float horizonNight[3] = { 0.12f, 0.10f, 0.085f };
+    constexpr float horizonDay[3] = { 0.69f, 0.59f, 0.43f };
+    constexpr float horizonTwilight[3] = { 0.72f, 0.40f, 0.24f };
+    float zenith[3], horizon[3];
+    for (int i = 0; i < 3; ++i) {
+        zenith[i] = zenithNight[i] + (zenithDay[i] - zenithNight[i]) * day + (zenithTwilight[i] - zenithNight[i]) * twilight;
+        horizon[i] = horizonNight[i] + (horizonDay[i] - horizonNight[i]) * day + (horizonTwilight[i] - horizonNight[i]) * twilight;
+    }
     const scene::Sun& sun = scene::currentSun();
     glDisable(internal::kDepthTest);
     glDepthMask(0);
@@ -155,8 +160,7 @@ void drawSceneSky(float aspect, int width, int height, bool flying)
     glUniform3f(glGetUniformLocation(gProgram, "uSun"), sun.direction[0], sun.direction[1], sun.direction[2]);
     glUniform3f(glGetUniformLocation(gProgram, "uZenith"), zenith[0], zenith[1], zenith[2]);
     glUniform3f(glGetUniformLocation(gProgram, "uHorizon"), horizon[0], horizon[1], horizon[2]);
-    glUniform3f(glGetUniformLocation(gProgram, "uMesa"), mesa[0], mesa[1], mesa[2]);
-    glUniform1f(glGetUniformLocation(gProgram, "uStars"), night);
+    glUniform1f(glGetUniformLocation(gProgram, "uStars"), sun.up ? 0.0f : night);
     glUniform1f(glGetUniformLocation(gProgram, "uGlow"), 0.35f + twilight * 0.35f + sun.strength * 0.3f);
     glUniform1i(glGetUniformLocation(gProgram, "uUnderground"), scene::sceneDaylight() ? 0 : 1);
     glUniform2f(glGetUniformLocation(gProgram, "uResolution"), static_cast<float>(width), static_cast<float>(height));
