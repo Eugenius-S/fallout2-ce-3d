@@ -259,6 +259,9 @@ struct RoofSquare {
     struct FringePiece {
         int edge = 0; // 0: v = plane, 1: v = plane, 2: u = plane, 3: u = plane
         float plane = 0; // the wall's plane, GL units
+        // The band's bottom (the wall's top, GL height) and its stretch along
+        // the wall, GL units; plane is the wall's outer face.
+        float bottom = 0, span0 = 0, span1 = 0;
         // The strip's texture (normalized): u at the stretch's low and high
         // end along the wall, v at the strip's top and bottom row.
         float uLow = 0, uHigh = 0, vTop = 0, vBottom = 0;

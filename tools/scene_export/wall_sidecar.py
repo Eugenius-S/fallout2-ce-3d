@@ -466,6 +466,17 @@ class _Corners:
         self.thin_cuts = {}  # {thin wall row: (the other line's plane, out)} (096)
 
 
+def wall_slabs(scene):
+    """The scene's thick wall lines (_Slab), for what stands on a wall: the roof
+    edge bands (roof_fringe.py)."""
+    projection = scene["proj"]
+    squ, sqv, hpx = projection["squ"], projection["sqv"], projection["hpx"]
+    ray = [sqv[0], -squ[0], (sqv[0] * squ[1] - squ[0] * sqv[1]) / hpx]
+    length = math.sqrt(sum(component * component for component in ray))
+    toward_camera = [component / length for component in ray]
+    return _slabs(scene.get("walls") or [], set(scene.get("hiddenWalls") or []), toward_camera)
+
+
 def _corner_fits(walls, hidden, toward_camera, width=None, px=(1.0, 1.0)):
     """width(row): its picture's columns; px: picture columns per unit along
     u and along v. A block, face or cap takes its picture from a row at least

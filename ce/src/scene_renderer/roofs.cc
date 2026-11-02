@@ -56,26 +56,26 @@ bool gEggShown = false;
 // edge tiles that carry it are told by their art (roof_fringe.py), which
 // unrolls each run of them into a strip, the way a wall's art is unrolled along
 // the wall: concrete along the bottom, rebar and ragged concrete above. Here the
-// strip stands on the wall top below the roof edge, in the wall's plane, as one
-// band along the run, a stretch of it per square so a hidden roof square hides
-// its stretch. The texels the art leaves empty are cut out (the roofs' alpha
+// strip stands on the wall under the roof edge, as one band along the run in
+// the plane of the wall's outer face, its bottom on the wall's top and its
+// ends where the wall's are (the exporter matches each run to its wall), a
+// stretch of it per square so a hidden roof square hides its stretch. The texels the art leaves empty are cut out (the roofs' alpha
 // cutoff), so the band's top edge is the ragged one. Drawn from both sides.
 // The game's camera keeps the flat squares, as the game painted them.
 constexpr float kBandStorey = 0.5f; // of the wall's storey (the roof stands one storey up)
 
 void pushFringeBand(std::vector<FloorVertex>& vertices, const RoofSquare& square, float roofY)
 {
-    const float top = roofY * (1.0f + kBandStorey);
     for (int n = 0; n < square.pieceCount; n++) {
         const RoofSquare::FringePiece& piece = square.pieces[n];
         const bool alongU = piece.edge < 2;
-        // The square's span along the wall (the square's own, without the rim).
-        const float span0 = alongU ? square.tileX : square.tileZ, span1 = span0 + 1.0f;
+        const float span0 = piece.span0, span1 = piece.span1;
+        const float top = piece.bottom + roofY * kBandStorey;
         auto at = [&](float along, float y, float tu, float tv) {
             return alongU ? FloorVertex { along, y, piece.plane, tu, tv } : FloorVertex { piece.plane, y, along, tu, tv };
         };
-        const FloorVertex a = at(span0, roofY, piece.uLow, piece.vBottom);
-        const FloorVertex b = at(span1, roofY, piece.uHigh, piece.vBottom);
+        const FloorVertex a = at(span0, piece.bottom, piece.uLow, piece.vBottom);
+        const FloorVertex b = at(span1, piece.bottom, piece.uHigh, piece.vBottom);
         const FloorVertex c = at(span1, top, piece.uHigh, piece.vTop);
         const FloorVertex d = at(span0, top, piece.uLow, piece.vTop);
         const FloorVertex quad[6] = { a, b, c, a, c, d };
@@ -87,7 +87,7 @@ void pushFringeBand(std::vector<FloorVertex>& vertices, const RoofSquare& square
 void rebuildRoofBuffer()
 {
     std::vector<FloorVertex> vertices;
-    std::vector<FloorVertex> sheets;
+    std::vector<FloorVertex> bands;
     const float y = static_cast<float>(kRoofPixels / gHeroProjection.hpx);
     const bool flying = staticFlyCameraActive();
     gRoofBufferFlying = flying;
@@ -96,7 +96,7 @@ void rebuildRoofBuffer()
         // Only the fly camera sees the bands: the game's view is slightly
         // in perspective and keeps the game's own pixels on the flat square.
         if (square.fringe && flying && gRoofFringeTexture != 0) {
-            pushFringeBand(sheets, square, y);
+            pushFringeBand(bands, square, y);
             continue;
         }
         vertices.push_back({ square.x0, y, square.z0, square.u0, square.v0 });
@@ -107,7 +107,7 @@ void rebuildRoofBuffer()
         vertices.push_back({ square.x0, y, square.z1, square.u0, square.v1 });
     }
     gRoofFlatVertexCount = static_cast<int>(vertices.size());
-    vertices.insert(vertices.end(), sheets.begin(), sheets.end());
+    vertices.insert(vertices.end(), bands.begin(), bands.end());
     if (gRoofVao == 0) glGenVertexArrays(1, &gRoofVao);
     if (gRoofVbo == 0) glGenBuffers(1, &gRoofVbo);
     glBindVertexArray(gRoofVao);
