@@ -251,9 +251,17 @@ struct RoofSquare {
     int index; // square index, y * 100 + x, as the engine's tileFid
     float x0, z0, x1, z1;
     float u0, v0, u1, v1;
+    // A fringe tile (roof_fringe.py) stands up as two crossed sheets under the
+    // fly camera: the tile's own iso art, its rect in roof_fringe.png
+    // (normalized) and its size in pixels.
+    bool fringe = false;
+    float artU0 = 0, artV0 = 0, artU1 = 0, artV1 = 0;
+    float artWidth = 0, artHeight = 0;
 };
 
 void setRoofSquares(std::vector<RoofSquare> squares);
+// roof_fringe.png as a texture the roofs own (deleted with them); 0 for none.
+void setRoofFringeTexture(unsigned int texture);
 void destroyRoofs();
 // With the scene program in use and the game view's matrix set.
 void drawRoofs(int viewportX, int viewportY, int viewportWidth, int viewportHeight);
