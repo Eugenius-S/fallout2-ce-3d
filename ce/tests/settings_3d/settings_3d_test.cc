@@ -21,6 +21,8 @@ static bool gConfiguredScalePresent = false;
 static int gConfiguredScale = 1;
 static bool gConfiguredScaleFactorPresent = false;
 static double gConfiguredScaleFactor = 1.0;
+static int gWrittenWidth = 0;
+static int gWrittenHeight = 0;
 
 bool gameConfigInit(bool, int, char**)
 {
@@ -94,7 +96,12 @@ bool configSetString(Config*, const char* section, const char* key, const char* 
     }
     return true;
 }
-bool configSetInt(Config*, const char*, const char*, int) { return true; }
+bool configSetInt(Config*, const char* section, const char* key, int value)
+{
+    if (std::strcmp(section, "screen") == 0 && std::strcmp(key, "resolution_x") == 0) gWrittenWidth = value;
+    if (std::strcmp(section, "screen") == 0 && std::strcmp(key, "resolution_y") == 0) gWrittenHeight = value;
+    return true;
+}
 bool configSetBool(Config*, const char* section, const char* key, bool value)
 {
     if (std::strcmp(section, "3d") == 0 && std::strcmp(key, "enabled") == 0) {
@@ -197,6 +204,9 @@ int main()
             && windowMode != nullptr && windowMode->valueType == SettingValueType::Choice
             && windowMode->choices.size() == 3,
             "resolution and window mode are registered restart choices")) return 1;
+    if (!check(settingsSetValue(*resolutionMode, 25601440, nullptr) && settingsSave()
+            && gWrittenWidth == 2560 && gWrittenHeight == 1440,
+            "a pending resolution choice writes both legacy resolution keys")) return 1;
     gConfiguredScalePresent = true;
     gConfiguredScale = 2;
     gConfiguredScaleFactorPresent = false;

@@ -118,6 +118,7 @@ private:
     int dropdownScroll_ = 0;
     int dropdownHighlight_ = 0;
     bool dropdownAbove_ = false;
+    bool dropdownWaitRelease_ = false;
     int displayIndex_ = 0;
     std::vector<std::pair<int, int>> legacyButtons_;
     std::unordered_map<int, int> buttonLefts_;

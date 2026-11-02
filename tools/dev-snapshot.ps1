@@ -53,6 +53,7 @@ param(
     [string]$Tour,
     [switch]$Classic,
     [switch]$Preferences,
+    [string]$DevInput,
     [ValidateSet('resolution', 'mode')]
     [string]$PreferencesDropdown,
     [switch]$DevPanel,
@@ -162,6 +163,9 @@ param(
     [double]$Scale = 2.0
 )
 $ErrorActionPreference = 'Stop'
+if ($DevInput -and (-not $Preferences -or -not $ConfiguredDisplay -or -not $ReuseTestConfig -or -not $OutputDirectory -or -not $CaptureConsole)) {
+    throw '-DevInput requires -Preferences, -ConfiguredDisplay, -ReuseTestConfig, -OutputDirectory and -CaptureConsole.'
+}
 if ($ClockLadder) {
     if (-not $OutputDirectory -or $Tour -or $Classic -or $Probe -or $Preferences -or $MuzzleWeapon -or $GlowLadder -or $GlowPair -or $GlowLevels -or $EffectFixture -or $DialogFixture -or $UiFixture) { throw '-ClockLadder requires its own scene run and -OutputDirectory.' }
     $Still=$true; $CaptureConsole=$true
@@ -348,6 +352,9 @@ $configHashBefore = (Get-FileHash -LiteralPath $configPath -Algorithm SHA256).Ha
 $initialZoom = Get-TestConfigValue $configPath '3d' 'zoom'
 $initialEnabled = Get-TestConfigValue $configPath '3d' 'enabled'
 $initialDifficulty = Get-TestConfigValue $configPath 'preferences' 'combat_difficulty'
+$initialDisplayWidth = Get-TestConfigValue $configPath 'screen' 'resolution_x'
+$initialDisplayHeight = Get-TestConfigValue $configPath 'screen' 'resolution_y'
+$initialDisplayScale = Get-TestConfigValue $configPath 'screen' 'scale_factor'
 $logicalWidth = [int][Math]::Round($ScreenWidth / $Scale, [MidpointRounding]::AwayFromZero)
 $logicalHeight = [int][Math]::Round($ScreenHeight / $Scale, [MidpointRounding]::AwayFromZero)
 if ($logicalWidth -lt 640 -or $logicalHeight -lt 480) {
@@ -364,6 +371,7 @@ $runId = [guid]::NewGuid().ToString('N')
 $runDirectory = Join-Path $exeDirectory "runs\$($runId.Substring(0, 12))"
 New-Item -ItemType Directory -Path $runDirectory -Force | Out-Null
 $arguments = @('--dev-tools')
+if ($DevInput) { $arguments += "--dev-input=$([System.IO.Path]::GetFullPath($DevInput))" }
 if ($MuzzleWeapon -gt 0) {$arguments += @("--dev-muzzle=$MuzzleWeapon", "--dev-muzzle-animation=$MuzzleAnimation", "--dev-muzzle-rotation=$MuzzleRotation")}
 if ($ClockLadder) { $arguments += '--dev-clock-ladder' }
     if ($ScrollStep) { $arguments += "--dev-scroll-step=$ScrollStep" }
@@ -443,7 +451,9 @@ if ($Still) {
     if ($Probe) { throw '-Still cannot be combined with the interactive -Probe.' }
     $arguments += '--dev-still-snapshot'
 }
-if ($PreferencesProbe) {
+if ($DevInput) {
+    $shots = 5
+} elseif ($PreferencesProbe) {
     $shots = 0
 } elseif ($Preferences) {
     $shots = 1
@@ -530,7 +540,11 @@ try {
             }
             $log = Join-Path $runDirectory 'logs\devprobe.log'
             $probed = -not $Probe -or ((Test-Path $log) -and (Select-String -Path $log -Pattern 'probe done' -Quiet))
-            if ($UiFixture) {
+            if ($DevInput) {
+                $inputLog = Join-Path $OutputDirectory 'process.stdout.log'
+                if ((Test-Path -LiteralPath $inputLog) -and (Select-String -LiteralPath $inputLog -Pattern '^DEV_INPUT FAIL' -Quiet)) { break }
+                if ($snapshots.Count -ge $shots -and (Test-Path -LiteralPath $inputLog) -and (Select-String -LiteralPath $inputLog -Pattern '^DEV_INPUT PASS script complete' -Quiet)) { break }
+            } elseif ($UiFixture) {
                 $fixtureLog = Join-Path $OutputDirectory 'process.stdout.log'
                 if ((Test-Path -LiteralPath $fixtureLog) -and
                     ((Select-String -LiteralPath $fixtureLog -Pattern '^UI_FIXTURE FAIL ' -Quiet) -or
@@ -607,6 +621,25 @@ try {
         if (-not $process.WaitForExit(10000)) { throw 'The background test process did not exit.' }
     }
     Release-TestSlot
+}
+if ($DevInput) {
+    $inputLog = Get-Content -Raw -LiteralPath (Join-Path $OutputDirectory 'process.stdout.log')
+    $inputErrors = Get-Content -Raw -LiteralPath (Join-Path $OutputDirectory 'process.stderr.log')
+    if ($inputLog -notmatch '(?m)^DEV_INPUT PASS script complete' -or $inputErrors -match 'DEV_INPUT FAIL' -or $snapshots.Count -ne 5) {
+        throw 'Scripted input did not complete with exactly five snapshots.'
+    }
+    $afterWidth = Get-TestConfigValue $configPath 'screen' 'resolution_x'
+    $afterHeight = Get-TestConfigValue $configPath 'screen' 'resolution_y'
+    $afterScale = Get-TestConfigValue $configPath 'screen' 'scale_factor'
+    if (($afterWidth -eq $initialDisplayWidth -and $afterHeight -eq $initialDisplayHeight) -or $afterScale -eq $initialDisplayScale) {
+        throw 'Scripted input did not save both a different resolution and scale.'
+    }
+    [ordered]@{
+        coordinate_space = 'logical'; snapshots = $snapshots.Count
+        initial = @{ resolution_x = $initialDisplayWidth; resolution_y = $initialDisplayHeight; scale_factor = $initialDisplayScale }
+        saved = @{ resolution_x = $afterWidth; resolution_y = $afterHeight; scale_factor = $afterScale }
+        config_sha256 = (Get-FileHash -LiteralPath $configPath -Algorithm SHA256).Hash
+    } | ConvertTo-Json -Depth 4 | Set-Content -Encoding utf8 -LiteralPath (Join-Path $OutputDirectory 'input-result.json')
 }
 if ($MuzzleWeapon -gt 0) {
     $muzzleText086=Get-Content -Raw -LiteralPath (Join-Path $OutputDirectory 'process.stdout.log')

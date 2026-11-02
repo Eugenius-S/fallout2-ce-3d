@@ -1336,7 +1336,14 @@ int doPreferences(bool animated)
     mainMenuShowSubscreen(animated);
 
     int rc = -1;
-    if (devtools::preferencesSnapshotRequested() && !devtools::preferencesProbeRequested()) {
+    if (devtools::scriptedInputActive() && gOptionsPanel != nullptr) {
+        devtools::scriptedInputBegin();
+        gOptionsPanel->showDropdownForSnapshot("resolution");
+        gOptionsPanel->handleKey(KEY_ESCAPE);
+        gOptionsPanel->draw();
+        gOptionsPanel->refresh();
+    }
+    if (devtools::preferencesSnapshotRequested() && !devtools::preferencesProbeRequested() && !devtools::scriptedInputActive()) {
         if (gOptionsPanel != nullptr) {
             gOptionsPanel->showPanelForSnapshot(devtools::preferencesSnapshotAtBottom());
             if (devtools::preferencesSnapshotDropdown()[0] != '\0') {
@@ -1350,6 +1357,7 @@ int doPreferences(bool animated)
     while (rc == -1) {
         sharedFpsLimiter.mark();
 
+        devtools::scriptedInputPump();
         int eventCode = inputGetInput();
         eventCode = devtools::preferencesProbeNextEvent(eventCode, gOptionsPanel.get(), gPreferencesWindow,
             static_cast<int>(gPreferencesCombatDifficulty1));
@@ -1406,6 +1414,7 @@ int doPreferences(bool animated)
         }
 
         renderPresent();
+        if (devtools::scriptedInputTakeSnapshotRequest()) devtools::takeSnapshot();
         sharedFpsLimiter.throttle();
     }
 

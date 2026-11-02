@@ -760,6 +760,10 @@ bool parseOption(const char* arg)
         gEnabled = true;
         return true;
     }
+    if (gEnabled && parseScriptedInputOption(arg)) {
+        gPreferencesSnapshotPending = true;
+        return true;
+    }
     if (strcmp(arg, "--dev-panel-snapshot") == 0) {
         gPanelSnapshotPending = gEnabled;
         return true;
@@ -1429,6 +1433,10 @@ void update()
 {
     if (!gEnabled) {
         return;
+    }
+    if (!gPreferencesSnapshotActive && scriptedInputActive() && scriptedInputStarted()) {
+        scriptedInputPump();
+        if (scriptedInputTakeSnapshotRequest()) { renderPresent(); takeSnapshot(); }
     }
     // The startup --dev-map travel retries here until the opening movie is
     // over and the transition is accepted (089).

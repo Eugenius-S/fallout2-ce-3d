@@ -1,6 +1,7 @@
 #include "dinput.h"
 
 #include "debug.h"
+#include "devtools/preferences_probe.h"
 #include "settings.h"
 #include "sfall_kb_helpers.h"
 #include "svga.h"
@@ -142,6 +143,7 @@ bool mouseDeviceGetData(MouseData* mouseState)
     }
     mouseState->buttons[0] = (buttons & SDL_BUTTON(SDL_BUTTON_LEFT)) != 0;
     mouseState->buttons[1] = (buttons & SDL_BUTTON(SDL_BUTTON_RIGHT)) != 0;
+    devtools::scriptedInputMouse(&mouseState->x, &mouseState->y, &mouseState->buttons[0], &mouseState->buttons[1]);
     mouseState->wheelX = gMouseWheelDeltaX;
     mouseState->wheelY = gMouseWheelDeltaY;
 

@@ -810,6 +810,11 @@ void OptionsPanel::drawRows()
     if (model_ == nullptr) return;
     const int inset = frameInset();
     unsigned char* panel = content_.data() + static_cast<size_t>(kWidth) * kPanelTop;
+    // A dropdown can cover gaps and section headings, not just control rows.
+    // Restore the whole panel before redrawing so closing it leaves no residue.
+    std::memcpy(panel, rowFrameBackground_.data(), rowFrameBackground_.size());
+    fontSetCurrent(103);
+    fontDrawText(panel + kWidth * 62 + 52 + inset, localized("3D OPTIONS"), 520, kWidth, COLOR_GREEN);
     for (size_t groupIndex = 0; groupIndex < groupLayouts_.size(); ++groupIndex) {
         const GroupLayout& group = groupLayouts_[groupIndex];
         const int groupY = group.top - kPanelTop;
@@ -1092,6 +1097,7 @@ void OptionsPanel::dragSlider(int index)
         if (devtools::preferencesProbeUsesSimulatedMouse()) buttons = mouse_get_last_buttons();
         else _mouse_get_raw_state(&rawX, &rawY, &buttons);
         if ((buttons & MOUSE_STATE_LEFT_BUTTON_DOWN) == 0) break;
+        devtools::scriptedInputPump();
         const int event = inputGetInput();
         devtools::preferencesProbePump();
         updateFromMouse();
@@ -1132,6 +1138,10 @@ void OptionsPanel::dragScrollbar(int y)
 
 bool OptionsPanel::handleEvent(int eventCode)
 {
+    if (dropdownWaitRelease_) {
+        if ((mouse_get_last_buttons() & MOUSE_STATE_LEFT_BUTTON_DOWN) == 0) dropdownWaitRelease_ = false;
+        return true;
+    }
     if (dropdownRow_ >= 0) {
         int x = 0, y = 0;
         mouseGetPositionInWindow(windowId_, &x, &y);
@@ -1146,11 +1156,13 @@ bool OptionsPanel::handleEvent(int eventCode)
             ? rowTop(dropdownRow_) - visibleCount * itemHeight - 2
             : rowTop(dropdownRow_) + rowHeight(dropdownRow_);
         const int itemTop = popupTop + 2;
-        if (eventCode >= kRowEvent && x >= left && x < right && y >= itemTop && y < itemTop + visibleCount * itemHeight) {
+        const bool mousePress = eventCode == -2 && (mouseGetEvent() & MOUSE_EVENT_LEFT_BUTTON_DOWN) != 0;
+        if ((eventCode >= kRowEvent || mousePress) && x >= left && x < right && y >= itemTop && y < itemTop + visibleCount * itemHeight) {
             const int choiceIndex = dropdownScroll_ + (y - itemTop) / itemHeight;
             if (choiceIndex >= 0 && choiceIndex < static_cast<int>(dropdownDescriptor.choices.size())) {
                 setRowValue(dropdownRow_, dropdownDescriptor.choices[choiceIndex].value);
                 dropdownRow_ = -1;
+                dropdownWaitRelease_ = true;
                 drawRows();
                 refresh();
             }
@@ -1166,7 +1178,7 @@ bool OptionsPanel::handleEvent(int eventCode)
             dropdownRow_ = -1;
             drawRows();
             refresh();
-        } else if (eventCode >= kRowEvent) {
+        } else if (eventCode >= kRowEvent || mousePress) {
             dropdownRow_ = -1;
             drawRows();
             refresh();
@@ -1197,6 +1209,7 @@ bool OptionsPanel::handleEvent(int eventCode)
     }
     if (row.control == OptionsPanelControl::Choice) {
         dropdownRow_ = index;
+        dropdownWaitRelease_ = true;
         const int selected = std::get<int>(row.edit->value);
         const auto found = std::find_if(descriptor.choices.begin(), descriptor.choices.end(), [selected](const SettingChoice& choice) {
             return choice.value == selected;
@@ -1243,7 +1256,7 @@ bool OptionsPanel::handleKey(int keyCode)
             refresh();
             return true;
         }
-        return true;
+        return false;
     }
     // T / Shift+T step the game hour by one hour, forth and back: the owner
     // reads each hour's shadow. The sun snaps to the jump, as on waiting.

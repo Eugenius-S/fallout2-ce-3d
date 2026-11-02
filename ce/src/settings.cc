@@ -744,6 +744,19 @@ void settingsWriteToConfig(bool onlyAdd)
             entry.write(onlyAdd);
         }
     }
+    // Keep the legacy resolution keys in sync with a pending menu choice.
+    // The active framebuffer is not resized until restart.
+    if (!onlyAdd) {
+        for (const auto& entry : settingsRegistry) {
+            if (entry.descriptor.id != "screen.resolution_mode" || !entry.restartValue.has_value()) continue;
+            const int* resolution = std::get_if<int>(&*entry.restartValue);
+            if (resolution != nullptr && *resolution > 0) {
+                settingsWrite("screen", "resolution_x", *resolution / 10000);
+                settingsWrite("screen", "resolution_y", *resolution % 10000);
+            }
+            break;
+        }
+    }
 }
 
 bool settingsSave()
