@@ -1,15 +1,22 @@
-"""Roof tiles that are a fringe: sparse, dark, ragged growth along a roof's edge.
+"""Roof tiles that are the broken tops of walls: ragged dark concrete along a roof's edge.
 
-The game draws roofs 96 pixels above the floor and paints a fringe tile's
-blades as a picture that hangs down over the walls' tops. The exporter's
-top-down tile cell flattens that picture onto the roof plane, where the blades
-lie in streaks (task 129, find 6). The fringe tiles are told by their art, no
-list: less than half of the tile's diamond is painted, the painted pixels
-break up along each row (ragged) and are dark (growth, not a metal roof with
-a hole or a solid trim strip). Their own art goes into roof_fringe.png and floor.bin
-lists it; the renderer draws such a roof square as two
-crossed upright sheets in place of the flat one, the same pixels in the
-game's view.
+The game draws roofs 96 pixels above the floor. A roof's edge tile may carry
+the broken top of the wall below it: a thin slab of concrete along one edge of
+the tile with rebar and ragged concrete sticking up from it (task 129, find 6).
+The exporter's top-down tile cell flattens that picture onto the roof plane,
+where the rebar lies in streaks. These tiles are told by their art, no list:
+less than half of the tile's diamond is painted, the painted pixels break up
+along each row (ragged) and are dark (concrete, not a metal roof with a hole or
+a solid trim strip).
+
+Each such tile's art is split into one piece per wall edge it sits on (a
+corner tile has two). The pieces of one wall line that follow each other are one
+run, and a run's art is unrolled along the line into one strip, the way a wall's
+art is unrolled along the wall: the picture is sheared vertically on the game's
+screen until the wall line is horizontal, so the concrete lies along the bottom
+of the strip and the rebar stands up from it. roof_fringe.png holds the strips;
+the renderer stands each run up as a band on the wall top below the roof edge,
+in the wall's plane, under the free camera (see roofs.cc).
 """
 
 import numpy as np
@@ -37,29 +44,154 @@ def is_fringe(rgba):
     return float(rgba[..., :3][painted].mean()) < MAX_LUMA
 
 
-def write_fringe_art(out_png, roof_cells, art_of):
-    """Write the raw art of each fringe roof tile into its own image, out_png.
+EDGE_V0, EDGE_V1, EDGE_U0, EDGE_U1 = 0, 1, 2, 3  # the tile's edge v=0, v=1, u=0, u=1
+MIN_EDGE_SHARE = 0.3  # of the slab pixels: fewer is no wall edge
+SLAB_DEPTH = 0.3  # a slab pixel lies this near an edge, in tiles
+MIN_EDGE_PIXELS = 6
 
-    roof_cells: {cell number: tile id} of the roof layer. art_of: tile id ->
-    iso rgba. Returns floor_sidecar's fringe entries (cell number and the art's
-    rect in out_png). The image is not the tile atlas: the flat floor and roof
-    squares sample that one, and its size must not change. With no fringe tile
-    no image is written (a stale one is removed) and the list is empty.
+
+def edge_pieces(rgba):
+    """Split a fringe tile's art by the wall edge each painted pixel belongs to.
+
+    Returns [(edge, art)] where art is rgba with only that edge's pixels left.
+    A pixel inside the tile's diamond belongs to its nearest edge; the edges
+    holding a real share of those are the tile's wall edges. A pixel off the
+    diamond (rebar, a loose chunk) takes the nearest wall edge.
     """
-    found = [(number, art_of(tile)) for number, tile in sorted(roof_cells.items())]
-    found = [(number, rgba) for number, rgba in found if is_fringe(rgba)]
-    if not found:
+    from fp import proj
+    painted = rgba[..., 3] > 0
+    ys, xs = np.mgrid[0:painted.shape[0], 0:painted.shape[1]]
+    u, v = proj.delta_to_ground(xs + 0.5 - 48, ys + 0.5)
+    dist = np.stack([v, 1.0 - v, u, 1.0 - u])  # per edge: the ground distance inside from it
+    nearest = np.abs(dist).argmin(axis=0)
+    inside = painted & (u >= 0) & (u < 1) & (v >= 0) & (v < 1) & (np.abs(dist).min(axis=0) < SLAB_DEPTH)
+    basis = inside if inside.any() else painted
+    counts = [int((basis & (nearest == edge)).sum()) for edge in range(4)]
+    wall = [edge for edge in range(4)
+            if counts[edge] >= MIN_EDGE_PIXELS and counts[edge] >= MIN_EDGE_SHARE * basis.sum()]
+    if not wall:
+        wall = [int(np.argmax(counts))]
+    pick = np.abs(dist[wall]).argmin(axis=0)
+    pieces = []
+    for n, edge in enumerate(wall):
+        keep = painted & (pick == n)
+        if not keep.any():
+            continue
+        art = rgba.copy()
+        art[~keep] = 0
+        pieces.append((edge, art))
+    return pieces
+
+
+STRIP_ROWS = 40  # a strip's height in art pixels, measured up from the concrete's lowest row
+
+
+def _tile_screen(index):
+    """Screen pixel (relative to the origin) of the art's top vertex of a roof square."""
+    from fp import proj
+    x, z = index % 100, index // 100
+    return x * proj.SQ_U[0] + z * proj.SQ_V[0], x * proj.SQ_U[1] + z * proj.SQ_V[1]
+
+
+def runs_of(squares):
+    """Group the pieces of fringe roof squares into runs along a wall line.
+
+    squares: {square index: [(edge, art)]}. A run is the pieces of one edge that
+    sit in squares next to each other along the line: (edge, plane, start,
+    members) with plane the tile line the wall stands on (v for edges 0 and 1,
+    u for 2 and 3), start the first square along it, members [(square, art)].
+    """
+    lines = {}
+    for index, pieces in squares.items():
+        x, z = index % 100, index // 100
+        for edge, art in pieces:
+            plane = z + (edge == 1) if edge < 2 else x + (edge == 3)
+            along = x if edge < 2 else z
+            lines.setdefault((edge, plane), {})[along] = (index, art)
+    runs = []
+    for (edge, plane), members in sorted(lines.items()):
+        start = previous = None
+        for along in sorted(members):
+            if previous is None or along != previous + 1:
+                if start is not None:
+                    runs.append((edge, plane, start, [members[a] for a in range(start, previous + 1)]))
+                start = along
+            previous = along
+        runs.append((edge, plane, start, [members[a] for a in range(start, previous + 1)]))
+    return runs
+
+
+def unroll(edge, plane, start, members):
+    """One run's strip: the pieces' art sheared along the wall line, as rgba.
+
+    The strip is as wide as the run on the game's screen (48 px a tile along u,
+    32 along v) and STRIP_ROWS high; its columns run left to right on the
+    screen, its lowest painted row is the last row.
+    """
+    from fp import proj
+    along_u = edge < 2
+    count = len(members)
+    step = -proj.SQ_U[0] if along_u else proj.SQ_V[0]
+    width = int(round(count * step))
+    slope = proj.U_SLOPE if along_u else proj.V_SLOPE
+    ox, oy = proj.ORIGIN
+    if along_u:
+        # the line v = plane; its leftmost point is the end of the run
+        line_x, line_y = ox + plane * proj.SQ_V[0], oy + plane * proj.SQ_V[1]
+        left = line_x + (start + count) * proj.SQ_U[0]
+    else:
+        line_x, line_y = ox + plane * proj.SQ_U[0], oy + plane * proj.SQ_U[1]
+        left = line_x + start * proj.SQ_V[0]
+    stamped = []
+    for index, art in members:
+        tx, ty = _tile_screen(index)
+        ys, xs = np.nonzero(art[..., 3] > 0)
+        sx = ox + tx - 48 + xs  # the art's top vertex is at pixel 48
+        sy = oy + ty + ys
+        # the wall line's screen y under the pixel's centre; the row is the pixel's offset from it
+        offset = (sy + 0.5) - (line_y + slope * (sx + 0.5 - line_x))
+        stamped.append((np.round(sx - left).astype(int), np.floor(offset).astype(int), art[ys, xs]))
+    low = max((rows[(cols >= 0) & (cols < width)].max() for cols, rows, _ in stamped
+               if ((cols >= 0) & (cols < width)).any()), default=0)
+    strip = np.zeros((STRIP_ROWS, width, 4), np.uint8)
+    for cols, rows, rgba in stamped:
+        r = rows - low + STRIP_ROWS - 1
+        keep = (cols >= 0) & (cols < width) & (r >= 0) & (r < STRIP_ROWS)
+        strip[r[keep], cols[keep]] = rgba[keep]
+    return strip
+
+
+def write_fringe_art(out_png, roof_squares, art_of):
+    """Write the unrolled strips of the roof's wall-top runs into one image, out_png.
+
+    roof_squares: {square index (y * 100 + x): tile id} of the roof layer.
+    art_of: tile id -> iso rgba. Returns floor_sidecar's run entries (edge,
+    plane, start, count, and the strip's rect in out_png). The image is not the
+    tile atlas: the flat floor and roof squares sample that one, and its size
+    must not change. With no wall-top tile no image is written (a stale one is
+    removed) and the list is empty.
+    """
+    cache = {}
+
+    def pieces_of(tile):
+        if tile not in cache:
+            art = art_of(tile)
+            cache[tile] = edge_pieces(art) if is_fringe(art) else []
+        return cache[tile]
+
+    squares = {index: pieces_of(tile) for index, tile in sorted(roof_squares.items())}
+    runs = runs_of({index: pieces for index, pieces in squares.items() if pieces})
+    if not runs:
         out_png.unlink(missing_ok=True)
         return []
-    tile_w = max(rgba.shape[1] for _, rgba in found) + 1
-    tile_h = max(rgba.shape[0] for _, rgba in found) + 1
-    per_row = max(1, min(len(found), 2048 // tile_w))
-    rows = (len(found) + per_row - 1) // per_row
-    sheet = Image.new("RGBA", (per_row * tile_w, rows * tile_h), (0, 0, 0, 0))
-    entries = []
-    for n, (number, rgba) in enumerate(found):
-        x, y = (n % per_row) * tile_w, (n // per_row) * tile_h
-        sheet.paste(Image.fromarray(rgba, "RGBA"), (x, y))
-        entries.append((number, x, y, rgba.shape[1], rgba.shape[0]))
+    strips = [unroll(*run) for run in runs]
+    width = max(strip.shape[1] for strip in strips) + 2
+    height = sum(strip.shape[0] + 1 for strip in strips) + 1
+    sheet = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    entries, y = [], 1
+    for (edge, plane, start, members), strip in zip(runs, strips):
+        sheet.paste(Image.fromarray(strip, "RGBA"), (1, y))
+        entries.append((edge, plane, start, len(members), 1, y, strip.shape[1], strip.shape[0]))
+        y += strip.shape[0] + 1
     sheet.save(out_png, optimize=True)
     return entries
