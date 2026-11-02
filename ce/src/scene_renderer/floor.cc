@@ -102,6 +102,10 @@ bool loadStaticFloor(const std::filesystem::path& cacheDirectory, std::string* e
     // squares, then the rect of the run's strip in roof_fringe.png. Version 5
     // adds the wall the run stands over: the plane of its outer face (tile
     // units), its top height (GL) and the band's span along the line (tiles).
+    // Version 6 adds, after the runs, the roof squares that have a cell of
+    // their own in roof_fringe.png (a mixed tile: its roof, the wall-top part
+    // cut out; the band stands up from that part): a count, then per entry the
+    // square index and the cell's x and y in roof_fringe.png (8 bytes).
     // A version 3 or 4 list is read for its size only: its roofs stay flat
     // squares (version 3 drew crossed sheets, version 4 bands off the wall).
     constexpr size_t kFringeEntryBytes = 32;
@@ -109,9 +113,12 @@ bool loadStaticFloor(const std::filesystem::path& cacheDirectory, std::string* e
     const size_t layerBytes = version >= 2 ? 2 * kFloorBytes : kFloorBytes;
     const size_t cellsEnd = kHeaderSize + layerBytes + static_cast<size_t>(tileCount) * 4;
     const size_t listedCount = version >= 3 && sidecar.size() >= cellsEnd + 2 ? readU16(sidecar.data() + cellsEnd) : 0;
-    const size_t fringeCount = version == 5 ? listedCount : 0;
-    const size_t expectedSize = cellsEnd + (version >= 3 ? 2 + listedCount * entryBytes : 0);
-    if ((version < 1 || version > 5) || gridWidth != 100 || gridHeight != 100 || tileCount == 0
+    const size_t fringeCount = version >= 5 ? listedCount : 0;
+    constexpr size_t kPatchEntryBytes = 8;
+    const size_t patchesAt = cellsEnd + (version >= 3 ? 2 + listedCount * entryBytes : 0);
+    const size_t patchCount = version == 6 && sidecar.size() >= patchesAt + 2 ? readU16(sidecar.data() + patchesAt) : 0;
+    const size_t expectedSize = patchesAt + (version == 6 ? 2 + patchCount * kPatchEntryBytes : 0);
+    if ((version < 1 || version > 6) || gridWidth != 100 || gridHeight != 100 || tileCount == 0
         || cellSize != 88 || cellMargin != 6 || imageWidth == 0 || imageHeight == 0
         || imageWidth > 8192 || imageHeight > 8192
         || sidecar.size() != expectedSize) {
@@ -238,6 +245,21 @@ bool loadStaticFloor(const std::filesystem::path& cacheDirectory, std::string* e
             if (fringeOf[index].size() < 2) fringeOf[index].push_back(piece);
         }
     }
+    // The squares drawn from a cell of roof_fringe.png under the free camera.
+    std::vector<unsigned char> patchCell(100 * 100, 0);
+    std::vector<int> patchX(100 * 100, 0), patchY(100 * 100, 0);
+    for (size_t entry = 0; entry < patchCount; entry++) {
+        const unsigned char* data = sidecar.data() + patchesAt + 2 + entry * kPatchEntryBytes;
+        const int index = readU16(data), x = readU16(data + 2), y = readU16(data + 4);
+        if (index >= 100 * 100 || fringeRgba.empty()
+            || x + cellSize + 2 * cellMargin > static_cast<int>(fringeWidth)
+            || y + cellSize + 2 * cellMargin > static_cast<int>(fringeHeight)) {
+            return fail("floor.bin contains a bad roof patch entry");
+        }
+        patchCell[index] = 1;
+        patchX[index] = x;
+        patchY[index] = y;
+    }
     std::vector<RoofSquare> roofs;
     for (int index = 0; roofData != nullptr && index < 100 * 100; index++) {
         const unsigned short cellIndex = readU16(roofData + index * 2);
@@ -263,6 +285,13 @@ bool loadStaticFloor(const std::filesystem::path& cacheDirectory, std::string* e
             square.fringe = true;
             square.tileX = x0;
             square.tileZ = z0;
+        }
+        if (patchCell[index] != 0) {
+            square.patch = true;
+            square.patchU0 = static_cast<float>(patchX[index]) / fringeWidth;
+            square.patchV0 = static_cast<float>(patchY[index]) / fringeHeight;
+            square.patchU1 = static_cast<float>(patchX[index] + cellSize + 2 * cellMargin) / fringeWidth;
+            square.patchV1 = static_cast<float>(patchY[index] + cellSize + 2 * cellMargin) / fringeHeight;
         }
         roofs.push_back(square);
     }
