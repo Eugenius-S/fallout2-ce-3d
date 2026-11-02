@@ -2,8 +2,8 @@
 id: 154
 title: Resolution, window mode and picture scale in the 3D settings
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: gpt
 suggested: gpt
 priority: high
 claude-only: no
