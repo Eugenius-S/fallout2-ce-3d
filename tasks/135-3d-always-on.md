@@ -68,7 +68,7 @@ Block reasons (`preview_policy.h`):
 - ui-disabled: removed. The enemies' turn and scripted moments show the map.
 - iso-disabled: kept. The game does not draw the map (loads, fades).
 - combat: removed.
-- dialog: kept for now; 066 draws the dialogue backdrop in 2D. Step 2.
+- dialog: see step 2.
 - movie: kept. A movie covers the screen.
 
 Check: ctest; the toxic caves entrance in 3D in the background run.
@@ -76,3 +76,21 @@ Not checked yet: a whole fight (no combat fixture). Next: the owner plays a
 fight in Klamath and the toxic caves; a combat fixture for the background
 run; the to-hit cursor, outlines and floating text in 3D; dialogue.
 - 2026-11-02 The owner played a fight in Klamath on `a4d47b26`: it stays in 3D start to finish; the only flaw seen is the unscaled outlines (149).
+
+### 2026-11-02 claude, step 2
+Dialogue. The game itself switches the map off while a dialogue runs
+(`isoDisable`, game mode 0x4), so the policy already stopped on
+`iso-disabled`; the separate `dialog` reason never fired in the dialogue
+fixture (`dialog=0` in the log line). It is removed from `preview_policy`
+(reason, field, test). `iso-disabled` stays: the original draws no map in a
+dialogue either, its 640x480 window covers the screen, and 066's black
+backdrop gives the same on a wide screen. So what the player sees is
+unchanged: black round the dialogue window, 0 non-black pixels outside it at
+1920x1080, the street back after goodbye (066).
+Block reasons now: game-state, game-mode (world map), iso-disabled (loads,
+fades, dialogue), movie. Check: `dev-snapshot.ps1 -Map kladwtwn
+-DialogFixture -CaptureConsole -OutputDirectory ...`; ctest 18/18;
+`runs/135-dialogue-3d/dialogue-1080.jpg`.
+Next: the combat checks wait for 146 (the combat fixture): the to-hit cursor,
+an attack, an enemy turn, the end of combat in klatoxcv and kladwtwn, clicks
+in combat by script.

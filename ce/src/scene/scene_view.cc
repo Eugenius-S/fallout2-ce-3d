@@ -347,7 +347,6 @@ PreviewRuntimeState runtimeState()
         gameGetState() == GameState::Normal,
         gameModeShowsMap(static_cast<unsigned int>(GameMode::getCurrentGameMode())),
         !isoIsDisabled(),
-        _inDialog == 0,
         _moviePlaying() == 0,
     };
 }
@@ -359,7 +358,6 @@ const char* blockReasonName(PreviewBlockReason reason)
     case PreviewBlockReason::GameState: return "game-state";
     case PreviewBlockReason::GameMode: return "game-mode";
     case PreviewBlockReason::IsoDisabled: return "iso-disabled";
-    case PreviewBlockReason::Dialog: return "dialog";
     case PreviewBlockReason::Movie: return "movie";
     }
     return "unknown";

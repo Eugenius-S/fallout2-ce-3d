@@ -23,6 +23,9 @@ from f2lib import Dat2, GameFiles, MapFile  # noqa: E402
 from f2lib.gamefiles import norm  # noqa: E402
 from fp.scene import SceneBuilder  # noqa: E402
 from baked_sidecar import VERSION as BAKED_SIDECAR_VERSION  # noqa: E402
+FIXED_CARD_FRMS = frozenset(
+    name.lower() for name in json.loads(
+        (Path(__file__).resolve().parent / "shapes" / "fixed_cards.json").read_text(encoding="utf-8"))["frms"])
 from baked_sidecar import baked_objects, decode_baked_sidecar, encode_baked_sidecar  # noqa: E402
 from floor_sidecar import VERSION as FLOOR_SIDECAR_VERSION  # noqa: E402
 from floor_sidecar import encode_floor_sidecar  # noqa: E402
@@ -410,7 +413,8 @@ def export_scene(gf, game_root: Path, map_name: str, elevation: int, out_dir: Pa
         Image.fromarray(page, "RGBA").save(out_dir / f"sprites{index}.png", optimize=True)
     (out_dir / "walls.bin").write_bytes(wall_payload)
     wall_data = decode_wall_sidecar(wall_payload)
-    baked_payload = encode_baked_sidecar(baked_objects(scene, builder.map.objects[elevation], live_boards))
+    baked_payload = encode_baked_sidecar(baked_objects(scene, builder.map.objects[elevation], live_boards,
+                                                     FIXED_CARD_FRMS, gf.art.name))
     (out_dir / "baked.bin").write_bytes(baked_payload)
     baked_count = len(decode_baked_sidecar(baked_payload))
     projection_payload = encode_projection_sidecar(scene)

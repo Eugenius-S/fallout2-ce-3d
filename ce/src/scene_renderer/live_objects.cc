@@ -278,7 +278,7 @@ bool addStaticObject(const StaticObjectFrame& frame, std::string* error)
     } else if (staticObjectPlane(frame.tile, frame.fid, plane)) {
         onWall = true;
         onFlyPlane(corners, plane, camera.eye);
-    } else {
+    } else if (!staticObjectFixedCard(frame.tile, frame.fid)) {
         faceFlyCamera(corners);
     }
     // A sprite hung in the air, its art wholly above its anchor with no
