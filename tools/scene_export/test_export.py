@@ -18,7 +18,7 @@ from baked_sidecar import (ENTRY as BAKED_ENTRY, GL_MAP_OFFSET, HEADER as BAKED_
                            baked_objects, decode_baked_sidecar, encode_baked_sidecar)
 from export import ReadOnlyGameFiles, choose_source, main, parse_args, patch_paths, scene_directory, validate_output_contents
 from floor_sidecar import HEADER, MAGIC, VERSION, cell_content_rect, decode_floor_sidecar, encode_floor_sidecar
-from roof_fringe import STRIP_ROWS, is_fringe, runs_of, unroll, wall_under, write_fringe_art
+from roof_fringe import BELT_LAP, BELT_ROWS, EDGE_ROWS, STRIP_ROWS, belt_art, compose_band, is_fringe, runs_of, unroll, wall_under, write_fringe_art
 from projection_sidecar import (HEADER as PROJECTION_HEADER, MAGIC as PROJECTION_MAGIC,
                                 VERSION as PROJECTION_VERSION, decode_projection_sidecar,
                                 encode_projection_sidecar, hero_anchor, standing_card)
@@ -342,10 +342,35 @@ class RoofFringeTests(unittest.TestCase):
             for edge, plane, start, count, x, y, width, height, face, top, lo, hi in entries:
                 self.assertIn((start, count), [(1, 2), (5, 1), (1, 1)])  # 103 is no fringe: the runs break there
                 self.assertEqual((face, top, lo, hi), (plane + 0.1, 1.88, start, start + count))
-                self.assertEqual((width, height), (count * (-donor_proj.SQ_U[0] if edge < 2 else donor_proj.SQ_V[0]), STRIP_ROWS))
+                self.assertEqual((width, height), (count * (-donor_proj.SQ_U[0] if edge < 2 else donor_proj.SQ_V[0]), BELT_ROWS + EDGE_ROWS))
             self.assertEqual(Image.open(png).height, sum(entry[7] + 1 for entry in entries) + 1)
             self.assertEqual(write_fringe_art(png, {101: 8}, lambda tile: self.art([]), lambda *run: None), [])
             self.assertFalse(png.exists())
+
+    def test_the_belt_continues_the_walls_art_and_the_edge_stands_on_it(self):
+        # one wall row along u at v = 3 (edge 0 of squares 3, 4 of row 3), its picture 96 x 60 on a page,
+        # a striped picture: column c is grey 10 + c, the top band (6 rows) above the cap is red
+        page = np.zeros((60, 96, 4), np.uint8)
+        page[..., :3] = (10 + np.arange(96))[None, :, None]
+        page[..., 3] = 255
+        page[:6, :, :3] = (250, 0, 0)
+        walls = [[0, 3.0, 3.0, 5.0, 3.0, 0.0, 2.0, 0, 0, 2.0 - 6 / 96.0, 0.2, -1]]
+        sprites = [[0, 0, 0, 96, 60]]
+        run = (0, 3, 3, [(303, None), (304, None)])
+        belt = belt_art([0], walls, sprites, [page], 96.0, run)
+        self.assertEqual(belt.shape, (BELT_ROWS + BELT_LAP, 96, 4))
+        self.assertTrue((belt[..., 3] == 255).all())
+        # u grows to the left on the screen, so the strip's column 0 is the wall's end (u = 5): the picture's b end
+        self.assertEqual(int(belt[-1, 0, 0]), 10 + 95)
+        self.assertEqual(int(belt[-1, 95, 0]), 10)
+        self.assertEqual(belt_art([], walls, sprites, [page], 96.0, run), None)
+        strip = np.zeros((STRIP_ROWS, 96, 4), np.uint8)
+        strip[-3:, ::2] = (1, 2, 3, 255)
+        band = compose_band(strip, belt)
+        self.assertEqual(band.shape, (BELT_ROWS + EDGE_ROWS, 96, 4))
+        self.assertTrue((band[EDGE_ROWS:, :, 3] == 255).all())      # the belt is solid
+        self.assertEqual(tuple(band[EDGE_ROWS - 1, 0, :3]), (1, 2, 3))  # the strip's outline over the belt's lap rows
+        self.assertEqual(band[0, :, 3].max(), 0)                    # nothing above the ragged edge
 
     def test_a_run_stands_on_the_outer_face_of_the_wall_under_its_roof_edge(self):
         class Slab:
