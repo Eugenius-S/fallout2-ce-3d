@@ -611,6 +611,7 @@ void renderPresent()
                 // A fly camera shows the world alone.
                 if (scene_renderer::staticFlyCameraActive()) {
                     scene_renderer::swap();
+                    scene_renderer::perfEnd();
                     return;
                 }
                 if (!gRgbaBackground.empty()) {
@@ -626,6 +627,7 @@ void renderPresent()
                         static_cast<const unsigned char*>(gSdlTextureSurface->pixels),
                         gSdlTextureSurface->w, gSdlTextureSurface->h, gSdlTextureSurface->pitch);
                     scene_renderer::swap();
+                    scene_renderer::perfEnd();
                     devtools::sceneOverlayPresented();
                     return;
                 }
