@@ -23,7 +23,7 @@ int main()
 
     if (!parse({ "game" }, &options, &error) || options.enabled) return 1;
     if (!parse({ "game", "--dev-tools", "--dev-screen=1920x1080", "--dev-scale=2" }, &options, &error)
-        || !options.enabled || options.width != 1920 || options.height != 1080 || options.scale != 2) return 2;
+        || !options.enabled || options.width != 1920 || options.height != 1080 || options.scale != 2 || options.scaleFactor != 2.0) return 2;
     if (parse({ "game", "--dev-tools", "--dev-screen=bad", "--dev-scale=2" }, &options, &error) || error == nullptr) return 3;
     if (parse({ "game", "--dev-screen=1920x1080", "--dev-scale=2" }, &options, &error)) return 4;
     if (parse({ "game", "--dev-tools", "--dev-screen=1920x1080" }, &options, &error)) return 5;
@@ -36,5 +36,9 @@ int main()
     if (parse({ "game", "--dev-tools", "--dev-screen=1920x1080", "--dev-scale=2x" }, &options, &error)) return 12;
     if (parse({ "game", "--dev-tools", "--dev-screen=1920x1080", "--dev-scale=2", "--dev-scale=1" }, &options, &error)) return 13;
     if (parse({ "game", "--dev-tools", "--dev-screen=1920x1080", "--dev-screen=1280x720", "--dev-scale=2" }, &options, &error)) return 14;
+    if (!parse({ "game", "--dev-tools", "--dev-screen=2560x1440", "--dev-scale-factor=1.4" }, &options, &error)
+        || !options.enabled || options.scaleFactor != 1.4 || options.scale != 1) return 15;
+    if (parse({ "game", "--dev-tools", "--dev-screen=1920x1080", "--dev-scale-factor=3.0" }, &options, &error)) return 16;
+    if (parse({ "game", "--dev-tools", "--dev-screen=2560x1440", "--dev-scale-factor=3.1" }, &options, &error)) return 17;
     return 0;
 }

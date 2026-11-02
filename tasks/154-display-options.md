@@ -72,6 +72,6 @@ The 3D camera zoom, new art for any size, the dialogue font clipping (140).
 - 2026-11-02 Cut from the owner's request; 139 folded in.
 
 ### 2026-11-02 gpt
-Done: claimed task on a branch from origin/main; no implementation changes.
-Next: run this task with the requested gpt-6-luna, high effort, then implement and verify all acceptance criteria.
-Check: no build or runtime checks run; the current chat cannot verify or switch its model.
+Done: added resolution and window-mode choices, the 1.0x-3.0x scale slider, fractional logical sizing, legacy integer-scale loading, and English/Russian labels. Release build and ctest pass. Python scene-export tests pass (88 tests) and regression unit tests pass (12 tests). Captured Klamath at 1.4x and English/Russian options-panel evidence under runs/154-display-options/.
+Next: inspect the no-snapshot timeout from the Russian mode-dropdown capture, then complete the remaining scale, window-mode, click-coordinate, and original-view regression checks before marking done.
+Check: `cmake --build build/task154`; `ctest --test-dir build/task154 --output-on-failure` (18/18); `py -3 -m unittest discover -s tools/scene_export -p 'test*.py'` (88); `py -3 -m unittest discover -s tools/regression -p 'test*.py'` (12). One isolated `kladwtwn` 1920x1080 capture at 1.4x passed (logical 1371x771, drawable 1920x1080). The second UI capture attempt timed out without a snapshot; see draft PR #217.

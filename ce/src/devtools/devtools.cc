@@ -13,6 +13,7 @@
 #include <time.h>
 #include <cctype>
 #include <cmath>
+#include <string>
 
 #include <algorithm>
 #include <exception>
@@ -134,6 +135,7 @@ int gClockLadderStage = -1;
 bool gPreferencesSnapshotPending = false;
 bool gPreferencesSnapshotActive = false;
 bool gPreferencesSnapshotBottom = false;
+std::string gPreferencesSnapshotDropdown;
 // --dev-map-tour: the map elevations to visit after the startup one; the
 // step counts snapshots taken (-1: no tour).
 struct TourStop {
@@ -868,6 +870,16 @@ bool parseOption(const char* arg)
         gPreferencesSnapshotPending = true;
         return true;
     }
+    constexpr char preferencesDropdownPrefix[] = "--dev-preferences-dropdown=";
+    if (strncmp(arg, preferencesDropdownPrefix, sizeof(preferencesDropdownPrefix) - 1) == 0) {
+        const char* value = arg + sizeof(preferencesDropdownPrefix) - 1;
+        if (strcmp(value, "resolution") == 0 || strcmp(value, "mode") == 0) {
+            gPreferencesSnapshotDropdown = value;
+        } else {
+            fprintf(stderr, "devtools: invalid preferences dropdown (expected resolution or mode)\n");
+        }
+        return true;
+    }
     const char* sharpTextPrefix = "--dev-sharp-text=";
     if (strncmp(arg, sharpTextPrefix, strlen(sharpTextPrefix)) == 0) {
         const char* value = arg + strlen(sharpTextPrefix);
@@ -1211,6 +1223,8 @@ void applyFixedScreenOptions()
     settings.screen.resolution_x = gFixedScreenOptions.width;
     settings.screen.resolution_y = gFixedScreenOptions.height;
     settings.screen.scale = gFixedScreenOptions.scale;
+    settings.screen.scale_factor = gFixedScreenOptions.scaleFactor;
+    settings.screen.resolution_mode = 0;
     settings.screen.windowed = WindowMode::Windowed;
     // A background test run shares game/fallout2.cfg with the owner's game:
     // the owner's zoom and camera rotation must not move its views.
@@ -1223,8 +1237,8 @@ void applyFixedScreenOptions()
         settings.scene3d.cloud_shadows = gBackgroundShadows || gBackgroundCloudShadows;
         if (gDevNoSpriteSides) settings.scene3d.sprite_sides = false;
     }
-    debugPrint("DEVTOOLS: fixed screen %dx%d scale %d, windowed, glow %d%s\n",
-        gFixedScreenOptions.width, gFixedScreenOptions.height, gFixedScreenOptions.scale,
+    debugPrint("DEVTOOLS: fixed screen %dx%d scale %.1fx, windowed, glow %d%s\n",
+        gFixedScreenOptions.width, gFixedScreenOptions.height, gFixedScreenOptions.scaleFactor,
         settings.scene3d.glow ? 1 : 0, gBackgroundGlow ? " (kept on)" : "");
 }
 
@@ -1926,6 +1940,11 @@ bool preferencesSnapshotRequested()
 bool preferencesSnapshotAtBottom()
 {
     return gPreferencesSnapshotBottom;
+}
+
+const char* preferencesSnapshotDropdown()
+{
+    return gPreferencesSnapshotDropdown.c_str();
 }
 
 bool suppressInitialSceneEnable()
@@ -3570,6 +3589,7 @@ bool takeSnapshot()
         "  \"resolution\": \"%dx%d\",\n"
         "  \"logical_resolution\": \"%dx%d\",\n"
         "  \"scale\": %d,\n"
+        "  \"scale_factor\": %.1f,\n"
         "  \"windowed\": %s,\n"
         "  \"drawable\": \"%dx%d\",\n"
         "  \"ce_commit\": \"%s\",\n"
@@ -3619,6 +3639,7 @@ bool takeSnapshot()
         screenGetWidth(),
         screenGetHeight(),
         settings.screen.scale,
+        settings.screen.scale_factor,
         settings.screen.windowed == WindowMode::Windowed ? "true" : "false",
         drawableW,
         drawableH,

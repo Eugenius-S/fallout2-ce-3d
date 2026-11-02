@@ -1,6 +1,7 @@
 #include "svga.h"
 
 #include <limits.h>
+#include <cmath>
 #include <stdio.h>
 #include <string.h>
 
@@ -169,19 +170,23 @@ void _zero_vid_mem()
 // 0x4CAE1C GNW95_init_mode_ex
 int _GNW95_init_mode_ex(int width, int height, int bpp)
 {
-    width = settings.screen.resolution_x;
-    height = settings.screen.resolution_y;
-    int scale = settings.screen.scale;
+    int outputWidth = settings.screen.resolution_x;
+    int outputHeight = settings.screen.resolution_y;
+    if (settings.screen.resolution_mode > 0) {
+        outputWidth = settings.screen.resolution_mode / 10000;
+        outputHeight = settings.screen.resolution_mode % 10000;
+    }
+    double factor = settings.screen.scale_factor;
+    width = static_cast<int>(std::lround(outputWidth / factor));
+    height = static_cast<int>(std::lround(outputHeight / factor));
 
-    // Only allow scaling if resulting game resolution is >= 640x480
-    if ((width / scale) < 640 || (height / scale) < 480) {
-        scale = 1;
-    } else {
-        width /= scale;
-        height /= scale;
+    // Preserve the minimum game surface size even for a stale configuration.
+    if (width < 640 || height < 480) {
+        width = outputWidth;
+        height = outputHeight;
     }
 
-    if (_GNW95_init_window(width, height, settings.screen.windowed, scale) == -1) {
+    if (_GNW95_init_window(width, height, settings.screen.windowed, outputWidth, outputHeight) == -1) {
         return -1;
     }
 
@@ -218,7 +223,7 @@ int _init_vesa_mode(int width, int height)
 }
 
 // 0x4CAEDC GNW95_init_window
-int _GNW95_init_window(int width, int height, WindowMode mode, int scale)
+int _GNW95_init_window(int width, int height, WindowMode mode, int outputWidth, int outputHeight)
 {
     if (gSdlWindow == nullptr) {
         SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");
@@ -244,7 +249,7 @@ int _GNW95_init_window(int width, int height, WindowMode mode, int scale)
             windowY = -20000;
         }
 
-        gSdlWindow = SDL_CreateWindow(gProgramWindowTitle, windowX, windowY, width * scale, height * scale, windowFlags);
+        gSdlWindow = SDL_CreateWindow(gProgramWindowTitle, windowX, windowY, outputWidth, outputHeight, windowFlags);
         if (gSdlWindow == nullptr) {
             return -1;
         }

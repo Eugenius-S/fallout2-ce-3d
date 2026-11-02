@@ -1,5 +1,7 @@
 #include "options_panel_model.h"
 
+#include <cstring>
+
 namespace fallout {
 
 namespace {
@@ -31,7 +33,12 @@ std::vector<OptionsPanelRow> optionsPanelRows(const std::vector<OptionsSettingEd
     for (const auto& edit : edits) {
         if (edit.descriptor == nullptr) continue;
         const SettingDescriptor& descriptor = *edit.descriptor;
-        if (descriptor.section != section) continue;
+        // The display scale belongs at the start of the 3D settings page,
+        // where the player now chooses the complete game presentation.
+        if (descriptor.section != section
+            && !(std::strcmp(section, "3d") == 0
+                && (descriptor.id == "screen.scale_factor" || descriptor.id == "screen.resolution_mode"
+                    || descriptor.id == "screen.windowed"))) continue;
         rows.push_back({ &edit, controlFor(descriptor) });
     }
     return rows;

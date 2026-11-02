@@ -53,6 +53,8 @@ param(
     [string]$Tour,
     [switch]$Classic,
     [switch]$Preferences,
+    [ValidateSet('resolution', 'mode')]
+    [string]$PreferencesDropdown,
     [switch]$DevPanel,
     [ValidateSet('Top', 'Bottom')]
     [string]$PreferencesPosition = 'Top',
@@ -79,6 +81,8 @@ param(
     # -Solo R: only the things within R hexes of -ViewTile, no walls or roofs.
     [int]$Solo = -1,
     [string]$OutputDirectory,
+    [string]$BuildExecutable,
+    [string]$TestDirectory,
     [string]$SceneCache,
     [ValidateSet('english', 'russian')]
     [string]$Language,
@@ -153,8 +157,8 @@ param(
     [int]$ScreenWidth = 1920,
     [ValidateRange(480, 4320)]
     [int]$ScreenHeight = 1080,
-    [ValidateRange(1, 4)]
-    [int]$Scale = 2
+    [ValidateRange(1.0, 3.0)]
+    [double]$Scale = 2.0
 )
 $ErrorActionPreference = 'Stop'
 if ($ClockLadder) {
@@ -230,13 +234,13 @@ if (-not (Test-Path -LiteralPath $GameDir)) {
     $main = (git -C $Root worktree list --porcelain | Select-Object -First 1) -replace '^worktree ', ''
     $GameDir = Join-Path $main 'game'
 }
-$built = Join-Path $Root 'build\fallout2-ce.exe'
+$built = if ($BuildExecutable) { [System.IO.Path]::GetFullPath((Join-Path $Root $BuildExecutable)) } else { Join-Path $Root 'build\fallout2-ce.exe' }
 if (-not (Test-Path $built)) { throw "No build at $built; run tools/configure-build.ps1 first." }
 # The exe's own folder holds the config: build it fresh from the fixed one, so
 # a saved setting can never leak into the next run.
 $fixedConfig = Join-Path $PSScriptRoot 'test-config\fallout2.cfg'
 if (-not (Test-Path -LiteralPath $fixedConfig)) { throw "Missing the fixed test config: $fixedConfig" }
-$exeDirectory = Join-Path $Root 'build\test-run'
+$exeDirectory = if ($TestDirectory) { [System.IO.Path]::GetFullPath((Join-Path $Root $TestDirectory)) } else { Join-Path $Root 'build\test-run' }
 New-Item -ItemType Directory -Path $exeDirectory -Force | Out-Null
 $exe = Join-Path $exeDirectory 'fallout2-ce-test.exe'
 # One test game at a time per worktree (they share this exe and its config);
@@ -343,9 +347,10 @@ $configHashBefore = (Get-FileHash -LiteralPath $configPath -Algorithm SHA256).Ha
 $initialZoom = Get-TestConfigValue $configPath '3d' 'zoom'
 $initialEnabled = Get-TestConfigValue $configPath '3d' 'enabled'
 $initialDifficulty = Get-TestConfigValue $configPath 'preferences' 'combat_difficulty'
-if (($ScreenWidth % $Scale) -ne 0 -or ($ScreenHeight % $Scale) -ne 0 -or
-    ($ScreenWidth / $Scale) -lt 640 -or ($ScreenHeight / $Scale) -lt 480) {
-    throw 'The requested scale must divide the screen and leave at least a 640x480 logical framebuffer.'
+$logicalWidth = [int][Math]::Round($ScreenWidth / $Scale, [MidpointRounding]::AwayFromZero)
+$logicalHeight = [int][Math]::Round($ScreenHeight / $Scale, [MidpointRounding]::AwayFromZero)
+if ($logicalWidth -lt 640 -or $logicalHeight -lt 480) {
+    throw 'The requested scale must leave at least a 640x480 logical framebuffer.'
 }
 if (-not (Test-Path -LiteralPath $exe) -or
     (Get-FileHash -LiteralPath $built).Hash -ne (Get-FileHash -LiteralPath $exe).Hash) {
@@ -379,7 +384,9 @@ if ($DialogLayoutCheck) { $arguments += '--dev-dialog-layout-check' }
 if ($PreferencesProbe) {
     $arguments += @('--dev-new-game', "--dev-map=$Map", "--dev-elevation=$Elevation", "--dev-preferences-probe=$PreferencesProbe")
 } else {
-    $arguments += @("--dev-screen=${ScreenWidth}x${ScreenHeight}", "--dev-scale=$Scale",
+    $scaleText = $Scale.ToString('0.0#', [Globalization.CultureInfo]::InvariantCulture)
+    $scaleArgument = if ([Math]::Abs($Scale - [Math]::Round($Scale)) -lt 0.0001) { "--dev-scale=$([int][Math]::Round($Scale))" } else { "--dev-scale-factor=$scaleText" }
+    $arguments += @("--dev-screen=${ScreenWidth}x${ScreenHeight}", $scaleArgument,
         '--dev-new-game', "--dev-map=$Map", "--dev-elevation=$Elevation", "--dev-snapshot-run=$runId")
 }
 if ($Glow) { $arguments += '--dev-glow' }
@@ -405,6 +412,7 @@ if ($PreferencesProbe) {
     if ($Probe -or $Tour -or $Still) { throw '-Preferences cannot be combined with -Probe, -Tour, or -Still.' }
     if ($Classic) { $arguments += '--dev-classic' }
     $arguments += '--dev-preferences-snapshot'
+    if ($PreferencesDropdown) { $arguments += "--dev-preferences-dropdown=$PreferencesDropdown" }
     if ($PreferencesPosition -eq 'Bottom') { $arguments += '--dev-preferences-bottom' }
 } elseif ($Classic) { $arguments += '--dev-classic' }
 elseif (-not $NoPreview) { $arguments += '--dev-hero-preview' }
@@ -702,10 +710,12 @@ if ($UiFixture) {
         $barkMetadata = Get-Content -Raw -LiteralPath $ordered[0].FullName | ConvertFrom-Json
         $clearMetadata = Get-Content -Raw -LiteralPath $ordered[-1].FullName | ConvertFrom-Json
         $expectedResolution = "${ScreenWidth}x${ScreenHeight}"
-        $expectedLogicalResolution = "$([int]($ScreenWidth / $Scale))x$([int]($ScreenHeight / $Scale))"
+        $expectedLogicalResolution = "${logicalWidth}x${logicalHeight}"
+        $expectedLegacyScale = [int][Math]::Round($Scale)
         foreach ($metadata in @($barkMetadata, $clearMetadata)) {
             if ($metadata.snapshot_run -ne $runId -or $metadata.resolution -ne $expectedResolution -or
-                $metadata.logical_resolution -ne $expectedLogicalResolution -or $metadata.scale -ne $Scale) {
+                $metadata.logical_resolution -ne $expectedLogicalResolution -or $metadata.scale -ne $expectedLegacyScale -or
+                [Math]::Abs([double]$metadata.scale_factor - $Scale) -gt 0.01) {
                 throw 'Bark fixture metadata does not match the requested dimensions and scale.'
             }
         }
@@ -725,9 +735,11 @@ if ($UiFixture) {
     if ($snapshots.Count -lt 1) { throw "UI fixture '$UiFixture' passed without a framebuffer snapshot." }
     $uiMetadata = Get-Content -Raw -LiteralPath $snapshots[0].FullName | ConvertFrom-Json
     $expectedResolution = "${ScreenWidth}x${ScreenHeight}"
-    $expectedLogicalResolution = "$([int]($ScreenWidth / $Scale))x$([int]($ScreenHeight / $Scale))"
+    $expectedLogicalResolution = "${logicalWidth}x${logicalHeight}"
+    $expectedLegacyScale = [int][Math]::Round($Scale)
     if ($uiMetadata.snapshot_run -ne $runId -or $uiMetadata.resolution -ne $expectedResolution -or
-        $uiMetadata.logical_resolution -ne $expectedLogicalResolution -or $uiMetadata.scale -ne $Scale) {
+        $uiMetadata.logical_resolution -ne $expectedLogicalResolution -or $uiMetadata.scale -ne $expectedLegacyScale -or
+        [Math]::Abs([double]$uiMetadata.scale_factor - $Scale) -gt 0.01) {
         throw "UI fixture '$UiFixture' snapshot metadata does not match the requested run, dimensions, and scale."
     }
     $passLine = [regex]::Match($fixtureLog, '(?m)^UI_FIXTURE PASS screen=' + [regex]::Escape($UiFixture) + ' window=(\d+) generation=(\d+) font=101 runs=(\d+) screen_runs=(\d+) visible_runs=(\d+) visible_coverage=(\d+) overlay_runs=(\d+) overlay_pixels=(\d+)')

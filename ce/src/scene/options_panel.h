@@ -51,6 +51,7 @@ public:
     void setButtonLayout(const std::vector<std::pair<int, int>>& legacyButtons, int speedButton, int speedTop, const std::vector<int>& rowButtons);
     void setScroll(int value);
     void showPanelForSnapshot(bool bottom);
+    void showDropdownForSnapshot(const std::string& settingId);
     void draw();
     void refresh();
     bool handleEvent(int eventCode);
@@ -70,6 +71,9 @@ private:
         int top = 0;
     };
     void drawRows();
+    void drawDropdown();
+    int dropdownVisibleItemCount();
+    void updateScaleRange();
     void buildRowLayout();
     void compose();
     void buildBackgroundTexture();
@@ -110,6 +114,11 @@ private:
     std::unique_ptr<OptionsSettingsModel> model_;
     std::string error_;
     int selectedRow_ = 0;
+    int dropdownRow_ = -1;
+    int dropdownScroll_ = 0;
+    int dropdownHighlight_ = 0;
+    bool dropdownAbove_ = false;
+    int displayIndex_ = 0;
     std::vector<std::pair<int, int>> legacyButtons_;
     std::unordered_map<int, int> buttonLefts_;
     std::unordered_map<int, int> buttonWidths_;

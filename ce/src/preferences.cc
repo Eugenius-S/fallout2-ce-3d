@@ -1337,7 +1337,12 @@ int doPreferences(bool animated)
 
     int rc = -1;
     if (devtools::preferencesSnapshotRequested() && !devtools::preferencesProbeRequested()) {
-        if (gOptionsPanel != nullptr) gOptionsPanel->showPanelForSnapshot(devtools::preferencesSnapshotAtBottom());
+        if (gOptionsPanel != nullptr) {
+            gOptionsPanel->showPanelForSnapshot(devtools::preferencesSnapshotAtBottom());
+            if (devtools::preferencesSnapshotDropdown()[0] != '\0') {
+                gOptionsPanel->showDropdownForSnapshot(devtools::preferencesSnapshotDropdown());
+            }
+        }
         renderPresent();
         devtools::takeSnapshot();
         rc = 1;
@@ -1353,6 +1358,8 @@ int doPreferences(bool animated)
             gOptionsPanel->handleWheel();
         } else if (gOptionsPanel != nullptr && gOptionsPanel->handleKey(eventCode)) {
             // The options panel consumed a navigation or value key.
+        } else if (gOptionsPanel != nullptr && gOptionsPanel->handleEvent(eventCode)) {
+            // The options panel consumed a row click or dropdown selection.
         } else switch (eventCode) {
         case KEY_RETURN:
         case KEY_UPPERCASE_P:
@@ -1390,8 +1397,6 @@ int doPreferences(bool animated)
                 rc = 0;
             } else if (eventCode >= 505 && eventCode <= 524) {
                 _DoThing(eventCode);
-            } else if (gOptionsPanel != nullptr) {
-                gOptionsPanel->handleEvent(eventCode);
             }
             break;
         }

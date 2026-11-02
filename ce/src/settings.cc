@@ -292,9 +292,53 @@ void initSettingsRegistry(bool isMapper)
 #define SECT screen
     SETTING_P(resolution_x, clamp(640, 7680));
     SETTING_P(resolution_y, clamp(480, 4320));
+    SETTING_P(resolution_mode, clamp(0, 76804320));
     SETTING_P(windowed, clamp(WindowMode::Fullscreen, WindowMode::WindowedFullscreen));
     SETTING(mouse_lock);
     SETTING_P(scale, clamp(1, 4));
+    registerSetting("screen", "scale_factor", settings.screen.scale_factor, clamp(1.0, 3.0));
+    settingsRegistry.back().read = []() {
+        double factor = settings.screen.scale;
+        if (settingsKeyExists("screen", "scale_factor")) {
+            settingsRead("screen", "scale_factor", factor);
+        }
+        factor = std::clamp(factor, 1.0, 3.0);
+        settings.screen.scale_factor = std::round((factor - 1.0) * 5.0) / 5.0 + 1.0;
+    };
+    SettingDescriptor& scaleFactorDescriptor = settingDescriptors.back();
+    scaleFactorDescriptor.category = SettingCategory::Screen;
+    scaleFactorDescriptor.applyPolicy = SettingApplyPolicy::Restart;
+    scaleFactorDescriptor.subsection = "Display";
+    scaleFactorDescriptor.fallbackLabel = "Picture and interface scale";
+    scaleFactorDescriptor.fallbackDescription = "Scales the game picture and interface from 1.0x to 3.0x.";
+    scaleFactorDescriptor.numericRange = SettingNumericRange { 1.0, 3.0, 0.2 };
+    settingsRegistry.back().descriptor = scaleFactorDescriptor;
+    settingsRegistry.back().write = [](bool onlyAdd) {
+        if (onlyAdd && (settingsKeyExists("screen", "scale_factor") || settingsKeyExists("screen", "scale"))) return;
+        settingsWrite("screen", "scale_factor", onlyAdd ? 1.0 : settings.screen.scale_factor);
+    };
+    SettingDescriptor& resolutionModeDescriptor = settingDescriptors[settingDescriptors.size() - 5];
+    resolutionModeDescriptor.valueType = SettingValueType::Choice;
+    resolutionModeDescriptor.category = SettingCategory::Screen;
+    resolutionModeDescriptor.applyPolicy = SettingApplyPolicy::Restart;
+    resolutionModeDescriptor.subsection = "Display";
+    resolutionModeDescriptor.fallbackLabel = "Resolution";
+    resolutionModeDescriptor.fallbackDescription = "Select an available display resolution.";
+    settingsRegistry[settingsRegistry.size() - 5].descriptor = resolutionModeDescriptor;
+
+    SettingDescriptor& windowModeDescriptor = settingDescriptors[settingDescriptors.size() - 4];
+    windowModeDescriptor.valueType = SettingValueType::Choice;
+    windowModeDescriptor.category = SettingCategory::Screen;
+    windowModeDescriptor.applyPolicy = SettingApplyPolicy::Restart;
+    windowModeDescriptor.subsection = "Display";
+    windowModeDescriptor.fallbackLabel = "Window mode";
+    windowModeDescriptor.fallbackDescription = "Choose fullscreen, windowed, or borderless mode.";
+    windowModeDescriptor.choices = {
+        { static_cast<int>(WindowMode::Fullscreen), "Fullscreen" },
+        { static_cast<int>(WindowMode::Windowed), "Window" },
+        { static_cast<int>(WindowMode::WindowedFullscreen), "Borderless" },
+    };
+    settingsRegistry[settingsRegistry.size() - 4].descriptor = windowModeDescriptor;
 #undef SECT
 
 #define SECT ui
