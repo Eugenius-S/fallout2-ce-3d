@@ -239,3 +239,17 @@ fly tour vs main 2 of 43 spots changed (klamall 23145, kladwtwn 17104), both
 the listed cards. Crops: runs/129-flat-cards/. `reviewed: no` (format change).
 Next: 6 is 101 (flat roof moss fringe); 7 and 10 are 145 (map-edge quad).
 Check: runs/129-flat-cards/mattress-floor.jpg.
+
+### 2026-11-02 claude: find 6 fixed (#223)
+
+Done: PR #223 `129: roof fringe stands`, merged. Roof tiles that are sparse dark
+ragged growth (told by their art, no list: roof_fringe.py) stand up as two
+crossed upright sheets under the fly camera; floor.bin version 3 and
+roof_fringe.png carry them; the game's camera keeps the flat squares. Found on
+klamall e0 and kladwtwn e0. Codex's depth comment fixed (roofs write depth
+before the sheets). ctest 18/18, exporter tests 93 OK, original-view
+regression 16/16 with 0 changed pixels, fly tour 25 of 43 spots changed (the
+fringe on those two maps). `reviewed: no` (format change). Not changed: the
+torn thatch edge tiles (solid roof with ragged holes) stay flat, they are roof.
+Next: 7 and 10 are 145 (map-edge quad).
+Check: runs/129-roof-fringe/klamall-16098-before-after.jpg.
