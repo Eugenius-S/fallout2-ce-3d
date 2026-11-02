@@ -97,11 +97,15 @@ bool loadStaticFloor(const std::filesystem::path& cacheDirectory, std::string* e
     // entry; version 4's entries are runs of wall tops: the tile edge (0-3),
     // the wall's tile line, the first square along it and the number of squares,
     // then the rect of the run's strip in roof_fringe.png.
+    // A version 3 list (10-byte entries, crossed sheets) is read for its size
+    // only: its roofs stay flat squares.
     constexpr size_t kFringeEntryBytes = 16;
+    const size_t entryBytes = version == 3 ? 10 : kFringeEntryBytes;
     const size_t layerBytes = version >= 2 ? 2 * kFloorBytes : kFloorBytes;
     const size_t cellsEnd = kHeaderSize + layerBytes + static_cast<size_t>(tileCount) * 4;
-    const size_t fringeCount = version == 4 && sidecar.size() >= cellsEnd + 2 ? readU16(sidecar.data() + cellsEnd) : 0;
-    const size_t expectedSize = cellsEnd + (version == 4 ? 2 + fringeCount * kFringeEntryBytes : 0);
+    const size_t listedCount = version >= 3 && sidecar.size() >= cellsEnd + 2 ? readU16(sidecar.data() + cellsEnd) : 0;
+    const size_t fringeCount = version == 4 ? listedCount : 0;
+    const size_t expectedSize = cellsEnd + (version >= 3 ? 2 + listedCount * entryBytes : 0);
     if ((version < 1 || version > 4) || gridWidth != 100 || gridHeight != 100 || tileCount == 0
         || cellSize != 88 || cellMargin != 6 || imageWidth == 0 || imageHeight == 0
         || imageWidth > 8192 || imageHeight > 8192
