@@ -38,3 +38,8 @@ them.
 3. The shadow textures were allocated all in one frame on the first switch of
    shadows on. They are now made one per frame, and at scene load when
    shadows are already on, so nothing is built mid-game.
+
+## Checks
+
+The fly tour against main (same scene caches on both sides) changed 0 of 43
+spots (`changed.jpg`). The pixel regression changed 0 pixels on every map.
