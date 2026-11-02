@@ -19,6 +19,8 @@ public:
     OptionsSettingsModel();
 
     const std::vector<OptionsSettingEdit>& edits() const;
+    bool configureChoice(const std::string& id, const std::vector<SettingChoice>& choices);
+    bool configureNumericRange(const std::string& id, const SettingNumericRange& range);
     bool setValue(const std::string& id, const SettingValue& value, std::string* error = nullptr);
     bool resetToDefault(const std::string& id, std::string* error = nullptr);
     bool isDirty() const;
@@ -31,6 +33,7 @@ private:
     const OptionsSettingEdit* findEdit(const std::string& id) const;
 
     std::vector<OptionsSettingEdit> edits_;
+    std::vector<SettingDescriptor> descriptors_;
 };
 
 } // namespace fallout

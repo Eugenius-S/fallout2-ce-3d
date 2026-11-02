@@ -13,6 +13,7 @@
 #include <time.h>
 #include <cctype>
 #include <cmath>
+#include <string>
 
 #include <algorithm>
 #include <exception>
@@ -134,6 +135,7 @@ int gClockLadderStage = -1;
 bool gPreferencesSnapshotPending = false;
 bool gPreferencesSnapshotActive = false;
 bool gPreferencesSnapshotBottom = false;
+std::string gPreferencesSnapshotDropdown;
 // --dev-map-tour: the map elevations to visit after the startup one; the
 // step counts snapshots taken (-1: no tour).
 struct TourStop {
@@ -758,6 +760,10 @@ bool parseOption(const char* arg)
         gEnabled = true;
         return true;
     }
+    if (gEnabled && parseScriptedInputOption(arg)) {
+        gPreferencesSnapshotPending = true;
+        return true;
+    }
     if (strcmp(arg, "--dev-panel-snapshot") == 0) {
         gPanelSnapshotPending = gEnabled;
         return true;
@@ -866,6 +872,16 @@ bool parseOption(const char* arg)
     if (parseUiFixtureFont101WeightOption(arg)) return true;
     if (strcmp(arg, "--dev-preferences-snapshot") == 0) {
         gPreferencesSnapshotPending = true;
+        return true;
+    }
+    constexpr char preferencesDropdownPrefix[] = "--dev-preferences-dropdown=";
+    if (strncmp(arg, preferencesDropdownPrefix, sizeof(preferencesDropdownPrefix) - 1) == 0) {
+        const char* value = arg + sizeof(preferencesDropdownPrefix) - 1;
+        if (strcmp(value, "resolution") == 0 || strcmp(value, "mode") == 0) {
+            gPreferencesSnapshotDropdown = value;
+        } else {
+            fprintf(stderr, "devtools: invalid preferences dropdown (expected resolution or mode)\n");
+        }
         return true;
     }
     const char* sharpTextPrefix = "--dev-sharp-text=";
@@ -1211,6 +1227,8 @@ void applyFixedScreenOptions()
     settings.screen.resolution_x = gFixedScreenOptions.width;
     settings.screen.resolution_y = gFixedScreenOptions.height;
     settings.screen.scale = gFixedScreenOptions.scale;
+    settings.screen.scale_factor = gFixedScreenOptions.scaleFactor;
+    settings.screen.resolution_mode = 0;
     settings.screen.windowed = WindowMode::Windowed;
     // A background test run shares game/fallout2.cfg with the owner's game:
     // the owner's zoom and camera rotation must not move its views.
@@ -1223,8 +1241,8 @@ void applyFixedScreenOptions()
         settings.scene3d.cloud_shadows = gBackgroundShadows || gBackgroundCloudShadows;
         if (gDevNoSpriteSides) settings.scene3d.sprite_sides = false;
     }
-    debugPrint("DEVTOOLS: fixed screen %dx%d scale %d, windowed, glow %d%s\n",
-        gFixedScreenOptions.width, gFixedScreenOptions.height, gFixedScreenOptions.scale,
+    debugPrint("DEVTOOLS: fixed screen %dx%d scale %.1fx, windowed, glow %d%s\n",
+        gFixedScreenOptions.width, gFixedScreenOptions.height, gFixedScreenOptions.scaleFactor,
         settings.scene3d.glow ? 1 : 0, gBackgroundGlow ? " (kept on)" : "");
 }
 
@@ -1415,6 +1433,10 @@ void update()
 {
     if (!gEnabled) {
         return;
+    }
+    if (!gPreferencesSnapshotActive && scriptedInputActive() && scriptedInputStarted()) {
+        scriptedInputPump();
+        if (scriptedInputTakeSnapshotRequest()) { renderPresent(); takeSnapshot(); }
     }
     // The startup --dev-map travel retries here until the opening movie is
     // over and the transition is accepted (089).
@@ -1926,6 +1948,11 @@ bool preferencesSnapshotRequested()
 bool preferencesSnapshotAtBottom()
 {
     return gPreferencesSnapshotBottom;
+}
+
+const char* preferencesSnapshotDropdown()
+{
+    return gPreferencesSnapshotDropdown.c_str();
 }
 
 bool suppressInitialSceneEnable()
@@ -3460,6 +3487,13 @@ bool takeSnapshot()
     }
     int drawableW = capturedWidth;
     int drawableH = capturedHeight;
+    int windowW = capturedWidth;
+    int windowH = capturedHeight;
+    int windowX = 0;
+    int windowY = 0;
+    int sdlDrawableW = capturedWidth;
+    int sdlDrawableH = capturedHeight;
+    Uint32 windowFlags = 0;
     unsigned int wallTriangles = 0;
     unsigned int wallPages = 0;
     if (withWalls) scene_renderer::staticWallStats(&wallTriangles, &wallPages);
@@ -3515,8 +3549,15 @@ bool takeSnapshot()
             "{\"enabled\":false,\"setting_enabled\":%s,\"variant\":\"%s\",\"source\":\"disabled\"}",
             scene::cleanEdges() ? "true" : "false", clipVariant);
     }
+    if (gSdlWindow != nullptr) {
+        SDL_GetWindowPosition(gSdlWindow, &windowX, &windowY);
+        SDL_GetWindowSize(gSdlWindow, &windowW, &windowH);
+        SDL_GL_GetDrawableSize(gSdlWindow, &sdlDrawableW, &sdlDrawableH);
+        windowFlags = SDL_GetWindowFlags(gSdlWindow);
+    }
     if (!preview && gSdlWindow != nullptr) {
-        SDL_GL_GetDrawableSize(gSdlWindow, &drawableW, &drawableH);
+        drawableW = sdlDrawableW;
+        drawableH = sdlDrawableH;
     }
     // Preview snapshots come before the first frame that would update it.
     scene::updateSunFromGame();
@@ -3570,8 +3611,11 @@ bool takeSnapshot()
         "  \"resolution\": \"%dx%d\",\n"
         "  \"logical_resolution\": \"%dx%d\",\n"
         "  \"scale\": %d,\n"
+        "  \"scale_factor\": %.1f,\n"
         "  \"windowed\": %s,\n"
         "  \"drawable\": \"%dx%d\",\n"
+        "  \"sdl_window\": {\"flags\": %u,\"window_position\": \"%d,%d\",\"window_size\": \"%dx%d\",\"drawable_size\": \"%dx%d\","
+        "\"fullscreen\": %s,\"fullscreen_desktop\": %s,\"borderless\": %s},\n"
         "  \"ce_commit\": \"%s\",\n"
         "  \"tools_commit\": \"%s\",\n"
         "  \"exe_sha256\": \"%s\",\n"
@@ -3619,9 +3663,21 @@ bool takeSnapshot()
         screenGetWidth(),
         screenGetHeight(),
         settings.screen.scale,
+        settings.screen.scale_factor,
         settings.screen.windowed == WindowMode::Windowed ? "true" : "false",
         drawableW,
         drawableH,
+        windowFlags,
+        windowX,
+        windowY,
+        windowW,
+        windowH,
+        sdlDrawableW,
+        sdlDrawableH,
+        (windowFlags & SDL_WINDOW_FULLSCREEN) != 0 ? "true" : "false",
+        (windowFlags & SDL_WINDOW_FULLSCREEN_DESKTOP) == SDL_WINDOW_FULLSCREEN_DESKTOP ? "true" : "false",
+        ((windowFlags & SDL_WINDOW_BORDERLESS) != 0
+                || (windowFlags & SDL_WINDOW_FULLSCREEN_DESKTOP) == SDL_WINDOW_FULLSCREEN_DESKTOP) ? "true" : "false",
         _BUILD_HASH,
         gToolsCommit,
         exeSha,
