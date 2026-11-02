@@ -70,7 +70,7 @@ void pushFringeBand(std::vector<FloorVertex>& vertices, const RoofSquare& square
         const RoofSquare::FringePiece& piece = square.pieces[n];
         const bool alongU = piece.edge < 2;
         const float span0 = piece.span0, span1 = piece.span1;
-        const float top = piece.bottom + roofY * kBandStorey;
+        const float top = piece.bottom + roofY * (piece.rows / static_cast<float>(kRoofPixels));
         auto at = [&](float along, float y, float tu, float tv) {
             return alongU ? FloorVertex { along, y, piece.plane, tu, tv } : FloorVertex { piece.plane, y, along, tu, tv };
         };

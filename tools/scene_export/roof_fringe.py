@@ -17,6 +17,8 @@ screen until the wall line is horizontal, so the concrete lies along the bottom
 of the strip and the rebar stands up from it. roof_fringe.png holds the strips;
 the renderer stands each run up as a band on the wall below the roof edge,
 in the plane of that wall's outer face, under the free camera (see roofs.cc).
+The band is a belt, the wall's own art going on up (belt_art), with the
+ragged edge on it: the strip's lowest rows (compose_band).
 Each run is matched to its wall (wall_under) by a general rule; a run with no
 wall under it is not exported and its squares stay flat.
 """
@@ -163,11 +165,99 @@ def unroll(edge, plane, start, members):
     return strip
 
 
+BELT_ROWS = 16  # the band's lower part, from the wall's own art, in art pixels
+EDGE_ROWS = 22  # the ragged edge on it: the strip's lowest rows (the concrete and the rebar's foot)
+ODD_LUMA = 1.4  # a wall row whose picture is this much brighter or darker than the median row's is left out
+SOLID_SHARE = 0.95  # of the wall picture's rows the belt takes: opaque, or it is no wall
+BELT_LAP = 4    # the belt reaches this far up into the edge's rows, under its concrete
+
+
+def belt_art(rows, walls, sprites, pages, hpx, run):
+    """The band's belt of one run: the wall's own art continued upward, as rgba.
+
+    A wall's front picture is the same for every storey that stands on it: the
+    belt takes the picture's rows just under the wall's cap line (the plain
+    concrete, never the top band above it) and goes up from the cap in the
+    mirror of them, so it meets the wall without a seam, and one texel of it
+    is one texel of the wall. Its columns are the strip's, each the wall's
+    column at that place along the run. Returns (BELT_ROWS + BELT_LAP, width,
+    4), its last row the lowest, or None when the wall has no picture to take.
+    run: (edge, plane, start, members) as runs_of makes them.
+    """
+    from fp import proj
+    edge, _, start, members = run
+    axis = 0 if edge < 2 else 1
+    count = len(members)
+    width = int(round(count * (-proj.SQ_U[0] if edge < 2 else proj.SQ_V[0])))
+    pieces = []
+    for index in rows:
+        row = walls[index]
+        sa, sb = row[1 + axis], row[3 + axis]
+        if sa == sb or not 0 <= int(row[0]) < len(sprites):
+            continue
+        page, x, y, w, h = (int(value) for value in sprites[int(row[0])][:5])
+        top = int(round(min(max((row[6] - row[9]) * hpx, 0.0), h - 1.0)))
+        # a picture with clear texels there (a fence, a window) is no wall to go on up
+        block = pages[page][y + top:y + top + BELT_ROWS + BELT_LAP, x:x + w, 3]
+        if block.size == 0 or (block == 255).mean() < SOLID_SHARE:
+            continue
+        pieces.append((min(sa, sb), max(sa, sb), sa, sb, pages[page], x, y + top, w, h - top,
+                       float(pages[page][y + top:y + top + BELT_ROWS + BELT_LAP, x:x + w, :3].mean())))
+    if not pieces or width <= 0:
+        return None
+    # a grate or a gate among plain wall rows is not what the wall goes on as: the brightness tells it
+    median = float(np.median([piece[9] for piece in pieces]))
+    pieces = [piece for piece in pieces if median / ODD_LUMA <= piece[9] <= median * ODD_LUMA]
+    total = BELT_ROWS + BELT_LAP
+    belt = np.zeros((total, width, 4), np.uint8)
+    for column in range(width):
+        # the strip's columns run left to right on the screen: against u, with v
+        fraction = (column + 0.5) / width
+        place = start + count - fraction * count if edge < 2 else start + fraction * count
+        low, high, sa, sb, page, x, y, w, h, _ = min(
+            pieces, key=lambda piece: max(piece[0] - place, place - piece[1], 0.0))
+        # a place past the picture's ends (the run is longer than its wall's rows) repeats the picture
+        at = x + min(int(((place - sa) / (sb - sa)) % 1.0 * w), w - 1)
+        texels = page[y:y + h, at]
+        solid = np.flatnonzero(texels[:, 3] == 255)
+        if not len(solid):
+            continue
+        for j in range(total):
+            # row j above the cap line takes the texel j under it, a clear one the next solid
+            belt[total - 1 - j, column] = texels[solid[np.searchsorted(solid, min(j, h - 1)) % len(solid)]]
+    return belt
+
+
+def compose_band(strip, belt):
+    """The strip of a run with its belt: BELT_ROWS + EDGE_ROWS rows of rgba.
+
+    The ragged edge is the strip's lowest EDGE_ROWS rows, standing on the belt;
+    the belt (opaque, from the wall's art) reaches BELT_LAP rows into the
+    edge's, under its concrete, so no gap shows between them. Without a belt
+    the strip's lowest rows stand alone.
+    """
+    total = BELT_ROWS + EDGE_ROWS
+    edge = strip[-EDGE_ROWS:]
+    if belt is None:
+        return np.ascontiguousarray(strip[-total:])
+    band = np.zeros((total, strip.shape[1], 4), np.uint8)
+    band[EDGE_ROWS - BELT_LAP:] = belt
+    painted = edge[..., 3] > 0
+    band[:EDGE_ROWS][painted] = edge[painted]
+    return band
+
+
 WALL_REACH = 0.35  # a wall is under a roof edge when the edge lies this near its body, in tiles
 END_REACH = 0.4    # a band's end meets the next wall within this reach beyond the run, in tiles
 
 
 def wall_under(slabs, walls, edge, plane, start, count):
+    """The wall a run of roof edge squares stands over, or None (see wall_group)."""
+    group = wall_group(slabs, walls, edge, plane, start, count)
+    return None if group is None else group[:4]
+
+
+def wall_group(slabs, walls, edge, plane, start, count):
     """The wall a run of roof edge squares stands over, or None.
 
     slabs: wall_sidecar.wall_slabs(scene); walls: scene["walls"]. The roof edge
@@ -175,9 +265,9 @@ def wall_under(slabs, walls, edge, plane, start, count):
     beside the body of the wall (its front face and the slab behind it); the
     wall lines along the run's line that do are grouped by their front plane,
     and the group covering most of the run is the run's wall. Returns (face,
-    bottom, lo, hi): the plane of the wall's outer face (the side away from the
-    roof, in tile units), the wall top's height, and the band's span along the
-    line: the run's squares.
+    bottom, lo, hi, rows): the plane of the wall's outer face (the side away from
+    the roof, in tile units), the wall top's height, the band's span along the
+    line (the run's squares) and the wall's rows (indexes into walls).
     """
     axis = 0 if edge < 2 else 1
     outer = -1.0 if edge in (0, 2) else 1.0
@@ -198,21 +288,23 @@ def wall_under(slabs, walls, edge, plane, start, count):
                 bottom += share * row[9]
         if weight <= 0.05:
             continue
-        group = groups.setdefault(round(slab.plane, 2), [0.0, 0.0, low, high])
+        group = groups.setdefault(round(slab.plane, 2), [0.0, 0.0, low, high, []])
         group[0] += weight
         group[1] += bottom
+        group[4].extend(slab.rows)
     if not groups:
         return None
-    weight, bottom, low, high = max(groups.values(), key=lambda g: (g[0], -abs(plane - (g[2] + g[3]) / 2)))
-    return (high if outer > 0 else low), bottom / weight, float(start), float(start + count)
+    weight, bottom, low, high, rows = max(groups.values(), key=lambda g: (g[0], -abs(plane - (g[2] + g[3]) / 2)))
+    return (high if outer > 0 else low), bottom / weight, float(start), float(start + count), rows
 
 
-def write_fringe_art(out_png, roof_squares, art_of, wall_of):
+def write_fringe_art(out_png, roof_squares, art_of, wall_of, belt_of=None):
     """Write the unrolled strips of the roof's wall-top runs into one image, out_png.
 
     roof_squares: {square index (y * 100 + x): tile id} of the roof layer.
     art_of: tile id -> iso rgba. wall_of(edge, plane, start, count): the run's
-    wall (wall_under) or None. Returns floor_sidecar's run entries (edge, plane,
+    wall (wall_under) or None. belt_of(run, wall): the belt_art of the run, or None.
+    Returns floor_sidecar's run entries (edge, plane,
     start, count, the strip's rect in out_png, the wall's face plane, top and the
     band's span). A run with no wall is left out. The image is not the
     tile atlas: the flat floor and roof squares sample that one, and its size
@@ -238,14 +330,14 @@ def write_fringe_art(out_png, roof_squares, art_of, wall_of):
     if not runs:
         out_png.unlink(missing_ok=True)
         return []
-    strips = [unroll(*run) for run in runs]
+    strips = [compose_band(unroll(*run), belt_of(run, wall) if belt_of else None) for run, wall in zip(runs, walls)]
     width = max(strip.shape[1] for strip in strips) + 2
     height = sum(strip.shape[0] + 1 for strip in strips) + 1
     sheet = Image.new("RGBA", (width, height), (0, 0, 0, 0))
     entries, y = [], 1
     for (edge, plane, start, members), strip, wall in zip(runs, strips, walls):
         sheet.paste(Image.fromarray(strip, "RGBA"), (1, y))
-        entries.append((edge, plane, start, len(members), 1, y, strip.shape[1], strip.shape[0], *wall))
+        entries.append((edge, plane, start, len(members), 1, y, strip.shape[1], strip.shape[0], *wall[:4]))
         y += strip.shape[0] + 1
     sheet.save(out_png, optimize=True)
     return entries

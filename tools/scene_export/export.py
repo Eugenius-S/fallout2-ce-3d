@@ -29,7 +29,7 @@ FIXED_CARD_FRMS = frozenset(
 from baked_sidecar import baked_objects, decode_baked_sidecar, encode_baked_sidecar  # noqa: E402
 from floor_sidecar import VERSION as FLOOR_SIDECAR_VERSION  # noqa: E402
 from floor_sidecar import encode_floor_sidecar  # noqa: E402
-from roof_fringe import wall_under, write_fringe_art  # noqa: E402
+from roof_fringe import belt_art, wall_group, write_fringe_art  # noqa: E402
 from projection_sidecar import VERSION as PROJECTION_SIDECAR_VERSION  # noqa: E402
 from projection_sidecar import decode_projection_sidecar, encode_projection_sidecar  # noqa: E402
 from wall_sidecar import VERSION as WALL_SIDECAR_VERSION  # noqa: E402
@@ -460,7 +460,9 @@ def export_scene(gf, game_root: Path, map_name: str, elevation: int, out_dir: Pa
     fringe = write_fringe_art(
         out_dir / "roof_fringe.png", roof_squares,
         lambda tile: gf.art.load(ids.make_fid(ids.OBJ_TYPE_TILE, tile)).rgba(gf.palette.glow_tile),
-        lambda *run: wall_under(slabs, scene.get("walls") or [], *run))
+        lambda *run: wall_group(slabs, scene.get("walls") or [], *run),
+        lambda run, wall: belt_art(wall[4], scene.get("walls") or [], scene["sprites"], builder.atlas.pages,
+                                   scene["proj"]["hpx"], run))
     scene["_modCache"] = {
         "exporterVersion": EXPORTER_VERSION,
         "inputFingerprintSha256": fingerprint,

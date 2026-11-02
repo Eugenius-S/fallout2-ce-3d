@@ -265,6 +265,8 @@ struct RoofSquare {
         // The strip's texture (normalized): u at the stretch's low and high
         // end along the wall, v at the strip's top and bottom row.
         float uLow = 0, uHigh = 0, vTop = 0, vBottom = 0;
+        // The band's height in strip rows (art pixels, one row a pixel of the game's wall).
+        float rows = 0;
     };
     FringePiece pieces[2];
     int pieceCount = 0;

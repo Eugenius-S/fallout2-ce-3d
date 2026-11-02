@@ -233,6 +233,7 @@ bool loadStaticFloor(const std::filesystem::path& cacheDirectory, std::string* e
             piece.uHigh = stripAt(high);
             piece.vTop = static_cast<float>(y) / fringeHeight;
             piece.vBottom = static_cast<float>(y + h) / fringeHeight;
+            piece.rows = static_cast<float>(h);
             const int index = alongU ? fixed * 100 + along : along * 100 + fixed;
             if (fringeOf[index].size() < 2) fringeOf[index].push_back(piece);
         }
