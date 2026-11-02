@@ -3481,6 +3481,8 @@ bool takeSnapshot()
     int drawableH = capturedHeight;
     int windowW = capturedWidth;
     int windowH = capturedHeight;
+    int windowX = 0;
+    int windowY = 0;
     int sdlDrawableW = capturedWidth;
     int sdlDrawableH = capturedHeight;
     Uint32 windowFlags = 0;
@@ -3540,6 +3542,7 @@ bool takeSnapshot()
             scene::cleanEdges() ? "true" : "false", clipVariant);
     }
     if (gSdlWindow != nullptr) {
+        SDL_GetWindowPosition(gSdlWindow, &windowX, &windowY);
         SDL_GetWindowSize(gSdlWindow, &windowW, &windowH);
         SDL_GL_GetDrawableSize(gSdlWindow, &sdlDrawableW, &sdlDrawableH);
         windowFlags = SDL_GetWindowFlags(gSdlWindow);
@@ -3603,7 +3606,7 @@ bool takeSnapshot()
         "  \"scale_factor\": %.1f,\n"
         "  \"windowed\": %s,\n"
         "  \"drawable\": \"%dx%d\",\n"
-        "  \"sdl_window\": {\"flags\": %u,\"window_size\": \"%dx%d\",\"drawable_size\": \"%dx%d\","
+        "  \"sdl_window\": {\"flags\": %u,\"window_position\": \"%d,%d\",\"window_size\": \"%dx%d\",\"drawable_size\": \"%dx%d\","
         "\"fullscreen\": %s,\"fullscreen_desktop\": %s,\"borderless\": %s},\n"
         "  \"ce_commit\": \"%s\",\n"
         "  \"tools_commit\": \"%s\",\n"
@@ -3657,13 +3660,16 @@ bool takeSnapshot()
         drawableW,
         drawableH,
         windowFlags,
+        windowX,
+        windowY,
         windowW,
         windowH,
         sdlDrawableW,
         sdlDrawableH,
         (windowFlags & SDL_WINDOW_FULLSCREEN) != 0 ? "true" : "false",
         (windowFlags & SDL_WINDOW_FULLSCREEN_DESKTOP) == SDL_WINDOW_FULLSCREEN_DESKTOP ? "true" : "false",
-        (windowFlags & SDL_WINDOW_BORDERLESS) != 0 ? "true" : "false",
+        ((windowFlags & SDL_WINDOW_BORDERLESS) != 0
+                || (windowFlags & SDL_WINDOW_FULLSCREEN_DESKTOP) == SDL_WINDOW_FULLSCREEN_DESKTOP) ? "true" : "false",
         _BUILD_HASH,
         gToolsCommit,
         exeSha,
