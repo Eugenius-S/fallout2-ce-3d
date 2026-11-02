@@ -29,11 +29,11 @@ FIXED_CARD_FRMS = frozenset(
 from baked_sidecar import baked_objects, decode_baked_sidecar, encode_baked_sidecar  # noqa: E402
 from floor_sidecar import VERSION as FLOOR_SIDECAR_VERSION  # noqa: E402
 from floor_sidecar import encode_floor_sidecar  # noqa: E402
-from roof_fringe import write_fringe_art  # noqa: E402
+from roof_fringe import wall_under, write_fringe_art  # noqa: E402
 from projection_sidecar import VERSION as PROJECTION_SIDECAR_VERSION  # noqa: E402
 from projection_sidecar import decode_projection_sidecar, encode_projection_sidecar  # noqa: E402
 from wall_sidecar import VERSION as WALL_SIDECAR_VERSION  # noqa: E402
-from wall_sidecar import decode_wall_sidecar, encode_wall_sidecar  # noqa: E402
+from wall_sidecar import decode_wall_sidecar, encode_wall_sidecar, wall_slabs  # noqa: E402
 from shadow_sidecar import VERSION as SHADOW_SIDECAR_VERSION  # noqa: E402
 from shadow_sidecar import decode_shadow_sidecar, encode_shadow_sidecar  # noqa: E402
 
@@ -456,9 +456,11 @@ def export_scene(gf, game_root: Path, map_name: str, elevation: int, out_dir: Pa
     # The roof's wall tops are unrolled into strips in an image of their own, to stand up as bands (roof_fringe.py).
     roof_squares = {index: int(tile) for index, (cell, tile) in
                     enumerate(zip(builder.roof.ravel(), builder.roof_ids.ravel())) if cell}
+    slabs = wall_slabs(scene)
     fringe = write_fringe_art(
         out_dir / "roof_fringe.png", roof_squares,
-        lambda tile: gf.art.load(ids.make_fid(ids.OBJ_TYPE_TILE, tile)).rgba(gf.palette.glow_tile))
+        lambda tile: gf.art.load(ids.make_fid(ids.OBJ_TYPE_TILE, tile)).rgba(gf.palette.glow_tile),
+        lambda *run: wall_under(slabs, scene.get("walls") or [], *run))
     scene["_modCache"] = {
         "exporterVersion": EXPORTER_VERSION,
         "inputFingerprintSha256": fingerprint,

@@ -15,8 +15,10 @@ run, and a run's art is unrolled along the line into one strip, the way a wall's
 art is unrolled along the wall: the picture is sheared vertically on the game's
 screen until the wall line is horizontal, so the concrete lies along the bottom
 of the strip and the rebar stands up from it. roof_fringe.png holds the strips;
-the renderer stands each run up as a band on the wall top below the roof edge,
-in the wall's plane, under the free camera (see roofs.cc).
+the renderer stands each run up as a band on the wall below the roof edge,
+in the plane of that wall's outer face, under the free camera (see roofs.cc).
+Each run is matched to its wall (wall_under) by a general rule; a run with no
+wall under it is not exported and its squares stay flat.
 """
 
 import numpy as np
@@ -161,12 +163,58 @@ def unroll(edge, plane, start, members):
     return strip
 
 
-def write_fringe_art(out_png, roof_squares, art_of):
+WALL_REACH = 0.35  # a wall is under a roof edge when the edge lies this near its body, in tiles
+END_REACH = 0.4    # a band's end meets the next wall within this reach beyond the run, in tiles
+
+
+def wall_under(slabs, walls, edge, plane, start, count):
+    """The wall a run of roof edge squares stands over, or None.
+
+    slabs: wall_sidecar.wall_slabs(scene); walls: scene["walls"]. The roof edge
+    line (v = plane for edges 0 and 1, u = plane for 2 and 3) lies in or just
+    beside the body of the wall (its front face and the slab behind it); the
+    wall lines along the run's line that do are grouped by their front plane,
+    and the group covering most of the run is the run's wall. Returns (face,
+    bottom, lo, hi): the plane of the wall's outer face (the side away from the
+    roof, in tile units), the wall top's height, and the band's span along the
+    line: the run's squares.
+    """
+    axis = 0 if edge < 2 else 1
+    outer = -1.0 if edge in (0, 2) else 1.0
+    groups = {}
+    for slab in slabs:
+        if slab.axis != axis:
+            continue
+        low, high = slab.band()
+        if not low - WALL_REACH <= plane <= high + WALL_REACH:
+            continue
+        weight = bottom = 0.0
+        for index in slab.rows:
+            row = walls[index]
+            a, b = sorted((row[1], row[3]) if axis == 0 else (row[2], row[4]))
+            share = min(b, start + count) - max(a, start)
+            if share > 0:
+                weight += share
+                bottom += share * row[9]
+        if weight <= 0.05:
+            continue
+        group = groups.setdefault(round(slab.plane, 2), [0.0, 0.0, low, high])
+        group[0] += weight
+        group[1] += bottom
+    if not groups:
+        return None
+    weight, bottom, low, high = max(groups.values(), key=lambda g: (g[0], -abs(plane - (g[2] + g[3]) / 2)))
+    return (high if outer > 0 else low), bottom / weight, float(start), float(start + count)
+
+
+def write_fringe_art(out_png, roof_squares, art_of, wall_of):
     """Write the unrolled strips of the roof's wall-top runs into one image, out_png.
 
     roof_squares: {square index (y * 100 + x): tile id} of the roof layer.
-    art_of: tile id -> iso rgba. Returns floor_sidecar's run entries (edge,
-    plane, start, count, and the strip's rect in out_png). The image is not the
+    art_of: tile id -> iso rgba. wall_of(edge, plane, start, count): the run's
+    wall (wall_under) or None. Returns floor_sidecar's run entries (edge, plane,
+    start, count, the strip's rect in out_png, the wall's face plane, top and the
+    band's span). A run with no wall is left out. The image is not the
     tile atlas: the flat floor and roof squares sample that one, and its size
     must not change. With no wall-top tile no image is written (a stale one is
     removed) and the list is empty.
@@ -180,7 +228,13 @@ def write_fringe_art(out_png, roof_squares, art_of):
         return cache[tile]
 
     squares = {index: pieces_of(tile) for index, tile in sorted(roof_squares.items())}
-    runs = runs_of({index: pieces for index, pieces in squares.items() if pieces})
+    walls = []
+    runs = []
+    for run in runs_of({index: pieces for index, pieces in squares.items() if pieces}):
+        wall = wall_of(run[0], run[1], run[2], len(run[3]))
+        if wall is not None:
+            runs.append(run)
+            walls.append(wall)
     if not runs:
         out_png.unlink(missing_ok=True)
         return []
@@ -189,9 +243,9 @@ def write_fringe_art(out_png, roof_squares, art_of):
     height = sum(strip.shape[0] + 1 for strip in strips) + 1
     sheet = Image.new("RGBA", (width, height), (0, 0, 0, 0))
     entries, y = [], 1
-    for (edge, plane, start, members), strip in zip(runs, strips):
+    for (edge, plane, start, members), strip, wall in zip(runs, strips, walls):
         sheet.paste(Image.fromarray(strip, "RGBA"), (1, y))
-        entries.append((edge, plane, start, len(members), 1, y, strip.shape[1], strip.shape[0]))
+        entries.append((edge, plane, start, len(members), 1, y, strip.shape[1], strip.shape[0], *wall))
         y += strip.shape[0] + 1
     sheet.save(out_png, optimize=True)
     return entries

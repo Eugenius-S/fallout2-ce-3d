@@ -1,6 +1,9 @@
 #include "static_scene.h"
 
 #include <lodepng.h>
+#include <algorithm>
+#include <cmath>
+#include <cstring>
 
 #include "gl_api.h"
 #include "scene_internal.h"
@@ -95,18 +98,20 @@ bool loadStaticFloor(const std::filesystem::path& cacheDirectory, std::string* e
     // Version 2 has a roof layer after the floor layer; version 1 has none.
     // Version 3 adds the roof fringe list after the cells: a count, then per
     // entry; version 4's entries are runs of wall tops: the tile edge (0-3),
-    // the wall's tile line, the first square along it and the number of squares,
-    // then the rect of the run's strip in roof_fringe.png.
-    // A version 3 list (10-byte entries, crossed sheets) is read for its size
-    // only: its roofs stay flat squares.
-    constexpr size_t kFringeEntryBytes = 16;
-    const size_t entryBytes = version == 3 ? 10 : kFringeEntryBytes;
+    // the roof edge's tile line, the first square along it and the number of
+    // squares, then the rect of the run's strip in roof_fringe.png. Version 5
+    // adds the wall the run stands over: the plane of its outer face (tile
+    // units), its top height (GL) and the band's span along the line (tiles).
+    // A version 3 or 4 list is read for its size only: its roofs stay flat
+    // squares (version 3 drew crossed sheets, version 4 bands off the wall).
+    constexpr size_t kFringeEntryBytes = 32;
+    const size_t entryBytes = version == 3 ? 10 : version == 4 ? 16 : kFringeEntryBytes;
     const size_t layerBytes = version >= 2 ? 2 * kFloorBytes : kFloorBytes;
     const size_t cellsEnd = kHeaderSize + layerBytes + static_cast<size_t>(tileCount) * 4;
     const size_t listedCount = version >= 3 && sidecar.size() >= cellsEnd + 2 ? readU16(sidecar.data() + cellsEnd) : 0;
-    const size_t fringeCount = version == 4 ? listedCount : 0;
+    const size_t fringeCount = version == 5 ? listedCount : 0;
     const size_t expectedSize = cellsEnd + (version >= 3 ? 2 + listedCount * entryBytes : 0);
-    if ((version < 1 || version > 4) || gridWidth != 100 || gridHeight != 100 || tileCount == 0
+    if ((version < 1 || version > 5) || gridWidth != 100 || gridHeight != 100 || tileCount == 0
         || cellSize != 88 || cellMargin != 6 || imageWidth == 0 || imageHeight == 0
         || imageWidth > 8192 || imageHeight > 8192
         || sidecar.size() != expectedSize) {
@@ -192,6 +197,13 @@ bool loadStaticFloor(const std::filesystem::path& cacheDirectory, std::string* e
         const unsigned char* data = sidecar.data() + cellsEnd + 2 + entry * kFringeEntryBytes;
         const int edge = readU16(data), plane = readU16(data + 2), start = readU16(data + 4), count = readU16(data + 6);
         const int x = readU16(data + 8), y = readU16(data + 10), w = readU16(data + 12), h = readU16(data + 14);
+        float wall[4];
+        std::memcpy(wall, data + 16, sizeof(wall));
+        const float face = wall[0], top = wall[1], spanLow = wall[2], spanHigh = wall[3];
+        if (!std::isfinite(face) || !std::isfinite(top) || !std::isfinite(spanLow) || !std::isfinite(spanHigh)
+            || spanHigh <= spanLow || top <= 0.0f) {
+            return fail("floor.bin contains a bad roof fringe entry");
+        }
         if (edge > 3 || plane > 100 || count == 0 || start + count > 100 || w == 0 || h == 0
             || x + w > static_cast<int>(fringeWidth) || y + h > static_cast<int>(fringeHeight)) {
             return fail("floor.bin contains a bad roof fringe entry");
@@ -201,17 +213,24 @@ bool loadStaticFloor(const std::filesystem::path& cacheDirectory, std::string* e
         // u (a larger u is further left), with v.
         const int fixed = alongU ? plane - (edge == 1 ? 1 : 0) : plane - (edge == 3 ? 1 : 0);
         if (fixed < 0 || fixed >= 100) return fail("floor.bin contains a bad roof fringe entry");
+        // The strip's column fraction at a place along the line (clamped: a
+        // band end that runs past the squares repeats the strip's end column).
+        auto stripAt = [&](float s) {
+            const float fraction = alongU ? (start + count - s) / count : (s - start) / count;
+            return (x + std::min(std::max(fraction, 0.0f), 1.0f) * w) / fringeWidth;
+        };
         for (int along = start; along < start + count; along++) {
-            const float lowFraction = alongU ? static_cast<float>(start + count - (along + 1)) / count
-                                             : static_cast<float>(along - start) / count;
-            const float highFraction = lowFraction + 1.0f / count;
             RoofSquare::FringePiece piece;
             piece.edge = edge;
-            piece.plane = static_cast<float>(plane) - kHalfMap;
-            // Along u the low end of the wall is the strip's right side.
-            const float atLow = alongU ? highFraction : lowFraction, atHigh = alongU ? lowFraction : highFraction;
-            piece.uLow = (x + atLow * w) / fringeWidth;
-            piece.uHigh = (x + atHigh * w) / fringeWidth;
+            piece.plane = face - kHalfMap;
+            piece.bottom = top;
+            // The band's own span: the run's squares, the ends following the wall's.
+            const float low = along == start ? spanLow : static_cast<float>(along);
+            const float high = along == start + count - 1 ? spanHigh : static_cast<float>(along + 1);
+            piece.span0 = low - kHalfMap;
+            piece.span1 = high - kHalfMap;
+            piece.uLow = stripAt(low);
+            piece.uHigh = stripAt(high);
             piece.vTop = static_cast<float>(y) / fringeHeight;
             piece.vBottom = static_cast<float>(y + h) / fringeHeight;
             const int index = alongU ? fixed * 100 + along : along * 100 + fixed;

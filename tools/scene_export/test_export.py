@@ -18,7 +18,7 @@ from baked_sidecar import (ENTRY as BAKED_ENTRY, GL_MAP_OFFSET, HEADER as BAKED_
                            baked_objects, decode_baked_sidecar, encode_baked_sidecar)
 from export import ReadOnlyGameFiles, choose_source, main, parse_args, patch_paths, scene_directory, validate_output_contents
 from floor_sidecar import HEADER, MAGIC, VERSION, cell_content_rect, decode_floor_sidecar, encode_floor_sidecar
-from roof_fringe import STRIP_ROWS, is_fringe, runs_of, unroll, write_fringe_art
+from roof_fringe import STRIP_ROWS, is_fringe, runs_of, unroll, wall_under, write_fringe_art
 from projection_sidecar import (HEADER as PROJECTION_HEADER, MAGIC as PROJECTION_MAGIC,
                                 VERSION as PROJECTION_VERSION, decode_projection_sidecar,
                                 encode_projection_sidecar, hero_anchor, standing_card)
@@ -267,11 +267,11 @@ class FloorSidecarTests(unittest.TestCase):
         self.assertEqual(len(payload), HEADER.size + 2 * 10000 * 2 + 2 * 4 + 2)
 
     def test_roof_fringe_list_round_trips_and_is_validated(self):
-        run = (1, 20, 10, 3, 1, 37, 144, 40)
+        run = (1, 20, 10, 3, 1, 37, 144, 40, 20.125, 1.875, 10.0, 13.0)
         payload = encode_floor_sidecar(self.sample_scene(), [run])
         self.assertEqual(decode_floor_sidecar(payload)["fringe"], [run])
         with self.assertRaisesRegex(ValueError, "roof fringe"):
-            encode_floor_sidecar(self.sample_scene(), [(1, 20, 99, 3, 1, 37, 144, 40)])
+            encode_floor_sidecar(self.sample_scene(), [(1, 20, 99, 3, 1, 37, 144, 40, 20.125, 1.875, 99.0, 102.0)])
         with self.assertRaisesRegex(ValueError, "truncated"):
             decode_floor_sidecar(payload[:-1])
 
@@ -336,14 +336,36 @@ class RoofFringeTests(unittest.TestCase):
             png = Path(temp) / "roof_fringe.png"
             # squares 101, 102 (a run of two) and 105 (another): the same tile art on one wall line
             entries = write_fringe_art(png, {101: 7, 102: 7, 103: 8, 105: 7},
-                                       lambda tile: self.art(blades if tile == 7 else []))
+                                       lambda tile: self.art(blades if tile == 7 else []),
+                                       lambda edge, plane, start, count: (plane + 0.1, 1.88, float(start), float(start + count)))
             self.assertTrue(entries)
-            for edge, plane, start, count, x, y, width, height in entries:
+            for edge, plane, start, count, x, y, width, height, face, top, lo, hi in entries:
                 self.assertIn((start, count), [(1, 2), (5, 1), (1, 1)])  # 103 is no fringe: the runs break there
+                self.assertEqual((face, top, lo, hi), (plane + 0.1, 1.88, start, start + count))
                 self.assertEqual((width, height), (count * (-donor_proj.SQ_U[0] if edge < 2 else donor_proj.SQ_V[0]), STRIP_ROWS))
             self.assertEqual(Image.open(png).height, sum(entry[7] + 1 for entry in entries) + 1)
-            self.assertEqual(write_fringe_art(png, {101: 8}, lambda tile: self.art([])), [])
+            self.assertEqual(write_fringe_art(png, {101: 8}, lambda tile: self.art([]), lambda *run: None), [])
             self.assertFalse(png.exists())
+
+    def test_a_run_stands_on_the_outer_face_of_the_wall_under_its_roof_edge(self):
+        class Slab:
+            def __init__(self, axis, plane, side, thick, rows, lo, hi):
+                self.axis, self.plane, self.side, self.thick, self.rows, self.lo, self.hi = axis, plane, side, thick, rows, lo, hi
+
+            def band(self):
+                return min(self.plane, self.plane + self.side * self.thick), max(self.plane, self.plane + self.side * self.thick)
+
+        # rows: [sprite, ua, va, ub, vb, z0, z1, _, _, zc]; a wall along u on v = 9.875, its body up to 10.09
+        walls = [[0, 2.0, 9.875, 6.0, 9.875, 0, 2.0, 0, 0, 1.88]]
+        slabs = [Slab(0, 9.875, 1.0, 0.215, [0], 2.0, 6.0), Slab(0, 14.0, 1.0, 0.215, [], 2.0, 6.0)]
+        # edge 1 (roof below v = 10): the outer face is the high side
+        self.assertEqual(wall_under(slabs, walls, 1, 10, 3, 2), (10.09, 1.88, 3.0, 5.0))
+        # edge 0 (roof above v = 10): the outer face is the low side
+        self.assertEqual(wall_under(slabs, walls, 0, 10, 3, 2), (9.875, 1.88, 3.0, 5.0))
+        # a wall a tile away, one along the other axis, or none under the run: no band
+        self.assertIsNone(wall_under(slabs, walls, 1, 11, 3, 2))
+        self.assertIsNone(wall_under(slabs, walls, 3, 10, 3, 2))
+        self.assertIsNone(wall_under(slabs, walls, 1, 10, 7, 2))
 
     def test_pieces_of_one_wall_line_that_follow_each_other_are_one_run(self):
         art = np.zeros((36, 80, 4), np.uint8)
