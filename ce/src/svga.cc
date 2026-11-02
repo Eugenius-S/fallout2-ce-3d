@@ -229,6 +229,10 @@ int _GNW95_init_window(int width, int height, WindowMode mode, int outputWidth, 
         SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");
 
         Uint32 windowFlags = SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI;
+        const bool backgroundRun = SDL_getenv("F2CE_DEV_BACKGROUND") != nullptr;
+        if (backgroundRun) {
+            SDL_SetHint(SDL_HINT_WINDOW_NO_ACTIVATION_WHEN_SHOWN, "1");
+        }
 
         if (mode == WindowMode::Fullscreen) {
             windowFlags |= SDL_WINDOW_FULLSCREEN;
@@ -236,14 +240,10 @@ int _GNW95_init_window(int width, int height, WindowMode mode, int outputWidth, 
             windowFlags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
         }
 
-        // Dev test runs (tools/dev-snapshot.ps1) open the window off screen,
-        // off the taskbar and never activated, so they run beside the user's
-        // own session. Never activated also means never losing focus, which
-        // would pause the game (_GNW95_lost_focus).
+        // Dev test runs stay out of the way of the user's active game.
         int windowX = SDL_WINDOWPOS_UNDEFINED;
         int windowY = SDL_WINDOWPOS_UNDEFINED;
-        if (SDL_getenv("F2CE_DEV_BACKGROUND") != nullptr && mode == WindowMode::Windowed) {
-            SDL_SetHint(SDL_HINT_WINDOW_NO_ACTIVATION_WHEN_SHOWN, "1");
+        if (backgroundRun && mode == WindowMode::Windowed) {
             windowFlags |= SDL_WINDOW_SKIP_TASKBAR;
             windowX = -20000;
             windowY = -20000;

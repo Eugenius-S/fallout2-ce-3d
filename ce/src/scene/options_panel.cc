@@ -635,6 +635,8 @@ void OptionsPanel::showDropdownForSnapshot(const std::string& settingId)
     const std::string id = settingId == "mode" ? "screen.windowed" : "screen.resolution_mode";
     dropdownRow_ = findRowBySettingId(id);
     if (dropdownRow_ < 0) return;
+    const int targetRowTop = std::max(0, screenHeight_ / 3 - rowHeight(dropdownRow_) / 2);
+    setScroll(pageY_ + rowTop(dropdownRow_) - targetRowTop);
     const auto& choices = rows_[dropdownRow_].edit->descriptor->choices;
     const int selected = std::get<int>(rows_[dropdownRow_].edit->value);
     const auto found = std::find_if(choices.begin(), choices.end(), [selected](const SettingChoice& choice) {

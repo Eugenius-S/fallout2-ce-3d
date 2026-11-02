@@ -84,6 +84,7 @@ param(
     [string]$BuildExecutable,
     [string]$TestDirectory,
     [string]$SceneCache,
+    [switch]$ConfiguredDisplay,
     [ValidateSet('english', 'russian')]
     [string]$Language,
     [ValidateSet('save', 'save-key', 'cancel', 'cancel-key', 'escape', 'defaults', 'verify')]
@@ -275,7 +276,7 @@ if ($PreferencesProbe) {
     if (-not $OutputDirectory -or -not $CaptureConsole) { throw '-PreferencesProbe requires -CaptureConsole and -OutputDirectory.' }
     if ($PreferencesProbe -eq 'verify' -and -not $ReuseTestConfig) { throw 'Use -ReuseTestConfig with the read-only verify probe.' }
 } elseif ($ReuseTestConfig) {
-    throw '-ReuseTestConfig requires -PreferencesProbe.'
+    if (-not $ConfiguredDisplay) { throw '-ReuseTestConfig requires -PreferencesProbe or -ConfiguredDisplay.' }
 }
 if ($DialogFixture) {
     if ($Map -ne 'kladwtwn') { throw '-DialogFixture requires the resource-verified Klamath map kladwtwn.' }
@@ -322,7 +323,7 @@ if ($DialogLayoutCheck) {
     if (-not $DialogFixture) { throw '-DialogLayoutCheck requires -DialogFixture.' }
     if ($DialogPageInspect -or $DialogCursorCheck) { throw '-DialogLayoutCheck cannot be combined with other dialog checks.' }
 }
-if ($ReuseTestConfig) {
+if ($ReuseTestConfig -or $ConfiguredDisplay) {
     if (-not (Test-Path -LiteralPath $configPath -PathType Leaf)) { throw "No isolated config to reuse: $configPath" }
 } else {
     Copy-Item $fixedConfig $configPath -Force
@@ -383,6 +384,9 @@ if ($DialogCursorCheck) { $arguments += '--dev-dialog-cursor-check' }
 if ($DialogLayoutCheck) { $arguments += '--dev-dialog-layout-check' }
 if ($PreferencesProbe) {
     $arguments += @('--dev-new-game', "--dev-map=$Map", "--dev-elevation=$Elevation", "--dev-preferences-probe=$PreferencesProbe")
+} elseif ($ConfiguredDisplay) {
+    if ($PreferencesProbe) { throw '-ConfiguredDisplay cannot be combined with -PreferencesProbe.' }
+    $arguments += @('--dev-new-game', "--dev-map=$Map", "--dev-elevation=$Elevation", "--dev-snapshot-run=$runId")
 } else {
     $scaleText = $Scale.ToString('0.0#', [Globalization.CultureInfo]::InvariantCulture)
     $scaleArgument = if ([Math]::Abs($Scale - [Math]::Round($Scale)) -lt 0.0001) { "--dev-scale=$([int][Math]::Round($Scale))" } else { "--dev-scale-factor=$scaleText" }
