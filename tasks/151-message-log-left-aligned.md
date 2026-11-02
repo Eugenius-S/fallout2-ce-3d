@@ -2,8 +2,8 @@
 id: 151
 title: The message log lines all start at the same left edge
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: glm
 suggested: gpt
 priority: normal
 claude-only: no
