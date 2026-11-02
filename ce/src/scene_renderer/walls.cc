@@ -34,7 +34,8 @@ struct BakedObject {
     // door, on its wall's plane under the fly camera.
     // FlyFlat: a low card, laid flat under the fly camera; FlySkip: a card a
     // solid made by name stands for in flight only.
-    enum Mode { Skip, Lift, Flat, Plane, FlyFlat, FlySkip } mode;
+    // FixedCard: a flat item's card that keeps its game-view plane in flight (task 129).
+    enum Mode { Skip, Lift, Flat, Plane, FlyFlat, FlySkip, FixedCard } mode;
     float offset[3]; // GL x, y, z when lifted; a plane's point x, its direction, z
     bool noCast = false; // a plant's crown: its cards throw no shadow (task 045's follow-up)
 };
@@ -186,6 +187,12 @@ bool staticObjectPlane(int tile, int fid, float plane[3])
     if (found == gBakedObjects.end() || found->second.mode != BakedObject::Plane) return false;
     for (int index = 0; index < 3; index++) plane[index] = found->second.offset[index];
     return true;
+}
+
+bool staticObjectFixedCard(int tile, int fid)
+{
+    const auto found = gBakedObjects.find(bakedObjectKey(tile, fid));
+    return found != gBakedObjects.end() && found->second.mode == BakedObject::FixedCard;
 }
 
 bool staticObjectFlyFlat(int tile, int fid)
@@ -454,12 +461,13 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
         return fail("baked.bin is missing or unreadable; re-run the scene exporter");
     }
     if (baked.size() < kBakedHeaderSize || baked[0] != 'F' || baked[1] != '2' || baked[2] != 'B' || baked[3] != 'K'
-        || readU16(baked.data() + 4) < 2 || readU16(baked.data() + 4) > 6
+        || readU16(baked.data() + 4) < 2 || readU16(baked.data() + 4) > 7
         || readU16(baked.data() + 6) != kBakedHeaderSize) {
         return fail("baked.bin has an invalid header");
     }
     const unsigned int bakedVersion = readU16(baked.data() + 4); // 3 adds Flat, 4 Plane and FlyFlat, 5 FlySkip,
-                                                                 // 6 the no-cast flag in the mode's high bit
+                                                                 // 6 the no-cast flag in the mode's high bit,
+                                                                 // 7 FixedCard
     const unsigned int bakedCount = readU32(baked.data() + 8);
     if (bakedCount > kMaxBakedEntries || baked.size() != kBakedHeaderSize + bakedCount * kBakedEntrySize) {
         return fail("baked.bin has a bad length");

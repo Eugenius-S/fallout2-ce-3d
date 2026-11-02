@@ -11,7 +11,7 @@ from tempfile import TemporaryDirectory
 from baked_sidecar import (ENTRY as BAKED_ENTRY, GL_MAP_OFFSET, HEADER as BAKED_HEADER, LIFT as BAKED_LIFT,
                            MAGIC as BAKED_MAGIC,
                            NOCAST as BAKED_NOCAST, SKIP as BAKED_SKIP, FLAT as BAKED_FLAT, FLY_FLAT as BAKED_FLY_FLAT,
-                           FLY_SKIP as BAKED_FLY_SKIP, PLANE as BAKED_PLANE,
+                           FIXED_CARD as BAKED_FIXED_CARD, FLY_SKIP as BAKED_FLY_SKIP, PLANE as BAKED_PLANE,
                            baked_objects, decode_baked_sidecar, encode_baked_sidecar)
 from export import ReadOnlyGameFiles, choose_source, main, parse_args, patch_paths, scene_directory, validate_output_contents
 from floor_sidecar import HEADER, MAGIC, VERSION, cell_content_rect, decode_floor_sidecar, encode_floor_sidecar
@@ -992,6 +992,19 @@ class BakedSidecarTests(unittest.TestCase):
         entries = baked_objects(scene, objects)
         self.assertIn((300, 0x02000099, BAKED_FLY_SKIP, 0.0, 0.0, 0.0), entries)
         self.assertIn((400, 0x00000036, BAKED_SKIP, 0.0, 0.0, 0.0), entries)
+        self.assertEqual(decode_baked_sidecar(encode_baked_sidecar(entries)), entries)
+
+    def test_a_card_on_the_hand_list_keeps_its_plane(self):
+        scene, objects = self.sample()
+        objects += [self.MapObject(600, 0x02000020), self.MapObject(700, 0x02000030), self.MapObject(800, 0x03000040)]
+        scene["sprites"] = [[0, 0, 0, 30, 15], [0, 0, 0, 20, 40]]  # low, tall
+        scene["boards"] += [[1, 1, 1, 0, 0, 5], [1, 1, 1, 0, 0, 6], [1, 1, 1, 0, 0, 7]]
+        names = {0x02000020: "NJUNK1.FRM", 0x02000030: "other.frm", 0x03000040: "NJUNK1.FRM"}
+        entries = baked_objects(scene, objects, frozenset(), frozenset({"njunk1.frm"}), names.get)
+        self.assertIn((600, 0x02000020, BAKED_FIXED_CARD, 0.0, 0.0, 0.0), entries)   # on the list
+        self.assertNotIn(700, [entry[0] for entry in entries])                         # not on it
+        self.assertNotIn(800, [entry[0] for entry in entries])                         # a wall type
+        self.assertNotIn(BAKED_FIXED_CARD, [entry[2] for entry in baked_objects(scene, objects)])
         self.assertEqual(decode_baked_sidecar(encode_baked_sidecar(entries)), entries)
 
     def test_a_detail_of_a_joined_thing_hides_its_card_in_flight_beside_forms(self):
