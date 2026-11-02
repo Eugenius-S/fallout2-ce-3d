@@ -54,6 +54,8 @@ param(
     [switch]$Classic,
     [switch]$Preferences,
     [string]$DevInput,
+    [ValidateRange(1, 30)]
+    [int]$DevInputSnapshots = 5,
     [ValidateSet('resolution', 'mode')]
     [string]$PreferencesDropdown,
     [switch]$DevPanel,
@@ -454,7 +456,7 @@ if ($Still) {
     $arguments += '--dev-still-snapshot'
 }
 if ($DevInput) {
-    $shots = 5
+    $shots = $DevInputSnapshots
 } elseif ($PreferencesProbe) {
     $shots = 0
 } elseif ($Preferences) {
@@ -627,8 +629,8 @@ try {
 if ($DevInput) {
     $inputLog = Get-Content -Raw -LiteralPath (Join-Path $OutputDirectory 'process.stdout.log')
     $inputErrors = Get-Content -Raw -LiteralPath (Join-Path $OutputDirectory 'process.stderr.log')
-    if ($inputLog -notmatch '(?m)^DEV_INPUT PASS script complete' -or $inputErrors -match 'DEV_INPUT FAIL' -or $snapshots.Count -ne 5) {
-        throw 'Scripted input did not complete with exactly five snapshots.'
+    if ($inputLog -notmatch '(?m)^DEV_INPUT PASS script complete' -or $inputErrors -match 'DEV_INPUT FAIL' -or $snapshots.Count -ne $DevInputSnapshots) {
+        throw "Scripted input did not complete with exactly $DevInputSnapshots snapshots."
     }
     $afterWidth = Get-TestConfigValue $configPath 'screen' 'resolution_x'
     $afterHeight = Get-TestConfigValue $configPath 'screen' 'resolution_y'
@@ -639,7 +641,7 @@ if ($DevInput) {
     [ordered]@{
         coordinate_space = 'logical'; snapshots = $snapshots.Count
         initial = @{ resolution_x = $initialDisplayWidth; resolution_y = $initialDisplayHeight; scale_factor = $initialDisplayScale }
-        saved = @{ resolution_x = $afterWidth; resolution_y = $afterHeight; scale_factor = $afterScale }
+        saved = @{ resolution_x = $afterWidth; resolution_y = $afterHeight; scale_factor = $afterScale; windowed = (Get-TestConfigValue $configPath 'screen' 'windowed') }
         config_sha256 = (Get-FileHash -LiteralPath $configPath -Algorithm SHA256).Hash
     } | ConvertTo-Json -Depth 4 | Set-Content -Encoding utf8 -LiteralPath (Join-Path $OutputDirectory 'input-result.json')
 }

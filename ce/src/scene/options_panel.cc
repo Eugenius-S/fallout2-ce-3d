@@ -230,9 +230,16 @@ bool OptionsPanel::initialize(int windowId, unsigned char* surface, const unsign
     for (const SDL_DisplayMode& mode : availableModes) {
         resolutionChoices.push_back({ mode.w * 10000 + mode.h, std::to_string(mode.w) + "x" + std::to_string(mode.h) });
     }
-    const int selectedResolution = settings.screen.resolution_mode > 0
-        ? settings.screen.resolution_mode
-        : settings.screen.resolution_x * 10000 + settings.screen.resolution_y;
+    int selectedResolution = settings.screen.resolution_x * 10000 + settings.screen.resolution_y;
+    // The configured value may be pending a restart (or a live transaction),
+    // while settings.screen still contains the currently active resolution.
+    for (const auto& edit : model_->edits()) {
+        if (edit.descriptor->id != "screen.resolution_mode") continue;
+        if (const auto* configured = std::get_if<int>(&edit.value); configured != nullptr && *configured > 0) {
+            selectedResolution = *configured;
+        }
+        break;
+    }
     if (std::none_of(resolutionChoices.begin(), resolutionChoices.end(), [selectedResolution](const SettingChoice& choice) {
             return choice.value == selectedResolution;
         })) {

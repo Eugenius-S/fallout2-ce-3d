@@ -1437,6 +1437,7 @@ void update()
     if (!gPreferencesSnapshotActive && scriptedInputActive() && scriptedInputStarted()) {
         scriptedInputPump();
         if (scriptedInputTakeSnapshotRequest()) { renderPresent(); takeSnapshot(); }
+        if (scriptedInputTakePreferencesRequest()) gPreferencesSnapshotPending = true;
     }
     // The startup --dev-map travel retries here until the opening movie is
     // over and the transition is accepted (089).

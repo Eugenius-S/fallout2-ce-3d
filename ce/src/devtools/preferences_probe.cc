@@ -28,6 +28,7 @@ bool gInputActive = false;
 bool gInputSeen = false;
 bool gInputStarted = false;
 bool gInputSnapshot = false;
+bool gInputPreferences = false;
 int gInputX = 0, gInputY = 0, gInputWait = 0;
 unsigned char gInputLeft = 0, gInputRight = 0;
 }
@@ -46,10 +47,11 @@ bool scriptedInputActive() { return gInputActive; }
 void scriptedInputBegin() { gInputStarted = true; }
 bool scriptedInputStarted() { return gInputStarted; }
 bool scriptedInputTakeSnapshotRequest() { bool requested = gInputSnapshot; gInputSnapshot = false; return requested; }
+bool scriptedInputTakePreferencesRequest() { bool requested = gInputPreferences; gInputPreferences = false; return requested; }
 
 void scriptedInputPump()
 {
-    if (!gInputActive || gInputWait-- > 0) return;
+    if (!gInputActive || gInputPreferences || gInputWait-- > 0) return;
     std::string line;
     while (std::getline(gInputScript, line)) {
         std::istringstream input(line);
@@ -60,6 +62,7 @@ void scriptedInputPump()
             return;
         }
         if (action == "snap") { gInputSnapshot = true; printf("DEV_INPUT snap\n"); fflush(stdout); return; }
+        if (action == "preferences") { gInputPreferences = true; printf("DEV_INPUT preferences\n"); fflush(stdout); return; }
         SDL_Event event = {};
         if (action == "wheel") {
             event.type = SDL_MOUSEWHEEL;

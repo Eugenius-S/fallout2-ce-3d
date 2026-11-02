@@ -25,6 +25,7 @@ bool scriptedInputActive();
 void scriptedInputBegin();
 bool scriptedInputStarted();
 bool scriptedInputTakeSnapshotRequest();
+bool scriptedInputTakePreferencesRequest();
 void scriptedInputPump();
 void scriptedInputObserveEvent(const SDL_Event& event);
 bool scriptedInputMouse(int* x, int* y, unsigned char* left, unsigned char* right);

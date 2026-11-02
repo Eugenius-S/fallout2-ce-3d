@@ -1,0 +1,146 @@
+wait 20
+snap
+wait 10
+move 910 244
+wait 4
+down 910 244
+wait 4
+up 910 244
+wait 10
+snap
+wait 10
+move 810 307
+wait 4
+down 810 307
+wait 4
+up 810 307
+wait 10
+snap
+wait 10
+move 785 328
+wait 4
+down 785 328
+wait 4
+move 825 328
+wait 4
+up 825 328
+wait 10
+snap
+wait 10
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wait 15
+move 519 735
+wait 4
+down 519 735
+wait 4
+up 519 735
+wait 20
+snap
+wait 30
+preferences
+wait 20
+snap
+wait 10
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+move 519 735
+wait 4
+down 519 735
+wait 4
+up 519 735
+wait 20
+snap
+wait 10
