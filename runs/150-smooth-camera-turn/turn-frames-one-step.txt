@@ -1,0 +1,11 @@
+The eased turn, one press of ]: game frame log of the camera angle (degrees)
+and its signed speed (degrees a second), one line per rendered frame while
+the turn moves, from a diagnostic build of this branch (a TURN150F print in
+scene_view.cc updateCameraTurn, removed from the merged code). Captured with
+tools/dev-snapshot.ps1 -SceneInput build/dev-input-150-one.txt -TurnKeys.
+
+angle     speed
+0.0000    0.0000    the frame the key lands: owns the camera, dt 0, no move yet
+2.4375    177.7360  easing in: the speed ramps from zero at kCameraTurnAccel
+8.0863    360.0000  the peak, exactly kCameraTurnMaxSpeed (the old step speed)
+10.0000   0.0000    easing out into the target: exact landing, zero speed
