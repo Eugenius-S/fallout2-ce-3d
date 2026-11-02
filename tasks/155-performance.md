@@ -2,7 +2,7 @@
 id: 155
 title: The game runs smooth: no hitch on load or on a settings toggle, higher FPS
 milestone: M1
-status: todo
+status: doing
 owner: claude
 suggested: claude
 priority: high
