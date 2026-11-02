@@ -290,6 +290,15 @@ void drawRoofs(int viewportX, int viewportY, int viewportWidth, int viewportHeig
     glBindVertexArray(gRoofVao);
     glDrawArrays(kTriangles, 0, gRoofFlatVertexCount);
     if (gRoofVertexCount > gRoofFlatVertexCount) {
+        // The flat roofs do not write depth, so a fringe sheet behind a nearer
+        // roof would paint over it: the opaque roof texels (the cutoff drops
+        // the rest) go into the depth buffer, colors off, before the sheets.
+        glColorMask(0, 0, 0, 0);
+        glDepthMask(1);
+        glDepthFunc(kLess);
+        glDrawArrays(kTriangles, 0, gRoofFlatVertexCount);
+        glDepthMask(0);
+        glColorMask(1, 1, 1, 1);
         glBindTexture(kTexture2D, gRoofFringeTexture);
         glDrawArrays(kTriangles, gRoofFlatVertexCount, gRoofVertexCount - gRoofFlatVertexCount);
         glBindTexture(kTexture2D, gFloorTexture);
