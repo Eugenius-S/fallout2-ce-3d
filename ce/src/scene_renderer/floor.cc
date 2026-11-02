@@ -189,6 +189,9 @@ bool loadStaticFloor(const std::filesystem::path& cacheDirectory, std::string* e
 
     // The wall-top runs (roof_fringe.png) become pieces of the squares they cross.
     std::vector<std::vector<RoofSquare::FringePiece>> fringeOf(100 * 100);
+    // Every square of an exported run, whether or not clipping leaves a band piece on it: the flat
+    // atlas square is never drawn in flight for it (its wall-top art stands as a band or is cut away).
+    std::vector<unsigned char> inRun(100 * 100, 0);
     std::vector<unsigned char> fringeRgba;
     unsigned fringeWidth = 0, fringeHeight = 0;
     if (fringeCount > 0) {
@@ -233,6 +236,8 @@ bool loadStaticFloor(const std::filesystem::path& cacheDirectory, std::string* e
             piece.plane = face - kHalfMap;
             piece.bottom = top;
             // The band's own span: the run's squares, the ends following the wall's.
+            const int member = alongU ? fixed * 100 + along : along * 100 + fixed;
+            inRun[member] = 1;
             float low = 0, high = 0;
             if (!::fallout::scene::bandPieceSpan(along, along == start, along == start + count - 1, spanLow, spanHigh, &low, &high)) continue;
             piece.span0 = low - kHalfMap;
@@ -287,6 +292,7 @@ bool loadStaticFloor(const std::filesystem::path& cacheDirectory, std::string* e
             square.tileX = x0;
             square.tileZ = z0;
         }
+        if (inRun[index] != 0) square.fringe = true;
         if (patchCell[index] != 0) {
             square.patch = true;
             square.patchU0 = static_cast<float>(patchX[index]) / fringeWidth;
