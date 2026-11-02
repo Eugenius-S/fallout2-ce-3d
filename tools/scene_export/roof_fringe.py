@@ -544,7 +544,8 @@ def resolve_runs(runs, bodies, outers, default_top):
                 gap = abs(original[n][side] - corner_along)
                 if gap <= CORNER_REACH and                         original[m][2] - CORNER_REACH <= corner_cross <= original[m][3] + CORNER_REACH                         and (best is None or gap < best[0]):
                     best = (gap, corner_along)
-            if best is not None:
+            # a snap that would empty or reverse the span is not made
+            if best is not None and (out[n][3] - best[1] if side == 2 else best[1] - out[n][2]) >= MIN_SPAN:
                 out[n][side] = best[1]
     return out
 
@@ -584,6 +585,9 @@ def write_fringe_art(out_png, roof_squares, art_of, wall_of, belt_of=None, defau
     outers = [None if body is None else outward(roof_squares, run[0], body[0], body[1], run[2], len(run[3]))
               for run, body in zip(runs, bodies)]
     places = resolve_runs(runs, bodies, outers, default_top)
+    for place in places:
+        if not place[3] > place[2]:
+            raise ValueError(f"a roof band's span is empty or reversed: {place}")
     strips = [compose_band(unroll(*run), belt_of(run, body) if belt_of and body is not None else None)
               for run, body in zip(runs, bodies)]
     cells = {}

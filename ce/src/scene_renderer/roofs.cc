@@ -97,7 +97,7 @@ void rebuildRoofBuffer()
         if (gRoofVisibilityKnown && gRoofVisible[square.index] == 0) continue;
         // Only the fly camera sees the bands: the game's view is slightly
         // in perspective and keeps the game's own pixels on the flat square.
-        if (square.fringe && flying && gRoofFringeTexture != 0) {
+        if ((square.fringe || square.patch) && flying && gRoofFringeTexture != 0) {
             pushFringeBand(bands, square, y);
             if (square.patch) {
                 // The mixed tile's roof, its wall-top part cut out: a flat square

@@ -474,6 +474,16 @@ class RoofEdgeTests(unittest.TestCase):
         placed = resolve_runs(runs[:1], [(9.8, 10.1, 1.88, 5.0, 8.0, [])], [-1.0], 1.88)
         self.assertEqual(placed[0], [10.0, 1.88, 10.0, 12.0])
 
+    def test_a_corner_snap_never_empties_or_reverses_a_span(self):
+        art = np.zeros((36, 80, 4), np.uint8)
+        # a one-square run at 10 whose wall covers [10, 10.25], and a band across it with its face at 10.4
+        runs = [(0, 5, 10, [(510, art)]), (2, 10, 5, [(510, art)] * 2)]
+        bodies = [(4.8, 5.1, 1.88, 10.0, 10.25, []), (10.4, 10.7, 1.88, 4.0, 8.0, [])]
+        placed = resolve_runs(runs, bodies, [-1.0, 1.0], 1.88)
+        for place in placed:
+            self.assertGreater(place[3], place[2])
+        self.assertEqual(placed[0][2:], [10.0, 10.25])
+
     def test_check_measures_band_distance_and_ignores_small_blobs(self):
         slab = type("Slab", (), {"axis": 0, "plane": 9.8, "side": 1.0, "thick": 0.3, "lo": 0.0, "hi": 20.0,
                                  "band": lambda self: (9.8, 10.1)})()
