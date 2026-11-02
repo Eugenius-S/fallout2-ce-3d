@@ -1,6 +1,7 @@
 #include "../../src/devtools/fixed_screen_options.h"
 #include "../../src/scene/display_dimensions.h"
 #include "../../src/scene/tile_display_swap.h"
+#include "../../src/scene/iso_view_swap.h"
 
 #include <initializer_list>
 #include <string>
@@ -40,6 +41,15 @@ int main()
         || active != &newBuffer || tileWidth != 1280 || bounds.bottom != 619) return 21;
     if (!tileSwap.exchange(active, tileWidth, tileHeight, tilePitch, bounds)
         || active != &oldBuffer || tileWidth != 1371 || bounds.bottom != 670) return 22;
+    fallout::scene::IsoViewSwap isoSwap;
+    fallout::Rect newBounds = { 0, 0, 1279, 619 };
+    if (!isoSwap.prepare(&newBuffer, newBounds) || !isoSwap.exchange(active, bounds)
+        || active != &newBuffer || bounds.right != 1279) return 23;
+    if (!isoSwap.exchange(active, bounds) || active != &oldBuffer || bounds.right != 1370) return 24;
+    fallout::scene::TextViewSwap textSwap;
+    if (!textSwap.prepare(&newBuffer, 1280, 620) || !textSwap.exchange(active, tileWidth, tileHeight)
+        || active != &newBuffer || tileWidth != 1280) return 25;
+    if (!textSwap.exchange(active, tileWidth, tileHeight) || active != &oldBuffer || tileWidth != 1371) return 26;
 
     if (!parse({ "game" }, &options, &error) || options.enabled) return 1;
     if (!parse({ "game", "--dev-tools", "--dev-screen=1920x1080", "--dev-scale=2" }, &options, &error)

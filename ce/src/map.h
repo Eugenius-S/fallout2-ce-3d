@@ -12,6 +12,9 @@
 
 namespace fallout {
 
+namespace scene { class IsoViewSwap; }
+bool mapExchangeIsoView(scene::IsoViewSwap& swap);
+
 #define ORIGINAL_ISO_WINDOW_WIDTH 640
 #define ORIGINAL_ISO_WINDOW_HEIGHT 380
 

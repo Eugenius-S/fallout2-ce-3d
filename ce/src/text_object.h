@@ -7,6 +7,9 @@
 
 namespace fallout {
 
+namespace scene { class TextViewSwap; }
+bool textObjectsExchangeView(scene::TextViewSwap& swap);
+
 int textObjectsInit(unsigned char* windowBuffer, int width, int height);
 int textObjectsReset();
 void textObjectsFree();
