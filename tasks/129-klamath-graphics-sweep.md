@@ -148,7 +148,19 @@ are round 1's):
    Cause: a floor-lying object's art is taller than the 20 pixel limit for
    cards that lie flat, so it takes the standing card path. Needs a "lying
    on the floor" kind that the owner's frozen shape labels do not have.
-   owner: design decision (a new shape kind), not a one-line rule.
+   Prototype: scenery "Junk", fid 0x20000a0 (97 x 81 px art, 5 on the
+   Klamath maps, all kladwtwn/klamall); its look-alikes 0x20000a6 and
+   0x20000a1 (leaning slabs, 68 x 108 and 42 x 73) really stand.
+   Fix tried twice, both blocked (STATUS: BLOCKED, 2 attempts): a rule
+   "drawn lying on the floor" from the art's silhouette. (1) the share of the
+   convex hull's edge length that follows the 0.32..0.7 iso slope, over 170
+   distinct item and scenery arts of the Klamath maps: the mattress scores
+   0.17 (its pipe and burn marks break the hull) and tables, rocks and a
+   pole score higher. (2) the same after a 7 px opening that drops the pipe:
+   0.05, still below tables (0.46..0.61), cars and rocks. The silhouette does
+   not separate a shaded slab from a box or a heap. Needs another cue (the
+   proto, the shaded top face, or the FRM label set) or the owner's say.
+   owner: which cue, since the art's own look is the only evidence left.
 6. klamall e0, view 16098, fly -45, noon: the ragged dark moss fringe along a
    roof's edge lies flat on the roof (101's "fringe lies flat"). Crop:
    .../klamall-e0-16098-p0-roof-fringe-flat.jpg. Open, belongs to 101.
@@ -166,3 +178,25 @@ owner, 6 is 101, 7 is 145). Round 3: hours 7 and 18 over klamall and the
 caves, and the 18:00 sheet of kladwtwn (shot, not read).
 Check: the views were shot by a scratch script (not committed);
 re-run with `dev-snapshot.ps1 -HeroTile T -ViewTile T -Fly -FlyPitch 50`.
+
+### 2026-11-02 claude: round 2, remaining sweeps
+
+Done: the 18:00 sheet read; klamall at hours 7 and 17 (four spots, -45 and
++45); the caves (klatoxcv e0-e2, klaratcv e0-e2, nine spots) at distance 4,
+0 and +45, hour 12, klaratcv e0 again at hour 7.
+9. Tool notes, not defects: the game clock's 18:00 has the sun below the
+   horizon (strength 0, light as at night), so evening views use 17:00; the
+   caves are lit by their own ambient, hour 7 and hour 12 give the same
+   picture there.
+10. klamall e0, view 27886, fly -45 and +45, hour 17: the ground past the map
+    edge is a green translucent quad (orange at hour 7 on kladwtwn, find 7):
+    the same map-edge plane tinted by the sun colour. Belongs to 145.
+11. No defects in the 18:00 and 17:00 sheets (building shadows follow the
+    sun, roofs and walls clean) or in the caves at close range: floors, rock
+    walls, barrels, slime, props read right; the spots the tour uses look at
+    rock and void, so the pictures are mostly dark.
+
+Status: find 5 BLOCKED after two attempts (above), 6 is 101, 7 and 10 are
+145; no fix PR this round.
+Next: decide the cue for find 5 (owner or a new task); 145 closes 7 and 10.
+Check: the crops in runs/129-klamath-graphics-sweep/finds/.
