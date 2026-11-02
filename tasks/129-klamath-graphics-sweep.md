@@ -200,3 +200,27 @@ Status: find 5 BLOCKED after two attempts (above), 6 is 101, 7 and 10 are
 145; no fix PR this round.
 Next: decide the cue for find 5 (owner or a new task); 145 closes 7 and 10.
 Check: the crops in runs/129-klamath-graphics-sweep/finds/.
+
+### 2026-11-02 claude: find 5, the owner's decision, blocked on the selector
+
+Owner's decision on find 5: a short card lying flat on the floor needs no
+geometry, stays a sprite and must not turn to the camera; a standing flat
+item (the mattress, fid 0x20000a0, and its leaning look-alikes 0x20000a6,
+0x20000a1) becomes a fixed vertical plane in world space at the angle its art
+is drawn at, no extruded geometry; the sun hours stay as they are.
+The mechanism is clear: `addStaticObject` (live_objects.cc) calls
+`faceFlyCamera` for every standing card that is not a flat or a plane (door)
+object; a fixed plane is the card's own game-view plane without that call.
+What is missing is the rule that picks the cards of that kind on every map.
+Tried on the 170 distinct item and scenery arts of the Klamath maps, each
+against the three known ones: the hull's iso-edge share (0.17 for the
+mattress), the same after dropping thin parts (0.05), and the wall-slope fit
+of the lower and upper edges that `things.image_axis` uses (lower edge
+0.08, upper 0.07 for the mattress; signs and mirrors score 1.0, tables 0.7,
+rocks and weeds 0.4). None separates a mattress from the round things that
+must keep facing the camera (trees, bushes, rocks, barrels), so any
+selector built on the silhouette turns plants edge-on or leaves the mattress
+as it is. STATUS: BLOCKED, no branch task/129-fixed-flat-cards was cut.
+Needs: the set that must stop facing the camera named by something other than
+the outline (for example the scenery kinds "Junk" and "Bed" by proto, or a
+per-FRM flag in the frozen label set), or the owner saying which.
