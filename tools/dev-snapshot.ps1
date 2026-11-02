@@ -22,6 +22,9 @@
 # -Tour "klatrap:0,kladwtwn:0:20100": after the snapshot on -Map, the same
 # process travels to each listed map elevation (and view hex) and takes one
 # snapshot there. -Classic: the same in the game's own 2D picture.
+# -Combat: start a real combat encounter and capture player targeting, the
+# attack animation, an enemy action, and the post-combat view. -CombatTarget
+# chooses the test critter's tile when the map has no hostile critter.
 #
 # Prints the snapshot JSON; the image lies next to it (a classic capture's in
 # the run folder's shots/game/).
@@ -40,6 +43,9 @@ param(
     [ValidateRange(0, 240)]
     [int]$WaitMinutes = 30,
     [switch]$Probe,
+    [switch]$Combat,
+    [ValidateRange(0, 39999)]
+    [int]$CombatTarget = -1,
     [switch]$DialogFixture,
     [switch]$DialogPageInspect,
     [switch]$DialogCursorCheck,
@@ -273,6 +279,20 @@ if ($PreferencesProbe) {
 } elseif ($ReuseTestConfig) {
     throw '-ReuseTestConfig requires -PreferencesProbe.'
 }
+if ($Combat) {
+    if ($Preferences -or $PreferencesProbe -or $Probe -or $Tour -or $DialogFixture -or $UiFixture -or
+        $DialogPageInspect -or $DialogCursorCheck -or $DialogLayoutCheck -or $MuzzleWeapon -gt 0 -or
+        $GlowLadder -or $GlowPair -or $GlowLevels -or $EffectFixture -or $ClockLadder -or
+        $ScrollStep -or $ScrollEdge -or $FollowHero -or $WalkProbe -or $NoPreview) {
+        throw '-Combat requires its own scene run and cannot be combined with other fixtures or -NoPreview.'
+    }
+    if (-not $CaptureConsole -or -not $OutputDirectory) {
+        throw '-Combat requires -CaptureConsole and -OutputDirectory for phase diagnostics.'
+    }
+    $TimeoutSeconds = [Math]::Max($TimeoutSeconds, 180)
+} elseif ($CombatTarget -ge 0) {
+    throw '-CombatTarget requires -Combat.'
+}
 if ($DialogFixture) {
     if ($Map -ne 'kladwtwn') { throw '-DialogFixture requires the resource-verified Klamath map kladwtwn.' }
     if ($Preferences -or $Classic -or $Probe -or $Tour -or $Still -or $NoPreview -or $PreferencesProbe) {
@@ -358,6 +378,8 @@ $runId = [guid]::NewGuid().ToString('N')
 $runDirectory = Join-Path $exeDirectory "runs\$($runId.Substring(0, 12))"
 New-Item -ItemType Directory -Path $runDirectory -Force | Out-Null
 $arguments = @('--dev-tools')
+if ($Combat) { $arguments += '--dev-combat' }
+if ($CombatTarget -ge 0) { $arguments += "--dev-combat-target=$CombatTarget" }
 if ($MuzzleWeapon -gt 0) {$arguments += @("--dev-muzzle=$MuzzleWeapon", "--dev-muzzle-animation=$MuzzleAnimation", "--dev-muzzle-rotation=$MuzzleRotation")}
 if ($ClockLadder) { $arguments += '--dev-clock-ladder' }
     if ($ScrollStep) { $arguments += "--dev-scroll-step=$ScrollStep" }
@@ -431,7 +453,9 @@ if ($Still) {
     if ($Probe) { throw '-Still cannot be combined with the interactive -Probe.' }
     $arguments += '--dev-still-snapshot'
 }
-if ($PreferencesProbe) {
+if ($Combat) {
+    $shots = 4
+} elseif ($PreferencesProbe) {
     $shots = 0
 } elseif ($Preferences) {
     $shots = 1
@@ -442,12 +466,13 @@ if ($PreferencesProbe) {
 } elseif ($ScrollStep -or $ScrollEdge -or $FollowHero) {
     $shots = 1
     $arguments += '--dev-snapshot-once'
-} elseif ($Tour -or $Classic) {
+} elseif ($Tour -or ($Classic -and -not $Combat)) {
     # Without the scene the one snapshot comes from a tour with no stops.
     $shots = 1 + @("$Tour".Split(',') | Where-Object { $_.Trim() }).Count
     $arguments += "--dev-map-tour=$Tour"
 } else {
-    if ($UiFixture) { $shots = if ($UiFixture -eq 'bark') { 2 } else { 1 } }
+    if ($Combat) { $shots = 4 }
+    elseif ($UiFixture) { $shots = if ($UiFixture -eq 'bark') { 2 } else { 1 } }
     elseif ($DialogPageInspect) { $shots = 0 }
     elseif ($DialogCursorCheck) { $shots = 1 }
     elseif ($DialogFixture) { $shots = 1 }
@@ -518,7 +543,15 @@ try {
             }
             $log = Join-Path $runDirectory 'logs\devprobe.log'
             $probed = -not $Probe -or ((Test-Path $log) -and (Select-String -Path $log -Pattern 'probe done' -Quiet))
-            if ($UiFixture) {
+            if ($Combat) {
+                $combatLog = Join-Path $OutputDirectory 'process.stdout.log'
+                if ((Test-Path -LiteralPath $combatLog) -and (Select-String -LiteralPath $combatLog -Pattern '^COMBAT_FIXTURE FAIL ' -Quiet)) {
+                    $dialogFixtureFailed = $true
+                    break
+                }
+                if ($snapshots.Count -ge $shots -and (Test-Path -LiteralPath $combatLog) -and
+                    (Select-String -LiteralPath $combatLog -Pattern ('^COMBAT_FIXTURE PASS map=' + [regex]::Escape($Map) + ' captures=4') -Quiet)) { break }
+            } elseif ($UiFixture) {
                 $fixtureLog = Join-Path $OutputDirectory 'process.stdout.log'
                 if ((Test-Path -LiteralPath $fixtureLog) -and
                     ((Select-String -LiteralPath $fixtureLog -Pattern '^UI_FIXTURE FAIL ' -Quiet) -or
@@ -682,6 +715,35 @@ if ($PreferencesProbe) {
     Write-Output "PREFERENCES_PROBE RESULT $resultPath"
     Complete-RunFolder
     return
+}
+if ($Combat) {
+    $fixtureLog = Get-Content -Raw -LiteralPath (Join-Path $OutputDirectory 'process.stdout.log')
+    if ($fixtureLog -match '(?m)^COMBAT_FIXTURE FAIL ' -or $fixtureLog -notmatch ('(?m)^COMBAT_FIXTURE PASS map=' + [regex]::Escape($Map) + ' captures=4\r?$')) {
+        throw "Combat fixture failed or timed out within $TimeoutSeconds s.`n$fixtureLog"
+    }
+    if (-not $probeHarnessStoppedProcess -or $snapshots.Count -ne 4) {
+        throw 'Combat fixture must capture exactly four frames in the isolated helper process.'
+    }
+    $ordered = @($snapshots | Sort-Object LastWriteTime)
+    $expectedPhases = @('player-targeting', 'player-attack', 'enemy-turn', 'combat-ended')
+    for ($index = 0; $index -lt 4; $index++) {
+        $metadata = Get-Content -Raw -LiteralPath $ordered[$index].FullName | ConvertFrom-Json
+        $fixture = $metadata.combat_fixture
+        $metadataMap = [System.IO.Path]::GetFileNameWithoutExtension([string]$metadata.map).ToLowerInvariant()
+        if ($metadata.snapshot_run -ne $runId -or $metadataMap -ne $Map -or $fixture.phase -ne $expectedPhases[$index]) {
+            throw "Combat sidecar $($ordered[$index].Name) has the wrong run, map, or phase."
+        }
+        if ($index -lt 3 -and -not $fixture.in_combat) { throw "Combat phase '$($expectedPhases[$index])' was not captured in combat." }
+        if ($index -eq 3 -and $fixture.in_combat) { throw 'The final combat fixture frame was captured before combat ended.' }
+        if ($index -eq 0 -and -not $fixture.player_turn) { throw 'The targeting frame was not captured during the player turn.' }
+        if ($index -eq 2 -and $fixture.player_turn) { throw 'The enemy frame was not captured during an enemy turn.' }
+        if (-not $Classic -and ($metadata.scene_view -ne 'full' -or -not $metadata.preview_requested)) {
+            throw "3D combat phase '$($expectedPhases[$index])' lacks a full scene preview."
+        }
+        if ($Classic -and $metadata.view -ne 'vanilla-framebuffer') {
+            throw "Classic combat phase '$($expectedPhases[$index])' did not capture the vanilla framebuffer."
+        }
+    }
 }
 if ($UiFixture) {
     $fixtureLog = Get-Content -Raw -LiteralPath (Join-Path $OutputDirectory 'process.stdout.log')

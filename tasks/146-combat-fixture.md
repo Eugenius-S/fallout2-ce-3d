@@ -51,3 +51,13 @@ combat change in the 3D view (135 and after) is checked without the owner.
 ## Log
 
 - 2026-11-01 Cut for 135 (no way to capture a fight).
+
+### 2026-11-02 gpt
+
+Done: Added `-Combat` and `-CombatTarget`, a devtools fixture that selects a map critter with aggressive AI or creates an aggressive test copy on a free nearby tile, and sidecar fields for the requested phase and actual combat/turn/scene state. The script requires exactly four phase captures and checks their sidecars. `klatoxcv` is expected to use its map hostiles; `kladwtwn` falls back to a test copy when no aggressive critter is present. This map split is inferred from the fixture rules, not confirmed by a completed capture.
+
+Two background attempts on `klatoxcv` loaded the map and available 3D preview but timed out before the fixture started. The second log showed `sceneStartupReady() == false` with a loaded hero/map. A readiness bypass using the started preview is included as a hypothesis and has no runtime confirmation. Per the two-attempt limit, no more captures were run.
+
+Next: Re-run the four-phase captures on both maps in 3D and Classic, confirm or fix the startup readiness bypass, verify map-hostile versus test-critter selection, then create the two-map phase strips.
+
+Check: Release build passed; `ctest --test-dir build --output-on-failure` passed 18/18. Failed attempt logs: `runs/146-combat-fixture/klatoxcv-3d/process.stdout.log` and `runs/146-combat-fixture/klatoxcv-3d-attempt-2/process.stdout.log`.

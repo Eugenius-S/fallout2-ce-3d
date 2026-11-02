@@ -25,6 +25,7 @@
 #include "../animation.h"
 #include "../color.h"
 #include "../combat.h"
+#include "../combat_ai.h"
 #include "../critter.h"
 #include "../cycle.h"
 #include "../db.h"
@@ -42,6 +43,7 @@
 #include "../game.h"
 #include "../game_dialog.h"
 #include "../game_mouse.h"
+#include "../input.h"
 #include "../object.h"
 #include "../preferences.h"
 #include "../mouse.h"
@@ -167,6 +169,19 @@ int gShadowDebug = 0; // --dev-shadow-debug=N: 1 factor, 2 fade, 3 coverage
 bool gDevNoSpriteSides = false; // --dev-no-sprite-sides: sprites keep their own side (087's "before")
 bool gDevOpenDoors = false; // --dev-open-doors: every door of the map stands open, once
 bool gDevOpenDoorsDone = false;
+bool gCombatFixtureRequested = false;
+bool gCombatFixtureWaitLogged = false;
+int gCombatFixtureTargetTile = -1;
+int gCombatFixturePhase = 0; // 1 aim, 2 attack, 3 enemy turn, 4 ended
+Object* gCombatFixtureTarget = nullptr;
+int gCombatFixtureTargetX = -1;
+int gCombatFixtureTargetY = -1;
+int gCombatFixtureStartingHp = -1;
+int gCombatFixtureFrames = 0;
+int gCombatFixtureEnemyTile = -1;
+int gCombatFixtureEnemyPhaseFrames = 0;
+bool gCombatFixtureEndTurnQueued = false;
+bool gCombatFixtureIsClassic = false;
 double gDevZoom = -1.0; // --dev-zoom=D: the background run's 3D zoom (default 1)
 int gDevAmbient = -1; // --dev-ambient: the map's ambient light held there (night views)
 double gDevHour = -1.0; // --dev-hour: the game hour set on the map, once
@@ -805,6 +820,24 @@ bool parseOption(const char* arg)
         gSnapshotOncePending = true;
         return true;
     }
+    if (strcmp(arg, "--dev-combat") == 0) {
+        gCombatFixtureRequested = true;
+        printf("COMBAT_FIXTURE OPTION enabled=1\n");
+        fflush(stdout);
+        return true;
+    }
+    const char* combatTargetPrefix = "--dev-combat-target=";
+    if (strncmp(arg, combatTargetPrefix, strlen(combatTargetPrefix)) == 0) {
+        char* end = nullptr;
+        const long tile = strtol(arg + strlen(combatTargetPrefix), &end, 10);
+        if (end != arg + strlen(combatTargetPrefix) && *end == '\0' && tile >= 0 && tile < 40000) {
+            gCombatFixtureTargetTile = static_cast<int>(tile);
+        } else {
+            fprintf(stderr, "devtools: invalid --dev-combat-target value (expected 0..39999)\n");
+            fflush(stderr);
+        }
+        return true;
+    }
     const char* scrollStepPrefix = "--dev-scroll-step=";
     if (strncmp(arg, scrollStepPrefix, strlen(scrollStepPrefix)) == 0) {
         const char* step = arg + strlen(scrollStepPrefix);
@@ -1409,6 +1442,202 @@ void listMaps()
     fflush(stdout);
 }
 
+static bool combatFixtureAlive(Object* critter)
+{
+    return critter != nullptr && critter != gDude
+        && FrmId(critter).objectType() == OBJ_TYPE_CRITTER
+        && (critter->data.critter.combat.results & DAM_DEAD) == DAM_NONE;
+}
+
+static int combatFixtureDefaultTargetTile()
+{
+    for (int distance = 2; distance <= 6; ++distance) {
+        for (int tile = 0; tile < 40000; ++tile) {
+            if (tileDistanceBetween(gDude->tile, tile) == distance
+                && elevationTileFree(tile, gElevation)
+                && objectFindFirstAtLocation(gElevation, tile) == nullptr) {
+                return tile;
+            }
+        }
+    }
+    return -1;
+}
+
+static bool prepareCombatFixture()
+{
+    if (!gCombatFixtureRequested || gCombatFixturePhase != 0) return false;
+    if (gDude == nullptr || !gStartupFloorPreviewAttempted || gPendingElevation || inBlockingGameState()) {
+        if (!gCombatFixtureWaitLogged && gMapHeader.name[0] != '\0') {
+            printf("COMBAT_FIXTURE WAIT map=%s hero=%d ready=%d blocking=%d combat=%d\n",
+                gMapHeader.name, gDude != nullptr ? gDude->tile : -1, sceneStartupReady() ? 1 : 0,
+                inBlockingGameState() ? 1 : 0, isInCombat() ? 1 : 0);
+            fflush(stdout);
+            gCombatFixtureWaitLogged = true;
+        }
+        return false;
+    }
+
+    Object* target = nullptr;
+    Object* seed = nullptr;
+    for (Object* object = objectFindFirstAtElevation(gElevation); object != nullptr;
+         object = objectFindNextAtElevation()) {
+        if (!combatFixtureAlive(object)) continue;
+        if (seed == nullptr) seed = object;
+        const Disposition disposition = aiGetDisposition(object);
+        if (disposition == DISPOSITION_AGGRESSIVE || disposition == DISPOSITION_BERKSERK) {
+            target = object;
+            break;
+        }
+    }
+
+    bool spawned = false;
+    if (target == nullptr) {
+        const int tile = gCombatFixtureTargetTile >= 0 ? gCombatFixtureTargetTile : combatFixtureDefaultTargetTile();
+        if (seed == nullptr || tile < 0 || !elevationTileFree(tile, gElevation)
+            || objectFindFirstAtLocation(gElevation, tile) != nullptr
+            || tileDistanceBetween(gDude->tile, tile) < 1 || tileDistanceBetween(gDude->tile, tile) > 6) {
+            printf("COMBAT_FIXTURE FAIL map=%s hero=%d target_tile=%d reason=no-free-test-target-tile\n",
+                gMapHeader.name, gDude->tile, tile);
+            fflush(stdout);
+            gCombatFixturePhase = -1;
+            return false;
+        }
+        if (objectCreateWithProtoId(&target, ProtoId(seed)) != 0 || target == nullptr
+            || objectSetLocation(target, tile, gElevation, nullptr) != 0
+            || aiSetDisposition(target, DISPOSITION_AGGRESSIVE) != 0) {
+            if (target != nullptr) objectDestroy(target, nullptr);
+            printf("COMBAT_FIXTURE FAIL map=%s hero=%d target_tile=%d reason=test-critter-create-failed\n",
+                gMapHeader.name, gDude->tile, tile);
+            fflush(stdout);
+            gCombatFixturePhase = -1;
+            return false;
+        }
+        spawned = true;
+    }
+
+    gCombatFixtureTarget = target;
+    gCombatFixtureTargetTile = target->tile;
+    gCombatFixtureIsClassic = gClassic;
+    gCombatFixtureFrames = 0;
+    gCombatFixtureEndTurnQueued = false;
+    gCombatFixtureEnemyTile = -1;
+    gCombatFixtureEnemyPhaseFrames = 0;
+    printf("COMBAT_FIXTURE START map=%s elevation=%d mode=%s hero=%d target=%d target_tile=%d source=%s\n",
+        gMapHeader.name, gElevation, gClassic ? "classic" : "3d", gDude->tile,
+        target->id, target->tile, spawned ? "test-critter" : "map-hostile");
+    fflush(stdout);
+    gCombatFixturePhase = 5; // target prepared; queue the game's A combat key.
+    enqueueInputEvent(KEY_UPPERCASE_A);
+    return true;
+}
+
+static bool combatFixturePointAtTarget()
+{
+    if (gCombatFixtureTarget == nullptr) return false;
+    double x = 0.0;
+    double y = 0.0;
+    if (!gCombatFixtureIsClassic) {
+        double pixel[2];
+        scene_renderer::gameViewTilePixel(gCombatFixtureTarget->tile, pixel);
+        if (!scene_renderer::staticScreenFromGamePixel(pixel[0] + gCombatFixtureTarget->x,
+                pixel[1] + gCombatFixtureTarget->y - 25.0, &x, &y)) return false;
+    } else {
+        int sx = 0;
+        int sy = 0;
+        tileToScreenXY(gCombatFixtureTarget->tile, &sx, &sy);
+        x = sx + gCombatFixtureTarget->x;
+        y = sy + gCombatFixtureTarget->y - 25.0;
+    }
+    gCombatFixtureTargetX = static_cast<int>(x);
+    gCombatFixtureTargetY = static_cast<int>(y);
+    _mouse_set_position(gCombatFixtureTargetX, gCombatFixtureTargetY);
+    gameMouseSetMode(GAME_MOUSE_MODE_CROSSHAIR);
+    gameMouseRefresh();
+    Object* pointed = gameMouseGetObjectUnderCursor(OBJ_TYPE_CRITTER, false, gElevation);
+    int accuracy = 0;
+    return pointed == gCombatFixtureTarget && _combat_to_hit(pointed, &accuracy) && accuracy > 0;
+}
+
+static void combatFixtureCapture(const char* phase)
+{
+    if (!takeSnapshot()) {
+        printf("COMBAT_FIXTURE FAIL map=%s phase=%s reason=snapshot-failed\n", gMapHeader.name, phase);
+        gCombatFixturePhase = -1;
+    } else {
+        printf("COMBAT_FIXTURE CAPTURE map=%s phase=%s in_combat=%d player_turn=%d target_hp=%d target_tile=%d availability=%s\n",
+            gMapHeader.name, phase, isInCombat() ? 1 : 0,
+            (gCombatState & COMBAT_STATE_PLAYER_TURN) != 0 ? 1 : 0,
+            gCombatFixtureTarget != nullptr ? gCombatFixtureTarget->data.critter.hp : -1,
+            gCombatFixtureTarget != nullptr ? gCombatFixtureTarget->tile : -1,
+            scene::availability());
+    }
+    fflush(stdout);
+}
+
+static void runCombatFixtureFrame()
+{
+    if (!gCombatFixtureRequested || gCombatFixturePhase < 1 || gCombatFixturePhase > 5) return;
+    if (++gCombatFixtureFrames > 2400) {
+        printf("COMBAT_FIXTURE FAIL map=%s phase=%d reason=phase-timeout\n", gMapHeader.name, gCombatFixturePhase);
+        fflush(stdout);
+        gCombatFixturePhase = -1;
+        return;
+    }
+
+    if (gCombatFixturePhase == 5) {
+        if (isInCombat() && _combat_whose_turn() == gDude
+            && (gCombatState & COMBAT_STATE_PLAYER_TURN) != 0) {
+            gCombatFixtureStartingHp = gCombatFixtureTarget->data.critter.hp;
+            gameMouseSetMode(GAME_MOUSE_MODE_CROSSHAIR);
+            if (combatFixturePointAtTarget()) gCombatFixturePhase = 1;
+        }
+    } else if (gCombatFixturePhase == 1) {
+        if (combatFixturePointAtTarget()) {
+            combatFixtureCapture("player-targeting");
+            if (gCombatFixturePhase > 0) {
+                gCombatFixturePhase = 2;
+                _gmouse_handle_event(gCombatFixtureTargetX, gCombatFixtureTargetY, MOUSE_EVENT_LEFT_BUTTON_UP);
+            }
+        }
+    } else if (gCombatFixturePhase == 2) {
+        Attack* attack = combat_get_data();
+        if (isInCombat() && attack != nullptr && attack->attacker == gDude
+            && attack->defender == gCombatFixtureTarget
+            && (gCombatFixtureTarget->data.critter.hp < gCombatFixtureStartingHp
+                || animationIsBusy(gDude) == -1)) {
+            combatFixtureCapture("player-attack");
+            if (gCombatFixturePhase > 0) gCombatFixturePhase = 3;
+        }
+    } else if (gCombatFixturePhase == 3 && isInCombat()) {
+        Object* turn = _combat_whose_turn();
+        if (turn == gDude && !gCombatFixtureEndTurnQueued && animationIsBusy(gDude) != -1) {
+            enqueueInputEvent(KEY_SPACE);
+            gCombatFixtureEndTurnQueued = true;
+        } else if (turn != nullptr && turn != gDude) {
+            if (gCombatFixtureEnemyTile == -1) gCombatFixtureEnemyTile = turn->tile;
+            if (animationIsBusy(turn) == -1 || turn->tile != gCombatFixtureEnemyTile) {
+                combatFixtureCapture("enemy-turn");
+                if (gCombatFixturePhase > 0) {
+                    gCombatFixturePhase = 4;
+                    gCombatState |= COMBAT_STATE_EXIT_REQUESTED;
+                }
+            } else if (++gCombatFixtureEnemyPhaseFrames >= 600) {
+                printf("COMBAT_FIXTURE FAIL map=%s phase=enemy-turn reason=enemy-did-not-act critter=%d tile=%d\n",
+                    gMapHeader.name, turn->id, turn->tile);
+                fflush(stdout);
+                gCombatFixturePhase = -1;
+            }
+        }
+    } else if (gCombatFixturePhase == 4 && !isInCombat()) {
+        combatFixtureCapture("combat-ended");
+        if (gCombatFixturePhase > 0) {
+            gCombatFixturePhase = 6;
+            printf("COMBAT_FIXTURE PASS map=%s captures=4\n", gMapHeader.name);
+            fflush(stdout);
+        }
+    }
+}
+
 // Called every frame from the main loop after mapHandleTransition: applies the pending
 // elevation correction once the requested map has finished loading.
 void update()
@@ -1419,6 +1648,7 @@ void update()
     // The startup --dev-map travel retries here until the opening movie is
     // over and the transition is accepted (089).
     applyStartupTarget();
+    prepareCombatFixture();
     if (gScrollEdgeDirection >= 0 && gScrollEdgeStage < 2
         && gViewTileApplied && sceneStartupReady() && !inBlockingGameState()) {
         if (gScrollEdgeStage == 0) {
@@ -2315,8 +2545,9 @@ void runPickProbe()
 
 void scenePresented(const scene::RefreshResult& refreshed)
 {
-    if (!sceneStartupReady()) return;
+    if (!sceneStartupReady() && !(gCombatFixtureRequested && gStartupFloorPreviewAttempted && !gPendingElevation)) return;
     if (scene::activeView() != scene::View::Full) return;
+    if (gCombatFixtureRequested && !gCombatFixtureIsClassic) runCombatFixtureFrame();
     // Frame rate of the 3D view, logged every two seconds: presented frames
     // per second and the share of each frame spent rebuilding live objects.
     static Uint64 windowStart = 0;
@@ -2426,6 +2657,7 @@ void scenePresented(const scene::RefreshResult& refreshed)
 void vanillaPresented()
 {
     if (gDialogCursorCheckCursorMoveInProgress) return;
+    if (gCombatFixtureRequested && gCombatFixtureIsClassic) runCombatFixtureFrame();
     uiFixtureVanillaPresented();
     if (gDialogFixtureRequested && gDialogFixtureStarted && !gDialogFixtureFinished
         && gameDialogWindowActive()) {
@@ -3529,6 +3761,11 @@ bool takeSnapshot()
         sun.up ? "true" : "false", sun.height, sun.azimuth, sun.direction[0], sun.direction[1], sun.direction[2],
         sun.color[0], sun.color[1], sun.color[2], sun.strength);
     const scene_renderer::PreparedSharpTextFrame& sharpText = scene_renderer::preparedSharpTextFrame();
+    const char* combatPhase = !gCombatFixtureRequested ? "none"
+        : gCombatFixturePhase == 1 ? "player-targeting"
+        : gCombatFixturePhase == 2 ? "player-attack"
+        : gCombatFixturePhase == 3 ? "enemy-turn"
+        : gCombatFixturePhase == 4 ? "combat-ended" : "pending";
 
     FILE* f = fopen(sidecarPath.string().c_str(), "w");
     if (f == nullptr) {
@@ -3546,6 +3783,7 @@ bool takeSnapshot()
         "  \"map\": \"%s\",\n"
         "  \"elevation\": %d,\n"
         "  \"still_snapshot\": %s,\n"
+        "  \"combat_fixture\": {\"phase\":\"%s\",\"in_combat\":%s,\"player_turn\":%s,\"scene_availability\":\"%s\"},\n"
         "  \"snapshot_run\": \"%s\",\n"
         "  \"view_tile\": %d,\n"
         "  \"preview_requested\": %s,\n"
@@ -3583,6 +3821,10 @@ bool takeSnapshot()
         mapName,
         static_cast<int>(gElevation),
         stillSnapshotRequested() ? "true" : "false",
+        combatPhase,
+        isInCombat() ? "true" : "false",
+        (gCombatState & COMBAT_STATE_PLAYER_TURN) != 0 ? "true" : "false",
+        scene::availability(),
         gSnapshotRun,
         gCenterTile,
         previewRequested ? "true" : "false",
