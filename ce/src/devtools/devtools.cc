@@ -1435,9 +1435,16 @@ void update()
     if (!gEnabled) {
         return;
     }
-    if (!gPreferencesSnapshotActive && scriptedInputActive() && scriptedInputStarted()) {
-        scriptedInputPump();
-        if (scriptedInputTakeSnapshotRequest()) { renderPresent(); takeSnapshot(); }
+    if (!gPreferencesSnapshotActive && scriptedInputActive()) {
+        // A scene script (no -Preferences) starts itself once the 3D view is
+        // up; the options panel's own loop begins the panel scripts.
+        if (!scriptedInputStarted() && scene::activeView() == scene::View::Full && scene::shouldPresent()) {
+            scriptedInputBegin();
+        }
+        if (scriptedInputStarted()) {
+            scriptedInputPump();
+            if (scriptedInputTakeSnapshotRequest()) { renderPresent(); takeSnapshot(); }
+        }
     }
     // The startup --dev-map travel retries here until the opening movie is
     // over and the transition is accepted (089).

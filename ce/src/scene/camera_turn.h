@@ -11,15 +11,15 @@ namespace scene {
 constexpr double kCameraTurnStep = 10.0;
 // Without camera_rotation_unlimited the turn stops at this many degrees either way.
 constexpr double kCameraTurnLimit = 30.0;
-// The old constant-speed turn: a 10-degree step took kCameraTurnStep over
-// this, about 28 ms. The eased step keeps about that time.
+// The old constant-speed turn: a 10-degree step ran at this speed, about
+// 28 ms with a hard start and stop. The eased step peaks at the same speed
+// and spends its speed on the arc, so one step is a smooth zero-to-zero
+// ride of about twice that (still under the held key's 80 ms repeat).
 constexpr double kCameraTurnSpeed = 360.0;
-// The eased step peaks at twice the old constant speed, so its speed arc
-// (zero at both ends) covers the step in about the old time.
-constexpr double kCameraTurnMaxSpeed = 2.0 * kCameraTurnSpeed;
-// And ramps at the rate that makes the arc exactly that: braking from the
-// peak covers kCameraTurnStep of distance (v^2 = 2 * a * s).
-constexpr double kCameraTurnAccel = kCameraTurnMaxSpeed * kCameraTurnMaxSpeed / kCameraTurnStep;
+constexpr double kCameraTurnMaxSpeed = kCameraTurnSpeed;
+// Braking from the peak covers exactly one step (v^2 = 2 * a * s), so a
+// single step is all ease with no cruise between the ramps.
+constexpr double kCameraTurnAccel = kCameraTurnSpeed * kCameraTurnSpeed / kCameraTurnStep;
 
 inline double limitedCameraTurn(double degrees)
 {

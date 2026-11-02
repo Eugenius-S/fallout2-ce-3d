@@ -67,11 +67,15 @@ int main()
         cameraTurnEaseStep(firstAt, firstTo, firstSpeed, kDt);
         CHECK(std::fabs(firstSpeed) < 0.75 * peak);
         CHECK(last < 0.75 * peak);
-        // About the old time per step (10 degrees at kCameraTurnSpeed).
+        // The zero-to-zero arc of one step: about twice the old constant-speed
+        // time (10 degrees at kCameraTurnSpeed), still under the held key's
+        // 80 ms repeat.
         const double oldSeconds = kCameraTurnStep / kCameraTurnSpeed;
         const double seconds = frames * kDt;
-        CHECK(seconds > 0.5 * oldSeconds);
-        CHECK(seconds < 1.5 * oldSeconds);
+        CHECK(seconds > 1.5 * oldSeconds);
+        CHECK(seconds < 2.5 * oldSeconds);
+        // And the peak stays at the old speed.
+        CHECK(peak <= kCameraTurnMaxSpeed + 1e-9);
     }
 
     // A press mid-turn retargets without a speed jump: the next frame's speed

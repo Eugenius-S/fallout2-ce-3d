@@ -29,6 +29,7 @@ bool gInputSeen = false;
 bool gInputStarted = false;
 bool gInputSnapshot = false;
 int gInputX = 0, gInputY = 0, gInputWait = 0;
+Uint32 gInputWaitUntil = 0; // a waitms deadline, in SDL ticks
 unsigned char gInputLeft = 0, gInputRight = 0;
 }
 
@@ -50,6 +51,10 @@ bool scriptedInputTakeSnapshotRequest() { bool requested = gInputSnapshot; gInpu
 void scriptedInputPump()
 {
     if (!gInputActive || gInputWait-- > 0) return;
+    if (gInputWaitUntil != 0) {
+        if (SDL_GetTicks() < gInputWaitUntil) return;
+        gInputWaitUntil = 0;
+    }
     std::string line;
     while (std::getline(gInputScript, line)) {
         std::istringstream input(line);
@@ -57,6 +62,14 @@ void scriptedInputPump()
         if (!(input >> action) || action[0] == '#') continue;
         if (action == "wait") {
             if (!(input >> gInputWait) || gInputWait < 0) { fprintf(stderr, "DEV_INPUT FAIL: invalid wait\n"); gInputActive = false; }
+            return;
+        }
+        if (action == "waitms") {
+            // A real-time wait: samples a motion strip evenly whatever the
+            // run's frame pace is.
+            int ms;
+            if (!(input >> ms) || ms < 0) { fprintf(stderr, "DEV_INPUT FAIL: invalid waitms\n"); gInputActive = false; return; }
+            gInputWaitUntil = SDL_GetTicks() + static_cast<Uint32>(ms);
             return;
         }
         if (action == "snap") { gInputSnapshot = true; printf("DEV_INPUT snap\n"); fflush(stdout); return; }

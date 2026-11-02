@@ -54,6 +54,13 @@ param(
     [switch]$Classic,
     [switch]$Preferences,
     [string]$DevInput,
+    # Snapshots the script takes; the run waits for exactly this many (and the
+    # script's PASS line). 5 matches the options-panel resolution script.
+    [ValidateRange(1, 400)]
+    [int]$DevInputShots = 5,
+    # The script presses [ or ]: turn [3d] camera_rotation on in this run's
+    # isolated config copy, so the keys reach the turn.
+    [switch]$TurnKeys,
     [ValidateSet('resolution', 'mode')]
     [string]$PreferencesDropdown,
     [switch]$DevPanel,
@@ -163,9 +170,10 @@ param(
     [double]$Scale = 2.0
 )
 $ErrorActionPreference = 'Stop'
-if ($DevInput -and (-not $Preferences -or -not $ConfiguredDisplay -or -not $ReuseTestConfig -or -not $OutputDirectory -or -not $CaptureConsole)) {
-    throw '-DevInput requires -Preferences, -ConfiguredDisplay, -ReuseTestConfig, -OutputDirectory and -CaptureConsole.'
+if ($DevInput -and (-not $OutputDirectory -or -not $CaptureConsole)) {
+    throw '-DevInput requires -OutputDirectory and -CaptureConsole.'
 }
+if ($TurnKeys -and -not $DevInput) { throw '-TurnKeys requires -DevInput.' }
 if ($ClockLadder) {
     if (-not $OutputDirectory -or $Tour -or $Classic -or $Probe -or $Preferences -or $MuzzleWeapon -or $GlowLadder -or $GlowPair -or $GlowLevels -or $EffectFixture -or $DialogFixture -or $UiFixture) { throw '-ClockLadder requires its own scene run and -OutputDirectory.' }
     $Still=$true; $CaptureConsole=$true
@@ -348,6 +356,22 @@ if ($Language) {
     if (-not $languageFound) { throw 'Could not find [system].language in the isolated test config.' }
     [System.IO.File]::WriteAllLines($configPath, $configLines, [System.Text.UTF8Encoding]::new($false))
 }
+if ($TurnKeys) {
+    $configLines = [System.Collections.Generic.List[string]]::new()
+    $in3dSection = $false
+    $rotationFound = $false
+    foreach ($line in [System.IO.File]::ReadAllLines($configPath)) {
+        if ($line -match '^\s*\[') { $in3dSection = $line.Trim() -eq '[3d]' }
+        if ($in3dSection -and $line -match '^\s*camera_rotation=') {
+            $configLines.Add('camera_rotation=1')
+            $rotationFound = $true
+        } else {
+            $configLines.Add($line)
+        }
+    }
+    if (-not $rotationFound) { throw 'Could not find [3d].camera_rotation in the isolated test config.' }
+    [System.IO.File]::WriteAllLines($configPath, $configLines, [System.Text.UTF8Encoding]::new($false))
+}
 $configHashBefore = (Get-FileHash -LiteralPath $configPath -Algorithm SHA256).Hash
 $initialZoom = Get-TestConfigValue $configPath '3d' 'zoom'
 $initialEnabled = Get-TestConfigValue $configPath '3d' 'enabled'
@@ -454,7 +478,7 @@ if ($Still) {
     $arguments += '--dev-still-snapshot'
 }
 if ($DevInput) {
-    $shots = 5
+    $shots = $DevInputShots
 } elseif ($PreferencesProbe) {
     $shots = 0
 } elseif ($Preferences) {
@@ -627,21 +651,25 @@ try {
 if ($DevInput) {
     $inputLog = Get-Content -Raw -LiteralPath (Join-Path $OutputDirectory 'process.stdout.log')
     $inputErrors = Get-Content -Raw -LiteralPath (Join-Path $OutputDirectory 'process.stderr.log')
-    if ($inputLog -notmatch '(?m)^DEV_INPUT PASS script complete' -or $inputErrors -match 'DEV_INPUT FAIL' -or $snapshots.Count -ne 5) {
-        throw 'Scripted input did not complete with exactly five snapshots.'
+    if ($inputLog -notmatch '(?m)^DEV_INPUT PASS script complete' -or $inputErrors -match 'DEV_INPUT FAIL' -or $snapshots.Count -ne $DevInputShots) {
+        throw "Scripted input did not complete with exactly $DevInputShots snapshots."
     }
-    $afterWidth = Get-TestConfigValue $configPath 'screen' 'resolution_x'
-    $afterHeight = Get-TestConfigValue $configPath 'screen' 'resolution_y'
-    $afterScale = Get-TestConfigValue $configPath 'screen' 'scale_factor'
-    if (($afterWidth -eq $initialDisplayWidth -and $afterHeight -eq $initialDisplayHeight) -or $afterScale -eq $initialDisplayScale) {
-        throw 'Scripted input did not save both a different resolution and scale.'
+    if ($Preferences -and $ConfiguredDisplay) {
+        # The options-panel resolution script must have saved both a new
+        # resolution and a new scale into the isolated config.
+        $afterWidth = Get-TestConfigValue $configPath 'screen' 'resolution_x'
+        $afterHeight = Get-TestConfigValue $configPath 'screen' 'resolution_y'
+        $afterScale = Get-TestConfigValue $configPath 'screen' 'scale_factor'
+        if (($afterWidth -eq $initialDisplayWidth -and $afterHeight -eq $initialDisplayHeight) -or $afterScale -eq $initialDisplayScale) {
+            throw 'Scripted input did not save both a different resolution and scale.'
+        }
+        [ordered]@{
+            coordinate_space = 'logical'; snapshots = $snapshots.Count
+            initial = @{ resolution_x = $initialDisplayWidth; resolution_y = $initialDisplayHeight; scale_factor = $initialDisplayScale }
+            saved = @{ resolution_x = $afterWidth; resolution_y = $afterHeight; scale_factor = $afterScale }
+            config_sha256 = (Get-FileHash -LiteralPath $configPath -Algorithm SHA256).Hash
+        } | ConvertTo-Json -Depth 4 | Set-Content -Encoding utf8 -LiteralPath (Join-Path $OutputDirectory 'input-result.json')
     }
-    [ordered]@{
-        coordinate_space = 'logical'; snapshots = $snapshots.Count
-        initial = @{ resolution_x = $initialDisplayWidth; resolution_y = $initialDisplayHeight; scale_factor = $initialDisplayScale }
-        saved = @{ resolution_x = $afterWidth; resolution_y = $afterHeight; scale_factor = $afterScale }
-        config_sha256 = (Get-FileHash -LiteralPath $configPath -Algorithm SHA256).Hash
-    } | ConvertTo-Json -Depth 4 | Set-Content -Encoding utf8 -LiteralPath (Join-Path $OutputDirectory 'input-result.json')
 }
 if ($MuzzleWeapon -gt 0) {
     $muzzleText086=Get-Content -Raw -LiteralPath (Join-Path $OutputDirectory 'process.stdout.log')
