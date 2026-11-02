@@ -2,14 +2,14 @@
 id: 153
 title: The sky does not glow or bleed onto the map in flight
 milestone: M1
-status: doing
+status: done
 owner: gpt
 suggested: gpt
 priority: high
 claude-only: no
 user-check: yes
 depends-on: []
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -57,3 +57,6 @@ the sky over the map's edges and roofs.
   Limitation: `sign40` was not present at the selected Klamath fixture tile 20690. `plasma-bolt` has one frame in this build's art and the attempted frame 3 capture did not run, so sign and energy-weapon glow are not independently verified. Keep the PR draft until those classes have supported fixture captures.
   Next: capture a sign and energy-weapon glow pair with supported map objects or fixture frames, then reassess this limitation.
   Check: Release build passed; CTest 18/18 passed; scene exporter tests 88/88 passed; regression unit tests 12/12 passed; full regression 16/16 spots passed with zero changed pixels. Klamath and seven regression maps were exported only to this worktree's `build/scene-cache`.
+
+- 2026-11-02 claude
+  Reviewed and merged: the sky writes zero emission, and the matched Klamath captures show no sky glow after the fix with glow-off frames unchanged. Sign and energy-weapon glow were not captured separately; the change does not touch object emission.
