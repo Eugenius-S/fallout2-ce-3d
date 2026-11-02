@@ -94,12 +94,14 @@ bool loadStaticFloor(const std::filesystem::path& cacheDirectory, std::string* e
     const unsigned short cellMargin = readU16(sidecar.data() + 18);
     // Version 2 has a roof layer after the floor layer; version 1 has none.
     // Version 3 adds the roof fringe list after the cells: a count, then per
-    // fringe tile its cell number and the rect of its own art in the atlas.
+    // fringe piece its cell number and the rect of its art in roof_fringe.png;
+    // version 4 adds the wall edge (0-3) of the piece after the cell number.
+    constexpr size_t kFringeEntryBytes = 12;
     const size_t layerBytes = version >= 2 ? 2 * kFloorBytes : kFloorBytes;
     const size_t cellsEnd = kHeaderSize + layerBytes + static_cast<size_t>(tileCount) * 4;
-    const size_t fringeCount = version == 3 && sidecar.size() >= cellsEnd + 2 ? readU16(sidecar.data() + cellsEnd) : 0;
-    const size_t expectedSize = cellsEnd + (version == 3 ? 2 + fringeCount * 10 : 0);
-    if ((version < 1 || version > 3) || gridWidth != 100 || gridHeight != 100 || tileCount == 0
+    const size_t fringeCount = version == 4 && sidecar.size() >= cellsEnd + 2 ? readU16(sidecar.data() + cellsEnd) : 0;
+    const size_t expectedSize = cellsEnd + (version == 4 ? 2 + fringeCount * kFringeEntryBytes : 0);
+    if ((version < 1 || version > 4) || gridWidth != 100 || gridHeight != 100 || tileCount == 0
         || cellSize != 88 || cellMargin != 6 || imageWidth == 0 || imageHeight == 0
         || imageWidth > 8192 || imageHeight > 8192
         || sidecar.size() != expectedSize) {
@@ -167,8 +169,8 @@ bool loadStaticFloor(const std::filesystem::path& cacheDirectory, std::string* e
         }
     }
 
-    // The fringe tiles' art (roof_fringe.png), by cell number (null: a tile that lies flat).
-    std::vector<const unsigned char*> fringeOf(static_cast<size_t>(tileCount) + 1, nullptr);
+    // The wall-top pieces (roof_fringe.png), by cell number (none: a tile that lies flat).
+    std::vector<std::vector<const unsigned char*>> fringeOf(static_cast<size_t>(tileCount) + 1);
     std::vector<unsigned char> fringeRgba;
     unsigned fringeWidth = 0, fringeHeight = 0;
     if (fringeCount > 0) {
@@ -182,14 +184,15 @@ bool loadStaticFloor(const std::filesystem::path& cacheDirectory, std::string* e
         }
     }
     for (size_t entry = 0; entry < fringeCount; entry++) {
-        const unsigned char* data = sidecar.data() + cellsEnd + 2 + entry * 10;
-        const unsigned short number = readU16(data);
-        const unsigned short x = readU16(data + 2), y = readU16(data + 4);
-        const unsigned short w = readU16(data + 6), h = readU16(data + 8);
-        if (number == 0 || number > tileCount || w == 0 || h == 0 || x + w > fringeWidth || y + h > fringeHeight) {
+        const unsigned char* data = sidecar.data() + cellsEnd + 2 + entry * kFringeEntryBytes;
+        const unsigned short number = readU16(data), edge = readU16(data + 2);
+        const unsigned short x = readU16(data + 4), y = readU16(data + 6);
+        const unsigned short w = readU16(data + 8), h = readU16(data + 10);
+        if (number == 0 || number > tileCount || edge > 3 || w == 0 || h == 0 || x + w > fringeWidth
+            || y + h > fringeHeight || fringeOf[number].size() >= 2) {
             return fail("floor.bin contains a bad roof fringe entry");
         }
-        fringeOf[number] = data;
+        fringeOf[number].push_back(data);
     }
     std::vector<RoofSquare> roofs;
     for (int index = 0; roofData != nullptr && index < 100 * 100; index++) {
@@ -211,15 +214,19 @@ bool loadStaticFloor(const std::filesystem::path& cacheDirectory, std::string* e
             static_cast<float>(cellX) / imageWidth, static_cast<float>(cellY) / imageHeight,
             static_cast<float>(cellX + cellSize + 2 * cellMargin) / imageWidth,
             static_cast<float>(cellY + cellSize + 2 * cellMargin) / imageHeight };
-        if (const unsigned char* art = fringeOf[cellIndex]) {
-            const float ax = readU16(art + 2), ay = readU16(art + 4), aw = readU16(art + 6), ah = readU16(art + 8);
+        for (const unsigned char* art : fringeOf[cellIndex]) {
+            const float ax = readU16(art + 4), ay = readU16(art + 6), aw = readU16(art + 8), ah = readU16(art + 10);
+            RoofSquare::FringePiece& piece = square.pieces[square.pieceCount++];
+            piece.edge = readU16(art + 2);
+            piece.artU0 = ax / fringeWidth;
+            piece.artV0 = ay / fringeHeight;
+            piece.artU1 = (ax + aw) / fringeWidth;
+            piece.artV1 = (ay + ah) / fringeHeight;
+            piece.artWidth = aw;
+            piece.artHeight = ah;
             square.fringe = true;
-            square.artU0 = ax / fringeWidth;
-            square.artV0 = ay / fringeHeight;
-            square.artU1 = (ax + aw) / fringeWidth;
-            square.artV1 = (ay + ah) / fringeHeight;
-            square.artWidth = aw;
-            square.artHeight = ah;
+            square.tileX = x0;
+            square.tileZ = z0;
         }
         roofs.push_back(square);
     }

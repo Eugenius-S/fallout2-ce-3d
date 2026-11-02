@@ -251,12 +251,19 @@ struct RoofSquare {
     int index; // square index, y * 100 + x, as the engine's tileFid
     float x0, z0, x1, z1;
     float u0, v0, u1, v1;
-    // A fringe tile (roof_fringe.py) stands up as two crossed sheets under the
-    // fly camera: the tile's own iso art, its rect in roof_fringe.png
-    // (normalized) and its size in pixels.
+    // A wall-top tile (roof_fringe.py) stands up under the fly camera, in the
+    // plane of the wall edge its art sits on: one piece per edge (a corner tile
+    // has two). The tile's ground corner (x, z) is where the plane edges lie.
     bool fringe = false;
-    float artU0 = 0, artV0 = 0, artU1 = 0, artV1 = 0;
-    float artWidth = 0, artHeight = 0;
+    float tileX = 0, tileZ = 0;
+    struct FringePiece {
+        int edge = 0; // 0: v = 0, 1: v = 1, 2: u = 0, 3: u = 1
+        // The piece's art in roof_fringe.png (normalized) and its size in pixels.
+        float artU0 = 0, artV0 = 0, artU1 = 0, artV1 = 0;
+        float artWidth = 0, artHeight = 0;
+    };
+    FringePiece pieces[2];
+    int pieceCount = 0;
 };
 
 void setRoofSquares(std::vector<RoofSquare> squares);

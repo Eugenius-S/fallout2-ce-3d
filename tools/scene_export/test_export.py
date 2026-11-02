@@ -18,7 +18,7 @@ from baked_sidecar import (ENTRY as BAKED_ENTRY, GL_MAP_OFFSET, HEADER as BAKED_
                            baked_objects, decode_baked_sidecar, encode_baked_sidecar)
 from export import ReadOnlyGameFiles, choose_source, main, parse_args, patch_paths, scene_directory, validate_output_contents
 from floor_sidecar import HEADER, MAGIC, VERSION, cell_content_rect, decode_floor_sidecar, encode_floor_sidecar
-from roof_fringe import is_fringe, write_fringe_art
+from roof_fringe import edge_pieces, is_fringe, write_fringe_art
 from projection_sidecar import (HEADER as PROJECTION_HEADER, MAGIC as PROJECTION_MAGIC,
                                 VERSION as PROJECTION_VERSION, decode_projection_sidecar,
                                 encode_projection_sidecar, hero_anchor, standing_card)
@@ -267,10 +267,12 @@ class FloorSidecarTests(unittest.TestCase):
         self.assertEqual(len(payload), HEADER.size + 2 * 10000 * 2 + 2 * 4 + 2)
 
     def test_roof_fringe_list_round_trips_and_is_validated(self):
-        payload = encode_floor_sidecar(self.sample_scene(), [(2, 0, 37, 80, 36)])
-        self.assertEqual(decode_floor_sidecar(payload)["fringe"], [(2, 0, 37, 80, 36)])
+        payload = encode_floor_sidecar(self.sample_scene(), [(2, 3, 0, 37, 80, 36)])
+        self.assertEqual(decode_floor_sidecar(payload)["fringe"], [(2, 3, 0, 37, 80, 36)])
         with self.assertRaisesRegex(ValueError, "roof fringe"):
-            encode_floor_sidecar(self.sample_scene(), [(3, 0, 0, 80, 36)])
+            encode_floor_sidecar(self.sample_scene(), [(3, 0, 0, 0, 80, 36)])
+        with self.assertRaisesRegex(ValueError, "roof fringe"):
+            encode_floor_sidecar(self.sample_scene(), [(1, 4, 0, 0, 80, 36)])
         with self.assertRaisesRegex(ValueError, "truncated"):
             decode_floor_sidecar(payload[:-1])
 
@@ -334,10 +336,38 @@ class RoofFringeTests(unittest.TestCase):
         with TemporaryDirectory() as temp:
             png = Path(temp) / "roof_fringe.png"
             entries = write_fringe_art(png, {1: 7, 2: 8, 3: 7}, lambda tile: self.art(blades if tile == 7 else []))
-            self.assertEqual(entries, [(1, 0, 0, 80, 36), (3, 81, 0, 80, 36)])
+            self.assertEqual([(entry[0], entry[2:]) for entry in entries],
+                             [(1, (0, 0, 80, 36)), (3, (81, 0, 80, 36))])
+            self.assertEqual(entries[0][1], entries[1][1])  # the same art, the same wall edge
             self.assertEqual(Image.open(png).size, (162, 37))
             self.assertEqual(write_fringe_art(png, {1: 8}, lambda tile: self.art([])), [])
             self.assertFalse(png.exists())
+
+
+class EdgePieceTests(unittest.TestCase):
+    @staticmethod
+    def slab(edge_of):
+        """Pixels of the tile's diamond within 0.15 of the edges edge_of names."""
+        ys, xs = np.mgrid[0:36, 0:80]
+        u, v = donor_proj.delta_to_ground(xs + 0.5 - 48, ys + 0.5)
+        near = {0: v, 1: 1 - v, 2: u, 3: 1 - u}
+        keep = (u >= 0) & (u < 1) & (v >= 0) & (v < 1) & np.any([near[e] < 0.15 for e in edge_of], axis=0)
+        rgba = np.zeros((36, 80, 4), np.uint8)
+        rgba[keep] = (10, 12, 8, 255)
+        return rgba
+
+    def test_a_slab_along_one_edge_is_one_piece_in_that_edge(self):
+        for edge in range(4):
+            pieces = edge_pieces(self.slab([edge]))
+            self.assertEqual([found for found, _ in pieces], [edge])
+
+    def test_a_corner_is_two_pieces_that_share_no_pixel(self):
+        art = self.slab([1, 3])
+        pieces = edge_pieces(art)
+        self.assertEqual(sorted(edge for edge, _ in pieces), [1, 3])
+        first, second = (piece[..., 3] > 0 for _, piece in pieces)
+        self.assertFalse((first & second).any())
+        self.assertTrue(np.array_equal(first | second, art[..., 3] > 0))
 
 
 class WallSidecarTests(unittest.TestCase):
