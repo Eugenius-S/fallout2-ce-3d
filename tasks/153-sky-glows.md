@@ -2,8 +2,8 @@
 id: 153
 title: The sky does not glow or bleed onto the map in flight
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: gpt
 suggested: gpt
 priority: high
 claude-only: no
