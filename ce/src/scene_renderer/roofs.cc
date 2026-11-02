@@ -24,7 +24,7 @@ std::vector<RoofSquare> gRoofSquares;
 unsigned char gRoofVisible[kSquareCount] = {};
 bool gRoofVisibilityKnown = false;
 bool gRoofBufferStale = true;
-// Whether the buffer was built for a fly camera (the fringe sheets cross there).
+// Whether the buffer was built for a fly camera (the wall-top bands stand there).
 bool gRoofBufferFlying = false;
 // What the roofs cover right now, for the cards' roof cut (114): a square per
 // byte, 255 covered, as the shader's uRoofGrid reads it.
@@ -34,7 +34,7 @@ unsigned int gRoofGridTexture = 0;
 unsigned int gRoofVao = 0;
 unsigned int gRoofVbo = 0;
 int gRoofVertexCount = 0;
-// The fringe sheets (fly camera only) follow the flat squares in the buffer, from their own texture.
+// The wall-top bands (fly camera only) follow the flat squares in the buffer, from their own texture.
 int gRoofFlatVertexCount = 0;
 unsigned int gRoofFringeTexture = 0;
 // All squares, hidden ones included, for the sun's shadow map (task 045).
@@ -52,51 +52,35 @@ int gEggLeft = 0;
 int gEggTop = 0;
 bool gEggShown = false;
 
-// A fringe roof tile stands up (task 129, find 6), under the fly camera: its
-// own iso art on two crossed upright sheets through the square's centre, in
-// place of the flat square. The first sheet runs across the game's screen and
-// the art hangs about the roof plane as the artists drew it over the walls'
-// tops; the second runs along the view, so a fly camera that turns still sees
-// the growth from the side. Art pixel (ax, ay) sits at the screen offset the
-// flat square gives the ground point (u, v): ax = -squ.x + u squ.x + v sqv.x,
-// ay = u squ.y + v sqv.y; a point h pixels higher moves up h pixels. The
-// game's camera keeps the flat square: its view is slightly in perspective,
-// so an upright sheet would not land on the game's own pixels.
-void pushFringeSheets(std::vector<FloorVertex>& vertices, const RoofSquare& square, float roofY)
+// The broken top of a wall (task 129, find 6), under the fly camera. The roof
+// edge tiles that carry it are told by their art (roof_fringe.py), which
+// unrolls each run of them into a strip, the way a wall's art is unrolled along
+// the wall: concrete along the bottom, rebar and ragged concrete above. Here the
+// strip stands on the wall top below the roof edge, in the wall's plane, as one
+// band along the run, a stretch of it per square so a hidden roof square hides
+// its stretch. The texels the art leaves empty are cut out (the roofs' alpha
+// cutoff), so the band's top edge is the ragged one. Drawn from both sides.
+// The game's camera keeps the flat squares, as the game painted them.
+constexpr float kBandStorey = 0.5f; // of the wall's storey (the roof stands one storey up)
+
+void pushFringeBand(std::vector<FloorVertex>& vertices, const RoofSquare& square, float roofY)
 {
-    const HeroProjection& p = gHeroProjection;
-    const double determinant = p.squ[0] * p.sqv[1] - p.sqv[0] * p.squ[1];
-    if (std::abs(determinant) < 1e-9) return;
-    // The ground step of one screen pixel to the right, and one along the view
-    // (no screen x), the second as long as the first.
-    const double rightU = p.sqv[1] / determinant, rightV = -p.squ[1] / determinant;
-    double viewU = p.sqv[0], viewV = -p.squ[0];
-    const double viewLength = std::sqrt(viewU * viewU + viewV * viewV);
-    if (!(viewLength > 0.0)) return;
-    const double scale = std::sqrt(rightU * rightU + rightV * rightV) / viewLength;
-    viewU *= scale;
-    viewV *= scale;
-    const double centerX = (square.x0 + square.x1) * 0.5, centerZ = (square.z0 + square.z1) * 0.5;
-    const double artCenterX = -p.squ[0] + 0.5 * (p.squ[0] + p.sqv[0]);
-    const double artCenterY = 0.5 * (p.squ[1] + p.sqv[1]);
-    auto corner = [&](double stepU, double stepV, double ax, double ay) {
-        const double s = ax - artCenterX;
-        const float u = square.artU0 + (square.artU1 - square.artU0) * static_cast<float>(ax / square.artWidth);
-        const float v = square.artV0 + (square.artV1 - square.artV0) * static_cast<float>(ay / square.artHeight);
-        return FloorVertex { static_cast<float>(centerX + s * stepU),
-            roofY + static_cast<float>((artCenterY - ay) / p.hpx), static_cast<float>(centerZ + s * stepV), u, v };
-    };
-    const double w = square.artWidth, h = square.artHeight;
-    const double steps[2][2] = { { rightU, rightV }, { viewU, viewV } };
-    for (const auto& step : steps) {
-        const FloorVertex a = corner(step[0], step[1], 0, 0), b = corner(step[0], step[1], w, 0);
-        const FloorVertex c = corner(step[0], step[1], w, h), d = corner(step[0], step[1], 0, h);
-        vertices.push_back(a);
-        vertices.push_back(b);
-        vertices.push_back(c);
-        vertices.push_back(a);
-        vertices.push_back(c);
-        vertices.push_back(d);
+    const float top = roofY * (1.0f + kBandStorey);
+    for (int n = 0; n < square.pieceCount; n++) {
+        const RoofSquare::FringePiece& piece = square.pieces[n];
+        const bool alongU = piece.edge < 2;
+        // The square's span along the wall (the square's own, without the rim).
+        const float span0 = alongU ? square.tileX : square.tileZ, span1 = span0 + 1.0f;
+        auto at = [&](float along, float y, float tu, float tv) {
+            return alongU ? FloorVertex { along, y, piece.plane, tu, tv } : FloorVertex { piece.plane, y, along, tu, tv };
+        };
+        const FloorVertex a = at(span0, roofY, piece.uLow, piece.vBottom);
+        const FloorVertex b = at(span1, roofY, piece.uHigh, piece.vBottom);
+        const FloorVertex c = at(span1, top, piece.uHigh, piece.vTop);
+        const FloorVertex d = at(span0, top, piece.uLow, piece.vTop);
+        const FloorVertex quad[6] = { a, b, c, a, c, d };
+        for (const FloorVertex& vertex : quad) vertices.push_back(vertex);
+        for (int i = 5; i >= 0; i--) vertices.push_back(quad[i]);
     }
 }
 
@@ -109,10 +93,10 @@ void rebuildRoofBuffer()
     gRoofBufferFlying = flying;
     for (const RoofSquare& square : gRoofSquares) {
         if (gRoofVisibilityKnown && gRoofVisible[square.index] == 0) continue;
-        // Only the fly camera sees the sheets: the game's view is slightly
+        // Only the fly camera sees the bands: the game's view is slightly
         // in perspective and keeps the game's own pixels on the flat square.
         if (square.fringe && flying && gRoofFringeTexture != 0) {
-            pushFringeSheets(sheets, square, y);
+            pushFringeBand(sheets, square, y);
             continue;
         }
         vertices.push_back({ square.x0, y, square.z0, square.u0, square.v0 });
@@ -290,9 +274,9 @@ void drawRoofs(int viewportX, int viewportY, int viewportWidth, int viewportHeig
     glBindVertexArray(gRoofVao);
     glDrawArrays(kTriangles, 0, gRoofFlatVertexCount);
     if (gRoofVertexCount > gRoofFlatVertexCount) {
-        // The flat roofs do not write depth, so a fringe sheet behind a nearer
+        // The flat roofs do not write depth, so a wall-top band behind a nearer
         // roof would paint over it: the opaque roof texels (the cutoff drops
-        // the rest) go into the depth buffer, colors off, before the sheets.
+        // the rest) go into the depth buffer, colors off, before the bands.
         glColorMask(0, 0, 0, 0);
         glDepthMask(1);
         glDepthFunc(kLess);
