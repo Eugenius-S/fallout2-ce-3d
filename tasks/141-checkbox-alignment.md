@@ -88,3 +88,18 @@ Other rows, the panel layout (130).
   postcondition because this task intentionally leaves resolution unchanged;
   the retained screenshots and sidecars are valid.
 - PR #235 remains draft pending current-SHA CI.
+- Follow-up review found that the visible X in sharp text was left of the opening's
+  center. The checkbox now centers original-font ink inside the measured bracket
+  opening and applies the sharp font's horizontal bearing correction.
+- Final live top/bottom pairs were recaptured in EN/RU and pixel/sharp modes at
+  1920x1080, logical 960x540, scale 2. All eight sidecars use executable SHA
+  `3aafe38a3bd065b674470b3c6e7b95f88aeec3e19b491e0012f3ee4f7fcff112`; sharp
+  captures report active and drawn text. Evidence sheets and metadata were
+  refreshed in this folder.
+- Release build passed; CTest passed 20/20. `tools/regression.ps1` passed 16/16
+  with zero changed pixels. Sharp pixel inspection shows the X ink centered to
+  within one output pixel, the nearest alignment on the integer logical
+  framebuffer at scale 2.
+- The snapshot wrapper reports its task-154 resolution/scale postcondition
+  after writing the requested live captures. No owner game process or owner
+  cache was used. PR #235 remains draft pending CI on this follow-up commit.

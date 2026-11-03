@@ -188,16 +188,52 @@ void drawRightAlignedControlText(unsigned char* panel, int rowY, int left, int r
     fontDrawText(panel + kWidth * (rowY + kLabelTextOffset) + x, text, width, kWidth, color);
 }
 
+std::pair<int, int> controlTextInkBounds(const char* text, int width, Color color)
+{
+    const int height = std::max(1, fontGetLineHeight());
+    const int pitch = width + 4;
+    std::vector<unsigned char> pixels(static_cast<size_t>(pitch) * height, 0);
+    fontDrawTextPtr(pixels.data(), text, width, pitch, color | DRAW_TEXT_FLAG_NO_BG);
+    int inkLeft = width;
+    int inkRight = 0;
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            if (pixels[static_cast<size_t>(y) * pitch + x] == 0) continue;
+            inkLeft = std::min(inkLeft, x);
+            inkRight = std::max(inkRight, x + 1);
+        }
+    }
+    if (inkRight <= inkLeft) return { 0, width };
+    return { inkLeft, inkRight };
+}
+
 void drawCheckboxControl(unsigned char* panel, int rowY, int right, bool checked, Color color)
 {
     const int leftBracketAdvance = fontGetStringWidth("[");
     const int centerAdvance = std::max(fontGetStringWidth("X"), fontGetStringWidth(" "));
     const int rightBracketAdvance = fontGetStringWidth("]");
     const int left = right - leftBracketAdvance - centerAdvance - rightBracketAdvance;
+    const auto leftBracketInk = controlTextInkBounds("[", leftBracketAdvance, color);
+    const auto rightBracketInk = controlTextInkBounds("]", rightBracketAdvance, color);
+    const auto xInk = controlTextInkBounds("X", fontGetStringWidth("X"), color);
+    const int rightBracketOrigin = right - rightBracketAdvance;
+    const int openLeft = left + leftBracketInk.second;
+    const int openRight = rightBracketOrigin + rightBracketInk.first;
+    const int openingCenterTwice = openLeft + openRight;
+    const int xInkCenterTwice = xInk.first + xInk.second;
+    int xOrigin = (openingCenterTwice - xInkCenterTwice + 1) / 2;
+    int sharpWidth = 0;
+    int sharpHeight = 0;
+    if (sharpTextWanted() && scene_renderer::sharpTextLanguageSupported(settings.system.language)
+        && scene_renderer::sharpTextOutputSize(&sharpWidth, &sharpHeight)) {
+        // The sharp font has a different X bearing from font 101. Correct its
+        // visible position in the logical framebuffer.
+        ++xOrigin;
+    }
     unsigned char* text = panel + kWidth * (rowY + kLabelTextOffset);
     fontDrawText(text + left, "[", leftBracketAdvance, kWidth, color);
-    if (checked) fontDrawText(text + left + leftBracketAdvance, "X", centerAdvance, kWidth, color);
-    fontDrawText(text + right - rightBracketAdvance, "]", rightBracketAdvance, kWidth, color);
+    if (checked) fontDrawText(text + xOrigin, "X", centerAdvance, kWidth, color);
+    fontDrawText(text + rightBracketOrigin, "]", rightBracketAdvance, kWidth, color);
 }
 
 } // namespace
