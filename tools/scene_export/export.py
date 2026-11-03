@@ -47,6 +47,9 @@ MAP_GROUPS = {
     # cycling colours, unlike Klamath's dead ones (task 050).
     "vault15": ("vault15",),
     "den": ("denbus1", "denbus2", "denres1"),
+    # Broken Hills: the two town maps and the surrounding desert and
+    # mountain (the game's maps/broken*.map and bhrnd*.map files).
+    "brokenhills": ("broken1", "broken2", "bhrnddst", "bhrndmtn"),
 }
 EXPECTED_OUTPUT_FILES = {"scene.json", "provenance.json", "floor.bin", "walls.bin", "projection.bin", "baked.bin",
                          "shadows.bin", "tiles.png", "light.png", "rock.png", "roof_fringe.png"}
