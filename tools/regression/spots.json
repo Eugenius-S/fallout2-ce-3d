@@ -118,6 +118,41 @@
       "elevation": 0,
       "tile": 21913,
       "coverage": "The most detailed gallery view of this map elevation (task 011)"
+    },
+    {
+      "name": "gecko-settlement",
+      "map": "gecksetl",
+      "elevation": 0,
+      "tile": 23709,
+      "coverage": "The Gecko settlement"
+    },
+    {
+      "name": "gecko-powerplant",
+      "map": "geckpwpl",
+      "elevation": 0,
+      "tile": 20533,
+      "coverage": "The power plant"
+    },
+    {
+      "name": "gecko-junkyard",
+      "map": "geckjunk",
+      "elevation": 0,
+      "tile": 26311,
+      "coverage": "The junkyard"
+    },
+    {
+      "name": "gecko-tunnels",
+      "map": "gecktunl",
+      "elevation": 0,
+      "tile": 20100,
+      "coverage": "The access tunnels"
+    },
+    {
+      "name": "gecko-reactor",
+      "map": "geckpwpl",
+      "elevation": 0,
+      "tile": 16533,
+      "coverage": "The reactor hall with the 5 logos"
     }
   ]
 }
