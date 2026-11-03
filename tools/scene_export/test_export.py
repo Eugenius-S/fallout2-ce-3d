@@ -455,6 +455,27 @@ class RoofEdgeTests(unittest.TestCase):
         self.assertFalse(grey.any())                                   # none of the dark part is left on the roof
         self.assertEqual(unproject_cell(roof).shape[:2], (100, 100))
 
+    def test_a_whole_painted_tile_with_a_grey_slab_on_an_open_edge_stands_up_there(self):
+        whole = self.tile([(0, 1, 0, 1, (120, 80, 50)), (0, 1, 0, 0.36, (14, 14, 14))])
+        self.assertEqual(split_tile(whole)[0], [])                       # no open edge known: a roof square
+        self.assertEqual(split_tile(whole, (1, 2))[0], [])               # the slab is not on those edges
+        pieces, roof = split_tile(whole, (0, 2))
+        self.assertEqual([edge for edge, _ in pieces], [0])              # the slab stands up on its edge
+        self.assertTrue(roof is not None and (roof[..., 3] > 0).any())   # the shingle stays a roof
+        grey = (np.abs(roof[..., 0].astype(int) - roof[..., 2]) < 6) & (roof[..., 3] > 0)
+        self.assertFalse(grey.any())
+        plain = self.tile([(0, 1, 0, 1, (120, 80, 50))])
+        self.assertEqual(split_tile(plain, (0, 1, 2, 3))[0], [])         # shingle on every open edge: nothing stands
+
+    def test_the_edge_check_sees_a_flat_slab_without_the_exporters_classifier(self):
+        from roof_edge_check import flat_slab
+        from floor_sidecar import CELL_OUTER_SIZE
+        from roof_fringe import unproject_cell
+        whole = self.tile([(0, 1, 0, 1, (120, 80, 50)), (0, 1, 0, 0.4, (14, 14, 14))])
+        self.assertEqual(CELL_OUTER_SIZE, unproject_cell(whole).shape[0])
+        self.assertEqual(flat_slab(unproject_cell(whole), (0, 1)), [0])
+        self.assertEqual(flat_slab(unproject_cell(self.tile([(0, 1, 0, 1, (120, 80, 50))])), (0, 1, 2, 3)), [])
+
     def test_outward_is_the_side_with_fewer_roof_squares_beyond_the_wall(self):
         roof = {r * 100 + c: 1 for r in range(10, 20) for c in range(10, 14)}  # a roof of rows 10..19
         self.assertEqual(outward(roof, 0, 9.9, 10.1, 10, 4), -1.0)    # roof beyond the high side only: outside is low

@@ -171,7 +171,33 @@ def _dilate(mask, reach):
     return out
 
 
-def split_tile(rgba):
+SLAB_STRIP = 0.35   # a wall-top slab lies within this of an open edge, in tiles
+SLAB_SHARE = 0.85   # of that strip the dark grey concrete covers this much: the strip is a slab
+
+
+def slab_edges(rgba, open_edges):
+    """The open edges of a roof square along which the tile's art is a wall-top slab: (edges, grey, dist).
+
+    A tile can be painted whole and still carry the broken top of the wall: a
+    strip of dark grey concrete, SLAB_STRIP wide, along the edge that has no
+    roof beyond it (the square's footprint says which edges those are). A whole
+    tile is no roof square then: the strip stands up as a band.
+    """
+    painted, u, v, diamond = _grid(rgba)
+    if not painted.any() or not open_edges:
+        return [], None, None
+    rgb = rgba[..., :3].astype(float)
+    grey = painted & (rgb.mean(axis=2) < GREY_LUMA) & (np.abs(rgb[..., 0] - rgb[..., 2]) < GREY_TINT)
+    dist = np.stack([v, 1.0 - v, u, 1.0 - u])
+    found = []
+    for edge in open_edges:
+        strip = diamond & (dist[edge] < SLAB_STRIP)
+        if (grey & strip).sum() >= SLAB_SHARE * strip.sum():
+            found.append(edge)
+    return found, grey, dist
+
+
+def split_tile(rgba, open_edges=()):
     """A roof tile's art split into its wall-top part and its roof part.
 
     Returns (pieces, roof): pieces is [(edge, art)], the wall-top pixels split by
@@ -192,7 +218,8 @@ def split_tile(rgba):
     rgb = rgba[..., :3].astype(float)
     # concrete and rebar are grey and dark, shingle is brown: red leads blue by more than a few levels
     grey = painted & (rgb.mean(axis=2) < GREY_LUMA) & (np.abs(rgb[..., 0] - rgb[..., 2]) < GREY_TINT)
-    if cover >= WHOLE_COVER and outside.sum() <= FREE_OUTSIDE:
+    slabs, _, dist = slab_edges(rgba, open_edges)
+    if cover >= WHOLE_COVER and outside.sum() <= FREE_OUTSIDE and not slabs:
         return [], rgba
     if grey.sum() >= ALL_GREY * painted.sum():
         fringe = painted.copy()
@@ -202,6 +229,8 @@ def split_tile(rgba):
             if len(rows) >= MIN_BLOB:
                 keep[rows, cols] = True
         fringe = outside | keep
+        for edge in slabs:
+            fringe |= grey & (dist[edge] < SLAB_STRIP + RIM)
         for _ in range(2):
             fringe = _grow(fringe, painted, 5)
         # the grey texels that touch the cut are its ragged rim: they go with it
@@ -566,17 +595,18 @@ def write_fringe_art(out_png, roof_squares, art_of, wall_of, belt_of=None, defau
     """
     cache = {}
 
-    def split(tile):
-        if tile not in cache:
-            cache[tile] = split_tile(art_of(tile))
-        return cache[tile]
+    def split(tile, open_edges):
+        if (tile, open_edges) not in cache:
+            cache[tile, open_edges] = split_tile(art_of(tile), open_edges)
+        return cache[tile, open_edges]
 
+    open_of = boundary_edges(roof_squares)
     squares, patched = {}, {}
     for index, tile in sorted(roof_squares.items()):
-        pieces, roof = split(tile)
+        pieces, roof = split(tile, tuple(open_of[index]))
         if pieces:
             squares[index] = pieces
-            patched[index] = (tile, roof)
+            patched[index] = ((tile, tuple(open_of[index])), roof)
     runs = runs_of(squares)
     if not runs:
         out_png.unlink(missing_ok=True)

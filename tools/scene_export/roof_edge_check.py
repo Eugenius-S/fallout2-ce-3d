@@ -6,6 +6,9 @@ For each map elevation of a scene cache this reports
   or more, at the cut edge of the roof's texture or off its square) that the
   free camera still draws lying flat on the roof within DEPTH of its boundary,
   and the number of squares that hold them;
+- flat_slab_squares: boundary squares whose drawn roof still has a strip of
+  dark grey (half of it or more, no blob or hole rule, a looser test than the
+  exporter's) along an edge with no roof beyond it: a wall top lying flat;
 - geometry: for every band, how far its plane is from the outer face of its wall
   (tiles, 0 is flush), and at every band end next to a perpendicular band the
   gap (the end short of that band's face) and the overshoot (the end past it).
@@ -68,6 +71,24 @@ def ragged_dark(cell, edges):
     return mask
 
 
+SLAB_LUMA = 55.0   # a looser grey than the exporter's classifier asks nothing of blobs, holes or shape:
+SLAB_STRIP = 0.35  # the drawn roof square's strip this wide along an open edge ...
+SLAB_HALF = 0.5    # ... that is half dark grey or more is concrete lying flat (the exporter stands up 0.85)
+
+
+def flat_slab(cell, edges):
+    """Open edges of a drawn roof square whose strip (SLAB_STRIP) is mostly dark grey: a wall top lying flat."""
+    rgb = cell[..., :3].astype(float)
+    opaque = cell[..., 3] > 0
+    grey = opaque & (rgb.mean(axis=2) < SLAB_LUMA) & (np.abs(rgb[..., 0] - rgb[..., 2]) < GREY_TINT)
+    t = (np.arange(CELL_OUTER_SIZE) + 0.5 - CELL_MARGIN) / CELL_SIZE
+    v, u = np.meshgrid(t, t, indexing="ij")
+    on = (u >= 0) & (u < 1) & (v >= 0) & (v < 1)
+    dist = np.stack([v, 1.0 - v, u, 1.0 - u])
+    return [edge for edge in edges
+            if (grey & on & (dist[edge] < SLAB_STRIP)).sum() >= SLAB_HALF * (on & (dist[edge] < SLAB_STRIP)).sum()]
+
+
 def run_squares(entry):
     edge, plane, start, count = entry[:4]
     fixed = plane - (1 if edge in (1, 3) else 0)
@@ -117,7 +138,7 @@ def measure(directory):
     banded = {square for entry in sidecar["fringe"] for square in run_squares(entry)}
     patches = {index: (x, y) for index, x, y in sidecar.get("patches", [])}
     footprint = {index for index, cell in enumerate(roof) if cell}
-    texels = squares = 0
+    texels = squares = slabs = 0
     for index in sorted(footprint):
         edges = [edge for edge, (dx, dz) in enumerate(EDGE_STEPS)
                  if not (0 <= index % 100 + dx < 100 and 0 <= index // 100 + dz < 100)
@@ -132,12 +153,13 @@ def measure(directory):
         else:
             x, y = cells[roof[index] - 1]
             cell = tiles[y:y + CELL_OUTER_SIZE, x:x + CELL_OUTER_SIZE]
+        slabs += bool(flat_slab(cell, edges))
         count = int(ragged_dark(cell, edges).sum())
         if count:
             texels += count
             squares += 1
     scene = json.loads((directory / "scene.json").read_text(encoding="utf-8"))
-    return texels, squares, band_stats(sidecar["fringe"], wall_slabs(scene), footprint)
+    return texels, squares, slabs, band_stats(sidecar["fringe"], wall_slabs(scene), footprint)
 
 
 def main(argv=None):
@@ -145,18 +167,19 @@ def main(argv=None):
     parser.add_argument("--cache-root", type=Path, required=True)
     parser.add_argument("--maps", default="kladwtwn,klatrap,klacanyn,klagraz,klamall,klaratcv,klatoxcv")
     args = parser.parse_args(argv)
-    total = [0, 0]
+    total = [0, 0, 0]
     for name in args.maps.split(","):
         for directory in sorted((args.cache_root / name).glob("[0-9]")):
             if not (directory / "floor.bin").is_file():
                 continue
-            texels, squares, bands = measure(directory)
+            texels, squares, slab_squares, bands = measure(directory)
             total[0] += texels
             total[1] += squares
+            total[2] += slab_squares
             print(json.dumps({"map": name, "elevation": directory.name, "flat_texels": texels,
-                              "flat_squares": squares,
+                              "flat_squares": squares, "flat_slab_squares": slab_squares,
                               **{k: round(v, 3) if isinstance(v, float) else v for k, v in bands.items()}}))
-    print(json.dumps({"total_flat_texels": total[0], "total_flat_squares": total[1]}))
+    print(json.dumps({"total_flat_texels": total[0], "total_flat_squares": total[1], "total_flat_slab_squares": total[2]}))
 
 
 if __name__ == "__main__":
