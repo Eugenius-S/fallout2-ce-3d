@@ -1296,6 +1296,11 @@ bool stillSnapshotRequested()
     return gEnabled && gStillSnapshot;
 }
 
+bool gameMoviesSuppressed()
+{
+    return stillSnapshotRequested();
+}
+
 void prepareStillSnapshot()
 {
     if (!stillSnapshotRequested()) return;
