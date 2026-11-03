@@ -19,7 +19,7 @@ from baked_sidecar import (ENTRY as BAKED_ENTRY, GL_MAP_OFFSET, HEADER as BAKED_
 from export import ReadOnlyGameFiles, choose_source, main, parse_args, patch_paths, scene_directory, validate_output_contents
 from floor_sidecar import HEADER, MAGIC, VERSION, cell_content_rect, decode_floor_sidecar, encode_floor_sidecar
 from roof_fringe import (components_of, cut_to_walls, own_strip, donate, foot_cover, lay_donor, roof_sides, whole_sides, BELT_LAP, BELT_ROWS, EDGE_ROWS, STRIP_ROWS, belt_art, compose_band, is_fringe, outward, resolve_runs, runs_of,
-                         split_tile, unproject_cell, unroll, wall_under, write_fringe_art)
+                         split_tile, tidy_cell, unproject_cell, unroll, wall_under, write_fringe_art)
 import roof_edge_check
 from projection_sidecar import (HEADER as PROJECTION_HEADER, MAGIC as PROJECTION_MAGIC,
                                 VERSION as PROJECTION_VERSION, decode_projection_sidecar,
@@ -585,6 +585,67 @@ class RoofEdgeTests(unittest.TestCase):
         self.assertEqual(CELL_OUTER_SIZE, unproject_cell(whole).shape[0])
         self.assertEqual(flat_slab(unproject_cell(whole), (0, 1)), [0])
         self.assertEqual(flat_slab(unproject_cell(self.tile([(0, 1, 0, 1, (120, 80, 50))])), (0, 1, 2, 3)), [])
+
+    def test_a_flat_cell_keeps_no_dark_ragged_wall_top_whether_or_not_a_band_stands(self):
+        from floor_sidecar import CELL_MARGIN
+        shingle = (120, 80, 50)
+        cell = np.zeros((100, 100, 4), np.uint8)
+        cell[CELL_MARGIN:94, CELL_MARGIN:94] = (*shingle, 255)
+        self.assertTrue((tidy_cell(cell, (0, 1)) == cell).all())          # plain shingle keeps its whole art
+        ragged = cell.copy()
+        ragged[6:40, 6:94] = 0                                            # the cut: clear space along the top
+        for x in range(10, 90, 8):                                        # dark fingers stick up from the roof's body
+            ragged[20:40, x:x + 3] = (12, 12, 12, 255)
+        tidy = tidy_cell(ragged, (0,))
+        dark = (tidy[..., 3] > 0) & (tidy[..., :3].astype(float).mean(axis=2) < 40)
+        self.assertFalse(dark.any())                                      # no finger is left
+        self.assertTrue((tidy[60:90, 20:80, 3] > 0).all())                # the roof's body stays
+        grey = cell.copy()
+        grey[6:40, 6:94] = (14, 14, 14, 255)                              # a grey slab along the open edge, no hole at all
+        self.assertFalse((tidy_cell(grey, (0,))[10:30, 10:90, 3] > 0).any())
+        self.assertTrue((tidy_cell(grey, (1,))[10:30, 10:90, 3] > 0).all())  # not on an edge that is not open
+
+    def test_the_edge_check_counts_dark_ragged_texels_of_any_hue_by_shape_alone(self):
+        shingle = (120, 80, 50)
+        cell = np.zeros((100, 100, 4), np.uint8)
+        cell[6:94, 6:94] = (*shingle, 255)
+        self.assertEqual(int(roof_edge_check.ragged_thin(cell, [0, 1, 2, 3]).sum()), 0)
+        for colour in ((12, 12, 12), (40, 40, 40), (45, 30, 22)):          # black, grey and dark brown fingers
+            cell = np.zeros((100, 100, 4), np.uint8)
+            cell[50:94, 6:94] = (*shingle, 255)
+            for x in range(10, 90, 10):
+                cell[20:50, x:x + 3] = (*colour, 255)
+            self.assertGreater(int(roof_edge_check.ragged_thin(cell, [0]).sum()), 100, colour)
+            self.assertEqual(int(roof_edge_check.ragged_thin(tidy_cell(cell, (0,)), [0]).sum()), 0, colour)
+        dither = np.zeros((100, 100, 4), np.uint8)                          # a checkerboard shading is no wall top
+        dither[50:94, 6:94] = (*shingle, 255)
+        for y in range(20, 50):
+            for x in range(10, 90):
+                if (x + y) % 2:
+                    dither[y, x] = (12, 12, 12, 255)
+        self.assertEqual(int(roof_edge_check.ragged_thin(dither, [0]).sum()), 0)
+
+    def test_a_square_a_band_crosses_restores_no_dark_wall_top_flat(self):
+        shingle, black = (120, 80, 50), (12, 12, 12)
+        # a square whose art is a body with black fingers on its open edge, whole enough for the classifier to call it a roof
+        art = self.tile([(0, 1, 0.3, 1, shingle)])
+        ys, xs = np.mgrid[0:36, 0:80]
+        u, v = donor_proj.delta_to_ground(xs + 0.5 - 48, ys + 0.5)
+        for k in range(8):
+            art[(u >= 0.1 * k + 0.03) & (u < 0.1 * k + 0.07) & (v >= 0.02) & (v < 0.3)] = (*black, 255)
+        plain = self.tile([(0, 1, 0, 1, shingle)])
+        with TemporaryDirectory() as temp:
+            roof = {101: 7, 102: 8, 103: 8, 201: 8, 202: 8, 203: 8}
+            entries, patches = write_fringe_art(
+                Path(temp) / "roof_fringe.png", roof, lambda tile: art if tile == 7 else plain,
+                lambda edge, plane, start, count: (plane - 0.2, plane + 0.1, 1.88, float(start), float(start + count), []))
+            sheet = np.asarray(Image.open(Path(temp) / "roof_fringe.png").convert("RGBA"))
+            for index, x, y in patches:
+                if index == 101:
+                    flat = sheet[y:y + 100, x:x + 100]
+                    self.assertEqual(int(roof_edge_check.ragged_thin(flat, [0, 1, 2, 3]).sum()), 0)
+                if index in (201, 202):
+                    self.assertTrue((sheet[y + 20:y + 80, x + 20:x + 80, 3] > 0).all())  # plain squares keep full art
 
     def test_outward_is_the_side_with_fewer_roof_squares_beyond_the_wall(self):
         roof = {r * 100 + c: 1 for r in range(10, 20) for c in range(10, 14)}  # a roof of rows 10..19

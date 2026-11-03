@@ -274,6 +274,60 @@ def unproject_cell(rgba):
     return texture
 
 
+RAG_REACH = 5      # a roof texel this near a hole of its own square is the ragged rim of a cut: it goes (tidy_cell)
+SLAB_HALF = 0.5    # a strip along an open edge that is this much dark grey is a wall top lying flat: cleared
+THIN_ART = 3       # dark art thinner than 2 * THIN_ART + 1 texels is ragged (a finger, a rebar line, a stump)
+SOLID_ART = 7      # painted texels among the 9 of its neighbourhood that make a texel solid art, not dither
+DARK_ART = 60.0    # texels this dark (mean of the colours), any hue
+MIN_LEFT = 150     # texels: a loose speck or needle left after the rim is cleared goes too
+
+
+def tidy_cell(cell, open_edges):
+    """A flat roof cell (rgba, CELL_SIZE + 2 * CELL_MARGIN square) with no dark ragged wall-top art left in it.
+
+    The cells of roof_fringe.png are what the free camera draws flat, so a
+    wall top left in one lies on the roof in flight (task 129). Whether or not a
+    band stands on the edge, the cell keeps only plain roof: (1) along every
+    open edge whose strip (SLAB_STRIP) is half dark grey or more the grey
+    concrete is cleared; (2) the ragged rim, every texel within RAG_REACH of a
+    hole inside the square, is cleared (a rim texel is the fingers and rebar
+    stumps of a cut-out wall top; the square's own jagged rim and the art
+    overhanging the square are not holes); (3) dark thin art left (a stump of a cut strip) goes, (4) loose specks go.
+    A cell with no hole and no grey strip comes back unchanged.
+    """
+    cell = cell.copy()
+    t = (np.arange(cell.shape[0]) + 0.5 - CELL_MARGIN) / CELL_SIZE
+    v, u = np.meshgrid(t, t, indexing="ij")
+    on = (u >= 0) & (u < 1) & (v >= 0) & (v < 1)
+    dist = np.stack([v, 1.0 - v, u, 1.0 - u])
+    rgb = cell[..., :3].astype(float)
+    grey = (cell[..., 3] > 0) & (rgb.mean(axis=2) < GREY_LUMA) & (np.abs(rgb[..., 0] - rgb[..., 2]) < GREY_TINT)
+    for edge in open_edges:
+        strip = on & (dist[edge] < SLAB_STRIP)
+        if (grey & strip).sum() >= SLAB_HALF * strip.sum():
+            cell[grey & (dist[edge] < SLAB_STRIP + RIM)] = 0
+    hole = (cell[..., 3] == 0) & (u > RIM) & (u < 1 - RIM) & (v > RIM) & (v < 1 - RIM)
+    if hole.any():
+        cell[_dilate(hole, RAG_REACH)] = 0
+    # (3) what is left of dark art thinner than 2 * THIN_ART + 1 texels (a stump of a cut strip, a rebar line) goes;
+    # a checkerboard dither (few painted neighbours) is shading, it stays
+    painted = cell[..., 3] > 0
+    if painted.any():
+        grown = np.pad(painted, THIN_ART, mode="edge")
+        opened = _dilate(~_dilate(~grown, THIN_ART), THIN_ART)[THIN_ART:-THIN_ART, THIN_ART:-THIN_ART]
+        padded = np.pad(painted, 1).astype(int)
+        solid = sum(padded[1 + dy:padded.shape[0] - 1 + dy, 1 + dx:padded.shape[1] - 1 + dx]
+                    for dy in (-1, 0, 1) for dx in (-1, 0, 1)) >= SOLID_ART
+        thin = painted & ~opened & solid & (cell[..., :3].astype(float).mean(axis=2) < DARK_ART)
+        cell[thin] = 0
+    left = cell[..., 3] > 0
+    if left.any():
+        for rows, cols in _blobs(left):
+            if len(rows) < MIN_LEFT:
+                cell[rows, cols] = 0
+    return cell
+
+
 STRIP_ROWS = 40  # a strip's height in art pixels, measured up from the concrete's lowest row
 
 
@@ -853,14 +907,27 @@ def write_fringe_art(out_png, roof_squares, art_of, wall_of, belt_of=None, defau
             raise ValueError(f"a roof band's span is empty or reversed: {place}")
     strips = [compose_band(strip, belt_of(run, body) if belt_of and body is not None else None)
               for run, body, strip in zip(runs, bodies, strips)]
-    # a square the bands cross keeps its flat roof under the free camera only as a patch: a plain one gets its whole art
+    # a square the bands cross keeps its flat roof under the free camera only as a patch: a plain one gets its art
     for index in banded:
         if index not in patched:
-            patched[index] = ((roof_squares[index], 'whole'), art_of(roof_squares[index]))
+            patched[index] = ((roof_squares[index], tuple(open_of[index])), art_of(roof_squares[index]))
+    # a boundary square no band crosses can carry a ragged dark wall top the classifier did not see (black fingers
+    # along its open edge): it too is drawn from a tidied cell, when tidying changes it
+    tidied = {}
+    for index, tile in sorted(roof_squares.items()):
+        if index in patched or not open_of[index]:
+            continue
+        key = (tile, tuple(open_of[index]))
+        if key not in tidied:
+            flat = unproject_cell(art_of(tile))
+            tidied[key] = bool((tidy_cell(flat, key[1]) != flat).any())
+        if tidied[key]:
+            patched[index] = (key, art_of(tile))
+    # every flat cell is tidied: no dark ragged wall top lies flat, whether or not a band stands on its edge
     cells = {}
     for index, (tile, roof) in patched.items():
         if roof is not None:
-            cells.setdefault(tile, unproject_cell(roof))
+            cells.setdefault(tile, tidy_cell(unproject_cell(roof), () if tile == BLANK else tile[1]))
     cell = CELL_SIZE + 2 * CELL_MARGIN
     per_row = max(1, max(strip.shape[1] for strip in strips) // (cell + 1))
     width = max(max(strip.shape[1] for strip in strips) + 2, per_row * (cell + 1) + 1)

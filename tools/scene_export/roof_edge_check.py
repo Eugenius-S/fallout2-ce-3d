@@ -30,7 +30,7 @@ sys.path.insert(0, str(HERE / "vendor"))
 
 from floor_sidecar import CELL_MARGIN, CELL_OUTER_SIZE, CELL_SIZE, decode_floor_sidecar  # noqa: E402
 from wall_sidecar import wall_slabs  # noqa: E402
-from roof_fringe import EDGE_STEPS, outward, GREY_TINT, _blobs  # noqa: E402
+from roof_fringe import EDGE_STEPS, outward, GREY_TINT, _blobs, _dilate  # noqa: E402
 
 DARK = 30.0   # a texel darker than this (mean of the colours) and grey is concrete or rebar; the metal roofs' shading dither is lighter
 BLOB = 8      # connected ragged dark texels that make a smear
@@ -44,8 +44,52 @@ WALL_SHARE = 0.03  # a wall slab covers a square when it reaches this far into i
 OFF_SQUARE = 3  # a dark texel this far off the square is ragged, in texels
 
 
+ANY_DARK = 60.0  # in ragged_thin: any hue this dark (black, grey concrete, dark brown) counts
+THIN = 3         # in ragged_thin: painted structures narrower than 2 * THIN + 1 texels are ragged art
+SOLID = 7        # in ragged_thin: painted texels among the 9 of its neighbourhood that make a texel solid art, not dither
+EDGE_BAND = 0.08  # in ragged_thin: the square's own jagged rim (tile art overhangs it) is no ragged art
+
+
+def _erode(mask, reach):
+    return ~_dilate(~mask, reach)
+
+
+def ragged_thin(cell, edges):
+    """Mask of the dark ragged texels a flat roof cell draws, told by shape alone (no colour classifier, no wall list).
+
+    A wall top's ragged edge is fingers, rebar stumps and chunks: painted
+    structures thinner than 2 * THIN + 1 texels (they vanish under a morphological opening
+    of the painted mask) or loose blobs; whatever their hue (black, grey,
+    dark brown) when they are dark (mean below ANY_DARK). The square's own rim
+    (EDGE_BAND) and texels more than DEPTH from every edge in `edges` are left
+    out. A smooth cut of solid roof is no ragged art.
+    """
+    painted = cell[..., 3] > 0
+    rgb = cell[..., :3].astype(float)
+    t = (np.arange(CELL_OUTER_SIZE) + 0.5 - CELL_MARGIN) / CELL_SIZE
+    v, u = np.meshgrid(t, t, indexing="ij")
+    inner = (u >= EDGE_BAND) & (u < 1 - EDGE_BAND) & (v >= EDGE_BAND) & (v < 1 - EDGE_BAND)
+    # the cell is cut out of art that goes on beyond it: grow the borders before opening
+    grown = np.pad(painted, THIN, mode="edge")
+    opened = _dilate(_erode(grown, THIN), THIN)[THIN:-THIN, THIN:-THIN]
+    dist = np.stack([v, 1.0 - v, u, 1.0 - u])
+    depth = dist[list(edges)].min(axis=0) if edges else np.full_like(u, 9.0)
+    # a checkerboard of painted and clear texels is the roof's shading dither, not wall top: the art of a finger
+    # is solid, so most of the texel's 3 x 3 neighbourhood is painted
+    padded = np.pad(painted, 1).astype(int)
+    solid = sum(padded[1 + dy:padded.shape[0] - 1 + dy, 1 + dx:padded.shape[1] - 1 + dx]
+                for dy in (-1, 0, 1) for dx in (-1, 0, 1)) >= SOLID
+    candidate = painted & ~opened & solid & (rgb.mean(axis=2) < ANY_DARK) & inner & (depth < DEPTH)
+    mask = np.zeros_like(candidate)
+    for rows, cols in _blobs(candidate):
+        if len(rows) >= BLOB:
+            mask[rows, cols] = True
+    return mask
+
+
 def ragged_dark(cell, edges):
-    """Mask of the dark ragged texels of one roof square's cell (rgba, CELL_OUTER_SIZE square) near its boundary edges."""
+    """Mask of the dark grey texels of one roof square's cell (rgba, CELL_OUTER_SIZE square) near its boundary edges,
+    ragged by holes: the first, narrow count (flat_grey_texels), kept for comparison with older runs."""
     rgb = cell[..., :3].astype(float)
     opaque = cell[..., 3] > 0
     grey = opaque & (rgb.mean(axis=2) < DARK) & (np.abs(rgb[..., 0] - rgb[..., 2]) < GREY_TINT)
@@ -145,7 +189,7 @@ def band_stats(entries, slabs=(), footprint=frozenset()):
 
 
 def measure(directory):
-    """(flat texels, squares with them, band stats) of one scene cache directory."""
+    """(flat texels, squares with them, flat slab squares, flat grey texels, band stats) of one scene cache directory."""
     sidecar = decode_floor_sidecar((directory / "floor.bin").read_bytes())
     tiles = np.asarray(Image.open(directory / "tiles.png").convert("RGBA"))
     fringe_png = directory / "roof_fringe.png"
@@ -155,28 +199,30 @@ def measure(directory):
     banded = {square for entry in sidecar["fringe"] for square in run_squares(entry)}
     patches = {index: (x, y) for index, x, y in sidecar.get("patches", [])}
     footprint = {index for index, cell in enumerate(roof) if cell}
-    texels = squares = slabs = 0
+    texels = squares = slabs = grey_texels = 0
     for index in sorted(footprint):
         edges = [edge for edge, (dx, dz) in enumerate(EDGE_STEPS)
                  if not (0 <= index % 100 + dx < 100 and 0 <= index // 100 + dz < 100)
                  or (index // 100 + dz) * 100 + index % 100 + dx not in footprint]
-        if not edges:
-            continue
         if index in patches:
             x, y = patches[index]
             cell = fringe[y:y + CELL_OUTER_SIZE, x:x + CELL_OUTER_SIZE]
+        elif not edges:
+            continue
         elif index in banded:
             continue
         else:
             x, y = cells[roof[index] - 1]
             cell = tiles[y:y + CELL_OUTER_SIZE, x:x + CELL_OUTER_SIZE]
         slabs += bool(flat_slab(cell, edges))
-        count = int(ragged_dark(cell, edges).sum())
+        grey_texels += int(ragged_dark(cell, edges).sum())
+        # a patch is drawn flat whatever its edges: every edge counts (an interior partition's cut too)
+        count = int(ragged_thin(cell, [0, 1, 2, 3] if index in patches else edges).sum())
         if count:
             texels += count
             squares += 1
     scene = json.loads((directory / "scene.json").read_text(encoding="utf-8"))
-    return texels, squares, slabs, band_stats(sidecar["fringe"], wall_slabs(scene), footprint)
+    return texels, squares, slabs, grey_texels, band_stats(sidecar["fringe"], wall_slabs(scene), footprint)
 
 
 def main(argv=None):
@@ -189,12 +235,12 @@ def main(argv=None):
         for directory in sorted((args.cache_root / name).glob("[0-9]")):
             if not (directory / "floor.bin").is_file():
                 continue
-            texels, squares, slab_squares, bands = measure(directory)
+            texels, squares, slab_squares, grey, bands = measure(directory)
             total[0] += texels
             total[1] += squares
             total[2] += slab_squares
             print(json.dumps({"map": name, "elevation": directory.name, "flat_texels": texels,
-                              "flat_squares": squares, "flat_slab_squares": slab_squares,
+                              "flat_squares": squares, "flat_grey_texels": grey, "flat_slab_squares": slab_squares,
                               **{k: round(v, 3) if isinstance(v, float) else v for k, v in bands.items()}}))
     print(json.dumps({"total_flat_texels": total[0], "total_flat_squares": total[1], "total_flat_slab_squares": total[2]}))
 
