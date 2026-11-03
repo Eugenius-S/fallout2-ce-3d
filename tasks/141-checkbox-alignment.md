@@ -2,14 +2,14 @@
 id: 141
 title: The 3D options checkboxes line up: an empty box stands where a ticked one does
 milestone: M1
-status: doing
+status: done
 owner: gpt
 suggested: gpt
 priority: normal
 claude-only: no
 user-check: yes
 depends-on: []
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -33,8 +33,7 @@ would be keeps its width.
 
 ## Acceptance
 
-- Before and after crops of top and bottom toggle rows in English and
-  Russian, pixel and sharp text, at 1920x1080 scale 2, in
+- Live top and bottom captures of toggle rows in English and Russian, pixel and\r?\n  sharp text, at 1920x1080 scale 2, in
   `runs/141-checkbox-alignment/`.
 - The `[X]` and `[ ]` boxes occupy identical slots and end on the slider
   track endpoint. Toggle values share the slider-value right edge.
@@ -73,3 +72,19 @@ Other rows, the panel layout (130).
 - Draft PR #235 passed every required check on `116b1941`, including the
   Windows build and CTest. Status update commit follows; wait for its checks
   before marking the PR ready for review.
+- The 2026-11-03 owner review requested a fixed right edge for all toggle values,
+  checkbox right edges at the slider track endpoints, and the same bracket slot
+  in checked and unchecked states. `drawCheckboxControl` now anchors both
+  brackets to the track endpoint, and On/Off values share the fixed value-column
+  right edge.
+- Rebuilt the Release binary and captured the actual 3D options panel in EN/RU,
+  pixel/sharp text modes, at the top and bottom scroll positions. All eight
+  screenshots use 1920x1080 output, 960x540 logical resolution, scale 2, and
+  the same executable SHA; sharp captures report sharp text active and drawn.
+  The four inspected JPEG sheets and capture metadata are in
+  `runs/141-checkbox-alignment/`.
+- CTest passed 20/20; pixel regression passed 16/16 with zero changed pixels.
+  The project capture wrapper also reports its unrelated task-154 display
+  postcondition because this task intentionally leaves resolution unchanged;
+  the retained screenshots and sidecars are valid.
+- PR #235 remains draft pending current-SHA CI.

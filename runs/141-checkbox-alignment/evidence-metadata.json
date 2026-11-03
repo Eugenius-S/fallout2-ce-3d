@@ -1,0 +1,24 @@
+{
+  "task": 141,
+  "source_commit": "2a861f207677f3686513b001c22c9202f6cd160b",
+  "executable_sha256": "123183196a4ee70efc6fa2c15c0244f0a13e04b326d7035c2052866515aac2aa",
+  "resolution": "1920x1080",
+  "logical_resolution": "960x540",
+  "scale_factor": 2.0,
+  "captures": [
+    {"language":"EN","text_mode":"pixel","position":"top","run":"db207fa08862","taken":"20261103-123507","sharp_setting":false,"sharp_active":false,"sharp_drawn":false},
+    {"language":"EN","text_mode":"pixel","position":"bottom","run":"8e11581c2724","taken":"20261103-123621","sharp_setting":false,"sharp_active":false,"sharp_drawn":false},
+    {"language":"EN","text_mode":"sharp","position":"top","run":"8e5f4e481d40","taken":"20261103-123726","sharp_setting":true,"sharp_active":true,"sharp_drawn":true},
+    {"language":"EN","text_mode":"sharp","position":"bottom","run":"2991a119ffe3","taken":"20261103-123755","sharp_setting":true,"sharp_active":true,"sharp_drawn":true},
+    {"language":"RU","text_mode":"pixel","position":"top","run":"e58a3b6ee28d","taken":"20261103-123657","sharp_setting":false,"sharp_active":false,"sharp_drawn":false},
+    {"language":"RU","text_mode":"pixel","position":"bottom","run":"fb3c00d9bbf9","taken":"20261103-123828","sharp_setting":false,"sharp_active":false,"sharp_drawn":false},
+    {"language":"RU","text_mode":"sharp","position":"top","run":"ff9af27486b4","taken":"20261103-123846","sharp_setting":true,"sharp_active":true,"sharp_drawn":true},
+    {"language":"RU","text_mode":"sharp","position":"bottom","run":"32461ac29079","taken":"20261103-123907","sharp_setting":true,"sharp_active":true,"sharp_drawn":true}
+  ],
+  "evidence_sheets": [
+    "evidence-en-pixel.jpg",
+    "evidence-en-sharp.jpg",
+    "evidence-ru-pixel.jpg",
+    "evidence-ru-sharp.jpg"
+  ]
+}
