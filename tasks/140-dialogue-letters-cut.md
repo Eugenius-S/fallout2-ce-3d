@@ -50,3 +50,20 @@ The fractional scale (139), new fonts, text layout changes beyond the clip.
 Done: Expanded the sharp font-101 visibility mask through the logical line box, bounded by the owning window and its occluders. Added a unit assertion for the expanded area.
 Next: Reproduce the exact clipped owner dialogue state and confirm a visible before/after change before setting this task done. The Kcsulik fixture opened a real game dialogue through `gameDialogEnter`, but its old and new screenshots were pixel-identical, so it does not reproduce the reported cut.
 Check: Release build passed; ctest 18/18; `tools/regression.ps1` passed 16 spots with 0 changed pixels. The isolated dialogue fixture rendered 10 runs and 295 glyphs. English and Russian message/log and character fixtures rendered at 1920x1080, scale 2. Compact evidence: `runs/140-dialogue-letters-cut/`.
+
+### 2026-11-03 gpt hover-state check
+
+Done: followed the owner crop's yellow hovered-reply state with the existing
+`-DialogCursorCheck` path in an isolated worktree. The Kcsulik fixture reached
+the 56-byte reply and moved the cursor onto its text, but the sharp-overlay
+assertion failed after the move (`opaque_alpha=103->0`, `transparent_alpha=175->195`,
+ink pixels `465->439`). The run logs are in
+`runs/140-dialogue-letters-cut/dialogue-hover-cursor-check/`. This run produced
+no screenshot and does not prove the supplied clipping is reproduced. It is the
+second distinct dialogue-state attempt after the normal Kcsulik fixture above.
+PR #206 stays draft; task remains `doing` under the two-attempt exception.
+Next: continue to task 141. Resume 140 when the hovered reply can be captured
+visually or the owner's exact conversation state can be reproduced.
+Check: a fresh Release build passed; CTest passed 18/18; the Klamath scene was
+exported to the verification worktree's `build/scene-cache`. The prior normal
+fixture's before/after remained pixel-identical.
