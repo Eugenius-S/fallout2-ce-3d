@@ -67,3 +67,22 @@ preview rather than a live game frame, and the isolated live launch did not
 enter a loaded-game state with the setting enabled. Therefore there is no
 verified 3D/Fly counter screenshot or fly-camera FPS reading yet. Keep this
 task `doing` until those live captures are obtained.
+
+### 2026-11-03 gpt: fresh-main verification, live fly capture still blocked
+
+Done: rebased the task branch onto fresh `origin/main` at `353ab8b0` and
+captured the current 2D view with the counter enabled. It reads 67 FPS and
+14.9 ms in `runs/127-fps-counter/current-2d/counter-2d.jpg`. A fresh live-
+process fly attempt is in `runs/127-fps-counter/current-fly/`, but the
+sidecar and console show `gameState=0` and a static preview; there is no FPS
+overlay, so it is not accepted as the live 3D/Fly proof. Two distinct attempts
+to obtain that proof have failed: the 2026-11-01 preview capture recorded above
+and the 2026-11-03 fresh-main capture in `current-fly/`. Neither was a loaded
+game frame. PR #181 stays draft by the owner's two-attempt exception; task
+remains `doing`.
+Next: resume with a way to enter a loaded-game state in the isolated test
+instance, then capture the live 3D/Fly counter and its measurement.
+Check: `tools/configure-build.ps1 Release` passed; CTest passed 19/19;
+`tools/regression.ps1` passed 16/16 with zero changed pixels. For the local
+MSVC install, the configure script supplies SDK 10.0.22621 includes and libs;
+generic `VsDevCmd` setup alone omitted the required include paths.
