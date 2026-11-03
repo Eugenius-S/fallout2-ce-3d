@@ -725,18 +725,16 @@ static void mainMenuDrawButtonLabels(const MainMenuLayout& layout, const MainMen
             float fit = len > availableWidth
                 ? static_cast<float>(availableWidth) / len
                 : 1.0f;
-            int drawWidth = std::max(1, static_cast<int>(lround(len * fit)));
+            int drawWidth = interfaceFontGetStringWidthScaled(msg.text, fontSettings, fit);
             int lineHeight = fontGetLineHeight();
             int labelX = rowLeft + (availableWidth - drawWidth) / 2;
             int labelY = labelPosition.y + offsets.menuY;
-            std::vector<unsigned char> labelBuffer(static_cast<size_t>(len + 1) * lineHeight, 0);
-            fontDrawText(labelBuffer.data(), msg.text, len + 1, len + 1, fontSettings);
-            blitBuffer2DScaledTrans(Buffer2D(labelBuffer.data(), len + 1, lineHeight),
-                Buffer2D(gMainMenuWindowBuffer, layout.screenWidth, layout.screenHeight),
+            interfaceFontDrawTextScaled2D(Buffer2D(gMainMenuWindowBuffer, layout.screenWidth, layout.screenHeight),
                 labelX,
                 labelY,
-                drawWidth,
-                lineHeight);
+                msg.text,
+                fontSettings,
+                fit);
             mainMenuMaskBackground(labelX, labelY, drawWidth, lineHeight);
             continue;
         }
