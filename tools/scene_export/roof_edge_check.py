@@ -40,6 +40,7 @@ HOLE_REACH = 2  # a dark texel this near a clear texel of the square is ragged, 
 DEEP = 6        # squares beyond a wall that tell which side is the building's outside (roof_fringe.OUTWARD_DEPTH)
 WALL_NEAR = 0.3  # a wall body this near a band's plane belongs to its wall, in tiles
 CORNER_NEAR = 0.7  # two bands make a corner when their ends and faces lie this near each other, in tiles
+WALL_SHARE = 0.03  # a wall slab covers a square when it reaches this far into it, in tiles
 OFF_SQUARE = 3  # a dark texel this far off the square is ragged, in texels
 
 
@@ -105,8 +106,14 @@ def band_stats(entries, slabs=(), footprint=frozenset()):
     outside): 0 is flush with the wall's outer face. A band with no wall is not counted.
     """
     insets, gaps, overshoots = [], [], []
+    no_wall = 0
     for edge, plane, start, count, *_, face, top, lo, hi in entries:
         axis = 0 if edge < 2 else 1
+        # stretches of the band's span (whole squares) with no wall slab under them: floating over open ground
+        held = [any(slab.axis == axis and slab.hi > a + WALL_SHARE and slab.lo < a + 1 - WALL_SHARE
+                    and slab.band()[0] - WALL_NEAR <= face <= slab.band()[1] + WALL_NEAR for slab in slabs)
+                for a in range(start, start + count)]
+        no_wall += sum(1 for n, ok in enumerate(held) if not ok and (n == 0 or held[n - 1]))
         near = [slab.band() for slab in slabs
                 if slab.axis == axis and slab.hi > lo + 0.5 and slab.lo < hi - 0.5
                 and slab.band()[0] - WALL_NEAR <= face <= slab.band()[1] + WALL_NEAR]
@@ -134,7 +141,7 @@ def band_stats(entries, slabs=(), footprint=frozenset()):
             "off_face_mean": float(np.mean(insets)) if insets else 0.0, "gap_max": max(gaps, default=0.0),
             "overshoot_max": max(overshoots, default=0.0), "corners": len(gaps) + len(overshoots),
             "corner_top_max": max(tops, default=0.0),
-            "corner_off": sum(1 for g in gaps + overshoots if g > 1e-6)}
+            "corner_off": sum(1 for g in gaps + overshoots if g > 1e-6), "no_wall_stretches": no_wall}
 
 
 def measure(directory):

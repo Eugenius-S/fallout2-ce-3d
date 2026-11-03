@@ -641,21 +641,64 @@ def whole_sides(runs, strips, good, sides):
     along the side, no steps, no gaps.
     """
     drop, added = set(), []
-    for edge, plane, start, squares in sides:
-        axis = edge < 2
-        covered = set(squares)
-        inside = [n for n, run in enumerate(runs)
-                  if n not in drop and (run[0] < 2) == axis and all(index in covered for index, _ in run[3])]
+    # each run belongs to one physical side: of the sides of its axis that cover its squares, the one on its
+    # own line (a roof one square deep has two sides on the same squares)
+    owner = {}
+    for n, run in enumerate(runs):
+        near = [k for k, (edge, plane, start, squares) in enumerate(sides)
+                if (edge < 2) == (run[0] < 2) and all(index in set(squares) for index, _ in run[3])]
+        if near:
+            owner[n] = min(near, key=lambda k: (abs(run[1] - sides[k][1]), run[0] != sides[k][0]))
+    for k, (edge, plane, start, squares) in enumerate(sides):
+        inside = [n for n in range(len(runs)) if n not in drop and owner.get(n) == k]
         if not inside:
             continue
         if len(inside) == 1 and good[inside[0]] and len(runs[inside[0]][3]) == len(squares):
             continue
         drop.update(inside)
-        added.append(((edge, plane, start, [(index, None) for index in squares]), None, False))
+        # the merged run keeps the art the dropped runs had, to fall back on when there is no donor
+        had = {index: art for n in inside for index, art in runs[n][3]}
+        added.append(((edge, plane, start, [(index, had.get(index)) for index in squares]), None, False))
     keep = [n for n in range(len(runs)) if n not in drop]
     return ([runs[n] for n in keep] + [item[0] for item in added],
             [strips[n] for n in keep] + [None] * len(added),
             [good[n] for n in keep] + [False] * len(added))
+
+
+BLANK = ('blank',)  # the key of the transparent cell of a roof square that is all wall top and has no band
+
+
+def cut_to_walls(runs, strips, good, wall_of):
+    """Runs and strips with every run cut into the stretches that have a wall under them.
+
+    wall_of(edge, plane, start, count): the run's wall (wall_body) or None. A
+    band stands only where a wall stands under it: the squares of a run are
+    tested one by one, the contiguous squares with a wall are one run each (a
+    strip None, so the donor's ragged edge, unless the whole run has a wall), and
+    the squares with none (open ground, a hole in the roof, a broken wall) get no
+    band: a side is never bridged over a gap.
+    """
+    out_runs, out_strips, out_good = [], [], []
+    for (edge, plane, start, members), strip, ok in zip(runs, strips, good):
+        has = [wall_of(edge, plane, start + n, 1) is not None for n in range(len(members))]
+        if all(has):
+            out_runs.append((edge, plane, start, members))
+            out_strips.append(strip)
+            out_good.append(ok)
+            continue
+        n = 0
+        while n < len(members):
+            if not has[n]:
+                n += 1
+                continue
+            m = n
+            while m < len(members) and has[m]:
+                m += 1
+            out_runs.append((edge, plane, start + n, [(index, art) for index, art in members[n:m]]))
+            out_strips.append(None)
+            out_good.append(False)
+            n = m
+    return out_runs, out_strips, out_good
 
 
 def donate(runs, strips, good, pool, comp, diagnostics=None):
@@ -675,13 +718,21 @@ def donate(runs, strips, good, pool, comp, diagnostics=None):
             continue
         pick = best([item for item in pool if item[2] == comp[run[3][0][0]]]) or best(pool)
         if pick is None:
-            out.append(strip if strip is not None else np.zeros((STRIP_ROWS, int(round(len(run[3]) * (
-                -proj_u() if run[0] < 2 else proj_v()))), 4), np.uint8))
+            out.append(strip if strip is not None else own_strip(run))
             continue
         out.append(lay_donor((pick[1], len(pick[0][3]), pick[0][0]), run[0], len(run[3])))
         if diagnostics is not None:
             diagnostics.append((run[:3], pick[0][:3]))
     return out
+
+
+def own_strip(run):
+    """The strip a run unrolls from the art its own squares kept (a square without art stays clear)."""
+    shapes = [art.shape for _, art in run[3] if art is not None]
+    if not shapes:
+        return np.zeros((STRIP_ROWS, int(round(len(run[3]) * (-proj_u() if run[0] < 2 else proj_v()))), 4), np.uint8)
+    members = [(index, art if art is not None else np.zeros(shapes[0], np.uint8)) for index, art in run[3]]
+    return unroll(run[0], run[1], run[2], members)
 
 
 def proj_u():
@@ -783,6 +834,15 @@ def write_fringe_art(out_png, roof_squares, art_of, wall_of, belt_of=None, defau
     comp = components_of(roof_squares)
     pool = [(run, strip, comp[run[3][0][0]]) for run, strip, ok in zip(runs, raw, good) if ok]
     runs, raw, good = whole_sides(runs, raw, good, roof_sides(roof_squares, open_of))
+    runs, raw, good = cut_to_walls(runs, raw, good, wall_of)
+    if not runs:
+        out_png.unlink(missing_ok=True)
+        return [], []
+    # a square that is all wall top and has no band left (no wall under it) is not drawn at all
+    banded = {index for run in runs for index, _ in run[3]}
+    for index, ((tile, open_edges), roof) in list(patched.items()):
+        if roof is None and index not in banded:
+            patched[index] = (BLANK, np.zeros_like(art_of(tile)))
     strips = donate(runs, raw, good, pool, comp, diagnostics)
     bodies = [wall_of(run[0], run[1], run[2], len(run[3])) for run in runs]
     outers = [None if body is None else outward(roof_squares, run[0], body[0], body[1], run[2], len(run[3]))
@@ -793,6 +853,10 @@ def write_fringe_art(out_png, roof_squares, art_of, wall_of, belt_of=None, defau
             raise ValueError(f"a roof band's span is empty or reversed: {place}")
     strips = [compose_band(strip, belt_of(run, body) if belt_of and body is not None else None)
               for run, body, strip in zip(runs, bodies, strips)]
+    # a square the bands cross keeps its flat roof under the free camera only as a patch: a plain one gets its whole art
+    for index in banded:
+        if index not in patched:
+            patched[index] = ((roof_squares[index], 'whole'), art_of(roof_squares[index]))
     cells = {}
     for index, (tile, roof) in patched.items():
         if roof is not None:

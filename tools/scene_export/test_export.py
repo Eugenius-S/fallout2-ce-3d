@@ -18,7 +18,7 @@ from baked_sidecar import (ENTRY as BAKED_ENTRY, GL_MAP_OFFSET, HEADER as BAKED_
                            baked_objects, decode_baked_sidecar, encode_baked_sidecar)
 from export import ReadOnlyGameFiles, choose_source, main, parse_args, patch_paths, scene_directory, validate_output_contents
 from floor_sidecar import HEADER, MAGIC, VERSION, cell_content_rect, decode_floor_sidecar, encode_floor_sidecar
-from roof_fringe import (components_of, donate, foot_cover, lay_donor, roof_sides, whole_sides, BELT_LAP, BELT_ROWS, EDGE_ROWS, STRIP_ROWS, belt_art, compose_band, is_fringe, outward, resolve_runs, runs_of,
+from roof_fringe import (components_of, cut_to_walls, own_strip, donate, foot_cover, lay_donor, roof_sides, whole_sides, BELT_LAP, BELT_ROWS, EDGE_ROWS, STRIP_ROWS, belt_art, compose_band, is_fringe, outward, resolve_runs, runs_of,
                          split_tile, unproject_cell, unroll, wall_under, write_fringe_art)
 import roof_edge_check
 from projection_sidecar import (HEADER as PROJECTION_HEADER, MAGIC as PROJECTION_MAGIC,
@@ -446,6 +446,51 @@ class RoofFringeTests(unittest.TestCase):
         # a run's strip made of the donor repeats it: shifted by the donor's length it is the same
         repeat = lay_donor((strips[0], 2, 1), 1, 6)
         self.assertTrue((repeat[:, :2 * u_tile] == repeat[:, 2 * u_tile:4 * u_tile]).all())
+
+    def test_a_band_stands_only_over_squares_with_a_wall_under_it(self):
+        art = np.zeros((2, 2, 4), np.uint8)
+        runs = [(0, 5, 3, [(503 + i, art) for i in range(6)])]
+        wall_of = lambda edge, plane, start, count: None if start in (5, 6) else (0.0, 1.0, 1.88, 0.0, 99.0, [])
+        out, strips, good = cut_to_walls(runs, [object()], [True], wall_of)
+        self.assertEqual([(run[2], len(run[3])) for run in out], [(3, 2), (7, 2)])   # broken where the wall is broken
+        self.assertEqual((strips, good), ([None, None], [False, False]))
+        # a wall under all of it leaves the run as it is
+        out, strips, good = cut_to_walls(runs, ['s'], [True], lambda *run: (0.0, 1.0, 1.88, 0.0, 99.0, []))
+        self.assertEqual((out, strips, good), (runs, ['s'], [True]))
+        # none under it: no band
+        self.assertEqual(cut_to_walls(runs, ['s'], [True], lambda *run: None)[0], [])
+
+    def test_opposite_sides_of_a_one_square_deep_roof_stay_two_runs(self):
+        art = np.zeros((2, 2, 4), np.uint8)
+        roof = {500 + x: 1 for x in range(3, 7)}
+        open_of = {index: [0, 1] for index in roof}
+        sides = roof_sides(roof, open_of)
+        runs = [(0, 5, 3, [(i, art) for i in (503, 504, 505, 506)]), (1, 6, 3, [(i, art) for i in (503, 504, 505, 506)])]
+        out, _, _ = whole_sides(runs, [None, None], [False, False], sides)
+        self.assertEqual(sorted((run[0], run[1], run[2], len(run[3])) for run in out), [(0, 5, 3, 4), (1, 6, 3, 4)])
+
+    def test_a_merged_run_keeps_its_art_and_falls_back_on_it_without_a_donor(self):
+        art = np.zeros((36, 96, 4), np.uint8)
+        art[20:30, 40:60] = 255
+        roof = {500 + x: 1 for x in range(3, 6)}
+        sides = roof_sides(roof, {index: [0] for index in roof})
+        out, strips, _ = whole_sides([(0, 5, 3, [(503, art)])], [None], [False], sides)
+        self.assertIs(out[0][3][0][1], art)
+        self.assertIsNone(out[0][3][1][1])
+        self.assertTrue(own_strip(out[0])[..., 3].any())
+        self.assertTrue(donate(out, strips, [False], [], components_of(roof))[0][..., 3].any())
+
+    def test_a_plain_square_a_band_crosses_keeps_its_roof_as_a_patch(self):
+        blades = [(y, x) for x in range(30, 60, 5) for y in range(8, 20 + x % 7)]
+        with TemporaryDirectory() as temp:
+            plain = self.art([(y, x) for y in range(36) for x in range(80)], (120, 130, 110))
+            roof = {101: 7, 102: 8, 103: 8, 201: 8, 202: 8, 203: 8, 301: 8, 302: 8, 303: 8}
+            entries, patches = write_fringe_art(
+                Path(temp) / "roof_fringe.png", roof, lambda tile: self.art(blades) if tile == 7 else plain,
+                lambda edge, plane, start, count: (plane - 0.2, plane + 0.1, 1.88, float(start), float(start + count), []))
+            crossed = {index for entry in entries for index in roof_edge_check.run_squares(entry)}
+            self.assertTrue({201, 301} <= crossed)                              # the plain squares are in a band ...
+            self.assertTrue({201, 301} <= {index for index, _, _ in patches})   # ... and keep their flat roof
 
     def test_a_footprint_side_that_is_not_one_genuine_run_becomes_one_run(self):
         art = np.zeros((2, 2, 4), np.uint8)
