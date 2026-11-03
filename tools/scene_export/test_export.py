@@ -624,6 +624,11 @@ class RoofEdgeTests(unittest.TestCase):
                 if (x + y) % 2:
                     dither[y, x] = (12, 12, 12, 255)
         self.assertEqual(int(roof_edge_check.ragged_thin(dither, [0]).sum()), 0)
+        tidied = tidy_cell(dither, (0,))                                    # tidying keeps the dither: its clear texels are no hole
+        shading = np.zeros(dither.shape[:2], bool)
+        shading[30:50, 20:80] = dither[30:50, 20:80, 3] > 0
+        self.assertGreater(int(shading.sum()), 500)
+        self.assertTrue((tidied[..., 3][shading] > 0).all())
 
     def test_a_square_a_band_crosses_restores_no_dark_wall_top_flat(self):
         shingle, black = (120, 80, 50), (12, 12, 12)

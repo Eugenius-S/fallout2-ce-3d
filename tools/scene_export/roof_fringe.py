@@ -306,7 +306,11 @@ def tidy_cell(cell, open_edges):
         strip = on & (dist[edge] < SLAB_STRIP)
         if (grey & strip).sum() >= SLAB_HALF * strip.sum():
             cell[grey & (dist[edge] < SLAB_STRIP + RIM)] = 0
-    hole = (cell[..., 3] == 0) & (u > RIM) & (u < 1 - RIM) & (v > RIM) & (v < 1 - RIM)
+    # a hole is a clear patch at least 3 x 3 texels; the clear texels of an alpha checkerboard (shading dither) are
+    # diagonal neighbours only, vanish under this opening and so clear nothing around them
+    clear = cell[..., 3] == 0
+    clear = _dilate(~_dilate(~clear, 1), 1)
+    hole = clear & (u > RIM) & (u < 1 - RIM) & (v > RIM) & (v < 1 - RIM)
     if hole.any():
         cell[_dilate(hole, RAG_REACH)] = 0
     # (3) what is left of dark art thinner than 2 * THIN_ART + 1 texels (a stump of a cut strip, a rebar line) goes;
@@ -322,8 +326,13 @@ def tidy_cell(cell, open_edges):
         cell[thin] = 0
     left = cell[..., 3] > 0
     if left.any():
-        for rows, cols in _blobs(left):
-            if len(rows) < MIN_LEFT:
+        # a clear texel with painted texels on all four sides is a dither gap: it joins the blob it sits in, so a
+        # checkerboard counts as one piece of shading, not as a thousand loose specks
+        around = np.pad(left, 1)
+        gap = ~left & around[:-2, 1:-1] & around[2:, 1:-1] & around[1:-1, :-2] & around[1:-1, 2:]
+        for rows, cols in _blobs(left | gap):
+            size = int(left[rows, cols].sum())
+            if size < MIN_LEFT:
                 cell[rows, cols] = 0
     return cell
 
