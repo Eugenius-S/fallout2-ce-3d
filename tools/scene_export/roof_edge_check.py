@@ -308,12 +308,17 @@ def measure(directory):
             plain_roofs.add(index)
     wall = wall_slabs(json.loads((directory / "scene.json").read_text(encoding="utf-8")))
     lane, spill, lanes, no_donor, outside = lane_stats(sidecar["fringe"], wall, footprint, patches, fringe, plain_roofs)
-    interior_cells = []
-    for tile in sorted({roof[index] for index in footprint
-                        if all(0 <= index % 100 + dx < 100 and 0 <= index // 100 + dz < 100
-                               and (index // 100 + dz) * 100 + index % 100 + dx in footprint for dx, dz in EDGE_STEPS)}):
-        x, y = cells[tile - 1]
-        interior_cells.append(tiles[y:y + CELL_OUTER_SIZE, x:x + CELL_OUTER_SIZE])
+    # each roof's own plain tiles (its interior ones and those a donor fill can come from): a dark roof exempts only
+    # its own texels, never a slab on another building
+    comp = components_of(footprint)
+    interior_tiles = {}
+    for index in footprint:
+        if (index in plain_roofs and index not in banded) or all(0 <= index % 100 + dx < 100 and 0 <= index // 100 + dz < 100
+               and (index // 100 + dz) * 100 + index % 100 + dx in footprint for dx, dz in EDGE_STEPS):
+            interior_tiles.setdefault(comp[index], set()).add(roof[index])
+    interior_cells = {number: [tiles[cells[tile - 1][1]:cells[tile - 1][1] + CELL_OUTER_SIZE,
+                                     cells[tile - 1][0]:cells[tile - 1][0] + CELL_OUTER_SIZE] for tile in sorted(found)]
+                      for number, found in interior_tiles.items()}
     for index in sorted(footprint):
         edges = [edge for edge, (dx, dz) in enumerate(EDGE_STEPS)
                  if not (0 <= index % 100 + dx < 100 and 0 <= index // 100 + dz < 100)
@@ -340,7 +345,7 @@ def measure(directory):
         else:
             x, y = cells[roof[index] - 1]
             cell = tiles[y:y + CELL_OUTER_SIZE, x:x + CELL_OUTER_SIZE]
-        if flat_slab(cell, edges, plain_mask(cell, interior_cells)):
+        if flat_slab(cell, edges, plain_mask(cell, interior_cells.get(comp[index], []))):
             slabs += 1
             if VERBOSE:
                 print("flat slab square:", index)
