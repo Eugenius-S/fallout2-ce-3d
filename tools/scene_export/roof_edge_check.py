@@ -255,13 +255,14 @@ def lane_stats(entries, slabs, footprint, patches, fringe, plain_roofs=frozenset
         return [(index // 100 + EDGE_STEPS[edge][1]) * 100 + index % 100 + EDGE_STEPS[edge][0]
                 for edge in {inner_edge(clip) for clip in planes[index]}]
 
-    roofed = {index for index in planes if all(back in footprint for back in behind(index))}
-    while True:
-        kept = {index for index in roofed
-                if all((back in plain_roofs and back not in planes) or back in roofed for back in behind(index))}
-        if kept == roofed:
+    candidates = {index for index in planes if all(back in footprint for back in behind(index))}
+    roofed = set()
+    while True:   # grown out from the plain roof: strips facing each other never vouch for each other
+        grown = {index for index in candidates - roofed
+                 if all((back in plain_roofs and back not in planes) or back in roofed for back in behind(index))}
+        if not grown:
             break
-        roofed = kept
+        roofed |= grown
     for index, found in sorted(planes.items()):
         inner = on.copy()
         for axis, face, side in found:

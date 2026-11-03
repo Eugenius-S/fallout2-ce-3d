@@ -1046,13 +1046,15 @@ def write_fringe_art(out_png, roof_squares, art_of, wall_of, belt_of=None, defau
             plain_tiles[tile] = plain_art(art_of(tile))
         return plain_tiles[tile]
 
-    roofed = {index for index in banded
-              if not any(inner_edge(clip) in open_of[index] for clip in clips[index])}
-    while True:   # a square is roofed when what lies behind each of its bands is plain roof or a roofed square (a corner)
-        kept = {index for index in roofed if all(back in roofed or plain(back) for back in behind(index))}
-        if kept == roofed:
+    # a square is roofed when what lies behind each of its bands is plain roof or a roofed square (a corner): grown out
+    # from the plain roof, so two strips of wall tops facing each other never vouch for each other
+    candidates = {index for index in banded if not any(inner_edge(clip) in open_of[index] for clip in clips[index])}
+    roofed = set()
+    while True:
+        grown = {index for index in candidates - roofed if all(back in roofed or plain(back) for back in behind(index))}
+        if not grown:
             break
-        roofed = kept
+        roofed |= grown
     for index in sorted(banded):
         donor = donors.get(comp[index])
         if donor is None:
