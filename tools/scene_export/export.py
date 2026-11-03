@@ -46,7 +46,9 @@ MAP_GROUPS = {
     # The starting vault: its screens (monitr, bvs, comp arts) carry live
     # cycling colours, unlike Klamath's dead ones (task 050).
     "vault15": ("vault15",),
-    "den": ("denbus1", "denbus2", "denres1"),
+    # Den: business and residential streets, the slave run's open ground
+    # (the game's maps/den*.map files).
+    "den": ("denbus1", "denbus2", "denres1", "dnslvrun"),
 }
 EXPECTED_OUTPUT_FILES = {"scene.json", "provenance.json", "floor.bin", "walls.bin", "projection.bin", "baked.bin",
                          "shadows.bin", "tiles.png", "light.png", "rock.png", "roof_fringe.png"}
