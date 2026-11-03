@@ -36,6 +36,7 @@ public:
     WindowBufferSwap& operator=(const WindowBufferSwap&) = delete;
 
     bool prepare(int width, int height);
+    unsigned char* preparedBuffer() const { return buffer_; }
     bool exchange(Window* window);
 
 private:

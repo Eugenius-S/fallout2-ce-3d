@@ -22,6 +22,7 @@
 #include "settings.h"
 #include "scene/text_capture.h"
 #include "scene/display_dimensions.h"
+#include "scene/display_apply.h"
 #include "devtools/devtools.h"
 #include "scene/scene_overlay.h"
 #include "scene/scene_view.h"
@@ -210,6 +211,8 @@ int _GNW95_init_mode_ex(int width, int height, int bpp)
     _scr_blit = _GNW95_ShowRect;
     _zero_mem = _GNW95_zero_vid_mem;
     _mouse_blit = _GNW95_ShowRect;
+
+    scene::rememberConfiguredDisplaySettings();
 
     return 0;
 }

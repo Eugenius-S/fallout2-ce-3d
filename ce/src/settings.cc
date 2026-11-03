@@ -308,7 +308,7 @@ void initSettingsRegistry(bool isMapper)
     };
     SettingDescriptor& scaleFactorDescriptor = settingDescriptors.back();
     scaleFactorDescriptor.category = SettingCategory::Screen;
-    scaleFactorDescriptor.applyPolicy = SettingApplyPolicy::Restart;
+    scaleFactorDescriptor.applyPolicy = SettingApplyPolicy::OnClose;
     scaleFactorDescriptor.subsection = "Display";
     scaleFactorDescriptor.fallbackLabel = "Picture and interface scale";
     scaleFactorDescriptor.fallbackDescription = "Scales the game picture and interface from 1.0x to 3.0x.";
@@ -321,7 +321,7 @@ void initSettingsRegistry(bool isMapper)
     SettingDescriptor& resolutionModeDescriptor = settingDescriptors[settingDescriptors.size() - 5];
     resolutionModeDescriptor.valueType = SettingValueType::Choice;
     resolutionModeDescriptor.category = SettingCategory::Screen;
-    resolutionModeDescriptor.applyPolicy = SettingApplyPolicy::Restart;
+    resolutionModeDescriptor.applyPolicy = SettingApplyPolicy::OnClose;
     resolutionModeDescriptor.subsection = "Display";
     resolutionModeDescriptor.fallbackLabel = "Resolution";
     resolutionModeDescriptor.fallbackDescription = "Select an available display resolution.";
@@ -330,7 +330,7 @@ void initSettingsRegistry(bool isMapper)
     SettingDescriptor& windowModeDescriptor = settingDescriptors[settingDescriptors.size() - 4];
     windowModeDescriptor.valueType = SettingValueType::Choice;
     windowModeDescriptor.category = SettingCategory::Screen;
-    windowModeDescriptor.applyPolicy = SettingApplyPolicy::Restart;
+    windowModeDescriptor.applyPolicy = SettingApplyPolicy::OnClose;
     windowModeDescriptor.subsection = "Display";
     windowModeDescriptor.fallbackLabel = "Window mode";
     windowModeDescriptor.fallbackDescription = "Choose fullscreen, windowed, or borderless mode.";
@@ -744,12 +744,12 @@ void settingsWriteToConfig(bool onlyAdd)
             entry.write(onlyAdd);
         }
     }
-    // Keep the legacy resolution keys in sync with a pending menu choice.
-    // The active framebuffer is not resized until restart.
+    // Keep the legacy resolution keys in sync with the committed menu choice.
     if (!onlyAdd) {
         for (const auto& entry : settingsRegistry) {
-            if (entry.descriptor.id != "screen.resolution_mode" || !entry.restartValue.has_value()) continue;
-            const int* resolution = std::get_if<int>(&*entry.restartValue);
+            if (entry.descriptor.id != "screen.resolution_mode") continue;
+            const SettingValue value = entry.getValue();
+            const int* resolution = std::get_if<int>(&value);
             if (resolution != nullptr && *resolution > 0) {
                 settingsWrite("screen", "resolution_x", *resolution / 10000);
                 settingsWrite("screen", "resolution_y", *resolution % 10000);

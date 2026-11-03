@@ -102,6 +102,11 @@ bool windowManagerExchangeScreenBuffer(scene::ScreenBufferSwap& buffer)
     return gWindowSystemInitialized && gWindowsLength > 0 && buffer.exchange(_screen_buffer, _scr_size, gWindows[0]);
 }
 
+bool windowManagerIsBuffered()
+{
+    return gWindowSystemInitialized && _buffering;
+}
+
 // 0x6ADF30 bk_color
 static Color _bk_color;
 
@@ -768,6 +773,11 @@ void _win_move(int win, int x, int y)
             _refresh_all(&rect, nullptr);
         }
     }
+}
+
+void windowMove(int win, int x, int y)
+{
+    _win_move(win, x, y);
 }
 
 // 0x4D6F5C

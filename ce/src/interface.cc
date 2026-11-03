@@ -659,6 +659,23 @@ void interfaceReset()
     gInterfaceCurrentHand = HAND_LEFT;
 }
 
+// Keep the existing interface window and its buttons alive while the logical
+// screen size changes. Only the size-dependent side art and indicator windows
+// are recreated.
+void interfaceRepositionForDisplayChange()
+{
+    if (gInterfaceBarWindow == -1) return;
+
+    sidePanelsExit();
+    const int x = (screenGetWidth() - gInterfaceBarWidth) / 2;
+    const int y = screenGetHeight() - INTERFACE_BAR_HEIGHT;
+    windowMove(gInterfaceBarWindow, x, y);
+    sidePanelsInit();
+    if (!gInterfaceBarHidden) sidePanelsShow();
+    indicatorBarRefresh();
+    windowRefresh(gInterfaceBarWindow);
+}
+
 // 0x45E440 intface_exit
 void interfaceFree()
 {

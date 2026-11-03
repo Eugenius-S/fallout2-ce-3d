@@ -94,3 +94,29 @@ Check: `git apply --check` passed. Three consecutive local builds failed before
 compiling this change: MSVC headers were initially missing from `INCLUDE`; after
 adding them, UCRT `assert.h` and `stdio.h` could not be resolved. Existing CI is
 green, but this implementation has no successful build or live runtime proof.
+
+### 2026-11-03 gpt: runtime transaction blocked
+
+Integrated a live display transaction after the preferences window and its
+enclosing options screen close. It prepares and exchanges SDL surfaces, the
+root and iso-window buffers, tile/object/text views, then moves the existing
+interface bar while recreating only its side-art windows. Display settings now
+use `OnClose`; failed application restores the previous values. The clean local
+MSVC build passed and CTest passed 21/21.
+
+Two consecutive background acceptance attempts used the isolated 1920x1080,
+1.4x windowed config and the task 154 scripted input. Both saved the requested
+2560x1440, 2.0x values but stopped before the first frame after saving. The
+second diagnostic run reached the SDL window change, object viewport-table
+preparation and indexed/RGBA surface exchange; it produced no marker after the
+surface exchange and timed out before the fifth snapshot. No post-change visual,
+cursor, timing or regression proof exists. The separate fourth probe had a
+malformed duplicate screen section and is excluded from the two-attempt count.
+Logs: `runs/156-live-display-change/live-attempt2/` and
+`runs/156-live-display-change/live-attempt3/`.
+
+Validation is blocked; task status remains `doing` per the task schema,
+`reviewed: no`. PR #227 remains draft. The implementation
+is pushed for inspection, but this task is not ready for review until the
+display-buffer exchange stop is diagnosed and the same-process acceptance run
+captures every requested mode.

@@ -6,6 +6,7 @@
 #include "weapon_effect_fixture.h"
 #include "muzzle_fixture.h"
 #include "../scene/effect_emission.h"
+#include "../scene/display_apply.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1582,6 +1583,10 @@ void update()
         gPreferencesSnapshotActive = true;
         doPreferences(false);
         gPreferencesSnapshotActive = false;
+        if (!scene::applyConfiguredDisplaySettings()) {
+            printf("devtools: display setting apply failed; previous settings restored\n");
+            fflush(stdout);
+        }
         if (preferencesProbeFinished()) {
             printf("PREFERENCES_PROBE finished; requesting isolated helper exit\n");
             fflush(stdout);

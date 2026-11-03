@@ -1,5 +1,7 @@
 #include "options.h"
 
+#include "scene/display_apply.h"
+
 #include "art.h"
 #include "color.h"
 #include "cycle.h"
@@ -212,6 +214,10 @@ int showOptions()
     }
 
     optionsWindowFree();
+
+    if (!scene::applyConfiguredDisplaySettings()) {
+        debugPrint("Unable to apply display settings; previous settings restored.\n");
+    }
 
     return rc;
 }
