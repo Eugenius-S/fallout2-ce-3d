@@ -1,49 +1,388 @@
 {
-  "turns": [-45, 0, 45],
-  "distance": 8,
-  "spots": [
-    {"map": "kladwtwn", "elevation": 0, "tile": 24268, "name": "long building, south-west corner (071)"},
-    {"map": "kladwtwn", "elevation": 0, "tile": 24292, "name": "long building, south-east corner (071)"},
-    {"map": "kladwtwn", "elevation": 0, "tile": 20268, "name": "long building, north-west corner (071)"},
-    {"map": "kladwtwn", "elevation": 0, "tile": 20292, "name": "long building, north-east corner (071)"},
-    {"map": "kladwtwn", "elevation": 0, "tile": 20690, "name": "corner by the street (071, 083)"},
-    {"map": "kladwtwn", "elevation": 0, "tile": 19265, "name": "bathhouse front"},
-    {"map": "kladwtwn", "elevation": 0, "tile": 17467, "name": "Vic's shack"},
-    {"map": "kladwtwn", "elevation": 0, "tile": 17104, "name": "dark house corner, light stripe (review2, 076)"},
-    {"map": "kladwtwn", "elevation": 0, "tile": 19108, "name": "gargoyle corner (083)"},
-    {"map": "kladwtwn", "elevation": 0, "tile": 24678, "name": "corner (review2, 076-081)"},
-    {"map": "kladwtwn", "elevation": 0, "tile": 22958, "name": "corner (review2, 076-081)"},
-    {"map": "kladwtwn", "elevation": 0, "tile": 24481, "name": "corner (review2, 076-081)"},
-    {"map": "kladwtwn", "elevation": 0, "tile": 17666, "name": "corner (review2, 076-081)"},
-    {"map": "kladwtwn", "elevation": 0, "tile": 20736, "name": "corner (review2, 076-081)"},
-    {"map": "kladwtwn", "elevation": 0, "tile": 14505, "name": "corner (review2, 076-081)"},
-    {"map": "kladwtwn", "elevation": 0, "tile": 25075, "name": "entrance street, walls"},
-    {"map": "kladwtwn", "elevation": 0, "tile": 23481, "name": "corrals, fences"},
-    {"map": "kladwtwn", "elevation": 0, "tile": 22885, "name": "western rooms, furniture"},
-    {"map": "kladwtwn", "elevation": 0, "tile": 17699, "name": "central doors and rooms"},
-    {"map": "klamall", "elevation": 0, "tile": 13050, "name": "STOP corner (review2 01)"},
-    {"map": "klamall", "elevation": 0, "tile": 12666, "name": "corner, light stripe (076)"},
-    {"map": "klamall", "elevation": 0, "tile": 15450, "name": "corner (083)"},
-    {"map": "klamall", "elevation": 0, "tile": 21700, "name": "mesh fence corner"},
-    {"map": "klamall", "elevation": 0, "tile": 23145, "name": "regression gallery view"},
-    {"map": "klamall", "elevation": 0, "tile": 27886, "name": "south buildings"},
-    {"map": "klamall", "elevation": 0, "tile": 28493, "name": "south-east buildings"},
-    {"map": "klacanyn", "elevation": 0, "tile": 15909, "name": "regression gallery view"},
-    {"map": "klacanyn", "elevation": 0, "tile": 23869, "name": "south of the canyon"},
-    {"map": "klagraz", "elevation": 0, "tile": 24727, "name": "building, regression gallery view"},
-    {"map": "klagraz", "elevation": 0, "tile": 16333, "name": "north fences"},
-    {"map": "klatrap", "elevation": 0, "tile": 21913, "name": "regression gallery view"},
-    {"map": "klatrap", "elevation": 0, "tile": 13913, "name": "north"},
-    {"map": "klatrap", "elevation": 0, "tile": 20733, "name": "building"},
-    {"map": "klaratcv", "elevation": 0, "tile": 21511, "name": "cave, regression gallery view"},
-    {"map": "klaratcv", "elevation": 0, "tile": 13511, "name": "cave, north"},
-    {"map": "klaratcv", "elevation": 1, "tile": 14701, "name": "cave, regression gallery view"},
-    {"map": "klaratcv", "elevation": 1, "tile": 22661, "name": "cave, south"},
-    {"map": "klaratcv", "elevation": 2, "tile": 17107, "name": "cave, regression gallery view"},
-    {"map": "klatoxcv", "elevation": 0, "tile": 15919, "name": "cave, regression gallery view"},
-    {"map": "klatoxcv", "elevation": 0, "tile": 23879, "name": "cave, south"},
-    {"map": "klatoxcv", "elevation": 1, "tile": 19091, "name": "cave, regression gallery view"},
-    {"map": "klatoxcv", "elevation": 1, "tile": 22924, "name": "cave, south-east"},
-    {"map": "klatoxcv", "elevation": 2, "tile": 15065, "name": "cave, regression gallery view"}
-  ]
+ "turns": [
+  -45,
+  0,
+  45
+ ],
+ "distance": 8,
+ "spots": [
+  {
+   "map": "kladwtwn",
+   "elevation": 0,
+   "tile": 24268,
+   "name": "long building, south-west corner (071)"
+  },
+  {
+   "map": "kladwtwn",
+   "elevation": 0,
+   "tile": 24292,
+   "name": "long building, south-east corner (071)"
+  },
+  {
+   "map": "kladwtwn",
+   "elevation": 0,
+   "tile": 20268,
+   "name": "long building, north-west corner (071)"
+  },
+  {
+   "map": "kladwtwn",
+   "elevation": 0,
+   "tile": 20292,
+   "name": "long building, north-east corner (071)"
+  },
+  {
+   "map": "kladwtwn",
+   "elevation": 0,
+   "tile": 20690,
+   "name": "corner by the street (071, 083)"
+  },
+  {
+   "map": "kladwtwn",
+   "elevation": 0,
+   "tile": 19265,
+   "name": "bathhouse front"
+  },
+  {
+   "map": "kladwtwn",
+   "elevation": 0,
+   "tile": 17467,
+   "name": "Vic's shack"
+  },
+  {
+   "map": "kladwtwn",
+   "elevation": 0,
+   "tile": 17104,
+   "name": "dark house corner, light stripe (review2, 076)"
+  },
+  {
+   "map": "kladwtwn",
+   "elevation": 0,
+   "tile": 19108,
+   "name": "gargoyle corner (083)"
+  },
+  {
+   "map": "kladwtwn",
+   "elevation": 0,
+   "tile": 24678,
+   "name": "corner (review2, 076-081)"
+  },
+  {
+   "map": "kladwtwn",
+   "elevation": 0,
+   "tile": 22958,
+   "name": "corner (review2, 076-081)"
+  },
+  {
+   "map": "kladwtwn",
+   "elevation": 0,
+   "tile": 24481,
+   "name": "corner (review2, 076-081)"
+  },
+  {
+   "map": "kladwtwn",
+   "elevation": 0,
+   "tile": 17666,
+   "name": "corner (review2, 076-081)"
+  },
+  {
+   "map": "kladwtwn",
+   "elevation": 0,
+   "tile": 20736,
+   "name": "corner (review2, 076-081)"
+  },
+  {
+   "map": "kladwtwn",
+   "elevation": 0,
+   "tile": 14505,
+   "name": "corner (review2, 076-081)"
+  },
+  {
+   "map": "kladwtwn",
+   "elevation": 0,
+   "tile": 25075,
+   "name": "entrance street, walls"
+  },
+  {
+   "map": "kladwtwn",
+   "elevation": 0,
+   "tile": 23481,
+   "name": "corrals, fences"
+  },
+  {
+   "map": "kladwtwn",
+   "elevation": 0,
+   "tile": 22885,
+   "name": "western rooms, furniture"
+  },
+  {
+   "map": "kladwtwn",
+   "elevation": 0,
+   "tile": 17699,
+   "name": "central doors and rooms"
+  },
+  {
+   "map": "klamall",
+   "elevation": 0,
+   "tile": 13050,
+   "name": "STOP corner (review2 01)"
+  },
+  {
+   "map": "klamall",
+   "elevation": 0,
+   "tile": 12666,
+   "name": "corner, light stripe (076)"
+  },
+  {
+   "map": "klamall",
+   "elevation": 0,
+   "tile": 15450,
+   "name": "corner (083)"
+  },
+  {
+   "map": "klamall",
+   "elevation": 0,
+   "tile": 21700,
+   "name": "mesh fence corner"
+  },
+  {
+   "map": "klamall",
+   "elevation": 0,
+   "tile": 23145,
+   "name": "regression gallery view"
+  },
+  {
+   "map": "klamall",
+   "elevation": 0,
+   "tile": 27886,
+   "name": "south buildings"
+  },
+  {
+   "map": "klamall",
+   "elevation": 0,
+   "tile": 28493,
+   "name": "south-east buildings"
+  },
+  {
+   "map": "klacanyn",
+   "elevation": 0,
+   "tile": 15909,
+   "name": "regression gallery view"
+  },
+  {
+   "map": "klacanyn",
+   "elevation": 0,
+   "tile": 23869,
+   "name": "south of the canyon"
+  },
+  {
+   "map": "klagraz",
+   "elevation": 0,
+   "tile": 24727,
+   "name": "building, regression gallery view"
+  },
+  {
+   "map": "klagraz",
+   "elevation": 0,
+   "tile": 16333,
+   "name": "north fences"
+  },
+  {
+   "map": "klatrap",
+   "elevation": 0,
+   "tile": 21913,
+   "name": "regression gallery view"
+  },
+  {
+   "map": "klatrap",
+   "elevation": 0,
+   "tile": 13913,
+   "name": "north"
+  },
+  {
+   "map": "klatrap",
+   "elevation": 0,
+   "tile": 20733,
+   "name": "building"
+  },
+  {
+   "map": "klaratcv",
+   "elevation": 0,
+   "tile": 21511,
+   "name": "cave, regression gallery view"
+  },
+  {
+   "map": "klaratcv",
+   "elevation": 0,
+   "tile": 13511,
+   "name": "cave, north"
+  },
+  {
+   "map": "klaratcv",
+   "elevation": 1,
+   "tile": 14701,
+   "name": "cave, regression gallery view"
+  },
+  {
+   "map": "klaratcv",
+   "elevation": 1,
+   "tile": 22661,
+   "name": "cave, south"
+  },
+  {
+   "map": "klaratcv",
+   "elevation": 2,
+   "tile": 17107,
+   "name": "cave, regression gallery view"
+  },
+  {
+   "map": "klatoxcv",
+   "elevation": 0,
+   "tile": 15919,
+   "name": "cave, regression gallery view"
+  },
+  {
+   "map": "klatoxcv",
+   "elevation": 0,
+   "tile": 23879,
+   "name": "cave, south"
+  },
+  {
+   "map": "klatoxcv",
+   "elevation": 1,
+   "tile": 19091,
+   "name": "cave, regression gallery view"
+  },
+  {
+   "map": "klatoxcv",
+   "elevation": 1,
+   "tile": 22924,
+   "name": "cave, south-east"
+  },
+  {
+   "map": "klatoxcv",
+   "elevation": 2,
+   "tile": 15065,
+   "name": "cave, regression gallery view"
+  },
+  {
+   "map": "denbus1",
+   "elevation": 0,
+   "tile": 13292,
+   "name": "business street entrance"
+  },
+  {
+   "map": "denbus1",
+   "elevation": 1,
+   "tile": 15070,
+   "name": "business street, upper floor"
+  },
+  {
+   "map": "denbus1",
+   "elevation": 2,
+   "tile": 19487,
+   "name": "business street, top floor"
+  },
+  {
+   "map": "denbus2",
+   "elevation": 0,
+   "tile": 27898,
+   "name": "brothel entrance"
+  },
+  {
+   "map": "denbus2",
+   "elevation": 1,
+   "tile": 1110,
+   "name": "brothel, second storey"
+  },
+  {
+   "map": "denres1",
+   "elevation": 0,
+   "tile": 11308,
+   "name": "residential street entrance"
+  },
+  {
+   "map": "denres1",
+   "elevation": 1,
+   "tile": 11308,
+   "name": "residential street, upper floor"
+  },
+  {
+   "map": "dnslvrun",
+   "elevation": 0,
+   "tile": 26905,
+   "name": "slave run entrance"
+  },
+  {
+   "map": "dnslvrun",
+   "elevation": 1,
+   "tile": 26706,
+   "name": "slave run, upper floor"
+  },
+  {
+   "map": "dnslvrun",
+   "elevation": 2,
+   "tile": 25910,
+   "name": "slave run, top floor"
+  },
+  {
+   "map": "denbus1",
+   "elevation": 0,
+   "tile": 17292,
+   "name": "the shop block, signs"
+  },
+  {
+   "map": "denbus1",
+   "elevation": 1,
+   "tile": 19070,
+   "name": "the upstairs apartment"
+  },
+  {
+   "map": "denbus1",
+   "elevation": 2,
+   "tile": 23487,
+   "name": "the shack interior"
+  },
+  {
+   "map": "denbus2",
+   "elevation": 0,
+   "tile": 25698,
+   "name": "the Cat's Paw sign block"
+  },
+  {
+   "map": "denbus2",
+   "elevation": 1,
+   "tile": 3110,
+   "name": "the small second storey"
+  },
+  {
+   "map": "denres1",
+   "elevation": 0,
+   "tile": 15308,
+   "name": "the residential block"
+  },
+  {
+   "map": "denres1",
+   "elevation": 1,
+   "tile": 15308,
+   "name": "the residential block, upper floor"
+  },
+  {
+   "map": "dnslvrun",
+   "elevation": 0,
+   "tile": 22905,
+   "name": "the fire pit"
+  },
+  {
+   "map": "dnslvrun",
+   "elevation": 1,
+   "tile": 20706,
+   "name": "the slave camp garden"
+  },
+  {
+   "map": "dnslvrun",
+   "elevation": 2,
+   "tile": 21910,
+   "name": "the corn field"
+  }
+ ]
 }

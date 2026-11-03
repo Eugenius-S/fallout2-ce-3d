@@ -118,6 +118,69 @@
       "elevation": 0,
       "tile": 21913,
       "coverage": "The most detailed gallery view of this map elevation (task 011)"
+    },
+    {
+      "name": "den-business",
+      "map": "denbus1",
+      "elevation": 0,
+      "tile": 13292,
+      "coverage": "Den business street, buildings and signs"
+    },
+    {
+      "name": "den-business-upper",
+      "map": "denbus1",
+      "elevation": 1,
+      "tile": 15070,
+      "coverage": "Den business street upper floor"
+    },
+    {
+      "name": "den-brothel",
+      "map": "denbus2",
+      "elevation": 0,
+      "tile": 27898,
+      "coverage": "The brothel entrance"
+    },
+    {
+      "name": "den-brothel-upstairs",
+      "map": "denbus2",
+      "elevation": 1,
+      "tile": 1110,
+      "coverage": "The brothel second storey (needs 158-elevation-search)"
+    },
+    {
+      "name": "den-residential",
+      "map": "denres1",
+      "elevation": 0,
+      "tile": 11308,
+      "coverage": "Den residential street"
+    },
+    {
+      "name": "den-slave-run",
+      "map": "dnslvrun",
+      "elevation": 0,
+      "tile": 26905,
+      "coverage": "The slave run open ground"
+    },
+    {
+      "name": "den-shop-signs",
+      "map": "denbus1",
+      "elevation": 0,
+      "tile": 17292,
+      "coverage": "The shop block with hanging signs"
+    },
+    {
+      "name": "den-catpaw-sign",
+      "map": "denbus2",
+      "elevation": 0,
+      "tile": 25698,
+      "coverage": "The Cat's Paw sign and street"
+    },
+    {
+      "name": "den-fire-pit",
+      "map": "dnslvrun",
+      "elevation": 0,
+      "tile": 22905,
+      "coverage": "The slave run fire pit and tents"
     }
   ]
 }
