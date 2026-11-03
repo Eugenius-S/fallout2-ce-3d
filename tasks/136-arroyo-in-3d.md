@@ -76,3 +76,23 @@ The interface, menus, wallpapers and text, the sky (113), new 3D models of
 landmark objects from scratch, maps outside Arroyo.
 
 ## Log
+
+### 2026-11-04 glm
+Done: the `arroyo` group in `tools/scene_export/export.py` (arcaves, arvillag,
+arvill2, arbridge, argarden, ardead, artemple; the map files from the game,
+arvill2 and ardead were not in my first maps.txt pass, they come from the
+board's file list). All 9 elevations export clean into the worktree cache.
+8 fly tour spots (tools/tour/spots.json) and 8 regression spots
+(tools/regression/spots.json) at the entrances, with 16 reference files under
+tools/regression/reference/ taken from this build. The first sweep found the
+still-fixture movie hang: fixed in PR #240 (arvillag's map-enter script plays
+a movie; the fixture froze the tickers the playback advances on).
+Find: arvill2 is not in the game's data/maps.txt, so the game can never travel
+there (devtools: "not in the worldmap registry"). It exports, but no tour or
+regression spot is possible. owner: an unused leftover map, left alone.
+Next: the grid sweep of every map (2D probes to place more spots), then the
+fly sweep at morning, noon and evening, fixes by cause.
+Check: `py -3 tools/scene_export/export.py --game-root <main>/game --maps
+arroyo --cache-root build/scene-cache`; `py -3 tools/tour/tour.py --before
+build/scene-cache --maps arcaves,arvillag,arbridge,argarden,ardead,artemple`;
+`tools/regression.ps1` (24 spots pass, arroyo references new).
