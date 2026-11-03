@@ -86,3 +86,9 @@ after the exit probe follows the normal movement/picking path.
 Check: existing PR CI passed; the transition table records the partial result
 and explicitly leaves all other routes, elevations and world-map/save-load
 paths unverified.
+
+### 2026-11-03 gpt: evidence path cleanup
+
+Done: removed absolute local paths from the captured stdout logs under `runs/147-map-transitions-keep-3d/`; the transition captures and timing are unchanged. The previous PR check failed only on these paths. The two failed exit-probe attempts remain the runtime limit, so no new capture was made. The transition evidence is still partial and the PR remains draft.
+Next: continue with task 140 as recorded above; revisit 147 only when the exit probe can use a verified pickable route.
+Check: `tools/check_public_content.py origin/main` and `tools/check_runs_size.py origin/main` pass after this commit.
