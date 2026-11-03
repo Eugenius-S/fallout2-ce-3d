@@ -118,6 +118,83 @@
       "elevation": 0,
       "tile": 21913,
       "coverage": "The most detailed gallery view of this map elevation (task 011)"
+    },
+    {
+      "name": "modoc-main-street",
+      "map": "modmain",
+      "elevation": 0,
+      "tile": 23333,
+      "coverage": "Modoc main street, houses and fences"
+    },
+    {
+      "name": "modoc-inn",
+      "map": "modinn",
+      "elevation": 0,
+      "tile": 25321,
+      "coverage": "The bed and breakfast"
+    },
+    {
+      "name": "modoc-inn-upstairs",
+      "map": "modinn",
+      "elevation": 1,
+      "tile": 25321,
+      "coverage": "The bed and breakfast upper floor (needs 158-elevation-search)"
+    },
+    {
+      "name": "modoc-brahmin",
+      "map": "modbrah",
+      "elevation": 0,
+      "tile": 19324,
+      "coverage": "The brahmin pastures and pens"
+    },
+    {
+      "name": "modoc-well",
+      "map": "modwell",
+      "elevation": 0,
+      "tile": 16710,
+      "coverage": "The town well"
+    },
+    {
+      "name": "ghost-farm",
+      "map": "gstfarm",
+      "elevation": 0,
+      "tile": 23345,
+      "coverage": "The ghost farm"
+    },
+    {
+      "name": "ghost-cavern",
+      "map": "gstcav1",
+      "elevation": 0,
+      "tile": 14255,
+      "coverage": "The ghost town main cavern"
+    },
+    {
+      "name": "modoc-barn",
+      "map": "modmain",
+      "elevation": 0,
+      "tile": 19333,
+      "coverage": "The big barn and water tank"
+    },
+    {
+      "name": "modoc-herd",
+      "map": "modbrah",
+      "elevation": 0,
+      "tile": 17324,
+      "coverage": "The brahmin herd at the trough"
+    },
+    {
+      "name": "ghost-massacre",
+      "map": "gstfarm",
+      "elevation": 0,
+      "tile": 21345,
+      "coverage": "The massacre in the ghost farm corn"
+    },
+    {
+      "name": "ghost-lake-ledge",
+      "map": "gstcav2",
+      "elevation": 1,
+      "tile": 24508,
+      "coverage": "The lower lake ledge, a thin floor over black"
     }
   ]
 }
