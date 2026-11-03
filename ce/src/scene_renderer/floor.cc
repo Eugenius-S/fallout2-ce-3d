@@ -194,7 +194,7 @@ bool loadStaticFloor(const std::filesystem::path& cacheDirectory, std::string* e
     std::vector<unsigned char> inRun(100 * 100, 0);
     std::vector<unsigned char> fringeRgba;
     unsigned fringeWidth = 0, fringeHeight = 0;
-    if (fringeCount > 0) {
+    if (fringeCount > 0 || patchCount > 0) {
         std::vector<unsigned char> fringePng;
         if (!readBinary(cacheDirectory / "roof_fringe.png", fringePng)) {
             return fail("roof_fringe.png is missing or unreadable");

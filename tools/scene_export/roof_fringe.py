@@ -31,6 +31,16 @@ that have no roof beyond), not by a whole-tile test. A mixed tile, shingle and a
 ragged part in one diamond, keeps its shingle as a flat square in a cell of
 its own in roof_fringe.png (the dark part cut out); the ragged part joins the
 band of its edge.
+
+One ragged edge per roof (task 129, round 6): a band built from genuine ragged
+fringe tiles (a run with no slab-cut tile whose strip lies whole along the wall
+line, genuine) is the roof's donor. Every other band of the roof (the slab-cut
+sides, stepped or fragmentary runs) takes the donor's ragged edge, repeated
+along its length (donate), and a side of the footprint that is not one genuine
+run becomes one run over all its squares (whole_sides): the same height, the
+ragged edge on top, no steps and no gaps. A roof with no donor takes the map's
+best one. Bands that meet at a corner end on each other's faces, whatever edge
+their art names, and share the lowest top of them (resolve_runs).
 """
 
 import math
@@ -171,7 +181,33 @@ def _dilate(mask, reach):
     return out
 
 
-def split_tile(rgba):
+SLAB_STRIP = 0.35   # a wall-top slab lies within this of an open edge, in tiles
+SLAB_SHARE = 0.85   # of that strip the dark grey concrete covers this much: the strip is a slab
+
+
+def slab_edges(rgba, open_edges):
+    """The open edges of a roof square along which the tile's art is a wall-top slab: (edges, grey, dist).
+
+    A tile can be painted whole and still carry the broken top of the wall: a
+    strip of dark grey concrete, SLAB_STRIP wide, along the edge that has no
+    roof beyond it (the square's footprint says which edges those are). A whole
+    tile is no roof square then: the strip stands up as a band.
+    """
+    painted, u, v, diamond = _grid(rgba)
+    if not painted.any() or not open_edges:
+        return [], None, None
+    rgb = rgba[..., :3].astype(float)
+    grey = painted & (rgb.mean(axis=2) < GREY_LUMA) & (np.abs(rgb[..., 0] - rgb[..., 2]) < GREY_TINT)
+    dist = np.stack([v, 1.0 - v, u, 1.0 - u])
+    found = []
+    for edge in open_edges:
+        strip = diamond & (dist[edge] < SLAB_STRIP)
+        if (grey & strip).sum() >= SLAB_SHARE * strip.sum():
+            found.append(edge)
+    return found, grey, dist
+
+
+def split_tile(rgba, open_edges=()):
     """A roof tile's art split into its wall-top part and its roof part.
 
     Returns (pieces, roof): pieces is [(edge, art)], the wall-top pixels split by
@@ -192,7 +228,8 @@ def split_tile(rgba):
     rgb = rgba[..., :3].astype(float)
     # concrete and rebar are grey and dark, shingle is brown: red leads blue by more than a few levels
     grey = painted & (rgb.mean(axis=2) < GREY_LUMA) & (np.abs(rgb[..., 0] - rgb[..., 2]) < GREY_TINT)
-    if cover >= WHOLE_COVER and outside.sum() <= FREE_OUTSIDE:
+    slabs, _, dist = slab_edges(rgba, open_edges)
+    if cover >= WHOLE_COVER and outside.sum() <= FREE_OUTSIDE and not slabs:
         return [], rgba
     if grey.sum() >= ALL_GREY * painted.sum():
         fringe = painted.copy()
@@ -202,6 +239,8 @@ def split_tile(rgba):
             if len(rows) >= MIN_BLOB:
                 keep[rows, cols] = True
         fringe = outside | keep
+        for edge in slabs:
+            fringe |= grey & (dist[edge] < SLAB_STRIP + RIM)
         for _ in range(2):
             fringe = _grow(fringe, painted, 5)
         # the grey texels that touch the cut are its ragged rim: they go with it
@@ -233,6 +272,69 @@ def unproject_cell(rgba):
     texture = np.zeros((cell, cell, 4), np.uint8)
     texture[inside] = rgba[src_y[inside], src_x[inside]]
     return texture
+
+
+RAG_REACH = 5      # a roof texel this near a hole of its own square is the ragged rim of a cut: it goes (tidy_cell)
+SLAB_HALF = 0.5    # a strip along an open edge that is this much dark grey is a wall top lying flat: cleared
+THIN_ART = 3       # dark art thinner than 2 * THIN_ART + 1 texels is ragged (a finger, a rebar line, a stump)
+SOLID_ART = 7      # painted texels among the 9 of its neighbourhood that make a texel solid art, not dither
+DARK_ART = 60.0    # texels this dark (mean of the colours), any hue
+MIN_LEFT = 150     # texels: a loose speck or needle left after the rim is cleared goes too
+
+
+def tidy_cell(cell, open_edges):
+    """A flat roof cell (rgba, CELL_SIZE + 2 * CELL_MARGIN square) with no dark ragged wall-top art left in it.
+
+    The cells of roof_fringe.png are what the free camera draws flat, so a
+    wall top left in one lies on the roof in flight (task 129). Whether or not a
+    band stands on the edge, the cell keeps only plain roof: (1) along every
+    open edge whose strip (SLAB_STRIP) is half dark grey or more the grey
+    concrete is cleared; (2) the ragged rim, every texel within RAG_REACH of a
+    hole inside the square, is cleared (a rim texel is the fingers and rebar
+    stumps of a cut-out wall top; the square's own jagged rim and the art
+    overhanging the square are not holes); (3) dark thin art left (a stump of a cut strip) goes, (4) loose specks go.
+    A cell with no hole and no grey strip comes back unchanged.
+    """
+    cell = cell.copy()
+    t = (np.arange(cell.shape[0]) + 0.5 - CELL_MARGIN) / CELL_SIZE
+    v, u = np.meshgrid(t, t, indexing="ij")
+    on = (u >= 0) & (u < 1) & (v >= 0) & (v < 1)
+    dist = np.stack([v, 1.0 - v, u, 1.0 - u])
+    rgb = cell[..., :3].astype(float)
+    grey = (cell[..., 3] > 0) & (rgb.mean(axis=2) < GREY_LUMA) & (np.abs(rgb[..., 0] - rgb[..., 2]) < GREY_TINT)
+    for edge in open_edges:
+        strip = on & (dist[edge] < SLAB_STRIP)
+        if (grey & strip).sum() >= SLAB_HALF * strip.sum():
+            cell[grey & (dist[edge] < SLAB_STRIP + RIM)] = 0
+    # a hole is a clear patch at least 3 x 3 texels; the clear texels of an alpha checkerboard (shading dither) are
+    # diagonal neighbours only, vanish under this opening and so clear nothing around them
+    clear = cell[..., 3] == 0
+    clear = _dilate(~_dilate(~clear, 1), 1)
+    hole = clear & (u > RIM) & (u < 1 - RIM) & (v > RIM) & (v < 1 - RIM)
+    if hole.any():
+        cell[_dilate(hole, RAG_REACH)] = 0
+    # (3) what is left of dark art thinner than 2 * THIN_ART + 1 texels (a stump of a cut strip, a rebar line) goes;
+    # a checkerboard dither (few painted neighbours) is shading, it stays
+    painted = cell[..., 3] > 0
+    if painted.any():
+        grown = np.pad(painted, THIN_ART, mode="edge")
+        opened = _dilate(~_dilate(~grown, THIN_ART), THIN_ART)[THIN_ART:-THIN_ART, THIN_ART:-THIN_ART]
+        padded = np.pad(painted, 1).astype(int)
+        solid = sum(padded[1 + dy:padded.shape[0] - 1 + dy, 1 + dx:padded.shape[1] - 1 + dx]
+                    for dy in (-1, 0, 1) for dx in (-1, 0, 1)) >= SOLID_ART
+        thin = painted & ~opened & solid & (cell[..., :3].astype(float).mean(axis=2) < DARK_ART)
+        cell[thin] = 0
+    left = cell[..., 3] > 0
+    if left.any():
+        # a clear texel with painted texels on all four sides is a dither gap: it joins the blob it sits in, so a
+        # checkerboard counts as one piece of shading, not as a thousand loose specks
+        around = np.pad(left, 1)
+        gap = ~left & around[:-2, 1:-1] & around[2:, 1:-1] & around[1:-1, :-2] & around[1:-1, 2:]
+        for rows, cols in _blobs(left | gap):
+            size = int(left[rows, cols].sum())
+            if size < MIN_LEFT:
+                cell[rows, cols] = 0
+    return cell
 
 
 STRIP_ROWS = 40  # a strip's height in art pixels, measured up from the concrete's lowest row
@@ -531,26 +633,232 @@ def resolve_runs(runs, bodies, outers, default_top):
             continue
         out.append([body[1] if outer > 0 else body[0], body[2], *span])
     original = [list(place) for place in out]
+    parent = list(range(len(runs)))
+
+    def root(n):
+        while parent[n] != n:
+            n = parent[n]
+        return n
+
     for n, (edge, plane, start, members) in enumerate(runs):
         for side in (2, 3):
-            # the nearest band across this end, on the roof's side (the low end meets a band whose roof lies
-            # on the higher side, edges 0 and 2; the high end the lower side's): this band's line is
-            # its face across the other's span, the other's face across this one's
+            # the nearest perpendicular band across this end: this band's line is its face across the
+            # other's span, the other's face across this one's (whichever side of the corner it lies on)
             best = None
             for m, (other_edge, other_plane, other_start, other_members) in enumerate(runs):
-                if n == m or (other_edge < 2) == (edge < 2) or (other_edge in (0, 2)) != (side == 2):
+                if n == m or (other_edge < 2) == (edge < 2):
                     continue
                 corner_along, corner_cross = original[m][0], original[n][0]
                 gap = abs(original[n][side] - corner_along)
-                if gap <= CORNER_REACH and                         original[m][2] - CORNER_REACH <= corner_cross <= original[m][3] + CORNER_REACH                         and (best is None or gap < best[0]):
-                    best = (gap, corner_along)
+                if gap <= CORNER_REACH and original[m][2] - CORNER_REACH <= corner_cross <= original[m][3] + CORNER_REACH                         and (best is None or gap < best[0]):
+                    best = (gap, corner_along, m)
             # a snap that would empty or reverse the span is not made
             if best is not None and (out[n][3] - best[1] if side == 2 else best[1] - out[n][2]) >= MIN_SPAN:
                 out[n][side] = best[1]
+                parent[root(n)] = root(best[2])
+    # the bands that meet at corners are one parapet: one top line, the lowest wall top of them
+    lowest = {}
+    for n in range(len(runs)):
+        lowest[root(n)] = min(lowest.get(root(n), math.inf), out[n][1])
+    for n in range(len(runs)):
+        out[n][1] = lowest[root(n)]
     return out
 
 
-def write_fringe_art(out_png, roof_squares, art_of, wall_of, belt_of=None, default_top=1.88):
+def genuine(run, strip, slab_cut):
+    """Is this run built from genuine ragged fringe art: no slab-cut tile in it, and a strip that lies whole along the wall line."""
+    return not any(index in slab_cut for index, _ in run[3]) and foot_cover(strip) >= FOOT_COVER
+
+
+def roof_sides(roof_squares, open_of):
+    """The sides of the roof footprint: [(edge, plane, start, [square index])], contiguous squares sharing an open edge.
+
+    edge, plane, start as in runs_of, but by the footprint (the square's open
+    edge: no roof beyond it), the way the slab-cut squares name theirs.
+    """
+    lines = {}
+    for index in roof_squares:
+        x, z = index % 100, index // 100
+        for edge in open_of[index]:
+            plane = z + (edge == 1) if edge < 2 else x + (edge == 3)
+            lines.setdefault((edge, plane), {})[x if edge < 2 else z] = index
+    sides = []
+    for (edge, plane), members in sorted(lines.items()):
+        group = []
+        for along in sorted(members):
+            if group and along != group[-1][0] + 1:
+                sides.append((edge, plane, group[0][0], [index for _, index in group]))
+                group = []
+            group.append((along, members[along]))
+        sides.append((edge, plane, group[0][0], [index for _, index in group]))
+    return sides
+
+
+def whole_sides(runs, strips, good, sides):
+    """Runs and strips with every side of the footprint that is not one genuine run made one run.
+
+    A side whose runs (those of its axis standing on its squares) are one
+    genuine run over all its squares is left as it is. Any other side with a
+    wall top on it (a slab-cut, fragmentary or stepped run) becomes one run over
+    all its squares, strip None (it takes the donor's, see donate): continuous
+    along the side, no steps, no gaps.
+    """
+    drop, added = set(), []
+    # each run belongs to one physical side: of the sides of its axis that cover its squares, the one on its
+    # own line (a roof one square deep has two sides on the same squares)
+    owner = {}
+    for n, run in enumerate(runs):
+        near = [k for k, (edge, plane, start, squares) in enumerate(sides)
+                if (edge < 2) == (run[0] < 2) and all(index in set(squares) for index, _ in run[3])]
+        if near:
+            owner[n] = min(near, key=lambda k: (abs(run[1] - sides[k][1]), run[0] != sides[k][0]))
+    for k, (edge, plane, start, squares) in enumerate(sides):
+        inside = [n for n in range(len(runs)) if n not in drop and owner.get(n) == k]
+        if not inside:
+            continue
+        if len(inside) == 1 and good[inside[0]] and len(runs[inside[0]][3]) == len(squares):
+            continue
+        drop.update(inside)
+        # the merged run keeps the art the dropped runs had, to fall back on when there is no donor
+        had = {index: art for n in inside for index, art in runs[n][3]}
+        added.append(((edge, plane, start, [(index, had.get(index)) for index in squares]), None, False))
+    keep = [n for n in range(len(runs)) if n not in drop]
+    return ([runs[n] for n in keep] + [item[0] for item in added],
+            [strips[n] for n in keep] + [None] * len(added),
+            [good[n] for n in keep] + [False] * len(added))
+
+
+BLANK = ('blank',)  # the key of the transparent cell of a roof square that is all wall top and has no band
+
+
+def cut_to_walls(runs, strips, good, wall_of):
+    """Runs and strips with every run cut into the stretches that have a wall under them.
+
+    wall_of(edge, plane, start, count): the run's wall (wall_body) or None. A
+    band stands only where a wall stands under it: the squares of a run are
+    tested one by one, the contiguous squares with a wall are one run each (a
+    strip None, so the donor's ragged edge, unless the whole run has a wall), and
+    the squares with none (open ground, a hole in the roof, a broken wall) get no
+    band: a side is never bridged over a gap.
+    """
+    out_runs, out_strips, out_good = [], [], []
+    for (edge, plane, start, members), strip, ok in zip(runs, strips, good):
+        has = [wall_of(edge, plane, start + n, 1) is not None for n in range(len(members))]
+        if all(has):
+            out_runs.append((edge, plane, start, members))
+            out_strips.append(strip)
+            out_good.append(ok)
+            continue
+        n = 0
+        while n < len(members):
+            if not has[n]:
+                n += 1
+                continue
+            m = n
+            while m < len(members) and has[m]:
+                m += 1
+            out_runs.append((edge, plane, start + n, [(index, art) for index, art in members[n:m]]))
+            out_strips.append(None)
+            out_good.append(False)
+            n = m
+    return out_runs, out_strips, out_good
+
+
+def donate(runs, strips, good, pool, comp, diagnostics=None):
+    """The strips with every run that is not genuine ragged art given its roof's donor's edge.
+
+    pool: [(run, strip, component)] of the map's genuine runs. A roof (a
+    connected footprint) takes the longest genuine run of its own as donor, else
+    the longest genuine run of the map; the runs that are not genuine
+    (slab-cut tiles, a broken or stepped strip, a strip None) take the donor's
+    ragged edge, repeated along their length: the same height and orientation.
+    """
+    best = lambda items: max(items, key=lambda item: (len(item[0][3]), foot_cover(item[1])), default=None)
+    out = []
+    for run, strip, ok in zip(runs, strips, good):
+        if ok:
+            out.append(strip)
+            continue
+        pick = best([item for item in pool if item[2] == comp[run[3][0][0]]]) or best(pool)
+        if pick is None:
+            out.append(strip if strip is not None else own_strip(run))
+            continue
+        out.append(lay_donor((pick[1], len(pick[0][3]), pick[0][0]), run[0], len(run[3])))
+        if diagnostics is not None:
+            diagnostics.append((run[:3], pick[0][:3]))
+    return out
+
+
+def own_strip(run):
+    """The strip a run unrolls from the art its own squares kept (a square without art stays clear)."""
+    shapes = [art.shape for _, art in run[3] if art is not None]
+    if not shapes:
+        return np.zeros((STRIP_ROWS, int(round(len(run[3]) * (-proj_u() if run[0] < 2 else proj_v()))), 4), np.uint8)
+    members = [(index, art if art is not None else np.zeros(shapes[0], np.uint8)) for index, art in run[3]]
+    return unroll(run[0], run[1], run[2], members)
+
+
+def proj_u():
+    from fp import proj
+    return proj.SQ_U[0]
+
+
+def proj_v():
+    from fp import proj
+    return proj.SQ_V[0]
+
+
+FOOT_ROWS = 3       # a genuine strip's lowest rows: the concrete lies along the wall line ...
+FOOT_COVER = 0.9    # ... so this share of its columns is painted in them: no gaps, no steps
+
+
+def foot_cover(strip):
+    """The share of a strip's columns painted in its lowest FOOT_ROWS rows (see unroll)."""
+    return float((strip[-FOOT_ROWS:, :, 3] > 0).any(axis=0).mean())
+
+
+def components_of(roof_squares):
+    """{square index: component number}: the 4-connected pieces of a roof footprint."""
+    comp = {}
+    for first in sorted(roof_squares):
+        if first in comp:
+            continue
+        comp[first] = first
+        stack = [first]
+        while stack:
+            index = stack.pop()
+            x, z = index % 100, index // 100
+            for dx, dz in EDGE_STEPS:
+                other = (z + dz) * 100 + x + dx
+                if 0 <= x + dx < 100 and other in roof_squares and other not in comp:
+                    comp[other] = first
+                    stack.append(other)
+    return comp
+
+
+def lay_donor(donor, edge, count):
+    """A strip for a run of `count` squares along `edge`'s axis made of the donor's ragged edge, repeated.
+
+    donor: (strip, count, edge) of a genuine run. The donor's columns are
+    resampled to the target axis's width per tile (48 px along u, 32 along v)
+    and repeated along the run; its rows (ragged edge on top, the concrete along
+    the bottom) are kept, so the band keeps the donor's height and orientation.
+    """
+    from fp import proj
+    strip, donor_count, donor_edge_id = donor
+    edge_rows = strip[-EDGE_ROWS:]
+    per_tile = lambda e: -proj.SQ_U[0] if e < 2 else proj.SQ_V[0]
+    width = int(round(count * per_tile(edge)))
+    unit = int(round(donor_count * per_tile(donor_edge_id)))
+    unit_width = int(round(donor_count * per_tile(edge)))
+    pick = np.minimum((np.arange(unit_width) + 0.5) * unit / unit_width, unit - 1).astype(int)
+    unit_art = edge_rows[:, pick]
+    out = np.zeros((STRIP_ROWS, width, 4), np.uint8)
+    out[-EDGE_ROWS:] = np.tile(unit_art, (1, width // unit_width + 1, 1))[:, :width]
+    return out
+
+
+def write_fringe_art(out_png, roof_squares, art_of, wall_of, belt_of=None, default_top=1.88, diagnostics=None):
     """Write the unrolled strips of the roof's wall tops, and the flat squares cut around them, into one image, out_png.
 
     roof_squares: {square index (y * 100 + x): tile id} of the roof layer.
@@ -562,25 +870,38 @@ def write_fringe_art(out_png, roof_squares, art_of, wall_of, belt_of=None, defau
     in out_png a mixed square's roof is drawn from under the free camera, its
     wall-top part cut out). The image is not the tile atlas: the flat floor and
     roof squares sample that one, and its size must not change. With no wall top
-    no image is written (a stale one is removed) and both lists are empty.
+    and no flat cell to tidy no image is written (a stale one is removed) and both lists are empty; when every
+    run is cut away (no wall stands under it) the image still holds the tidied cells and the patches name them.
     """
     cache = {}
 
-    def split(tile):
-        if tile not in cache:
-            cache[tile] = split_tile(art_of(tile))
-        return cache[tile]
+    def split(tile, open_edges):
+        if (tile, open_edges) not in cache:
+            cache[tile, open_edges] = split_tile(art_of(tile), open_edges)
+        return cache[tile, open_edges]
 
-    squares, patched = {}, {}
+    open_of = boundary_edges(roof_squares)
+    squares, patched, slab_cut = {}, {}, set()
     for index, tile in sorted(roof_squares.items()):
-        pieces, roof = split(tile)
+        pieces, roof = split(tile, tuple(open_of[index]))
         if pieces:
             squares[index] = pieces
-            patched[index] = (tile, roof)
+            patched[index] = ((tile, tuple(open_of[index])), roof)
+            if slab_edges(art_of(tile), tuple(open_of[index]))[0]:
+                slab_cut.add(index)
     runs = runs_of(squares)
-    if not runs:
-        out_png.unlink(missing_ok=True)
-        return [], []
+    raw = [unroll(*run) for run in runs]
+    good = [genuine(run, strip, slab_cut) for run, strip in zip(runs, raw)]
+    comp = components_of(roof_squares)
+    pool = [(run, strip, comp[run[3][0][0]]) for run, strip, ok in zip(runs, raw, good) if ok]
+    runs, raw, good = whole_sides(runs, raw, good, roof_sides(roof_squares, open_of))
+    runs, raw, good = cut_to_walls(runs, raw, good, wall_of)
+    # a square that is all wall top and has no band left (no wall under it) is not drawn at all
+    banded = {index for run in runs for index, _ in run[3]}
+    for index, ((tile, open_edges), roof) in list(patched.items()):
+        if roof is None and index not in banded:
+            patched[index] = (BLANK, np.zeros_like(art_of(tile)))
+    strips = donate(runs, raw, good, pool, comp, diagnostics)
     bodies = [wall_of(run[0], run[1], run[2], len(run[3])) for run in runs]
     outers = [None if body is None else outward(roof_squares, run[0], body[0], body[1], run[2], len(run[3]))
               for run, body in zip(runs, bodies)]
@@ -588,15 +909,36 @@ def write_fringe_art(out_png, roof_squares, art_of, wall_of, belt_of=None, defau
     for place in places:
         if not place[3] > place[2]:
             raise ValueError(f"a roof band's span is empty or reversed: {place}")
-    strips = [compose_band(unroll(*run), belt_of(run, body) if belt_of and body is not None else None)
-              for run, body in zip(runs, bodies)]
+    strips = [compose_band(strip, belt_of(run, body) if belt_of and body is not None else None)
+              for run, body, strip in zip(runs, bodies, strips)]
+    # a square the bands cross keeps its flat roof under the free camera only as a patch: a plain one gets its art
+    for index in banded:
+        if index not in patched:
+            patched[index] = ((roof_squares[index], tuple(open_of[index])), art_of(roof_squares[index]))
+    # a boundary square no band crosses can carry a ragged dark wall top the classifier did not see (black fingers
+    # along its open edge): it too is drawn from a tidied cell, when tidying changes it
+    tidied = {}
+    for index, tile in sorted(roof_squares.items()):
+        if index in patched or not open_of[index]:
+            continue
+        key = (tile, tuple(open_of[index]))
+        if key not in tidied:
+            flat = unproject_cell(art_of(tile))
+            tidied[key] = bool((tidy_cell(flat, key[1]) != flat).any())
+        if tidied[key]:
+            patched[index] = (key, art_of(tile))
+    # every flat cell is tidied: no dark ragged wall top lies flat, whether or not a band stands on its edge
     cells = {}
     for index, (tile, roof) in patched.items():
         if roof is not None:
-            cells.setdefault(tile, unproject_cell(roof))
+            cells.setdefault(tile, tidy_cell(unproject_cell(roof), () if tile == BLANK else tile[1]))
     cell = CELL_SIZE + 2 * CELL_MARGIN
-    per_row = max(1, max(strip.shape[1] for strip in strips) // (cell + 1))
-    width = max(max(strip.shape[1] for strip in strips) + 2, per_row * (cell + 1) + 1)
+    if not strips and not cells:
+        out_png.unlink(missing_ok=True)
+        return [], []
+    widest = max((strip.shape[1] for strip in strips), default=0)
+    per_row = max(1, widest // (cell + 1))
+    width = max(widest + 2, per_row * (cell + 1) + 1)
     cell_rows = (len(cells) + per_row - 1) // per_row
     height = sum(strip.shape[0] + 1 for strip in strips) + 1 + cell_rows * (cell + 1)
     sheet = Image.new("RGBA", (width, height), (0, 0, 0, 0))
