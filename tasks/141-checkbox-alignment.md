@@ -2,14 +2,14 @@
 id: 141
 title: The 3D options checkboxes line up: an empty box stands where a ticked one does
 milestone: M1
-status: done
+status: doing
 owner: gpt
 suggested: gpt
 priority: normal
 claude-only: no
 user-check: yes
 depends-on: []
-reviewed: yes
+reviewed: no
 ---
 
 ## Goal
@@ -33,8 +33,11 @@ would be keeps its width.
 
 ## Acceptance
 
-- before | after crops of several toggle rows on and off, English and
-  Russian, at x2, in `runs/141-checkbox-alignment/`: the brackets line up.
+- Before and after crops of top and bottom toggle rows in English and
+  Russian, pixel and sharp text, at 1920x1080 scale 2, in
+  `runs/141-checkbox-alignment/`.
+- The `[X]` and `[ ]` boxes occupy identical slots and end on the slider
+  track endpoint. Toggle values share the slider-value right edge.
 - ctest passes (the options panel model tests); the original view
   regression stays pixel for pixel.
 
