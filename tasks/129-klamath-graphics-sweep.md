@@ -129,3 +129,8 @@ Next: sweep round 2 (interiors, shapes-eval solo shots).
 Check: the crops and sheets above.
 
 - 2026-11-01 glm is out; box tops merged (#194). Back to todo for claude; continue from `task/129-klamath-graphics-sweep`.
+
+### 2026-11-03 claude
+Done: roof holes after #236 fixed (task/129-roof-holes). A tile painted whole is a roof square however dark: `split_tile` takes only what is off the diamond and the slab strips along its open edges as wall top (no ALL_GREY branch, no blob rule, no 2 px grey dilation for it); the rest stays a flat patch. `roof_edge_check.py` has `lost_squares` (whole tiles whose flat cover in flight dropped by more than their slab strips): kladwtwn e0 35 (main) to 0, klamall e0 11 to 0; flat_texels and flat_slab_squares stay 0.
+Next: partial tiles (cover under 0.9) that are nearly all grey still vanish when no wall stands under them (about 44 on kladwtwn, 200 on klamall, same as on main).
+Check: `py -3 tools/scene_export/roof_edge_check.py --cache-root build/scene-cache`; crops `runs/129-klamath-graphics/fix129j-*.jpg`.

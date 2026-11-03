@@ -9,6 +9,11 @@ For each map elevation of a scene cache this reports
 - flat_slab_squares: boundary squares whose drawn roof still has a strip of
   dark grey (half of it or more, no blob or hole rule, a looser test than the
   exporter's) along an edge with no roof beyond it: a wall top lying flat;
+- lost_squares: roof squares whose original tile is painted whole (WHOLE_COVER of
+  the square) but whose flat cover in flight (the patch cell; 0 when a band
+  crosses it with no patch, or the patch is blank) is lower than the tile's by
+  more than the slab strips of its open edges (SLAB_STRIP + RIM each) and a
+  small slack: holes in the roof;
 - geometry: for every band, how far its plane is from the outer face of its wall
   (tiles, 0 is flush), and at every band end next to a perpendicular band the
   gap (the end short of that band's face) and the overshoot (the end past it).
@@ -35,12 +40,15 @@ from roof_fringe import EDGE_STEPS, outward, GREY_TINT, _blobs, _dilate  # noqa:
 DARK = 30.0   # a texel darker than this (mean of the colours) and grey is concrete or rebar; the metal roofs' shading dither is lighter
 BLOB = 8      # connected ragged dark texels that make a smear
 DEPTH = 0.7   # from a boundary edge, in tiles
+RIM_STRIP = 0.07  # a slab strip's rim (roof_fringe.RIM), in lost_squares
 RIM = 0.05    # the square's own rim, jagged in every tile's art: a clear texel there is no hole
 HOLE_REACH = 2  # a dark texel this near a clear texel of the square is ragged, in texels
 DEEP = 6        # squares beyond a wall that tell which side is the building's outside (roof_fringe.OUTWARD_DEPTH)
 WALL_NEAR = 0.3  # a wall body this near a band's plane belongs to its wall, in tiles
 CORNER_NEAR = 0.7  # two bands make a corner when their ends and faces lie this near each other, in tiles
 WALL_SHARE = 0.03  # a wall slab covers a square when it reaches this far into it, in tiles
+WHOLE_COVER = 0.9  # of the square painted: a whole roof square (roof_fringe.WHOLE_COVER)
+LOST_SLACK = 0.1   # cover a whole square may lose beyond its slab strips (the cut's ragged rim, RAG_REACH texels) and still not be a hole
 OFF_SQUARE = 3  # a dark texel this far off the square is ragged, in texels
 
 
@@ -135,6 +143,14 @@ def flat_slab(cell, edges):
             if (grey & on & (dist[edge] < SLAB_STRIP)).sum() >= SLAB_HALF * (on & (dist[edge] < SLAB_STRIP)).sum()]
 
 
+def cover_of(cell):
+    """The share of the square (u, v in 0..1) that a cell (rgba, CELL_OUTER_SIZE square) paints."""
+    t = (np.arange(CELL_OUTER_SIZE) + 0.5 - CELL_MARGIN) / CELL_SIZE
+    v, u = np.meshgrid(t, t, indexing="ij")
+    on = (u >= 0) & (u < 1) & (v >= 0) & (v < 1)
+    return float(((cell[..., 3] > 0) & on).sum() / on.sum())
+
+
 def run_squares(entry):
     edge, plane, start, count = entry[:4]
     fixed = plane - (1 if edge in (1, 3) else 0)
@@ -189,7 +205,7 @@ def band_stats(entries, slabs=(), footprint=frozenset()):
 
 
 def measure(directory):
-    """(flat texels, squares with them, flat slab squares, flat grey texels, band stats) of one scene cache directory."""
+    """(flat texels, squares with them, flat slab squares, flat grey texels, lost squares, band stats) of one scene cache directory."""
     sidecar = decode_floor_sidecar((directory / "floor.bin").read_bytes())
     tiles = np.asarray(Image.open(directory / "tiles.png").convert("RGBA"))
     fringe_png = directory / "roof_fringe.png"
@@ -199,11 +215,21 @@ def measure(directory):
     banded = {square for entry in sidecar["fringe"] for square in run_squares(entry)}
     patches = {index: (x, y) for index, x, y in sidecar.get("patches", [])}
     footprint = {index for index, cell in enumerate(roof) if cell}
-    texels = squares = slabs = grey_texels = 0
+    texels = squares = slabs = grey_texels = lost = 0
     for index in sorted(footprint):
         edges = [edge for edge, (dx, dz) in enumerate(EDGE_STEPS)
                  if not (0 <= index % 100 + dx < 100 and 0 <= index // 100 + dz < 100)
                  or (index // 100 + dz) * 100 + index % 100 + dx not in footprint]
+        x, y = cells[roof[index] - 1]
+        original = cover_of(tiles[y:y + CELL_OUTER_SIZE, x:x + CELL_OUTER_SIZE])
+        if original >= WHOLE_COVER:
+            if index in patches:
+                px, py = patches[index]
+                flight = cover_of(fringe[py:py + CELL_OUTER_SIZE, px:px + CELL_OUTER_SIZE])
+            else:
+                flight = 0.0 if index in banded else original
+            if flight < original - (SLAB_STRIP + RIM_STRIP) * len(edges) - LOST_SLACK:
+                lost += 1
         if index in patches:
             x, y = patches[index]
             cell = fringe[y:y + CELL_OUTER_SIZE, x:x + CELL_OUTER_SIZE]
@@ -222,7 +248,7 @@ def measure(directory):
             texels += count
             squares += 1
     scene = json.loads((directory / "scene.json").read_text(encoding="utf-8"))
-    return texels, squares, slabs, grey_texels, band_stats(sidecar["fringe"], wall_slabs(scene), footprint)
+    return texels, squares, slabs, grey_texels, lost, band_stats(sidecar["fringe"], wall_slabs(scene), footprint)
 
 
 def main(argv=None):
@@ -230,19 +256,20 @@ def main(argv=None):
     parser.add_argument("--cache-root", type=Path, required=True)
     parser.add_argument("--maps", default="kladwtwn,klatrap,klacanyn,klagraz,klamall,klaratcv,klatoxcv")
     args = parser.parse_args(argv)
-    total = [0, 0, 0]
+    total = [0, 0, 0, 0]
     for name in args.maps.split(","):
         for directory in sorted((args.cache_root / name).glob("[0-9]")):
             if not (directory / "floor.bin").is_file():
                 continue
-            texels, squares, slab_squares, grey, bands = measure(directory)
+            texels, squares, slab_squares, grey, lost, bands = measure(directory)
             total[0] += texels
             total[1] += squares
             total[2] += slab_squares
+            total[3] += lost
             print(json.dumps({"map": name, "elevation": directory.name, "flat_texels": texels,
-                              "flat_squares": squares, "flat_grey_texels": grey, "flat_slab_squares": slab_squares,
+                              "flat_squares": squares, "flat_grey_texels": grey, "flat_slab_squares": slab_squares, "lost_squares": lost,
                               **{k: round(v, 3) if isinstance(v, float) else v for k, v in bands.items()}}))
-    print(json.dumps({"total_flat_texels": total[0], "total_flat_squares": total[1], "total_flat_slab_squares": total[2]}))
+    print(json.dumps({"total_flat_texels": total[0], "total_flat_squares": total[1], "total_flat_slab_squares": total[2], "total_lost_squares": total[3]}))
 
 
 if __name__ == "__main__":

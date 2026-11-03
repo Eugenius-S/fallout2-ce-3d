@@ -217,7 +217,9 @@ def split_tile(rgba, open_edges=()):
     (rebar and chunks above the wall), and the dark grey pixels (concrete,
     where shingle is brown) in blobs of MIN_BLOB or more, plus the painted pixels
     they enclose and the grey ones that touch the cut. A tile painted whole is a
-    roof square; one whose painted pixels are nearly all grey is all wall top.
+    roof square, however dark: only what is off its diamond and the slab strips
+    along its open edges are wall top, the rest stays flat roof. A tile painted
+    less whose pixels are nearly all grey is all wall top.
     """
     painted, u, v, diamond = _grid(rgba)
     if not painted.any():
@@ -231,20 +233,28 @@ def split_tile(rgba, open_edges=()):
     slabs, _, dist = slab_edges(rgba, open_edges)
     if cover >= WHOLE_COVER and outside.sum() <= FREE_OUTSIDE and not slabs:
         return [], rgba
-    if grey.sum() >= ALL_GREY * painted.sum():
+    whole = cover >= WHOLE_COVER
+    if not whole and grey.sum() >= ALL_GREY * painted.sum():
         fringe = painted.copy()
     else:
-        keep = np.zeros_like(grey)
-        for rows, cols in _blobs(grey):
-            if len(rows) >= MIN_BLOB:
-                keep[rows, cols] = True
-        fringe = outside | keep
+        if whole:
+            # a tile painted whole is a roof square, however dark: only what is off the diamond and the slab strips
+            # along its open edges are wall top, the rest stays flat roof (a patch)
+            fringe = outside.copy()
+        else:
+            keep = np.zeros_like(grey)
+            for rows, cols in _blobs(grey):
+                if len(rows) >= MIN_BLOB:
+                    keep[rows, cols] = True
+            fringe = outside | keep
         for edge in slabs:
             fringe |= grey & (dist[edge] < SLAB_STRIP + RIM)
         for _ in range(2):
             fringe = _grow(fringe, painted, 5)
-        # the grey texels that touch the cut are its ragged rim: they go with it
-        fringe |= grey & _dilate(fringe, 2)
+        # the grey texels that touch the cut are its ragged rim: they go with it (a whole tile's cut is a straight
+        # line at the slab strip: its grey beyond is roof texture)
+        if not whole:
+            fringe |= grey & _dilate(fringe, 2)
     if not fringe.any():
         return [], rgba
     art = rgba.copy()

@@ -598,6 +598,20 @@ class RoofEdgeTests(unittest.TestCase):
         plain = self.tile([(0, 1, 0, 1, (120, 80, 50))])
         self.assertEqual(split_tile(plain, (0, 1, 2, 3))[0], [])         # shingle on every open edge: nothing stands
 
+    def test_a_whole_painted_dark_tile_with_a_slab_on_one_open_edge_stays_a_roof_but_for_the_strip(self):
+        from roof_fringe import LEFT_ROOF, RIM, SLAB_STRIP
+        # painted whole and nearly all dark grey (concrete), a little brown at the far edge: it is a roof square
+        dark = self.tile([(0, 1, 0, 1, (14, 14, 14)), (0, 1, 0.9, 1, (120, 80, 50))])
+        pieces, roof = split_tile(dark, (0,))
+        self.assertEqual([edge for edge, _ in pieces], [0])              # the strip along the open edge stands up
+        self.assertIsNotNone(roof)
+        from roof_fringe import _grid
+        painted, u, v, diamond = _grid(dark)
+        kept = ((roof[..., 3] > 0) & diamond).sum() / diamond.sum()
+        self.assertGreater(kept, 1 - (SLAB_STRIP + RIM) - 0.15)         # only the strip is gone, the rest is flat roof
+        self.assertGreater(kept, 10 * LEFT_ROOF)
+        self.assertFalse(((roof[..., 3] > 0) & diamond & (v < SLAB_STRIP)).any())
+
     def test_the_edge_check_sees_a_flat_slab_without_the_exporters_classifier(self):
         from roof_edge_check import flat_slab
         from floor_sidecar import CELL_OUTER_SIZE
