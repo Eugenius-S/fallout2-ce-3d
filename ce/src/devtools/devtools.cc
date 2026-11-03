@@ -735,6 +735,22 @@ static bool applyElevationChange(int elevation)
         targetTile = gMapHeader.enteringTile;
     }
     if (targetTile == -1) {
+        // Small upstairs floors (denbus2's second storey) stand nowhere near
+        // the dude or the entrance: take the nearest free tile of the whole
+        // elevation, deterministic first-found minimum.
+        int bestDistance = -1;
+        for (int tile = 0; tile < HEX_GRID_WIDTH * HEX_GRID_HEIGHT; tile++) {
+            if (!elevationTileFree(tile, elevation)) {
+                continue;
+            }
+            const int distance = tileDistanceBetween(gDude->tile, tile);
+            if (bestDistance == -1 || distance < bestDistance) {
+                bestDistance = distance;
+                targetTile = tile;
+            }
+        }
+    }
+    if (targetTile == -1) {
         snprintf(gStatus, sizeof(gStatus), uiText("no free tile on elevation %d"), elevation);
         return false;
     }
@@ -1824,6 +1840,13 @@ void update()
                 gStartupTargetAwaitingFinal = true;
                 snprintf(gStatus, sizeof(gStatus), uiText("moving to elevation %d"), gPendingElevationValue);
                 return; // let the scheduled transition settle before preview activation
+            } else {
+                // Nothing standable on the target elevation: settle at what
+                // loaded, the sidecar's map and elevation stay honest.
+                printf("devtools: elevation %d unreachable on %s: %s\n", gPendingElevationValue, gMapHeader.name,
+                    gStatus);
+                fflush(stdout);
+                gStartupTargetAwaitingFinal = false;
             }
         }
         if (!gStartupTargetAwaitingFinal) gStartupTargetSettled = true;
