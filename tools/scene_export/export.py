@@ -47,6 +47,10 @@ MAP_GROUPS = {
     # cycling colours, unlike Klamath's dead ones (task 050).
     "vault15": ("vault15",),
     "den": ("denbus1", "denbus2", "denres1"),
+    # Vault City and the raiders: the concrete town and the vault's own
+    # corridors, the raiders' cave camp (the game's maps/vcty*.map and
+    # raiders*.map files).
+    "vaultcity": ("vctyctyd", "vctydwtn", "vctycocl", "vctyvlt", "raiders1", "raiders2"),
 }
 EXPECTED_OUTPUT_FILES = {"scene.json", "provenance.json", "floor.bin", "walls.bin", "projection.bin", "baked.bin",
                          "shadows.bin", "tiles.png", "light.png", "rock.png", "roof_fringe.png"}
