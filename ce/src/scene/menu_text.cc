@@ -74,6 +74,16 @@ const std::vector<Translation>& catalog()
         { "Things that shine in Fallout 2 (fire, monitors, signs) bleed light softly in the 3D view.", cp1251(u8"Огонь, мониторы, вывески и другие источники света получают мягкое свечение в 3D.") },
         { "Glow strength", cp1251(u8"Сила свечения") },
         { "How far the glow of shining things spreads and brightens.", cp1251(u8"Насколько далеко распространяется свечение и насколько оно яркое.") },
+        { "Picture and interface scale", cp1251(u8"Масштаб изображения и интерфейса") },
+        { "Scales the game picture and interface from 1.0x to 3.0x.", cp1251(u8"Масштабирует изображение и интерфейс от 1,0x до 3,0x.") },
+        { "Resolution", cp1251(u8"Разрешение") },
+        { "Select an available display resolution.", cp1251(u8"Выберите доступное разрешение экрана.") },
+        { "Window mode", cp1251(u8"Режим окна") },
+        { "Choose fullscreen, windowed, or borderless mode.", cp1251(u8"Выберите полный экран, окно или окно без рамки.") },
+        { "Fullscreen", cp1251(u8"Полный экран") },
+        { "Window", cp1251(u8"Окно") },
+        { "Borderless", cp1251(u8"Без рамки") },
+        { "Requires restart", cp1251(u8"Нужен перезапуск игры") },
         { "Camera rotation", cp1251(u8"Поворот камеры от −30° до +30°") },
         { "[ and ] turn the camera up to 30 degrees left or right. Return to the original view to control the game with the mouse.", cp1251(u8"Клавиши [ и ] поворачивают камеру в пределах 30 градусов влево и вправо. Верните камеру в исходное положение, чтобы управлять игрой мышью.") },
         { "Unlimited camera rotation (not recommended)", cp1251(u8"Полный оборот (не рекомендуется)") },
@@ -182,9 +192,11 @@ std::string menuStatusText(const std::string& status, const std::string& languag
 void localizeMenuDescriptors(std::vector<SettingDescriptor>& descriptors, const std::string& language)
 {
     for (auto& descriptor : descriptors) {
-        if (descriptor.section != "3d") continue;
+        if (descriptor.section != "3d" && descriptor.id != "screen.scale_factor"
+            && descriptor.id != "screen.resolution_mode" && descriptor.id != "screen.windowed") continue;
         descriptor.fallbackLabel = menuText(descriptor.fallbackLabel.c_str(), language);
         descriptor.fallbackDescription = menuText(descriptor.fallbackDescription.c_str(), language);
+        for (auto& choice : descriptor.choices) choice.fallbackLabel = menuText(choice.fallbackLabel.c_str(), language);
     }
 }
 

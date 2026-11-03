@@ -1,7 +1,11 @@
 #include "static_scene.h"
 
 #include <lodepng.h>
+#include <algorithm>
+#include <cmath>
+#include <cstring>
 
+#include "band_span.h"
 #include "gl_api.h"
 #include "scene_internal.h"
 #include "sprite_card.h"
@@ -93,9 +97,29 @@ bool loadStaticFloor(const std::filesystem::path& cacheDirectory, std::string* e
     const unsigned short cellSize = readU16(sidecar.data() + 16);
     const unsigned short cellMargin = readU16(sidecar.data() + 18);
     // Version 2 has a roof layer after the floor layer; version 1 has none.
-    const size_t layerBytes = version == 2 ? 2 * kFloorBytes : kFloorBytes;
-    const size_t expectedSize = kHeaderSize + layerBytes + static_cast<size_t>(tileCount) * 4;
-    if ((version != 1 && version != 2) || gridWidth != 100 || gridHeight != 100 || tileCount == 0
+    // Version 3 adds the roof fringe list after the cells: a count, then per
+    // entry; version 4's entries are runs of wall tops: the tile edge (0-3),
+    // the roof edge's tile line, the first square along it and the number of
+    // squares, then the rect of the run's strip in roof_fringe.png. Version 5
+    // adds the wall the run stands over: the plane of its outer face (tile
+    // units), its top height (GL) and the band's span along the line (tiles).
+    // Version 6 adds, after the runs, the roof squares that have a cell of
+    // their own in roof_fringe.png (a mixed tile: its roof, the wall-top part
+    // cut out; the band stands up from that part): a count, then per entry the
+    // square index and the cell's x and y in roof_fringe.png (8 bytes).
+    // A version 3 or 4 list is read for its size only: its roofs stay flat
+    // squares (version 3 drew crossed sheets, version 4 bands off the wall).
+    constexpr size_t kFringeEntryBytes = 32;
+    const size_t entryBytes = version == 3 ? 10 : version == 4 ? 16 : kFringeEntryBytes;
+    const size_t layerBytes = version >= 2 ? 2 * kFloorBytes : kFloorBytes;
+    const size_t cellsEnd = kHeaderSize + layerBytes + static_cast<size_t>(tileCount) * 4;
+    const size_t listedCount = version >= 3 && sidecar.size() >= cellsEnd + 2 ? readU16(sidecar.data() + cellsEnd) : 0;
+    const size_t fringeCount = version >= 5 ? listedCount : 0;
+    constexpr size_t kPatchEntryBytes = 8;
+    const size_t patchesAt = cellsEnd + (version >= 3 ? 2 + listedCount * entryBytes : 0);
+    const size_t patchCount = version == 6 && sidecar.size() >= patchesAt + 2 ? readU16(sidecar.data() + patchesAt) : 0;
+    const size_t expectedSize = patchesAt + (version == 6 ? 2 + patchCount * kPatchEntryBytes : 0);
+    if ((version < 1 || version > 6) || gridWidth != 100 || gridHeight != 100 || tileCount == 0
         || cellSize != 88 || cellMargin != 6 || imageWidth == 0 || imageHeight == 0
         || imageWidth > 8192 || imageHeight > 8192
         || sidecar.size() != expectedSize) {
@@ -129,7 +153,7 @@ bool loadStaticFloor(const std::filesystem::path& cacheDirectory, std::string* e
     constexpr float kHalfMap = 50.0f;
     quad(-kHalfMap, -0.08f, -kHalfMap, kHalfMap, kHalfMap, 0.0f, 0.0f, 1.0f, 1.0f);
     const unsigned char* floorData = sidecar.data() + kHeaderSize;
-    const unsigned char* roofData = version == 2 ? floorData + kFloorBytes : nullptr;
+    const unsigned char* roofData = version >= 2 ? floorData + kFloorBytes : nullptr;
     const unsigned char* cellData = floorData + layerBytes;
     for (int row = 0; row < 100; row++) {
         for (int col = 0; col < 100; col++) {
@@ -163,6 +187,85 @@ bool loadStaticFloor(const std::filesystem::path& cacheDirectory, std::string* e
         }
     }
 
+    // The wall-top runs (roof_fringe.png) become pieces of the squares they cross.
+    std::vector<std::vector<RoofSquare::FringePiece>> fringeOf(100 * 100);
+    // Every square of an exported run, whether or not clipping leaves a band piece on it: the flat
+    // atlas square is never drawn in flight for it (its wall-top art stands as a band or is cut away).
+    std::vector<unsigned char> inRun(100 * 100, 0);
+    std::vector<unsigned char> fringeRgba;
+    unsigned fringeWidth = 0, fringeHeight = 0;
+    if (fringeCount > 0 || patchCount > 0) {
+        std::vector<unsigned char> fringePng;
+        if (!readBinary(cacheDirectory / "roof_fringe.png", fringePng)) {
+            return fail("roof_fringe.png is missing or unreadable");
+        }
+        const unsigned fringeError = lodepng::decode(fringeRgba, fringeWidth, fringeHeight, fringePng);
+        if (fringeError != 0) {
+            return fail(std::string("roof_fringe.png decode failed: ") + lodepng_error_text(fringeError));
+        }
+    }
+    for (size_t entry = 0; entry < fringeCount; entry++) {
+        const unsigned char* data = sidecar.data() + cellsEnd + 2 + entry * kFringeEntryBytes;
+        const int edge = readU16(data), plane = readU16(data + 2), start = readU16(data + 4), count = readU16(data + 6);
+        const int x = readU16(data + 8), y = readU16(data + 10), w = readU16(data + 12), h = readU16(data + 14);
+        float wall[4];
+        std::memcpy(wall, data + 16, sizeof(wall));
+        const float face = wall[0], top = wall[1], spanLow = wall[2], spanHigh = wall[3];
+        if (!std::isfinite(face) || !std::isfinite(top) || !std::isfinite(spanLow) || !std::isfinite(spanHigh)
+            || spanHigh <= spanLow || top <= 0.0f) {
+            return fail("floor.bin contains a bad roof fringe entry");
+        }
+        if (edge > 3 || plane > 100 || count == 0 || start + count > 100 || w == 0 || h == 0
+            || x + w > static_cast<int>(fringeWidth) || y + h > static_cast<int>(fringeHeight)) {
+            return fail("floor.bin contains a bad roof fringe entry");
+        }
+        const bool alongU = edge < 2;
+        // The strip's columns run left to right on the game's screen: against
+        // u (a larger u is further left), with v.
+        const int fixed = alongU ? plane - (edge == 1 ? 1 : 0) : plane - (edge == 3 ? 1 : 0);
+        if (fixed < 0 || fixed >= 100) return fail("floor.bin contains a bad roof fringe entry");
+        // The strip's column fraction at a place along the line (clamped: a
+        // band end that runs past the squares repeats the strip's end column).
+        auto stripAt = [&](float s) {
+            const float fraction = alongU ? (start + count - s) / count : (s - start) / count;
+            return (x + std::min(std::max(fraction, 0.0f), 1.0f) * w) / fringeWidth;
+        };
+        for (int along = start; along < start + count; along++) {
+            RoofSquare::FringePiece piece;
+            piece.edge = edge;
+            piece.plane = face - kHalfMap;
+            piece.bottom = top;
+            // The band's own span: the run's squares, the ends following the wall's.
+            const int member = alongU ? fixed * 100 + along : along * 100 + fixed;
+            inRun[member] = 1;
+            float low = 0, high = 0;
+            if (!::fallout::scene::bandPieceSpan(along, along == start, along == start + count - 1, spanLow, spanHigh, &low, &high)) continue;
+            piece.span0 = low - kHalfMap;
+            piece.span1 = high - kHalfMap;
+            piece.uLow = stripAt(low);
+            piece.uHigh = stripAt(high);
+            piece.vTop = static_cast<float>(y) / fringeHeight;
+            piece.vBottom = static_cast<float>(y + h) / fringeHeight;
+            piece.rows = static_cast<float>(h);
+            const int index = alongU ? fixed * 100 + along : along * 100 + fixed;
+            if (fringeOf[index].size() < 2) fringeOf[index].push_back(piece);
+        }
+    }
+    // The squares drawn from a cell of roof_fringe.png under the free camera.
+    std::vector<unsigned char> patchCell(100 * 100, 0);
+    std::vector<int> patchX(100 * 100, 0), patchY(100 * 100, 0);
+    for (size_t entry = 0; entry < patchCount; entry++) {
+        const unsigned char* data = sidecar.data() + patchesAt + 2 + entry * kPatchEntryBytes;
+        const int index = readU16(data), x = readU16(data + 2), y = readU16(data + 4);
+        if (index >= 100 * 100 || fringeRgba.empty()
+            || x + cellSize + 2 * cellMargin > static_cast<int>(fringeWidth)
+            || y + cellSize + 2 * cellMargin > static_cast<int>(fringeHeight)) {
+            return fail("floor.bin contains a bad roof patch entry");
+        }
+        patchCell[index] = 1;
+        patchX[index] = x;
+        patchY[index] = y;
+    }
     std::vector<RoofSquare> roofs;
     for (int index = 0; roofData != nullptr && index < 100 * 100; index++) {
         const unsigned short cellIndex = readU16(roofData + index * 2);
@@ -179,10 +282,25 @@ bool loadStaticFloor(const std::filesystem::path& cacheDirectory, std::string* e
         const float grow = static_cast<float>(cellMargin) / cellSize;
         const float x0 = static_cast<float>(index % 100) - kHalfMap;
         const float z0 = static_cast<float>(index / 100) - kHalfMap;
-        roofs.push_back({ index, x0 - grow, z0 - grow, x0 + 1.0f + grow, z0 + 1.0f + grow,
+        RoofSquare square = { index, x0 - grow, z0 - grow, x0 + 1.0f + grow, z0 + 1.0f + grow,
             static_cast<float>(cellX) / imageWidth, static_cast<float>(cellY) / imageHeight,
             static_cast<float>(cellX + cellSize + 2 * cellMargin) / imageWidth,
-            static_cast<float>(cellY + cellSize + 2 * cellMargin) / imageHeight });
+            static_cast<float>(cellY + cellSize + 2 * cellMargin) / imageHeight };
+        for (const RoofSquare::FringePiece& piece : fringeOf[index]) {
+            square.pieces[square.pieceCount++] = piece;
+            square.fringe = true;
+            square.tileX = x0;
+            square.tileZ = z0;
+        }
+        if (inRun[index] != 0) square.fringe = true;
+        if (patchCell[index] != 0) {
+            square.patch = true;
+            square.patchU0 = static_cast<float>(patchX[index]) / fringeWidth;
+            square.patchV0 = static_cast<float>(patchY[index]) / fringeHeight;
+            square.patchU1 = static_cast<float>(patchX[index] + cellSize + 2 * cellMargin) / fringeWidth;
+            square.patchV1 = static_cast<float>(patchY[index] + cellSize + 2 * cellMargin) / fringeHeight;
+        }
+        roofs.push_back(square);
     }
 
     std::string shaderError;
@@ -215,6 +333,18 @@ bool loadStaticFloor(const std::filesystem::path& cacheDirectory, std::string* e
     }
     gFloorOccupancy = std::move(floorOccupancy);
     setRoofSquares(std::move(roofs));
+    if (!fringeRgba.empty()) {
+        unsigned int fringeTexture = 0;
+        glGenTextures(1, &fringeTexture);
+        glBindTexture(kTexture2D, fringeTexture);
+        glPixelStorei(kUnpackRowLength, 0);
+        glTexImage2D(kTexture2D, 0, kRgba8, fringeWidth, fringeHeight, 0, kRGBA, kUnsignedByte, fringeRgba.data());
+        glTexParameteri(kTexture2D, kTextureMinFilter, kNearest);
+        glTexParameteri(kTexture2D, kTextureMagFilter, kNearest);
+        glTexParameteri(kTexture2D, kTextureWrapS, kClampToEdge);
+        glTexParameteri(kTexture2D, kTextureWrapT, kClampToEdge);
+        setRoofFringeTexture(fringeTexture);
+    }
     gFloorLoaded = true;
     if (error != nullptr) error->clear();
     return true;

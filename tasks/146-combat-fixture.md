@@ -71,3 +71,7 @@ Next: continue with task 147 under the owner's two-attempt exception. Task 146
 still needs working startup readiness and all eight 3D/2D phase captures.
 Check: PR #220 remains draft; its last CI run passed. No third runtime attempt
 was made.
+
+### 2026-11-03 merge origin/main
+
+Merged `origin/main` (`d8cff6b0`) into this branch. Resolved the `tools/dev-snapshot.ps1` overlap by keeping the combat fixture arguments, four-capture polling, and main's scripted-input/scene-input options together. PowerShell parser and `git diff --check` pass. Runtime combat proof remains blocked as described above; PR stays draft.

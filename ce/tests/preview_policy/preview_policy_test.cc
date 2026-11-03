@@ -7,7 +7,7 @@ using namespace fallout::scene;
 int main()
 {
 #define CHECK(expr) do { if (!(expr)) { std::fprintf(stderr, "CHECK failed at %s:%d: %s\n", __FILE__, __LINE__, #expr); return 1; } } while (0)
-    const PreviewRuntimeState normal = { true, true, true, true, true };
+    const PreviewRuntimeState normal = { true, true, true, true };
     CHECK(previewMayPresent(normal));
 
     PreviewRuntimeState state = normal;
@@ -26,16 +26,11 @@ int main()
     CHECK(previewBlockReason(state) == PreviewBlockReason::IsoDisabled);
 
     state = normal;
-    state.noDialog = false;
-    CHECK(!previewMayPresent(state));
-    CHECK(previewBlockReason(state) == PreviewBlockReason::Dialog);
-
-    state = normal;
     state.noMovie = false;
     CHECK(!previewMayPresent(state));
     CHECK(previewBlockReason(state) == PreviewBlockReason::Movie);
 
-    // Windows over the map, combat and the enemies' turn keep the 3D view.
+    // Windows over the map, combat, the enemies' turn and dialogue keep the 3D view.
     CHECK(gameModeShowsMap(0x40 | 0x800)); // combat, the player's turn
     CHECK(gameModeShowsMap(0x1000)); // inventory
     CHECK(gameModeShowsMap(0x8)); // options

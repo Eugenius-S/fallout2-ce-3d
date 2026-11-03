@@ -13,6 +13,7 @@
 #include <time.h>
 #include <cctype>
 #include <cmath>
+#include <string>
 
 #include <algorithm>
 #include <exception>
@@ -58,6 +59,7 @@
 #include "../scene/scene_objects.h"
 #include "../scene/scene_settings.h"
 #include "../scene/scene_view.h"
+#include "../scene_renderer/perf.h"
 #include "../scene_renderer/game_view.h"
 #include "../scene_renderer/camera.h"
 #include "../scene_renderer/context.h"
@@ -136,6 +138,7 @@ int gClockLadderStage = -1;
 bool gPreferencesSnapshotPending = false;
 bool gPreferencesSnapshotActive = false;
 bool gPreferencesSnapshotBottom = false;
+std::string gPreferencesSnapshotDropdown;
 // --dev-map-tour: the map elevations to visit after the startup one; the
 // step counts snapshots taken (-1: no tour).
 struct TourStop {
@@ -192,6 +195,7 @@ bool gDevFly = false; // --dev-fly: the fly camera takes off at the first 3D fra
 // from it (a side view of a thing).
 double gDevFlyTurn = 0.0;
 double gDevCameraTurn = 0; // degrees; legacy --dev-camera-turn=N still means quarter turns
+bool gDevCameraTurnKeys = false; // --dev-camera-turn-keys: this background run wants [ and ] to work
 double gDevFlyPitch = -1.0;
 double gDevFlyDistance = -1.0;
 double gDevFlyLift = 0.0; // move the inspection camera vertically after aiming
@@ -773,6 +777,12 @@ bool parseOption(const char* arg)
         gEnabled = true;
         return true;
     }
+    if (gEnabled && parseScriptedInputOption(arg)) {
+        // A scene script is pumped from the main loop itself; only the
+        // options-panel script opens the options screen.
+        if (!scriptedInputSceneMode()) gPreferencesSnapshotPending = true;
+        return true;
+    }
     if (strcmp(arg, "--dev-panel-snapshot") == 0) {
         gPanelSnapshotPending = gEnabled;
         return true;
@@ -899,6 +909,16 @@ bool parseOption(const char* arg)
     if (parseUiFixtureFont101WeightOption(arg)) return true;
     if (strcmp(arg, "--dev-preferences-snapshot") == 0) {
         gPreferencesSnapshotPending = true;
+        return true;
+    }
+    constexpr char preferencesDropdownPrefix[] = "--dev-preferences-dropdown=";
+    if (strncmp(arg, preferencesDropdownPrefix, sizeof(preferencesDropdownPrefix) - 1) == 0) {
+        const char* value = arg + sizeof(preferencesDropdownPrefix) - 1;
+        if (strcmp(value, "resolution") == 0 || strcmp(value, "mode") == 0) {
+            gPreferencesSnapshotDropdown = value;
+        } else {
+            fprintf(stderr, "devtools: invalid preferences dropdown (expected resolution or mode)\n");
+        }
         return true;
     }
     const char* sharpTextPrefix = "--dev-sharp-text=";
@@ -1106,6 +1126,10 @@ bool parseOption(const char* arg)
         gDevZoom = std::clamp(strtod(arg + strlen(zoomPrefix), nullptr), 0.25, 4.0);
         return true;
     }
+    if (strcmp(arg, "--dev-camera-turn-keys") == 0) {
+        gDevCameraTurnKeys = true;
+        return true;
+    }
     const char* heroPrefix = "--dev-hero-tile=";
     if (strncmp(arg, heroPrefix, strlen(heroPrefix)) == 0) {
         const long tile = strtol(arg + strlen(heroPrefix), nullptr, 10);
@@ -1244,6 +1268,8 @@ void applyFixedScreenOptions()
     settings.screen.resolution_x = gFixedScreenOptions.width;
     settings.screen.resolution_y = gFixedScreenOptions.height;
     settings.screen.scale = gFixedScreenOptions.scale;
+    settings.screen.scale_factor = gFixedScreenOptions.scaleFactor;
+    settings.screen.resolution_mode = 0;
     settings.screen.windowed = WindowMode::Windowed;
     // A background test run shares game/fallout2.cfg with the owner's game:
     // the owner's zoom and camera rotation must not move its views.
@@ -1256,8 +1282,8 @@ void applyFixedScreenOptions()
         settings.scene3d.cloud_shadows = gBackgroundShadows || gBackgroundCloudShadows;
         if (gDevNoSpriteSides) settings.scene3d.sprite_sides = false;
     }
-    debugPrint("DEVTOOLS: fixed screen %dx%d scale %d, windowed, glow %d%s\n",
-        gFixedScreenOptions.width, gFixedScreenOptions.height, gFixedScreenOptions.scale,
+    debugPrint("DEVTOOLS: fixed screen %dx%d scale %.1fx, windowed, glow %d%s\n",
+        gFixedScreenOptions.width, gFixedScreenOptions.height, gFixedScreenOptions.scaleFactor,
         settings.scene3d.glow ? 1 : 0, gBackgroundGlow ? " (kept on)" : "");
 }
 
@@ -1280,10 +1306,12 @@ void applyBackgroundShadows()
 
 // Runs after the command line is parsed (applyFixedScreenOptions is earlier),
 // so --dev-zoom reaches the scene: a background run is pinned to zoom 1
-// unless the dev argument names another one.
+// unless the dev argument names another one. --dev-camera-turn-keys restores
+// the turn its isolated config asked for.
 void applyBackgroundZoom()
 {
     if (backgroundCaptureActive() && gDevZoom > 0.0) settings.scene3d.zoom = gDevZoom;
+    if (backgroundCaptureActive() && gDevCameraTurnKeys) settings.scene3d.camera_rotation = true;
 }
 
 bool isEnabled()
@@ -1644,6 +1672,17 @@ void update()
 {
     if (!gEnabled) {
         return;
+    }
+    if (!gPreferencesSnapshotActive && scriptedInputActive()) {
+        // A scene script (no -Preferences) starts itself once the 3D view is
+        // up; the options panel's own loop begins the panel scripts.
+        if (!scriptedInputStarted() && scene::activeView() == scene::View::Full && scene::shouldPresent()) {
+            scriptedInputBegin();
+        }
+        if (scriptedInputStarted()) {
+            scriptedInputPump();
+            if (scriptedInputTakeSnapshotRequest()) { renderPresent(); takeSnapshot(); }
+        }
     }
     // The startup --dev-map travel retries here until the opening movie is
     // over and the transition is accepted (089).
@@ -2158,6 +2197,11 @@ bool preferencesSnapshotAtBottom()
     return gPreferencesSnapshotBottom;
 }
 
+const char* preferencesSnapshotDropdown()
+{
+    return gPreferencesSnapshotDropdown.c_str();
+}
+
 bool suppressInitialSceneEnable()
 {
     return gClassic || gStartupFloorPreviewRequested || gStartupWallPreviewRequested
@@ -2618,6 +2662,7 @@ void scenePresented(const scene::RefreshResult& refreshed)
         return; // still settling
     }
     if (refreshed.heroUpdated && gSnapshotOncePending) {
+        if (scene_renderer::perfHolding()) return;
         if (focusMuzzleFixture() || focusWeaponEffectFixture()) return;
         if ((gScrollProbeKey >= 0 && gScrollProbeStage < 2) || (gScrollEdgeDirection >= 0 && gScrollEdgeStage < 2)
             || (gFollowHeroProbe && gFollowHeroStage < 2) || (gWalkProbe && gWalkProbeStage < 2)) return;
@@ -3692,6 +3737,13 @@ bool takeSnapshot()
     }
     int drawableW = capturedWidth;
     int drawableH = capturedHeight;
+    int windowW = capturedWidth;
+    int windowH = capturedHeight;
+    int windowX = 0;
+    int windowY = 0;
+    int sdlDrawableW = capturedWidth;
+    int sdlDrawableH = capturedHeight;
+    Uint32 windowFlags = 0;
     unsigned int wallTriangles = 0;
     unsigned int wallPages = 0;
     if (withWalls) scene_renderer::staticWallStats(&wallTriangles, &wallPages);
@@ -3747,8 +3799,15 @@ bool takeSnapshot()
             "{\"enabled\":false,\"setting_enabled\":%s,\"variant\":\"%s\",\"source\":\"disabled\"}",
             scene::cleanEdges() ? "true" : "false", clipVariant);
     }
+    if (gSdlWindow != nullptr) {
+        SDL_GetWindowPosition(gSdlWindow, &windowX, &windowY);
+        SDL_GetWindowSize(gSdlWindow, &windowW, &windowH);
+        SDL_GL_GetDrawableSize(gSdlWindow, &sdlDrawableW, &sdlDrawableH);
+        windowFlags = SDL_GetWindowFlags(gSdlWindow);
+    }
     if (!preview && gSdlWindow != nullptr) {
-        SDL_GL_GetDrawableSize(gSdlWindow, &drawableW, &drawableH);
+        drawableW = sdlDrawableW;
+        drawableH = sdlDrawableH;
     }
     // Preview snapshots come before the first frame that would update it.
     scene::updateSunFromGame();
@@ -3792,6 +3851,7 @@ bool takeSnapshot()
         "  \"sharp_text\": {\"setting\":%s,\"active\":%s,\"drawn\":%s,\"runs\":%u,\"glyphs\":%u,\"restored_pixels\":%u,\"prepare_ms\":%.3f},\n"
         "  \"map_clip\": %s,\n"
         "  \"camera\": \"%s\",\n"
+        "  \"camera_turn\": %.4f,\n"
         "  \"wall_triangles\": %u,\n"
         "  \"wall_pages\": %u,\n"
         "  \"hero\": %s,\n"
@@ -3808,8 +3868,11 @@ bool takeSnapshot()
         "  \"resolution\": \"%dx%d\",\n"
         "  \"logical_resolution\": \"%dx%d\",\n"
         "  \"scale\": %d,\n"
+        "  \"scale_factor\": %.1f,\n"
         "  \"windowed\": %s,\n"
         "  \"drawable\": \"%dx%d\",\n"
+        "  \"sdl_window\": {\"flags\": %u,\"window_position\": \"%d,%d\",\"window_size\": \"%dx%d\",\"drawable_size\": \"%dx%d\","
+        "\"fullscreen\": %s,\"fullscreen_desktop\": %s,\"borderless\": %s},\n"
         "  \"ce_commit\": \"%s\",\n"
         "  \"tools_commit\": \"%s\",\n"
         "  \"exe_sha256\": \"%s\",\n"
@@ -3841,6 +3904,7 @@ bool takeSnapshot()
         sharpText.prepareMilliseconds,
         clipMetadata,
         camera,
+        scene::cameraTurnAngle(),
         wallTriangles,
         wallPages,
         heroMetadata,
@@ -3861,9 +3925,21 @@ bool takeSnapshot()
         screenGetWidth(),
         screenGetHeight(),
         settings.screen.scale,
+        settings.screen.scale_factor,
         settings.screen.windowed == WindowMode::Windowed ? "true" : "false",
         drawableW,
         drawableH,
+        windowFlags,
+        windowX,
+        windowY,
+        windowW,
+        windowH,
+        sdlDrawableW,
+        sdlDrawableH,
+        (windowFlags & SDL_WINDOW_FULLSCREEN) != 0 ? "true" : "false",
+        (windowFlags & SDL_WINDOW_FULLSCREEN_DESKTOP) == SDL_WINDOW_FULLSCREEN_DESKTOP ? "true" : "false",
+        ((windowFlags & SDL_WINDOW_BORDERLESS) != 0
+                || (windowFlags & SDL_WINDOW_FULLSCREEN_DESKTOP) == SDL_WINDOW_FULLSCREEN_DESKTOP) ? "true" : "false",
         _BUILD_HASH,
         gToolsCommit,
         exeSha,

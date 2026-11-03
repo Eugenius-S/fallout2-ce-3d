@@ -134,6 +134,8 @@ uniform bool uShadowOn;
 uniform mat4 uShadowMatrix;
 uniform sampler2D uShadowMap;
 uniform sampler2D uShadowIds;
+uniform bool uShadowOccupancyOn;
+uniform sampler2D uShadowOccupancy; // RG32F, a texel per 16x16 map texels: r 1 where a caster stands, g the farthest one's depth (155)
 uniform float uShadowStrength;
 uniform float uShadowDensity; // the [3d] shadow_density setting, scales the darkening
 uniform vec3 uShadowLight; // towards the sun, GL (x, y up, z)
@@ -384,6 +386,45 @@ float shadowAxisStretch(vec3 t) {
     float along = dot(t, uShadowLight);
     return 1.0 / max(sqrt(max(1.0 - along * along, 0.0)), 0.25);
 }
+// Whether the disk of taps (and the ground walk to each) can reach no caster
+// texel at all (155): every tap then reads the cleared far depth, none is a
+// hit, and the coverage is 0 without a single map fetch. The disk lies inside
+// the square of its four corners and the map is orthographic, so the map
+// rectangle it covers follows from the two axes alone; the occupancy texture
+// says per 16x16 block whether the filled map holds anything there. Anything
+// unsure (the map's edge, a receiver near the far plane, a wide rectangle)
+// answers "no" and takes the full loop, so the result never changes.
+// Also: when every caster in reach stands farther from the ground than
+// uShadowContact, no tap of the ground walk can fall in the contact band
+// (blocker nearer than the receiver by more than the bias and at most
+// contact), so the walk's four extra reads per tap decide nothing.
+// 0: the full loop, 1: nothing in reach (coverage 0), 2: the loop without
+// the walk.
+int shadowDiskReach(vec3 base, vec3 a1, vec3 a2) {
+    if (!uShadowOccupancyOn) return 0;
+    vec4 c = uShadowMatrix * vec4(base, 1.0);
+    vec3 m = c.xyz / c.w * 0.5 + 0.5;
+    vec3 reach = (abs((uShadowMatrix * vec4(a1, 0.0)).xyz) + abs((uShadowMatrix * vec4(a2, 0.0)).xyz)) * 0.5;
+    if (m.z + reach.z + 0.05 >= 0.95 || m.z - reach.z - 0.05 <= 0.0) return 0;
+    vec2 size = vec2(textureSize(uShadowMap, 0));
+    vec2 lo = m.xy - reach.xy - 2.0 / size;
+    vec2 hi = m.xy + reach.xy + 2.0 / size;
+    if (lo.x < 0.0 || lo.y < 0.0 || hi.x >= 1.0 || hi.y >= 1.0) return 0;
+    ivec2 b0 = ivec2(lo * size) / 16;
+    ivec2 b1 = ivec2(hi * size) / 16;
+    if (b1.x - b0.x > 3 || b1.y - b0.y > 3) return 0;
+    float farthest = 0.0;
+    for (int y = b0.y; y <= b1.y; y++) {
+        for (int x = b0.x; x <= b1.x; x++) {
+            vec2 block = texelFetch(uShadowOccupancy, ivec2(x, y), 0).rg;
+            if (block.x > 0.5) farthest = max(farthest, block.y);
+        }
+    }
+    if (farthest == 0.0) return 1;
+    // The receiver's depth at a tap is the center's within the disk's reach,
+    // plus the slope term (at most 16 per uv, a texel away: 0.002).
+    return farthest + uShadowContact + 0.004 < m.z - reach.z ? 2 : 0;
+}
 float shadowCoverage(vec3 base, vec3 t1, vec3 t2, vec2 slope, float selfId) {
     float contact = uShadowContact;
     float sum = 0.0;
@@ -391,10 +432,13 @@ float shadowCoverage(vec3 base, vec3 t1, vec3 t2, vec2 slope, float selfId) {
     bool ground = abs(cross(t1, t2).y) > 0.5;
     vec3 a1 = t1 * (ground ? 1.0 : shadowAxisStretch(t1)) * uShadowStep;
     vec3 a2 = t2 * (ground ? 1.0 : shadowAxisStretch(t2)) * uShadowStep;
+    int diskReach = shadowDiskReach(base, a1, a2);
+    if (diskReach == 1) return 0.0;
+    bool walk = ground && diskReach != 2;
     for (int i = 0; i < 25; i++) {
         vec3 q = base + a1 * kShadowTaps[i].x + a2 * kShadowTaps[i].y;
         bool reached = true;
-        for (int k = 0; k <= 3 && i > 0 && ground; k++) {
+        for (int k = 0; k <= 3 && i > 0 && walk; k++) {
             float on = shadowTapDiff(mix(base, q, float(k) * 0.25), slope, selfId);
             if (on > uShadowBias && on <= contact) {
                 reached = false;
@@ -499,7 +543,8 @@ float sunShadow(float selfId) {
     else if (coverage > 0.0 && seenThroughCaster(vWorld)) coverage = 0.0;
     return coverage;
 }
-// The whole sprite darkens at its feet (082 round 6, deliberately reversing
+)"
+R"(// The whole sprite darkens at its feet (082 round 6, deliberately reversing
 // 063's per-pixel read): one factor at the card's bottom center, lifted a
 // little off the ground, the disk spread in the ground plane. The sprite's
 // own number is excluded at the taps, else it would shadow itself at the
@@ -976,6 +1021,8 @@ int gSceneShadowOnLocation = -1;
 int gSceneShadowMatrixLocation = -1;
 int gSceneShadowMapLocation = -1;
 int gSceneShadowIdsLocation = -1;
+int gSceneShadowOccupancyLocation = -1;
+int gSceneShadowOccupancyOnLocation = -1;
 int gSceneShadowStrengthLocation = -1;
 int gSceneShadowDensityLocation = -1;
 int gSceneShadowLightLocation = -1;
@@ -1065,6 +1112,8 @@ bool createSceneShader(std::string* error)
     gSceneShadowMatrixLocation = glGetUniformLocation(gSceneProgram, "uShadowMatrix");
     gSceneShadowMapLocation = glGetUniformLocation(gSceneProgram, "uShadowMap");
     gSceneShadowIdsLocation = glGetUniformLocation(gSceneProgram, "uShadowIds");
+    gSceneShadowOccupancyLocation = glGetUniformLocation(gSceneProgram, "uShadowOccupancy");
+    gSceneShadowOccupancyOnLocation = glGetUniformLocation(gSceneProgram, "uShadowOccupancyOn");
     gSceneShadowStrengthLocation = glGetUniformLocation(gSceneProgram, "uShadowStrength");
     gSceneShadowDensityLocation = glGetUniformLocation(gSceneProgram, "uShadowDensity");
     gSceneShadowLightLocation = glGetUniformLocation(gSceneProgram, "uShadowLight");

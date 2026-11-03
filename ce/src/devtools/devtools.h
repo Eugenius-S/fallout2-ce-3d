@@ -39,6 +39,7 @@ bool fixedScreenOptionsEnabled();
 bool backgroundCaptureActive();
 bool preferencesSnapshotRequested();
 bool preferencesSnapshotAtBottom();
+const char* preferencesSnapshotDropdown();
 void applyFixedScreenOptions();
 // The command line is parsed after the fixed options apply (main.cc), so a
 // background run re-applies the glow switch and the zoom once the flags are

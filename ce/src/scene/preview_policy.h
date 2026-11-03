@@ -9,7 +9,6 @@ enum class PreviewBlockReason {
     GameState,
     GameMode,
     IsoDisabled,
-    Dialog,
     Movie,
 };
 
@@ -18,12 +17,13 @@ enum class PreviewBlockReason {
 // (isoDisable: loading, fades), a movie. Combat, a disabled interface (the
 // enemies' turn, scripted moments) and windows over the map keep the 3D view:
 // a window covers the scene as it covers the 2D map (the overlay mask).
-// Dialogue keeps its own block for now (066 draws its backdrop in 2D).
+// Dialogue keeps the 3D view too: 066 puts an opaque black backdrop over the
+// whole screen under the dialogue windows, which covers the scene as the
+// original 640x480 dialogue window covers the 2D map.
 struct PreviewRuntimeState {
     bool gameNormal;
     bool gameModeShowsMap;
     bool isoEnabled;
-    bool noDialog;
     bool noMovie;
 };
 

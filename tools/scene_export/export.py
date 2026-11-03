@@ -19,21 +19,25 @@ sys.dont_write_bytecode = True
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE / "vendor"))
 
-from f2lib import Dat2, GameFiles, MapFile  # noqa: E402
+from f2lib import Dat2, GameFiles, MapFile, ids  # noqa: E402
 from f2lib.gamefiles import norm  # noqa: E402
 from fp.scene import SceneBuilder  # noqa: E402
 from baked_sidecar import VERSION as BAKED_SIDECAR_VERSION  # noqa: E402
+FIXED_CARD_FRMS = frozenset(
+    name.lower() for name in json.loads(
+        (Path(__file__).resolve().parent / "shapes" / "fixed_cards.json").read_text(encoding="utf-8"))["frms"])
 from baked_sidecar import baked_objects, decode_baked_sidecar, encode_baked_sidecar  # noqa: E402
 from floor_sidecar import VERSION as FLOOR_SIDECAR_VERSION  # noqa: E402
 from floor_sidecar import encode_floor_sidecar  # noqa: E402
+from roof_fringe import belt_art, wall_body, write_fringe_art  # noqa: E402
 from projection_sidecar import VERSION as PROJECTION_SIDECAR_VERSION  # noqa: E402
 from projection_sidecar import decode_projection_sidecar, encode_projection_sidecar  # noqa: E402
 from wall_sidecar import VERSION as WALL_SIDECAR_VERSION  # noqa: E402
-from wall_sidecar import decode_wall_sidecar, encode_wall_sidecar  # noqa: E402
+from wall_sidecar import decode_wall_sidecar, encode_wall_sidecar, wall_slabs  # noqa: E402
 from shadow_sidecar import VERSION as SHADOW_SIDECAR_VERSION  # noqa: E402
 from shadow_sidecar import decode_shadow_sidecar, encode_shadow_sidecar  # noqa: E402
 
-EXPORTER_VERSION = "1.11.0"
+EXPORTER_VERSION = "1.12.0"
 DONOR_REVISION = "0da1cd449f1dc7f2f6986ff7e8728a4b6ae20584"
 DEFAULT_MAP = "kladwtwn"
 # Map groups for --maps: every elevation each map has.
@@ -45,7 +49,7 @@ MAP_GROUPS = {
     "den": ("denbus1", "denbus2", "denres1"),
 }
 EXPECTED_OUTPUT_FILES = {"scene.json", "provenance.json", "floor.bin", "walls.bin", "projection.bin", "baked.bin",
-                         "shadows.bin", "tiles.png", "light.png", "rock.png"}
+                         "shadows.bin", "tiles.png", "light.png", "rock.png", "roof_fringe.png"}
 
 
 def choose_source(key, sources):
@@ -410,7 +414,8 @@ def export_scene(gf, game_root: Path, map_name: str, elevation: int, out_dir: Pa
         Image.fromarray(page, "RGBA").save(out_dir / f"sprites{index}.png", optimize=True)
     (out_dir / "walls.bin").write_bytes(wall_payload)
     wall_data = decode_wall_sidecar(wall_payload)
-    baked_payload = encode_baked_sidecar(baked_objects(scene, builder.map.objects[elevation], live_boards))
+    baked_payload = encode_baked_sidecar(baked_objects(scene, builder.map.objects[elevation], live_boards,
+                                                     FIXED_CARD_FRMS, gf.art.name))
     (out_dir / "baked.bin").write_bytes(baked_payload)
     baked_count = len(decode_baked_sidecar(baked_payload))
     projection_payload = encode_projection_sidecar(scene)
@@ -423,7 +428,7 @@ def export_scene(gf, game_root: Path, map_name: str, elevation: int, out_dir: Pa
     vendor_files = sorted((HERE / "vendor").rglob("*.py"))
     vendor_hashes = {p.relative_to(HERE / "vendor").as_posix(): sha256_file(p) for p in vendor_files}
     adapter_hashes = {name: sha256_file(HERE / name) for name in
-                      ("export.py", "floor_sidecar.py", "wall_sidecar.py", "projection_sidecar.py", "baked_sidecar.py",
+                      ("export.py", "floor_sidecar.py", "roof_fringe.py", "wall_sidecar.py", "projection_sidecar.py", "baked_sidecar.py",
                        "shadow_sidecar.py", "scene_check.py", "solids.py")}
     archives = [{"name": name, "path": source.path.relative_to(game_root).as_posix()
                  if source.path.is_relative_to(game_root) else str(source.path),
@@ -448,12 +453,23 @@ def export_scene(gf, game_root: Path, map_name: str, elevation: int, out_dir: Pa
         "elevation": elevation,
     }
     fingerprint = hashlib.sha256(json.dumps(fingerprint_data, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    # The roof's wall tops are unrolled into strips in an image of their own, to stand up as bands (roof_fringe.py).
+    roof_squares = {index: int(tile) for index, (cell, tile) in
+                    enumerate(zip(builder.roof.ravel(), builder.roof_ids.ravel())) if cell}
+    slabs = wall_slabs(scene)
+    fringe, patches = write_fringe_art(
+        out_dir / "roof_fringe.png", roof_squares,
+        lambda tile: gf.art.load(ids.make_fid(ids.OBJ_TYPE_TILE, tile)).rgba(gf.palette.glow_tile),
+        lambda *run: wall_body(slabs, scene.get("walls") or [], *run),
+        lambda run, wall: belt_art(wall[5], scene.get("walls") or [], scene["sprites"], builder.atlas.pages,
+                                   scene["proj"]["hpx"], run),
+        scene["proj"]["roofPx"] / scene["proj"]["hpx"])
     scene["_modCache"] = {
         "exporterVersion": EXPORTER_VERSION,
         "inputFingerprintSha256": fingerprint,
     }
     scene_path.write_text(json.dumps(scene, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    (out_dir / "floor.bin").write_bytes(encode_floor_sidecar(scene))
+    (out_dir / "floor.bin").write_bytes(encode_floor_sidecar(scene, fringe, patches))
     artifact_hashes = {p.name: sha256_file(p) for p in sorted(out_dir.iterdir()) if p.name != "provenance.json"}
     provenance = {
         "exporter": "fallout2-sprite-lighting scene_export",

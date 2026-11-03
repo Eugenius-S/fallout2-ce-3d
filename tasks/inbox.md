@@ -250,3 +250,5 @@ that fits no task becomes a new task when the board runs dry.
 - 2026-11-02 The owner played a fight in Klamath on main `a4d47b26` (135 step 1): combat stays in 3D. The only flaw: the target outlines do not scale with the 3D zoom (`runs/inbox/2026-11-02-combat-outlines-unscaled.png`, 149). UI finds: the message log lines start at different left edges (151, gpt); a dark pixel fringe round the main menu's yellow letters (152, gpt).
 - 2026-11-02 After #204 the sky glows bright yellow in flight and haloes the map; the glow pass likely takes the sky as an emitter (153, gpt).
 - 2026-11-02 The owner: in the 3D settings' Main section a resolution dropdown, a fullscreen / window / borderless dropdown and a 1x-3x scale slider in 0.2x steps, high priority (154, gpt; 139 folded in).
+- 2026-11-02 The owner: hitches on load, a stall when sun shadows are turned on, low FPS overall (155, claude); resolution, window mode and scale should change on the fly without a stall (156, gpt).
+- 2026-11-02 The owner on main `e8f168a2`: the game still runs unevenly, wants a steady 60 FPS (157, claude, after 155); wants the FPS counter (127 raised to high, gpt, #181).

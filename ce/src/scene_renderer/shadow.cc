@@ -3,12 +3,14 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <memory>
 
 #include "../dev_output.h"
 #include "../scene/scene_lights.h"
 #include "../settings.h"
 #include "../devtools/devtools.h"
 #include "gl_api.h"
+#include "perf.h"
 #include "scene_internal.h"
 
 namespace fallout {
@@ -40,9 +42,17 @@ constexpr unsigned int kFloat = 0x1406;
 // The caster ids travel in the id channel normalized to this scale: the map
 // has at most 1024 wall object rows, 16 fixed-point bits carry them exactly.
 constexpr float kIdScale = 1024.0f;
+constexpr unsigned int kOccupancyBlock = 16;
+constexpr unsigned int kOccupancySize = kShadowMapSize / kOccupancyBlock;
+// The shadow map is drawn again only when the sun has turned further than
+// this from the direction it was drawn for (155): 0.02 degrees moves a wall's
+// shadow by a hundredth of a map texel, far under a pixel, and the sun takes
+// minutes of game time to get there.
+constexpr double kReuseAngle = 3.5e-4;
 // How far the eye sits from the map center, GL units; the ortho depth range
 // follows from it.
 constexpr double kEyeDistance = 220.0;
+bool mapDumped = false;
 
 unsigned int gShadowMapTexture = 0;
 unsigned int gShadowIdTexture = 0;
@@ -54,6 +64,14 @@ unsigned int gShadowFbo = 0;
 unsigned int gShadowFilledTexture = 0;
 unsigned int gShadowFilledIdTexture = 0;
 unsigned int gShadowDilateFbo = 0;
+// One texel per kOccupancyBlock x kOccupancyBlock map texels: r is 1 where the
+// filled map holds a caster, g the depth of the farthest one (155). The receivers' tap disk skips the map when
+// its blocks are all empty.
+unsigned int gShadowOccupancyTexture = 0;
+unsigned int gShadowOccupancyFbo = 0;
+unsigned int gShadowOccupancyProgram = 0;
+bool gShadowOccupancyFailed = false;
+int gShadowOccupancyDepthLocation = -1;
 unsigned int gShadowDilateProgram = 0;
 unsigned int gShadowDilateVao = 0;
 int gShadowDilateDepthLocation = -1;
@@ -119,11 +137,39 @@ void main() {
 }
 )";
 
+constexpr const char* kOccupancyFragmentShader = R"(#version 330 core
+uniform sampler2D uDepthMap; // the filled depth (unit 0)
+layout(location = 0) out vec4 outOccupied;
+void main() {
+    ivec2 block = ivec2(gl_FragCoord.xy) * 16;
+    float occupied = 0.0;
+    float farthest = 0.0;
+    for (int y = 0; y < 16; y++) {
+        for (int x = 0; x < 16; x++) {
+            float depth = texelFetch(uDepthMap, block + ivec2(x, y), 0).r;
+            if (depth < 0.999) {
+                occupied = 1.0;
+                farthest = max(farthest, depth);
+            }
+        }
+    }
+    outOccupied = vec4(occupied, farthest, 0.0, 1.0);
+}
+)";
+
 unsigned int gWallCasterVao = 0;
 std::vector<WallCasterRange> gWallCasterRanges;
 unsigned int gRoofCasterVao = 0;
 int gRoofCasterVertices = 0;
 float gMaxCasterHeight = 3.2f;
+// What the map was last drawn for (155): the casters' generation (bumped when
+// walls or roofs change) and the sun's direction, with the matrix made from it.
+unsigned int gCasterGeneration = 1;
+unsigned int gRenderedGeneration = 0;
+float gRenderedDirection[3] = {};
+float gRenderedMatrix[16] = {};
+float gRenderedTexel = 0.0f;
+float gRenderedPad = 0.0f;
 // The last frame's shadow pass, for the dev perf log.
 bool gShadowRendered = false;
 double gShadowSeconds = 0.0;
@@ -196,9 +242,19 @@ void shadowMatrix(const float direction[3], float pad, float* out, float* texel)
     *texel = static_cast<float>(2.0 * std::max(spanX, spanY) / kShadowMapSize);
 }
 
-void ensureResources()
+// Builds the map's resources. With oneStage a call does one group of them and
+// answers false until all stand (155): the 8192 maps are about 770 MB, and
+// made in one frame they stall it for tens of milliseconds, so a settings
+// toggle spreads them over frames, a texture each and the scene draws unshadowed meanwhile.
+bool ensureResources(bool oneStage)
 {
+    bool worked = false;
+    auto stageDone = [&]() {
+        glBindTexture(kTexture2D, 0);
+        return false;
+    };
     if (gShadowMapTexture == 0) {
+        worked = true;
         glGenTextures(1, &gShadowMapTexture);
         glBindTexture(kTexture2D, gShadowMapTexture);
         glTexImage2D(kTexture2D, 0, kDepthComponent24, kShadowMapSize, kShadowMapSize, 0,
@@ -213,7 +269,9 @@ void ensureResources()
         glTexParameteri(kTexture2D, kTextureWrapS, kClampToEdge);
         glTexParameteri(kTexture2D, kTextureWrapT, kClampToEdge);
     }
+    if (oneStage && worked) return stageDone();
     if (gShadowIdTexture == 0) {
+        worked = true;
         glGenTextures(1, &gShadowIdTexture);
         glBindTexture(kTexture2D, gShadowIdTexture);
         glTexImage2D(kTexture2D, 0, kR16, kShadowMapSize, kShadowMapSize, 0, kRed, kUnsignedShort, nullptr);
@@ -222,7 +280,9 @@ void ensureResources()
         glTexParameteri(kTexture2D, kTextureWrapS, kClampToEdge);
         glTexParameteri(kTexture2D, kTextureWrapT, kClampToEdge);
     }
+    if (oneStage && worked) return stageDone();
     if (gShadowFilledTexture == 0) {
+        worked = true;
         glGenTextures(1, &gShadowFilledTexture);
         glBindTexture(kTexture2D, gShadowFilledTexture);
         glTexImage2D(kTexture2D, 0, kR32F, kShadowMapSize, kShadowMapSize, 0, kRed, kFloat, nullptr);
@@ -231,7 +291,9 @@ void ensureResources()
         glTexParameteri(kTexture2D, kTextureWrapS, kClampToEdge);
         glTexParameteri(kTexture2D, kTextureWrapT, kClampToEdge);
     }
+    if (oneStage && worked) return stageDone();
     if (gShadowFilledIdTexture == 0) {
+        worked = true;
         glGenTextures(1, &gShadowFilledIdTexture);
         glBindTexture(kTexture2D, gShadowFilledIdTexture);
         glTexImage2D(kTexture2D, 0, kR16, kShadowMapSize, kShadowMapSize, 0, kRed, kUnsignedShort, nullptr);
@@ -240,7 +302,9 @@ void ensureResources()
         glTexParameteri(kTexture2D, kTextureWrapS, kClampToEdge);
         glTexParameteri(kTexture2D, kTextureWrapT, kClampToEdge);
     }
+    if (oneStage && worked) return stageDone();
     if (gShadowFbo == 0) {
+        worked = true;
         glGenFramebuffers(1, &gShadowFbo);
         glBindFramebuffer(kFramebuffer, gShadowFbo);
         glFramebufferTexture2D(kFramebuffer, kDepthAttachment, kTexture2D, gShadowMapTexture, 0);
@@ -254,7 +318,9 @@ void ensureResources()
             gShadowFbo = 0;
         }
     }
+    if (oneStage && worked) return stageDone();
     if (gShadowFbo != 0 && gShadowDilateFbo == 0) {
+        worked = true;
         glGenFramebuffers(1, &gShadowDilateFbo);
         glBindFramebuffer(kFramebuffer, gShadowDilateFbo);
         glFramebufferTexture2D(kFramebuffer, kColorAttachment0, kTexture2D, gShadowFilledTexture, 0);
@@ -270,7 +336,9 @@ void ensureResources()
             gShadowFbo = 0;
         }
     }
+    if (oneStage && worked) return stageDone();
     if (gShadowFbo != 0 && gShadowDilateProgram == 0) {
+        worked = true;
         unsigned int vertex = compileShader(0x8B31 /* GL_VERTEX_SHADER */, kDilateVertexShader);
         unsigned int fragment = compileShader(0x8B30 /* GL_FRAGMENT_SHADER */, kDilateFragmentShader);
         if (vertex != 0 && fragment != 0) {
@@ -303,7 +371,54 @@ void ensureResources()
             gShadowFbo = 0;
         }
     }
+    if (oneStage && worked) return stageDone();
+    if (gShadowFbo != 0 && gShadowOccupancyProgram == 0 && !gShadowOccupancyFailed) {
+        worked = true;
+        bool ok = false;
+        unsigned int vertex = compileShader(0x8B31 /* GL_VERTEX_SHADER */, kDilateVertexShader);
+        unsigned int fragment = compileShader(0x8B30 /* GL_FRAGMENT_SHADER */, kOccupancyFragmentShader);
+        if (vertex != 0 && fragment != 0) {
+            gShadowOccupancyProgram = glCreateProgram();
+            glAttachShader(gShadowOccupancyProgram, vertex);
+            glAttachShader(gShadowOccupancyProgram, fragment);
+            glLinkProgram(gShadowOccupancyProgram);
+            int linked = 0;
+            glGetProgramiv(gShadowOccupancyProgram, 0x8B82 /* GL_LINK_STATUS */, &linked);
+            if (linked != 0) {
+                gShadowOccupancyDepthLocation = glGetUniformLocation(gShadowOccupancyProgram, "uDepthMap");
+                glGenTextures(1, &gShadowOccupancyTexture);
+                glBindTexture(kTexture2D, gShadowOccupancyTexture);
+                glTexImage2D(kTexture2D, 0, 0x8230 /* GL_RG32F */, kOccupancySize, kOccupancySize, 0, 0x8227 /* GL_RG */, kFloat, nullptr);
+                glTexParameteri(kTexture2D, kTextureMinFilter, kNearest);
+                glTexParameteri(kTexture2D, kTextureMagFilter, kNearest);
+                glTexParameteri(kTexture2D, kTextureWrapS, kClampToEdge);
+                glTexParameteri(kTexture2D, kTextureWrapT, kClampToEdge);
+                glGenFramebuffers(1, &gShadowOccupancyFbo);
+                glBindFramebuffer(kFramebuffer, gShadowOccupancyFbo);
+                glFramebufferTexture2D(kFramebuffer, kColorAttachment0, kTexture2D, gShadowOccupancyTexture, 0);
+                const unsigned int color = kColorAttachment0;
+                glDrawBuffers(1, &color);
+                ok = glCheckFramebufferStatus(kFramebuffer) == kFramebufferComplete;
+            }
+        }
+        glDeleteShader(vertex);
+        glDeleteShader(fragment);
+        if (!ok) {
+            gShadowOccupancyFailed = true;
+            // Without the occupancy map the receivers cannot skip anything;
+            // the shadows themselves are not at risk, so they stay on.
+            fprintf(stderr, "scene_renderer: the shadow occupancy map failed; shadows draw slower\n");
+            fflush(stderr);
+            if (gShadowOccupancyProgram != 0) glDeleteProgram(gShadowOccupancyProgram);
+            if (gShadowOccupancyFbo != 0) glDeleteFramebuffers(1, &gShadowOccupancyFbo);
+            if (gShadowOccupancyTexture != 0) glDeleteTextures(1, &gShadowOccupancyTexture);
+            gShadowOccupancyProgram = 0;
+            gShadowOccupancyFbo = 0;
+            gShadowOccupancyTexture = 0;
+        }
+    }
     glBindTexture(kTexture2D, 0);
+    return gShadowFbo != 0;
 }
 
 } // namespace
@@ -313,12 +428,32 @@ void setShadowWallCasters(unsigned int vao, float maxCasterHeight, std::vector<W
     gWallCasterVao = vao;
     gWallCasterRanges = std::move(ranges);
     if (maxCasterHeight > 0.0f) gMaxCasterHeight = maxCasterHeight;
+    gCasterGeneration++;
+}
+
+void shadowCastersChanged()
+{
+    gCasterGeneration++;
 }
 
 void setShadowRoofCasters(unsigned int vao, int vertexCount)
 {
     gRoofCasterVao = vao;
     gRoofCasterVertices = vertexCount;
+    gCasterGeneration++;
+}
+
+void prepareStaticShadows()
+{
+    if (!settings.scene3d.shadows || (gShadowFbo != 0 && (gShadowOccupancyProgram != 0 || gShadowOccupancyFailed))) return;
+    PerfScope stage("shadow_resources");
+    int savedFbo = 0;
+    glGetIntegerv(0x8CA6 /* GL_DRAW_FRAMEBUFFER_BINDING */, &savedFbo);
+    int savedViewport[4] = {};
+    glGetIntegerv(0x0BA2 /* GL_VIEWPORT */, savedViewport);
+    ensureResources(false);
+    glBindFramebuffer(kFramebuffer, static_cast<unsigned int>(savedFbo));
+    glViewport(savedViewport[0], savedViewport[1], savedViewport[2], savedViewport[3]);
 }
 
 void destroyStaticShadows()
@@ -332,7 +467,16 @@ void destroyStaticShadows()
         if (gShadowDilateFbo != 0) glDeleteFramebuffers(1, &gShadowDilateFbo);
         if (gShadowDilateProgram != 0) glDeleteProgram(gShadowDilateProgram);
         if (gShadowDilateVao != 0) glDeleteVertexArrays(1, &gShadowDilateVao);
+        if (gShadowOccupancyProgram != 0) glDeleteProgram(gShadowOccupancyProgram);
+        if (gShadowOccupancyFbo != 0) glDeleteFramebuffers(1, &gShadowOccupancyFbo);
+        if (gShadowOccupancyTexture != 0) glDeleteTextures(1, &gShadowOccupancyTexture);
     }
+    gShadowOccupancyProgram = 0;
+    gShadowOccupancyFbo = 0;
+    gShadowOccupancyTexture = 0;
+    gShadowOccupancyFailed = false;
+    gRenderedGeneration = 0;
+    gCasterGeneration++;
     gShadowMapTexture = 0;
     gShadowIdTexture = 0;
     gShadowFilledTexture = 0;
@@ -348,85 +492,11 @@ void destroyStaticShadows()
     gMaxCasterHeight = 3.2f;
 }
 
-bool bindStaticShadows(const float* sceneMvp)
+// Draws the casters into the depth map with the shadow matrix, fills its joint
+// gaps, and builds the occupancy blocks (155). Leaves the shadow framebuffer
+// bound; the caller restores the scene's state.
+void drawShadowMap(const float* matrix)
 {
-    gShadowRendered = false;
-    glUniform1i(gSceneCloudOnLocation, 0);
-    if (sceneMvp == nullptr) return false;
-    const scene::Sun& sun = scene::currentSun();
-    if (!sun.up || sun.strength <= 0.0f) return false;
-    glUniform1i(gSceneCloudOnLocation, settings.scene3d.cloud_shadows ? 1 : 0);
-    glUniform1f(gSceneShadowStrengthLocation, sun.strength);
-    if (settings.scene3d.cloud_shadows) {
-        const double phase = devtools::cloudPhaseRequested();
-        const double ticks = phase >= 0.0 ? phase * 600.0 : static_cast<double>(gameTimeGetTime());
-        glUniform2f(gSceneCloudOffsetLocation,
-            static_cast<float>(std::fmod(ticks * 0.8 / 600.0, 48.0)),
-            static_cast<float>(std::fmod(ticks * 0.6 / 600.0, 48.0)));
-    }
-    if (!settings.scene3d.shadows) return false;
-    // The binding is saved before ensureResources: creating the shadow
-    // framebuffer binds it, and the scene must draw where it did.
-    int savedFbo = 0;
-    glGetIntegerv(0x8CA6 /* GL_DRAW_FRAMEBUFFER_BINDING */, &savedFbo);
-    int savedViewport[4] = {};
-    glGetIntegerv(0x0BA2 /* GL_VIEWPORT */, savedViewport);
-    ensureResources();
-    unsigned int roofVao = 0;
-    int roofVertices = 0;
-    roofShadowCasters(&roofVao, &roofVertices);
-    if (gShadowFbo == 0 || (gWallCasterVao == 0 && roofVao == 0)) {
-        glBindFramebuffer(kFramebuffer, static_cast<unsigned int>(savedFbo));
-        glViewport(savedViewport[0], savedViewport[1], savedViewport[2], savedViewport[3]);
-        return false;
-    }
-    gRoofCasterVao = roofVao;
-    gRoofCasterVertices = roofVertices;
-    const Uint64 started = SDL_GetPerformanceCounter();
-    // The sun leans casters across the ground: the box grows with the shadow
-    // length, held inside limits so the depth map keeps its resolution.
-    const double height = std::max(static_cast<double>(sun.direction[1]), 0.05);
-    const float pad = static_cast<float>(std::clamp(gMaxCasterHeight / height + 8.0, 8.0, 96.0));
-    float matrix[16];
-    float texel = 0.0f;
-    shadowMatrix(sun.direction, pad, matrix, &texel);
-
-    // The AA ring: uShadowStep GL units per [3d] shadow_pixel_size game
-    // pixel (hpx is the projection's pixels per GL unit), but at least one
-    // depth map texel wide, so the taps straddle texel boundaries and
-    // antialias the NEAREST stair. The compare bias, a quarter texel of
-    // depth: the receiver compares its own plane carried to the texel center
-    // (090), so a coplanar caster compares equal to float precision and the
-    // bias only has to clear the rounding; a quarter texel is under half a
-    // game pixel of light gap at a wall's foot. Set before the passes: the
-    // casters draw with them.
-    const double hpx = gHeroProjection.hpx > 0.0 ? gHeroProjection.hpx : 32.0;
-    const float step = static_cast<float>(settings.scene3d.shadow_pixel_size / hpx);
-    const double near = 1.0;
-    const double far = 2.0 * kEyeDistance + 2.0 * gMaxCasterHeight + 20.0;
-    const float ring = std::max(step, texel);
-    glUniform1i(gSceneShadowOnLocation, 1);
-    glUniformMatrix4fv(gSceneShadowMatrixLocation, 1, 0, matrix);
-    glUniform1f(gSceneShadowStrengthLocation, sun.strength);
-    glUniform1f(gSceneShadowDensityLocation, static_cast<float>(settings.scene3d.shadow_density));
-    glUniform3f(gSceneShadowLightLocation, sun.direction[0], sun.direction[1], sun.direction[2]);
-    glUniform1f(gSceneShadowStepLocation, ring);
-    glUniform1f(gSceneShadowBiasLocation, 0.25f * texel / static_cast<float>(far - near));
-    // Contact (090): a blocker within kShadowContact texels of depth of the
-    // receiver stands on it and casts nothing there; the ground seen through
-    // the stepped transparent foot of a wall's sprite lies just behind its
-    // face, under the wall, and read the face as its blocker.
-    constexpr double kShadowContact = 16.0;
-    glUniform1f(gSceneShadowContactLocation, static_cast<float>(kShadowContact * texel / (far - near)));
-    glUniform1i(gSceneShadowDebugLocation, devtools::shadowDebugRequested());
-    glActiveTexture(kTexture0 + 5);
-    glBindTexture(kTexture2D, gShadowFilledTexture);
-    glUniform1i(gSceneShadowMapLocation, 5);
-    glActiveTexture(kTexture0 + 6);
-    glBindTexture(kTexture2D, gShadowFilledIdTexture);
-    glUniform1i(gSceneShadowIdsLocation, 6);
-    glActiveTexture(kTexture0);
-
     // The casters draw with the scene program itself, in its pick mode (a
     // flat colour, no lighting math) with the shadow matrix as uMvp. Textured
     // with a cutoff, so the art's transparent holes (a fence's gaps, a
@@ -519,12 +589,28 @@ bool bindStaticShadows(const float* sceneMvp)
         glViewport(0, 0, kShadowMapSize, kShadowMapSize);
     }
     glUniform1i(gSceneShadowPassLocation, 0);
+    if (gShadowOccupancyProgram != 0 && gShadowOccupancyFbo != 0) {
+        glBindFramebuffer(kFramebuffer, gShadowOccupancyFbo);
+        glViewport(0, 0, kOccupancySize, kOccupancySize);
+        glDisable(kDepthTest);
+        glUseProgram(gShadowOccupancyProgram);
+        glActiveTexture(kTexture0);
+        glBindTexture(kTexture2D, gShadowFilledTexture);
+        glUniform1i(gShadowOccupancyDepthLocation, 0);
+        glBindVertexArray(gShadowDilateVao);
+        glDrawArrays(kTriangles, 0, 3);
+        glBindVertexArray(0);
+        glBindTexture(kTexture2D, 0);
+        glUseProgram(gSceneProgram);
+        glEnable(kDepthTest);
+        glBindFramebuffer(kFramebuffer, gShadowFbo);
+        glViewport(0, 0, kShadowMapSize, kShadowMapSize);
+    }
 
     // -ShadowDebug 6: once per run, write the depth map as a PGM, min-pooled
     // to 2048 (dark = a caster wrote near, white = the cleared far depth).
     // The game's own picture tells what the receivers see; this tells what
     // the map itself holds (082 round 6).
-    static bool mapDumped = false;
     if (!mapDumped && devtools::shadowDebugRequested() == 6) {
         mapDumped = true;
         std::vector<float> depth(static_cast<size_t>(kShadowMapSize) * kShadowMapSize);
@@ -553,6 +639,113 @@ bool bindStaticShadows(const float* sceneMvp)
         }
     }
 
+}
+
+bool bindStaticShadows(const float* sceneMvp)
+{
+    gShadowRendered = false;
+    glUniform1i(gSceneCloudOnLocation, 0);
+    if (sceneMvp == nullptr) return false;
+    const scene::Sun& sun = scene::currentSun();
+    if (!sun.up || sun.strength <= 0.0f) return false;
+    glUniform1i(gSceneCloudOnLocation, settings.scene3d.cloud_shadows ? 1 : 0);
+    glUniform1f(gSceneShadowStrengthLocation, sun.strength);
+    if (settings.scene3d.cloud_shadows) {
+        const double phase = devtools::cloudPhaseRequested();
+        const double ticks = phase >= 0.0 ? phase * 600.0 : static_cast<double>(gameTimeGetTime());
+        glUniform2f(gSceneCloudOffsetLocation,
+            static_cast<float>(std::fmod(ticks * 0.8 / 600.0, 48.0)),
+            static_cast<float>(std::fmod(ticks * 0.6 / 600.0, 48.0)));
+    }
+    if (!settings.scene3d.shadows) return false;
+    // The binding is saved before ensureResources: creating the shadow
+    // framebuffer binds it, and the scene must draw where it did.
+    int savedFbo = 0;
+    glGetIntegerv(0x8CA6 /* GL_DRAW_FRAMEBUFFER_BINDING */, &savedFbo);
+    int savedViewport[4] = {};
+    glGetIntegerv(0x0BA2 /* GL_VIEWPORT */, savedViewport);
+    std::unique_ptr<PerfScope> stage;
+    if (gShadowFbo == 0 || gShadowOccupancyProgram == 0) stage = std::make_unique<PerfScope>("shadow_stage");
+    const bool resourcesReady = ensureResources(true);
+    unsigned int roofVao = 0;
+    int roofVertices = 0;
+    roofShadowCasters(&roofVao, &roofVertices);
+    if (!resourcesReady || gShadowFbo == 0 || (gWallCasterVao == 0 && roofVao == 0)) {
+        glBindFramebuffer(kFramebuffer, static_cast<unsigned int>(savedFbo));
+        glViewport(savedViewport[0], savedViewport[1], savedViewport[2], savedViewport[3]);
+        return false;
+    }
+    gRoofCasterVao = roofVao;
+    gRoofCasterVertices = roofVertices;
+    const Uint64 started = SDL_GetPerformanceCounter();
+    // The map is drawn again only when the casters changed or the sun turned
+    // more than kReuseAngle (155); until then the receivers read the map as
+    // it is, with the direction and matrix it was drawn for.
+    const double turn = std::sqrt(
+        std::pow(static_cast<double>(sun.direction[0]) - gRenderedDirection[0], 2.0)
+        + std::pow(static_cast<double>(sun.direction[1]) - gRenderedDirection[1], 2.0)
+        + std::pow(static_cast<double>(sun.direction[2]) - gRenderedDirection[2], 2.0));
+    // F2CE_SHADOW_NO_CACHE (dev): the map is drawn every frame, as before 155.
+    static const bool noCache = SDL_getenv("F2CE_SHADOW_NO_CACHE") != nullptr;
+    const bool reuse = !noCache && gRenderedGeneration == gCasterGeneration && turn <= kReuseAngle
+        && !(!mapDumped && devtools::shadowDebugRequested() == 6);
+    if (!reuse) {
+        // The sun leans casters across the ground: the box grows with the shadow
+        // length, held inside limits so the depth map keeps its resolution.
+        const double height = std::max(static_cast<double>(sun.direction[1]), 0.05);
+        gRenderedPad = static_cast<float>(std::clamp(gMaxCasterHeight / height + 8.0, 8.0, 96.0));
+        for (int axis = 0; axis < 3; axis++) gRenderedDirection[axis] = sun.direction[axis];
+        shadowMatrix(gRenderedDirection, gRenderedPad, gRenderedMatrix, &gRenderedTexel);
+        gRenderedGeneration = gCasterGeneration;
+    }
+    const float* matrix = gRenderedMatrix;
+    const float texel = gRenderedTexel;
+
+    // The AA ring: uShadowStep GL units per [3d] shadow_pixel_size game
+    // pixel (hpx is the projection's pixels per GL unit), but at least one
+    // depth map texel wide, so the taps straddle texel boundaries and
+    // antialias the NEAREST stair. The compare bias, a quarter texel of
+    // depth: the receiver compares its own plane carried to the texel center
+    // (090), so a coplanar caster compares equal to float precision and the
+    // bias only has to clear the rounding; a quarter texel is under half a
+    // game pixel of light gap at a wall's foot. Set before the passes: the
+    // casters draw with them.
+    const double hpx = gHeroProjection.hpx > 0.0 ? gHeroProjection.hpx : 32.0;
+    const float step = static_cast<float>(settings.scene3d.shadow_pixel_size / hpx);
+    const double near = 1.0;
+    const double far = 2.0 * kEyeDistance + 2.0 * gMaxCasterHeight + 20.0;
+    const float ring = std::max(step, texel);
+    glUniform1i(gSceneShadowOnLocation, 1);
+    glUniformMatrix4fv(gSceneShadowMatrixLocation, 1, 0, matrix);
+    glActiveTexture(kTexture0 + 8);
+    glBindTexture(kTexture2D, gShadowOccupancyTexture);
+    glUniform1i(gSceneShadowOccupancyLocation, 8);
+    // F2CE_SHADOW_NO_SKIP (dev): every pixel takes the full tap loop, to
+    // compare the picture and the cost with the skipping (155).
+    static const bool noSkip = SDL_getenv("F2CE_SHADOW_NO_SKIP") != nullptr;
+    glUniform1i(gSceneShadowOccupancyOnLocation, gShadowOccupancyTexture != 0 && !noSkip ? 1 : 0);
+    glActiveTexture(kTexture0);
+    glUniform1f(gSceneShadowStrengthLocation, sun.strength);
+    glUniform1f(gSceneShadowDensityLocation, static_cast<float>(settings.scene3d.shadow_density));
+    glUniform3f(gSceneShadowLightLocation, gRenderedDirection[0], gRenderedDirection[1], gRenderedDirection[2]);
+    glUniform1f(gSceneShadowStepLocation, ring);
+    glUniform1f(gSceneShadowBiasLocation, 0.25f * texel / static_cast<float>(far - near));
+    // Contact (090): a blocker within kShadowContact texels of depth of the
+    // receiver stands on it and casts nothing there; the ground seen through
+    // the stepped transparent foot of a wall's sprite lies just behind its
+    // face, under the wall, and read the face as its blocker.
+    constexpr double kShadowContact = 16.0;
+    glUniform1f(gSceneShadowContactLocation, static_cast<float>(kShadowContact * texel / (far - near)));
+    glUniform1i(gSceneShadowDebugLocation, devtools::shadowDebugRequested());
+    glActiveTexture(kTexture0 + 5);
+    glBindTexture(kTexture2D, gShadowFilledTexture);
+    glUniform1i(gSceneShadowMapLocation, 5);
+    glActiveTexture(kTexture0 + 6);
+    glBindTexture(kTexture2D, gShadowFilledIdTexture);
+    glUniform1i(gSceneShadowIdsLocation, 6);
+    glActiveTexture(kTexture0);
+
+    if (!reuse) drawShadowMap(matrix);
     glUniformMatrix4fv(gSceneMvpLocation, 1, 0, sceneMvp);
     glUniform1i(gScenePickLocation, 0);
     glColorMask(1, 1, 1, 1);
