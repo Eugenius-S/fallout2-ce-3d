@@ -21,9 +21,9 @@ then 158 to 171 in the game's order).
 
 ## Context
 
-- The maps, from the game's own `data/maps.txt` in `master.dat`:
-  ncr1 ncr2 ncr3 ncr4 ncrent ncrex v15ent v15entb v15sent vault15. Add them to `MAP_GROUPS` in `tools/scene_export/export.py` as
-  `ncr`. If `maps.txt` lists more maps for this area, take them too.
+- The maps (the game's map files, checked against `runs/p1-listmaps.log`):
+  ncr1 ncr2 ncr3 ncr4 ncrent v15ent v15sent vault15. Add them to `MAP_GROUPS` in `tools/scene_export/export.py` as
+  `ncr`. If the game holds more maps for this area, take them too.
 - What is here: The NCR's walled city and its bazaar; the squatters' camp and the vault's ruined levels. Expect art the exporter has not seen yet.
 - Everything Klamath and the areas before this one learned is already in the
   exporter's rules. Fix new defects by general rules in the exporter or the

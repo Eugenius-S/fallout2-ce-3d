@@ -21,9 +21,9 @@ then 158 to 171 in the game's order).
 
 ## Context
 
-- The maps, from the game's own `data/maps.txt` in `master.dat`:
+- The maps (the game's map files, checked against `runs/p1-listmaps.log`):
   modmain modinn modbrah modgard modshit modwell gstfarm gstcav1 gstcav2. Add them to `MAP_GROUPS` in `tools/scene_export/export.py` as
-  `modoc`. If `maps.txt` lists more maps for this area, take them too.
+  `modoc`. If the game holds more maps for this area, take them too.
 - What is here: Farmland: wooden houses, fences, the brahmin pens, the outhouse, the well; the ghost farm and its caves. Expect art the exporter has not seen yet.
 - Everything Klamath and the areas before this one learned is already in the
   exporter's rules. Fix new defects by general rules in the exporter or the

@@ -15,7 +15,7 @@ reviewed: no
 ## Goal
 
 A new game starts in 3D. Every Arroyo map (artemple, arcaves,
-arvillag, arbridge, argarden, ardead, and any other map the game files list for Arroyo, all
+arvillag, arvill2, arbridge, argarden, ardead, and any other map the game files list for Arroyo, all
 elevations) exports, loads in the game in 3D and looks as clean as Klamath:
 in the game camera and the fly camera, at morning, noon and evening. Today
 scene data exists only for Klamath, so the first hour of the game is still

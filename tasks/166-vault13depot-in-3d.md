@@ -21,9 +21,9 @@ then 158 to 171 in the game's order).
 
 ## Context
 
-- The maps, from the game's own `data/maps.txt` in `master.dat`:
+- The maps (the game's map files, checked against `runs/p1-listmaps.log`):
   v13ent vault13 depolv1 depolva depolvb. Add them to `MAP_GROUPS` in `tools/scene_export/export.py` as
-  `vault13depot`. If `maps.txt` lists more maps for this area, take them too.
+  `vault13depot`. If the game holds more maps for this area, take them too.
 - What is here: A vault's corridors and the deathclaws' rooms; the depot's military bunker, fences and robots' halls. Expect art the exporter has not seen yet.
 - Everything Klamath and the areas before this one learned is already in the
   exporter's rules. Fix new defects by general rules in the exporter or the

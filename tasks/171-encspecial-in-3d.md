@@ -21,9 +21,9 @@ then 158 to 171 in the game's order).
 
 ## Context
 
-- The maps, from the game's own `data/maps.txt` in `master.dat`:
-  rndwhale rndtinwd rndbhead rndshutl rnduvilg rndbridg rndcafe rndholy1 rndholy2 rndforvr rndtoxic rndparih rndexcow rndbess encdet encdock encfite encgd encpres encrctr enctrp cardesrt. Add them to `MAP_GROUPS` in `tools/scene_export/export.py` as
-  `encspecial`. If `maps.txt` lists more maps for this area, take them too.
+- The maps (the game's map files, checked against `runs/p1-listmaps.log`):
+  rndwhale rndtinwd rndbhead rndshutl rnduvilg rndbridg rndcafe rndholy1 rndholy2 rndforvr rndtoxic rndparih rndexcow rndbess encdet encdock encfite encgd encpres encrctr enctrp cowbomb cardesrt. Add them to `MAP_GROUPS` in `tools/scene_export/export.py` as
+  `encspecial`. If the game holds more maps for this area, take them too.
 - What is here: The special encounters (the whale, the cafe, the bridge, the shuttle and the rest), the fixed encounters, the car's map. Expect art the exporter has not seen yet.
 - Everything Klamath and the areas before this one learned is already in the
   exporter's rules. Fix new defects by general rules in the exporter or the

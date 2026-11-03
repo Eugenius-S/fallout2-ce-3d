@@ -21,9 +21,9 @@ then 158 to 171 in the game's order).
 
 ## Context
 
-- The maps, from the game's own `data/maps.txt` in `master.dat`:
+- The maps (the game's map files, checked against `runs/p1-listmaps.log`):
   denbus1 denbus2 denres1 dnslvrun. Add them to `MAP_GROUPS` in `tools/scene_export/export.py` as
-  `den`. If `maps.txt` lists more maps for this area, take them too.
+  `den`. If the game holds more maps for this area, take them too.
 - What is here: Den is a slum: shacks, scrap walls, a church, the slave run's open ground. Expect art the exporter has not seen yet.
 - Everything Klamath and the areas before this one learned is already in the
   exporter's rules. Fix new defects by general rules in the exporter or the

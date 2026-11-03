@@ -21,9 +21,9 @@ then 158 to 171 in the game's order).
 
 ## Context
 
-- The maps, from the game's own `data/maps.txt` in `master.dat`:
+- The maps (the game's map files, checked against `runs/p1-listmaps.log`):
   city1 city2 city3 city4 city5 city6 city7 city8 cave0 cave1 cave2 cave3 cave4 cave5 cave6 cave7 mountn1 mountn2 mountn3 mountn4 mountn5 mountn6. Add them to `MAP_GROUPS` in `tools/scene_export/export.py` as
-  `enccitycave`. If `maps.txt` lists more maps for this area, take them too.
+  `enccitycave`. If the game holds more maps for this area, take them too.
 - What is here: Random encounter maps: ruined streets, caves, mountain paths. Expect art the exporter has not seen yet.
 - Everything Klamath and the areas before this one learned is already in the
   exporter's rules. Fix new defects by general rules in the exporter or the

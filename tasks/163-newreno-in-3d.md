@@ -21,9 +21,9 @@ then 158 to 171 in the game's order).
 
 ## Context
 
-- The maps, from the game's own `data/maps.txt` in `master.dat`:
-  newr1 newr2 newr3 newr4 newrcs newrgo newrst newrba newrvb. Add them to `MAP_GROUPS` in `tools/scene_export/export.py` as
-  `newreno`. If `maps.txt` lists more maps for this area, take them too.
+- The maps (the game's map files, checked against `runs/p1-listmaps.log`):
+  newr1 newr2 newr3 newr4 newr1a newr2a newrcs newrgo newrst newrba newrvb. Add them to `MAP_GROUPS` in `tools/scene_export/export.py` as
+  `newreno`. If the game holds more maps for this area, take them too.
 - What is here: A big city: casinos, neon signs, tall buildings, the stables, the boxing arena, the vault-bunker. Expect art the exporter has not seen yet.
 - Everything Klamath and the areas before this one learned is already in the
   exporter's rules. Fix new defects by general rules in the exporter or the

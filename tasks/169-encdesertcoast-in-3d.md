@@ -21,9 +21,9 @@ then 158 to 171 in the game's order).
 
 ## Context
 
-- The maps, from the game's own `data/maps.txt` in `master.dat`:
-  desert1 desert2 desert3 desert4 desert5 desert6 desert7 desert8 desert9 desrt10 desrt11 desrt12 dsrt13 coast1 coast2 coast3 coast4 coast5 coast6 coast7 coast8 coast9 coast10 coast11 07desert. Add them to `MAP_GROUPS` in `tools/scene_export/export.py` as
-  `encdesertcoast`. If `maps.txt` lists more maps for this area, take them too.
+- The maps (the game's map files, checked against `runs/p1-listmaps.log`):
+  desert1 desert2 desert3 desert4 desert5 desert6 desert7 desert8 desert9 desrt10 desrt11 desrt12 desrt13 coast1 coast2 coast3 coast4 coast5 coast6 coast7 coast8 coast9 coast10 coast11 coast12. Add them to `MAP_GROUPS` in `tools/scene_export/export.py` as
+  `encdesertcoast`. If the game holds more maps for this area, take them too.
 - What is here: Random encounter maps: open sand, rocks, coastline and water edges. Expect art the exporter has not seen yet.
 - Everything Klamath and the areas before this one learned is already in the
   exporter's rules. Fix new defects by general rules in the exporter or the

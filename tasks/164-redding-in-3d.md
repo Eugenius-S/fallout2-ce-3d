@@ -21,9 +21,9 @@ then 158 to 171 in the game's order).
 
 ## Context
 
-- The maps, from the game's own `data/maps.txt` in `master.dat`:
+- The maps (the game's map files, checked against `runs/p1-listmaps.log`):
   reddown redment reddtun redmtun redwame redwan1. Add them to `MAP_GROUPS` in `tools/scene_export/export.py` as
-  `redding`. If `maps.txt` lists more maps for this area, take them too.
+  `redding`. If the game holds more maps for this area, take them too.
 - What is here: A mining town: the downtown, the mine entrance, tunnels, the Wanamingo mine. Expect art the exporter has not seen yet.
 - Everything Klamath and the areas before this one learned is already in the
   exporter's rules. Fix new defects by general rules in the exporter or the
