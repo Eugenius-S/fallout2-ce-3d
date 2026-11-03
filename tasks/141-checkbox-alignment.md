@@ -65,6 +65,6 @@ Other rows, the panel layout (130).
   retained. No owner game process or owner cache was used.
 - Four before/after JPEG sheets are `evidence-en-pixel.jpg`,
   `evidence-en-sharp.jpg`, `evidence-ru-pixel.jpg`, and
-  `evidence-ru-sharp.jpg`; each is below 1 MB. The paired sidecars and scripted
-  input logs are retained in their baseline/after folders.
+  `evidence-ru-sharp.jpg`; each is below 1 MB. The paired capture sidecars
+  are retained in their baseline/after folders.
 - Task remains `doing`, `reviewed: no` until the pushed PR CI is green.
