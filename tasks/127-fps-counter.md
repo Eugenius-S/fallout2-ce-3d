@@ -86,3 +86,12 @@ Check: `tools/configure-build.ps1 Release` passed; CTest passed 19/19;
 `tools/regression.ps1` passed 16/16 with zero changed pixels. For the local
 MSVC install, the configure script supplies SDK 10.0.22621 includes and libs;
 generic `VsDevCmd` setup alone omitted the required include paths.
+
+### 2026-11-03 gpt: live-frame capture path explored, FPS proof incomplete
+
+Done: added a dev-only live-frame capture that reads the composed OpenGL back buffer before swap. `runs/127-fps-counter/liveframe-attempt2/live-3d-no-fps.jpg` shows the Klamath 3D fly view captured through that path. Attempt 1 captured only the SDL UI over a black scene. Attempt 2 captured the real 3D view, but its first frame did not yet contain the FPS value. Added a 750 ms wait to allow the 500 ms FPS averaging window to fill; this delay is build-tested but not runtime-verified. Do not treat this image as FPS acceptance evidence.
+
+The task remains `doing`; PR #181 remains draft after two new live-capture attempts failed to show the FPS readout. No further runtime capture was made.
+
+Next: needs a separately verified live 3D/Fly capture with the FPS and frame-time number visible, then check task regressions and current-SHA CI.
+Check: `tools/configure-build.ps1 Release` passed; CTest passed 19/19. The exact captured 3D frame and sidecar are in `runs/127-fps-counter/liveframe-attempt2/`.

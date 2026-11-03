@@ -1,0 +1,4 @@
+devtools: startup target kladwtwn e0 accepted=1 blocking=0
+scene: cache <isolated-scene-cache>
+scene: preview policy=available gameState=0 gameMode=0x0 uiDisabled=0 isoDisabled=0 combat=0 dialog=0 movie=0
+devtools: one-shot live frame snapshot saved: snapshot: devshot-20261103-103740.json

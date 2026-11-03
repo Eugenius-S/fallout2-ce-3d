@@ -673,8 +673,10 @@ void renderPresent()
                         scene_renderer::drawOverlay(rgba.data(), overlayWidth, overlayHeight, rgbaPitch,
                             fpsX, 8, overlayWidth, overlayHeight);
                     }
+                    devtools::sceneLiveFrameReady();
                     scene_renderer::swap();
                     scene_renderer::perfEnd();
+                    devtools::sceneOverlayPresented();
                     return;
                 }
                 if (!gRgbaBackground.empty()) {
@@ -697,6 +699,7 @@ void renderPresent()
                 // The game's interface, mouse cursor and floating text over it.
                 scene_renderer::drawSceneOverlayWithSharpText(gSdlSurface, gSdlTextureSurface, sharpTextReady);
                 scene_renderer::perfMark("overlay");
+                devtools::sceneLiveFrameReady();
                 scene_renderer::swap();
                 scene_renderer::perfEnd();
                 devtools::sceneOverlayPresented();

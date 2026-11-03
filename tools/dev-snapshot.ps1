@@ -78,6 +78,7 @@ param(
     [ValidateRange(0, 39999)]
     [int]$HeroTile,
     [switch]$Still,
+    [switch]$LiveFrame,
     [ValidateRange(0, 65536)]
     [int]$Ambient = -1,
     [switch]$Fly,
@@ -488,8 +489,16 @@ if ($Still) {
     if ($Probe) { throw '-Still cannot be combined with the interactive -Probe.' }
     $arguments += '--dev-still-snapshot'
 }
+if ($LiveFrame) {
+    if ($Still -or $Preferences -or $PreferencesProbe -or $Probe -or $Tour -or $DialogFixture -or $UiFixture) {
+        throw '-LiveFrame cannot be combined with a still, preference, probe, tour, dialog, or UI fixture mode.'
+    }
+    $arguments += '--dev-live-snapshot-once'
+}
 if ($DevInput -or $SceneInput) {
     $shots = $DevInputShots
+} elseif ($LiveFrame) {
+    $shots = 1
 } elseif ($PreferencesProbe) {
     $shots = 0
 } elseif ($Preferences) {

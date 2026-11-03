@@ -110,6 +110,9 @@ bool gStartupFloorPreviewAttempted = false;
 int gStartupFloorPreviewReturnAfter = 0;
 int gStartupFloorPreviewFramesRemaining = 0;
 bool gSnapshotOncePending = false;
+bool gLiveSnapshotOncePending = false;
+bool gForceLiveSnapshot = false;
+Uint32 gLiveSnapshotNotBefore = 0;
 int gScrollProbeKey = -1;
 int gScrollProbeStage = 0;
 int gScrollProbeStartTile = -1;
@@ -826,6 +829,11 @@ bool parseOption(const char* arg)
     }
     if (strcmp(arg, "--dev-snapshot-once") == 0) {
         gSnapshotOncePending = true;
+        return true;
+    }
+    if (strcmp(arg, "--dev-live-snapshot-once") == 0) {
+        gLiveSnapshotOncePending = true;
+        gLiveSnapshotNotBefore = SDL_GetTicks() + 750;
         return true;
     }
     const char* scrollStepPrefix = "--dev-scroll-step=";
@@ -2995,6 +3003,20 @@ void sceneOverlayPresented()
     uiFixtureScenePresented();
 }
 
+void sceneLiveFrameReady()
+{
+    if (!gLiveSnapshotOncePending || !scene_renderer::isActive() || !scene::shouldPresent()
+        || scene::activeView() != scene::View::Full || gSdlTextureSurface == nullptr
+        || gSdlTextureSurface->pixels == nullptr) return;
+    if (static_cast<Sint32>(SDL_GetTicks() - gLiveSnapshotNotBefore) < 0) return;
+    gLiveSnapshotOncePending = false;
+    gForceLiveSnapshot = true;
+    const bool captured = takeSnapshot();
+    gForceLiveSnapshot = false;
+    printf("devtools: one-shot live frame snapshot %s: %s\n", captured ? "saved" : "failed", gStatus);
+    fflush(stdout);
+}
+
 void sceneOverlaySynced(bool on)
 {
     // --dev-pick-probe: the click took the game out of the scene (a dialog).
@@ -3395,7 +3417,7 @@ bool takeSnapshot()
 {
     namespace fs = std::filesystem;
     const bool previewRequested = scene::activeView() != scene::View::Off;
-    const bool preview = scene_renderer::isActive() && scene::shouldPresent();
+    const bool preview = !gForceLiveSnapshot && scene_renderer::isActive() && scene::shouldPresent();
     const bool heroPreview = preview && scene::activeView() == scene::View::Full;
     const bool wallPreview = preview && scene::activeView() == scene::View::Walls;
     const bool withWalls = wallPreview || heroPreview;
@@ -3469,11 +3491,14 @@ bool takeSnapshot()
             imageFile = name;
             if (scene_renderer::isActive()) {
                 // As the window shows it, the same size as scene snapshots.
-                SDL_BlitSurface(gSdlSurface, nullptr, gSdlTextureSurface, nullptr);
                 std::string error;
-                if (!scene_renderer::captureFramePng(imagePath, static_cast<const unsigned char*>(gSdlTextureSurface->pixels),
-                        gSdlTextureSurface->w, gSdlTextureSurface->h, gSdlTextureSurface->pitch,
-                        &capturedWidth, &capturedHeight, &error)) {
+                const bool captured = gForceLiveSnapshot
+                    ? scene_renderer::capturePresentedFramePng(imagePath, &capturedWidth, &capturedHeight, &error)
+                    : (SDL_BlitSurface(gSdlSurface, nullptr, gSdlTextureSurface, nullptr),
+                        scene_renderer::captureFramePng(imagePath, static_cast<const unsigned char*>(gSdlTextureSurface->pixels),
+                            gSdlTextureSurface->w, gSdlTextureSurface->h, gSdlTextureSurface->pitch,
+                            &capturedWidth, &capturedHeight, &error));
+                if (!captured) {
                     std::string message = "snapshot failed: " + error;
                     setStatus(message.c_str());
                     return false;

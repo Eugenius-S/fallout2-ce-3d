@@ -374,6 +374,27 @@ bool captureFramePng(const std::filesystem::path& path, const unsigned char* rgb
     return true;
 }
 
+bool capturePresentedFramePng(const std::filesystem::path& path, int* width, int* height, std::string* error)
+{
+    auto fail = [&](const std::string& message) {
+        if (error != nullptr) *error = message;
+        return false;
+    };
+    if (!gInitialized) return fail("OpenGL renderer is unavailable");
+    std::error_code existsError;
+    if (std::filesystem::exists(path, existsError)) return fail("snapshot path already exists");
+    int drawableWidth = 0;
+    int drawableHeight = 0;
+    SDL_GL_GetDrawableSize(gWindow, &drawableWidth, &drawableHeight);
+    if (drawableWidth <= 0 || drawableHeight <= 0) return fail("OpenGL drawable has no pixels");
+    std::string message;
+    if (!writeBackBufferPng(path, drawableWidth, drawableHeight, &message)) return fail(message);
+    if (width != nullptr) *width = drawableWidth;
+    if (height != nullptr) *height = drawableHeight;
+    if (error != nullptr) error->clear();
+    return true;
+}
+
 bool captureStaticFloorPng(const std::filesystem::path& path, int* width, int* height, std::string* error)
 {
     return captureStaticPreviewPng(path, false, false, width, height, error);
