@@ -74,3 +74,15 @@ from the old map, no long 2D frame, the camera on the hero.
   determine whether any 2D or old-scene flash is actually visible, then run
   the pixel regression and update this table. No transition defect is yet
   confirmed or fixed.
+
+### 2026-11-03 gpt continuation
+
+Done: confirmed the two documented generic exit-probe attempts are the current
+runtime limit. The task is already claimed as `doing` by `gpt`; no third probe
+was run. PR #221 remains draft with the partial KLAMALL-to-KLADWTWN sequence
+and its timing, not full acceptance evidence.
+Next: continue to task 140 under the owner's two-attempt exception. Resume 147
+after the exit probe follows the normal movement/picking path.
+Check: existing PR CI passed; the transition table records the partial result
+and explicitly leaves all other routes, elevations and world-map/save-load
+paths unverified.
