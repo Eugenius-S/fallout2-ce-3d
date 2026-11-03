@@ -43,6 +43,9 @@ DEFAULT_MAP = "kladwtwn"
 # Map groups for --maps: every elevation each map has.
 MAP_GROUPS = {
     "klamath": ("kladwtwn", "klatrap", "klacanyn", "klagraz", "klamall", "klaratcv", "klatoxcv"),
+    # Arroyo, the game's opening area: caves, village, bridge, wilderness,
+    # temple (map names from the game's own data/maps.txt).
+    "arroyo": ("arcaves", "arvillag", "arbridge", "argarden", "artemple"),
     # The starting vault: its screens (monitr, bvs, comp arts) carry live
     # cycling colours, unlike Klamath's dead ones (task 050).
     "vault15": ("vault15",),

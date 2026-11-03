@@ -2,8 +2,8 @@
 id: 136
 title: Arroyo in 3D, the game's opening area stands and looks clean
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: glm
 suggested: glm
 priority: high
 claude-only: no
