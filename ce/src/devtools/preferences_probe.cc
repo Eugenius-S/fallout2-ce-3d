@@ -24,24 +24,35 @@ namespace devtools {
 namespace {
 constexpr Uint32 kScriptMouse = 0x154154u;
 std::ifstream gInputScript;
+bool gInputSceneMode = false; // --dev-scene-input: pumped from the main loop, no options screen
 bool gInputActive = false;
 bool gInputSeen = false;
 bool gInputStarted = false;
 bool gInputSnapshot = false;
 bool gInputPreferences = false;
 int gInputX = 0, gInputY = 0, gInputWait = 0;
+Uint32 gInputWaitUntil = 0; // a waitms deadline, in SDL ticks
 unsigned char gInputLeft = 0, gInputRight = 0;
 }
 
 bool parseScriptedInputOption(const char* arg)
 {
+    const char* scenePrefix = "--dev-scene-input=";
     const char* prefix = "--dev-input=";
-    if (strncmp(arg, prefix, strlen(prefix)) != 0) return false;
-    gInputScript.open(arg + strlen(prefix));
+    if (strncmp(arg, scenePrefix, strlen(scenePrefix)) == 0) {
+        gInputSceneMode = true;
+        gInputScript.open(arg + strlen(scenePrefix));
+    } else if (strncmp(arg, prefix, strlen(prefix)) == 0) {
+        gInputScript.open(arg + strlen(prefix));
+    } else {
+        return false;
+    }
     gInputActive = gInputScript.is_open();
     if (!gInputActive) fprintf(stderr, "DEV_INPUT FAIL: cannot open script\n");
     return true;
 }
+
+bool scriptedInputSceneMode() { return gInputSceneMode; }
 
 bool scriptedInputActive() { return gInputActive; }
 void scriptedInputBegin() { gInputStarted = true; }
@@ -52,6 +63,10 @@ bool scriptedInputTakePreferencesRequest() { bool requested = gInputPreferences;
 void scriptedInputPump()
 {
     if (!gInputActive || gInputPreferences || gInputWait-- > 0) return;
+    if (gInputWaitUntil != 0) {
+        if (SDL_GetTicks() < gInputWaitUntil) return;
+        gInputWaitUntil = 0;
+    }
     std::string line;
     while (std::getline(gInputScript, line)) {
         std::istringstream input(line);
@@ -61,8 +76,36 @@ void scriptedInputPump()
             if (!(input >> gInputWait) || gInputWait < 0) { fprintf(stderr, "DEV_INPUT FAIL: invalid wait\n"); gInputActive = false; }
             return;
         }
+        if (action == "waitms") {
+            // A real-time wait: samples a motion strip evenly whatever the
+            // run's frame pace is.
+            int ms;
+            if (!(input >> ms) || ms < 0) { fprintf(stderr, "DEV_INPUT FAIL: invalid waitms\n"); gInputActive = false; return; }
+            gInputWaitUntil = SDL_GetTicks() + static_cast<Uint32>(ms);
+            return;
+        }
         if (action == "snap") { gInputSnapshot = true; printf("DEV_INPUT snap\n"); fflush(stdout); return; }
         if (action == "preferences") { gInputPreferences = true; printf("DEV_INPUT preferences\n"); fflush(stdout); return; }
+        if (action == "key") {
+            // One press: a down and an up pushed in the same batch, so a held
+            // key's repeat never fires. The value is an SDL_SCANCODE_* number.
+            int scancode;
+            if (!(input >> scancode) || scancode <= 0 || scancode >= SDL_NUM_SCANCODES) { fprintf(stderr, "DEV_INPUT FAIL: invalid key\n"); gInputActive = false; return; }
+            SDL_Event down = {};
+            down.type = SDL_KEYDOWN;
+            down.key.keysym.scancode = static_cast<SDL_Scancode>(scancode);
+            down.key.state = SDL_PRESSED;
+            down.key.repeat = 0;
+            SDL_Event up = {};
+            up.type = SDL_KEYUP;
+            up.key.keysym.scancode = down.key.keysym.scancode;
+            up.key.state = SDL_RELEASED;
+            up.key.repeat = 0;
+            if (SDL_PushEvent(&down) != 1 || SDL_PushEvent(&up) != 1) fprintf(stderr, "DEV_INPUT FAIL: %s\n", SDL_GetError());
+            else printf("DEV_INPUT pushed key %d\n", scancode);
+            fflush(stdout);
+            return;
+        }
         SDL_Event event = {};
         if (action == "wheel") {
             event.type = SDL_MOUSEWHEEL;

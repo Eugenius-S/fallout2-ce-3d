@@ -29,7 +29,7 @@ FIXED_CARD_FRMS = frozenset(
 from baked_sidecar import baked_objects, decode_baked_sidecar, encode_baked_sidecar  # noqa: E402
 from floor_sidecar import VERSION as FLOOR_SIDECAR_VERSION  # noqa: E402
 from floor_sidecar import encode_floor_sidecar  # noqa: E402
-from roof_fringe import wall_under, write_fringe_art  # noqa: E402
+from roof_fringe import belt_art, wall_body, write_fringe_art  # noqa: E402
 from projection_sidecar import VERSION as PROJECTION_SIDECAR_VERSION  # noqa: E402
 from projection_sidecar import decode_projection_sidecar, encode_projection_sidecar  # noqa: E402
 from wall_sidecar import VERSION as WALL_SIDECAR_VERSION  # noqa: E402
@@ -457,16 +457,19 @@ def export_scene(gf, game_root: Path, map_name: str, elevation: int, out_dir: Pa
     roof_squares = {index: int(tile) for index, (cell, tile) in
                     enumerate(zip(builder.roof.ravel(), builder.roof_ids.ravel())) if cell}
     slabs = wall_slabs(scene)
-    fringe = write_fringe_art(
+    fringe, patches = write_fringe_art(
         out_dir / "roof_fringe.png", roof_squares,
         lambda tile: gf.art.load(ids.make_fid(ids.OBJ_TYPE_TILE, tile)).rgba(gf.palette.glow_tile),
-        lambda *run: wall_under(slabs, scene.get("walls") or [], *run))
+        lambda *run: wall_body(slabs, scene.get("walls") or [], *run),
+        lambda run, wall: belt_art(wall[5], scene.get("walls") or [], scene["sprites"], builder.atlas.pages,
+                                   scene["proj"]["hpx"], run),
+        scene["proj"]["roofPx"] / scene["proj"]["hpx"])
     scene["_modCache"] = {
         "exporterVersion": EXPORTER_VERSION,
         "inputFingerprintSha256": fingerprint,
     }
     scene_path.write_text(json.dumps(scene, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    (out_dir / "floor.bin").write_bytes(encode_floor_sidecar(scene, fringe))
+    (out_dir / "floor.bin").write_bytes(encode_floor_sidecar(scene, fringe, patches))
     artifact_hashes = {p.name: sha256_file(p) for p in sorted(out_dir.iterdir()) if p.name != "provenance.json"}
     provenance = {
         "exporter": "fallout2-sprite-lighting scene_export",

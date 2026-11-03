@@ -21,6 +21,7 @@ void preferencesProbeComplete(bool success, scene::OptionsPanel* panel, int stag
 int preferencesProbeNextEvent(int eventCode, scene::OptionsPanel* panel, int windowId, int stagedLegacyDifficulty);
 void preferencesProbePump();
 bool parseScriptedInputOption(const char* arg);
+bool scriptedInputSceneMode();
 bool scriptedInputActive();
 void scriptedInputBegin();
 bool scriptedInputStarted();

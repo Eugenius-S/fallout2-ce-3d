@@ -808,6 +808,7 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
             static_cast<size_t>(std::count(rowOnWall.begin(), rowOnWall.end(), true)));
         fflush(stderr);
         setShadowWallCasters(gShadowVao, wallHeight, std::move(ranges));
+        prepareStaticShadows();
     }
     if (objectCount > 0) {
         const unsigned int rows = (objectCount + kSeeThroughRowWidth - 1) / kSeeThroughRowWidth;

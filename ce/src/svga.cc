@@ -31,6 +31,7 @@
 #include "scene_renderer/live_objects.h"
 #include "scene_renderer/picking.h"
 #include "scene_renderer/post.h"
+#include "scene_renderer/perf.h"
 #include "scene_renderer/scene_draw.h"
 #include "scene_renderer/static_scene.h"
 #include "scene_renderer/text_present.h"
@@ -603,12 +604,16 @@ void renderPresent()
             if (view == scene::View::Full) {
                 // With the glow on, the scene renders into its own
                 // framebuffer, which comes back with its bleed added.
+                scene_renderer::perfBegin();
                 const bool glow = scene_renderer::beginSceneCapture();
                 scene_renderer::drawStaticHeroPreview();
+                scene_renderer::perfMark("scene");
                 if (glow) scene_renderer::compositeGlow();
+                scene_renderer::perfMark("glow");
                 // A fly camera shows the world alone.
                 if (scene_renderer::staticFlyCameraActive()) {
                     scene_renderer::swap();
+                    scene_renderer::perfEnd();
                     return;
                 }
                 if (!gRgbaBackground.empty()) {
@@ -624,12 +629,15 @@ void renderPresent()
                         static_cast<const unsigned char*>(gSdlTextureSurface->pixels),
                         gSdlTextureSurface->w, gSdlTextureSurface->h, gSdlTextureSurface->pitch);
                     scene_renderer::swap();
+                    scene_renderer::perfEnd();
                     devtools::sceneOverlayPresented();
                     return;
                 }
                 // The game's interface, mouse cursor and floating text over it.
                 scene_renderer::drawSceneOverlayWithSharpText(gSdlSurface, gSdlTextureSurface, sharpTextReady);
+                scene_renderer::perfMark("overlay");
                 scene_renderer::swap();
+                scene_renderer::perfEnd();
                 devtools::sceneOverlayPresented();
                 return;
             }

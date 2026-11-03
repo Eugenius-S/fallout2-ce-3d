@@ -206,6 +206,8 @@ extern int gSceneShadowOnLocation;
 extern int gSceneShadowMatrixLocation;
 extern int gSceneShadowMapLocation;
 extern int gSceneShadowIdsLocation;
+extern int gSceneShadowOccupancyLocation;
+extern int gSceneShadowOccupancyOnLocation;
 extern int gSceneShadowStrengthLocation;
 extern int gSceneShadowDensityLocation;
 extern int gSceneShadowLightLocation;
@@ -265,9 +267,16 @@ struct RoofSquare {
         // The strip's texture (normalized): u at the stretch's low and high
         // end along the wall, v at the strip's top and bottom row.
         float uLow = 0, uHigh = 0, vTop = 0, vBottom = 0;
+        // The band's height in strip rows (art pixels, one row a pixel of the game's wall).
+        float rows = 0;
     };
     FringePiece pieces[2];
     int pieceCount = 0;
+    // A mixed tile's roof under the free camera: the flat square comes from a
+    // cell of roof_fringe.png (the wall-top part cut out), drawn with that
+    // texture, in these coordinates.
+    bool patch = false;
+    float patchU0 = 0, patchV0 = 0, patchU1 = 0, patchV1 = 0;
 };
 
 void setRoofSquares(std::vector<RoofSquare> squares);
