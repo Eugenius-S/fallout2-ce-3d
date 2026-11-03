@@ -311,6 +311,60 @@
    "elevation": 0,
    "tile": 17288,
    "name": "temple entrance"
+  },
+  {
+   "map": "arvillag",
+   "elevation": 0,
+   "tile": 25115,
+   "name": "the stone head plaza"
+  },
+  {
+   "map": "arvillag",
+   "elevation": 0,
+   "tile": 19115,
+   "name": "north huts"
+  },
+  {
+   "map": "arbridge",
+   "elevation": 0,
+   "tile": 20686,
+   "name": "the rope bridge over the cliff"
+  },
+  {
+   "map": "argarden",
+   "elevation": 0,
+   "tile": 17474,
+   "name": "the forest heart"
+  },
+  {
+   "map": "ardead",
+   "elevation": 0,
+   "tile": 24719,
+   "name": "cliff and the brahmin pen"
+  },
+  {
+   "map": "artemple",
+   "elevation": 0,
+   "tile": 21288,
+   "name": "the camp south of the temple"
+  },
+  {
+   "map": "arcaves",
+   "elevation": 0,
+   "tile": 26706,
+   "name": "the exit gate, torches"
+  },
+  {
+   "map": "arcaves",
+   "elevation": 1,
+   "tile": 22706,
+   "name": "the cave mouth"
+  },
+  {
+   "map": "arcaves",
+   "elevation": 2,
+   "tile": 22097,
+   "name": "the corridor maze"
   }
  ]
 }

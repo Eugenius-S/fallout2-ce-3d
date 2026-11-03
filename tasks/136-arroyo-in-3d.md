@@ -2,14 +2,14 @@
 id: 136
 title: Arroyo in 3D, the game's opening area stands and looks clean
 milestone: M1
-status: doing
+status: done
 owner: glm
 suggested: glm
 priority: high
 claude-only: no
 user-check: yes
 depends-on: []
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -96,3 +96,24 @@ Check: `py -3 tools/scene_export/export.py --game-root <main>/game --maps
 arroyo --cache-root build/scene-cache`; `py -3 tools/tour/tour.py --before
 build/scene-cache --maps arcaves,arvillag,arbridge,argarden,ardead,artemple`;
 `tools/regression.ps1` (24 spots pass, arroyo references new).
+
+### 2026-11-04 glm (second round, task done)
+Done: the sweep is clean, the task closes with no open visual find.
+- 9 more fly tour spots at the landmarks found by the 48-point 2D grid probe
+  (the stone head plaza, the rope bridge, the cave gate, the cave mouth, the
+  corridor maze, the forest heart, the camp, the brahmin pen, the north huts);
+  4 of them are regression spots too (references in the same PR).
+- Fly views at hours 8, 12 and 18 on every entrance spot and every landmark
+  spot: the sun and shadows move correctly on rock, huts, trees and the
+  temple; caves stay dark inside; the black canopy look matches the game's
+  own dark tree art (checked against the 2D view at the same tile).
+- A new game walks artemple -> arcaves -> arvillag in one run, all three
+  maps render scene-gl (devshot JSONs in the walk probe).
+- tools/regression.ps1: 28 of 28 spots pass, 0 changed pixels each; the 16
+  Klamath references untouched.
+Find list: the still-fixture movie hang (fixed, PR #240); arvill2 exports but
+is unreachable in the game (owner, above). No other finds; nothing open.
+Evidence: runs/136-arroyo-in-3d/ (tour and hour sheets).
+Check: `tools/regression.ps1` (28 spots pass); the walk probe and the hour
+sweep commands live in the PR #241 description.
+
