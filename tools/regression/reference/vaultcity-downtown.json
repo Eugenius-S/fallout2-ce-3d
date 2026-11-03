@@ -1,0 +1,141 @@
+{
+  "image": "vaultcity-downtown.png",
+  "view": "static-wall-plus-hero-preview",
+  "map": "VCTYDWTN.MAP",
+  "elevation": 0,
+  "still_snapshot": true,
+  "snapshot_run": "82ce8b71a45f4016aed26380b5f9eedd",
+  "view_tile": 24117,
+  "preview_requested": true,
+  "scene_3d_enabled": true,
+  "scene_view": "full",
+  "sharp_text": {
+    "setting": false,
+    "active": false,
+    "drawn": false,
+    "runs": 0,
+    "glyphs": 0,
+    "restored_pixels": 0,
+    "prepare_ms": 0.0
+  },
+  "map_clip": {
+    "enabled": true,
+    "setting_enabled": true,
+    "variant": "authored",
+    "source": "authored",
+    "world_bounds": [
+      -33.541667,
+      -35.8125,
+      38.458333,
+      36.1875
+    ],
+    "planes": [
+      [
+        0.4472136,
+        0.8944272,
+        30.9322739
+      ],
+      [
+        -0.8320503,
+        0.5547002,
+        21.9106579
+      ],
+      [
+        -0.4472136,
+        -0.8944272,
+        33.4664841
+      ],
+      [
+        0.8320503,
+        -0.5547002,
+        18.0277557
+      ]
+    ]
+  },
+  "camera": "fixed eye=(57.64466,46.23085,83.96700), target=(8.45833,0.00000,10.18750), fov_y=25.0, near=0.1, far=400.0, screen_right=-cross(forward,world_up)",
+  "camera_turn": 0.0,
+  "wall_triangles": 34563,
+  "wall_pages": 5,
+  "hero": {
+    "tile": 24117,
+    "fid": 16777278,
+    "frame": 0,
+    "rotation": 0,
+    "world_anchor": [
+      8.458333333,
+      10.1875
+    ]
+  },
+  "egg": {
+    "shown": true,
+    "rect": [
+      416,
+      148,
+      129,
+      98
+    ],
+    "zoom": 1.0,
+    "wall_rows_marked": 350,
+    "wall_rows_any": true
+  },
+  "objects": {
+    "drawn": 3811,
+    "skipped": 0
+  },
+  "preview_availability": "available",
+  "renderer": "scene-gl",
+  "light": "enabled",
+  "effect_emission": true,
+  "glow": {
+    "enabled": false,
+    "strength": 2.0
+  },
+  "weapon_effect": null,
+  "muzzle": null,
+  "sun": {
+    "setting": true,
+    "daylight": true,
+    "game_time": 302400,
+    "up": true,
+    "height": 66.0,
+    "azimuth": -26.565,
+    "direction": [
+      0.3638,
+      0.91355,
+      -0.1819
+    ],
+    "color": [
+      1.0,
+      0.96,
+      0.88
+    ],
+    "strength": 1.0
+  },
+  "resolution": "1920x1080",
+  "logical_resolution": "960x540",
+  "scale": 2,
+  "scale_factor": 2.0,
+  "windowed": true,
+  "drawable": "1920x1080",
+  "sdl_window": {
+    "flags": 73734,
+    "window_position": "-20000,-20000",
+    "window_size": "1920x1080",
+    "drawable_size": "1920x1080",
+    "fullscreen": false,
+    "fullscreen_desktop": false,
+    "borderless": false
+  },
+  "ce_commit": "7c8af002",
+  "tools_commit": "-",
+  "exe_sha256": "b44c9d7d7df28fd2850d34d0ca4afb7c163a35e016bf0ed6bfb32ae473ca8002",
+  "taken": "20261104-052157",
+  "capture_image": "devhero-20261104-052157-000.png",
+  "spot": {
+    "name": "vaultcity-downtown",
+    "map": "vctydwtn",
+    "elevation": 0,
+    "tile": 24117,
+    "coverage": "Vault City downtown"
+  }
+}

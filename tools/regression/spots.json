@@ -118,6 +118,76 @@
       "elevation": 0,
       "tile": 21913,
       "coverage": "The most detailed gallery view of this map elevation (task 011)"
+    },
+    {
+      "name": "vaultcity-courtyard",
+      "map": "vctyctyd",
+      "elevation": 0,
+      "tile": 27506,
+      "coverage": "Vault City courtyard, walls and gates"
+    },
+    {
+      "name": "vaultcity-downtown",
+      "map": "vctydwtn",
+      "elevation": 0,
+      "tile": 24117,
+      "coverage": "Vault City downtown"
+    },
+    {
+      "name": "vaultcity-council",
+      "map": "vctycocl",
+      "elevation": 0,
+      "tile": 19292,
+      "coverage": "The council building area"
+    },
+    {
+      "name": "vaultcity-vault",
+      "map": "vctyvlt",
+      "elevation": 0,
+      "tile": 17095,
+      "coverage": "The vault courtyard"
+    },
+    {
+      "name": "vaultcity-vault-l1",
+      "map": "vctyvlt",
+      "elevation": 1,
+      "tile": 17095,
+      "coverage": "The vault level 1"
+    },
+    {
+      "name": "raiders-camp",
+      "map": "raiders1",
+      "elevation": 0,
+      "tile": 23305,
+      "coverage": "The raiders ground camp"
+    },
+    {
+      "name": "raiders-cave",
+      "map": "raiders2",
+      "elevation": 0,
+      "tile": 20100,
+      "coverage": "The raiders cave entrance"
+    },
+    {
+      "name": "vaultcity-gate",
+      "map": "vctyctyd",
+      "elevation": 0,
+      "tile": 25506,
+      "coverage": "The city gate with the towers"
+    },
+    {
+      "name": "vaultcity-council-dome",
+      "map": "vctycocl",
+      "elevation": 0,
+      "tile": 15392,
+      "coverage": "The Central Council dome"
+    },
+    {
+      "name": "vaultcity-vault-door",
+      "map": "vctyvlt",
+      "elevation": 0,
+      "tile": 21095,
+      "coverage": "The vault door"
     }
   ]
 }
