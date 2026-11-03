@@ -1036,11 +1036,20 @@ def write_fringe_art(out_png, roof_squares, art_of, wall_of, belt_of=None, defau
         return [(index // 100 + EDGE_STEPS[edge][1]) * 100 + index % 100 + EDGE_STEPS[edge][0]
                 for edge in {inner_edge(clip) for clip in clips[index]}]
 
-    plain = {index: plain_art(art_of(tile)) for index, tile in roof_squares.items() if index not in banded}
+    plain_tiles = {}
+
+    def plain(index):
+        if index not in roof_squares or index in banded:
+            return False
+        tile = roof_squares[index]
+        if tile not in plain_tiles:
+            plain_tiles[tile] = plain_art(art_of(tile))
+        return plain_tiles[tile]
+
     roofed = {index for index in banded
               if not any(inner_edge(clip) in open_of[index] for clip in clips[index])}
     while True:   # a square is roofed when what lies behind each of its bands is plain roof or a roofed square (a corner)
-        kept = {index for index in roofed if all(plain.get(back, False) or back in roofed for back in behind(index))}
+        kept = {index for index in roofed if all(back in roofed or plain(back) for back in behind(index))}
         if kept == roofed:
             break
         roofed = kept
