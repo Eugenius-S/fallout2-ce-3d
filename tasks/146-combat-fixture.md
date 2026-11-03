@@ -75,3 +75,5 @@ was made.
 ### 2026-11-03 merge origin/main
 
 Merged `origin/main` (`d8cff6b0`) into this branch. Resolved the `tools/dev-snapshot.ps1` overlap by keeping the combat fixture arguments, four-capture polling, and main's scripted-input/scene-input options together. PowerShell parser and `git diff --check` pass. Runtime combat proof remains blocked as described above; PR stays draft.
+
+- CI `runs-size` public-content subcheck identified absolute `E:\Projects\fallout2-ce-3d-gpt\build\scene-cache` paths in the two existing attempt logs. Replaced those environment-specific paths with `build/scene-cache`; rerunning the public-content check after committing this cleanup.
