@@ -18,7 +18,7 @@ from baked_sidecar import (ENTRY as BAKED_ENTRY, GL_MAP_OFFSET, HEADER as BAKED_
                            baked_objects, decode_baked_sidecar, encode_baked_sidecar)
 from export import ReadOnlyGameFiles, choose_source, main, parse_args, patch_paths, scene_directory, validate_output_contents
 from floor_sidecar import HEADER, MAGIC, VERSION, cell_content_rect, decode_floor_sidecar, encode_floor_sidecar
-from roof_fringe import (boundary_edges, components_of, donor_tiles, cut_to_walls, own_strip, donate, foot_cover, lay_donor, roof_sides, whole_sides, BELT_LAP, BELT_ROWS, EDGE_ROWS, STRIP_ROWS, belt_art, compose_band, is_fringe, outward, resolve_runs, runs_of,
+from roof_fringe import (boundary_edges, components_of, donor_tiles, inner_edge, cut_to_walls, own_strip, donate, foot_cover, lay_donor, roof_sides, whole_sides, BELT_LAP, BELT_ROWS, EDGE_ROWS, STRIP_ROWS, belt_art, compose_band, is_fringe, outward, resolve_runs, runs_of,
                          split_tile, tidy_cell, unproject_cell, unroll, wall_under, write_fringe_art)
 import roof_edge_check
 from projection_sidecar import (HEADER as PROJECTION_HEADER, MAGIC as PROJECTION_MAGIC,
@@ -492,7 +492,11 @@ class RoofFringeTests(unittest.TestCase):
             self.assertTrue({201, 301} <= crossed)                              # the plain squares are in a band ...
             self.assertTrue({201, 301} <= {index for index, _, _ in patches})   # ... and keep their flat roof
 
-    def test_a_roof_with_no_plain_tile_takes_the_nearest_roofs_donor(self):
+    def test_a_band_faces_the_roof_across_the_edge_away_from_the_outside(self):
+        # the outside past v = face (side 1): the roof is across edge 0 (dz - 1); a ring square open there is no roof
+        self.assertEqual([inner_edge(clip) for clip in ((0, 0.9, 1), (0, 0.1, -1), (1, 0.9, 1), (1, 0.1, -1))], [0, 1, 2, 3])
+
+    def test_a_roof_with_no_plain_tile_has_no_donor(self):
         plain = self.art([(y, x) for y in range(36) for x in range(80)], (120, 130, 110))
         blades = self.art([(y, x) for x in range(30, 60, 5) for y in range(8, 20 + x % 7)])
         roof = {101: 8, 102: 8, 201: 8, 202: 8, 105: 7, 106: 7}
@@ -500,7 +504,7 @@ class RoofFringeTests(unittest.TestCase):
         comp = components_of(roof)
         open_of = boundary_edges(roof)
         donors = donor_tiles(roof, open_of, set(), comp, art_of)
-        self.assertEqual(donors[comp[105]], 8)
+        self.assertNotIn(comp[105], donors)   # a ruin borrows no roof from its neighbour
         self.assertEqual(donors[comp[101]], 8)
         self.assertEqual(donor_tiles({105: 7, 106: 7}, boundary_edges({105: 7, 106: 7}), set(), components_of({105: 7, 106: 7}), art_of), {})
 

@@ -40,7 +40,7 @@ sys.path.insert(0, str(HERE / "vendor"))
 
 from floor_sidecar import CELL_MARGIN, CELL_OUTER_SIZE, CELL_SIZE, decode_floor_sidecar  # noqa: E402
 from wall_sidecar import wall_slabs  # noqa: E402
-from roof_fringe import EDGE_STEPS, components_of, outward, GREY_TINT, _blobs, _dilate  # noqa: E402
+from roof_fringe import DONOR_COVER, inner_edge, tidy_cell, EDGE_STEPS, components_of, outward, GREY_TINT, _blobs, _dilate  # noqa: E402
 
 VERBOSE = False
 DARK = 30.0   # a texel darker than this (mean of the colours) and grey is concrete or rebar; the metal roofs' shading dither is lighter
@@ -230,7 +230,7 @@ def lane_stats(entries, slabs, footprint, patches, fringe, plain_roofs=frozenset
     """(lane_squares, spill_squares, lanes, no_donor, outside): see the module's text.
 
     lanes: [(square index, clear share)]; plain_roofs: the squares that stand on a plain roof tile (painted whole). A
-    lane in a map with no plain square has no donor to fill it from (no_donor, not counted in lane_squares). outside: {square index: the share of the square on the outer side of its bands}.
+    lane in a roof with no plain square has no donor to fill it from, and a square with no roof behind its band is a ring round an open courtyard (both no_donor, not counted in lane_squares). outside: {square index: the share of the square on the outer side of its bands}.
     """
     planes = {}
     for edge, plane, start, count, *_, face, top, lo, hi in entries:
@@ -248,7 +248,20 @@ def lane_stats(entries, slabs, footprint, patches, fringe, plain_roofs=frozenset
     on = (u >= 0) & (u < 1) & (v >= 0) & (v < 1)
     lanes, spills, no_donor, outside = [], 0, [], {}
     comp = components_of(footprint)
-    donorless = set() if plain_roofs else set(comp.values())
+    # the exporter's donor is a plain tile no band crosses (donor_tiles): a roof whose only plain squares carry bands has none
+    donorless = set(comp.values()) - {comp[index] for index in plain_roofs if index in comp and index not in planes}
+    # the exporter's roofed squares (write_fringe_art): plain roof, or a roofed square, behind each band
+    def behind(index):
+        return [(index // 100 + EDGE_STEPS[edge][1]) * 100 + index % 100 + EDGE_STEPS[edge][0]
+                for edge in {inner_edge(clip) for clip in planes[index]}]
+
+    roofed = {index for index in planes if all(back in footprint for back in behind(index))}
+    while True:
+        kept = {index for index in roofed
+                if all((back in plain_roofs and back not in planes) or back in roofed for back in behind(index))}
+        if kept == roofed:
+            break
+        roofed = kept
     for index, found in sorted(planes.items()):
         inner = on.copy()
         for axis, face, side in found:
@@ -266,7 +279,8 @@ def lane_stats(entries, slabs, footprint, patches, fringe, plain_roofs=frozenset
             core = (u > RIM) & (u < 1 - RIM) & (v > RIM) & (v < 1 - RIM)
             clear = float((inner & core & ~painted & ~dither).sum() / inner.sum())
             if clear > LANE_CLEAR:
-                (no_donor if comp.get(index) in donorless else lanes).append((index, round(clear, 2)))
+                # a square with no plain roof behind its band (a ring of wall tops round an open ruin) is no lane either
+                (no_donor if comp.get(index) in donorless or index not in roofed else lanes).append((index, round(clear, 2)))
         outer = on & ~inner
         outside[index] = float(outer.sum() / on.sum())
         if outer.sum() and (outer & painted).sum() / outer.sum() > LANE_CLEAR:
@@ -289,7 +303,8 @@ def measure(directory):
     plain_roofs = set()
     for index in footprint:
         x, y = cells[roof[index] - 1]
-        if cover_of(tiles[y:y + CELL_OUTER_SIZE, x:x + CELL_OUTER_SIZE]) >= WHOLE_COVER:
+        # plain as the exporter's donor_tiles judges it: its tidied cell painted DONOR_COVER or more
+        if cover_of(tidy_cell(tiles[y:y + CELL_OUTER_SIZE, x:x + CELL_OUTER_SIZE], ())) >= DONOR_COVER:
             plain_roofs.add(index)
     wall = wall_slabs(json.loads((directory / "scene.json").read_text(encoding="utf-8")))
     lane, spill, lanes, no_donor, outside = lane_stats(sidecar["fringe"], wall, footprint, patches, fringe, plain_roofs)
