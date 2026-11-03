@@ -2,14 +2,14 @@
 id: 141
 title: The 3D options checkboxes line up: an empty box stands where a ticked one does
 milestone: M1
-status: doing
+status: done
 owner: gpt
 suggested: gpt
 priority: normal
 claude-only: no
 user-check: yes
 depends-on: []
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -67,4 +67,6 @@ Other rows, the panel layout (130).
   `evidence-en-sharp.jpg`, `evidence-ru-pixel.jpg`, and
   `evidence-ru-sharp.jpg`; each is below 1 MB. The paired capture sidecars
   are retained in their baseline/after folders.
-- Task remains `doing`, `reviewed: no` until the pushed PR CI is green.
+- Draft PR #235 passed every required check on `116b1941`, including the
+  Windows build and CTest. Status update commit follows; wait for its checks
+  before marking the PR ready for review.
