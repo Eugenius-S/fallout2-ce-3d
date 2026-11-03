@@ -36,6 +36,7 @@ unsigned int gRoofVbo = 0;
 int gRoofVertexCount = 0;
 // The wall-top bands (fly camera only) follow the flat squares in the buffer, from their own texture.
 int gRoofFlatVertexCount = 0;
+int gRoofPatchVertexCount = 0;
 unsigned int gRoofFringeTexture = 0;
 // All squares, hidden ones included, for the sun's shadow map (task 045).
 unsigned int gRoofShadowVao = 0;
@@ -87,6 +88,7 @@ void pushFringeBand(std::vector<FloorVertex>& vertices, const RoofSquare& square
 void rebuildRoofBuffer()
 {
     std::vector<FloorVertex> vertices;
+    std::vector<FloorVertex> patches;
     std::vector<FloorVertex> bands;
     const float y = static_cast<float>(kRoofPixels / gHeroProjection.hpx);
     const bool flying = staticFlyCameraActive();
@@ -95,8 +97,18 @@ void rebuildRoofBuffer()
         if (gRoofVisibilityKnown && gRoofVisible[square.index] == 0) continue;
         // Only the fly camera sees the bands: the game's view is slightly
         // in perspective and keeps the game's own pixels on the flat square.
-        if (square.fringe && flying && gRoofFringeTexture != 0) {
+        if ((square.fringe || square.patch) && flying && gRoofFringeTexture != 0) {
             pushFringeBand(bands, square, y);
+            if (square.patch) {
+                // The mixed tile's roof, its wall-top part cut out: a flat square
+                // drawn from the fringe texture.
+                patches.push_back({ square.x0, y, square.z0, square.patchU0, square.patchV0 });
+                patches.push_back({ square.x1, y, square.z0, square.patchU1, square.patchV0 });
+                patches.push_back({ square.x1, y, square.z1, square.patchU1, square.patchV1 });
+                patches.push_back({ square.x0, y, square.z0, square.patchU0, square.patchV0 });
+                patches.push_back({ square.x1, y, square.z1, square.patchU1, square.patchV1 });
+                patches.push_back({ square.x0, y, square.z1, square.patchU0, square.patchV1 });
+            }
             continue;
         }
         vertices.push_back({ square.x0, y, square.z0, square.u0, square.v0 });
@@ -107,6 +119,8 @@ void rebuildRoofBuffer()
         vertices.push_back({ square.x0, y, square.z1, square.u0, square.v1 });
     }
     gRoofFlatVertexCount = static_cast<int>(vertices.size());
+    gRoofPatchVertexCount = static_cast<int>(patches.size());
+    vertices.insert(vertices.end(), patches.begin(), patches.end());
     vertices.insert(vertices.end(), bands.begin(), bands.end());
     if (gRoofVao == 0) glGenVertexArrays(1, &gRoofVao);
     if (gRoofVbo == 0) glGenBuffers(1, &gRoofVbo);
@@ -229,6 +243,7 @@ void destroyRoofs()
     }
     gRoofFringeTexture = 0;
     gRoofFlatVertexCount = 0;
+    gRoofPatchVertexCount = 0;
     setShadowRoofCasters(0, 0);
     gRoofVbo = 0;
     gRoofVao = 0;
@@ -275,17 +290,23 @@ void drawRoofs(int viewportX, int viewportY, int viewportWidth, int viewportHeig
     glBindVertexArray(gRoofVao);
     glDrawArrays(kTriangles, 0, gRoofFlatVertexCount);
     if (gRoofVertexCount > gRoofFlatVertexCount) {
+        // The mixed tiles' roofs (cells of the fringe texture) go after the flat ones.
+        glBindTexture(kTexture2D, gRoofFringeTexture);
+        if (gRoofPatchVertexCount > 0) glDrawArrays(kTriangles, gRoofFlatVertexCount, gRoofPatchVertexCount);
         // The flat roofs do not write depth, so a wall-top band behind a nearer
         // roof would paint over it: the opaque roof texels (the cutoff drops
         // the rest) go into the depth buffer, colors off, before the bands.
         glColorMask(0, 0, 0, 0);
         glDepthMask(1);
         glDepthFunc(kLess);
+        if (gRoofPatchVertexCount > 0) glDrawArrays(kTriangles, gRoofFlatVertexCount, gRoofPatchVertexCount);
+        glBindTexture(kTexture2D, gFloorTexture);
         glDrawArrays(kTriangles, 0, gRoofFlatVertexCount);
         glDepthMask(0);
         glColorMask(1, 1, 1, 1);
         glBindTexture(kTexture2D, gRoofFringeTexture);
-        glDrawArrays(kTriangles, gRoofFlatVertexCount, gRoofVertexCount - gRoofFlatVertexCount);
+        const int bandStart = gRoofFlatVertexCount + gRoofPatchVertexCount;
+        glDrawArrays(kTriangles, bandStart, gRoofVertexCount - bandStart);
         glBindTexture(kTexture2D, gFloorTexture);
     }
     glUniform1i(gSceneEggLocation, 0);

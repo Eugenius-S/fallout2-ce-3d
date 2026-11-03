@@ -18,7 +18,9 @@ from baked_sidecar import (ENTRY as BAKED_ENTRY, GL_MAP_OFFSET, HEADER as BAKED_
                            baked_objects, decode_baked_sidecar, encode_baked_sidecar)
 from export import ReadOnlyGameFiles, choose_source, main, parse_args, patch_paths, scene_directory, validate_output_contents
 from floor_sidecar import HEADER, MAGIC, VERSION, cell_content_rect, decode_floor_sidecar, encode_floor_sidecar
-from roof_fringe import BELT_LAP, BELT_ROWS, EDGE_ROWS, STRIP_ROWS, belt_art, compose_band, is_fringe, runs_of, unroll, wall_under, write_fringe_art
+from roof_fringe import (BELT_LAP, BELT_ROWS, EDGE_ROWS, STRIP_ROWS, belt_art, compose_band, is_fringe, outward, resolve_runs, runs_of,
+                         split_tile, unproject_cell, unroll, wall_under, write_fringe_art)
+import roof_edge_check
 from projection_sidecar import (HEADER as PROJECTION_HEADER, MAGIC as PROJECTION_MAGIC,
                                 VERSION as PROJECTION_VERSION, decode_projection_sidecar,
                                 encode_projection_sidecar, hero_anchor, standing_card)
@@ -264,7 +266,8 @@ class FloorSidecarTests(unittest.TestCase):
         self.assertEqual(decoded["floor"][:2], (1, 2))
         self.assertEqual(decoded["roof"][:3], (0, 0, 2))
         self.assertEqual(decoded["fringe"], [])
-        self.assertEqual(len(payload), HEADER.size + 2 * 10000 * 2 + 2 * 4 + 2)
+        self.assertEqual(decoded["patches"], [])
+        self.assertEqual(len(payload), HEADER.size + 2 * 10000 * 2 + 2 * 4 + 2 + 2)
 
     def test_roof_fringe_list_round_trips_and_is_validated(self):
         run = (1, 20, 10, 3, 1, 37, 144, 40, 20.125, 1.875, 10.0, 13.0)
@@ -274,6 +277,21 @@ class FloorSidecarTests(unittest.TestCase):
             encode_floor_sidecar(self.sample_scene(), [(1, 20, 99, 3, 1, 37, 144, 40, 20.125, 1.875, 99.0, 102.0)])
         with self.assertRaisesRegex(ValueError, "truncated"):
             decode_floor_sidecar(payload[:-1])
+
+    def test_roof_patch_list_round_trips_and_is_validated(self):
+        patches = [(2, 1, 40)]
+        payload = encode_floor_sidecar(self.sample_scene(), (), patches)
+        self.assertEqual(decode_floor_sidecar(payload)["patches"], patches)
+        with self.assertRaisesRegex(ValueError, "patch"):
+            encode_floor_sidecar(self.sample_scene(), (), [(0, 1, 40)])
+        with self.assertRaisesRegex(ValueError, "truncated"):
+            decode_floor_sidecar(payload[:-1])
+
+    def test_version_5_floor_lists_still_decode_without_patches(self):
+        payload = bytearray(encode_floor_sidecar(self.sample_scene())[:-2])  # no patch count: version 5 had none
+        struct.pack_into("<H", payload, 4, 5)
+        decoded = decode_floor_sidecar(bytes(payload))
+        self.assertEqual((decoded["version"], decoded["fringe"], decoded["patches"]), (5, [], []))
 
     def test_cell_coordinates_select_inner_square_and_validate_outer_cell(self):
         self.assertEqual(cell_content_rect((0, 0), (100, 100)), (6, 6, 94, 94))
@@ -335,16 +353,18 @@ class RoofFringeTests(unittest.TestCase):
         with TemporaryDirectory() as temp:
             png = Path(temp) / "roof_fringe.png"
             # squares 101, 102 (a run of two) and 105 (another): the same tile art on one wall line
-            entries = write_fringe_art(png, {101: 7, 102: 7, 103: 8, 105: 7},
-                                       lambda tile: self.art(blades if tile == 7 else []),
-                                       lambda edge, plane, start, count: (plane + 0.1, 1.88, float(start), float(start + count)))
+            entries, patches = write_fringe_art(
+                png, {101: 7, 102: 7, 103: 8, 105: 7}, lambda tile: self.art(blades if tile == 7 else []),
+                lambda edge, plane, start, count: (plane - 0.2, plane + 0.1, 1.88, float(start), float(start + count), []))
             self.assertTrue(entries)
+            self.assertEqual(patches, [])
             for edge, plane, start, count, x, y, width, height, face, top, lo, hi in entries:
                 self.assertIn((start, count), [(1, 2), (5, 1), (1, 1)])  # 103 is no fringe: the runs break there
-                self.assertEqual((face, top, lo, hi), (plane + 0.1, 1.88, start, start + count))
+                self.assertIn(round(face - plane, 3), (-0.2, 0.1))        # the wall's outer face, one of its two sides
+                self.assertEqual((top, lo, hi), (1.88, start, start + count))
                 self.assertEqual((width, height), (count * (-donor_proj.SQ_U[0] if edge < 2 else donor_proj.SQ_V[0]), BELT_ROWS + EDGE_ROWS))
             self.assertEqual(Image.open(png).height, sum(entry[7] + 1 for entry in entries) + 1)
-            self.assertEqual(write_fringe_art(png, {101: 8}, lambda tile: self.art([]), lambda *run: None), [])
+            self.assertEqual(write_fringe_art(png, {101: 8}, lambda tile: self.art([]), lambda *run: None), ([], []))
             self.assertFalse(png.exists())
 
     def test_the_belt_continues_the_walls_art_and_the_edge_stands_on_it(self):
@@ -412,6 +432,71 @@ class RoofFringeTests(unittest.TestCase):
         self.assertEqual(rows[-1], STRIP_ROWS - 1)
         self.assertLessEqual(len(rows), int(0.2 * 32) + 2)
         self.assertEqual(len(rows), rows[-1] - rows[0] + 1)
+
+
+class RoofEdgeTests(unittest.TestCase):
+    @staticmethod
+    def tile(parts):
+        """An 80 x 36 iso tile: parts is [(u0, u1, v0, v1, rgb)] of the ground square, painted in order."""
+        ys, xs = np.mgrid[0:36, 0:80]
+        u, v = donor_proj.delta_to_ground(xs + 0.5 - 48, ys + 0.5)
+        rgba = np.zeros((36, 80, 4), np.uint8)
+        for u0, u1, v0, v1, rgb in parts:
+            rgba[(u >= u0) & (u < u1) & (v >= v0) & (v < v1)] = (*rgb, 255)
+        return rgba
+
+    def test_a_whole_shingle_tile_is_a_roof_and_a_grey_top_is_a_wall_top(self):
+        pieces, roof = split_tile(self.tile([(0, 1, 0, 1, (120, 80, 50))]))
+        self.assertEqual(pieces, [])
+        pieces, roof = split_tile(self.tile([(0, 1, 0.6, 1, (120, 80, 50)), (0, 1, 0, 0.3, (14, 14, 14))]))
+        self.assertTrue(pieces)                                        # the grey strip stands up
+        self.assertTrue(roof is not None and (roof[..., 3] > 0).any())  # the shingle part stays a roof
+        grey = (np.abs(roof[..., 0].astype(int) - roof[..., 2]) < 6) & (roof[..., 3] > 0)
+        self.assertFalse(grey.any())                                   # none of the dark part is left on the roof
+        self.assertEqual(unproject_cell(roof).shape[:2], (100, 100))
+
+    def test_outward_is_the_side_with_fewer_roof_squares_beyond_the_wall(self):
+        roof = {r * 100 + c: 1 for r in range(10, 20) for c in range(10, 14)}  # a roof of rows 10..19
+        self.assertEqual(outward(roof, 0, 9.9, 10.1, 10, 4), -1.0)    # roof beyond the high side only: outside is low
+        self.assertEqual(outward(roof, 0, 19.9, 20.1, 10, 4), 1.0)
+        self.assertEqual(outward({}, 0, 9.9, 10.1, 10, 4), -1.0)      # a tie goes to the edge's own side
+        self.assertEqual(outward({}, 1, 9.9, 10.1, 10, 4), 1.0)
+
+    def test_corner_ends_meet_on_each_others_faces(self):
+        art = np.zeros((36, 80, 4), np.uint8)
+        runs = [(0, 10, 10, [(1010, art)] * 2), (2, 10, 10, [(1010, art)] * 2)]
+        bodies = [(9.8, 10.1, 1.88, 9.0, 13.0, []), (9.8, 10.1, 1.88, 9.0, 13.0, [])]
+        placed = resolve_runs(runs, bodies, [-1.0, -1.0], 1.88)
+        self.assertEqual([place[0] for place in placed], [9.8, 9.8])  # the outer (low) faces
+        self.assertEqual([place[2] for place in placed], [9.8, 9.8])  # each starts on the other's face
+        self.assertEqual([place[3] for place in placed], [12.0, 12.0])
+        # a wall that ends before the run starts is no wall under it: the band stands on its tile line
+        placed = resolve_runs(runs[:1], [(9.8, 10.1, 1.88, 5.0, 8.0, [])], [-1.0], 1.88)
+        self.assertEqual(placed[0], [10.0, 1.88, 10.0, 12.0])
+
+    def test_a_corner_snap_never_empties_or_reverses_a_span(self):
+        art = np.zeros((36, 80, 4), np.uint8)
+        # a one-square run at 10 whose wall covers [10, 10.25], and a band across it with its face at 10.4
+        runs = [(0, 5, 10, [(510, art)]), (2, 10, 5, [(510, art)] * 2)]
+        bodies = [(4.8, 5.1, 1.88, 10.0, 10.25, []), (10.4, 10.7, 1.88, 4.0, 8.0, [])]
+        placed = resolve_runs(runs, bodies, [-1.0, 1.0], 1.88)
+        for place in placed:
+            self.assertGreater(place[3], place[2])
+        self.assertEqual(placed[0][2:], [10.0, 10.25])
+
+    def test_check_measures_band_distance_and_ignores_small_blobs(self):
+        slab = type("Slab", (), {"axis": 0, "plane": 9.8, "side": 1.0, "thick": 0.3, "lo": 0.0, "hi": 20.0,
+                                 "band": lambda self: (9.8, 10.1)})()
+        flush = (0, 10, 10, 2, 0, 0, 1, 1, 9.8, 1.88, 10.0, 12.0)
+        inset = (0, 10, 12, 2, 0, 0, 1, 1, 10.1, 1.88, 12.0, 14.0)
+        footprint = {r * 100 + c for r in range(10, 20) for c in range(10, 16)}
+        stats = roof_edge_check.band_stats([flush, inset], [slab], footprint)
+        self.assertAlmostEqual(stats["off_face_max"], 0.3, places=3)
+        self.assertEqual((stats["gap_max"], stats["overshoot_max"]), (0.0, 0.0))
+        cell = np.zeros((100, 100, 4), np.uint8)
+        cell[6:94, 6:94] = (120, 80, 50, 255)
+        cell[40:50, 40:50] = (10, 10, 10, 255)  # a grey blob in the middle of a whole roof, no hole beside it
+        self.assertEqual(int(roof_edge_check.ragged_dark(cell, [0]).sum()), 0)
 
 
 class WallSidecarTests(unittest.TestCase):

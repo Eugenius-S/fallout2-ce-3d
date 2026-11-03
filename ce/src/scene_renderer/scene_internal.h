@@ -272,6 +272,11 @@ struct RoofSquare {
     };
     FringePiece pieces[2];
     int pieceCount = 0;
+    // A mixed tile's roof under the free camera: the flat square comes from a
+    // cell of roof_fringe.png (the wall-top part cut out), drawn with that
+    // texture, in these coordinates.
+    bool patch = false;
+    float patchU0 = 0, patchV0 = 0, patchU1 = 0, patchV1 = 0;
 };
 
 void setRoofSquares(std::vector<RoofSquare> squares);

@@ -19,9 +19,21 @@ the renderer stands each run up as a band on the wall below the roof edge,
 in the plane of that wall's outer face, under the free camera (see roofs.cc).
 The band is a belt, the wall's own art going on up (belt_art), with the
 ragged edge on it: the strip's lowest rows (compose_band).
-Each run is matched to its wall (wall_under) by a general rule; a run with no
-wall under it is not exported and its squares stay flat.
+Each run is matched to its wall (wall_under) by a general rule. The band's
+face is the outer one of the wall's outer face and the roof's own boundary
+line (a run with no wall stands on the boundary line), and where two bands
+meet at a corner each ends on the other's face, so they close without a gap or
+an overhang.
+
+Every dark ragged texel on a roof's edge stands up (task 129, round 4): the
+tiles are split per pixel (split_tile), told by the roof's footprint (the edges
+that have no roof beyond), not by a whole-tile test. A mixed tile, shingle and a
+ragged part in one diamond, keeps its shingle as a flat square in a cell of
+its own in roof_fringe.png (the dark part cut out); the ragged part joins the
+band of its edge.
 """
+
+import math
 
 import numpy as np
 from PIL import Image
@@ -85,6 +97,142 @@ def edge_pieces(rgba):
         art[~keep] = 0
         pieces.append((edge, art))
     return pieces
+
+
+GREY_LUMA = 55.0    # concrete and rebar: a painted pixel this dark (mean of the colours) ...
+GREY_TINT = 6.0     # ... and this grey (red and blue differ by less), shingle is brown
+ALL_GREY = 0.85     # of a tile's painted pixels grey: the tile is all wall top
+MIN_BLOB = 10       # dark pixels that hang together: fewer are specks in a roof's texture
+WHOLE_COVER = 0.9   # of the diamond painted: a tile painted more is a whole roof square ...
+RIM = 0.07          # tile art overhangs its square by this much, in tiles
+FREE_OUTSIDE = 12   # ... unless more painted pixels than this stand off the diamond
+LEFT_ROOF = 0.04    # of the diamond: a tile with less roof left is all wall top
+EDGE_STEPS = ((0, -1), (0, 1), (-1, 0), (1, 0))  # the square beyond edge 0, 1, 2, 3: (dx, dz)
+
+
+def boundary_edges(roof_squares):
+    """{square index: [edges with no roof square beyond them]}: the roof's footprint boundary."""
+    edges = {}
+    for index in roof_squares:
+        x, z = index % 100, index // 100
+        found = [edge for edge, (dx, dz) in enumerate(EDGE_STEPS)
+                 if not (0 <= x + dx < 100 and 0 <= z + dz < 100) or (z + dz) * 100 + x + dx not in roof_squares]
+        edges[index] = found
+    return edges
+
+
+def _grid(rgba):
+    """(painted, u, v, diamond) of a tile art: the ground (u, v) of every pixel, the diamond's mask."""
+    from fp import proj
+    painted = rgba[..., 3] > 0
+    ys, xs = np.mgrid[0:painted.shape[0], 0:painted.shape[1]]
+    u, v = proj.delta_to_ground(xs + 0.5 - 48, ys + 0.5)
+    return painted, u, v, (u >= 0) & (u < 1) & (v >= 0) & (v < 1)
+
+
+def _blobs(mask):
+    """The connected groups (4 neighbours: a dithered checker is no blob) of a mask, as a list of (rows, cols)."""
+    seen = np.zeros_like(mask)
+    groups = []
+    height, width = mask.shape
+    for y0, x0 in zip(*np.nonzero(mask)):
+        if seen[y0, x0]:
+            continue
+        stack, rows, cols = [(y0, x0)], [], []
+        seen[y0, x0] = True
+        while stack:
+            y, x = stack.pop()
+            rows.append(y)
+            cols.append(x)
+            for dy, dx in ((-1, 0), (1, 0), (0, -1), (0, 1)):
+                ny, nx = y + dy, x + dx
+                if 0 <= ny < height and 0 <= nx < width and mask[ny, nx] and not seen[ny, nx]:
+                    seen[ny, nx] = True
+                    stack.append((ny, nx))
+        groups.append((np.array(rows), np.array(cols)))
+    return groups
+
+
+def _grow(mask, painted, near):
+    """The painted pixels with `near` or more of their 8 neighbours in the mask join it."""
+    padded = np.pad(mask, 1).astype(int)
+    count = sum(padded[1 + dy:padded.shape[0] - 1 + dy, 1 + dx:padded.shape[1] - 1 + dx]
+                for dy in (-1, 0, 1) for dx in (-1, 0, 1) if dy or dx)
+    return mask | (painted & (count >= near))
+
+
+def _dilate(mask, reach):
+    """The mask grown by `reach` pixels in every direction."""
+    padded = np.pad(mask, reach)
+    out = np.zeros_like(mask)
+    for dy in range(-reach, reach + 1):
+        for dx in range(-reach, reach + 1):
+            out |= padded[reach + dy:reach + dy + mask.shape[0], reach + dx:reach + dx + mask.shape[1]]
+    return out
+
+
+def split_tile(rgba):
+    """A roof tile's art split into its wall-top part and its roof part.
+
+    Returns (pieces, roof): pieces is [(edge, art)], the wall-top pixels split by
+    the edge of the tile they stand on (edge_pieces; an empty list: a plain
+    roof square), roof the art left as roof (rgba, the wall-top pixels cleared)
+    or None when no roof is left. The wall-top pixels: those off the diamond
+    (rebar and chunks above the wall), and the dark grey pixels (concrete,
+    where shingle is brown) in blobs of MIN_BLOB or more, plus the painted pixels
+    they enclose and the grey ones that touch the cut. A tile painted whole is a
+    roof square; one whose painted pixels are nearly all grey is all wall top.
+    """
+    painted, u, v, diamond = _grid(rgba)
+    if not painted.any():
+        return [], rgba
+    cover = (painted & diamond).sum() / diamond.sum()
+    # off the diamond: past the rim that tile art overhangs its square by (RIM)
+    outside = painted & ~((u >= -RIM) & (u < 1 + RIM) & (v >= -RIM) & (v < 1 + RIM))
+    rgb = rgba[..., :3].astype(float)
+    # concrete and rebar are grey and dark, shingle is brown: red leads blue by more than a few levels
+    grey = painted & (rgb.mean(axis=2) < GREY_LUMA) & (np.abs(rgb[..., 0] - rgb[..., 2]) < GREY_TINT)
+    if cover >= WHOLE_COVER and outside.sum() <= FREE_OUTSIDE:
+        return [], rgba
+    if grey.sum() >= ALL_GREY * painted.sum():
+        fringe = painted.copy()
+    else:
+        keep = np.zeros_like(grey)
+        for rows, cols in _blobs(grey):
+            if len(rows) >= MIN_BLOB:
+                keep[rows, cols] = True
+        fringe = outside | keep
+        for _ in range(2):
+            fringe = _grow(fringe, painted, 5)
+        # the grey texels that touch the cut are its ragged rim: they go with it
+        fringe |= grey & _dilate(fringe, 2)
+    if not fringe.any():
+        return [], rgba
+    art = rgba.copy()
+    art[~fringe] = 0
+    pieces = edge_pieces(art)
+    roof = rgba.copy()
+    roof[fringe] = 0
+    left = ((roof[..., 3] > 0) & diamond).sum() / diamond.sum()
+    return pieces, (roof if left >= LEFT_ROOF else None)
+
+
+CELL_SIZE, CELL_MARGIN = 88, 6   # the tile atlas's cell (scene.py TILE_RES, TILE_MARGIN)
+
+
+def unproject_cell(rgba):
+    """A tile art as the atlas stores it: the square seen from above, (cell, cell, 4) rgba."""
+    from fp import proj
+    cell = CELL_SIZE + 2 * CELL_MARGIN
+    t = (np.arange(cell) + 0.5 - CELL_MARGIN) / CELL_SIZE
+    v, u = np.meshgrid(t, t, indexing="ij")
+    src_x = np.floor(48 + u * proj.SQ_U[0] + v * proj.SQ_V[0]).astype(int)
+    src_y = np.floor(u * proj.SQ_U[1] + v * proj.SQ_V[1]).astype(int)
+    height, width = rgba.shape[:2]
+    inside = (src_x >= 0) & (src_x < width) & (src_y >= 0) & (src_y < height)
+    texture = np.zeros((cell, cell, 4), np.uint8)
+    texture[inside] = rgba[src_y[inside], src_x[inside]]
+    return texture
 
 
 STRIP_ROWS = 40  # a strip's height in art pixels, measured up from the concrete's lowest row
@@ -257,20 +405,23 @@ def wall_under(slabs, walls, edge, plane, start, count):
     return None if group is None else group[:4]
 
 
-def wall_group(slabs, walls, edge, plane, start, count):
+WALL_TOUCH = 0.03  # wall slabs whose bands lie this near each other are one wall, in tiles
+WALL_SAME_TOP = 0.1  # and top out within this of each other (GL units)
+
+
+def wall_body(slabs, walls, edge, plane, start, count):
     """The wall a run of roof edge squares stands over, or None.
 
     slabs: wall_sidecar.wall_slabs(scene); walls: scene["walls"]. The roof edge
     line (v = plane for edges 0 and 1, u = plane for 2 and 3) lies in or just
     beside the body of the wall (its front face and the slab behind it); the
     wall lines along the run's line that do are grouped by their front plane,
-    and the group covering most of the run is the run's wall. Returns (face,
-    bottom, lo, hi, rows): the plane of the wall's outer face (the side away from
-    the roof, in tile units), the wall top's height, the band's span along the
-    line (the run's squares) and the wall's rows (indexes into walls).
+    and the group covering most of the run is the run's wall. Returns (low,
+    high, bottom, first, last, rows): the planes of the wall's two faces (tile
+    units, low < high), the wall top's height, where the wall's rows begin and
+    end along the line and its rows (indexes into walls).
     """
     axis = 0 if edge < 2 else 1
-    outer = -1.0 if edge in (0, 2) else 1.0
     groups = {}
     for slab in slabs:
         if slab.axis != axis:
@@ -288,56 +439,176 @@ def wall_group(slabs, walls, edge, plane, start, count):
                 bottom += share * row[9]
         if weight <= 0.05:
             continue
-        group = groups.setdefault(round(slab.plane, 2), [0.0, 0.0, low, high, []])
+        group = groups.setdefault(round(slab.plane, 2), [0.0, 0.0, low, high, [], math.inf, -math.inf])
         group[0] += weight
         group[1] += bottom
+        group[2], group[3] = min(group[2], low), max(group[3], high)
         group[4].extend(slab.rows)
+        group[5] = min(group[5], slab.lo)
+        group[6] = max(group[6], slab.hi)
     if not groups:
         return None
-    weight, bottom, low, high, rows = max(groups.values(), key=lambda g: (g[0], -abs(plane - (g[2] + g[3]) / 2)))
-    return (high if outer > 0 else low), bottom / weight, float(start), float(start + count), rows
+    chosen = max(groups.values(), key=lambda g: (g[0], -abs(plane - (g[2] + g[3]) / 2)))
+    weight, bottom, low, high, rows, first, last = chosen
+    # slabs of one wall at other front planes (a cap, a thicker stretch) that touch its band and top out at
+    # the same height are part of it: the wall's faces are those of the whole
+    pending = [g for g in groups.values() if g is not chosen]
+    grown = True
+    while grown:
+        grown = False
+        for g in list(pending):
+            if g[2] <= high + WALL_TOUCH and g[3] >= low - WALL_TOUCH and abs(g[1] / g[0] - bottom / weight) <= WALL_SAME_TOP:
+                weight, bottom = weight + g[0], bottom + g[1]
+                low, high = min(low, g[2]), max(high, g[3])
+                rows = rows + g[4]
+                first, last = min(first, g[5]), max(last, g[6])
+                pending.remove(g)
+                grown = True
+    return low, high, bottom / weight, first, last, rows
 
 
-def write_fringe_art(out_png, roof_squares, art_of, wall_of, belt_of=None):
-    """Write the unrolled strips of the roof's wall-top runs into one image, out_png.
+def wall_group(slabs, walls, edge, plane, start, count, outer=None):
+    """wall_body with the face on the outer side: (face, bottom, lo, hi, rows) or None.
+
+    outer: -1 or 1, the side of the wall away from the roof (by default the edge's
+    own side: -1 for edges 0 and 2, 1 for 1 and 3). lo, hi: the run's squares.
+    """
+    body = wall_body(slabs, walls, edge, plane, start, count)
+    if body is None:
+        return None
+    if outer is None:
+        outer = -1.0 if edge in (0, 2) else 1.0
+    return (body[1] if outer > 0 else body[0]), body[2], float(start), float(start + count), body[5]
+
+
+OUTWARD_DEPTH = 6  # squares beyond a wall that tell the roof is on its far side
+
+
+def outward(roof_squares, edge, low, high, start, count, depth=OUTWARD_DEPTH):
+    """Which side of a wall is the building's outside: -1 (lower u or v) or 1.
+
+    The roof's footprint thins out toward the outside: the side with fewer roof
+    squares in the OUTWARD_DEPTH squares beyond the wall's face, along the run.
+    A tie goes to the side the roof edge's art names (edge 0, 2: lower).
+    """
+    along = range(start, start + count)
+    rows_below = [int(math.floor(low - 1e-6)) - 1 - d for d in range(depth)]
+    rows_above = [int(math.ceil(high + 1e-6)) + d for d in range(depth)]
+    cell = (lambda a, r: (a, r)) if edge < 2 else (lambda a, r: (r, a))
+    below = [cell(a, r) for r in rows_below for a in along]
+    above = [cell(a, r) for r in rows_above for a in along]
+    count_of = lambda cells: sum(1 for x, z in cells if 0 <= x < 100 and 0 <= z < 100 and z * 100 + x in roof_squares)
+    lower, upper = count_of(below), count_of(above)
+    if lower != upper:
+        return -1.0 if lower < upper else 1.0
+    return -1.0 if edge in (0, 2) else 1.0
+
+
+MIN_SPAN = 0.05  # a wall that covers less of a run than this is not under it, in tiles
+CORNER_REACH = 0.7  # two bands meet at a corner when it lies this near both their ends, in tiles
+
+
+def resolve_runs(runs, bodies, outers, default_top):
+    """Where each run's band stands: [(face, bottom, lo, hi)] in tile units, one per run.
+
+    bodies: wall_body for each run, or None; outers: the side of each run's
+    wall that is the building's outside (see outward). The face is the wall's
+    outer face (a run with no wall stands on the tile line its art names); the
+    band's span the run's squares, cut to where the wall's rows end. Where the
+    ends of two bands lie near the corner their lines make, each ends on the
+    other's face: no gap, no overhang.
+    """
+    out = []
+    for (edge, plane, start, members), body, outer in zip(runs, bodies, outers):
+        lo, hi = float(start), float(start + len(members))
+        if body is None:
+            out.append([float(plane), default_top, lo, hi])
+            continue
+        span = [max(lo, body[3]), min(hi, body[4])]
+        if span[1] - span[0] < MIN_SPAN:
+            # the wall's rows end before this run's squares: no wall under it
+            out.append([float(plane), default_top, lo, hi])
+            continue
+        out.append([body[1] if outer > 0 else body[0], body[2], *span])
+    original = [list(place) for place in out]
+    for n, (edge, plane, start, members) in enumerate(runs):
+        for side in (2, 3):
+            # the nearest band across this end, on the roof's side (the low end meets a band whose roof lies
+            # on the higher side, edges 0 and 2; the high end the lower side's): this band's line is
+            # its face across the other's span, the other's face across this one's
+            best = None
+            for m, (other_edge, other_plane, other_start, other_members) in enumerate(runs):
+                if n == m or (other_edge < 2) == (edge < 2) or (other_edge in (0, 2)) != (side == 2):
+                    continue
+                corner_along, corner_cross = original[m][0], original[n][0]
+                gap = abs(original[n][side] - corner_along)
+                if gap <= CORNER_REACH and                         original[m][2] - CORNER_REACH <= corner_cross <= original[m][3] + CORNER_REACH                         and (best is None or gap < best[0]):
+                    best = (gap, corner_along)
+            # a snap that would empty or reverse the span is not made
+            if best is not None and (out[n][3] - best[1] if side == 2 else best[1] - out[n][2]) >= MIN_SPAN:
+                out[n][side] = best[1]
+    return out
+
+
+def write_fringe_art(out_png, roof_squares, art_of, wall_of, belt_of=None, default_top=1.88):
+    """Write the unrolled strips of the roof's wall tops, and the flat squares cut around them, into one image, out_png.
 
     roof_squares: {square index (y * 100 + x): tile id} of the roof layer.
     art_of: tile id -> iso rgba. wall_of(edge, plane, start, count): the run's
-    wall (wall_under) or None. belt_of(run, wall): the belt_art of the run, or None.
-    Returns floor_sidecar's run entries (edge, plane,
-    start, count, the strip's rect in out_png, the wall's face plane, top and the
-    band's span). A run with no wall is left out. The image is not the
-    tile atlas: the flat floor and roof squares sample that one, and its size
-    must not change. With no wall-top tile no image is written (a stale one is
-    removed) and the list is empty.
+    wall (wall_body) or None. belt_of(run, wall): the belt_art of the run, or None.
+    Returns (runs, patches): floor_sidecar's run entries (edge, plane, start,
+    count, the strip's rect in out_png, the wall's face plane, top and the band's
+    span; see resolve_runs) and its patch entries (square index, x, y: the cell
+    in out_png a mixed square's roof is drawn from under the free camera, its
+    wall-top part cut out). The image is not the tile atlas: the flat floor and
+    roof squares sample that one, and its size must not change. With no wall top
+    no image is written (a stale one is removed) and both lists are empty.
     """
     cache = {}
 
-    def pieces_of(tile):
+    def split(tile):
         if tile not in cache:
-            art = art_of(tile)
-            cache[tile] = edge_pieces(art) if is_fringe(art) else []
+            cache[tile] = split_tile(art_of(tile))
         return cache[tile]
 
-    squares = {index: pieces_of(tile) for index, tile in sorted(roof_squares.items())}
-    walls = []
-    runs = []
-    for run in runs_of({index: pieces for index, pieces in squares.items() if pieces}):
-        wall = wall_of(run[0], run[1], run[2], len(run[3]))
-        if wall is not None:
-            runs.append(run)
-            walls.append(wall)
+    squares, patched = {}, {}
+    for index, tile in sorted(roof_squares.items()):
+        pieces, roof = split(tile)
+        if pieces:
+            squares[index] = pieces
+            patched[index] = (tile, roof)
+    runs = runs_of(squares)
     if not runs:
         out_png.unlink(missing_ok=True)
-        return []
-    strips = [compose_band(unroll(*run), belt_of(run, wall) if belt_of else None) for run, wall in zip(runs, walls)]
-    width = max(strip.shape[1] for strip in strips) + 2
-    height = sum(strip.shape[0] + 1 for strip in strips) + 1
+        return [], []
+    bodies = [wall_of(run[0], run[1], run[2], len(run[3])) for run in runs]
+    outers = [None if body is None else outward(roof_squares, run[0], body[0], body[1], run[2], len(run[3]))
+              for run, body in zip(runs, bodies)]
+    places = resolve_runs(runs, bodies, outers, default_top)
+    for place in places:
+        if not place[3] > place[2]:
+            raise ValueError(f"a roof band's span is empty or reversed: {place}")
+    strips = [compose_band(unroll(*run), belt_of(run, body) if belt_of and body is not None else None)
+              for run, body in zip(runs, bodies)]
+    cells = {}
+    for index, (tile, roof) in patched.items():
+        if roof is not None:
+            cells.setdefault(tile, unproject_cell(roof))
+    cell = CELL_SIZE + 2 * CELL_MARGIN
+    per_row = max(1, max(strip.shape[1] for strip in strips) // (cell + 1))
+    width = max(max(strip.shape[1] for strip in strips) + 2, per_row * (cell + 1) + 1)
+    cell_rows = (len(cells) + per_row - 1) // per_row
+    height = sum(strip.shape[0] + 1 for strip in strips) + 1 + cell_rows * (cell + 1)
     sheet = Image.new("RGBA", (width, height), (0, 0, 0, 0))
     entries, y = [], 1
-    for (edge, plane, start, members), strip, wall in zip(runs, strips, walls):
+    for (edge, plane, start, members), strip, place in zip(runs, strips, places):
         sheet.paste(Image.fromarray(strip, "RGBA"), (1, y))
-        entries.append((edge, plane, start, len(members), 1, y, strip.shape[1], strip.shape[0], *wall[:4]))
+        entries.append((edge, plane, start, len(members), 1, y, strip.shape[1], strip.shape[0], *place))
         y += strip.shape[0] + 1
+    where = {}
+    for n, (tile, texture) in enumerate(cells.items()):
+        where[tile] = (1 + (n % per_row) * (cell + 1), y + (n // per_row) * (cell + 1))
+        sheet.paste(Image.fromarray(texture, "RGBA"), where[tile])
+    patches = [(index, *where[tile]) for index, (tile, roof) in sorted(patched.items()) if roof is not None]
     sheet.save(out_png, optimize=True)
-    return entries
+    return entries, patches
