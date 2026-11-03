@@ -47,6 +47,9 @@ MAP_GROUPS = {
     # cycling colours, unlike Klamath's dead ones (task 050).
     "vault15": ("vault15",),
     "den": ("denbus1", "denbus2", "denres1"),
+    # Modoc and the Ghost Town: the town, the farms, the well, the ghost
+    # farm and its caves (the game's maps/mod*.map and gst*.map files).
+    "modoc": ("modmain", "modinn", "modbrah", "modgard", "modshit", "modwell", "gstfarm", "gstcav1", "gstcav2"),
 }
 EXPECTED_OUTPUT_FILES = {"scene.json", "provenance.json", "floor.bin", "walls.bin", "projection.bin", "baked.bin",
                          "shadows.bin", "tiles.png", "light.png", "rock.png", "roof_fringe.png"}
