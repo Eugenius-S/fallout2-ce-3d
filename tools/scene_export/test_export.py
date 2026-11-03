@@ -18,7 +18,7 @@ from baked_sidecar import (ENTRY as BAKED_ENTRY, GL_MAP_OFFSET, HEADER as BAKED_
                            baked_objects, decode_baked_sidecar, encode_baked_sidecar)
 from export import ReadOnlyGameFiles, choose_source, main, parse_args, patch_paths, scene_directory, validate_output_contents
 from floor_sidecar import HEADER, MAGIC, VERSION, cell_content_rect, decode_floor_sidecar, encode_floor_sidecar
-from roof_fringe import (BELT_LAP, BELT_ROWS, EDGE_ROWS, STRIP_ROWS, belt_art, compose_band, is_fringe, outward, resolve_runs, runs_of,
+from roof_fringe import (components_of, donate, foot_cover, lay_donor, roof_sides, whole_sides, BELT_LAP, BELT_ROWS, EDGE_ROWS, STRIP_ROWS, belt_art, compose_band, is_fringe, outward, resolve_runs, runs_of,
                          split_tile, unproject_cell, unroll, wall_under, write_fringe_art)
 import roof_edge_check
 from projection_sidecar import (HEADER as PROJECTION_HEADER, MAGIC as PROJECTION_MAGIC,
@@ -412,6 +412,71 @@ class RoofFringeTests(unittest.TestCase):
         self.assertIsNone(wall_under(slabs, walls, 3, 10, 3, 2))
         self.assertIsNone(wall_under(slabs, walls, 1, 10, 7, 2))
 
+    def test_a_band_that_is_not_genuine_takes_its_roofs_donor_edge(self):
+        # a genuine strip: concrete along the bottom rows, a ragged top over it
+        def strip_of(count, per_tile, upside_down=False):
+            strip = np.zeros((STRIP_ROWS, count * per_tile, 4), np.uint8)
+            strip[-3:] = (30, 30, 30, 255)
+            strip[-EDGE_ROWS:-3, ::3] = (200, 0, 0, 255)  # rebar
+            return strip[::-1].copy() if upside_down else strip
+
+        u_tile, v_tile = int(-donor_proj.SQ_U[0]), int(donor_proj.SQ_V[0])
+        self.assertGreaterEqual(foot_cover(strip_of(2, u_tile)), 0.99)
+        self.assertLess(foot_cover(strip_of(2, u_tile, upside_down=True)), 0.5)  # the straight edge on top: not genuine
+        art = np.zeros((2, 2, 4), np.uint8)
+        mk = lambda edge, plane, start, squares: (edge, plane, start, [(i, art) for i in squares])
+        runs = [mk(1, 11, 3, [103, 104]),                 # genuine, roof A (squares 103-104 and 203 are one footprint)
+                mk(3, 4, 3, [203, 303, 403]),             # slab-cut, roof A: takes A's donor
+                mk(0, 51, 7, [5107, 5108])]               # not genuine, roof B: A is far, B has none: the map's donor
+        strips = [strip_of(2, u_tile), strip_of(3, v_tile, upside_down=True), strip_of(2, u_tile, upside_down=True)]
+        roof = {103: 1, 104: 1, 203: 1, 303: 1, 403: 1, 5107: 1, 5108: 1}
+        comp = components_of(roof)
+        self.assertEqual(comp[103], comp[403])
+        self.assertNotEqual(comp[103], comp[5107])
+        pool = [(runs[0], strips[0], comp[103])]
+        out = donate(runs, strips, [True, False, False], pool, comp)
+        self.assertIs(out[0], strips[0])
+        for n, (run, per_tile) in enumerate(((runs[1], v_tile), (runs[2], u_tile)), start=1):
+            width = len(run[3]) * per_tile
+            self.assertEqual(out[n].shape, (STRIP_ROWS, width, 4))
+            self.assertEqual(out[n][:-EDGE_ROWS, :, 3].max(), 0)             # nothing above the donor's height
+            self.assertGreaterEqual(foot_cover(out[n]), 0.99)                # ragged on top, concrete along the bottom
+            self.assertTrue((out[n][-3:, :, :3] == 30).all())
+            self.assertTrue((out[n][-EDGE_ROWS:-3, 0:width:3, 0] == 200).sum() > 0)  # the donor's rebar, repeated along the run
+        # a run's strip made of the donor repeats it: shifted by the donor's length it is the same
+        repeat = lay_donor((strips[0], 2, 1), 1, 6)
+        self.assertTrue((repeat[:, :2 * u_tile] == repeat[:, 2 * u_tile:4 * u_tile]).all())
+
+    def test_a_footprint_side_that_is_not_one_genuine_run_becomes_one_run(self):
+        art = np.zeros((2, 2, 4), np.uint8)
+        # a roof of squares x 3..6 on row 5: its north side (edge 0, line v = 5) is 4 squares along u
+        roof = {5 * 100 + x: 1 for x in range(3, 7)}
+        open_of = {index: [0] for index in roof}
+        sides = roof_sides(roof, open_of)
+        self.assertIn((0, 5, 3, [503, 504, 505, 506]), sides)
+        fragments = [(1, 6, 3, [(503, art)]), (0, 5, 5, [(505, art), (506, art)])]
+        strips = [np.zeros((STRIP_ROWS, 48, 4), np.uint8)] * 2
+        runs, out, good = whole_sides(fragments, strips, [False, False], sides)
+        self.assertEqual([(run[0], run[1], run[2], len(run[3])) for run in runs if run[0] == 0], [(0, 5, 3, 4)])
+        self.assertEqual(len(runs), 1)
+        self.assertEqual((out, good), ([None], [False]))
+        # one genuine run over the whole side stays as it is
+        whole = [(1, 6, 3, [(i, art) for i in (503, 504, 505, 506)])]
+        runs, out, good = whole_sides(whole, [strips[0]], [True], sides)
+        self.assertEqual((runs, good), (whole, [True]))
+
+    def test_bands_that_meet_at_a_corner_end_on_each_others_faces_and_share_a_top(self):
+        art = np.zeros((2, 2, 4), np.uint8)
+        # a band along u on the face v = 10.1 over x 3..6, one along v on the face u = 2.9 over z 10..13: the art
+        # names the other edges (1 and 3), the corner is where the faces cross, both ends are short of it
+        runs = [(1, 11, 3, [(i, art) for i in range(3)]), (3, 3, 10, [(i, art) for i in range(3)])]
+        bodies = [None, None]
+        places = resolve_runs(runs, bodies, [None, None], 1.88)
+        places = [list(place) for place in places]
+        # no wall: the faces are the tile lines 11 and 3: the u band's low end meets the v band's face
+        self.assertAlmostEqual(places[0][2], 3.0)
+        self.assertEqual(places[0][1], places[1][1])
+
     def test_pieces_of_one_wall_line_that_follow_each_other_are_one_run(self):
         art = np.zeros((36, 80, 4), np.uint8)
         # edge 1 of squares (3, 4), (4, 4), (6, 4): the line v = 5; edge 0 of (4, 5) lies on it too
@@ -503,7 +568,7 @@ class RoofEdgeTests(unittest.TestCase):
         placed = resolve_runs(runs, bodies, [-1.0, 1.0], 1.88)
         for place in placed:
             self.assertGreater(place[3], place[2])
-        self.assertEqual(placed[0][2:], [10.0, 10.25])
+        self.assertEqual(placed[0][2:], [10.0, 10.7])  # it runs on to the band across it: the corner closes
 
     def test_check_measures_band_distance_and_ignores_small_blobs(self):
         slab = type("Slab", (), {"axis": 0, "plane": 9.8, "side": 1.0, "thick": 0.3, "lo": 0.0, "hi": 20.0,

@@ -39,6 +39,7 @@ RIM = 0.05    # the square's own rim, jagged in every tile's art: a clear texel 
 HOLE_REACH = 2  # a dark texel this near a clear texel of the square is ragged, in texels
 DEEP = 6        # squares beyond a wall that tell which side is the building's outside (roof_fringe.OUTWARD_DEPTH)
 WALL_NEAR = 0.3  # a wall body this near a band's plane belongs to its wall, in tiles
+CORNER_NEAR = 0.7  # two bands make a corner when their ends and faces lie this near each other, in tiles
 OFF_SQUARE = 3  # a dark texel this far off the square is ragged, in texels
 
 
@@ -113,18 +114,27 @@ def band_stats(entries, slabs=(), footprint=frozenset()):
             low, high = min(low for low, _ in near), max(high for _, high in near)
             side = outward(footprint, edge, low, high, start, count, DEEP)
             insets.append(abs(face - (high if side > 0 else low)))
+    # corners, by geometry: a band's end has a corner with the nearest band across it whose face lies
+    # within CORNER_NEAR of the end, and whose span reaches the band's own face
+    tops = []
     for n, a in enumerate(entries):
-        for m, b in enumerate(entries):
-            if n == m or (a[0] < 2) == (b[0] < 2):
-                continue
-            b_end = b[2] + b[3]
-            for end_line, mine, sign in ((a[2], a[-2], -1.0), (a[2] + a[3], a[-1], 1.0)):
-                if b[1] == end_line and a[1] in (b[2], b_end) and (b[0] in (0, 2)) == (sign < 0):
-                    excess = (mine - b[-4]) * sign
-                    (overshoots if excess > 1e-6 else gaps).append(abs(excess))
+        for end in (-2, -1):
+            best = None
+            for m, b in enumerate(entries):
+                if n == m or (a[0] < 2) == (b[0] < 2):
+                    continue
+                gap = abs(a[end] - b[-4])
+                if gap <= CORNER_NEAR and b[-2] - CORNER_NEAR <= a[-4] <= b[-1] + CORNER_NEAR and (best is None or gap < best[0]):
+                    best = (gap, b)
+            if best is not None:
+                excess = (a[end] - best[1][-4]) * (-1.0 if end == -2 else 1.0)
+                (overshoots if excess > 1e-6 else gaps).append(abs(excess))
+                tops.append(abs(a[-3] - best[1][-3]))
     return {"bands": len(entries), "off_face_max": max(insets, default=0.0),
             "off_face_mean": float(np.mean(insets)) if insets else 0.0, "gap_max": max(gaps, default=0.0),
-            "overshoot_max": max(overshoots, default=0.0), "corners": len(gaps) + len(overshoots)}
+            "overshoot_max": max(overshoots, default=0.0), "corners": len(gaps) + len(overshoots),
+            "corner_top_max": max(tops, default=0.0),
+            "corner_off": sum(1 for g in gaps + overshoots if g > 1e-6)}
 
 
 def measure(directory):
