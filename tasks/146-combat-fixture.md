@@ -61,3 +61,13 @@ Two background attempts on `klatoxcv` loaded the map and available 3D preview bu
 Next: Re-run the four-phase captures on both maps in 3D and Classic, confirm or fix the startup readiness bypass, verify map-hostile versus test-critter selection, then create the two-map phase strips.
 
 Check: Release build passed; `ctest --test-dir build --output-on-failure` passed 18/18. Failed attempt logs: `runs/146-combat-fixture/klatoxcv-3d/process.stdout.log` and `runs/146-combat-fixture/klatoxcv-3d-attempt-2/process.stdout.log`.
+
+### 2026-11-03 gpt continuation
+
+Done: kept the task claimed as `doing` by `gpt` and copied the two existing
+attempts' stdout/stderr logs into this branch under `runs/146-combat-fixture/`.
+They confirm the preview loaded but the combat fixture never became ready.
+Next: continue with task 147 under the owner's two-attempt exception. Task 146
+still needs working startup readiness and all eight 3D/2D phase captures.
+Check: PR #220 remains draft; its last CI run passed. No third runtime attempt
+was made.
