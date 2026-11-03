@@ -4,7 +4,7 @@ title: Arroyo in 3D, the game's opening area stands and looks clean
 milestone: M1
 status: todo
 owner: none
-suggested: claude
+suggested: glm
 priority: high
 claude-only: no
 user-check: yes
@@ -14,8 +14,8 @@ reviewed: no
 
 ## Goal
 
-A new game starts in 3D. Every Arroyo map (the Temple of Trials, the
-village, and every other map the game files list for Arroyo, all
+A new game starts in 3D. Every Arroyo map (artemple, arcaves,
+arvillag, arbridge, argarden, ardead, and any other map the game files list for Arroyo, all
 elevations) exports, loads in the game in 3D and looks as clean as Klamath:
 in the game camera and the fly camera, at morning, noon and evening. Today
 scene data exists only for Klamath, so the first hour of the game is still
