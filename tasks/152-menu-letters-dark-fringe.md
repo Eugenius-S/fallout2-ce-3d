@@ -2,8 +2,8 @@
 id: 152
 title: The main menu's yellow letters have no dark pixel fringe
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: gpt
 suggested: gpt
 priority: normal
 claude-only: no
