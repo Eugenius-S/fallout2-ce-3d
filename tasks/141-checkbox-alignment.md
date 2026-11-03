@@ -2,8 +2,8 @@
 id: 141
 title: The 3D options checkboxes line up: an empty box stands where a ticked one does
 milestone: M1
-status: todo
-owner: none
+status: doing
+owner: gpt
 suggested: gpt
 priority: normal
 claude-only: no
