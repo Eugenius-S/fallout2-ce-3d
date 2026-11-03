@@ -188,6 +188,25 @@ void drawRightAlignedControlText(unsigned char* panel, int rowY, int left, int r
     fontDrawText(panel + kWidth * (rowY + kLabelTextOffset) + x, text, width, kWidth, color);
 }
 
+void drawLeftAlignedControlText(unsigned char* panel, int rowY, int left, int right, const char* text, Color color)
+{
+    const int width = std::min(fontGetStringWidth(text), right - left);
+    if (width <= 0) return;
+    const int height = std::max(1, fontGetLineHeight());
+    const int pitch = width + 4;
+    std::vector<unsigned char> pixels(static_cast<size_t>(pitch) * height, 0);
+    fontDrawTextPtr(pixels.data(), text, width, pitch, color | DRAW_TEXT_FLAG_NO_BG);
+    int inkRight = 0;
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+            if (pixels[static_cast<size_t>(y) * pitch + x] != 0) inkRight = std::max(inkRight, x + 1);
+        }
+    }
+    if (inkRight == 0) inkRight = width;
+    ScopedTextRightAlign align(left + inkRight);
+    fontDrawText(panel + kWidth * (rowY + kLabelTextOffset) + left, text, width, kWidth, color);
+}
+
 } // namespace
 
 OptionsPanel::OptionsPanel() = default;
@@ -850,10 +869,14 @@ void OptionsPanel::drawRows()
         case OptionsPanelControl::Toggle: {
             bool value = std::get<bool>(row.edit->value);
             const char* checkbox = value ? "[X]" : "[ ]";
-            drawRightAlignedControlText(panel, rowY, sliderTrackRight() - 40,
+            const int checkboxWidth = fontGetStringWidth("[X]");
+            drawLeftAlignedControlText(panel, rowY, sliderTrackRight() - checkboxWidth,
                 sliderTrackRight(), checkbox, color);
-            drawRightAlignedControlText(panel, rowY, kSliderValueX - inset,
-                kSliderValueX + kSliderValueWidth - inset, localized(value ? "On" : "Off"), color);
+            const int valueWidth = std::max(fontGetStringWidth(localized("On")), fontGetStringWidth(localized("Off")));
+            const int valueRight = std::max(kSliderValueX + kSliderValueWidth - inset,
+                sliderTrackRight() + valueWidth + 8);
+            drawLeftAlignedControlText(panel, rowY, valueRight - valueWidth,
+                valueRight, localized(value ? "On" : "Off"), color);
             break;
         }
         case OptionsPanelControl::Slider: {
