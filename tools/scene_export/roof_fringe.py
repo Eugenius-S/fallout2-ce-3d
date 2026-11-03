@@ -870,7 +870,8 @@ def write_fringe_art(out_png, roof_squares, art_of, wall_of, belt_of=None, defau
     in out_png a mixed square's roof is drawn from under the free camera, its
     wall-top part cut out). The image is not the tile atlas: the flat floor and
     roof squares sample that one, and its size must not change. With no wall top
-    no image is written (a stale one is removed) and both lists are empty.
+    and no flat cell to tidy no image is written (a stale one is removed) and both lists are empty; when every
+    run is cut away (no wall stands under it) the image still holds the tidied cells and the patches name them.
     """
     cache = {}
 
@@ -889,18 +890,12 @@ def write_fringe_art(out_png, roof_squares, art_of, wall_of, belt_of=None, defau
             if slab_edges(art_of(tile), tuple(open_of[index]))[0]:
                 slab_cut.add(index)
     runs = runs_of(squares)
-    if not runs:
-        out_png.unlink(missing_ok=True)
-        return [], []
     raw = [unroll(*run) for run in runs]
     good = [genuine(run, strip, slab_cut) for run, strip in zip(runs, raw)]
     comp = components_of(roof_squares)
     pool = [(run, strip, comp[run[3][0][0]]) for run, strip, ok in zip(runs, raw, good) if ok]
     runs, raw, good = whole_sides(runs, raw, good, roof_sides(roof_squares, open_of))
     runs, raw, good = cut_to_walls(runs, raw, good, wall_of)
-    if not runs:
-        out_png.unlink(missing_ok=True)
-        return [], []
     # a square that is all wall top and has no band left (no wall under it) is not drawn at all
     banded = {index for run in runs for index, _ in run[3]}
     for index, ((tile, open_edges), roof) in list(patched.items()):
@@ -938,8 +933,12 @@ def write_fringe_art(out_png, roof_squares, art_of, wall_of, belt_of=None, defau
         if roof is not None:
             cells.setdefault(tile, tidy_cell(unproject_cell(roof), () if tile == BLANK else tile[1]))
     cell = CELL_SIZE + 2 * CELL_MARGIN
-    per_row = max(1, max(strip.shape[1] for strip in strips) // (cell + 1))
-    width = max(max(strip.shape[1] for strip in strips) + 2, per_row * (cell + 1) + 1)
+    if not strips and not cells:
+        out_png.unlink(missing_ok=True)
+        return [], []
+    widest = max((strip.shape[1] for strip in strips), default=0)
+    per_row = max(1, widest // (cell + 1))
+    width = max(widest + 2, per_row * (cell + 1) + 1)
     cell_rows = (len(cells) + per_row - 1) // per_row
     height = sum(strip.shape[0] + 1 for strip in strips) + 1 + cell_rows * (cell + 1)
     sheet = Image.new("RGBA", (width, height), (0, 0, 0, 0))

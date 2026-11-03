@@ -492,6 +492,27 @@ class RoofFringeTests(unittest.TestCase):
             self.assertTrue({201, 301} <= crossed)                              # the plain squares are in a band ...
             self.assertTrue({201, 301} <= {index for index, _, _ in patches})   # ... and keep their flat roof
 
+    def test_a_roof_whose_runs_are_all_cut_away_keeps_its_tidied_patches(self):
+        blades = [(y, x) for x in range(30, 60, 5) for y in range(8, 20 + x % 7)]
+        with TemporaryDirectory() as temp:
+            png = Path(temp) / "roof_fringe.png"
+            plain = self.art([(y, x) for y in range(36) for x in range(80)], (120, 130, 110))
+            roof = {101: 7, 102: 8, 103: 8, 201: 8, 202: 8, 203: 8, 301: 8, 302: 8, 303: 8}
+            art_of = lambda tile: self.art(blades) if tile == 7 else plain
+            with_wall = write_fringe_art(
+                png, roof, art_of,
+                lambda edge, plane, start, count: (plane - 0.2, plane + 0.1, 1.88, float(start), float(start + count), []))
+            self.assertTrue(with_wall[0])
+            entries, patches = write_fringe_art(png, roof, art_of, lambda *run: None)   # no wall stands under any run
+            self.assertEqual(entries, [])                                               # so no band ...
+            self.assertTrue(patches)                                                    # ... but the split roof is still a patch
+            self.assertTrue(png.exists())
+            sheet = np.asarray(Image.open(png).convert("RGBA"))
+            for index, x, y in patches:
+                self.assertTrue(x + 100 <= sheet.shape[1] and y + 100 <= sheet.shape[0])
+            self.assertEqual(write_fringe_art(png, {}, art_of, lambda *run: None), ([], []))
+            self.assertFalse(png.exists())                                              # nothing at all: no image
+
     def test_a_footprint_side_that_is_not_one_genuine_run_becomes_one_run(self):
         art = np.zeros((2, 2, 4), np.uint8)
         # a roof of squares x 3..6 on row 5: its north side (edge 0, line v = 5) is 4 squares along u
