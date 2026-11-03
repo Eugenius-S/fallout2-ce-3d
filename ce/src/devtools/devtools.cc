@@ -755,16 +755,13 @@ static bool applyElevationChange(int elevation)
         return false;
     }
 
-    MapTransition transition;
-    transition.map = gMapHeader.index;
-    transition.elevation = static_cast<MapElevation>(elevation);
-    transition.tile = targetTile;
-    transition.rotation = static_cast<Rotation>(-1);
-
-    if (mapSetTransition(&transition) == -1) {
-        setStatus("transition rejected");
-        return false;
-    }
+    // Direct placement, not the engine's map transition: mapHandleTransition
+    // refuses tile-based placement on a vanilla blacklist of maps (the Modoc
+    // bed and breakfast, the Squat A), which is exactly where the small
+    // floors live, so a same-map transition would never move the dude there.
+    objectSetLocation(gDude, targetTile, static_cast<MapElevation>(elevation), nullptr);
+    mapSetElevation(static_cast<MapElevation>(elevation));
+    tileSetCenter(gDude->tile, TILE_SET_CENTER_REFRESH_WINDOW);
     return true;
 }
 
