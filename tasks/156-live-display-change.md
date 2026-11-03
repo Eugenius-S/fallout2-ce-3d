@@ -120,3 +120,11 @@ Validation is blocked; task status remains `doing` per the task schema,
 is pushed for inspection, but this task is not ready for review until the
 display-buffer exchange stop is diagnosed and the same-process acceptance run
 captures every requested mode.
+
+### 2026-11-03 gpt: merge origin/main
+
+Merged `origin/main` at `d8cff6b0` into `task/156-live-display-change`. Resolved the scripted-input conflicts so scene-only auto-start and options-panel preferences input both remain available; retained the task-156 display transaction request, `waitms` and key actions, and the old `DevInputSnapshots` command name as an alias. The result metadata still records the window mode.
+
+Sanitized the absolute worktree cache path in the attempt 2 and 3 logs. Release build passed with MSVC 14.40 and Windows SDK 10.0.22621.0; CTest passed 23/23. The scripted-input PowerShell file parses, and `git diff --check` passes.
+
+Next: continue diagnosing the existing display-change runtime timeout and capture the requested live frames. The task remains `doing`, `reviewed: no`, and PR #227 remains draft until runtime acceptance is proven.
