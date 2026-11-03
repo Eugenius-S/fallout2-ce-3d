@@ -32,6 +32,7 @@
 #include "text_object.h"
 #include "tile.h"
 #include "worldmap.h"
+#include "scene/object_view_swap.h"
 
 namespace fallout {
 
@@ -290,6 +291,49 @@ static int gObjectsWindowPitch;
 
 // 0x6610B4 buf_width
 static int gObjectsWindowWidth;
+
+bool objectExchangeView(scene::ObjectViewSwap& swap)
+{
+    scene::ObjectViewState state;
+    state.buffer = gObjectsWindowBuffer;
+    state.width = gObjectsWindowWidth;
+    state.height = gObjectsWindowHeight;
+    state.pitch = gObjectsWindowPitch;
+    state.bufferSize = gObjectsWindowBufferSize;
+    state.windowRect = gObjectsWindowRect;
+    state.updateBounds = gObjectsUpdateAreaPixelBounds;
+    state.hexWidth = gObjectsUpdateAreaHexWidth;
+    state.hexHeight = gObjectsUpdateAreaHexHeight;
+    state.hexSize = gObjectsUpdateAreaHexSize;
+    state.centerToUpperLeft = _centerToUpperLeft;
+    for (int i = 0; i < 2; i++) {
+        state.offsets[i] = _offsetTable[i];
+        state.order[i] = _orderTable[i];
+    }
+    state.div = _offsetDivTable;
+    state.mod = _offsetModTable;
+    state.render = _renderTable;
+    if (!swap.exchange(state)) return false;
+    gObjectsWindowBuffer = state.buffer;
+    gObjectsWindowWidth = state.width;
+    gObjectsWindowHeight = state.height;
+    gObjectsWindowPitch = state.pitch;
+    gObjectsWindowBufferSize = state.bufferSize;
+    gObjectsWindowRect = state.windowRect;
+    gObjectsUpdateAreaPixelBounds = state.updateBounds;
+    gObjectsUpdateAreaHexWidth = state.hexWidth;
+    gObjectsUpdateAreaHexHeight = state.hexHeight;
+    gObjectsUpdateAreaHexSize = state.hexSize;
+    _centerToUpperLeft = state.centerToUpperLeft;
+    for (int i = 0; i < 2; i++) {
+        _offsetTable[i] = state.offsets[i];
+        _orderTable[i] = state.order[i];
+    }
+    _offsetDivTable = state.div;
+    _offsetModTable = state.mod;
+    _renderTable = state.render;
+    return true;
+}
 
 // obj_dude
 // 0x6610B8 obj_dude

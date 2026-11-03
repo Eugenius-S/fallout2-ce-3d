@@ -81,3 +81,16 @@ bar without recreating it, preserving its buttons and state; prepare its side
 panels and indicator placement as part of the same rollback-safe transaction.
 Complete the modal-close integration and validate the requested one-process
 runtime sequence before removing restart labels or changing this task to done.
+
+### 2026-11-03 gpt: paused after build environment failures
+
+Done: restored the saved object-view swap work from
+`build/task156-object-view-unverified.patch`. It adds the reversible object
+renderer table exchange needed by the display transaction.
+Next: resume only after the Windows build environment is repaired; finish
+interface-bar repositioning and modal-close integration, then run the full
+single-process display-change acceptance sequence. PR #227 remains draft.
+Check: `git apply --check` passed. Three consecutive local builds failed before
+compiling this change: MSVC headers were initially missing from `INCLUDE`; after
+adding them, UCRT `assert.h` and `stdio.h` could not be resolved. Existing CI is
+green, but this implementation has no successful build or live runtime proof.
