@@ -1,11 +1,12 @@
 ---
 id: 128
-title: Find the wide HUD bar art and its license
+title: Wide-screen art, the HUD bar and the 4:3 full-screen art, with licenses
 milestone: M1
 status: todo
-owner: none
-suggested: gpt
-priority: low
+owner: any
+suggested: any
+priority: normal
+tier: 3
 claude-only: no
 user-check: no
 depends-on: []
@@ -20,6 +21,13 @@ or reuse that art.
 
 ## Context
 
+- Batch: the wide art (2026-11-04 inbox sweep). Step 2 folded in, the
+  inbox line of 2026-10-27: the 4:3 full-screen art (main menu, splash and
+  loading screens, death and ending slides) extended to 16:9 and 21:9. The
+  owner's method: regenerate the art wider from the original, downscale to
+  the game's pixel size, dither to match, then lay the untouched original
+  over the middle with a small gradient mask at its edges. Step 1 (the HUD
+  bar source and license) comes first; step 2 is its own PR.
 - The owner, 2026-11-01: `runs/inbox/2026-11-01-wide-hud-bar.webp`. The stock
   bar sits in the middle; metal side panels with a round vault-gear ornament
   fill the space to each screen edge.

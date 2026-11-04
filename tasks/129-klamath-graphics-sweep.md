@@ -3,9 +3,10 @@ id: 129
 title: Klamath graphics sweep, find and fix every visible defect
 milestone: M1
 status: todo
-owner: none
-suggested: claude
-priority: high
+owner: any
+suggested: any
+priority: low
+tier: 4
 claude-only: no
 user-check: yes
 depends-on: []
@@ -23,6 +24,9 @@ before any release: "a fully working game without most graphic bugs".
 
 ## Context
 
+- Folded in (2026-11-04 inbox sweep): KLAGRAZ e0 differs from the stored
+  regression reference by 132 px; the clean 098 baseline has the same
+  deviation. Find which side is right and refresh the reference or fix it.
 - The owner's finds so far live in `tasks/inbox.md` and in tasks 100-125.
   Read them first so the sweep does not refind what a task already covers.
 - The fly tour (`tools/fly-tour*`), the regression spots and the snapshot
@@ -129,3 +133,8 @@ Next: sweep round 2 (interiors, shapes-eval solo shots).
 Check: the crops and sheets above.
 
 - 2026-11-01 glm is out; box tops merged (#194). Back to todo for claude; continue from `task/129-klamath-graphics-sweep`.
+
+### 2026-11-03 claude
+Done: roof holes after #236 fixed (task/129-roof-holes, PR #238). Rule 1: a tile painted whole is a roof square however dark; only the slab strips along its open edges are wall top. Rule 2: a roof square a band crosses is roofed right up to the band: its flat cell is cut at the band's plane (nothing on the outer side) and filled with plain roof on the inner side (the square's own tidied art, else the donor tile: the most common interior tile of its roof, else the most common unbanded one, else the nearest roof's donor). `roof_edge_check.py` has `lost_squares` and `lane_squares` (before: kladwtwn e0 125, klamall e0 247; after: 0 and 0).
+Next: partial tiles (cover under 0.9) that are nearly all grey and no wall under them still vanish (same as main).
+Check: `py -3 tools/scene_export/roof_edge_check.py --cache-root build/scene-cache --lanes`; crops `runs/129-klamath-graphics/fix129k-*.jpg`.

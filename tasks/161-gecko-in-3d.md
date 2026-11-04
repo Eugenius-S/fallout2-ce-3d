@@ -2,14 +2,14 @@
 id: 161
 title: Gecko in 3D, every map stands and looks clean
 milestone: M1
-status: todo
-owner: none
+status: done
+owner: glm
 suggested: glm
 priority: normal
 claude-only: no
 user-check: yes
 depends-on: []
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -43,7 +43,11 @@ The same loop as 136, without waiting for anyone:
 3. Sweep: every map, elevation, camera and hour; write each defect as one
    numbered line in the Log (map, tile or spot, camera, hour, a crop in
    `runs/161-gecko-in-3d/finds/`, the likely cause).
-4. Group the finds by cause, fix the most visible group on its own branch
+4. Since 2026-11-04 (the owner): the fixes go by kind, not by area. Move
+   each find to its batch (189 walls, 190 roofs, 191 furniture and props,
+   192 vehicles, 173 what cannot be built) and fix it there. A crash or a
+   place the player cannot get past is fixed here at once. The old loop
+   below stays for finds that fit no batch: fix the most visible group on its own branch
    `task/161-<short-cause>` from current origin/main, one PR titled
    `161: <cause>` with before | after crops. Mark the finds it closes.
 5. Back to 4; when the list is empty, sweep again (3).
@@ -66,3 +70,17 @@ The interface, menus and text, the sky, new 3D models from scratch, maps of
 other areas (each has its own task).
 
 ## Log
+
+### 2026-11-04 glm
+Done: the gecko group (gecksetl, geckpwpl, geckjunk, gecktunl; 4 elevations
+export clean). 8 fly tour spots (entrances plus the landmarks from a 24-point
+2D grid probe: the brahmin pen, the reactor hall, the wrecked car, the tunnel
+crossing) and 5 regression spots with references from this build.
+Sweep: the fly tour at every stop (3 turns), hours 8/12/18 on every
+entrance; gecksetl -> geckpwpl -> geckjunk in one run, all scene-gl. The
+power plant and the tunnels are rooms on black void in the game's own 2D;
+the fly views match. tools/regression.ps1: 21 of 21 spots, 0 changed pixels.
+No finds; the task closes.
+Evidence: runs/161-gecko-in-3d/.
+Check: export.py --maps gecko; tour.py --maps gecksetl,geckpwpl,geckjunk,
+gecktunl; tools/regression.ps1.

@@ -3,9 +3,10 @@ id: 156
 title: Resolution, window mode and scale change on the fly, without a restart
 milestone: M1
 status: todo
-owner: gpt
-suggested: gpt
+owner: any
+suggested: any
 priority: high
+tier: 2
 claude-only: no
 user-check: yes
 depends-on: [154]
@@ -38,12 +39,16 @@ scale. The "restart needed" notes go away for what now applies live.
   2560x1440 2.0x and to borderless and back in one run, with frames after
   each switch in `runs/156-live-display-change/`: the interface fits, the
   cursor lands where it points, the 3D view fills the window.
+- Every 3D settings row (shadows, glow, clouds, lights, scale, resolution)
+  applies without a stall: measured with 127's frame-time log, no frame
+  over 100 ms on the change. A change never re-exports or re-reads the scene
+  cache; it rebuilds only the render targets or shader state it touches.
 - The switch takes under a second; the original view regression stays
   pixel for pixel; ctest passes.
 
 ## Out of scope
 
-Speed of the game in general (155).
+Speed of the game in general (157).
 
 ## Log
 

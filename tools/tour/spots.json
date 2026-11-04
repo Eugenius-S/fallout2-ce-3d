@@ -265,46 +265,700 @@
    "name": "cave, regression gallery view"
   },
   {
-   "map": "reddown",
+   "map": "newr1",
    "elevation": 0,
-   "tile": 19059,
+   "tile": 24105,
+   "name": "the first street entrance"
+  },
+  {
+   "map": "newr1",
+   "elevation": 1,
+   "tile": 15087,
+   "name": "the first street, upper floor"
+  },
+  {
+   "map": "newr1",
+   "elevation": 2,
+   "tile": 18085,
+   "name": "the first street, top floor"
+  },
+  {
+   "map": "newr2",
+   "elevation": 0,
+   "tile": 20100,
+   "name": "the second street entrance"
+  },
+  {
+   "map": "newr2",
+   "elevation": 1,
+   "tile": 18093,
+   "name": "the second street, upper floor"
+  },
+  {
+   "map": "newr2",
+   "elevation": 2,
+   "tile": 18695,
+   "name": "the second street, top floor"
+  },
+  {
+   "map": "newr3",
+   "elevation": 0,
+   "tile": 29495,
+   "name": "the third street entrance"
+  },
+  {
+   "map": "newr3",
+   "elevation": 1,
+   "tile": 29094,
+   "name": "the third street, upper floor"
+  },
+  {
+   "map": "newr4",
+   "elevation": 0,
+   "tile": 27103,
+   "name": "the fourth street entrance"
+  },
+  {
+   "map": "newr4",
+   "elevation": 1,
+   "tile": 18493,
+   "name": "the fourth street, upper floor"
+  },
+  {
+   "map": "newrcs",
+   "elevation": 0,
+   "tile": 24537,
+   "name": "the chop shop"
+  },
+  {
+   "map": "newrgo",
+   "elevation": 0,
+   "tile": 28101,
+   "name": "Golgatha entrance"
+  },
+  {
+   "map": "newrgo",
+   "elevation": 1,
+   "tile": 24706,
+   "name": "Golgatha, upper floor"
+  },
+  {
+   "map": "newrst",
+   "elevation": 0,
+   "tile": 25915,
+   "name": "the stables"
+  },
+  {
+   "map": "newrst",
+   "elevation": 1,
+   "tile": 24711,
+   "name": "the stables, upper floor"
+  },
+  {
+   "map": "newrba",
+   "elevation": 0,
+   "tile": 20100,
+   "name": "the boxing arena"
+  },
+  {
+   "map": "newrvb",
+   "elevation": 0,
+   "tile": 21732,
+   "name": "the VIP basement"
+  },
+  {
+   "map": "newr1",
+   "elevation": 0,
+   "tile": 18100,
+   "name": "the lit casino corner"
+  },
+  {
+   "map": "newr2",
+   "elevation": 0,
+   "tile": 26105,
+   "name": "the car lot and the murals"
+  },
+  {
+   "map": "newr3",
+   "elevation": 0,
+   "tile": 27495,
+   "name": "the neon corner"
+  },
+  {
+   "map": "newr4",
+   "elevation": 0,
+   "tile": 25103,
+   "name": "the truck by the street"
+  },
+  {
+   "map": "broken1",
+   "elevation": 0,
+   "tile": 17947,
+   "name": "Broken Hills entrance"
+  },
+  {
+   "map": "broken1",
+   "elevation": 1,
+   "tile": 13530,
+   "name": "Broken Hills, upper floor"
+  },
+  {
+   "map": "broken2",
+   "elevation": 0,
+   "tile": 20944,
+   "name": "Broken Hills east entrance"
+  },
+  {
+   "map": "broken2",
+   "elevation": 1,
+   "tile": 21340,
+   "name": "Broken Hills east, level 1"
+  },
+  {
+   "map": "broken2",
+   "elevation": 2,
+   "tile": 21341,
+   "name": "Broken Hills east, level 2"
+  },
+  {
+   "map": "bhrnddst",
+   "elevation": 0,
+   "tile": 22897,
+   "name": "the Broken Hills desert"
+  },
+  {
+   "map": "broken1",
+   "elevation": 0,
+   "tile": 19947,
+   "name": "the jail and the fence line"
+  },
+  {
+   "map": "broken1",
+   "elevation": 0,
+   "tile": 23947,
+   "name": "the brahmin pen"
+  },
+  {
+   "map": "broken2",
+   "elevation": 0,
+   "tile": 18944,
+   "name": "the street with the cactus planters"
+  },
+  {
+   "map": "broken2",
+   "elevation": 0,
+   "tile": 24944,
+   "name": "the brick building and the shack"
+  },
+  {
+   "map": "gecksetl",
+   "elevation": 0,
+   "tile": 23709,
+   "name": "the settlement entrance"
+  },
+  {
+   "map": "geckpwpl",
+   "elevation": 0,
+   "tile": 20533,
+   "name": "the power plant"
+  },
+  {
+   "map": "geckjunk",
+   "elevation": 0,
+   "tile": 26311,
+   "name": "the junkyard"
+  },
+  {
+   "map": "gecktunl",
+   "elevation": 0,
+   "tile": 20100,
+   "name": "the access tunnels"
+  },
+  {
+   "map": "gecksetl",
+   "elevation": 0,
+   "tile": 27709,
+   "name": "the brahmin pen and the farm"
+  },
+  {
+   "map": "geckpwpl",
+   "elevation": 0,
+   "tile": 16533,
+   "name": "the reactor hall"
+  },
+  {
+   "map": "geckjunk",
+   "elevation": 0,
+   "tile": 22311,
+   "name": "the wrecked car and the pens"
+  },
+  {
+   "map": "gecktunl",
+   "elevation": 0,
+   "tile": 16100,
+   "name": "the tunnel crossing"
+  },
+  {
+   "map": "vctyctyd",
+   "elevation": 0,
+   "tile": 27506,
+   "name": "the courtyard entrance"
+  },
+  {
+   "map": "vctydwtn",
+   "elevation": 0,
+   "tile": 24117,
    "name": "downtown entrance"
   },
   {
-   "map": "redment",
+   "map": "vctycocl",
    "elevation": 0,
-   "tile": 26912,
-   "name": "the mine entrance"
+   "tile": 19292,
+   "name": "the council entrance"
   },
   {
-   "map": "reddtun",
+   "map": "vctyvlt",
    "elevation": 0,
-   "tile": 20100,
-   "name": "the downtown tunnels"
+   "tile": 17095,
+   "name": "the vault courtyard"
   },
   {
-   "map": "redmtun",
-   "elevation": 0,
-   "tile": 20100,
-   "name": "the mine tunnels"
-  },
-  {
-   "map": "redwame",
-   "elevation": 0,
-   "tile": 20275,
-   "name": "the Wanamingo mine entrance"
-  },
-  {
-   "map": "redwan1",
-   "elevation": 0,
-   "tile": 26893,
-   "name": "the Wanamingo mine, level 1"
-  },
-  {
-   "map": "redwan1",
+   "map": "vctyvlt",
    "elevation": 1,
-   "tile": 26893,
-   "name": "the Wanamingo mine, level 2"
+   "tile": 17095,
+   "name": "the vault, level 1"
+  },
+  {
+   "map": "vctyvlt",
+   "elevation": 2,
+   "tile": 16694,
+   "name": "the vault, level 2"
+  },
+  {
+   "map": "raiders1",
+   "elevation": 0,
+   "tile": 23305,
+   "name": "the raiders ground camp"
+  },
+  {
+   "map": "raiders1",
+   "elevation": 1,
+   "tile": 22703,
+   "name": "the raiders, upper floor"
+  },
+  {
+   "map": "raiders2",
+   "elevation": 0,
+   "tile": 20100,
+   "name": "the raiders cave entrance"
+  },
+  {
+   "map": "raiders2",
+   "elevation": 1,
+   "tile": 20100,
+   "name": "the raiders cave, level 1"
+  },
+  {
+   "map": "raiders2",
+   "elevation": 2,
+   "tile": 19899,
+   "name": "the raiders cave, level 2"
+  },
+  {
+   "map": "vctyctyd",
+   "elevation": 0,
+   "tile": 25506,
+   "name": "the gate with the towers"
+  },
+  {
+   "map": "vctydwtn",
+   "elevation": 0,
+   "tile": 22117,
+   "name": "the downtown blocks"
+  },
+  {
+   "map": "vctydwtn",
+   "elevation": 0,
+   "tile": 28117,
+   "name": "the wall and the gate"
+  },
+  {
+   "map": "vctyvlt",
+   "elevation": 0,
+   "tile": 13095,
+   "name": "the vault corridor crossing"
+  },
+  {
+   "map": "vctyvlt",
+   "elevation": 0,
+   "tile": 21095,
+   "name": "the vault door"
+  },
+  {
+   "map": "vctyvlt",
+   "elevation": 2,
+   "tile": 20694,
+   "name": "the anomaly room"
+  },
+  {
+   "map": "raiders1",
+   "elevation": 0,
+   "tile": 19305,
+   "name": "the cliff and the cave mouth"
+  },
+  {
+   "map": "raiders2",
+   "elevation": 0,
+   "tile": 16100,
+   "name": "the cave fire"
+  },
+  {
+   "map": "raiders2",
+   "elevation": 1,
+   "tile": 22100,
+   "name": "the cave passage"
+  },
+  {
+   "map": "modmain",
+   "elevation": 0,
+   "tile": 23333,
+   "name": "main street entrance"
+  },
+  {
+   "map": "modinn",
+   "elevation": 0,
+   "tile": 25321,
+   "name": "the bed and breakfast"
+  },
+  {
+   "map": "modinn",
+   "elevation": 1,
+   "tile": 25321,
+   "name": "the bed and breakfast, upper floor"
+  },
+  {
+   "map": "modbrah",
+   "elevation": 0,
+   "tile": 19324,
+   "name": "the brahmin pastures"
+  },
+  {
+   "map": "modgard",
+   "elevation": 0,
+   "tile": 18711,
+   "name": "Farrel's garden"
+  },
+  {
+   "map": "modshit",
+   "elevation": 0,
+   "tile": 20699,
+   "name": "the outhouse corner"
+  },
+  {
+   "map": "modwell",
+   "elevation": 0,
+   "tile": 16710,
+   "name": "the town well"
+  },
+  {
+   "map": "gstfarm",
+   "elevation": 0,
+   "tile": 23345,
+   "name": "the ghost farm entrance"
+  },
+  {
+   "map": "gstcav1",
+   "elevation": 0,
+   "tile": 14255,
+   "name": "the main cavern"
+  },
+  {
+   "map": "gstcav2",
+   "elevation": 0,
+   "tile": 25713,
+   "name": "the underground lake"
+  },
+  {
+   "map": "modmain",
+   "elevation": 0,
+   "tile": 19333,
+   "name": "the big barn"
+  },
+  {
+   "map": "modmain",
+   "elevation": 0,
+   "tile": 21333,
+   "name": "the farmhouse and pens"
+  },
+  {
+   "map": "modinn",
+   "elevation": 0,
+   "tile": 21321,
+   "name": "the inn, the car and the pens"
+  },
+  {
+   "map": "modbrah",
+   "elevation": 0,
+   "tile": 17324,
+   "name": "the brahmin herd"
+  },
+  {
+   "map": "modgard",
+   "elevation": 0,
+   "tile": 16711,
+   "name": "the dead brahmin garden"
+  },
+  {
+   "map": "modshit",
+   "elevation": 0,
+   "tile": 18699,
+   "name": "the lit outhouse pit"
+  },
+  {
+   "map": "modwell",
+   "elevation": 0,
+   "tile": 14710,
+   "name": "the well shaft and ladder"
+  },
+  {
+   "map": "gstfarm",
+   "elevation": 0,
+   "tile": 21345,
+   "name": "the massacre in the corn"
+  },
+  {
+   "map": "gstcav1",
+   "elevation": 0,
+   "tile": 12255,
+   "name": "the hermit camp"
+  },
+  {
+   "map": "gstcav2",
+   "elevation": 0,
+   "tile": 23713,
+   "name": "the lake shore camp"
+  },
+  {
+   "map": "arcaves",
+   "elevation": 0,
+   "tile": 28706,
+   "name": "entrance, the caves mouth"
+  },
+  {
+   "map": "arcaves",
+   "elevation": 1,
+   "tile": 28706,
+   "name": "lower cave, entrance"
+  },
+  {
+   "map": "arcaves",
+   "elevation": 2,
+   "tile": 26097,
+   "name": "upper cave, entrance"
+  },
+  {
+   "map": "arvillag",
+   "elevation": 0,
+   "tile": 21115,
+   "name": "village entrance"
+  },
+  {
+   "map": "arbridge",
+   "elevation": 0,
+   "tile": 16686,
+   "name": "bridge entrance"
+  },
+  {
+   "map": "argarden",
+   "elevation": 0,
+   "tile": 21474,
+   "name": "wilderness entrance"
+  },
+  {
+   "map": "ardead",
+   "elevation": 0,
+   "tile": 26719,
+   "name": "destroyed bridge entrance"
+  },
+  {
+   "map": "artemple",
+   "elevation": 0,
+   "tile": 17288,
+   "name": "temple entrance"
+  },
+  {
+   "map": "arvillag",
+   "elevation": 0,
+   "tile": 25115,
+   "name": "the stone head plaza"
+  },
+  {
+   "map": "arvillag",
+   "elevation": 0,
+   "tile": 19115,
+   "name": "north huts"
+  },
+  {
+   "map": "arbridge",
+   "elevation": 0,
+   "tile": 20686,
+   "name": "the rope bridge over the cliff"
+  },
+  {
+   "map": "argarden",
+   "elevation": 0,
+   "tile": 17474,
+   "name": "the forest heart"
+  },
+  {
+   "map": "ardead",
+   "elevation": 0,
+   "tile": 24719,
+   "name": "cliff and the brahmin pen"
+  },
+  {
+   "map": "artemple",
+   "elevation": 0,
+   "tile": 21288,
+   "name": "the camp south of the temple"
+  },
+  {
+   "map": "arcaves",
+   "elevation": 0,
+   "tile": 26706,
+   "name": "the exit gate, torches"
+  },
+  {
+   "map": "arcaves",
+   "elevation": 1,
+   "tile": 22706,
+   "name": "the cave mouth"
+  },
+  {
+   "map": "arcaves",
+   "elevation": 2,
+   "tile": 22097,
+   "name": "the corridor maze"
+  },
+  {
+   "map": "denbus1",
+   "elevation": 0,
+   "tile": 13292,
+   "name": "business street entrance"
+  },
+  {
+   "map": "denbus1",
+   "elevation": 1,
+   "tile": 15070,
+   "name": "business street, upper floor"
+  },
+  {
+   "map": "denbus1",
+   "elevation": 2,
+   "tile": 19487,
+   "name": "business street, top floor"
+  },
+  {
+   "map": "denbus2",
+   "elevation": 0,
+   "tile": 27898,
+   "name": "brothel entrance"
+  },
+  {
+   "map": "denbus2",
+   "elevation": 1,
+   "tile": 1110,
+   "name": "brothel, second storey"
+  },
+  {
+   "map": "denres1",
+   "elevation": 0,
+   "tile": 11308,
+   "name": "residential street entrance"
+  },
+  {
+   "map": "denres1",
+   "elevation": 1,
+   "tile": 11308,
+   "name": "residential street, upper floor"
+  },
+  {
+   "map": "dnslvrun",
+   "elevation": 0,
+   "tile": 26905,
+   "name": "slave run entrance"
+  },
+  {
+   "map": "dnslvrun",
+   "elevation": 1,
+   "tile": 26706,
+   "name": "slave run, upper floor"
+  },
+  {
+   "map": "dnslvrun",
+   "elevation": 2,
+   "tile": 25910,
+   "name": "slave run, top floor"
+  },
+  {
+   "map": "denbus1",
+   "elevation": 0,
+   "tile": 17292,
+   "name": "the shop block, signs"
+  },
+  {
+   "map": "denbus1",
+   "elevation": 1,
+   "tile": 19070,
+   "name": "the upstairs apartment"
+  },
+  {
+   "map": "denbus1",
+   "elevation": 2,
+   "tile": 23487,
+   "name": "the shack interior"
+  },
+  {
+   "map": "denbus2",
+   "elevation": 0,
+   "tile": 25698,
+   "name": "the Cat's Paw sign block"
+  },
+  {
+   "map": "denbus2",
+   "elevation": 1,
+   "tile": 3110,
+   "name": "the small second storey"
+  },
+  {
+   "map": "denres1",
+   "elevation": 0,
+   "tile": 15308,
+   "name": "the residential block"
+  },
+  {
+   "map": "denres1",
+   "elevation": 1,
+   "tile": 15308,
+   "name": "the residential block, upper floor"
+  },
+  {
+   "map": "dnslvrun",
+   "elevation": 0,
+   "tile": 22905,
+   "name": "the fire pit"
+  },
+  {
+   "map": "dnslvrun",
+   "elevation": 1,
+   "tile": 20706,
+   "name": "the slave camp garden"
+  },
+  {
+   "map": "dnslvrun",
+   "elevation": 2,
+   "tile": 21910,
+   "name": "the corn field"
   }
  ]
 }

@@ -18,7 +18,7 @@ from baked_sidecar import (ENTRY as BAKED_ENTRY, GL_MAP_OFFSET, HEADER as BAKED_
                            baked_objects, decode_baked_sidecar, encode_baked_sidecar)
 from export import ReadOnlyGameFiles, choose_source, main, parse_args, patch_paths, scene_directory, validate_output_contents
 from floor_sidecar import HEADER, MAGIC, VERSION, cell_content_rect, decode_floor_sidecar, encode_floor_sidecar
-from roof_fringe import (components_of, cut_to_walls, own_strip, donate, foot_cover, lay_donor, roof_sides, whole_sides, BELT_LAP, BELT_ROWS, EDGE_ROWS, STRIP_ROWS, belt_art, compose_band, is_fringe, outward, resolve_runs, runs_of,
+from roof_fringe import (boundary_edges, components_of, donor_tiles, inner_edge, cut_to_walls, own_strip, donate, foot_cover, lay_donor, roof_sides, whole_sides, BELT_LAP, BELT_ROWS, EDGE_ROWS, STRIP_ROWS, belt_art, compose_band, is_fringe, outward, resolve_runs, runs_of,
                          split_tile, tidy_cell, unproject_cell, unroll, wall_under, write_fringe_art)
 import roof_edge_check
 from projection_sidecar import (HEADER as PROJECTION_HEADER, MAGIC as PROJECTION_MAGIC,
@@ -492,6 +492,22 @@ class RoofFringeTests(unittest.TestCase):
             self.assertTrue({201, 301} <= crossed)                              # the plain squares are in a band ...
             self.assertTrue({201, 301} <= {index for index, _, _ in patches})   # ... and keep their flat roof
 
+    def test_a_band_faces_the_roof_across_the_edge_away_from_the_outside(self):
+        # the outside past v = face (side 1): the roof is across edge 0 (dz - 1); a ring square open there is no roof
+        self.assertEqual([inner_edge(clip) for clip in ((0, 0.9, 1), (0, 0.1, -1), (1, 0.9, 1), (1, 0.1, -1))], [0, 1, 2, 3])
+
+    def test_a_roof_with_no_plain_tile_has_no_donor(self):
+        plain = self.art([(y, x) for y in range(36) for x in range(80)], (120, 130, 110))
+        blades = self.art([(y, x) for x in range(30, 60, 5) for y in range(8, 20 + x % 7)])
+        roof = {101: 8, 102: 8, 201: 8, 202: 8, 105: 7, 106: 7}
+        art_of = lambda tile: blades if tile == 7 else plain
+        comp = components_of(roof)
+        open_of = boundary_edges(roof)
+        donors = donor_tiles(roof, open_of, set(), comp, art_of)
+        self.assertNotIn(comp[105], donors)   # a ruin borrows no roof from its neighbour
+        self.assertEqual(donors[comp[101]], 8)
+        self.assertEqual(donor_tiles({105: 7, 106: 7}, boundary_edges({105: 7, 106: 7}), set(), components_of({105: 7, 106: 7}), art_of), {})
+
     def test_a_roof_whose_runs_are_all_cut_away_keeps_its_tidied_patches(self):
         blades = [(y, x) for x in range(30, 60, 5) for y in range(8, 20 + x % 7)]
         with TemporaryDirectory() as temp:
@@ -598,6 +614,20 @@ class RoofEdgeTests(unittest.TestCase):
         plain = self.tile([(0, 1, 0, 1, (120, 80, 50))])
         self.assertEqual(split_tile(plain, (0, 1, 2, 3))[0], [])         # shingle on every open edge: nothing stands
 
+    def test_a_whole_painted_dark_tile_with_a_slab_on_one_open_edge_stays_a_roof_but_for_the_strip(self):
+        from roof_fringe import LEFT_ROOF, RIM, SLAB_STRIP
+        # painted whole and nearly all dark grey (concrete), a little brown at the far edge: it is a roof square
+        dark = self.tile([(0, 1, 0, 1, (14, 14, 14)), (0, 1, 0.9, 1, (120, 80, 50))])
+        pieces, roof = split_tile(dark, (0,))
+        self.assertEqual([edge for edge, _ in pieces], [0])              # the strip along the open edge stands up
+        self.assertIsNotNone(roof)
+        from roof_fringe import _grid
+        painted, u, v, diamond = _grid(dark)
+        kept = ((roof[..., 3] > 0) & diamond).sum() / diamond.sum()
+        self.assertGreater(kept, 1 - (SLAB_STRIP + RIM) - 0.15)         # only the strip is gone, the rest is flat roof
+        self.assertGreater(kept, 10 * LEFT_ROOF)
+        self.assertFalse(((roof[..., 3] > 0) & diamond & (v < SLAB_STRIP)).any())
+
     def test_the_edge_check_sees_a_flat_slab_without_the_exporters_classifier(self):
         from roof_edge_check import flat_slab
         from floor_sidecar import CELL_OUTER_SIZE
@@ -650,6 +680,34 @@ class RoofEdgeTests(unittest.TestCase):
         shading[30:50, 20:80] = dither[30:50, 20:80, 3] > 0
         self.assertGreater(int(shading.sum()), 500)
         self.assertTrue((tidied[..., 3][shading] > 0).all())
+
+    def test_an_all_wall_top_square_is_roofed_up_to_its_band_and_clear_beyond_it(self):
+        shingle, grey = (120, 80, 50), (14, 14, 14)
+        # a tile that is all grey wall top: a thin strip along its v = 0 edge, rebar above it
+        top = self.tile([(0, 1, 0, 0.12, grey), (0.2, 0.25, 0, 0.3, grey), (0.6, 0.65, 0, 0.3, grey)])
+        plain = self.tile([(0, 1, 0, 1, shingle)])
+        # row 1 is all wall top (tile 7, open edge 0); rows 2 and 3 are plain roof, the donor's
+        roof = {101: 7, 102: 7, 103: 7, 201: 8, 202: 8, 203: 8, 301: 8, 302: 8, 303: 8}
+        with TemporaryDirectory() as temp:
+            png = Path(temp) / "roof_fringe.png"
+            # the wall's outer face stands 0.3 into the squares of row 1 (outside is the low side of v)
+            entries, patches = write_fringe_art(
+                png, roof, lambda tile: top if tile == 7 else plain,
+                lambda edge, plane, start, count: (plane + 0.3, plane + 0.4, 1.88, float(start), float(start + count), []))
+            sheet = np.asarray(Image.open(png).convert("RGBA"))
+            cells = {index: sheet[y:y + 100, x:x + 100] for index, x, y in patches}
+            t = (np.arange(100) + 0.5 - 6) / 88
+            v, u = np.meshgrid(t, t, indexing="ij")
+            for index in (101, 102, 103):
+                self.assertIn(index, cells)
+                face = [entry[8] for entry in entries if index in roof_edge_check.run_squares(entry) and entry[0] < 2][0]
+                self.assertAlmostEqual(face - 1, 0.3, places=2)
+                alpha = cells[index][..., 3] > 0
+                core = (u > 0.1) & (u < 0.9)
+                self.assertTrue(alpha[core & (v > 0.33) & (v < 0.9)].all())       # roof right up to the band's plane
+                self.assertFalse(alpha[(v < 0.27) & core].any())                  # nothing beyond it
+            lanes, spills, *_ = roof_edge_check.lane_stats(entries, [], set(roof), {i: (x, y) for i, x, y in patches}, sheet)
+            self.assertEqual((lanes, spills), (0, 0))
 
     def test_a_square_a_band_crosses_restores_no_dark_wall_top_flat(self):
         shingle, black = (120, 80, 50), (12, 12, 12)

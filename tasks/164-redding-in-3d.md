@@ -2,14 +2,15 @@
 id: 164
 title: Redding in 3D, every map stands and looks clean
 milestone: M1
-status: done
-owner: glm
-suggested: glm
+status: todo
+owner: any
+suggested: any
 priority: normal
+tier: 3
 claude-only: no
 user-check: yes
 depends-on: []
-reviewed: yes
+reviewed: no
 ---
 
 ## Goal
@@ -43,7 +44,11 @@ The same loop as 136, without waiting for anyone:
 3. Sweep: every map, elevation, camera and hour; write each defect as one
    numbered line in the Log (map, tile or spot, camera, hour, a crop in
    `runs/164-redding-in-3d/finds/`, the likely cause).
-4. Group the finds by cause, fix the most visible group on its own branch
+4. Since 2026-11-04 (the owner): the fixes go by kind, not by area. Move
+   each find to its batch (189 walls, 190 roofs, 191 furniture and props,
+   192 vehicles, 173 what cannot be built) and fix it there. A crash or a
+   place the player cannot get past is fixed here at once. The old loop
+   below stays for finds that fit no batch: fix the most visible group on its own branch
    `task/164-<short-cause>` from current origin/main, one PR titled
    `164: <cause>` with before | after crops. Mark the finds it closes.
 5. Back to 4; when the list is empty, sweep again (3).
@@ -66,27 +71,3 @@ The interface, menus and text, the sky, new 3D models from scratch, maps of
 other areas (each has its own task).
 
 ## Log
-
-- 2026-11-04, glm. Group `redding` = reddown redment reddtun redmtun redwame
-  redwan1 (elevations: all e0, redwan1 also e1). All 7 scenes exported clean,
-  no exporter errors or warnings.
-- Entrance probes 7/7 (tiles: reddown 19059, redment 26912, reddtun 20100,
-  redmtun 20100, redwame 20275, redwan1 26893 e0+e1). No hangs, no travel
-  failures; the elevation-blacklist and nearest-free-tile rules from 159/158
-  cover everything.
-- Grid probes on the two outdoor maps (reddown, redwame, 6 offsets each):
-  roofs, lit windows, streets, tents, ruins all correct; black wedges are
-  views past the map edge (normal).
-- Fly tour 7 spots, before/after identical everywhere. Hour sweep 8/12/18 on
-  all 7 spots: outdoor maps shift ambient with the hour, tunnels stable.
-- Suspicious dark view redwan1-e1 checked against the game's own 2D
-  (`-Classic`, same tile, same hour): equally dark there too — the mine's own
-  lighting, not a defect.
-- Walk chain reddown → redment → redwame → redwan1 e0 → e1 → reddtun →
-  redmtun: 7/7 captures, 3D stays on.
-- Regression: full suite pass, 0 changed pixels everywhere; 3 new spots
-  (redding-downtown 19059, redding-mine-entrance 26912, redding-wanamingo
-  26893 e1) generated against this branch, existing references untouched.
-- Finds: 0. Nothing fixed, nothing given to the owner, nothing open.
-- Evidence: runs/164-redding-in-3d/ (tour/grid/hours sheets, probe and walk
-  shots, the 2D comparison).
