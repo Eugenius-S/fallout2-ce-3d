@@ -317,4 +317,4 @@ first: a new task only when no open task or batch fits (AGENTS.md, Tasks).
   urgent (`runs/inbox/2026-11-04-hd-sprite-remaster-reference.png`).
 - 2026-11-04 (-> 198, alone: the local machine) The owner: the showcase
   project, the final video and the logo into `marketing/`; clean up the
-  `E:\Projects` root.
+  the projects folder root.
