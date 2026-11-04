@@ -963,7 +963,7 @@
   {"map": "reddown", "elevation": 0, "tile": 19059, "name": "reddown-e0-downtown-entrance"},
   {"map": "reddown", "elevation": 0, "tile": 19456, "name": "reddown-e0-downtown-street"},
   {"map": "redment", "elevation": 0, "tile": 26912, "name": "redment-e0-mine-entrance"},
-  {"map": "redment", "elevation": 0, "tile": 27012, "name": "redment-e0-mine-town-approach"},
+  {"map": "redment", "elevation": 0, "tile": 24912, "name": "redment-e0-town-overview"},
   {"map": "reddtun", "elevation": 0, "tile": 20100, "name": "reddtun-e0-downtown-tunnel"},
   {"map": "reddtun", "elevation": 0, "tile": 20300, "name": "reddtun-e0-downtown-tunnel-passage"},
   {"map": "redmtun", "elevation": 0, "tile": 20100, "name": "redmtun-e0-mine-tunnel"},

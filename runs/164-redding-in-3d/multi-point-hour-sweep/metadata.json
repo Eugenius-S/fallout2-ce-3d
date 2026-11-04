@@ -1,0 +1,2197 @@
+{
+  "build_sha": "4ff8450f",
+  "capture_args": "dev-snapshot.ps1 -Hour H -SunShadows -Ambient 65536 -Tour, 3 turns per stop",
+  "maps": [
+    "reddown",
+    "reddtun",
+    "redment",
+    "redmtun",
+    "redwame",
+    "redwan1"
+  ],
+  "map_elevations": [
+    "reddown:e0",
+    "reddtun:e0",
+    "redment:e0",
+    "redmtun:e0",
+    "redwame:e0",
+    "redwan1:e0",
+    "redwan1:e1"
+  ],
+  "spots": 14,
+  "hours": [
+    8,
+    12,
+    18
+  ],
+  "turns": [
+    -45,
+    0,
+    45
+  ],
+  "frames": 126,
+  "sheets": [
+    {
+      "hour": 8,
+      "path": "runs\\164-redding-in-3d\\multi-point-hour-sweep\\hour-8.jpg",
+      "bytes": 329828,
+      "frames": 42
+    },
+    {
+      "hour": 12,
+      "path": "runs\\164-redding-in-3d\\multi-point-hour-sweep\\hour-12.jpg",
+      "bytes": 343481,
+      "frames": 42
+    },
+    {
+      "hour": 18,
+      "path": "runs\\164-redding-in-3d\\multi-point-hour-sweep\\hour-18.jpg",
+      "bytes": 344912,
+      "frames": 42
+    }
+  ],
+  "captures": [
+    {
+      "hour": 8,
+      "map": "reddown",
+      "elevation": 0,
+      "tile": 19059,
+      "turn": -45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 288000,
+      "mean_luma_minmax": [
+        0,
+        230
+      ],
+      "sha256": "b148382144cba8cf01fea40c9ee29c7d24c505433461954c09b5e4150daea99d",
+      "raw_image": "build\\sweep164\\h8\\reddown-e0\\devhero-20261104-130933-000.png"
+    },
+    {
+      "hour": 8,
+      "map": "reddown",
+      "elevation": 0,
+      "tile": 19059,
+      "turn": 0,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 288000,
+      "mean_luma_minmax": [
+        0,
+        230
+      ],
+      "sha256": "c5278a3ff513e55af5c0d40081c0ed981c8b1388a315b59dbb57c5efb2d3372c",
+      "raw_image": "build\\sweep164\\h8\\reddown-e0\\devhero-20261104-130934-000.png"
+    },
+    {
+      "hour": 8,
+      "map": "reddown",
+      "elevation": 0,
+      "tile": 19059,
+      "turn": 45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 288000,
+      "mean_luma_minmax": [
+        0,
+        230
+      ],
+      "sha256": "aef43139c805452f3ac9b6726d5b9017948be9fcee03fd935f718634b6f48ed9",
+      "raw_image": "build\\sweep164\\h8\\reddown-e0\\devhero-20261104-130934-001.png"
+    },
+    {
+      "hour": 8,
+      "map": "reddown",
+      "elevation": 0,
+      "tile": 19456,
+      "turn": -45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 288000,
+      "mean_luma_minmax": [
+        0,
+        230
+      ],
+      "sha256": "925f2c12ee8083940cd17bee749e619c1b38f60a0c37aaf57c93fda0c7e1062e",
+      "raw_image": "build\\sweep164\\h8\\reddown-e0\\devhero-20261104-130935-000.png"
+    },
+    {
+      "hour": 8,
+      "map": "reddown",
+      "elevation": 0,
+      "tile": 19456,
+      "turn": 0,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 288000,
+      "mean_luma_minmax": [
+        0,
+        230
+      ],
+      "sha256": "f20795e7766803acbdd9954b7b5151398cd268ec274b1d809f362eaead080663",
+      "raw_image": "build\\sweep164\\h8\\reddown-e0\\devhero-20261104-130936-000.png"
+    },
+    {
+      "hour": 8,
+      "map": "reddown",
+      "elevation": 0,
+      "tile": 19456,
+      "turn": 45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 288000,
+      "mean_luma_minmax": [
+        0,
+        230
+      ],
+      "sha256": "7b38d3de338ee7547c06fb97245f7b030497aaa3aa2489912831aaa9f85e800a",
+      "raw_image": "build\\sweep164\\h8\\reddown-e0\\devhero-20261104-130937-000.png"
+    },
+    {
+      "hour": 8,
+      "map": "reddtun",
+      "elevation": 0,
+      "tile": 20100,
+      "turn": -45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 288000,
+      "mean_luma_minmax": [
+        3,
+        246
+      ],
+      "sha256": "4a569a29852b25c19402d525a110640bd1bd5f17180eb9beb1c2763f7eea0877",
+      "raw_image": "build\\sweep164\\h8\\reddtun-e0\\devhero-20261104-131113-001.png"
+    },
+    {
+      "hour": 8,
+      "map": "reddtun",
+      "elevation": 0,
+      "tile": 20100,
+      "turn": 0,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 288000,
+      "mean_luma_minmax": [
+        3,
+        246
+      ],
+      "sha256": "aea2a6f71f58ed311a237f7de58bce12da75afb5fac3aa744d0739b6783fccbf",
+      "raw_image": "build\\sweep164\\h8\\reddtun-e0\\devhero-20261104-131114-000.png"
+    },
+    {
+      "hour": 8,
+      "map": "reddtun",
+      "elevation": 0,
+      "tile": 20100,
+      "turn": 45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 288000,
+      "mean_luma_minmax": [
+        3,
+        246
+      ],
+      "sha256": "c805d0ab8d28b855f0271661ce459e4406b0aebb11fe143cdee41c393746a084",
+      "raw_image": "build\\sweep164\\h8\\reddtun-e0\\devhero-20261104-131115-000.png"
+    },
+    {
+      "hour": 8,
+      "map": "reddtun",
+      "elevation": 0,
+      "tile": 20300,
+      "turn": -45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 288000,
+      "mean_luma_minmax": [
+        3,
+        246
+      ],
+      "sha256": "50b1bca68d4eaf17c467f9b68a9287e2881deb4c4877ef94a7d2cb80621bc159",
+      "raw_image": "build\\sweep164\\h8\\reddtun-e0\\devhero-20261104-131116-000.png"
+    },
+    {
+      "hour": 8,
+      "map": "reddtun",
+      "elevation": 0,
+      "tile": 20300,
+      "turn": 0,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 288000,
+      "mean_luma_minmax": [
+        3,
+        246
+      ],
+      "sha256": "96e5b2cca57ed01fe8b16fc0574e1bda94d31419a1deaac066380e8f02ef6197",
+      "raw_image": "build\\sweep164\\h8\\reddtun-e0\\devhero-20261104-131117-000.png"
+    },
+    {
+      "hour": 8,
+      "map": "reddtun",
+      "elevation": 0,
+      "tile": 20300,
+      "turn": 45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 288000,
+      "mean_luma_minmax": [
+        3,
+        246
+      ],
+      "sha256": "c05dce8f88eb5b3fa008be46378e56c48b1e8385fab414bc6cc719ed25e12795",
+      "raw_image": "build\\sweep164\\h8\\reddtun-e0\\devhero-20261104-131118-000.png"
+    },
+    {
+      "hour": 8,
+      "map": "redment",
+      "elevation": 0,
+      "tile": 26912,
+      "turn": -45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 288000,
+      "mean_luma_minmax": [
+        0,
+        246
+      ],
+      "sha256": "4e5d4b5d05a6005bb1624eaf663b40ac9d556921b376e53245577f1ecedcb693",
+      "raw_image": "build\\sweep164\\h8\\redment-e0\\devhero-20261104-131941-000.png"
+    },
+    {
+      "hour": 8,
+      "map": "redment",
+      "elevation": 0,
+      "tile": 26912,
+      "turn": 0,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 288000,
+      "mean_luma_minmax": [
+        0,
+        246
+      ],
+      "sha256": "ff1f3b43582b1892d311da9d90d5a4c8a6afbab59a2ff687911404fce3eed444",
+      "raw_image": "build\\sweep164\\h8\\redment-e0\\devhero-20261104-131942-000.png"
+    },
+    {
+      "hour": 8,
+      "map": "redment",
+      "elevation": 0,
+      "tile": 26912,
+      "turn": 45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 288000,
+      "mean_luma_minmax": [
+        0,
+        246
+      ],
+      "sha256": "c47f903d471e83fcf2ae263ff34e0306bcd4f230283b47fa9fab490531aae20f",
+      "raw_image": "build\\sweep164\\h8\\redment-e0\\devhero-20261104-131943-000.png"
+    },
+    {
+      "hour": 8,
+      "map": "redment",
+      "elevation": 0,
+      "tile": 24912,
+      "turn": -45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 288000,
+      "mean_luma_minmax": [
+        0,
+        241
+      ],
+      "sha256": "a9d7b8a9c84aa5f53005467cd9ae90f23205218c273fd4c8ff73b52d60ea5780",
+      "raw_image": "build\\sweep164\\h8\\redment-e0\\devhero-20261104-131944-000.png"
+    },
+    {
+      "hour": 8,
+      "map": "redment",
+      "elevation": 0,
+      "tile": 24912,
+      "turn": 0,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 288000,
+      "mean_luma_minmax": [
+        0,
+        241
+      ],
+      "sha256": "275b1f68655cd8f488beaafb327e94995d2df695aca46c2a2203519e0782fe7f",
+      "raw_image": "build\\sweep164\\h8\\redment-e0\\devhero-20261104-131945-000.png"
+    },
+    {
+      "hour": 8,
+      "map": "redment",
+      "elevation": 0,
+      "tile": 24912,
+      "turn": 45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 288000,
+      "mean_luma_minmax": [
+        0,
+        241
+      ],
+      "sha256": "6578a1e7e70fdeddb3fa3236e0db67d5dfa0488dc174f9a77e0f3ba1b9b3ca4e",
+      "raw_image": "build\\sweep164\\h8\\redment-e0\\devhero-20261104-131946-000.png"
+    },
+    {
+      "hour": 8,
+      "map": "redmtun",
+      "elevation": 0,
+      "tile": 20100,
+      "turn": -45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 288000,
+      "mean_luma_minmax": [
+        3,
+        246
+      ],
+      "sha256": "bd66df98744ff6b0603d0899b928da9442c5b0c8a149b7a5d39abe5628028dcb",
+      "raw_image": "build\\sweep164\\h8\\redmtun-e0\\devhero-20261104-131250-000.png"
+    },
+    {
+      "hour": 8,
+      "map": "redmtun",
+      "elevation": 0,
+      "tile": 20100,
+      "turn": 0,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 288000,
+      "mean_luma_minmax": [
+        3,
+        246
+      ],
+      "sha256": "63acba0c3292647d3aac726453eb635839a81e88b40f8fce563ffc84b31c001b",
+      "raw_image": "build\\sweep164\\h8\\redmtun-e0\\devhero-20261104-131251-000.png"
+    },
+    {
+      "hour": 8,
+      "map": "redmtun",
+      "elevation": 0,
+      "tile": 20100,
+      "turn": 45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 288000,
+      "mean_luma_minmax": [
+        3,
+        246
+      ],
+      "sha256": "79b3e5899742e7d7027dbd630e05d5139aed233924f2c490bd5e0dde12aab89a",
+      "raw_image": "build\\sweep164\\h8\\redmtun-e0\\devhero-20261104-131252-000.png"
+    },
+    {
+      "hour": 8,
+      "map": "redmtun",
+      "elevation": 0,
+      "tile": 19900,
+      "turn": -45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 288000,
+      "mean_luma_minmax": [
+        3,
+        246
+      ],
+      "sha256": "bdb896be4ebab10770917051bd9062acee0d4656f8884ee743d788432235d2e5",
+      "raw_image": "build\\sweep164\\h8\\redmtun-e0\\devhero-20261104-131253-000.png"
+    },
+    {
+      "hour": 8,
+      "map": "redmtun",
+      "elevation": 0,
+      "tile": 19900,
+      "turn": 0,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 288000,
+      "mean_luma_minmax": [
+        3,
+        246
+      ],
+      "sha256": "dc9bf8f46bf0e0893053ba851e2eaa7f7503adfd245b6f17ce545d292b5fb463",
+      "raw_image": "build\\sweep164\\h8\\redmtun-e0\\devhero-20261104-131254-000.png"
+    },
+    {
+      "hour": 8,
+      "map": "redmtun",
+      "elevation": 0,
+      "tile": 19900,
+      "turn": 45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 288000,
+      "mean_luma_minmax": [
+        3,
+        246
+      ],
+      "sha256": "483ce0ec36e01189668c700175154e09f1e2358cb2c410140f620e9770dcf49c",
+      "raw_image": "build\\sweep164\\h8\\redmtun-e0\\devhero-20261104-131255-000.png"
+    },
+    {
+      "hour": 8,
+      "map": "redwame",
+      "elevation": 0,
+      "tile": 20275,
+      "turn": -45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 288000,
+      "mean_luma_minmax": [
+        0,
+        241
+      ],
+      "sha256": "a0dd6daa3900c3325b5795db4fa84edd002b3c9628c849c2251a6994eee7d3ca",
+      "raw_image": "build\\sweep164\\h8\\redwame-e0\\devhero-20261104-131339-000.png"
+    },
+    {
+      "hour": 8,
+      "map": "redwame",
+      "elevation": 0,
+      "tile": 20275,
+      "turn": 0,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 288000,
+      "mean_luma_minmax": [
+        0,
+        241
+      ],
+      "sha256": "df1b4c87f71b016ca93244b8d5e2297e4348f1f874b7d33ef4ad48c8845aafb7",
+      "raw_image": "build\\sweep164\\h8\\redwame-e0\\devhero-20261104-131340-000.png"
+    },
+    {
+      "hour": 8,
+      "map": "redwame",
+      "elevation": 0,
+      "tile": 20275,
+      "turn": 45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 288000,
+      "mean_luma_minmax": [
+        0,
+        241
+      ],
+      "sha256": "8858a8db98aee46da1745179d61af92f9fdf5a9fd582a55be675e38c9916bd5f",
+      "raw_image": "build\\sweep164\\h8\\redwame-e0\\devhero-20261104-131340-001.png"
+    },
+    {
+      "hour": 8,
+      "map": "redwame",
+      "elevation": 0,
+      "tile": 20475,
+      "turn": -45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 288000,
+      "mean_luma_minmax": [
+        0,
+        238
+      ],
+      "sha256": "7a60d915b8d5e5e2a96ed843312a6e26c37b1fbbb71871cbbe5fdff08772b3ee",
+      "raw_image": "build\\sweep164\\h8\\redwame-e0\\devhero-20261104-131341-000.png"
+    },
+    {
+      "hour": 8,
+      "map": "redwame",
+      "elevation": 0,
+      "tile": 20475,
+      "turn": 0,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 288000,
+      "mean_luma_minmax": [
+        0,
+        241
+      ],
+      "sha256": "4b47eb91284ab4275c3f4e030635a77774015629e8d89e5d629f56d2c0e2a74b",
+      "raw_image": "build\\sweep164\\h8\\redwame-e0\\devhero-20261104-131342-000.png"
+    },
+    {
+      "hour": 8,
+      "map": "redwame",
+      "elevation": 0,
+      "tile": 20475,
+      "turn": 45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 288000,
+      "mean_luma_minmax": [
+        0,
+        241
+      ],
+      "sha256": "115b796da8ee53ca1fc8ab3ee0e098839007699d812b303320156b0a9fd21fdc",
+      "raw_image": "build\\sweep164\\h8\\redwame-e0\\devhero-20261104-131343-000.png"
+    },
+    {
+      "hour": 8,
+      "map": "redwan1",
+      "elevation": 0,
+      "tile": 26893,
+      "turn": -45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 288000,
+      "mean_luma_minmax": [
+        3,
+        241
+      ],
+      "sha256": "4ef213fbaa3aa9238a0d8baddf00a506e35955f43b2cb47ec12be2a280eccb71",
+      "raw_image": "build\\sweep164\\h8\\redwan1-e0\\devhero-20261104-131428-000.png"
+    },
+    {
+      "hour": 8,
+      "map": "redwan1",
+      "elevation": 0,
+      "tile": 26893,
+      "turn": 0,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 288000,
+      "mean_luma_minmax": [
+        3,
+        246
+      ],
+      "sha256": "23e44ff3cd5723e96f6c9e065e39b9f40f75749a3fbc256bd04ae291bf3e6718",
+      "raw_image": "build\\sweep164\\h8\\redwan1-e0\\devhero-20261104-131429-000.png"
+    },
+    {
+      "hour": 8,
+      "map": "redwan1",
+      "elevation": 0,
+      "tile": 26893,
+      "turn": 45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 288000,
+      "mean_luma_minmax": [
+        3,
+        246
+      ],
+      "sha256": "f55595deb0af9e54da7749233f3354e4ecf6904d6e7d5e0a6de93e1791c53e28",
+      "raw_image": "build\\sweep164\\h8\\redwan1-e0\\devhero-20261104-131430-000.png"
+    },
+    {
+      "hour": 8,
+      "map": "redwan1",
+      "elevation": 0,
+      "tile": 27093,
+      "turn": -45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 288000,
+      "mean_luma_minmax": [
+        3,
+        246
+      ],
+      "sha256": "8d0c0de382708a678947e0f25a461453a68f4c7866bf7ad8696f4ef3899a7ed6",
+      "raw_image": "build\\sweep164\\h8\\redwan1-e0\\devhero-20261104-131430-001.png"
+    },
+    {
+      "hour": 8,
+      "map": "redwan1",
+      "elevation": 0,
+      "tile": 27093,
+      "turn": 0,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 288000,
+      "mean_luma_minmax": [
+        3,
+        246
+      ],
+      "sha256": "066ec81b906792da473f105369894e2c5738bc7ecc6ff019db7cec09c8fa6fdd",
+      "raw_image": "build\\sweep164\\h8\\redwan1-e0\\devhero-20261104-131431-000.png"
+    },
+    {
+      "hour": 8,
+      "map": "redwan1",
+      "elevation": 0,
+      "tile": 27093,
+      "turn": 45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 288000,
+      "mean_luma_minmax": [
+        3,
+        241
+      ],
+      "sha256": "0425cb7f67d59bd419409e30c4ff5a602ef0014890b891ec8c38a3521cc3f296",
+      "raw_image": "build\\sweep164\\h8\\redwan1-e0\\devhero-20261104-131432-000.png"
+    },
+    {
+      "hour": 8,
+      "map": "redwan1",
+      "elevation": 1,
+      "tile": 26893,
+      "turn": -45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 288000,
+      "mean_luma_minmax": [
+        0,
+        246
+      ],
+      "sha256": "e9aa5fb06f8ca3bd09bb87f76340b4f4e78f400b941040aaba342ffdd29db78d",
+      "raw_image": "build\\sweep164\\h8\\redwan1-e1\\devhero-20261104-131515-000.png"
+    },
+    {
+      "hour": 8,
+      "map": "redwan1",
+      "elevation": 1,
+      "tile": 26893,
+      "turn": 0,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 288000,
+      "mean_luma_minmax": [
+        0,
+        246
+      ],
+      "sha256": "11762cb503e0b6487339f180a636aa0962ee2f49cd4f28ce0acf34ade78bd0eb",
+      "raw_image": "build\\sweep164\\h8\\redwan1-e1\\devhero-20261104-131516-000.png"
+    },
+    {
+      "hour": 8,
+      "map": "redwan1",
+      "elevation": 1,
+      "tile": 26893,
+      "turn": 45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 288000,
+      "mean_luma_minmax": [
+        3,
+        246
+      ],
+      "sha256": "4bed6f3b1f0642e209f0dcebcfc26ecb65429e5abdd2b3e1e2cdc70c75529a4e",
+      "raw_image": "build\\sweep164\\h8\\redwan1-e1\\devhero-20261104-131516-001.png"
+    },
+    {
+      "hour": 8,
+      "map": "redwan1",
+      "elevation": 1,
+      "tile": 27093,
+      "turn": -45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 288000,
+      "mean_luma_minmax": [
+        0,
+        246
+      ],
+      "sha256": "153fed8dbfaaea41b5920f02377ca9f3d883c6e45696dbb8ee1e94a27f0c29e4",
+      "raw_image": "build\\sweep164\\h8\\redwan1-e1\\devhero-20261104-131517-000.png"
+    },
+    {
+      "hour": 8,
+      "map": "redwan1",
+      "elevation": 1,
+      "tile": 27093,
+      "turn": 0,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 288000,
+      "mean_luma_minmax": [
+        0,
+        246
+      ],
+      "sha256": "f0ee45e4be836be74bb50d5da0e06a244a80a3a35f89e26cde9870c897dd1855",
+      "raw_image": "build\\sweep164\\h8\\redwan1-e1\\devhero-20261104-131518-000.png"
+    },
+    {
+      "hour": 8,
+      "map": "redwan1",
+      "elevation": 1,
+      "tile": 27093,
+      "turn": 45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 288000,
+      "mean_luma_minmax": [
+        3,
+        246
+      ],
+      "sha256": "681172ba9e374761e7f35b394ed20e46f4f51a2254b2de174c85683faaf78a34",
+      "raw_image": "build\\sweep164\\h8\\redwan1-e1\\devhero-20261104-131519-000.png"
+    },
+    {
+      "hour": 12,
+      "map": "reddown",
+      "elevation": 0,
+      "tile": 19059,
+      "turn": -45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 432000,
+      "mean_luma_minmax": [
+        0,
+        230
+      ],
+      "sha256": "e5a6005bc3b26e28e707e1a49028dffb749b0b57bdba29fb83c0ad30110402f4",
+      "raw_image": "build\\sweep164\\h12\\reddown-e0\\devhero-20261104-131041-000.png"
+    },
+    {
+      "hour": 12,
+      "map": "reddown",
+      "elevation": 0,
+      "tile": 19059,
+      "turn": 0,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 432000,
+      "mean_luma_minmax": [
+        0,
+        230
+      ],
+      "sha256": "4a1b4e9c735a147ce8d2385f01671e681a83c240d55d4b48607ee46c7297d061",
+      "raw_image": "build\\sweep164\\h12\\reddown-e0\\devhero-20261104-131042-000.png"
+    },
+    {
+      "hour": 12,
+      "map": "reddown",
+      "elevation": 0,
+      "tile": 19059,
+      "turn": 45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 432000,
+      "mean_luma_minmax": [
+        0,
+        230
+      ],
+      "sha256": "ffda59469ad20441e99024c338d583ec005183495037a0135237ab322e70e9fb",
+      "raw_image": "build\\sweep164\\h12\\reddown-e0\\devhero-20261104-131043-000.png"
+    },
+    {
+      "hour": 12,
+      "map": "reddown",
+      "elevation": 0,
+      "tile": 19456,
+      "turn": -45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 432000,
+      "mean_luma_minmax": [
+        0,
+        230
+      ],
+      "sha256": "707809d5ea900cfbdd7823f1def1e1709dd77a51f9c0a531d40e2336a3887337",
+      "raw_image": "build\\sweep164\\h12\\reddown-e0\\devhero-20261104-131044-000.png"
+    },
+    {
+      "hour": 12,
+      "map": "reddown",
+      "elevation": 0,
+      "tile": 19456,
+      "turn": 0,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 432000,
+      "mean_luma_minmax": [
+        0,
+        230
+      ],
+      "sha256": "039f5696a9343c039b04cc8807cb92bc782276dc53986b87a2a2596c06b0c12c",
+      "raw_image": "build\\sweep164\\h12\\reddown-e0\\devhero-20261104-131044-001.png"
+    },
+    {
+      "hour": 12,
+      "map": "reddown",
+      "elevation": 0,
+      "tile": 19456,
+      "turn": 45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 432000,
+      "mean_luma_minmax": [
+        0,
+        230
+      ],
+      "sha256": "ef738eeb7dbec06f391d0b54048f546d9cd6793744d5ba725d1b1ded77e8f728",
+      "raw_image": "build\\sweep164\\h12\\reddown-e0\\devhero-20261104-131045-000.png"
+    },
+    {
+      "hour": 12,
+      "map": "reddtun",
+      "elevation": 0,
+      "tile": 20100,
+      "turn": -45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 432000,
+      "mean_luma_minmax": [
+        3,
+        246
+      ],
+      "sha256": "4a569a29852b25c19402d525a110640bd1bd5f17180eb9beb1c2763f7eea0877",
+      "raw_image": "build\\sweep164\\h12\\reddtun-e0\\devhero-20261104-131130-000.png"
+    },
+    {
+      "hour": 12,
+      "map": "reddtun",
+      "elevation": 0,
+      "tile": 20100,
+      "turn": 0,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 432000,
+      "mean_luma_minmax": [
+        3,
+        246
+      ],
+      "sha256": "aea2a6f71f58ed311a237f7de58bce12da75afb5fac3aa744d0739b6783fccbf",
+      "raw_image": "build\\sweep164\\h12\\reddtun-e0\\devhero-20261104-131131-000.png"
+    },
+    {
+      "hour": 12,
+      "map": "reddtun",
+      "elevation": 0,
+      "tile": 20100,
+      "turn": 45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 432000,
+      "mean_luma_minmax": [
+        3,
+        246
+      ],
+      "sha256": "c805d0ab8d28b855f0271661ce459e4406b0aebb11fe143cdee41c393746a084",
+      "raw_image": "build\\sweep164\\h12\\reddtun-e0\\devhero-20261104-131131-001.png"
+    },
+    {
+      "hour": 12,
+      "map": "reddtun",
+      "elevation": 0,
+      "tile": 20300,
+      "turn": -45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 432000,
+      "mean_luma_minmax": [
+        3,
+        246
+      ],
+      "sha256": "50b1bca68d4eaf17c467f9b68a9287e2881deb4c4877ef94a7d2cb80621bc159",
+      "raw_image": "build\\sweep164\\h12\\reddtun-e0\\devhero-20261104-131132-000.png"
+    },
+    {
+      "hour": 12,
+      "map": "reddtun",
+      "elevation": 0,
+      "tile": 20300,
+      "turn": 0,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 432000,
+      "mean_luma_minmax": [
+        3,
+        246
+      ],
+      "sha256": "96e5b2cca57ed01fe8b16fc0574e1bda94d31419a1deaac066380e8f02ef6197",
+      "raw_image": "build\\sweep164\\h12\\reddtun-e0\\devhero-20261104-131133-000.png"
+    },
+    {
+      "hour": 12,
+      "map": "reddtun",
+      "elevation": 0,
+      "tile": 20300,
+      "turn": 45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 432000,
+      "mean_luma_minmax": [
+        3,
+        246
+      ],
+      "sha256": "c05dce8f88eb5b3fa008be46378e56c48b1e8385fab414bc6cc719ed25e12795",
+      "raw_image": "build\\sweep164\\h12\\reddtun-e0\\devhero-20261104-131134-000.png"
+    },
+    {
+      "hour": 12,
+      "map": "redment",
+      "elevation": 0,
+      "tile": 26912,
+      "turn": -45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 432000,
+      "mean_luma_minmax": [
+        0,
+        246
+      ],
+      "sha256": "b7476c505e05bab2da5155bcae8f6ad200356275535345a879805d52b6720f20",
+      "raw_image": "build\\sweep164\\h12\\redment-e0\\devhero-20261104-131959-000.png"
+    },
+    {
+      "hour": 12,
+      "map": "redment",
+      "elevation": 0,
+      "tile": 26912,
+      "turn": 0,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 432000,
+      "mean_luma_minmax": [
+        0,
+        246
+      ],
+      "sha256": "9866cef74e1aa408a4ff090603b62b18ac111f43bc24bab3ea4f064a6720503e",
+      "raw_image": "build\\sweep164\\h12\\redment-e0\\devhero-20261104-131959-001.png"
+    },
+    {
+      "hour": 12,
+      "map": "redment",
+      "elevation": 0,
+      "tile": 26912,
+      "turn": 45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 432000,
+      "mean_luma_minmax": [
+        0,
+        246
+      ],
+      "sha256": "c5208eea7f09b8ddab9084367e5e8d512360549021862de76ac75f6176e67d03",
+      "raw_image": "build\\sweep164\\h12\\redment-e0\\devhero-20261104-132000-000.png"
+    },
+    {
+      "hour": 12,
+      "map": "redment",
+      "elevation": 0,
+      "tile": 24912,
+      "turn": -45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 432000,
+      "mean_luma_minmax": [
+        0,
+        241
+      ],
+      "sha256": "1326f04e565ce1345b8f3a21ff37cf6a9dc53ef8223485e893df605e55df1de3",
+      "raw_image": "build\\sweep164\\h12\\redment-e0\\devhero-20261104-132001-000.png"
+    },
+    {
+      "hour": 12,
+      "map": "redment",
+      "elevation": 0,
+      "tile": 24912,
+      "turn": 0,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 432000,
+      "mean_luma_minmax": [
+        0,
+        241
+      ],
+      "sha256": "36347971df1da3692ceab9cd0208bd6d28cd62300dae3f2d02bcf78fabd300cd",
+      "raw_image": "build\\sweep164\\h12\\redment-e0\\devhero-20261104-132002-000.png"
+    },
+    {
+      "hour": 12,
+      "map": "redment",
+      "elevation": 0,
+      "tile": 24912,
+      "turn": 45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 432000,
+      "mean_luma_minmax": [
+        0,
+        241
+      ],
+      "sha256": "f2b2a04a3355c97056e72799d237c6827413214aace1470da4c01735e40a5c17",
+      "raw_image": "build\\sweep164\\h12\\redment-e0\\devhero-20261104-132003-000.png"
+    },
+    {
+      "hour": 12,
+      "map": "redmtun",
+      "elevation": 0,
+      "tile": 20100,
+      "turn": -45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 432000,
+      "mean_luma_minmax": [
+        3,
+        246
+      ],
+      "sha256": "bd66df98744ff6b0603d0899b928da9442c5b0c8a149b7a5d39abe5628028dcb",
+      "raw_image": "build\\sweep164\\h12\\redmtun-e0\\devhero-20261104-131307-000.png"
+    },
+    {
+      "hour": 12,
+      "map": "redmtun",
+      "elevation": 0,
+      "tile": 20100,
+      "turn": 0,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 432000,
+      "mean_luma_minmax": [
+        3,
+        246
+      ],
+      "sha256": "63acba0c3292647d3aac726453eb635839a81e88b40f8fce563ffc84b31c001b",
+      "raw_image": "build\\sweep164\\h12\\redmtun-e0\\devhero-20261104-131307-001.png"
+    },
+    {
+      "hour": 12,
+      "map": "redmtun",
+      "elevation": 0,
+      "tile": 20100,
+      "turn": 45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 432000,
+      "mean_luma_minmax": [
+        3,
+        246
+      ],
+      "sha256": "79b3e5899742e7d7027dbd630e05d5139aed233924f2c490bd5e0dde12aab89a",
+      "raw_image": "build\\sweep164\\h12\\redmtun-e0\\devhero-20261104-131308-000.png"
+    },
+    {
+      "hour": 12,
+      "map": "redmtun",
+      "elevation": 0,
+      "tile": 19900,
+      "turn": -45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 432000,
+      "mean_luma_minmax": [
+        3,
+        246
+      ],
+      "sha256": "bdb896be4ebab10770917051bd9062acee0d4656f8884ee743d788432235d2e5",
+      "raw_image": "build\\sweep164\\h12\\redmtun-e0\\devhero-20261104-131309-000.png"
+    },
+    {
+      "hour": 12,
+      "map": "redmtun",
+      "elevation": 0,
+      "tile": 19900,
+      "turn": 0,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 432000,
+      "mean_luma_minmax": [
+        3,
+        246
+      ],
+      "sha256": "dc9bf8f46bf0e0893053ba851e2eaa7f7503adfd245b6f17ce545d292b5fb463",
+      "raw_image": "build\\sweep164\\h12\\redmtun-e0\\devhero-20261104-131310-000.png"
+    },
+    {
+      "hour": 12,
+      "map": "redmtun",
+      "elevation": 0,
+      "tile": 19900,
+      "turn": 45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 432000,
+      "mean_luma_minmax": [
+        3,
+        246
+      ],
+      "sha256": "483ce0ec36e01189668c700175154e09f1e2358cb2c410140f620e9770dcf49c",
+      "raw_image": "build\\sweep164\\h12\\redmtun-e0\\devhero-20261104-131311-000.png"
+    },
+    {
+      "hour": 12,
+      "map": "redwame",
+      "elevation": 0,
+      "tile": 20275,
+      "turn": -45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 432000,
+      "mean_luma_minmax": [
+        0,
+        241
+      ],
+      "sha256": "d908b3157ad77dfdbdd76262ce8a8d6ea8df557dce8ee78b030cb9c8b0570380",
+      "raw_image": "build\\sweep164\\h12\\redwame-e0\\devhero-20261104-131355-000.png"
+    },
+    {
+      "hour": 12,
+      "map": "redwame",
+      "elevation": 0,
+      "tile": 20275,
+      "turn": 0,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 432000,
+      "mean_luma_minmax": [
+        0,
+        241
+      ],
+      "sha256": "d48b3cd711f74557311f067099df773d37a78cf51d275b974e6e440cff8fcc20",
+      "raw_image": "build\\sweep164\\h12\\redwame-e0\\devhero-20261104-131356-000.png"
+    },
+    {
+      "hour": 12,
+      "map": "redwame",
+      "elevation": 0,
+      "tile": 20275,
+      "turn": 45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 432000,
+      "mean_luma_minmax": [
+        0,
+        241
+      ],
+      "sha256": "254ebd1a95484046a661e47912ba2a633dd2ec4a059b9aa8fcd904949fd9284d",
+      "raw_image": "build\\sweep164\\h12\\redwame-e0\\devhero-20261104-131357-000.png"
+    },
+    {
+      "hour": 12,
+      "map": "redwame",
+      "elevation": 0,
+      "tile": 20475,
+      "turn": -45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 432000,
+      "mean_luma_minmax": [
+        0,
+        238
+      ],
+      "sha256": "43be20a0b3d97a7e0f8044b3bd397c63aab836773e5211deced811de86a4de60",
+      "raw_image": "build\\sweep164\\h12\\redwame-e0\\devhero-20261104-131358-000.png"
+    },
+    {
+      "hour": 12,
+      "map": "redwame",
+      "elevation": 0,
+      "tile": 20475,
+      "turn": 0,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 432000,
+      "mean_luma_minmax": [
+        0,
+        241
+      ],
+      "sha256": "43b7a47e8655d758aa2f83174505741fce6743a69c38cfa6f37e69f669a3789d",
+      "raw_image": "build\\sweep164\\h12\\redwame-e0\\devhero-20261104-131359-000.png"
+    },
+    {
+      "hour": 12,
+      "map": "redwame",
+      "elevation": 0,
+      "tile": 20475,
+      "turn": 45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 432000,
+      "mean_luma_minmax": [
+        0,
+        241
+      ],
+      "sha256": "c52733397392b33948693a9cf5cad20ad936d91c916ef25340446fb3d7b6681d",
+      "raw_image": "build\\sweep164\\h12\\redwame-e0\\devhero-20261104-131400-000.png"
+    },
+    {
+      "hour": 12,
+      "map": "redwan1",
+      "elevation": 0,
+      "tile": 26893,
+      "turn": -45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 432000,
+      "mean_luma_minmax": [
+        3,
+        241
+      ],
+      "sha256": "4ef213fbaa3aa9238a0d8baddf00a506e35955f43b2cb47ec12be2a280eccb71",
+      "raw_image": "build\\sweep164\\h12\\redwan1-e0\\devhero-20261104-131444-000.png"
+    },
+    {
+      "hour": 12,
+      "map": "redwan1",
+      "elevation": 0,
+      "tile": 26893,
+      "turn": 0,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 432000,
+      "mean_luma_minmax": [
+        3,
+        246
+      ],
+      "sha256": "23e44ff3cd5723e96f6c9e065e39b9f40f75749a3fbc256bd04ae291bf3e6718",
+      "raw_image": "build\\sweep164\\h12\\redwan1-e0\\devhero-20261104-131445-000.png"
+    },
+    {
+      "hour": 12,
+      "map": "redwan1",
+      "elevation": 0,
+      "tile": 26893,
+      "turn": 45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 432000,
+      "mean_luma_minmax": [
+        3,
+        246
+      ],
+      "sha256": "f55595deb0af9e54da7749233f3354e4ecf6904d6e7d5e0a6de93e1791c53e28",
+      "raw_image": "build\\sweep164\\h12\\redwan1-e0\\devhero-20261104-131446-000.png"
+    },
+    {
+      "hour": 12,
+      "map": "redwan1",
+      "elevation": 0,
+      "tile": 27093,
+      "turn": -45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 432000,
+      "mean_luma_minmax": [
+        3,
+        246
+      ],
+      "sha256": "8d0c0de382708a678947e0f25a461453a68f4c7866bf7ad8696f4ef3899a7ed6",
+      "raw_image": "build\\sweep164\\h12\\redwan1-e0\\devhero-20261104-131446-001.png"
+    },
+    {
+      "hour": 12,
+      "map": "redwan1",
+      "elevation": 0,
+      "tile": 27093,
+      "turn": 0,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 432000,
+      "mean_luma_minmax": [
+        3,
+        246
+      ],
+      "sha256": "066ec81b906792da473f105369894e2c5738bc7ecc6ff019db7cec09c8fa6fdd",
+      "raw_image": "build\\sweep164\\h12\\redwan1-e0\\devhero-20261104-131447-000.png"
+    },
+    {
+      "hour": 12,
+      "map": "redwan1",
+      "elevation": 0,
+      "tile": 27093,
+      "turn": 45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 432000,
+      "mean_luma_minmax": [
+        3,
+        241
+      ],
+      "sha256": "0425cb7f67d59bd419409e30c4ff5a602ef0014890b891ec8c38a3521cc3f296",
+      "raw_image": "build\\sweep164\\h12\\redwan1-e0\\devhero-20261104-131448-000.png"
+    },
+    {
+      "hour": 12,
+      "map": "redwan1",
+      "elevation": 1,
+      "tile": 26893,
+      "turn": -45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 432000,
+      "mean_luma_minmax": [
+        0,
+        246
+      ],
+      "sha256": "e9aa5fb06f8ca3bd09bb87f76340b4f4e78f400b941040aaba342ffdd29db78d",
+      "raw_image": "build\\sweep164\\h12\\redwan1-e1\\devhero-20261104-131531-000.png"
+    },
+    {
+      "hour": 12,
+      "map": "redwan1",
+      "elevation": 1,
+      "tile": 26893,
+      "turn": 0,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 432000,
+      "mean_luma_minmax": [
+        0,
+        246
+      ],
+      "sha256": "11762cb503e0b6487339f180a636aa0962ee2f49cd4f28ce0acf34ade78bd0eb",
+      "raw_image": "build\\sweep164\\h12\\redwan1-e1\\devhero-20261104-131532-000.png"
+    },
+    {
+      "hour": 12,
+      "map": "redwan1",
+      "elevation": 1,
+      "tile": 26893,
+      "turn": 45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 432000,
+      "mean_luma_minmax": [
+        3,
+        246
+      ],
+      "sha256": "4bed6f3b1f0642e209f0dcebcfc26ecb65429e5abdd2b3e1e2cdc70c75529a4e",
+      "raw_image": "build\\sweep164\\h12\\redwan1-e1\\devhero-20261104-131532-001.png"
+    },
+    {
+      "hour": 12,
+      "map": "redwan1",
+      "elevation": 1,
+      "tile": 27093,
+      "turn": -45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 432000,
+      "mean_luma_minmax": [
+        0,
+        246
+      ],
+      "sha256": "153fed8dbfaaea41b5920f02377ca9f3d883c6e45696dbb8ee1e94a27f0c29e4",
+      "raw_image": "build\\sweep164\\h12\\redwan1-e1\\devhero-20261104-131533-000.png"
+    },
+    {
+      "hour": 12,
+      "map": "redwan1",
+      "elevation": 1,
+      "tile": 27093,
+      "turn": 0,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 432000,
+      "mean_luma_minmax": [
+        0,
+        246
+      ],
+      "sha256": "f0ee45e4be836be74bb50d5da0e06a244a80a3a35f89e26cde9870c897dd1855",
+      "raw_image": "build\\sweep164\\h12\\redwan1-e1\\devhero-20261104-131534-000.png"
+    },
+    {
+      "hour": 12,
+      "map": "redwan1",
+      "elevation": 1,
+      "tile": 27093,
+      "turn": 45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 432000,
+      "mean_luma_minmax": [
+        3,
+        246
+      ],
+      "sha256": "681172ba9e374761e7f35b394ed20e46f4f51a2254b2de174c85683faaf78a34",
+      "raw_image": "build\\sweep164\\h12\\redwan1-e1\\devhero-20261104-131535-000.png"
+    },
+    {
+      "hour": 18,
+      "map": "reddown",
+      "elevation": 0,
+      "tile": 19059,
+      "turn": -45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 648000,
+      "mean_luma_minmax": [
+        8,
+        230
+      ],
+      "sha256": "dd3d1c3809da1bc16b4ad4b9f163a5f6ece7c02a377a00ebd4a51b538f0da689",
+      "raw_image": "build\\sweep164\\h18\\reddown-e0\\devhero-20261104-131058-000.png"
+    },
+    {
+      "hour": 18,
+      "map": "reddown",
+      "elevation": 0,
+      "tile": 19059,
+      "turn": 0,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 648000,
+      "mean_luma_minmax": [
+        8,
+        230
+      ],
+      "sha256": "e4818e0c474180475cb980ddb2f11fff5e9e396ef5eb537efe5efbc860e8a3a3",
+      "raw_image": "build\\sweep164\\h18\\reddown-e0\\devhero-20261104-131059-000.png"
+    },
+    {
+      "hour": 18,
+      "map": "reddown",
+      "elevation": 0,
+      "tile": 19059,
+      "turn": 45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 648000,
+      "mean_luma_minmax": [
+        8,
+        230
+      ],
+      "sha256": "42da9cab611935663be88c0028b63f681f3aa4ecea883579a0413aaf98b49f5b",
+      "raw_image": "build\\sweep164\\h18\\reddown-e0\\devhero-20261104-131059-001.png"
+    },
+    {
+      "hour": 18,
+      "map": "reddown",
+      "elevation": 0,
+      "tile": 19456,
+      "turn": -45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 648000,
+      "mean_luma_minmax": [
+        8,
+        230
+      ],
+      "sha256": "045cafdd932924b802865f793f050452daa39cbf5f1d13c61adaf6ce1df3d4ac",
+      "raw_image": "build\\sweep164\\h18\\reddown-e0\\devhero-20261104-131100-000.png"
+    },
+    {
+      "hour": 18,
+      "map": "reddown",
+      "elevation": 0,
+      "tile": 19456,
+      "turn": 0,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 648000,
+      "mean_luma_minmax": [
+        8,
+        230
+      ],
+      "sha256": "84a1c5bad0981586552504bfe3d0daa8d1f5efbdf8001b3aeb917e3ad969d622",
+      "raw_image": "build\\sweep164\\h18\\reddown-e0\\devhero-20261104-131101-000.png"
+    },
+    {
+      "hour": 18,
+      "map": "reddown",
+      "elevation": 0,
+      "tile": 19456,
+      "turn": 45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 648000,
+      "mean_luma_minmax": [
+        8,
+        230
+      ],
+      "sha256": "662c19add971251777522ad714e461a446040b13d81b096ed6dd43379eb55fe4",
+      "raw_image": "build\\sweep164\\h18\\reddown-e0\\devhero-20261104-131102-000.png"
+    },
+    {
+      "hour": 18,
+      "map": "reddtun",
+      "elevation": 0,
+      "tile": 20100,
+      "turn": -45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 648000,
+      "mean_luma_minmax": [
+        3,
+        246
+      ],
+      "sha256": "4a569a29852b25c19402d525a110640bd1bd5f17180eb9beb1c2763f7eea0877",
+      "raw_image": "build\\sweep164\\h18\\reddtun-e0\\devhero-20261104-131146-000.png"
+    },
+    {
+      "hour": 18,
+      "map": "reddtun",
+      "elevation": 0,
+      "tile": 20100,
+      "turn": 0,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 648000,
+      "mean_luma_minmax": [
+        3,
+        246
+      ],
+      "sha256": "aea2a6f71f58ed311a237f7de58bce12da75afb5fac3aa744d0739b6783fccbf",
+      "raw_image": "build\\sweep164\\h18\\reddtun-e0\\devhero-20261104-131147-000.png"
+    },
+    {
+      "hour": 18,
+      "map": "reddtun",
+      "elevation": 0,
+      "tile": 20100,
+      "turn": 45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 648000,
+      "mean_luma_minmax": [
+        3,
+        246
+      ],
+      "sha256": "c805d0ab8d28b855f0271661ce459e4406b0aebb11fe143cdee41c393746a084",
+      "raw_image": "build\\sweep164\\h18\\reddtun-e0\\devhero-20261104-131148-000.png"
+    },
+    {
+      "hour": 18,
+      "map": "reddtun",
+      "elevation": 0,
+      "tile": 20300,
+      "turn": -45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 648000,
+      "mean_luma_minmax": [
+        3,
+        246
+      ],
+      "sha256": "50b1bca68d4eaf17c467f9b68a9287e2881deb4c4877ef94a7d2cb80621bc159",
+      "raw_image": "build\\sweep164\\h18\\reddtun-e0\\devhero-20261104-131148-001.png"
+    },
+    {
+      "hour": 18,
+      "map": "reddtun",
+      "elevation": 0,
+      "tile": 20300,
+      "turn": 0,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 648000,
+      "mean_luma_minmax": [
+        3,
+        246
+      ],
+      "sha256": "96e5b2cca57ed01fe8b16fc0574e1bda94d31419a1deaac066380e8f02ef6197",
+      "raw_image": "build\\sweep164\\h18\\reddtun-e0\\devhero-20261104-131149-000.png"
+    },
+    {
+      "hour": 18,
+      "map": "reddtun",
+      "elevation": 0,
+      "tile": 20300,
+      "turn": 45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 648000,
+      "mean_luma_minmax": [
+        3,
+        246
+      ],
+      "sha256": "c05dce8f88eb5b3fa008be46378e56c48b1e8385fab414bc6cc719ed25e12795",
+      "raw_image": "build\\sweep164\\h18\\reddtun-e0\\devhero-20261104-131150-000.png"
+    },
+    {
+      "hour": 18,
+      "map": "redment",
+      "elevation": 0,
+      "tile": 26912,
+      "turn": -45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 648000,
+      "mean_luma_minmax": [
+        8,
+        246
+      ],
+      "sha256": "31d82501ed570d4992b3b2a27136a04794c8917bac144faeb1aa7f77ce207019",
+      "raw_image": "build\\sweep164\\h18\\redment-e0\\devhero-20261104-132015-000.png"
+    },
+    {
+      "hour": 18,
+      "map": "redment",
+      "elevation": 0,
+      "tile": 26912,
+      "turn": 0,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 648000,
+      "mean_luma_minmax": [
+        8,
+        246
+      ],
+      "sha256": "38cd2b1709ad97b917793c44a3aff8341b3aa2bb5c934f2f7b98daa442678766",
+      "raw_image": "build\\sweep164\\h18\\redment-e0\\devhero-20261104-132016-000.png"
+    },
+    {
+      "hour": 18,
+      "map": "redment",
+      "elevation": 0,
+      "tile": 26912,
+      "turn": 45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 648000,
+      "mean_luma_minmax": [
+        0,
+        246
+      ],
+      "sha256": "9ed43b21ba963fb55d5df64138fa785a35cd004956d00b3fe728d7052080e823",
+      "raw_image": "build\\sweep164\\h18\\redment-e0\\devhero-20261104-132017-000.png"
+    },
+    {
+      "hour": 18,
+      "map": "redment",
+      "elevation": 0,
+      "tile": 24912,
+      "turn": -45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 648000,
+      "mean_luma_minmax": [
+        0,
+        241
+      ],
+      "sha256": "88278eb2173c70eea2369352eb6e2fcfa00a13593cfe5edbf8f9be7f5183d6db",
+      "raw_image": "build\\sweep164\\h18\\redment-e0\\devhero-20261104-132017-001.png"
+    },
+    {
+      "hour": 18,
+      "map": "redment",
+      "elevation": 0,
+      "tile": 24912,
+      "turn": 0,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 648000,
+      "mean_luma_minmax": [
+        0,
+        241
+      ],
+      "sha256": "ad043dd0c91eee64dc6860fa35fa2feb72cff804e24669d9f9372648c7e5b40e",
+      "raw_image": "build\\sweep164\\h18\\redment-e0\\devhero-20261104-132018-000.png"
+    },
+    {
+      "hour": 18,
+      "map": "redment",
+      "elevation": 0,
+      "tile": 24912,
+      "turn": 45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 648000,
+      "mean_luma_minmax": [
+        0,
+        241
+      ],
+      "sha256": "920f858c57bd087a8defb90f9eb0172177e1f47a653b2e04cb0ff29fe47d8554",
+      "raw_image": "build\\sweep164\\h18\\redment-e0\\devhero-20261104-132019-000.png"
+    },
+    {
+      "hour": 18,
+      "map": "redmtun",
+      "elevation": 0,
+      "tile": 20100,
+      "turn": -45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 648000,
+      "mean_luma_minmax": [
+        3,
+        246
+      ],
+      "sha256": "bd66df98744ff6b0603d0899b928da9442c5b0c8a149b7a5d39abe5628028dcb",
+      "raw_image": "build\\sweep164\\h18\\redmtun-e0\\devhero-20261104-131322-000.png"
+    },
+    {
+      "hour": 18,
+      "map": "redmtun",
+      "elevation": 0,
+      "tile": 20100,
+      "turn": 0,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 648000,
+      "mean_luma_minmax": [
+        3,
+        246
+      ],
+      "sha256": "63acba0c3292647d3aac726453eb635839a81e88b40f8fce563ffc84b31c001b",
+      "raw_image": "build\\sweep164\\h18\\redmtun-e0\\devhero-20261104-131323-000.png"
+    },
+    {
+      "hour": 18,
+      "map": "redmtun",
+      "elevation": 0,
+      "tile": 20100,
+      "turn": 45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 648000,
+      "mean_luma_minmax": [
+        3,
+        246
+      ],
+      "sha256": "79b3e5899742e7d7027dbd630e05d5139aed233924f2c490bd5e0dde12aab89a",
+      "raw_image": "build\\sweep164\\h18\\redmtun-e0\\devhero-20261104-131324-000.png"
+    },
+    {
+      "hour": 18,
+      "map": "redmtun",
+      "elevation": 0,
+      "tile": 19900,
+      "turn": -45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 648000,
+      "mean_luma_minmax": [
+        3,
+        246
+      ],
+      "sha256": "bdb896be4ebab10770917051bd9062acee0d4656f8884ee743d788432235d2e5",
+      "raw_image": "build\\sweep164\\h18\\redmtun-e0\\devhero-20261104-131325-000.png"
+    },
+    {
+      "hour": 18,
+      "map": "redmtun",
+      "elevation": 0,
+      "tile": 19900,
+      "turn": 0,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 648000,
+      "mean_luma_minmax": [
+        3,
+        246
+      ],
+      "sha256": "dc9bf8f46bf0e0893053ba851e2eaa7f7503adfd245b6f17ce545d292b5fb463",
+      "raw_image": "build\\sweep164\\h18\\redmtun-e0\\devhero-20261104-131326-000.png"
+    },
+    {
+      "hour": 18,
+      "map": "redmtun",
+      "elevation": 0,
+      "tile": 19900,
+      "turn": 45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 648000,
+      "mean_luma_minmax": [
+        3,
+        246
+      ],
+      "sha256": "483ce0ec36e01189668c700175154e09f1e2358cb2c410140f620e9770dcf49c",
+      "raw_image": "build\\sweep164\\h18\\redmtun-e0\\devhero-20261104-131326-001.png"
+    },
+    {
+      "hour": 18,
+      "map": "redwame",
+      "elevation": 0,
+      "tile": 20275,
+      "turn": -45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 648000,
+      "mean_luma_minmax": [
+        8,
+        241
+      ],
+      "sha256": "7d79cdfda39d4d4c5fc9f10270a865bb63cb522114c247554c5af6d8d664407c",
+      "raw_image": "build\\sweep164\\h18\\redwame-e0\\devhero-20261104-131412-000.png"
+    },
+    {
+      "hour": 18,
+      "map": "redwame",
+      "elevation": 0,
+      "tile": 20275,
+      "turn": 0,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 648000,
+      "mean_luma_minmax": [
+        8,
+        241
+      ],
+      "sha256": "e23d2a354f669295ba1f58f5bbf2235cec2435538bf0e02d078ebd57c5f91f43",
+      "raw_image": "build\\sweep164\\h18\\redwame-e0\\devhero-20261104-131413-000.png"
+    },
+    {
+      "hour": 18,
+      "map": "redwame",
+      "elevation": 0,
+      "tile": 20275,
+      "turn": 45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 648000,
+      "mean_luma_minmax": [
+        0,
+        241
+      ],
+      "sha256": "2839ebe73d8d2f2d476bde47d3882e4ee53c773df896828e459183524202dcef",
+      "raw_image": "build\\sweep164\\h18\\redwame-e0\\devhero-20261104-131414-000.png"
+    },
+    {
+      "hour": 18,
+      "map": "redwame",
+      "elevation": 0,
+      "tile": 20475,
+      "turn": -45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 648000,
+      "mean_luma_minmax": [
+        8,
+        246
+      ],
+      "sha256": "07398462b8e3824f4755126e437925d1f820012df7f303484ddde909385797d5",
+      "raw_image": "build\\sweep164\\h18\\redwame-e0\\devhero-20261104-131414-001.png"
+    },
+    {
+      "hour": 18,
+      "map": "redwame",
+      "elevation": 0,
+      "tile": 20475,
+      "turn": 0,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 648000,
+      "mean_luma_minmax": [
+        8,
+        241
+      ],
+      "sha256": "b0ab098d7c234df9ae643f0f4f7ba5092c9102885a26e126811877e583d83fee",
+      "raw_image": "build\\sweep164\\h18\\redwame-e0\\devhero-20261104-131415-000.png"
+    },
+    {
+      "hour": 18,
+      "map": "redwame",
+      "elevation": 0,
+      "tile": 20475,
+      "turn": 45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 648000,
+      "mean_luma_minmax": [
+        0,
+        241
+      ],
+      "sha256": "e46cbbb3acb82082287133b09a81f2a6c1b48c8e5aa64c5ca1308669f428157f",
+      "raw_image": "build\\sweep164\\h18\\redwame-e0\\devhero-20261104-131416-000.png"
+    },
+    {
+      "hour": 18,
+      "map": "redwan1",
+      "elevation": 0,
+      "tile": 26893,
+      "turn": -45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 648000,
+      "mean_luma_minmax": [
+        3,
+        241
+      ],
+      "sha256": "4ef213fbaa3aa9238a0d8baddf00a506e35955f43b2cb47ec12be2a280eccb71",
+      "raw_image": "build\\sweep164\\h18\\redwan1-e0\\devhero-20261104-131459-001.png"
+    },
+    {
+      "hour": 18,
+      "map": "redwan1",
+      "elevation": 0,
+      "tile": 26893,
+      "turn": 0,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 648000,
+      "mean_luma_minmax": [
+        3,
+        246
+      ],
+      "sha256": "23e44ff3cd5723e96f6c9e065e39b9f40f75749a3fbc256bd04ae291bf3e6718",
+      "raw_image": "build\\sweep164\\h18\\redwan1-e0\\devhero-20261104-131500-000.png"
+    },
+    {
+      "hour": 18,
+      "map": "redwan1",
+      "elevation": 0,
+      "tile": 26893,
+      "turn": 45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 648000,
+      "mean_luma_minmax": [
+        3,
+        246
+      ],
+      "sha256": "f55595deb0af9e54da7749233f3354e4ecf6904d6e7d5e0a6de93e1791c53e28",
+      "raw_image": "build\\sweep164\\h18\\redwan1-e0\\devhero-20261104-131501-000.png"
+    },
+    {
+      "hour": 18,
+      "map": "redwan1",
+      "elevation": 0,
+      "tile": 27093,
+      "turn": -45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 648000,
+      "mean_luma_minmax": [
+        3,
+        246
+      ],
+      "sha256": "8d0c0de382708a678947e0f25a461453a68f4c7866bf7ad8696f4ef3899a7ed6",
+      "raw_image": "build\\sweep164\\h18\\redwan1-e0\\devhero-20261104-131502-000.png"
+    },
+    {
+      "hour": 18,
+      "map": "redwan1",
+      "elevation": 0,
+      "tile": 27093,
+      "turn": 0,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 648000,
+      "mean_luma_minmax": [
+        3,
+        246
+      ],
+      "sha256": "066ec81b906792da473f105369894e2c5738bc7ecc6ff019db7cec09c8fa6fdd",
+      "raw_image": "build\\sweep164\\h18\\redwan1-e0\\devhero-20261104-131503-000.png"
+    },
+    {
+      "hour": 18,
+      "map": "redwan1",
+      "elevation": 0,
+      "tile": 27093,
+      "turn": 45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 648000,
+      "mean_luma_minmax": [
+        3,
+        241
+      ],
+      "sha256": "0425cb7f67d59bd419409e30c4ff5a602ef0014890b891ec8c38a3521cc3f296",
+      "raw_image": "build\\sweep164\\h18\\redwan1-e0\\devhero-20261104-131503-001.png"
+    },
+    {
+      "hour": 18,
+      "map": "redwan1",
+      "elevation": 1,
+      "tile": 26893,
+      "turn": -45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 648000,
+      "mean_luma_minmax": [
+        0,
+        246
+      ],
+      "sha256": "e9aa5fb06f8ca3bd09bb87f76340b4f4e78f400b941040aaba342ffdd29db78d",
+      "raw_image": "build\\sweep164\\h18\\redwan1-e1\\devhero-20261104-131546-000.png"
+    },
+    {
+      "hour": 18,
+      "map": "redwan1",
+      "elevation": 1,
+      "tile": 26893,
+      "turn": 0,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 648000,
+      "mean_luma_minmax": [
+        0,
+        246
+      ],
+      "sha256": "11762cb503e0b6487339f180a636aa0962ee2f49cd4f28ce0acf34ade78bd0eb",
+      "raw_image": "build\\sweep164\\h18\\redwan1-e1\\devhero-20261104-131547-000.png"
+    },
+    {
+      "hour": 18,
+      "map": "redwan1",
+      "elevation": 1,
+      "tile": 26893,
+      "turn": 45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 648000,
+      "mean_luma_minmax": [
+        3,
+        246
+      ],
+      "sha256": "4bed6f3b1f0642e209f0dcebcfc26ecb65429e5abdd2b3e1e2cdc70c75529a4e",
+      "raw_image": "build\\sweep164\\h18\\redwan1-e1\\devhero-20261104-131548-000.png"
+    },
+    {
+      "hour": 18,
+      "map": "redwan1",
+      "elevation": 1,
+      "tile": 27093,
+      "turn": -45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 648000,
+      "mean_luma_minmax": [
+        0,
+        246
+      ],
+      "sha256": "153fed8dbfaaea41b5920f02377ca9f3d883c6e45696dbb8ee1e94a27f0c29e4",
+      "raw_image": "build\\sweep164\\h18\\redwan1-e1\\devhero-20261104-131549-000.png"
+    },
+    {
+      "hour": 18,
+      "map": "redwan1",
+      "elevation": 1,
+      "tile": 27093,
+      "turn": 0,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 648000,
+      "mean_luma_minmax": [
+        0,
+        246
+      ],
+      "sha256": "f0ee45e4be836be74bb50d5da0e06a244a80a3a35f89e26cde9870c897dd1855",
+      "raw_image": "build\\sweep164\\h18\\redwan1-e1\\devhero-20261104-131549-001.png"
+    },
+    {
+      "hour": 18,
+      "map": "redwan1",
+      "elevation": 1,
+      "tile": 27093,
+      "turn": 45,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "resolution": "1920x1080",
+      "game_time": 648000,
+      "mean_luma_minmax": [
+        3,
+        246
+      ],
+      "sha256": "681172ba9e374761e7f35b394ed20e46f4f51a2254b2de174c85683faaf78a34",
+      "raw_image": "build\\sweep164\\h18\\redwan1-e1\\devhero-20261104-131550-000.png"
+    }
+  ]
+}

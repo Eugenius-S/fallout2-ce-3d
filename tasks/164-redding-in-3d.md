@@ -99,3 +99,21 @@ No map-specific visual defects found in this sweep.
 Evidence: `current-build-game-views.jpg`, `hour-sweep-shadows.jpg`, and the
 origin-main fly-tour sheets under `runs/164-redding-in-3d/`.
 Next: no open finds; PR is ready for CI review.
+
+### 2026-11-04 gpt follow-up
+
+Done: expanded the visual sweep to all 14 fly-tour spots, all three camera
+turns and hours 8, 12 and 18. The 126 runtime frames are in
+`runs/164-redding-in-3d/multi-point-hour-sweep/`; all sidecars confirm the
+requested map/elevation, full `scene-gl`, 1920x1080 and the requested game
+time. All frames are non-empty, and every stop changes across its three turns.
+The three hour sheets were inspected; no new scene defects were found.
+
+The expanded sweep exposed one invalid reference point: `redment` tile 27012
+was outside the authored map clip and produced a flat background. Replaced it
+with tile 24912, which shows the town overview. The updated fly tour against
+origin/main shows 0 of 14 changed spots, and both redment points now show
+content in all turns. The refreshed comparison is in
+`runs/164-redding-in-3d/fly-tour-origin-main/`.
+
+Next: commit this correction, push it, and wait for CI on the new SHA.
