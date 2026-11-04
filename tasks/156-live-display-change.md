@@ -156,3 +156,15 @@ Merged `origin/main` at `d8cff6b0` into `task/156-live-display-change`. Resolved
 Sanitized the absolute worktree cache path in the attempt 2 and 3 logs. Release build passed with MSVC 14.40 and Windows SDK 10.0.22621.0; CTest passed 23/23. The scripted-input PowerShell file parses, and `git diff --check` passes.
 
 Next: continue diagnosing the existing display-change runtime timeout and capture the requested live frames. The task remains `doing`, `reviewed: no`, and PR #227 remains draft until runtime acceptance is proven.
+
+### 2026-11-04 gpt: fresh-main runtime retry
+
+Merged `origin/main` at `3b288fd6` and pushed merge SHA `53b201c6`.
+
+A fresh Release rebuild with MSVC 14.40 and Windows SDK 10.0.22621.0 passed; CTest passed 23/23. A new isolated one-process scripted run (#6) completed the display transaction from windowed 1920x1080 at 1.4x to 2560x1440 at 2.0x. Its script reported PASS with 5/5 captures. The first and last sidecars record the requested dimensions and drawable sizes; the final frame is `runs/156-live-display-change/live-attempt6/frame-after-2560x1440.jpg`. The renderer trace reached `settings-saved`.
+
+This run used the static wall-and-hero 3D preview (`gameState=0`), so it does not establish behavior in a loaded playable game. It also did not change window mode or return to the initial mode and scale. The end-to-end switch time, pointer alignment and origin-main pixel regression remain unverified. Stage timing was added to the devtools-only trace; the later failed run measured only 12 ms through interface repositioning, not a complete transaction.
+
+Two consecutive new attempts then failed. Multi-step run #7 saved the requested config but stopped after interface repositioning, before the tile-center/window refresh and the fifth frame (4/11 captures). Diagnostic run #8 stopped after screen-buffer exchange and before the iso-window exchange (4/5 captures). The trace stops at different stages, so the failure is intermittent and not yet isolated. Logs and before/after sidecars are retained in `runs/156-live-display-change/live-attempt6/`, `live-attempt7/` and `live-attempt8/`.
+
+Per the two-consecutive-failure limit, stop runtime retries here. PR #227 remains draft and the task remains `doing`; do not claim acceptance. Continue the ordered queue with task 127.

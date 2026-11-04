@@ -1,0 +1,226 @@
+wait 20
+snap
+move 910 244
+wait 4
+down 910 244
+wait 4
+up 910 244
+wait 4
+snap
+move 810 307
+wait 4
+down 810 307
+wait 4
+up 810 307
+wait 10
+snap
+move 785 328
+wait 4
+down 785 328
+wait 4
+move 825 328
+wait 4
+up 825 328
+wait 10
+snap
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wait 15
+move 519 735
+wait 4
+down 519 735
+wait 4
+up 519 735
+wait 20
+snap
+preferences
+wait 30
+move 900 226
+wait 4
+snap
+move 900 226
+wait 4
+down 900 226
+wait 4
+up 900 226
+wait 2
+key 81
+wait 2
+key 40
+wait 8
+snap
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wait 15
+move 519 690
+wait 4
+down 519 690
+wait 4
+up 519 690
+wait 20
+snap
+preferences
+wait 30
+move 900 226
+wait 4
+snap
+move 900 226
+wait 4
+down 900 226
+wait 4
+up 900 226
+wait 2
+key 82
+wait 2
+key 40
+wait 4
+move 900 184
+wait 4
+down 900 184
+wait 4
+up 900 184
+wait 2
+key 81
+wait 2
+key 81
+wait 2
+key 81
+wait 2
+key 81
+wait 2
+key 40
+wait 4
+move 753 269
+wait 4
+down 753 269
+wait 4
+up 753 269
+wait 2
+key 80
+wait 2
+key 80
+wait 2
+key 80
+wait 8
+snap
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wheel -1
+wait 2
+wait 15
+move 519 690
+wait 4
+down 519 690
+wait 4
+up 519 690
+wait 20
+snap
+wait 30

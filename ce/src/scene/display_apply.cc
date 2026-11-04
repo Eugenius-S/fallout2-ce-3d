@@ -9,6 +9,7 @@
 #include "tile_display_swap.h"
 
 #include "../dinput.h"
+#include "../devtools/devtools.h"
 #include "../interface.h"
 #include "../map.h"
 #include "../object.h"
@@ -20,6 +21,8 @@
 #include "../window_manager.h"
 
 #include <algorithm>
+#include <cstdio>
+#include <cstring>
 
 namespace fallout::scene {
 namespace {
@@ -33,6 +36,17 @@ struct DisplayConfig {
 
 DisplayConfig appliedConfig;
 bool haveAppliedConfig = false;
+Uint32 displayApplyStarted = 0;
+
+// Runtime diagnostics for isolated developer runs; normal gameplay is silent.
+void traceDisplayApply(const char* stage)
+{
+    if (!devtools::isEnabled()) return;
+    if (std::strcmp(stage, "enter") == 0) displayApplyStarted = SDL_GetTicks();
+    const Uint32 elapsed = SDL_GetTicks() - displayApplyStarted;
+    std::fprintf(stderr, "DISPLAY_APPLY %s elapsed_ms=%u\n", stage, static_cast<unsigned>(elapsed));
+    std::fflush(stderr);
+}
 
 DisplayConfig currentConfig()
 {
@@ -66,6 +80,7 @@ void rememberConfiguredDisplaySettings()
 
 bool applyConfiguredDisplaySettings()
 {
+    traceDisplayApply("enter");
     const DisplayConfig requested = currentConfig();
     if (!haveAppliedConfig) rememberConfiguredDisplaySettings();
     if (sameConfig(requested, appliedConfig)) return true;
@@ -107,6 +122,7 @@ bool applyConfiguredDisplaySettings()
     const bool buffered = windowManagerIsBuffered();
     if (!surface.prepare(logicalWidth, logicalHeight, gSdlSurface, gSdlRenderer)
         || !screen.prepare(logicalWidth, logicalHeight, buffered)) return reject();
+    traceDisplayApply("buffers-prepared");
 
     Window* isoWindowObject = hasMap ? windowGetWindow(gIsoWindow) : nullptr;
     if (hasMap) {
@@ -116,6 +132,7 @@ bool applyConfiguredDisplaySettings()
     DisplayWindowTransaction windowTransaction(gSdlWindow);
     if (windowTransaction.apply(requested.windowMode, outputWidth, outputHeight)
         != DisplayWindowTransaction::Result::Applied) return reject();
+    traceDisplayApply("window-applied");
 
     bool surfaceExchanged = false;
     bool screenExchanged = false;
@@ -134,6 +151,7 @@ bool applyConfiguredDisplaySettings()
             windowTransaction.rollback();
             return reject();
         }
+        traceDisplayApply("tile-prepared");
         // Temporarily expose the proposed tile dimensions while object tables
         // are generated. No game frame runs inside this function.
         if (!tileExchangeDisplayBuffer(tile)) {
@@ -142,6 +160,7 @@ bool applyConfiguredDisplaySettings()
         }
         const bool objectPrepared = objectView.prepare(isoWindow.preparedBuffer(),
             mapBufferWidth, mapBufferHeight, mapBufferWidth);
+        traceDisplayApply("object-prepared");
         const bool tileRestored = tileExchangeDisplayBuffer(tile);
         if (!objectPrepared || !tileRestored
             || !isoView.prepare(isoWindow.preparedBuffer(),
@@ -170,28 +189,43 @@ bool applyConfiguredDisplaySettings()
 
     if (!surface.exchange(gSdlSurface, gSdlTextureSurface, gSdlTexture, gSdlRenderer)) return rollback();
     surfaceExchanged = true;
+    traceDisplayApply("surface-exchanged");
     if (!windowManagerExchangeScreenBuffer(screen)) return rollback();
     screenExchanged = true;
+    traceDisplayApply("screen-exchanged");
     if (hasMap) {
         windowMove(gIsoWindow, 0, 0);
         if (!isoWindow.exchange(isoWindowObject)) return rollback();
         isoExchanged = true;
+        traceDisplayApply("iso-exchanged");
         if (!tileExchangeDisplayBuffer(tile)) return rollback();
         tileExchanged = true;
+        traceDisplayApply("tile-exchanged");
         if (!mapExchangeIsoView(isoView)) return rollback();
         isoViewExchanged = true;
+        traceDisplayApply("iso-view-exchanged");
         if (!objectExchangeView(objectView)) return rollback();
         objectExchanged = true;
+        traceDisplayApply("object-view-exchanged");
         if (!textObjectsExchangeView(textView)) return rollback();
         textExchanged = true;
+        traceDisplayApply("text-view-exchanged");
     }
     if (scene_renderer::isActive() && !scene_renderer::setLogicalDimensions(logicalWidth, logicalHeight)) return rollback();
 
     mouseDeviceRefreshWindowMapping();
+    traceDisplayApply("mouse-mapping-refreshed");
     interfaceRepositionForDisplayChange();
-    if (hasMap) tileSetCenter(gCenterTile, TILE_SET_CENTER_REFRESH_WINDOW);
+    traceDisplayApply("interface-repositioned");
+    if (hasMap) {
+        traceDisplayApply("before-tile-center");
+        tileSetCenter(gCenterTile, TILE_SET_CENTER_REFRESH_WINDOW);
+        traceDisplayApply("after-tile-center");
+    }
     Rect fullScreen = { 0, 0, screenGetWidth() - 1, screenGetHeight() - 1 };
+    traceDisplayApply("before-window-refresh");
     windowRefreshAll(&fullScreen);
+    traceDisplayApply("windows-refreshed");
     windowTransaction.commit();
 
     settings.screen.resolution_x = outputWidth;
@@ -200,6 +234,7 @@ bool applyConfiguredDisplaySettings()
     appliedConfig.resolutionX = outputWidth;
     appliedConfig.resolutionY = outputHeight;
     settingsSave();
+    traceDisplayApply("settings-saved");
     return true;
 }
 

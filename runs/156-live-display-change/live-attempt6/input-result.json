@@ -1,0 +1,16 @@
+﻿{
+    "coordinate_space":  "logical",
+    "snapshots":  5,
+    "initial":  {
+                    "scale_factor":  "1.4",
+                    "resolution_x":  "1920",
+                    "resolution_y":  "1080"
+                },
+    "saved":  {
+                  "windowed":  "1",
+                  "scale_factor":  "2.000000",
+                  "resolution_x":  "2560",
+                  "resolution_y":  "1440"
+              },
+    "config_sha256":  "B73D7EFF148B53B1BED02E752614F5F2B2C9AB1C23C98819B6D7BF5E2C2490A6"
+}
