@@ -101,3 +101,14 @@ Merged `origin/main` (`d8cff6b0`) into this branch. Resolved the `tools/dev-snap
 
 Merged `origin/main` at `3b288fd6` with no conflicts. The transition matrix remains incomplete and its single captured arrival does not establish flash behavior or all route coverage. PR #221 stays draft; no additional runtime attempt was made.
 
+*### 2026-11-04 gpt: merge current main
+
+Fetched and merged `origin/main` at `8e135a73867b` into the existing task
+branch; no conflicts. Pushed merge commit `b51c67952f2e4271e31af54a7f5608e6a2cdbaa9`.
+The two documented exit-probe attempts remain the runtime limit; no new
+capture was made. PR #221 stays draft and the transition matrix remains
+incomplete.
+
+Check: PowerShell parser, public-content check, runs-size check and
+`git diff --check` pass. No new runtime or pixel-regression result is claimed.
+
