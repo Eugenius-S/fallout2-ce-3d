@@ -305,3 +305,6 @@ first: a new task only when no open task or batch fits (AGENTS.md, Tasks).
   (`runs/inbox/2026-11-04-message-log-left-edge.png`).
 - 2026-11-04 (-> 156, settings without a restart) The owner: the sharp-text
   switch should apply on the fly (`runs/inbox/2026-11-04-sharp-text-live.png`).
+- 2026-11-04 (-> 196, the UI batch, alone: 128 is the HUD art and rights)
+  The owner: full-screen screens on a fading black backdrop, the panel's
+  corners rounded 4 to 6 px.
