@@ -33,7 +33,7 @@ namespace {
 
 constexpr const char* kZipAsset = "fallout2-ce-3d-win64.zip";
 constexpr const char* kDefaultUpdateBase =
-    "https://github.com/Eugenius-S/f2-reimagine/releases/download/latest";
+    "https://github.com/Eugenius-S/f2-reimagined/releases/download/latest";
 constexpr const char* kGameExe = "fallout2-ce.exe";
 constexpr const char* kCfg = "fallout2.cfg";
 constexpr const char* kVersionTxt = "version.txt";

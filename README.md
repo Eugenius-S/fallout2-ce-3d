@@ -19,8 +19,8 @@ contribute. If you want to take part, message me on
 
 ## Install
 
-[Download the launcher](https://github.com/Eugenius-S/f2-reimagine/releases/download/latest/fallout2-ce-3d-launcher.exe)
-from the rolling [latest release](https://github.com/Eugenius-S/f2-reimagine/releases/tag/latest).
+[Download the launcher](https://github.com/Eugenius-S/f2-reimagined/releases/download/latest/fallout2-ce-3d-launcher.exe)
+from the rolling [latest release](https://github.com/Eugenius-S/f2-reimagined/releases/tag/latest).
 
 1. Install Fallout 2 from Steam or GOG. To play in Russian, put any Russian
    translation into the game folder first, before you run the launcher.
