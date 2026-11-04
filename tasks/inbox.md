@@ -293,3 +293,5 @@ first: a new task only when no open task or batch fits (AGENTS.md, Tasks).
   tools, 111, 193 UI text, 129, 128 wide art, 173, 097, 127, 157, 184-188,
   148 README, 190 roofs), 5 marked done, 1 new task (194 the moon, alone).
   107 folded into 189 walls as its first rule.
+- 2026-11-04 (-> 130, the UI batch) The owner: a cursor movement speed
+  setting in the game settings.
