@@ -3,8 +3,9 @@
 # that process. The build runs as build/test-run/fallout2-ce-test.exe with the
 # fixed config from tools/test-config/ (the game reads and saves fallout2.cfg
 # next to its exe), so the owner's game/fallout2.cfg and game/fallout2-ce.exe
-# (dev-launch.ps1 installs new builds) are never read or written; the game's
-# resources stay in game/, which remains the working directory.
+# (dev-launch.ps1 installs new builds) are never read or written. Resources
+# stay in game/, which remains the working directory, unless -GameRoot selects
+# an isolated scratch install.
 #
 # Every file the run writes (snapshots, logs, the game's saved maps, automap
 # and world map) goes to its own folder, build/test-run/runs/<id> (the exe's
@@ -99,6 +100,7 @@ param(
     [string]$OutputDirectory,
     [string]$BuildExecutable,
     [string]$TestDirectory,
+    [string]$GameRoot,
     [string]$SceneCache,
     [ValidateRange(1, 10)]
     [int]$DevLoadGameSlot = 0,
@@ -256,12 +258,16 @@ if ($DevPanel) {
     $Classic = $true
 }
 $Root = Split-Path -Parent $PSScriptRoot
-$GameDir = Join-Path $Root 'game'
-if (-not (Test-Path -LiteralPath $GameDir)) {
+$GameDir = if ($GameRoot) {
+    if ([System.IO.Path]::IsPathRooted($GameRoot)) { [System.IO.Path]::GetFullPath($GameRoot) }
+    else { [System.IO.Path]::GetFullPath((Join-Path $Root $GameRoot)) }
+} else { Join-Path $Root 'game' }
+if (-not $GameRoot -and -not (Test-Path -LiteralPath $GameDir)) {
     # An agent's worktree has no game: use the main checkout's, with this build.
     $main = (git -C $Root worktree list --porcelain | Select-Object -First 1) -replace '^worktree ', ''
     $GameDir = Join-Path $main 'game'
 }
+if (-not (Test-Path -LiteralPath $GameDir -PathType Container)) { throw "No game root at $GameDir" }
 $built = if ($BuildExecutable) { [System.IO.Path]::GetFullPath((Join-Path $Root $BuildExecutable)) } else { Join-Path $Root 'build\fallout2-ce.exe' }
 if (-not (Test-Path $built)) { throw "No build at $built; run tools/configure-build.ps1 first." }
 # The exe's own folder holds the config: build it fresh from the fixed one, so
