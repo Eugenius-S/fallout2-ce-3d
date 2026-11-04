@@ -265,6 +265,132 @@
    "name": "cave, regression gallery view"
   },
   {
+   "map": "newr1",
+   "elevation": 0,
+   "tile": 24105,
+   "name": "the first street entrance"
+  },
+  {
+   "map": "newr1",
+   "elevation": 1,
+   "tile": 15087,
+   "name": "the first street, upper floor"
+  },
+  {
+   "map": "newr1",
+   "elevation": 2,
+   "tile": 18085,
+   "name": "the first street, top floor"
+  },
+  {
+   "map": "newr2",
+   "elevation": 0,
+   "tile": 20100,
+   "name": "the second street entrance"
+  },
+  {
+   "map": "newr2",
+   "elevation": 1,
+   "tile": 18093,
+   "name": "the second street, upper floor"
+  },
+  {
+   "map": "newr2",
+   "elevation": 2,
+   "tile": 18695,
+   "name": "the second street, top floor"
+  },
+  {
+   "map": "newr3",
+   "elevation": 0,
+   "tile": 29495,
+   "name": "the third street entrance"
+  },
+  {
+   "map": "newr3",
+   "elevation": 1,
+   "tile": 29094,
+   "name": "the third street, upper floor"
+  },
+  {
+   "map": "newr4",
+   "elevation": 0,
+   "tile": 27103,
+   "name": "the fourth street entrance"
+  },
+  {
+   "map": "newr4",
+   "elevation": 1,
+   "tile": 18493,
+   "name": "the fourth street, upper floor"
+  },
+  {
+   "map": "newrcs",
+   "elevation": 0,
+   "tile": 24537,
+   "name": "the chop shop"
+  },
+  {
+   "map": "newrgo",
+   "elevation": 0,
+   "tile": 28101,
+   "name": "Golgatha entrance"
+  },
+  {
+   "map": "newrgo",
+   "elevation": 1,
+   "tile": 24706,
+   "name": "Golgatha, upper floor"
+  },
+  {
+   "map": "newrst",
+   "elevation": 0,
+   "tile": 25915,
+   "name": "the stables"
+  },
+  {
+   "map": "newrst",
+   "elevation": 1,
+   "tile": 24711,
+   "name": "the stables, upper floor"
+  },
+  {
+   "map": "newrba",
+   "elevation": 0,
+   "tile": 20100,
+   "name": "the boxing arena"
+  },
+  {
+   "map": "newrvb",
+   "elevation": 0,
+   "tile": 21732,
+   "name": "the VIP basement"
+  },
+  {
+   "map": "newr1",
+   "elevation": 0,
+   "tile": 18100,
+   "name": "the lit casino corner"
+  },
+  {
+   "map": "newr2",
+   "elevation": 0,
+   "tile": 26105,
+   "name": "the car lot and the murals"
+  },
+  {
+   "map": "newr3",
+   "elevation": 0,
+   "tile": 27495,
+   "name": "the neon corner"
+  },
+  {
+   "map": "newr4",
+   "elevation": 0,
+   "tile": 25103,
+   "name": "the truck by the street"
+  },
+  {
    "map": "broken1",
    "elevation": 0,
    "tile": 17947,

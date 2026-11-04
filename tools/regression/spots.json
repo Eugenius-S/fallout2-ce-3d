@@ -120,6 +120,48 @@
       "coverage": "The most detailed gallery view of this map elevation (task 011)"
     },
     {
+      "name": "newreno-first",
+      "map": "newr1",
+      "elevation": 0,
+      "tile": 24105,
+      "coverage": "New Reno first street"
+    },
+    {
+      "name": "newreno-second",
+      "map": "newr2",
+      "elevation": 0,
+      "tile": 20100,
+      "coverage": "New Reno second street"
+    },
+    {
+      "name": "newreno-chopshop",
+      "map": "newrcs",
+      "elevation": 0,
+      "tile": 24537,
+      "coverage": "The chop shop"
+    },
+    {
+      "name": "newreno-stables",
+      "map": "newrst",
+      "elevation": 0,
+      "tile": 25915,
+      "coverage": "The stables"
+    },
+    {
+      "name": "newreno-boxing",
+      "map": "newrba",
+      "elevation": 0,
+      "tile": 20100,
+      "coverage": "The boxing arena"
+    },
+    {
+      "name": "newreno-casino",
+      "map": "newr1",
+      "elevation": 0,
+      "tile": 18100,
+      "coverage": "The lit casino corner with the marquee"
+    },
+    {
       "name": "brokenhills-entrance",
       "map": "broken1",
       "elevation": 0,
