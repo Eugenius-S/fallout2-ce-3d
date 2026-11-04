@@ -90,7 +90,24 @@ devtools live snapshot reads the indexed framebuffer before that GL overlay.
 This needs a capture path that reads the presented GL frame; the 127 feature
 remains unverified.
 
-Tasks 140 and 146 have not been re-run under this watchdog build. Thus the
-five-case/three-run acceptance matrix is incomplete; keep PR #270 draft and
-task status `doing` until those cases are either verified or reach their own
-attempt limits. No code from those task branches was changed.
+The five-case/three-run acceptance matrix is incomplete; keep PR #270 draft
+and task status `doing`. No code from the other task branches was changed.
+
+### Watchdog investigation for Task 140
+
+One `-DialogCursorCheck` run hit the 30-second step limit with last step
+`DIALOG_FIXTURE START`, but had no screenshot: the engine was already blocked
+before it could service the watchdog capture request. Added a baseline
+snapshot before the fixture enters the dialog. A second run saved that
+non-black 3D baseline and reached `DIALOG_CURSOR_CHECK PASS`; the wrapper then
+returned nonzero because this worktree lacks `tools/check_png_pixel.py` and
+its cursor pixel assertion failed. `dialogue140-baseline.jpg` and its JSON
+sidecar are in `runs/196-live-checks/dialogue140-watchdog-2/`. It shows the
+NPC message, not the owner's hovered reply, so it is not acceptance evidence
+for Task 140. The timeout path still needs a follow-up test with the new
+baseline snapshot available; no further Task 140 runs were made after the
+two-attempt limit.
+
+The Task 146 combat flag is absent from this branch's runner and devtools.
+Its existing PR had already reached two failed combat starts. No additional
+combat attempt was made.

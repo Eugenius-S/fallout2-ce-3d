@@ -199,6 +199,7 @@ char gSnapshotRun[33] = {};
 bool gDialogFixtureRequested = false;
 bool gDialogFixtureStarted = false;
 bool gDialogFixtureFinished = false;
+bool gDialogFixtureBaselineCaptured = false;
 bool gDialogPageInspectRequested = false;
 int gDialogPageInspectStage = 0;
 std::vector<std::string> gDialogPageInspectInitialText;
@@ -1703,6 +1704,13 @@ void update()
     }
     if (gDialogFixtureRequested && !gDialogFixtureStarted && !gDialogFixtureFinished
         && sceneStartupReady() && !inBlockingGameState()) {
+        if (!gDialogFixtureBaselineCaptured) {
+            gDialogFixtureBaselineCaptured = true;
+            const bool captured = takeSnapshot();
+            printf("DIALOG_FIXTURE BASELINE %s: %s\n", captured ? "saved" : "failed", gStatus);
+            fflush(stdout);
+            return;
+        }
         gDialogFixtureStarted = true;
         std::string mapName(gMapHeader.name);
         std::transform(mapName.begin(), mapName.end(), mapName.begin(),

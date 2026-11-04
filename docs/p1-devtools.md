@@ -156,7 +156,8 @@ stops only the test process and preserves `watchdog.txt`, process logs, and
 the latest game snapshot in the failed run folder. The report includes the
 last progress marker and most recent map/combat/dialog/movie state. If the
 game loop is blocked and cannot take a fresh frame, it keeps the last frame
-captured before the block. Use
+captured before the block. The dialog fixture also records a baseline frame
+before entering the modal interaction. Use
 `-SkipScriptBlocking` to enable the dev-only `--dev-skip-script-blocking`
 option: script-requested dialogue is skipped before its UI opens, and
 script-requested movies are skipped, with each skip recorded in stdout. This
