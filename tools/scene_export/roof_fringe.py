@@ -217,7 +217,9 @@ def split_tile(rgba, open_edges=()):
     (rebar and chunks above the wall), and the dark grey pixels (concrete,
     where shingle is brown) in blobs of MIN_BLOB or more, plus the painted pixels
     they enclose and the grey ones that touch the cut. A tile painted whole is a
-    roof square; one whose painted pixels are nearly all grey is all wall top.
+    roof square, however dark: only what is off its diamond and the slab strips
+    along its open edges are wall top, the rest stays flat roof. A tile painted
+    less whose pixels are nearly all grey is all wall top.
     """
     painted, u, v, diamond = _grid(rgba)
     if not painted.any():
@@ -231,20 +233,28 @@ def split_tile(rgba, open_edges=()):
     slabs, _, dist = slab_edges(rgba, open_edges)
     if cover >= WHOLE_COVER and outside.sum() <= FREE_OUTSIDE and not slabs:
         return [], rgba
-    if grey.sum() >= ALL_GREY * painted.sum():
+    whole = cover >= WHOLE_COVER
+    if not whole and grey.sum() >= ALL_GREY * painted.sum():
         fringe = painted.copy()
     else:
-        keep = np.zeros_like(grey)
-        for rows, cols in _blobs(grey):
-            if len(rows) >= MIN_BLOB:
-                keep[rows, cols] = True
-        fringe = outside | keep
+        if whole:
+            # a tile painted whole is a roof square, however dark: only what is off the diamond and the slab strips
+            # along its open edges are wall top, the rest stays flat roof (a patch)
+            fringe = outside.copy()
+        else:
+            keep = np.zeros_like(grey)
+            for rows, cols in _blobs(grey):
+                if len(rows) >= MIN_BLOB:
+                    keep[rows, cols] = True
+            fringe = outside | keep
         for edge in slabs:
             fringe |= grey & (dist[edge] < SLAB_STRIP + RIM)
         for _ in range(2):
             fringe = _grow(fringe, painted, 5)
-        # the grey texels that touch the cut are its ragged rim: they go with it
-        fringe |= grey & _dilate(fringe, 2)
+        # the grey texels that touch the cut are its ragged rim: they go with it (a whole tile's cut is a straight
+        # line at the slab strip: its grey beyond is roof texture)
+        if not whole:
+            fringe |= grey & _dilate(fringe, 2)
     if not fringe.any():
         return [], rgba
     art = rgba.copy()
@@ -858,6 +868,108 @@ def lay_donor(donor, edge, count):
     return out
 
 
+DONOR_COVER = 0.9   # of the square: a donor tile's cell is painted this much (a plain roof, not a trim strip or a ragged edge)
+
+
+def _cover(cell):
+    """The share of the square (u, v in 0..1) that a flat cell paints."""
+    t = (np.arange(cell.shape[0]) + 0.5 - CELL_MARGIN) / CELL_SIZE
+    v, u = np.meshgrid(t, t, indexing="ij")
+    on = (u >= 0) & (u < 1) & (v >= 0) & (v < 1)
+    return float(((cell[..., 3] > 0) & on).sum() / on.sum())
+
+
+def plain_art(rgba):
+    """Whether a tile art is plain roof: its tidied cell painted DONOR_COVER or more (not a trim strip or a ragged edge)."""
+    return _cover(tidy_cell(unproject_cell(rgba), ())) >= DONOR_COVER
+
+
+def donor_tiles(roof_squares, open_of, banded, comp, art_of):
+    """{component: tile id}: the plain roof tile each roof draws where a banded square has no roof art of its own.
+
+    The most common roof tile among the non-boundary squares of the component,
+    else the most common among its squares no band crosses. A tile whose tidied
+    cell is not plain roof (painted less than DONOR_COVER) is passed over. A
+    component with no plain tile of its own (a ring of wall tops round a courtyard,
+    a ruin open to the sky) has none: it is no roof, only its bands stand.
+    """
+    inner, loose = {}, {}
+    for index, tile in roof_squares.items():
+        if not open_of[index]:
+            inner.setdefault(comp[index], {}).setdefault(tile, 0)
+            inner[comp[index]][tile] += 1
+        if index not in banded:
+            loose.setdefault(comp[index], {}).setdefault(tile, 0)
+            loose[comp[index]][tile] += 1
+    plain = {}
+
+    def is_plain(tile):
+        if tile not in plain:
+            plain[tile] = plain_art(art_of(tile))
+        return plain[tile]
+
+    out = {}
+    for number in set(comp.values()):
+        for counts in (inner.get(number, {}), loose.get(number, {})):
+            found = [tile for tile, _ in sorted(counts.items(), key=lambda item: (-item[1], item[0])) if is_plain(tile)]
+            if found:
+                out[number] = found[0]
+                break
+    return out
+
+
+def band_clips(runs, places, outers):
+    """{square index: ((axis, face, side), ...)}: the planes of the bands that cross each square.
+
+    axis 0: the plane v = face (a band along u), 1: u = face (a band along v),
+    face in the square's own tile units; side 1 when the building's outside is
+    the higher side of the plane, -1 when the lower. The roof lies on the other
+    side (the inner one).
+    """
+    clips = {}
+    for (edge, plane, start, members), place, outer in zip(runs, places, outers):
+        axis = 0 if edge < 2 else 1
+        side = (outer if outer is not None else (-1.0 if edge in (0, 2) else 1.0)) > 0
+        for index, _ in members:
+            base = index // 100 if axis == 0 else index % 100
+            clips.setdefault(index, set()).add((axis, round(place[0] - base, 3), 1 if side else -1))
+    return {index: tuple(sorted(found)) for index, found in clips.items()}
+
+
+RING = "ring"  # the donor of a banded square with no roof behind it: none, its cell is only cut at the band
+
+
+def inner_edge(clip):
+    """The edge of its square (EDGE_STEPS) a band_clips plane faces the roof across: the one away from the outside."""
+    axis, _, side = clip
+    return (0 if side > 0 else 1) if axis == 0 else (2 if side > 0 else 3)
+
+
+def cut_cell(cell, clips, donor):
+    """A flat roof cell cut at the planes of the bands that cross its square and filled with plain roof up to them.
+
+    clips: band_clips of the square. Nothing is left on the outer side of a
+    plane; every clear texel on the inner side (a hole where the wall top was cut
+    out, a square with no roof art of its own) takes the donor cell's texel (donor None: none does). A
+    clear texel with painted texels on all four sides is shading dither and stays.
+    """
+    t = (np.arange(cell.shape[0]) + 0.5 - CELL_MARGIN) / CELL_SIZE
+    v, u = np.meshgrid(t, t, indexing="ij")
+    inner = np.ones(cell.shape[:2], bool)
+    for axis, face, side in clips:
+        coord = v if axis == 0 else u
+        inner &= (coord < face) if side > 0 else (coord >= face)
+    out = cell.copy()
+    out[~inner] = 0
+    painted = out[..., 3] > 0
+    around = np.pad(painted, 1)
+    dither = ~painted & around[:-2, 1:-1] & around[2:, 1:-1] & around[1:-1, :-2] & around[1:-1, 2:]
+    if donor is not None:
+        fill = inner & ~painted & ~dither
+        out[fill] = donor[fill]
+    return out
+
+
 def write_fringe_art(out_png, roof_squares, art_of, wall_of, belt_of=None, default_top=1.88, diagnostics=None):
     """Write the unrolled strips of the roof's wall tops, and the flat squares cut around them, into one image, out_png.
 
@@ -915,6 +1027,44 @@ def write_fringe_art(out_png, roof_squares, art_of, wall_of, belt_of=None, defau
     for index in banded:
         if index not in patched:
             patched[index] = ((roof_squares[index], tuple(open_of[index])), art_of(roof_squares[index]))
+    # and it is roofed right up to the band: its cell is cut at the band's plane and filled with the plain roof of
+    # its component up to it (a square with no donor keeps its cell, or none). Only a square with plain roof behind it: one
+    # whose inner side opens on a courtyard or on more wall tops is a ring round an open ruin, not a roof (cut, not filled)
+    clips = band_clips(runs, places, outers)
+    donors = donor_tiles(roof_squares, open_of, banded, comp, art_of)
+    def behind(index):
+        return [(index // 100 + EDGE_STEPS[edge][1]) * 100 + index % 100 + EDGE_STEPS[edge][0]
+                for edge in {inner_edge(clip) for clip in clips[index]}]
+
+    plain_tiles = {}
+
+    def plain(index):
+        if index not in roof_squares or index in banded:
+            return False
+        tile = roof_squares[index]
+        if tile not in plain_tiles:
+            plain_tiles[tile] = plain_art(art_of(tile))
+        return plain_tiles[tile]
+
+    # a square is roofed when what lies behind each of its bands is plain roof or a roofed square (a corner): grown out
+    # from the plain roof, so two strips of wall tops facing each other never vouch for each other
+    candidates = {index for index in banded if not any(inner_edge(clip) in open_of[index] for clip in clips[index])}
+    roofed = set()
+    while True:
+        grown = {index for index in candidates - roofed if all(back in roofed or plain(back) for back in behind(index))}
+        if not grown:
+            break
+        roofed |= grown
+    for index in sorted(banded):
+        donor = donors.get(comp[index])
+        if donor is None:
+            continue
+        if index not in roofed:
+            donor = RING   # cut at the band, not filled
+        key, roof = patched[index]
+        if key == BLANK:
+            key = (roof_squares[index], tuple(open_of[index]))
+        patched[index] = ((*key, clips[index], donor), roof if roof is not None else np.zeros_like(art_of(roof_squares[index])))
     # a boundary square no band crosses can carry a ragged dark wall top the classifier did not see (black fingers
     # along its open edge): it too is drawn from a tidied cell, when tidying changes it
     tidied = {}
@@ -930,8 +1080,14 @@ def write_fringe_art(out_png, roof_squares, art_of, wall_of, belt_of=None, defau
     # every flat cell is tidied: no dark ragged wall top lies flat, whether or not a band stands on its edge
     cells = {}
     for index, (tile, roof) in patched.items():
-        if roof is not None:
-            cells.setdefault(tile, tidy_cell(unproject_cell(roof), () if tile == BLANK else tile[1]))
+        if roof is not None and tile not in cells:
+            if tile == BLANK:
+                cells[tile] = tidy_cell(unproject_cell(roof), ())
+            else:
+                cells[tile] = tidy_cell(unproject_cell(roof), tile[1])
+                if len(tile) == 4:
+                    cells[tile] = cut_cell(cells[tile], tile[2],
+                                           None if tile[3] == RING else tidy_cell(unproject_cell(art_of(tile[3])), ()))
     cell = CELL_SIZE + 2 * CELL_MARGIN
     if not strips and not cells:
         out_png.unlink(missing_ok=True)
