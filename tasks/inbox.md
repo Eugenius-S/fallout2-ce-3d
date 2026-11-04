@@ -270,3 +270,6 @@ that fits no task becomes a new task when the board runs dry.
 - 2026-11-04 The owner: 173 by kind (a bulky unique object is a billboard,
   a flat thing a fixed plane, fences untouched); the feedback screenshot with
   its JSON (183, right after 127).
+- 2026-11-04 The owner: the Restoration Project, top priority, to gpt.
+  Cut: 184 install into a scratch copy and boot, 185 the sfall gap list,
+  186 fill the gaps, 187 RP content in 3D, 188 an RP boot check.
