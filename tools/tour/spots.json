@@ -959,6 +959,20 @@
    "elevation": 2,
    "tile": 21910,
    "name": "the corn field"
-  }
+  },
+  {"map": "reddown", "elevation": 0, "tile": 19059, "name": "reddown-e0-downtown-entrance"},
+  {"map": "reddown", "elevation": 0, "tile": 19456, "name": "reddown-e0-downtown-street"},
+  {"map": "redment", "elevation": 0, "tile": 26912, "name": "redment-e0-mine-entrance"},
+  {"map": "redment", "elevation": 0, "tile": 27012, "name": "redment-e0-mine-town-approach"},
+  {"map": "reddtun", "elevation": 0, "tile": 20100, "name": "reddtun-e0-downtown-tunnel"},
+  {"map": "reddtun", "elevation": 0, "tile": 20300, "name": "reddtun-e0-downtown-tunnel-passage"},
+  {"map": "redmtun", "elevation": 0, "tile": 20100, "name": "redmtun-e0-mine-tunnel"},
+  {"map": "redmtun", "elevation": 0, "tile": 19900, "name": "redmtun-e0-mine-tunnel-passage"},
+  {"map": "redwame", "elevation": 0, "tile": 20275, "name": "redwame-e0-wanamingo-entrance"},
+  {"map": "redwame", "elevation": 0, "tile": 20475, "name": "redwame-e0-wanamingo-approach"},
+  {"map": "redwan1", "elevation": 0, "tile": 26893, "name": "redwan1-e0-wanamingo-level-1"},
+  {"map": "redwan1", "elevation": 0, "tile": 27093, "name": "redwan1-e0-wanamingo-level-1-passage"},
+  {"map": "redwan1", "elevation": 1, "tile": 26893, "name": "redwan1-e1-wanamingo-level-2"},
+  {"map": "redwan1", "elevation": 1, "tile": 27093, "name": "redwan1-e1-wanamingo-level-2-passage"}
  ]
 }

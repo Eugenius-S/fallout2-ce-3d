@@ -1,0 +1,121 @@
+[
+  {
+    "map": "reddown",
+    "elevation": 0,
+    "view_tile": 19059,
+    "hero_tile": 19456,
+    "scene_view": "full",
+    "renderer": "scene-gl",
+    "resolution": "1920x1080",
+    "image": "build\\scratch164\\reddown-e0\\devhero-20261104-115427-000.png",
+    "mean_rgb": [
+      62.31,
+      51.74,
+      43.69
+    ],
+    "unique_colors": 865,
+    "build_sha": "4ff8450f"
+  },
+  {
+    "map": "reddtun",
+    "elevation": 0,
+    "view_tile": 20100,
+    "hero_tile": 20100,
+    "scene_view": "full",
+    "renderer": "scene-gl",
+    "resolution": "1920x1080",
+    "image": "build\\scratch164\\reddtun-e0\\devhero-20261104-115448-000.png",
+    "mean_rgb": [
+      11.99,
+      10.01,
+      7.55
+    ],
+    "unique_colors": 4008,
+    "build_sha": "4ff8450f"
+  },
+  {
+    "map": "redment",
+    "elevation": 0,
+    "view_tile": 26912,
+    "hero_tile": 26912,
+    "scene_view": "full",
+    "renderer": "scene-gl",
+    "resolution": "1920x1080",
+    "image": "build\\scratch164\\redment-e0\\devhero-20261104-115438-000.png",
+    "mean_rgb": [
+      86.01,
+      71.57,
+      57.28
+    ],
+    "unique_colors": 568,
+    "build_sha": "4ff8450f"
+  },
+  {
+    "map": "redmtun",
+    "elevation": 0,
+    "view_tile": 20100,
+    "hero_tile": 20100,
+    "scene_view": "full",
+    "renderer": "scene-gl",
+    "resolution": "1920x1080",
+    "image": "build\\scratch164\\redmtun-e0\\devhero-20261104-115459-000.png",
+    "mean_rgb": [
+      14.73,
+      12.73,
+      9.92
+    ],
+    "unique_colors": 1967,
+    "build_sha": "4ff8450f"
+  },
+  {
+    "map": "redwame",
+    "elevation": 0,
+    "view_tile": 20275,
+    "hero_tile": 20475,
+    "scene_view": "full",
+    "renderer": "scene-gl",
+    "resolution": "1920x1080",
+    "image": "build\\scratch164\\redwame-e0\\devhero-20261104-115510-000.png",
+    "mean_rgb": [
+      54.94,
+      47.26,
+      41.66
+    ],
+    "unique_colors": 311,
+    "build_sha": "4ff8450f"
+  },
+  {
+    "map": "redwan1",
+    "elevation": 0,
+    "view_tile": 26893,
+    "hero_tile": 27093,
+    "scene_view": "full",
+    "renderer": "scene-gl",
+    "resolution": "1920x1080",
+    "image": "build\\scratch164\\redwan1-e0\\devhero-20261104-115520-000.png",
+    "mean_rgb": [
+      12.29,
+      10.35,
+      7.74
+    ],
+    "unique_colors": 3764,
+    "build_sha": "4ff8450f"
+  },
+  {
+    "map": "redwan1",
+    "elevation": 1,
+    "view_tile": 26893,
+    "hero_tile": 27093,
+    "scene_view": "full",
+    "renderer": "scene-gl",
+    "resolution": "1920x1080",
+    "image": "build\\scratch164\\redwan1-e1\\devhero-20261104-115531-000.png",
+    "mean_rgb": [
+      7.51,
+      6.27,
+      4.53
+    ],
+    "unique_colors": 197,
+    "build_sha": "4ff8450f"
+  }
+]

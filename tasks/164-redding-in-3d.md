@@ -2,7 +2,7 @@
 id: 164
 title: Redding in 3D, every map stands and looks clean
 milestone: M1
-status: doing
+status: done
 owner: gpt
 suggested: gpt
 priority: normal
@@ -10,7 +10,7 @@ tier: 3
 claude-only: no
 user-check: yes
 depends-on: []
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -71,3 +71,31 @@ The interface, menus and text, the sky, new 3D models from scratch, maps of
 other areas (each has its own task).
 
 ## Log
+
+### 2026-11-04 gpt
+
+Done: added the `redding` map group (`reddown`, `redment`, `reddtun`,
+`redmtun`, `redwame`, `redwan1`). Exported all 7 elevations with no warnings.
+Added 14 fly-tour points, two per map/elevation, and 7 regression points,
+including both Wanamingo mine levels. The current-build game views and
+hourly sweep are in `runs/164-redding-in-3d/`.
+
+Sweep: every fly-tour point was captured at turns -45, 0 and +45 against a
+fresh `origin/main` cache at `db16a224`: all 42 views per side show full
+`scene-gl`, and 0 of 14 points changed pixels. The 7 map/elevation entrances
+were captured at hours 8, 12 and 18 with sun shadows on; all 21 sidecars show
+full `scene-gl`, 1920x1080, non-empty images. Direct sun changes the outdoor
+maps; cave maps remain unchanged across the hours. A single background run
+transitioned `reddown -> redment -> reddtun -> redmtun -> redwame -> redwan1
+e0 -> redwan1 e1`, with 3D enabled on every map.
+
+Checks: Release build passed; CTest 20/20; scene-export unit tests 121/121;
+the 7 new regression points each passed with 0 changed pixels. JSON validation,
+PowerShell parsing, public-content and runs-size checks passed. The first
+fly-tour call exposed that nested Windows PowerShell 5.1 did not auto-load
+`Microsoft.PowerShell.Utility`; `dev-snapshot.ps1` now imports it explicitly.
+No map-specific visual defects found in this sweep.
+
+Evidence: `current-build-game-views.jpg`, `hour-sweep-shadows.jpg`, and the
+origin-main fly-tour sheets under `runs/164-redding-in-3d/`.
+Next: no open finds; PR is ready for CI review.

@@ -68,6 +68,8 @@ MAP_GROUPS = {
     # New Reno: the four streets, the chop shop, Golgatha, the stables, the
     # boxing arena, the VIP basement (the game's maps/newr*.map files).
     "newreno": ("newr1", "newr2", "newr3", "newr4", "newr1a", "newr2a", "newrcs", "newrgo", "newrst", "newrba", "newrvb"),
+    # Redding: the mining town, its tunnels, and the Wanamingo mine.
+    "redding": ("reddown", "redment", "reddtun", "redmtun", "redwame", "redwan1"),
 }
 EXPECTED_OUTPUT_FILES = {"scene.json", "provenance.json", "floor.bin", "walls.bin", "projection.bin", "baked.bin",
                          "shadows.bin", "tiles.png", "light.png", "rock.png", "roof_fringe.png"}

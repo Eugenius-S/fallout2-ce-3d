@@ -1,0 +1,82 @@
+{
+  "build_sha": "4ff8450f",
+  "sequence": [
+    {
+      "map": "reddown",
+      "elevation": 0,
+      "view_tile": 19059,
+      "scene_3d_enabled": true,
+      "scene_view": "full",
+      "renderer": "scene-gl",
+      "resolution": "1920x1080",
+      "hero_tile": 19456,
+      "wall_triangles": 29951
+    },
+    {
+      "map": "redment",
+      "elevation": 0,
+      "view_tile": 26912,
+      "scene_3d_enabled": true,
+      "scene_view": "full",
+      "renderer": "scene-gl",
+      "resolution": "1920x1080",
+      "hero_tile": 26912,
+      "wall_triangles": 24144
+    },
+    {
+      "map": "reddtun",
+      "elevation": 0,
+      "view_tile": 20100,
+      "scene_3d_enabled": true,
+      "scene_view": "full",
+      "renderer": "scene-gl",
+      "resolution": "1920x1080",
+      "hero_tile": 20100,
+      "wall_triangles": 12084
+    },
+    {
+      "map": "redmtun",
+      "elevation": 0,
+      "view_tile": 20100,
+      "scene_3d_enabled": true,
+      "scene_view": "full",
+      "renderer": "scene-gl",
+      "resolution": "1920x1080",
+      "hero_tile": 20100,
+      "wall_triangles": 6304
+    },
+    {
+      "map": "redwame",
+      "elevation": 0,
+      "view_tile": 20275,
+      "scene_3d_enabled": true,
+      "scene_view": "full",
+      "renderer": "scene-gl",
+      "resolution": "1920x1080",
+      "hero_tile": 20475,
+      "wall_triangles": 28738
+    },
+    {
+      "map": "redwan1",
+      "elevation": 0,
+      "view_tile": 26893,
+      "scene_3d_enabled": true,
+      "scene_view": "full",
+      "renderer": "scene-gl",
+      "resolution": "1920x1080",
+      "hero_tile": 27093,
+      "wall_triangles": 11782
+    },
+    {
+      "map": "redwan1",
+      "elevation": 1,
+      "view_tile": 26893,
+      "scene_3d_enabled": true,
+      "scene_view": "full",
+      "renderer": "scene-gl",
+      "resolution": "1920x1080",
+      "hero_tile": 27093,
+      "wall_triangles": 10839
+    }
+  ]
+}

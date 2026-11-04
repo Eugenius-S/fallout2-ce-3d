@@ -510,6 +510,55 @@
       "elevation": 0,
       "tile": 22905,
       "coverage": "The slave run fire pit and tents"
+    },
+    {
+      "name": "redding-downtown",
+      "map": "reddown",
+      "elevation": 0,
+      "tile": 19059,
+      "coverage": "Redding downtown"
+    },
+    {
+      "name": "redding-mine-entrance",
+      "map": "redment",
+      "elevation": 0,
+      "tile": 26912,
+      "coverage": "The mine entrance"
+    },
+    {
+      "name": "redding-downtown-tunnel",
+      "map": "reddtun",
+      "elevation": 0,
+      "tile": 20100,
+      "coverage": "The downtown tunnel"
+    },
+    {
+      "name": "redding-mine-tunnel",
+      "map": "redmtun",
+      "elevation": 0,
+      "tile": 20100,
+      "coverage": "The mine tunnel"
+    },
+    {
+      "name": "redding-wanamingo-entrance",
+      "map": "redwame",
+      "elevation": 0,
+      "tile": 20275,
+      "coverage": "The Wanamingo mine entrance"
+    },
+    {
+      "name": "redding-wanamingo-level-1",
+      "map": "redwan1",
+      "elevation": 0,
+      "tile": 26893,
+      "coverage": "The Wanamingo mine, level 1"
+    },
+    {
+      "name": "redding-wanamingo-level-2",
+      "map": "redwan1",
+      "elevation": 1,
+      "tile": 26893,
+      "coverage": "The Wanamingo mine, level 2"
     }
   ]
 }
