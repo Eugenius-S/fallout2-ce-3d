@@ -318,3 +318,9 @@ first: a new task only when no open task or batch fits (AGENTS.md, Tasks).
 - 2026-11-04 (-> 198, alone: the local machine) The owner: the showcase
   project, the final video and the logo into `marketing/`; clean up the
   the projects folder root.
+- 2026-11-04 The owner: the Restoration Project up, 184, 185, 186 and 188 to
+  tier 1 (184 suggested gpt; 187 stays tier 2, it needs the map work). The
+  remaining maps 166-171 to glm, in id order, one after another.
+- 2026-11-04 (-> 168, owner priority) The owner: San Francisco's sea fills
+  the horizon past the map; the tanker's side a vertical plane at the pier
+  (173's plane rule).

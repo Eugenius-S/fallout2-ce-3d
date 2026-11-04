@@ -3,8 +3,8 @@ id: 168
 title: San Francisco and Navarro in 3D, every map stands and looks clean
 milestone: M1
 status: todo
-owner: any
-suggested: any
+owner: glm
+suggested: glm
 priority: normal
 tier: 3
 claude-only: no
@@ -22,6 +22,18 @@ then 158 to 171 in the game's order).
 
 ## Context
 
+- Owner priority, do these first (the owner, 2026-11-04, the docks from the
+  fly camera, `runs/inbox/2026-11-04-sf-docks-sea-and-tanker.webp`: the dark
+  water stops at the edge of the map tiles with flat brown void beyond, and
+  the tanker's side is a slanted sliver floating above the pier):
+  1. The sea fills the whole horizon: the water plane goes past the map to
+     the left, to the right and into the distance, no brown void anywhere
+     round the docks. A general rule: a map edge that is water continues as
+     water.
+  2. The tanker's side stands as one vertical plane, perpendicular to the
+     water, touching the pier with no gap. It belongs to 173's plane
+     fallback for big hull art, so it works for any ship art, not only this
+     tanker.
 - The maps (the game's map files, checked against `runs/p1-listmaps.log`):
   sfdock sfchina sfchina2 sftanker sfshutl1 sfshutl2 sfelronb navarro. Add them to `MAP_GROUPS` in `tools/scene_export/export.py` as
   `sanfran`. If the game holds more maps for this area, take them too.
