@@ -1151,6 +1151,72 @@
    "elevation": 2,
    "tile": 20100,
    "name": "Vault 15 ruins, elevation 2, entry"
+  },
+  {
+   "map": "ncr1",
+   "elevation": 0,
+   "tile": 13915,
+   "name": "the NCR council square"
+  },
+  {
+   "map": "ncr1",
+   "elevation": 1,
+   "tile": 16104,
+   "name": "the council building top floor"
+  },
+  {
+   "map": "ncr2",
+   "elevation": 0,
+   "tile": 13895,
+   "name": "the statue plaza"
+  },
+  {
+   "map": "ncr3",
+   "elevation": 0,
+   "tile": 23669,
+   "name": "the west gate street"
+  },
+  {
+   "map": "ncr4",
+   "elevation": 0,
+   "tile": 18279,
+   "name": "the brahmin pens"
+  },
+  {
+   "map": "ncrent",
+   "elevation": 0,
+   "tile": 20274,
+   "name": "the NCR entrance"
+  },
+  {
+   "map": "ncrent",
+   "elevation": 1,
+   "tile": 19733,
+   "name": "the entrance warehouse"
+  },
+  {
+   "map": "v15ent",
+   "elevation": 0,
+   "tile": 29325,
+   "name": "the Vault 15 entrance desert"
+  },
+  {
+   "map": "v15ent",
+   "elevation": 1,
+   "tile": 29325,
+   "name": "the vault plaza"
+  },
+  {
+   "map": "v15sent",
+   "elevation": 0,
+   "tile": 18097,
+   "name": "the squatters' camp"
+  },
+  {
+   "map": "vault15",
+   "elevation": 0,
+   "tile": 27103,
+   "name": "the vault door cave"
   }
  ]
 }

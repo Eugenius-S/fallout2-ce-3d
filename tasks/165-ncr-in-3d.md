@@ -2,15 +2,15 @@
 id: 165
 title: NCR and Vault 15 in 3D, every map stands and looks clean
 milestone: M1
-status: doing
-owner: gpt
+status: done
+owner: glm
 suggested: any
 priority: normal
 tier: 3
 claude-only: no
 user-check: yes
 depends-on: []
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -107,3 +107,16 @@ other areas (each has its own task).
 - Checks: Release build; ctest 20/20; scene exporter tests 121/121; regression
   tests 12/12; all 13 new regression points pass against their references.
 - Finds: no confirmed scene defects to move to tasks 189-192 or 173.
+- 2026-11-04, glm. The walk-probe and hour coverage the log above leaves
+  open, completed on this branch: walk chain 13/13 across ncr1 e0/e1,
+  ncr2-ncr4, ncrent e0/e1, v15ent e0/e1, v15sent, vault15 e0-e2 (3D stays
+  on; direct map travel probes, so the exit-into-dialogue stops gpt hit did
+  not reproduce). Hour sweep 8/12/18 captured for all 13 elevations. Grid
+  probes on ncr1, ncr2, v15ent. Fly tour before/after identical on 13
+  entrance spots. Dark views (ncr1-e1, ncrent-e1, vault15-e0/e2) match the
+  game's own 2D (-Classic). 3 extra regression spots (ncr-council-square,
+  v15-entrance, vault15-level) with references; full suite pass 0
+  changed pixels with them (78/78 on this branch's suite, 91/91 after the
+  merge with gpt's 13 spots, all green). The scene content itself: no defects; nothing
+  to move to 189-192 or 173. Evidence: runs/165-ncr-in-3d/ (probe-sheet.jpg,
+  tour-*.jpg, grid-*.jpg, hours-*.jpg, walk-*.jpg, classic-2d-checks.jpg).
