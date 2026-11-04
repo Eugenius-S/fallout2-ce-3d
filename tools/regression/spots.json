@@ -643,6 +643,48 @@
       "elevation": 1,
       "tile": 27103,
       "coverage": "Inside Vault 15, level 1"
+    },
+    {
+      "name": "v13ent-cave",
+      "map": "v13ent",
+      "elevation": 0,
+      "tile": 25943,
+      "coverage": "The Vault 13 entrance cave and rock face"
+    },
+    {
+      "name": "vault13-corridors",
+      "map": "vault13",
+      "elevation": 0,
+      "tile": 17095,
+      "coverage": "The Vault 13 command centre corridors"
+    },
+    {
+      "name": "vault13-deathclaw-floor",
+      "map": "vault13",
+      "elevation": 2,
+      "tile": 16694,
+      "coverage": "The Vault 13 deathclaw floor"
+    },
+    {
+      "name": "depot-gatehouse",
+      "map": "depolv1",
+      "elevation": 0,
+      "tile": 27705,
+      "coverage": "The Sierra depot surface gatehouse and fences"
+    },
+    {
+      "name": "depot-robot-hall",
+      "map": "depolva",
+      "elevation": 1,
+      "tile": 26504,
+      "coverage": "The depot robot storage hall"
+    },
+    {
+      "name": "depot-robotics-bay",
+      "map": "depolvb",
+      "elevation": 0,
+      "tile": 21910,
+      "coverage": "The depot robotics bay"
     }
   ]
 }
