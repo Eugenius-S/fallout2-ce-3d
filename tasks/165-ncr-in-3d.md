@@ -2,8 +2,8 @@
 id: 165
 title: NCR and Vault 15 in 3D, every map stands and looks clean
 milestone: M1
-status: todo
-owner: any
+status: doing
+owner: gpt
 suggested: any
 priority: normal
 tier: 3
