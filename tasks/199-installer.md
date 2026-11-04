@@ -4,9 +4,9 @@ title: A proper installer with the project logo, one-click updates, Russian and 
 milestone: M1
 status: todo
 owner: any
-suggested: any
-priority: normal
-tier: 3
+suggested: gpt
+priority: high
+tier: 1
 claude-only: no
 user-check: yes
 depends-on: []
@@ -22,6 +22,9 @@ Restoration Project is shown as one, disabled for now.
 
 ## Context
 
+- High priority (the owner, 2026-11-04). It goes right after 184 (RP
+  install and boot): the RP option needs to know how RP installs. If gpt is
+  busy, glm may take it between map areas.
 - The owner, 2026-11-04: a proper installer that looks good, with the
   project logo; updates pulled from git by themselves; options for the
   Russian translation and the Restoration Project install, the latter
