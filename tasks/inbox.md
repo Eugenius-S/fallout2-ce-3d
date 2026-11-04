@@ -259,3 +259,6 @@ that fits no task becomes a new task when the board runs dry.
   City, 161 Gecko, 162 Broken Hills, 163 New Reno, 164 Redding, 165 NCR and
   Vault 15, 166 Vault 13 and the Sierra Army Depot, 167 the Military Base, 168
   San Francisco and Navarro, 169-171 the random encounters.
+- 2026-11-04 The owner: every open task to gpt. Moved to gpt: the area sweeps
+  164-171 (from glm), 129 and 149 (from claude). Claude keeps the
+  design-heavy 135 and 157 in progress; 090 and 097 stay claude-only.

@@ -4,7 +4,7 @@ title: Combat outlines, the hex cursor and floating text follow the 3D turn and 
 milestone: M1
 status: todo
 owner: none
-suggested: claude
+suggested: gpt
 priority: high
 claude-only: no
 user-check: yes
