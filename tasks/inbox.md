@@ -252,6 +252,8 @@ that fits no task becomes a new task when the board runs dry.
 - 2026-11-02 The owner: in the 3D settings' Main section a resolution dropdown, a fullscreen / window / borderless dropdown and a 1x-3x scale slider in 0.2x steps, high priority (154, gpt; 139 folded in).
 - 2026-11-02 The owner: hitches on load, a stall when sun shadows are turned on, low FPS overall (155, claude); resolution, window mode and scale should change on the fly without a stall (156, gpt).
 - 2026-11-02 The owner on main `e8f168a2`: the game still runs unevenly, wants a steady 60 FPS (157, claude, after 155); wants the FPS counter (127 raised to high, gpt, #181).
+- 2026-11-03 The owner: roof borders in flight are thick on one side and missing on others, also in the game's own view; they should be even, as thick as a wall (not critical, 129 follow-up).
+- 2026-11-03 An orange translucent wedge at the map edge, seen in fly shots: pre-existing and unrelated to roofs (see 145).
 - 2026-11-04 The owner: glm sweeps every map in the game's order, non-stop.
   Cut: 136 Arroyo (to glm), 158 Den, 159 Modoc and the Ghost Town, 160 Vault
   City, 161 Gecko, 162 Broken Hills, 163 New Reno, 164 Redding, 165 NCR and

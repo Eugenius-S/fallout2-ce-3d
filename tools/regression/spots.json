@@ -120,6 +120,90 @@
       "coverage": "The most detailed gallery view of this map elevation (task 011)"
     },
     {
+      "name": "arroyo-caves-entrance",
+      "map": "arcaves",
+      "elevation": 0,
+      "tile": 28706,
+      "coverage": "Arroyo caves mouth, rock arches"
+    },
+    {
+      "name": "arroyo-caves-lower",
+      "map": "arcaves",
+      "elevation": 1,
+      "tile": 28706,
+      "coverage": "Arroyo lower cave, dark grass floor"
+    },
+    {
+      "name": "arroyo-caves-upper",
+      "map": "arcaves",
+      "elevation": 2,
+      "tile": 26097,
+      "coverage": "Arroyo upper cave"
+    },
+    {
+      "name": "arroyo-village",
+      "map": "arvillag",
+      "elevation": 0,
+      "tile": 21115,
+      "coverage": "Arroyo village entrance, huts and totem"
+    },
+    {
+      "name": "arroyo-bridge",
+      "map": "arbridge",
+      "elevation": 0,
+      "tile": 16686,
+      "coverage": "Arroyo bridge, hunt huts"
+    },
+    {
+      "name": "arroyo-wilderness",
+      "map": "argarden",
+      "elevation": 0,
+      "tile": 21474,
+      "coverage": "Arroyo wilderness, trees"
+    },
+    {
+      "name": "arroyo-bridge-dead",
+      "map": "ardead",
+      "elevation": 0,
+      "tile": 26719,
+      "coverage": "Destroyed Arroyo bridge"
+    },
+    {
+      "name": "arroyo-temple",
+      "map": "artemple",
+      "elevation": 0,
+      "tile": 17288,
+      "coverage": "Temple of Trials entrance"
+    },
+    {
+      "name": "arroyo-village-head",
+      "map": "arvillag",
+      "elevation": 0,
+      "tile": 25115,
+      "coverage": "The stone head plaza with statues"
+    },
+    {
+      "name": "arroyo-bridge-rope",
+      "map": "arbridge",
+      "elevation": 0,
+      "tile": 20686,
+      "coverage": "The rope bridge over the cliff"
+    },
+    {
+      "name": "arroyo-temple-camp",
+      "map": "artemple",
+      "elevation": 0,
+      "tile": 21288,
+      "coverage": "The camp south of the temple"
+    },
+    {
+      "name": "arroyo-caves-gate",
+      "map": "arcaves",
+      "elevation": 0,
+      "tile": 26706,
+      "coverage": "The cave exit gate with torches"
+    },
+    {
       "name": "den-business",
       "map": "denbus1",
       "elevation": 0,
