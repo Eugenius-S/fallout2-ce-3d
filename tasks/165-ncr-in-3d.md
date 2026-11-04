@@ -83,6 +83,9 @@ other areas (each has its own task).
 - Captured game-camera views of every elevation at 08:00, 12:00, and 18:00;
   sidecars confirm the requested map, elevation, camera tile, 1920x1080
   resolution, and full 3D renderer. Evidence: `runs/165-ncr-in-3d/`.
+- The 25-stop fly tour covers the three camera turns at its normal daylight
+  setting. The full fly-camera by hour cross-product was not captured after the
+  two-failure stop, so this part of the acceptance remains incomplete.
 - The initial `ncrent` elevation 1 spawn point (tile 20877) captured an empty
   view because its camera target fell outside the authored clip bounds. The
   clip center, tile 22148, shows the enclosure in 3D and matches the classic
