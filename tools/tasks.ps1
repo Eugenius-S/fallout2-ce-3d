@@ -67,6 +67,8 @@ $rows = foreach ($file in $files) {
         owner = $header['owner']
         suggested = $header['suggested']
         priority = $header['priority']
+        # the board order lives on main, whatever the branch's copy says.
+        tier = if ($onMain -and $onMain['tier']) { [int]$onMain['tier'] } elseif ($header['tier']) { [int]$header['tier'] } else { 3 }
         claude = $header['claude-only']
         deps = $header['depends-on']
         reviewed = $header['reviewed']
@@ -84,9 +86,9 @@ if ($Review) {
 
 if ($Next) {
     $agent = $Next
-    $mine = @($rows | Where-Object { $_.status -in 'doing', 'stale' -and $_.owner -eq $agent } | Sort-Object { [int]$_.id })
+    $mine = @($rows | Where-Object { $_.status -in 'doing', 'stale' -and $_.owner -eq $agent } | Sort-Object { $_.tier }, { [int]$_.id })
     $stale = @($rows | Where-Object { $_.status -eq 'stale' -and ($_.claude -ne 'yes' -or $agent -eq 'claude') } |
-        Sort-Object { [int]$_.id })
+        Sort-Object { $_.tier }, { [int]$_.id })
     $done = @{}
     foreach ($r in $rows) { if ($r.status -eq 'done') { $done[$r.id] = $true } }
 
@@ -94,25 +96,21 @@ if ($Next) {
     if ($mine.Count -gt 0) {
         $task = $mine[0]
         Write-Output "${agent}: continuing its own doing task"
-    } elseif ($stale.Count -gt 0) {
-        $task = $stale[0]
-        Write-Output "${agent}: continuing a stale task of $($task.owner) from its branch and Log"
     } else {
         $free = @($rows | Where-Object {
             $_.status -eq 'todo' `
+                -and ($_.owner -in 'none', 'any', '' -or $_.owner -eq $agent) `
                 -and ($_.claude -ne 'yes' -or $agent -eq 'claude') `
                 -and (($_.deps -replace '[\[\]]', '').Split(',') | Where-Object { $_.Trim() } |
                     ForEach-Object { [bool]$done[$_.Trim()] }) -notcontains $false
         })
-        # priority: high comes before the rest, then the lower id.
-        $order = @({ if ($_.priority -eq 'high') { 0 } else { 1 } }, { [int]$_.id })
-        $suggested = @($free | Where-Object { $_.suggested -eq $agent } | Sort-Object $order)
-        if ($suggested.Count -gt 0) {
-            $task = $suggested[0]
-        } elseif ($free.Count -gt 0) {
-            $task = @($free | Sort-Object $order)[0]
-        }
-        if ($task) {
+        # the board order: the lower tier first, then high priority, then the lower id;
+        # a stale task competes with the free ones by the same order.
+        $order = @({ $_.tier }, { switch ($_.priority) { 'high' { 0 } 'low' { 2 } default { 1 } } }, { [int]$_.id })
+        $task = @(@($stale) + @($free) | Sort-Object $order)[0]
+        if ($task -and $task.status -eq 'stale') {
+            Write-Output "${agent}: continuing a stale task of $($task.owner) from its branch and Log"
+        } elseif ($task) {
             Write-Output "${agent}: next free task"
         }
     }

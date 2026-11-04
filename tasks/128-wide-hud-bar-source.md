@@ -3,9 +3,10 @@ id: 128
 title: Find the wide HUD bar art and its license
 milestone: M1
 status: todo
-owner: none
-suggested: gpt
-priority: low
+owner: any
+suggested: any
+priority: normal
+tier: 3
 claude-only: no
 user-check: no
 depends-on: []

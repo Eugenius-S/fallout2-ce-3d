@@ -3,9 +3,10 @@ id: 149
 title: Combat outlines, the hex cursor and floating text follow the 3D turn and zoom
 milestone: M1
 status: todo
-owner: none
-suggested: gpt
-priority: high
+owner: any
+suggested: any
+priority: normal
+tier: 3
 claude-only: no
 user-check: yes
 depends-on: []

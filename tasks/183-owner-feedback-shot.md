@@ -3,9 +3,10 @@ id: 183
 title: One key in the game saves a screenshot with everything an agent needs to read it
 milestone: M1
 status: todo
-owner: none
-suggested: gpt
+owner: any
+suggested: any
 priority: high
+tier: 1
 claude-only: no
 user-check: no
 depends-on: [127]

@@ -3,9 +3,10 @@ id: 181
 title: Fly-through review of Broken Hills
 milestone: M1
 status: todo
-owner: none
+owner: claude
 suggested: claude
 priority: low
+tier: 4
 claude-only: no
 user-check: no
 depends-on: []

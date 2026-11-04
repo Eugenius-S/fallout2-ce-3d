@@ -3,9 +3,10 @@ id: 173
 title: 3D never turns off on a local map; what cannot be built stands on a plane
 milestone: M1
 status: todo
-owner: none
-suggested: gpt
+owner: any
+suggested: any
 priority: high
+tier: 2
 claude-only: no
 user-check: no
 depends-on: []

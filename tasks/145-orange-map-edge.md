@@ -3,9 +3,10 @@ id: 145
 title: No orange dithered band at the Klamath map edge in 3D
 milestone: M1
 status: todo
-owner: none
-suggested: gpt
+owner: any
+suggested: any
 priority: normal
+tier: 3
 claude-only: no
 user-check: yes
 depends-on: []

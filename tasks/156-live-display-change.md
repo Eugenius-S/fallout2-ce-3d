@@ -3,9 +3,10 @@ id: 156
 title: Resolution, window mode and scale change on the fly, without a restart
 milestone: M1
 status: todo
-owner: gpt
-suggested: gpt
+owner: any
+suggested: any
 priority: high
+tier: 2
 claude-only: no
 user-check: yes
 depends-on: [154]

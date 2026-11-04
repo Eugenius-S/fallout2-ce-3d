@@ -5,7 +5,8 @@ milestone: M1
 status: doing
 owner: claude
 suggested: claude
-priority: high
+priority: normal
+tier: 3
 claude-only: yes
 user-check: yes
 depends-on: [082]
