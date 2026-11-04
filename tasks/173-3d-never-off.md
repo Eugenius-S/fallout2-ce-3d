@@ -22,7 +22,7 @@ its art on a fixed plane.
 
 ## Context
 
-- Linked: 196 puts a fading black backdrop round the 2D screens (dialogue,
+- Linked: 193 part B puts a fading black backdrop round the 2D screens (dialogue,
   the world map, the Pip-Boy, the rest) that stay 2D on a local map.
 - Folded in (2026-11-04 inbox sweep), the inbox line of 2026-10-27: the
   list of unique objects that need their own 3D model (the big stone head in
