@@ -1,0 +1,463 @@
+{
+  "task": 165,
+  "checkout_commit": "6947aa75868dbca81b9483c355e13fe49988fc2f",
+  "build": {
+    "type": "Release",
+    "executable_sha256": "fa230ddcb9640b9d3dcfdee9b81a794921fb8df808e2102a4d7c5e2cf0156974"
+  },
+  "maps": [
+    {
+      "map": "ncr1",
+      "elevation": 0,
+      "view_tile": 20898,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "scene_3d_enabled": true,
+      "resolution": "1920x1080",
+      "logical_resolution": "960x540",
+      "camera": "game",
+      "hours": [
+        {
+          "hour": 8,
+          "game_time": 288000,
+          "sidecar": "game-hour-08/devshot-20261104-151553-000.json"
+        },
+        {
+          "hour": 12,
+          "game_time": 432000,
+          "sidecar": "game-hour-12/devshot-20261104-151627-000.json"
+        },
+        {
+          "hour": 18,
+          "game_time": 648000,
+          "sidecar": "game-hour-18/devshot-20261104-151701-000.json"
+        }
+      ]
+    },
+    {
+      "map": "ncr1",
+      "elevation": 1,
+      "view_tile": 20106,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "scene_3d_enabled": true,
+      "resolution": "1920x1080",
+      "logical_resolution": "960x540",
+      "camera": "game",
+      "hours": [
+        {
+          "hour": 8,
+          "game_time": 288000,
+          "sidecar": "game-hour-08/devshot-20261104-151553-000.json"
+        },
+        {
+          "hour": 12,
+          "game_time": 432000,
+          "sidecar": "game-hour-12/devshot-20261104-151627-000.json"
+        },
+        {
+          "hour": 18,
+          "game_time": 648000,
+          "sidecar": "game-hour-18/devshot-20261104-151701-000.json"
+        }
+      ]
+    },
+    {
+      "map": "ncr2",
+      "elevation": 0,
+      "view_tile": 20902,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "scene_3d_enabled": true,
+      "resolution": "1920x1080",
+      "logical_resolution": "960x540",
+      "camera": "game",
+      "hours": [
+        {
+          "hour": 8,
+          "game_time": 288000,
+          "sidecar": "game-hour-08/devshot-20261104-151553-000.json"
+        },
+        {
+          "hour": 12,
+          "game_time": 432000,
+          "sidecar": "game-hour-12/devshot-20261104-151627-000.json"
+        },
+        {
+          "hour": 18,
+          "game_time": 648000,
+          "sidecar": "game-hour-18/devshot-20261104-151701-000.json"
+        }
+      ]
+    },
+    {
+      "map": "ncr3",
+      "elevation": 0,
+      "view_tile": 21499,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "scene_3d_enabled": true,
+      "resolution": "1920x1080",
+      "logical_resolution": "960x540",
+      "camera": "game",
+      "hours": [
+        {
+          "hour": 8,
+          "game_time": 288000,
+          "sidecar": "game-hour-08/devshot-20261104-151553-000.json"
+        },
+        {
+          "hour": 12,
+          "game_time": 432000,
+          "sidecar": "game-hour-12/devshot-20261104-151627-000.json"
+        },
+        {
+          "hour": 18,
+          "game_time": 648000,
+          "sidecar": "game-hour-18/devshot-20261104-151701-000.json"
+        }
+      ]
+    },
+    {
+      "map": "ncr4",
+      "elevation": 0,
+      "view_tile": 20481,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "scene_3d_enabled": true,
+      "resolution": "1920x1080",
+      "logical_resolution": "960x540",
+      "camera": "game",
+      "hours": [
+        {
+          "hour": 8,
+          "game_time": 288000,
+          "sidecar": "game-hour-08/devshot-20261104-151553-000.json"
+        },
+        {
+          "hour": 12,
+          "game_time": 432000,
+          "sidecar": "game-hour-12/devshot-20261104-151627-000.json"
+        },
+        {
+          "hour": 18,
+          "game_time": 648000,
+          "sidecar": "game-hour-18/devshot-20261104-151701-000.json"
+        }
+      ]
+    },
+    {
+      "map": "ncrent",
+      "elevation": 0,
+      "view_tile": 19112,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "scene_3d_enabled": true,
+      "resolution": "1920x1080",
+      "logical_resolution": "960x540",
+      "camera": "game",
+      "hours": [
+        {
+          "hour": 8,
+          "game_time": 288000,
+          "sidecar": "game-hour-08/devshot-20261104-151553-000.json"
+        },
+        {
+          "hour": 12,
+          "game_time": 432000,
+          "sidecar": "game-hour-12/devshot-20261104-151627-000.json"
+        },
+        {
+          "hour": 18,
+          "game_time": 648000,
+          "sidecar": "game-hour-18/devshot-20261104-151701-000.json"
+        }
+      ]
+    },
+    {
+      "map": "ncrent",
+      "elevation": 1,
+      "view_tile": 22148,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "scene_3d_enabled": true,
+      "resolution": "1920x1080",
+      "logical_resolution": "960x540",
+      "camera": "game",
+      "hours": [
+        {
+          "hour": 8,
+          "game_time": 288000,
+          "sidecar": "game-hour-08/devshot-20261104-151553-000.json"
+        },
+        {
+          "hour": 12,
+          "game_time": 432000,
+          "sidecar": "game-hour-12/devshot-20261104-151627-000.json"
+        },
+        {
+          "hour": 18,
+          "game_time": 648000,
+          "sidecar": "game-hour-18/devshot-20261104-151701-000.json"
+        }
+      ]
+    },
+    {
+      "map": "v15ent",
+      "elevation": 0,
+      "view_tile": 23907,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "scene_3d_enabled": true,
+      "resolution": "1920x1080",
+      "logical_resolution": "960x540",
+      "camera": "game",
+      "hours": [
+        {
+          "hour": 8,
+          "game_time": 288000,
+          "sidecar": "game-hour-08/devshot-20261104-151553-000.json"
+        },
+        {
+          "hour": 12,
+          "game_time": 432000,
+          "sidecar": "game-hour-12/devshot-20261104-151627-000.json"
+        },
+        {
+          "hour": 18,
+          "game_time": 648000,
+          "sidecar": "game-hour-18/devshot-20261104-151701-000.json"
+        }
+      ]
+    },
+    {
+      "map": "v15ent",
+      "elevation": 1,
+      "view_tile": 23907,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "scene_3d_enabled": true,
+      "resolution": "1920x1080",
+      "logical_resolution": "960x540",
+      "camera": "game",
+      "hours": [
+        {
+          "hour": 8,
+          "game_time": 288000,
+          "sidecar": "game-hour-08/devshot-20261104-151553-000.json"
+        },
+        {
+          "hour": 12,
+          "game_time": 432000,
+          "sidecar": "game-hour-12/devshot-20261104-151627-000.json"
+        },
+        {
+          "hour": 18,
+          "game_time": 648000,
+          "sidecar": "game-hour-18/devshot-20261104-151701-000.json"
+        }
+      ]
+    },
+    {
+      "map": "v15sent",
+      "elevation": 0,
+      "view_tile": 19088,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "scene_3d_enabled": true,
+      "resolution": "1920x1080",
+      "logical_resolution": "960x540",
+      "camera": "game",
+      "hours": [
+        {
+          "hour": 8,
+          "game_time": 288000,
+          "sidecar": "game-hour-08/devshot-20261104-151553-000.json"
+        },
+        {
+          "hour": 12,
+          "game_time": 432000,
+          "sidecar": "game-hour-12/devshot-20261104-151627-000.json"
+        },
+        {
+          "hour": 18,
+          "game_time": 648000,
+          "sidecar": "game-hour-18/devshot-20261104-151701-000.json"
+        }
+      ]
+    },
+    {
+      "map": "vault15",
+      "elevation": 0,
+      "view_tile": 19094,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "scene_3d_enabled": true,
+      "resolution": "1920x1080",
+      "logical_resolution": "960x540",
+      "camera": "game",
+      "hours": [
+        {
+          "hour": 8,
+          "game_time": 288000,
+          "sidecar": "game-hour-08/devshot-20261104-151553-000.json"
+        },
+        {
+          "hour": 12,
+          "game_time": 432000,
+          "sidecar": "game-hour-12/devshot-20261104-151627-000.json"
+        },
+        {
+          "hour": 18,
+          "game_time": 648000,
+          "sidecar": "game-hour-18/devshot-20261104-151701-000.json"
+        }
+      ]
+    },
+    {
+      "map": "vault15",
+      "elevation": 1,
+      "view_tile": 21907,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "scene_3d_enabled": true,
+      "resolution": "1920x1080",
+      "logical_resolution": "960x540",
+      "camera": "game",
+      "hours": [
+        {
+          "hour": 8,
+          "game_time": 288000,
+          "sidecar": "game-hour-08/devshot-20261104-151553-000.json"
+        },
+        {
+          "hour": 12,
+          "game_time": 432000,
+          "sidecar": "game-hour-12/devshot-20261104-151627-000.json"
+        },
+        {
+          "hour": 18,
+          "game_time": 648000,
+          "sidecar": "game-hour-18/devshot-20261104-151701-000.json"
+        }
+      ]
+    },
+    {
+      "map": "vault15",
+      "elevation": 2,
+      "view_tile": 20897,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "scene_3d_enabled": true,
+      "resolution": "1920x1080",
+      "logical_resolution": "960x540",
+      "camera": "game",
+      "hours": [
+        {
+          "hour": 8,
+          "game_time": 288000,
+          "sidecar": "game-hour-08/devshot-20261104-151553-000.json"
+        },
+        {
+          "hour": 12,
+          "game_time": 432000,
+          "sidecar": "game-hour-12/devshot-20261104-151627-000.json"
+        },
+        {
+          "hour": 18,
+          "game_time": 648000,
+          "sidecar": "game-hour-18/devshot-20261104-151701-000.json"
+        }
+      ]
+    }
+  ],
+  "fly_tour": {
+    "baseline": "origin/main exporter, direct map list",
+    "spots": 25,
+    "changed_spots": 0,
+    "sheet": "tour/changed.jpg"
+  },
+  "walk_probes": [
+    {
+      "run": "walkprobe-ncr1-e0",
+      "result": "WALK_PROBE RESULT map=NCRENT.MAP start=13915 target=9914 hero=28134 center_start=20898 center_end=27934 center_changed=1 frames=247",
+      "state_events": [],
+      "renderer_log": "scene_renderer: OpenGL 4.1.0 NVIDIA 621.01; renderer=NVIDIA GeForce RTX 5070/PCIe/SSE2; profile=0x1 flags=0x1\nCASTERS: pages 4, ranges 4, vertices 159921, x -29.77..49.90, z -40.44..50.15, wall cards 32\nCASTERS: pages 4, ranges 4, vertices 60225, x -23.64..37.22, z -34.35..40.01, wall cards 16",
+      "status": "completed"
+    },
+    {
+      "run": "walkprobe-ncr1-e1",
+      "result": "WALK_PROBE RESULT map=NCR1.MAP start=13915 target=10112 hero=10112 center_start=20106 center_end=20106 center_changed=0 frames=506",
+      "state_events": [],
+      "renderer_log": "scene_renderer: OpenGL 4.1.0 NVIDIA 621.01; renderer=NVIDIA GeForce RTX 5070/PCIe/SSE2; profile=0x1 flags=0x1\nCASTERS: pages 2, ranges 2, vertices 4116, x -3.17..10.54, z -2.57..6.71, wall cards 4",
+      "status": "completed"
+    },
+    {
+      "run": "walkprobe-ncr2-e0",
+      "result": "WALK_PROBE RESULT map=NCR2.MAP start=20100 target=16100 hero=16100 center_start=20902 center_end=20902 center_changed=0 frames=503",
+      "state_events": [],
+      "renderer_log": "scene_renderer: OpenGL 4.1.0 NVIDIA 621.01; renderer=NVIDIA GeForce RTX 5070/PCIe/SSE2; profile=0x1 flags=0x1\nCASTERS: pages 2, ranges 2, vertices 80979, x -35.83..33.85, z -35.84..15.70, wall cards 20",
+      "status": "completed"
+    },
+    {
+      "run": "walkprobe-ncr3-e0",
+      "result": "WALK_PROBE START map=NCR3.MAP elevation=0 start=23869 center=21499 target=19868 path=20",
+      "state_events": [],
+      "renderer_log": "scene_renderer: OpenGL 4.1.0 NVIDIA 621.01; renderer=NVIDIA GeForce RTX 5070/PCIe/SSE2; profile=0x1 flags=0x1\nCASTERS: pages 2, ranges 2, vertices 72483, x -43.25..21.85, z -12.12..44.98, wall cards 10",
+      "status": "timed-out"
+    },
+    {
+      "run": "walkprobe-ncr4-e0",
+      "result": "WALK_PROBE RESULT map=NCR4.MAP start=17699 target=17279 hero=17686 center_start=20481 center_end=20481 center_changed=0 frames=325",
+      "state_events": [],
+      "renderer_log": "scene_renderer: OpenGL 4.1.0 NVIDIA 621.01; renderer=NVIDIA GeForce RTX 5070/PCIe/SSE2; profile=0x1 flags=0x1\nCASTERS: pages 1, ranges 1, vertices 48, x -13.51..2.02, z -16.43..-7.96, wall cards 0",
+      "status": "completed"
+    },
+    {
+      "run": "walkprobe-ncrent-e0",
+      "result": "WALK_PROBE RESULT map=NCRENT.MAP start=20877 target=16877 hero=16877 center_start=19112 center_end=19112 center_changed=0 frames=508",
+      "state_events": [],
+      "renderer_log": "scene_renderer: OpenGL 4.1.0 NVIDIA 621.01; renderer=NVIDIA GeForce RTX 5070/PCIe/SSE2; profile=0x1 flags=0x1\nCASTERS: pages 4, ranges 4, vertices 60225, x -23.64..37.22, z -34.35..40.01, wall cards 16",
+      "status": "completed"
+    },
+    {
+      "run": "walkprobe-ncrent-e1",
+      "result": "WALK_PROBE RESULT map=NCRENT.MAP result=failed-to-queue start=20877 center=22148 target=-1",
+      "state_events": [],
+      "renderer_log": "scene_renderer: OpenGL 4.1.0 NVIDIA 621.01; renderer=NVIDIA GeForce RTX 5070/PCIe/SSE2; profile=0x1 flags=0x1\nCASTERS: pages 2, ranges 2, vertices 10299, x 20.75..30.53, z -0.16..15.07, wall cards 1",
+      "status": "failed-to-queue"
+    },
+    {
+      "run": "walkprobe-v15ent-e0",
+      "result": "WALK_PROBE RESULT map=V15ENT.MAP start=29523 target=25522 hero=25522 center_start=23907 center_end=23907 center_changed=0 frames=500",
+      "state_events": [],
+      "renderer_log": "scene_renderer: OpenGL 4.1.0 NVIDIA 621.01; renderer=NVIDIA GeForce RTX 5070/PCIe/SSE2; profile=0x1 flags=0x1\nCASTERS: pages 2, ranges 2, vertices 11964, x -14.26..12.17, z -7.13..13.29, wall cards 16",
+      "status": "completed"
+    },
+    {
+      "run": "walkprobe-v15ent-e1",
+      "result": "WALK_PROBE RESULT map=V15ENT.MAP start=29523 target=25522 hero=25522 center_start=23907 center_end=23907 center_changed=0 frames=520",
+      "state_events": [],
+      "renderer_log": "scene_renderer: OpenGL 4.1.0 NVIDIA 621.01; renderer=NVIDIA GeForce RTX 5070/PCIe/SSE2; profile=0x1 flags=0x1\nCASTERS: pages 2, ranges 2, vertices 13383, x -14.35..26.02, z -7.38..22.05, wall cards 14",
+      "status": "completed"
+    },
+    {
+      "run": "walkprobe-v15sent-e0",
+      "result": "WALK_PROBE START map=V15SENT.MAP elevation=0 start=17700 center=19088 target=17080 path=20",
+      "state_events": [
+        "scene: preview policy=game-state gameState=2 gameMode=0x0 uiDisabled=0 isoDisabled=0 combat=0 dialog=0 movie=0"
+      ],
+      "renderer_log": "scene_renderer: OpenGL 4.1.0 NVIDIA 621.01; renderer=NVIDIA GeForce RTX 5070/PCIe/SSE2; profile=0x1 flags=0x1\nCASTERS: pages 2, ranges 2, vertices 3936, x -18.12..2.02, z -9.93..0.04, wall cards 3",
+      "status": "timed-out"
+    },
+    {
+      "run": "walkprobe-vault15-e0",
+      "result": "WALK_PROBE START map=VAULT15.MAP elevation=0 start=20100 center=19094 target=16298 path=22",
+      "state_events": [
+        "scene: preview policy=game-state gameState=4 gameMode=0x4 uiDisabled=0 isoDisabled=1 combat=0 dialog=0 movie=0"
+      ],
+      "renderer_log": "scene_renderer: OpenGL 4.1.0 NVIDIA 621.01; renderer=NVIDIA GeForce RTX 5070/PCIe/SSE2; profile=0x1 flags=0x1\nCASTERS: pages 2, ranges 2, vertices 46101, x -16.55..9.04, z -19.22..23.46, wall cards 20",
+      "status": "timed-out"
+    }
+  ]
+}

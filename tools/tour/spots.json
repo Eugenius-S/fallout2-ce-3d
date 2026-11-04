@@ -1001,6 +1001,156 @@
    "elevation": 1,
    "tile": 26893,
    "name": "the Wanamingo mine, level 2"
+  },
+  {
+   "map": "ncr1",
+   "elevation": 0,
+   "tile": 20898,
+   "name": "NCR city, elevation 0, overview"
+  },
+  {
+   "map": "ncr1",
+   "elevation": 1,
+   "tile": 20106,
+   "name": "NCR city, elevation 1, overview"
+  },
+  {
+   "map": "ncr2",
+   "elevation": 0,
+   "tile": 20902,
+   "name": "NCR bazaar, elevation 0, overview"
+  },
+  {
+   "map": "ncr3",
+   "elevation": 0,
+   "tile": 21499,
+   "name": "squatters camp, elevation 0, overview"
+  },
+  {
+   "map": "ncr4",
+   "elevation": 0,
+   "tile": 20481,
+   "name": "north NCR, elevation 0, overview"
+  },
+  {
+   "map": "ncrent",
+   "elevation": 0,
+   "tile": 19112,
+   "name": "NCR entrance, elevation 0, overview"
+  },
+  {
+   "map": "ncrent",
+   "elevation": 1,
+   "tile": 22148,
+   "name": "NCR entrance, elevation 1, overview"
+  },
+  {
+   "map": "v15ent",
+   "elevation": 0,
+   "tile": 23907,
+   "name": "Vault 15 entrance, elevation 0, overview"
+  },
+  {
+   "map": "v15ent",
+   "elevation": 1,
+   "tile": 23907,
+   "name": "Vault 15 entrance, elevation 1, overview"
+  },
+  {
+   "map": "v15sent",
+   "elevation": 0,
+   "tile": 19088,
+   "name": "Vault 15 south entrance, elevation 0, overview"
+  },
+  {
+   "map": "vault15",
+   "elevation": 0,
+   "tile": 19094,
+   "name": "Vault 15 ruins, elevation 0, overview"
+  },
+  {
+   "map": "vault15",
+   "elevation": 1,
+   "tile": 21907,
+   "name": "Vault 15 ruins, elevation 1, overview"
+  },
+  {
+   "map": "vault15",
+   "elevation": 2,
+   "tile": 20897,
+   "name": "Vault 15 ruins, elevation 2, overview"
+  },
+  {
+   "map": "ncr1",
+   "elevation": 0,
+   "tile": 13915,
+   "name": "NCR city, elevation 0, entry"
+  },
+  {
+   "map": "ncr1",
+   "elevation": 1,
+   "tile": 13915,
+   "name": "NCR city, elevation 1, entry"
+  },
+  {
+   "map": "ncr2",
+   "elevation": 0,
+   "tile": 20100,
+   "name": "NCR bazaar, elevation 0, entry"
+  },
+  {
+   "map": "ncr3",
+   "elevation": 0,
+   "tile": 23869,
+   "name": "squatters camp, elevation 0, entry"
+  },
+  {
+   "map": "ncr4",
+   "elevation": 0,
+   "tile": 17699,
+   "name": "north NCR, elevation 0, entry"
+  },
+  {
+   "map": "ncrent",
+   "elevation": 0,
+   "tile": 20877,
+   "name": "NCR entrance, elevation 0, entry"
+  },
+  {
+   "map": "v15ent",
+   "elevation": 0,
+   "tile": 29523,
+   "name": "Vault 15 entrance, elevation 0, entry"
+  },
+  {
+   "map": "v15ent",
+   "elevation": 1,
+   "tile": 29523,
+   "name": "Vault 15 entrance, elevation 1, entry"
+  },
+  {
+   "map": "v15sent",
+   "elevation": 0,
+   "tile": 17700,
+   "name": "Vault 15 south entrance, elevation 0, entry"
+  },
+  {
+   "map": "vault15",
+   "elevation": 0,
+   "tile": 20100,
+   "name": "Vault 15 ruins, elevation 0, entry"
+  },
+  {
+   "map": "vault15",
+   "elevation": 1,
+   "tile": 20100,
+   "name": "Vault 15 ruins, elevation 1, entry"
+  },
+  {
+   "map": "vault15",
+   "elevation": 2,
+   "tile": 20100,
+   "name": "Vault 15 ruins, elevation 2, entry"
   }
  ]
 }
