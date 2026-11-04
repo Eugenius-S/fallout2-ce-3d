@@ -21,6 +21,10 @@ option) and that fights now play in 3D, each with one picture.
 
 ## Context
 
+- Batch: the README (2026-11-04 inbox sweep). Folded in, the inbox line of
+  2026-11-01: put the two night projectile clips from 097 (laser pistol,
+  plasma rifle) side by side in one video, compressed for GitHub, in the
+  middle of the README.
 - 144 (#205, #207) added the turn steps; 135 step 1 (#211) keeps 3D on in
   combat. 105 wrote the README's feature list.
 - Pictures: the 144 snapshots (`runs/144-camera-turn-steps/`) and one 146

@@ -19,6 +19,9 @@ Every roof in every map stands right in 3D: roof tiles, edges, parapets, holes, 
 
 ## Context
 
+- Folded in (2026-11-04 inbox sweep), the inbox line of 2026-11-03: roof
+  borders in flight are thick on one side and missing on others, also in the
+  game's own view; they should be even, as thick as a wall.
 - The owner, 2026-11-04: geometry is fixed by kind, one class of objects
   across every map per task and per PR, never map by map.
 - Sources: the finds of this kind in the area tasks' Logs (136, 158-171),
