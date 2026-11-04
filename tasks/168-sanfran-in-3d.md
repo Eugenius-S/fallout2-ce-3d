@@ -3,8 +3,8 @@ id: 168
 title: San Francisco and Navarro in 3D, every map stands and looks clean
 milestone: M1
 status: todo
-owner: any
-suggested: any
+owner: glm
+suggested: glm
 priority: normal
 tier: 3
 claude-only: no
