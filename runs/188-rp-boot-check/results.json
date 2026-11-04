@@ -1,0 +1,33 @@
+{
+  "positive_check": {
+    "result": "pass",
+    "built_from": "dd4f4102",
+    "maps": [
+      "ARTEMPLE.MAP",
+      "KLADWTWN.MAP",
+      "DENRES1.MAP",
+      "ABBEY.MAP",
+      "EPAMAIN1.MAP",
+      "SLVCAMP.MAP"
+    ],
+    "map_loads_verified_from_snapshot_metadata": true
+  },
+  "negative_check": {
+    "result": "expected-failure",
+    "fixture": "copied executable with corrupted PE signature",
+    "checker_exit_code": 1,
+    "sha256": "1E8FB2F8463C31EE74D9007E57969D50AF337E91071C9DC7A79DCFC714531BF8"
+  },
+  "expanded_map_sweep": {
+    "result": "incomplete",
+    "map": "HUBSTASH.MAP",
+    "watchdog": "30 seconds without progress after startup marker",
+    "diagnostic": "append to captured stdout failed because the file was locked",
+    "verified": false
+  },
+  "environment": {
+    "rp_source": "isolated scratch installation",
+    "outputs": "ignored build/rp-check-runs/",
+    "owner_game_or_cache_touched": false
+  }
+}
