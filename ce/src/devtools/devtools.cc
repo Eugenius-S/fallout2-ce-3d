@@ -199,7 +199,6 @@ bool gDialogCursorCheckRequested = false;
 int gDialogCursorCheckStage = 0;
 bool gDialogLayoutCheckRequested = false;
 bool gDialogCursorCheckCursorMoveInProgress = false;
-std::vector<std::string> gDialogCursorCheckInitialText;
 scene::TextRecord gDialogCursorCheckRecord;
 std::vector<unsigned char> gDialogCursorCheckOverlayBefore;
 int gDialogCursorCheckTargetLogicalX = -1;
@@ -2502,7 +2501,7 @@ void vanillaPresented()
         int ownerIds[2] = { -1, -1 };
         int ownerCount = 0;
         int replyOwnerId = -1;
-        int replyOwnerY = 2147483647;
+        int replyOwnerY = -2147483647;
         int runCount = 0;
         int windowCount = 0;
         TextWindowSnapshot firstWindow;
@@ -2522,7 +2521,7 @@ void vanillaPresented()
                 runCount++;
             }
             if (hasEligibleRun) {
-                if (window.y < replyOwnerY) {
+                if (window.y > replyOwnerY) {
                     replyOwnerY = window.y;
                     replyOwnerId = window.id;
                 }
@@ -2639,16 +2638,14 @@ void vanillaPresented()
                     gDialogFixtureFinished = true;
                 };
                 if (gDialogCursorCheckStage == 0) {
-                    gDialogCursorCheckInitialText = currentReplyText;
                     gDialogCursorCheckStage = 1;
-                    printf("DIALOG_CURSOR_CHECK INPUT key=2 map=%s script=%s speaker=%d speaker_tile=%d hero=%d\n",
+                    printf("DIALOG_CURSOR_CHECK INPUT action=hover-reply map=%s script=%s speaker=%d speaker_tile=%d hero=%d reply_window=%d reply_y=%d runs=%zu\n",
                         gMapHeader.name, gDialogFixtureScript, gDialogFixtureSpeakerId,
-                        gDialogFixtureSpeakerTile, gDude != nullptr ? gDude->tile : -1);
+                        gDialogFixtureSpeakerTile, gDude != nullptr ? gDude->tile : -1,
+                        replyOwnerId, replyOwnerY, currentReplyText.size());
                     fflush(stdout);
-                    enqueueInputEvent(KEY_2);
                     return;
                 }
-                if (currentReplyText == gDialogCursorCheckInitialText) return;
 
                 const scene_renderer::PreparedSharpTextFrame& frame = scene_renderer::preparedSharpTextFrame();
                 if (gDialogCursorCheckStage == 2) {
@@ -2785,10 +2782,10 @@ void vanillaPresented()
                         gDialogFixtureFinished = true;
                         return;
                     }
-                    printf("DIALOG_CURSOR_CHECK PASS map=%s script=%s speaker=%d speaker_tile=%d hero=%d reply_offset=%d reply_bytes=%zu opaque_logical=%d,%d opaque_physical=%d,%d transparent_logical=%d,%d transparent_physical=%d,%d cursor_index=%u expected_rgb=%u,%u,%u opaque_alpha=%u->%u transparent_alpha=%u->%u same_run_ink_pixels=%u->%u\n",
+                    printf("DIALOG_CURSOR_CHECK PASS map=%s script=%s speaker=%d speaker_tile=%d hero=%d reply_offset=%d reply_bytes=%zu reply_window=%d reply_y=%d opaque_logical=%d,%d opaque_physical=%d,%d transparent_logical=%d,%d transparent_physical=%d,%d cursor_index=%u expected_rgb=%u,%u,%u opaque_alpha=%u->%u transparent_alpha=%u->%u same_run_ink_pixels=%u->%u\n",
                         gMapHeader.name, gDialogFixtureScript, gDialogFixtureSpeakerId,
                         gDialogFixtureSpeakerTile, gDude != nullptr ? gDude->tile : -1,
-                        gameDialogGetReplyTextOffset(), gDialogCursorCheckRecord.run.text.size(),
+                        gameDialogGetReplyTextOffset(), gDialogCursorCheckRecord.run.text.size(), replyOwnerId, replyOwnerY,
                         gDialogCursorCheckTargetLogicalX, gDialogCursorCheckTargetLogicalY,
                         gDialogCursorCheckTargetPhysicalX, gDialogCursorCheckTargetPhysicalY,
                         gDialogCursorCheckTransparentLogicalX, gDialogCursorCheckTransparentLogicalY,
@@ -2816,13 +2813,34 @@ void vanillaPresented()
                 }
                 const std::vector<scene::TextRecord> screenRecords = scene::textCaptureSharpRecords(screenBuffer);
                 const scene::TextRecord* replyRecord = nullptr;
+                int screenOwnerRecords = 0;
                 for (const scene::TextRecord& record : screenRecords) {
+                    if (record.ownerWindow == replyOwnerId) screenOwnerRecords++;
                     if (record.ownerWindow == replyOwnerId && !record.run.text.empty() && !record.coverage.empty()) {
                         replyRecord = &record;
                         break;
                     }
                 }
                 if (replyRecord == nullptr) {
+                    for (int index = 0; index < windowCount; index++) {
+                        TextWindowSnapshot window;
+                        if (!textCaptureGetWindowSnapshot(index, &window, nullptr) || window.id != replyOwnerId
+                            || window.pixels == nullptr) continue;
+                        const scene::TextBufferId ownerBuffer = textCaptureBufferId(window.pixels);
+                        const std::vector<scene::TextRecord> ownerRecords = ownerBuffer != 0
+                            ? scene::textCaptureSharpRecords(ownerBuffer)
+                            : std::vector<scene::TextRecord>();
+                        for (const scene::TextRecord& record : ownerRecords) {
+                            printf("DIALOG_CURSOR_CHECK OWNER_RUN window=%d screen=%dx%d owner=%dx%d offset=%d,%d bounds=%d,%d,%d,%d coverage=%zu text=%s\\n",
+                                replyOwnerId, gSdlSurface->w, gSdlSurface->h, window.width, window.height,
+                                record.ownerOffsetX, record.ownerOffsetY, record.bounds.x, record.bounds.y,
+                                record.bounds.width, record.bounds.height, record.coverage.size(), record.run.text.c_str());
+                        }
+                        break;
+                    }
+                    printf("DIALOG_CURSOR_CHECK SCREEN_RECORDS buffer=%llu total=%zu owner_matches=%d\\n",
+                        static_cast<unsigned long long>(screenBuffer), screenRecords.size(), screenOwnerRecords);
+                    fflush(stdout);
                     failCursorCheck("reply-run-not-present-on-screen");
                     return;
                 }
@@ -2957,11 +2975,12 @@ void vanillaPresented()
                     return;
                 }
                 gDialogCursorCheckStage = 2;
-                printf("DIALOG_CURSOR_CHECK TARGET reply_bytes=%zu opaque_logical=%d,%d opaque_physical=%d,%d transparent_logical=%d,%d transparent_physical=%d,%d cursor_opaque_offset=%d,%d cursor_index=%u expected_rgb=%u,%u,%u\n",
+                printf("DIALOG_CURSOR_CHECK TARGET reply_bytes=%zu opaque_logical=%d,%d opaque_physical=%d,%d transparent_logical=%d,%d transparent_physical=%d,%d cursor_opaque_offset=%d,%d cursor_index=%u expected_rgb=%u,%u,%u reply_window=%d reply_y=%d\n",
                     replyRecord->run.text.size(), targetLogicalX, targetLogicalY,
                     targetPhysicalX, targetPhysicalY, transparentLogicalX, transparentLogicalY,
                     transparentPhysicalX, transparentPhysicalY, cursorPixelX, cursorPixelY, gDialogCursorCheckCursorIndex,
-                    gDialogCursorCheckCursorRed, gDialogCursorCheckCursorGreen, gDialogCursorCheckCursorBlue);
+                    gDialogCursorCheckCursorRed, gDialogCursorCheckCursorGreen, gDialogCursorCheckCursorBlue,
+                    replyOwnerId, replyOwnerY);
                 fflush(stdout);
                 return;
             }

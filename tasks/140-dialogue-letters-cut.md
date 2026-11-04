@@ -97,3 +97,25 @@ executable was not rebuilt, so no third hover capture was run. CTest reported
 The PowerShell parser passed. PR #206 remains draft and task 140 stays
 `doing`; next, resolve the build blockers and capture the actual hovered reply
 before claiming visual acceptance.
+
+### 2026-11-04 gpt: hover-capture diagnosis after rebuilding
+
+Rebuilt Release successfully with `tools/configure-build.ps1`; CTest passes
+20/20. Added a missing `tools/check_png_pixel.py` helper used by the snapshot
+validator and corrected the cursor check to allow hover-highlight alpha to
+change while requiring glyph ink under the transparent cursor cell. The
+earlier direct CMake build invocation lacked the project's MSVC include
+environment and failed before linking; it was not used for runtime validation.
+
+The third capture reached `DIALOG_CURSOR_CHECK PASS`, but review of its image
+showed that the cursor was over the NPC message, not an answer. The fourth
+capture failed because the selected answer text was not present in the screen
+buffer. A fifth diagnostic capture confirmed the fixture was still on the NPC
+message (`You have entered a small town called Klamath.`); the answer window
+records existed separately and had no matching screen-buffer owner records.
+This does not reproduce the owner's clipped answer and provides no accepted
+hover evidence. Two consecutive attempts failed the required answer-hover
+capture, so the runtime check is blocked pending a fixture that reaches the
+actual answer state. Diagnostic source changes are unverified and PR #206
+remains draft. Release build and CTest 20/20 pass; no hover acceptance is
+claimed.
