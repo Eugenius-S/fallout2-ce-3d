@@ -622,6 +622,27 @@
       "elevation": 2,
       "tile": 20897,
       "coverage": "Vault 15 ruins, elevation 2"
+    },
+    {
+      "name": "ncr-council-square",
+      "map": "ncr1",
+      "elevation": 0,
+      "tile": 13915,
+      "coverage": "The NCR council square and streets"
+    },
+    {
+      "name": "v15-entrance",
+      "map": "v15ent",
+      "elevation": 0,
+      "tile": 29325,
+      "coverage": "The Vault 15 entrance desert"
+    },
+    {
+      "name": "vault15-level",
+      "map": "vault15",
+      "elevation": 1,
+      "tile": 27103,
+      "coverage": "Inside Vault 15, level 1"
     }
   ]
 }
