@@ -1,0 +1,34 @@
+Static scan, build with task 185 scanner changes
+Scanned files: 2961
+
+UNREGISTERED OPCODES (static references in scripts; not observed runtime fires)
+set_fake_perk (0x81bb): references=1, scripts=1
+  RPU: scripts/epac3.int
+fs_write_short (0x81fb): references=2, scripts=2
+  RPU: scripts/gl_k_goris_derobing.int
+  RPU: scripts/gl_k_walking_speed.int
+fs_seek (0x8202): references=4, scripts=2
+  RPU: scripts/gl_k_goris_derobing.int
+  RPU: scripts/gl_k_walking_speed.int
+fs_read_short (0x820a): references=2, scripts=2
+  RPU: scripts/gl_k_goris_derobing.int
+  RPU: scripts/gl_k_walking_speed.int
+
+UNKNOWN SFALL METARULES
+set_dude_obj: references=1, scripts=1
+  Base sfall scripts: scripts/gl_partycontrol.int
+
+UNIMPLEMENTED HOOKS
+HOOK_SETGLOBALVAR (29): references=1, scripts=1
+  Base sfall scripts: scripts/gl_partycontrol.int
+
+Static script references do not establish whether or how often these paths
+execute in a real playthrough. The reference count is bytecode occurrence
+count; the script count is the number of distinct scripts containing it.
+
+LIVE ROUTE ATTEMPTS
+Attempt 1: watchdog stopped after 30 seconds without progress at SLVCAMP.MAP,
+tour step 14. Static preview failed because floor.bin was unavailable in the
+isolated scene cache.
+Attempt 2: watchdog stopped after 90 seconds without progress at SLVCAMP.MAP,
+tour step 17. No route progress; runtime effects remain unverified.

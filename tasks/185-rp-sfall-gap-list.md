@@ -45,3 +45,18 @@ how often each gap fires and where.
 Implementing the gaps.
 
 ## Log
+
+### 2026-11-05 gpt
+Done: Added per-reference counts for unknown opcodes, metarules and hooks,
+skipped inactive `backup/` script trees, and exposed the scanner through
+`tools/dev-snapshot.ps1 -ScanUnimplemented`. Static findings and limitations
+are in `runs/185-rp-sfall-gap-list/scan-unimplemented.txt` and `README.md`.
+Two live route attempts stopped at `SLVCAMP.MAP` on the watchdog (30 s at step
+14 because `floor.bin` was unavailable; 90 s at step 17 without progress).
+The static findings are not runtime fire counts, and their play impact is
+unverified. Build and CTest passed 20/20.
+Next: Resume only after resolving isolated scene-cache preview availability
+and route progress; then record dynamic behavior and cut task 186 from the
+verified gap list. PR #284 remains draft.
+Check: `build/rp-gap-run/watchdog.txt`,
+`build/rp-gap-run-2/watchdog.txt`, and the scanner evidence above.
