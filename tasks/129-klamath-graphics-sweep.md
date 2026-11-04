@@ -3,9 +3,10 @@ id: 129
 title: Klamath graphics sweep, find and fix every visible defect
 milestone: M1
 status: todo
-owner: none
-suggested: gpt
-priority: high
+owner: any
+suggested: any
+priority: low
+tier: 4
 claude-only: no
 user-check: yes
 depends-on: []
@@ -23,6 +24,9 @@ before any release: "a fully working game without most graphic bugs".
 
 ## Context
 
+- Folded in (2026-11-04 inbox sweep): KLAGRAZ e0 differs from the stored
+  regression reference by 132 px; the clean 098 baseline has the same
+  deviation. Find which side is right and refresh the reference or fix it.
 - The owner's finds so far live in `tasks/inbox.md` and in tasks 100-125.
   Read them first so the sweep does not refind what a task already covers.
 - The fly tour (`tools/fly-tour*`), the regression spots and the snapshot

@@ -6,6 +6,7 @@ status: todo
 owner: none
 suggested: claude
 priority: low
+tier: 4
 claude-only: yes
 user-check: yes
 depends-on: []
@@ -20,6 +21,12 @@ what is on screen.
 
 ## Context
 
+- The goal this video serves (the owner, 2026-10-28, folded in from the
+  inbox): after M1 a free release that installs from Steam onto the
+  player's own Fallout 2, the way Enderal ships for Skyrim; GOG is the other
+  door. Bethesda's written consent first. Before asking: a release build,
+  this video, a project page; tell the authors of fallout2-ce and of the
+  donor (both Sustainable Use License) first.
 - The owner, 2026-10-27: a video near the end of the Klamath slice. Claude
   records and writes it in a chat with a full weekly limit; the edit is made
   with the Higgsfield skills (`higgsfield:higgsfield-video-explainer`,

@@ -3,9 +3,10 @@ id: 130
 title: The 3D options screen finished the way the owner says, ready for the showcase video
 milestone: M1
 status: todo
-owner: none
-suggested: gpt
+owner: any
+suggested: any
 priority: normal
+tier: 3
 claude-only: no
 user-check: yes
 depends-on: [112]
@@ -28,12 +29,20 @@ off one by one, a slider moved).
   shadow density 0.8; PR #158) and the layout of 017
   (`runs/017-options-menu-3d-panel-owner-brief.md` on the owner's machine).
   Code: `ce/src/scene/options_panel.cc`.
+- Owner note, 2026-11-04 (folded in, the UI batch): a cursor movement speed
+  setting: the settings also need the cursor's movement speed. Check first whether the existing `[preferences]
+  mouse_sensitivity` in `fallout2.cfg` can carry it: CE ignores it for the
+  absolute cursor in a window, so the speed may need its own scaling of the
+  cursor's motion there.
 
 ## Acceptance
 
 - Every note of the owner's copied into Context holds; before | after of
   the whole options screen at 16:9 and 4:3 in
   `runs/130-options-screen-owner-finish/`.
+- A cursor speed slider in the settings visibly changes how fast the
+  in-game cursor moves, in windowed and in fullscreen, and is saved in
+  `fallout2.cfg`.
 - ctest passes; the original view regression stays pixel for pixel.
 
 ## Out of scope

@@ -1,0 +1,141 @@
+{
+  "image": "ncr-ncrent-e1.png",
+  "view": "static-wall-plus-hero-preview",
+  "map": "NCRENT.MAP",
+  "elevation": 1,
+  "still_snapshot": true,
+  "snapshot_run": "791a87a0273044449694e6a0ddf1a748",
+  "view_tile": 22148,
+  "preview_requested": true,
+  "scene_3d_enabled": true,
+  "scene_view": "full",
+  "sharp_text": {
+    "setting": false,
+    "active": false,
+    "drawn": false,
+    "runs": 0,
+    "glyphs": 0,
+    "restored_pixels": 0,
+    "prepare_ms": 0.0
+  },
+  "map_clip": {
+    "enabled": true,
+    "setting_enabled": true,
+    "variant": "authored",
+    "source": "authored",
+    "world_bounds": [
+      4.458333,
+      -13.8125,
+      43.458333,
+      24.6875
+    ],
+    "planes": [
+      [
+        0.4472136,
+        0.8944272,
+        1.4161764
+      ],
+      [
+        -0.8320503,
+        0.5547002,
+        28.0123596
+      ],
+      [
+        -0.4472136,
+        -0.8944272,
+        32.5720558
+      ],
+      [
+        0.8320503,
+        -0.5547002,
+        -5.8243523
+      ]
+    ]
+  },
+  "camera": "fixed eye=(73.14466,46.23085,79.21700), target=(23.95833,0.00000,5.43750), fov_y=25.0, near=0.1, far=400.0, screen_right=-cross(forward,world_up)",
+  "camera_turn": 0.0,
+  "wall_triangles": 3449,
+  "wall_pages": 4,
+  "hero": {
+    "tile": 17500,
+    "fid": 16777278,
+    "frame": 0,
+    "rotation": 3,
+    "world_anchor": [
+      -0.041666667,
+      -6.0625
+    ]
+  },
+  "egg": {
+    "shown": true,
+    "rect": [
+      1081,
+      -338,
+      129,
+      98
+    ],
+    "zoom": 1.0,
+    "wall_rows_marked": 137,
+    "wall_rows_any": true
+  },
+  "objects": {
+    "drawn": 390,
+    "skipped": 0
+  },
+  "preview_availability": "available",
+  "renderer": "scene-gl",
+  "light": "enabled",
+  "effect_emission": true,
+  "glow": {
+    "enabled": false,
+    "strength": 2.0
+  },
+  "weapon_effect": null,
+  "muzzle": null,
+  "sun": {
+    "setting": true,
+    "daylight": false,
+    "game_time": 302400,
+    "up": false,
+    "height": 66.0,
+    "azimuth": -26.565,
+    "direction": [
+      0.3638,
+      0.91355,
+      -0.1819
+    ],
+    "color": [
+      1.0,
+      0.96,
+      0.88
+    ],
+    "strength": 0.0
+  },
+  "resolution": "1920x1080",
+  "logical_resolution": "960x540",
+  "scale": 2,
+  "scale_factor": 2.0,
+  "windowed": true,
+  "drawable": "1920x1080",
+  "sdl_window": {
+    "flags": 73734,
+    "window_position": "-20000,-20000",
+    "window_size": "1920x1080",
+    "drawable_size": "1920x1080",
+    "fullscreen": false,
+    "fullscreen_desktop": false,
+    "borderless": false
+  },
+  "ce_commit": "6947aa75",
+  "tools_commit": "-",
+  "exe_sha256": "fa230ddcb9640b9d3dcfdee9b81a794921fb8df808e2102a4d7c5e2cf0156974",
+  "taken": "20261104-150533",
+  "capture_image": "devhero-20261104-150533-000.png",
+  "spot": {
+    "name": "ncr-ncrent-e1",
+    "map": "ncrent",
+    "elevation": 1,
+    "tile": 22148,
+    "coverage": "NCR entrance, elevation 1"
+  }
+}

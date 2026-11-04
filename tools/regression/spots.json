@@ -510,6 +510,118 @@
       "elevation": 0,
       "tile": 22905,
       "coverage": "The slave run fire pit and tents"
+    },
+    {
+      "name": "redding-downtown",
+      "map": "reddown",
+      "elevation": 0,
+      "tile": 19059,
+      "coverage": "Redding downtown"
+    },
+    {
+      "name": "redding-mine-entrance",
+      "map": "redment",
+      "elevation": 0,
+      "tile": 26912,
+      "coverage": "The mine entrance"
+    },
+    {
+      "name": "redding-wanamingo",
+      "map": "redwame",
+      "elevation": 0,
+      "tile": 20275,
+      "coverage": "The Wanamingo mine entrance"
+    },
+    {
+      "name": "ncr-ncr1-e0",
+      "map": "ncr1",
+      "elevation": 0,
+      "tile": 20898,
+      "coverage": "NCR city, elevation 0"
+    },
+    {
+      "name": "ncr-ncr1-e1",
+      "map": "ncr1",
+      "elevation": 1,
+      "tile": 20106,
+      "coverage": "NCR city, elevation 1"
+    },
+    {
+      "name": "ncr-ncr2-e0",
+      "map": "ncr2",
+      "elevation": 0,
+      "tile": 20902,
+      "coverage": "NCR bazaar, elevation 0"
+    },
+    {
+      "name": "ncr-ncr3-e0",
+      "map": "ncr3",
+      "elevation": 0,
+      "tile": 21499,
+      "coverage": "squatters camp, elevation 0"
+    },
+    {
+      "name": "ncr-ncr4-e0",
+      "map": "ncr4",
+      "elevation": 0,
+      "tile": 20481,
+      "coverage": "north NCR, elevation 0"
+    },
+    {
+      "name": "ncr-ncrent-e0",
+      "map": "ncrent",
+      "elevation": 0,
+      "tile": 19112,
+      "coverage": "NCR entrance, elevation 0"
+    },
+    {
+      "name": "ncr-ncrent-e1",
+      "map": "ncrent",
+      "elevation": 1,
+      "tile": 22148,
+      "coverage": "NCR entrance, elevation 1"
+    },
+    {
+      "name": "ncr-v15ent-e0",
+      "map": "v15ent",
+      "elevation": 0,
+      "tile": 23907,
+      "coverage": "Vault 15 entrance, elevation 0"
+    },
+    {
+      "name": "ncr-v15ent-e1",
+      "map": "v15ent",
+      "elevation": 1,
+      "tile": 23907,
+      "coverage": "Vault 15 entrance, elevation 1"
+    },
+    {
+      "name": "ncr-v15sent-e0",
+      "map": "v15sent",
+      "elevation": 0,
+      "tile": 19088,
+      "coverage": "Vault 15 south entrance, elevation 0"
+    },
+    {
+      "name": "ncr-vault15-e0",
+      "map": "vault15",
+      "elevation": 0,
+      "tile": 19094,
+      "coverage": "Vault 15 ruins, elevation 0"
+    },
+    {
+      "name": "ncr-vault15-e1",
+      "map": "vault15",
+      "elevation": 1,
+      "tile": 21907,
+      "coverage": "Vault 15 ruins, elevation 1"
+    },
+    {
+      "name": "ncr-vault15-e2",
+      "map": "vault15",
+      "elevation": 2,
+      "tile": 20897,
+      "coverage": "Vault 15 ruins, elevation 2"
     }
   ]
 }

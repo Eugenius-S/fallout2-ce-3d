@@ -3,9 +3,10 @@ id: 173
 title: 3D never turns off on a local map; what cannot be built stands on a plane
 milestone: M1
 status: todo
-owner: none
-suggested: gpt
+owner: any
+suggested: any
 priority: high
+tier: 2
 claude-only: no
 user-check: no
 depends-on: []
@@ -21,6 +22,14 @@ its art on a fixed plane.
 
 ## Context
 
+- Linked: 193 part B puts a fading black backdrop round the 2D screens (dialogue,
+  the world map, the Pip-Boy, the rest) that stay 2D on a local map.
+- Folded in (2026-11-04 inbox sweep), the inbox line of 2026-10-27: the
+  list of unique objects that need their own 3D model (the big stone head in
+  Arroyo, the Vault City gate, the Reno signs, the vertibirds, other one-off
+  landmarks, vehicles and large signs). Each stands as a billboard or plane
+  here first; name each with its map and shot, ordered by how much a player
+  sees it, so the remodelling can follow.
 - The owner, 2026-11-04. The world map, dialogs and menus stay 2D; this is
   about local maps only.
 - Find every place the 3D view falls back to 2D or switches itself off on a
