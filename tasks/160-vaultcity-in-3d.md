@@ -86,3 +86,9 @@ finds; the task closes.
 Evidence: runs/160-vaultcity-in-3d/.
 Check: export.py --maps vaultcity; tour.py --maps vctyctyd,vctydwtn,vctycocl,
 vctyvlt,raiders1,raiders2; tools/regression.ps1.
+
+### 2026-11-04 claude
+Dropped the regression spot `vaultcity-council-dome` (tile 15392) at the
+merge: its reference was all black, the camera target off the scene's x
+bounds. Next: pick a vctycocl tile that shows the dome and add the spot back
+with a fresh reference.

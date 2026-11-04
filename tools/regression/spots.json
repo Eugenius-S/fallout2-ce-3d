@@ -281,13 +281,6 @@
       "coverage": "The city gate with the towers"
     },
     {
-      "name": "vaultcity-council-dome",
-      "map": "vctycocl",
-      "elevation": 0,
-      "tile": 15392,
-      "coverage": "The Central Council dome"
-    },
-    {
       "name": "vaultcity-vault-door",
       "map": "vctyvlt",
       "elevation": 0,
