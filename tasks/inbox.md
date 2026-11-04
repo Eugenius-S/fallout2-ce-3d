@@ -300,3 +300,6 @@ first: a new task only when no open task or batch fits (AGENTS.md, Tasks).
 - 2026-11-04 (-> 156, the renderer lifetime) The owner: in fullscreen the
   NVIDIA overlay toast keeps popping up during play; the device is
   recreated mid-run.
+- 2026-11-04 (-> 193, the UI text batch) The owner: the message log's left
+  edge slants and its lines sit tight
+  (`runs/inbox/2026-11-04-message-log-left-edge.png`).

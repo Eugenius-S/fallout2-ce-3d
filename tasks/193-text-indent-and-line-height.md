@@ -21,6 +21,13 @@ at about 130% of the font size apart (at least 120%).
 
 ## Context
 
+- Folded in (the owner, 2026-11-04,
+  `runs/inbox/2026-11-04-message-log-left-edge.png`): the same goes for the
+  message log window on the interface bar. Each line's bullet and text start
+  further right line by line, a slanted left edge against the owner's red
+  guide, and the lines are packed tight. Align the left edge and give the
+  lines a little more room, the same as the dialogue. 151 (done) fixed the
+  log's left edges once; find what brought the slant back.
 - Folded in (2026-11-04 inbox sweep), the inbox line of 2026-10-25: the
   dialogue answer options keep a hanging indent. The bullet marker stands
   left of the text column and every wrapped line aligns with the first
@@ -44,6 +51,9 @@ at about 130% of the font size apart (at least 120%).
 
 ## Acceptance
 
+- The message log: every line's bullet starts at the same x, wrapped lines
+  line up with the text after the bullet, and the line spacing matches the
+  dialogue's; before | after of the log at x1 and x2, at 16:9 and 21:9.
 - A wrapped dialogue answer option: the bullet left of the text, every line
   of the text on one left edge.
 
