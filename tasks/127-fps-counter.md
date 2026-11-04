@@ -99,3 +99,38 @@ Check: `tools/configure-build.ps1 Release` passed; CTest passed 19/19. The exact
 ### 2026-11-04 gpt: fresh main merge
 
 Merged `origin/main` at `3b288fd6`; no conflicts. The two most recent live-frame attempts remain documented above, with no FPS overlay visible in an accepted live 3D frame. Per the two-attempt limit, no further runtime capture was made; PR #181 stays draft and the task remains `doing`.
+
+### 2026-11-04 gpt: rebuilt delay and loaded-save capture attempts
+
+Merged the latest `origin/main` at `ab7bbaa9` without conflicts; branch head
+before this log is `930afb51`. Rebuilt Release successfully with MSVC 14.40
+and Windows SDK 10.0.22621.0. Attempt 3 used the rebuilt executable, a private
+test config with `fps_counter=1` (SHA256
+`084924749FC0F30E746F486CB37B6193F11E307A89AEA65885A4D6E36F6BAB3C`),
+`-LiveFrame -Fly`, and the 750 ms wait. It produced
+`liveframe-delay-attempt3/static-preview.jpg` and a sidecar, but the sidecar
+reports `view=vanilla-framebuffer`, `hero=null`, and `preview_requested=true`;
+the image is a static scene preview with no FPS readout. It does not satisfy
+the live 3D acceptance.
+
+To try an actual saved game, added `-DevLoadGameSlot` to
+`tools/dev-snapshot.ps1`, which passes the existing `--dev-load-game` option.
+Attempt 4 used slot 1 with the default hero preview and timed out after 120 s
+without a snapshot. Attempt 5 used the same load path with `-NoPreview`; it
+was stopped when the owner reiterated the two-failed-attempt rule. It yielded
+no snapshot; the only stderr output was the OpenGL renderer diagnostic. Both
+attempts kept output and generated game state in the isolated run folder. No
+source save files were modified.
+
+The task remains `doing` and PR #181 remains draft: the requested live 3D/Fly
+FPS and frame-time screenshot is still missing. Stop further runtime attempts
+under the current conditions and continue to the next task per the owner's
+two-attempt rule.
+
+Check: current-source Release build passed; CTest passed 20/20 and the
+PowerShell parser accepted the updated snapshot tool. `tools/regression.ps1`
+was started, but the owner directed moving on after the two failed live
+captures; its full-map cache export was stopped partway through. It is not a
+completed pixel-regression result. The current attempt sidecars/logs and
+unaccepted preview are in `runs/127-fps-counter/liveframe-delay-attempt3/`
+through `liveframe-delay-attempt5/`.

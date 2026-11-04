@@ -98,6 +98,8 @@ param(
     [string]$BuildExecutable,
     [string]$TestDirectory,
     [string]$SceneCache,
+    [ValidateRange(1, 10)]
+    [int]$DevLoadGameSlot = 0,
     [switch]$ConfiguredDisplay,
     [ValidateSet('english', 'russian')]
     [string]$Language,
@@ -432,12 +434,16 @@ if ($PreferencesProbe) {
     $arguments += @('--dev-new-game', "--dev-map=$Map", "--dev-elevation=$Elevation", "--dev-preferences-probe=$PreferencesProbe")
 } elseif ($ConfiguredDisplay) {
     if ($PreferencesProbe) { throw '-ConfiguredDisplay cannot be combined with -PreferencesProbe.' }
-    $arguments += @('--dev-new-game', "--dev-map=$Map", "--dev-elevation=$Elevation", "--dev-snapshot-run=$runId")
+    if ($DevLoadGameSlot -gt 0) { $arguments += "--dev-load-game=$DevLoadGameSlot" }
+    else { $arguments += @('--dev-new-game', "--dev-map=$Map", "--dev-elevation=$Elevation") }
+    $arguments += "--dev-snapshot-run=$runId"
 } else {
     $scaleText = $Scale.ToString('0.0#', [Globalization.CultureInfo]::InvariantCulture)
     $scaleArgument = if ([Math]::Abs($Scale - [Math]::Round($Scale)) -lt 0.0001) { "--dev-scale=$([int][Math]::Round($Scale))" } else { "--dev-scale-factor=$scaleText" }
-    $arguments += @("--dev-screen=${ScreenWidth}x${ScreenHeight}", $scaleArgument,
-        '--dev-new-game', "--dev-map=$Map", "--dev-elevation=$Elevation", "--dev-snapshot-run=$runId")
+    $arguments += @("--dev-screen=${ScreenWidth}x${ScreenHeight}", $scaleArgument)
+    if ($DevLoadGameSlot -gt 0) { $arguments += "--dev-load-game=$DevLoadGameSlot" }
+    else { $arguments += @('--dev-new-game', "--dev-map=$Map", "--dev-elevation=$Elevation") }
+    $arguments += "--dev-snapshot-run=$runId"
 }
 if ($Glow) { $arguments += '--dev-glow' }
 if ($GlowStrength -ge 0) { $arguments += "--dev-glow-strength=$($GlowStrength.ToString([System.Globalization.CultureInfo]::InvariantCulture))" }
@@ -494,6 +500,9 @@ if ($LiveFrame) {
         throw '-LiveFrame cannot be combined with a still, preference, probe, tour, dialog, or UI fixture mode.'
     }
     $arguments += '--dev-live-snapshot-once'
+}
+if ($DevLoadGameSlot -gt 0 -and -not $LiveFrame) {
+    throw '-DevLoadGameSlot requires -LiveFrame.'
 }
 if ($DevInput -or $SceneInput) {
     $shots = $DevInputShots
