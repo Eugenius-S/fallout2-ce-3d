@@ -120,8 +120,8 @@ or a scene cache folder; a cache side runs this checkout's build with
 quarter turns round (legacy snapshot units). `-TurnDegrees D`
 (`--dev-camera-degrees=D`) accepts an exact angle, e.g. -45 or 45. Both
 snapshot overrides bypass player settings; the dev fly camera is unlimited.
-For players, `[3d] camera_rotation` enables [ and ] in 45-degree steps,
-clamped to -45..+45. `[3d] camera_rotation_unlimited` (off by default,
+For players, `[3d] camera_rotation` enables [ and ] in 10-degree steps,
+clamped to -30..+30. `[3d] camera_rotation_unlimited` (off by default,
 marked not recommended in the Camera menu) permits a full turn. Turning rotation
 off returns to the game view; turning unlimited off clamps any current turn
 back into the safe range.
@@ -337,3 +337,21 @@ for a before comparison. `-EffectLightCheck` exercises a synthetic effect light
 through move/offset/hide/restore/lights-off, checks the unchanged native light
 map and object light fields, and records light_check in weapon_effect metadata.
 The legacy light metadata field now reports the actual lighting setting.
+
+## Frame profiler (task 155)
+
+Set `F2CE_PERF=1` in the environment of a game or a `dev-snapshot.ps1` run and
+the run folder's `logs/devperf.log` gets, every two seconds, the frame rate, the
+average, 1% low and worst frame time, the CPU time to submit a frame, the GPU
+time and the GPU time of each pass (sky_light, shadow, floor, flat_objects,
+walls, objects, hero_egg_glass, roofs, glow, overlay), plus the wall time of
+the scene load stages (`perf load ...`). The same build can restore the old
+shadow costs for a before and after: `F2CE_SHADOW_NO_CACHE=1` draws the shadow
+map every frame, `F2CE_SHADOW_NO_SKIP=1` runs the full tap loop everywhere.
+
+- `F2CE_PERF_HOLD=N`: a one-shot snapshot run keeps drawing for N seconds, so
+  there is something to measure.
+- `F2CE_PERF_TOGGLE="shadows=1@4,glow=0@8"`: flips a `[3d]` option (shadows,
+  glow, clouds, lights, sun) at the given second of the run; the frame it lands
+  in is logged as `perf toggle ... frame_ms=`.
+- Measured results of the task: `runs/155-performance/results.md`.

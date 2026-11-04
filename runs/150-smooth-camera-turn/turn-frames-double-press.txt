@@ -1,0 +1,13 @@
+The double press, one smooth 20-degree arc: the same frame log, the second ]
+pressed 120 ms after the first, mid-turn. The speed carries over and bends
+into the new target with no jump. Same diagnostic build and command as
+turn-frames-one-step.txt, script build/dev-input-150-double.txt.
+
+angle     speed
+0.0000    0.0000    first press lands
+2.5816    182.9148  easing in toward 10
+8.6517    360.0000  at the peak
+10.0000   0.0000    the first step settles (the second press is already queued)
+14.2617   235.0140  the retargeted turn: accelerating again, no backward jump
+19.4750   360.0000  the peak once more
+20.0000   0.0000    exact landing on the doubled step

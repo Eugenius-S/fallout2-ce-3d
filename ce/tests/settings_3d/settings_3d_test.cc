@@ -17,6 +17,12 @@ static double gConfiguredShadowDensityValue = -1.0;
 static const char* gConfiguredLanguage = nullptr;
 static bool gInterruptWalkConfigPresent = true;
 static bool gInterruptWalkConfigValue = false;
+static bool gConfiguredScalePresent = false;
+static int gConfiguredScale = 1;
+static bool gConfiguredScaleFactorPresent = false;
+static double gConfiguredScaleFactor = 1.0;
+static int gWrittenWidth = 0;
+static int gWrittenHeight = 0;
 
 bool gameConfigInit(bool, int, char**)
 {
@@ -28,6 +34,15 @@ bool gameConfigExit(bool) { return true; }
 
 bool configGetString(Config*, const char* section, const char* key, char** value)
 {
+    if (std::strcmp(section, "screen") == 0 && std::strcmp(key, "scale") == 0 && gConfiguredScalePresent) {
+        *value = const_cast<char*>("legacy-scale");
+        return true;
+    }
+    if (std::strcmp(section, "screen") == 0 && std::strcmp(key, "scale_factor") == 0
+        && gConfiguredScaleFactorPresent) {
+        *value = const_cast<char*>("configured");
+        return true;
+    }
     if (std::strcmp(section, "system") == 0 && std::strcmp(key, "language") == 0 && gConfiguredLanguage != nullptr) {
         *value = const_cast<char*>(gConfiguredLanguage);
         return true;
@@ -52,7 +67,12 @@ bool configGetString(Config*, const char*, const char*, char** value, const char
     *value = const_cast<char*>(defaultValue);
     return false;
 }
-bool configGetInt(Config*, const char*, const char*, int*) { return false; }
+bool configGetInt(Config*, const char* section, const char* key, int* value)
+{
+    if (std::strcmp(section, "screen") != 0 || std::strcmp(key, "scale") != 0 || !gConfiguredScalePresent) return false;
+    *value = gConfiguredScale;
+    return true;
+}
 bool configGetBool(Config*, const char* section, const char* key, bool* value)
 {
     if (std::strcmp(section, "system") != 0 || std::strcmp(key, "interrupt_walk") != 0
@@ -60,7 +80,12 @@ bool configGetBool(Config*, const char* section, const char* key, bool* value)
     *value = gInterruptWalkConfigValue;
     return true;
 }
-bool configGetDouble(Config*, const char*, const char*, double*) { return false; }
+bool configGetDouble(Config*, const char* section, const char* key, double* value)
+{
+    if (std::strcmp(section, "screen") != 0 || std::strcmp(key, "scale_factor") != 0 || !gConfiguredScaleFactorPresent) return false;
+    *value = gConfiguredScaleFactor;
+    return true;
+}
 bool configSetString(Config*, const char* section, const char* key, const char* value)
 {
     if (std::strcmp(section, "3d") == 0 && std::strcmp(key, "enabled") == 0) {
@@ -71,7 +96,12 @@ bool configSetString(Config*, const char* section, const char* key, const char* 
     }
     return true;
 }
-bool configSetInt(Config*, const char*, const char*, int) { return true; }
+bool configSetInt(Config*, const char* section, const char* key, int value)
+{
+    if (std::strcmp(section, "screen") == 0 && std::strcmp(key, "resolution_x") == 0) gWrittenWidth = value;
+    if (std::strcmp(section, "screen") == 0 && std::strcmp(key, "resolution_y") == 0) gWrittenHeight = value;
+    return true;
+}
 bool configSetBool(Config*, const char* section, const char* key, bool value)
 {
     if (std::strcmp(section, "3d") == 0 && std::strcmp(key, "enabled") == 0) {
@@ -88,6 +118,10 @@ bool configSetBool(Config*, const char* section, const char* key, bool value)
 }
 bool configSetDouble(Config*, const char* section, const char* key, double value)
 {
+    if (std::strcmp(section, "screen") == 0 && std::strcmp(key, "scale_factor") == 0) {
+        gConfiguredScaleFactorPresent = true;
+        gConfiguredScaleFactor = value;
+    }
     if (std::strcmp(section, "3d") == 0 && std::strcmp(key, "shadow_density") == 0) {
         gConfiguredShadowDensityValue = value;
     }
@@ -155,6 +189,36 @@ int main()
 {
     using namespace fallout;
     if (!check(initializeWith(nullptr), "settings initialize with missing key")) return 1;
+    const SettingDescriptor* scaleFactor = findDescriptor("screen.scale_factor");
+    const SettingDescriptor* resolutionMode = findDescriptor("screen.resolution_mode");
+    const SettingDescriptor* windowMode = findDescriptor("screen.windowed");
+    if (!check(scaleFactor != nullptr && scaleFactor->valueType == SettingValueType::Real
+            && scaleFactor->applyPolicy == SettingApplyPolicy::Restart
+            && scaleFactor->numericRange.has_value()
+            && scaleFactor->numericRange->minimum == 1.0
+            && scaleFactor->numericRange->maximum == 3.0
+            && scaleFactor->numericRange->step == 0.2,
+            "screen scale factor is a restart setting from 1.0x to 3.0x in 0.2x steps")) return 1;
+    if (!check(resolutionMode != nullptr && resolutionMode->valueType == SettingValueType::Choice
+            && resolutionMode->applyPolicy == SettingApplyPolicy::Restart
+            && windowMode != nullptr && windowMode->valueType == SettingValueType::Choice
+            && windowMode->choices.size() == 3,
+            "resolution and window mode are registered restart choices")) return 1;
+    if (!check(settingsSetValue(*resolutionMode, 25601440, nullptr) && settingsSave()
+            && gWrittenWidth == 2560 && gWrittenHeight == 1440,
+            "a pending resolution choice writes both legacy resolution keys")) return 1;
+    gConfiguredScalePresent = true;
+    gConfiguredScale = 2;
+    gConfiguredScaleFactorPresent = false;
+    if (!check(initializeWith(nullptr) && settings.screen.scale_factor == 2.0,
+            "legacy integer screen scale remains the fractional scale when scale_factor is absent")) return 1;
+    gConfiguredScaleFactorPresent = true;
+    gConfiguredScaleFactor = 1.4;
+    if (!check(initializeWith(nullptr) && settings.screen.scale_factor == 1.4,
+            "screen scale_factor overrides the legacy integer scale")) return 1;
+    gConfiguredScalePresent = false;
+    gConfiguredScaleFactorPresent = false;
+    if (!check(initializeWith(nullptr), "settings initialize with missing key")) return 1;
     const SettingDescriptor* descriptor = findThreeDDescriptor();
     const SettingDescriptor* cleanEdgesDescriptor = findCleanEdgesDescriptor();
     const SettingDescriptor* shadowDensity = findDescriptor("3d.shadow_density");
@@ -186,21 +250,119 @@ int main()
             && unlimited->fallbackLabel.find("not recommended") != std::string::npos,
             "rotation and unrestricted rotation are independent default-off menu options")) return 1;
     double angle = 0.0;
+    if (!check(scene::kCameraTurnStep == 10.0 && scene::kCameraTurnLimit == 30.0
+            && scene::cameraTurnTarget(0.0, 1, false) == 10.0,
+            "one press turns 10 degrees, the limit is 30")) return 1;
     for (int i = 0; i < 100; ++i) angle = scene::cameraTurnTarget(angle, 1, false);
-    if (!check(angle == 45.0 && scene::cameraTurnTarget(angle, -1, false) == 0.0,
-            "held right stops at +45 and one left returns to game view")) return 1;
+    if (!check(angle == 30.0 && scene::cameraTurnTarget(angle, -3, false) == 0.0,
+            "held right stops at +30 and three left return to game view")) return 1;
     for (int i = 0; i < 100; ++i) angle = scene::cameraTurnTarget(angle, -1, false);
-    if (!check(angle == -45.0 && scene::cameraTurnTarget(angle, 1, false) == 0.0,
-            "held left stops at -45 and one right returns to game view")) return 1;
+    if (!check(angle == -30.0 && scene::cameraTurnTarget(angle, 3, false) == 0.0,
+            "held left stops at -30 and three right return to game view")) return 1;
     angle = 0.0;
-    for (int i = 0; i < 8; ++i) angle = scene::cameraTurnTarget(angle, 1, true);
-    if (!check(angle == 360.0 && scene::cameraTurnTarget(0.0, -8, true) == -360.0,
-            "own-risk option permits a full turn in both directions")) return 1;
-    if (!check(scene::limitedCameraTurn(270.0) == -45.0
-            && scene::limitedCameraTurn(-270.0) == 45.0
+    for (int i = 0; i < 36; ++i) angle = scene::cameraTurnTarget(angle, 1, true);
+    if (!check(angle == 360.0 && scene::cameraTurnTarget(0.0, -36, true) == -360.0
+            && std::fmod(angle, 360.0) == 0.0,
+            "own-risk option permits a full turn in 36 steps both ways and lands on the game view")) return 1;
+    if (!check(scene::limitedCameraTurn(270.0) == -30.0
+            && scene::limitedCameraTurn(-270.0) == 30.0
             && scene::limitedCameraTurn(360.0) == 0.0
-            && scene::limitedCameraTurn(22.5) == 22.5,
+            && scene::limitedCameraTurn(22.5) == 22.5
+            && scene::limitedCameraTurn(40.0) == 30.0,
             "revoking unlimited rotation wraps then clamps the current view")) return 1;
+    // Edge scroll on a turned camera: (dx, dy) is the edge on the turned screen,
+    // dy down. Unturned it is untouched; turned, the game step whose real ground
+    // move looks closest to that edge on the turned screen wins.
+    const double pi = 3.14159265358979323846;
+    const double gameYaw = 0.6; // the unturned camera's yaw (rad)
+    const double gamePitch = -0.62; // looking down
+    // The ground (x, z) under a screen move of `right`, `up` units at the view
+    // center of the unturned camera: right along the camera's right, up along
+    // the way it faces, stretched by 1 / sin(pitch) (the floor is foreshortened).
+    auto groundFor = [&](double right, double up, double out[2]) {
+        const double stretch = up / -std::sin(gamePitch);
+        out[0] = right * std::sin(gameYaw) + stretch * std::cos(gameYaw);
+        out[1] = -right * std::cos(gameYaw) + stretch * std::sin(gameYaw);
+    };
+    scene::ScrollGroundBasis basis {};
+    groundFor(scene::kScrollStepX, 0.0, basis.horizontal);
+    groundFor(0.0, -scene::kScrollStepY, basis.vertical);
+    basis.yaw = gameYaw;
+    basis.pitch = gamePitch;
+    int sx = 9, sy = 9;
+    bool unturnedSame = true;
+    for (int dx = -1; dx <= 1; ++dx) {
+        for (int dy = -1; dy <= 1; ++dy) {
+            scene::cameraTurnScrollStep(dx, dy, 0.0, basis, &sx, &sy);
+            unturnedSame = unturnedSame && sx == dx && sy == dy;
+        }
+    }
+    if (!check(unturnedSame, "unturned edge scroll is unchanged")) return 1;
+    // The turned screen, spelled out with the camera vectors: forward, right and
+    // up in GL world, then each step's ground move dotted with right and up.
+    auto projectedAngle = [&](int stepDx, int stepDy, double turn, int edgeDx, int edgeDy) {
+        const double yaw = gameYaw + turn * pi / 180.0;
+        const double right[3] = { std::sin(yaw), 0.0, -std::cos(yaw) };
+        const double up[3] = { -std::sin(gamePitch) * std::cos(yaw), std::cos(gamePitch),
+            -std::sin(gamePitch) * std::sin(yaw) };
+        const double gx = stepDx * basis.horizontal[0] + stepDy * basis.vertical[0];
+        const double gz = stepDx * basis.horizontal[1] + stepDy * basis.vertical[1];
+        const double screenRight = gx * right[0] + gz * right[2];
+        const double screenUp = gx * up[0] + gz * up[2];
+        return std::abs(std::remainder(std::atan2(screenUp, screenRight) - std::atan2(-edgeDy, edgeDx), 2.0 * pi));
+    };
+    bool nearest = true;
+    for (const double turn : { 0.0, 10.0, 20.0, 30.0, -30.0 }) {
+        for (int dx = -1; dx <= 1; ++dx) {
+            for (int dy = -1; dy <= 1; ++dy) {
+                if (dx == 0 && dy == 0) continue;
+                scene::cameraTurnScrollStep(dx, dy, turn, basis, &sx, &sy);
+                const double chosen = projectedAngle(sx, sy, turn, dx, dy);
+                for (int candidateDx = -1; candidateDx <= 1; ++candidateDx) {
+                    for (int candidateDy = -1; candidateDy <= 1; ++candidateDy) {
+                        if (candidateDx == 0 && candidateDy == 0) continue;
+                        nearest = nearest && chosen <= projectedAngle(candidateDx, candidateDy, turn, dx, dy) + 1e-9;
+                    }
+                }
+            }
+        }
+    }
+    if (!check(nearest, "every edge and corner at 0, 10, 20, 30 and -30 degrees picks the step with the smallest projected angle")) return 1;
+    // The basis measured in the game on kladwtwn (the game view's real, oblique
+    // ground move of one step, and its camera yaw and pitch).
+    scene::ScrollGroundBasis measured {};
+    measured.horizontal[0] = -0.5;
+    measured.horizontal[1] = 0.25;
+    measured.vertical[0] = 0.500032;
+    measured.vertical[1] = 0.750048;
+    measured.yaw = -2.158799;
+    measured.pitch = -0.480597;
+    // The reviewer's case: at +20 the top edge is 38 degrees off vertical for
+    // the plain up step (0,-1) but 28 for up-and-left (-1,-1), which wins.
+    const double gameStepAngleTop = [&] {
+        double right, up;
+        scene::groundToTurnedScreen(measured, 20.0, measured.vertical[0] * -1.0, measured.vertical[1] * -1.0, &right, &up);
+        return scene::screenAngleBetween(right, up, 0.0, 1.0) * 180.0 / pi;
+    }();
+    scene::cameraTurnScrollStep(0, -1, 20.0, measured, &sx, &sy);
+    if (!check(sx == -1 && sy == -1 && gameStepAngleTop > 37.0 && gameStepAngleTop < 39.0,
+            "at +20 degrees the top edge picks up-and-left, not the plain up step")) return 1;
+    // Unturned, the measured basis puts each step nearest its own screen direction
+    // (so the projection and its signs agree with the game's own scroll).
+    bool measuredUnturned = true;
+    for (int dx = -1; dx <= 1; ++dx) {
+        for (int dy = -1; dy <= 1; ++dy) {
+            if (dx == 0 && dy == 0) continue;
+            scene::cameraTurnScrollStep(dx, dy, 1e-9, measured, &sx, &sy);
+            measuredUnturned = measuredUnturned && sx == dx && sy == dy;
+        }
+    }
+    if (!check(measuredUnturned, "with the measured basis a barely turned camera still picks the same step")) return 1;
+    scene::cameraTurnScrollStep(1, 0, 30.0, measured, &sx, &sy);
+    const bool rightAt30 = sx == 1 && sy == 0;
+    scene::cameraTurnScrollStep(0, -1, 30.0, measured, &sx, &sy);
+    const bool topAt30 = sx == -1 && sy == -1;
+    if (!check(rightAt30 && topAt30, "measured basis at +30: right edge steps right, top edge steps up-and-left")) return 1;
     if (!check(unrelatedDescriptor != nullptr, "real unrelated setting descriptor is registered")) return 1;
     if (!check(settingsGetRevision(*descriptor) == 0 && settingsGetRevision(*unrelatedDescriptor) == 1,
             "config read increments only the changed setting revision")) return 1;
@@ -341,8 +503,8 @@ int main()
     }
     if (!check(std::string(scene::menuText("On", "RuSsIaN")) == "\xC2\xEA\xEB",
             "Russian menu text uses CP1251 and case-insensitive language selection")) return 1;
-    if (!check(std::string(scene::menuText("Camera rotation", "russian")).find("-45\xB0") != std::string::npos
-            && std::string(scene::menuText("Camera rotation", "russian")).find("+45\xB0") != std::string::npos
+    if (!check(std::string(scene::menuText("Camera rotation", "russian")).find("-30\xB0") != std::string::npos
+            && std::string(scene::menuText("Camera rotation", "russian")).find("+30\xB0") != std::string::npos
             && std::string(scene::menuText("Camera rotation", "russian")).find('?') == std::string::npos,
             "camera range preserves signs and degree symbols in the game's encoding")) return 1;
     if (!check(static_cast<unsigned char>(scene::menuText("Sharp interface text", "russian")[1]) == 0xB8,

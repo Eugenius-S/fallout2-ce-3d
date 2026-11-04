@@ -2,6 +2,9 @@
 #include "text_capture.h"
 #include "menu_text.h"
 #include "scene_view.h"
+#include "options_frame_owner.h"
+
+#include <lodepng.h>
 
 #include <algorithm>
 #include <array>
@@ -13,6 +16,7 @@
 #include "../devtools/preferences_probe.h"
 #include "../art.h"
 #include "../draw.h"
+#include "../debug.h"
 #include "../game.h"
 #include "../input.h"
 #include "../kb.h"
@@ -37,27 +41,27 @@ const char* localized(const char* text)
 
 constexpr int kWidth = 640;
 constexpr int kHeight = 480;
+constexpr int kLegacyColumnsBottom = 439;
+constexpr int kLegacyColumnsShift = 35;
+constexpr int kLegacyColumnsRight = 365;
 constexpr int kPanelTop = 494;
-constexpr int kHeaderHeight = 90;
-constexpr int kToggleRowHeight = 28;
-constexpr int kSliderRowHeight = 40;
-constexpr int kGroupHeadingHeight = 14;
-constexpr int kGroupGap = 24;
+constexpr int kHeaderHeight = 112;
+constexpr int kOptionRowHeight = 28;
+constexpr int kGroupHeadingHeight = 36;
+constexpr int kGroupGap = 38;
 constexpr int kPanelBottomPadding = 32;
 constexpr int kLabelX = 55;
 constexpr int kValueX = 405;
 constexpr int kValueWidth = 180;
-constexpr int kToggleX = 485;
-constexpr int kToggleWidth = 100;
 constexpr int kSliderX = 355;
-constexpr int kSliderRight = 540;
+constexpr int kSliderRight = 550;
 constexpr int kSliderValueX = 500;
 constexpr int kSliderValueWidth = 85;
 constexpr int kLabelTextOffset = 4;
 constexpr int kSliderHitTolerance = 7;
 constexpr int kFrameNarrowInset = 16;
 constexpr int kScrollbarWidth = 12;
-constexpr int kScrollbarOutsideGap = 4;
+constexpr int kScrollbarOutsideGap = 12;
 constexpr int kRowButtonX = 42;
 constexpr int kRowButtonWidth = 556;
 constexpr int kRowEvent = 600;
@@ -89,6 +93,31 @@ struct RgbColor {
 RgbColor paletteRgb(unsigned char index)
 {
     return { _cmap[3 * index] * 4.0f, _cmap[3 * index + 1] * 4.0f, _cmap[3 * index + 2] * 4.0f };
+}
+
+struct OwnerFramePiece {
+    std::vector<unsigned char> rgba;
+    unsigned width = 0;
+    unsigned height = 0;
+};
+
+const std::array<OwnerFramePiece, 8>& ownerFramePieces()
+{
+    static const auto pieces = [] {
+        std::array<OwnerFramePiece, 8> result;
+        const unsigned char* bytes[] = { owner_frame::topLeft, owner_frame::top, owner_frame::topRight,
+            owner_frame::left, owner_frame::right, owner_frame::bottomLeft, owner_frame::bottom, owner_frame::bottomRight };
+        const size_t sizes[] = { sizeof(owner_frame::topLeft), sizeof(owner_frame::top), sizeof(owner_frame::topRight),
+            sizeof(owner_frame::left), sizeof(owner_frame::right), sizeof(owner_frame::bottomLeft), sizeof(owner_frame::bottom), sizeof(owner_frame::bottomRight) };
+        for (size_t i = 0; i < result.size(); ++i) {
+            if (lodepng::decode(result[i].rgba, result[i].width, result[i].height, bytes[i], sizes[i]) != 0) {
+                debugPrint("3D options: owner frame could not be decoded; using the original frame\n");
+                return std::array<OwnerFramePiece, 8>{};
+            }
+        }
+        return result;
+    }();
+    return pieces;
 }
 
 RgbColor mixRgb(const RgbColor& first, const RgbColor& second, float weight)
@@ -140,7 +169,71 @@ int sliderTextCenterOffset(int ownerWindow)
 void drawRightAlignedControlText(unsigned char* panel, int rowY, int left, int right, const char* text, Color color)
 {
     const int width = std::min(fontGetStringWidth(text), right - left);
-    fontDrawText(panel + kWidth * (rowY + kLabelTextOffset) + right - width, text, width, kWidth, color);
+    if (width <= 0) return;
+    const int height = std::max(1, fontGetLineHeight());
+    const int pitch = width + 4;
+    std::vector<unsigned char> pixels(static_cast<size_t>(pitch) * height, 0);
+    // Measure the actual original-font ink, not its advance or side bearing.
+    // The probe must not be captured as visible text.
+    fontDrawTextPtr(pixels.data(), text, width, pitch, color | DRAW_TEXT_FLAG_NO_BG);
+    int inkRight = 0;
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            if (pixels[static_cast<size_t>(y) * pitch + x] != 0) inkRight = std::max(inkRight, x + 1);
+        }
+    }
+    if (inkRight == 0) inkRight = width;
+    const int x = std::max(left, right - inkRight);
+    ScopedTextRightAlign align(right);
+    fontDrawText(panel + kWidth * (rowY + kLabelTextOffset) + x, text, width, kWidth, color);
+}
+
+std::pair<int, int> controlTextInkBounds(const char* text, int width, Color color)
+{
+    const int height = std::max(1, fontGetLineHeight());
+    const int pitch = width + 4;
+    std::vector<unsigned char> pixels(static_cast<size_t>(pitch) * height, 0);
+    fontDrawTextPtr(pixels.data(), text, width, pitch, color | DRAW_TEXT_FLAG_NO_BG);
+    int inkLeft = width;
+    int inkRight = 0;
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            if (pixels[static_cast<size_t>(y) * pitch + x] == 0) continue;
+            inkLeft = std::min(inkLeft, x);
+            inkRight = std::max(inkRight, x + 1);
+        }
+    }
+    if (inkRight <= inkLeft) return { 0, width };
+    return { inkLeft, inkRight };
+}
+
+void drawCheckboxControl(unsigned char* panel, int rowY, int right, bool checked, Color color)
+{
+    const int leftBracketAdvance = fontGetStringWidth("[");
+    const int centerAdvance = std::max(fontGetStringWidth("X"), fontGetStringWidth(" "));
+    const int rightBracketAdvance = fontGetStringWidth("]");
+    const int left = right - leftBracketAdvance - centerAdvance - rightBracketAdvance;
+    const auto leftBracketInk = controlTextInkBounds("[", leftBracketAdvance, color);
+    const auto rightBracketInk = controlTextInkBounds("]", rightBracketAdvance, color);
+    const auto xInk = controlTextInkBounds("X", fontGetStringWidth("X"), color);
+    const int rightBracketOrigin = right - rightBracketAdvance;
+    const int openLeft = left + leftBracketInk.second;
+    const int openRight = rightBracketOrigin + rightBracketInk.first;
+    const int openingCenterTwice = openLeft + openRight;
+    const int xInkCenterTwice = xInk.first + xInk.second;
+    int xOrigin = (openingCenterTwice - xInkCenterTwice + 1) / 2;
+    int sharpWidth = 0;
+    int sharpHeight = 0;
+    if (sharpTextWanted() && scene_renderer::sharpTextLanguageSupported(settings.system.language)
+        && scene_renderer::sharpTextOutputSize(&sharpWidth, &sharpHeight)) {
+        // The sharp font has a different X bearing from font 101. Correct its
+        // visible position in the logical framebuffer.
+        ++xOrigin;
+    }
+    unsigned char* text = panel + kWidth * (rowY + kLabelTextOffset);
+    fontDrawText(text + left, "[", leftBracketAdvance, kWidth, color);
+    if (checked) fontDrawText(text + xOrigin, "X", centerAdvance, kWidth, color);
+    fontDrawText(text + rightBracketOrigin, "]", rightBracketAdvance, kWidth, color);
 }
 
 } // namespace
@@ -162,6 +255,41 @@ bool OptionsPanel::initialize(int windowId, unsigned char* surface, const unsign
     pageX_ = pageX;
     pageY_ = pageY;
     model_ = std::make_unique<OptionsSettingsModel>();
+    displayIndex_ = gSdlWindow != nullptr ? std::max(0, SDL_GetWindowDisplayIndex(gSdlWindow)) : 0;
+    std::vector<SDL_DisplayMode> availableModes;
+    const int displayModeCount = SDL_GetNumDisplayModes(displayIndex_);
+    for (int modeIndex = 0; modeIndex < displayModeCount; modeIndex++) {
+        SDL_DisplayMode mode = {};
+        if (SDL_GetDisplayMode(displayIndex_, modeIndex, &mode) != 0 || mode.w < 640 || mode.h < 480
+            || mode.w > 7680 || mode.h > 4320) continue;
+        if (std::none_of(availableModes.begin(), availableModes.end(), [&mode](const SDL_DisplayMode& existing) {
+                return existing.w == mode.w && existing.h == mode.h;
+            })) availableModes.push_back(mode);
+    }
+    std::sort(availableModes.begin(), availableModes.end(), [](const SDL_DisplayMode& left, const SDL_DisplayMode& right) {
+        const long long leftArea = static_cast<long long>(left.w) * left.h;
+        const long long rightArea = static_cast<long long>(right.w) * right.h;
+        if (leftArea != rightArea) return leftArea > rightArea;
+        if (left.w != right.w) return left.w > right.w;
+        return left.h > right.h;
+    });
+    std::vector<SettingChoice> resolutionChoices;
+    resolutionChoices.reserve(availableModes.size() + 1);
+    for (const SDL_DisplayMode& mode : availableModes) {
+        resolutionChoices.push_back({ mode.w * 10000 + mode.h, std::to_string(mode.w) + "x" + std::to_string(mode.h) });
+    }
+    const int selectedResolution = settings.screen.resolution_mode > 0
+        ? settings.screen.resolution_mode
+        : settings.screen.resolution_x * 10000 + settings.screen.resolution_y;
+    if (std::none_of(resolutionChoices.begin(), resolutionChoices.end(), [selectedResolution](const SettingChoice& choice) {
+            return choice.value == selectedResolution;
+        })) {
+        resolutionChoices.insert(resolutionChoices.begin(), { selectedResolution,
+            std::to_string(selectedResolution / 10000) + "x" + std::to_string(selectedResolution % 10000) });
+    }
+    model_->configureChoice("screen.resolution_mode", resolutionChoices);
+    model_->setValue("screen.resolution_mode", selectedResolution);
+    updateScaleRange();
     rows_ = optionsPanelRows(model_->edits(), "3d");
     sliderTrackOffset_ = sliderTextCenterOffset(windowId_);
     buildRowLayout();
@@ -177,7 +305,6 @@ bool OptionsPanel::initialize(int windowId, unsigned char* surface, const unsign
     }
     struct Rect { int x; int y; int width; int height; int feather = 0; };
     constexpr Rect legacyBlocks[] = {
-        { 7, 4, 44, 31 }, { 301, 4, 44, 31 },
         { 6, 40, 190, 74 }, { 6, 116, 190, 80 }, { 6, 197, 190, 82 },
         { 6, 279, 190, 81 }, { 6, 359, 190, 80 },
         { 200, 39, 165, 70 }, { 200, 109, 165, 66 }, { 200, 175, 165, 66 },
@@ -197,6 +324,12 @@ bool OptionsPanel::initialize(int windowId, unsigned char* surface, const unsign
         const int bottom = std::min(kHeight, rect.y + rect.height);
         for (int y = top; y < bottom; y++) {
             for (int x = left; x < right; x++) {
+                // Clip the corners of each original settings block against the
+                // extended background instead of copying rectangular corners.
+                const int radius = rect.y >= 39 && rect.y < 443 ? 5 : 0;
+                const int dx = std::max({ rect.x + radius - x, x - (rect.x + rect.width - 1 - radius), 0 });
+                const int dy = std::max({ rect.y + radius - y, y - (rect.y + rect.height - 1 - radius), 0 });
+                if (dx * dx + dy * dy > radius * radius) continue;
                 const unsigned char source = background_[static_cast<size_t>(kWidth) * y + x];
                 if (rect.feather == 0) {
                     content_[static_cast<size_t>(kWidth) * y + x] = source;
@@ -230,6 +363,36 @@ bool OptionsPanel::initialize(int windowId, unsigned char* surface, const unsign
     scroll_ = 0;
     selectedRow_ = 0;
     return true;
+}
+
+void OptionsPanel::updateScaleRange()
+{
+    if (model_ == nullptr) return;
+    int outputWidth = settings.screen.resolution_x;
+    int outputHeight = settings.screen.resolution_y;
+    const int resolutionRow = findRowBySettingId("screen.resolution_mode");
+    if (resolutionRow >= 0) {
+        const int code = std::get<int>(rows_[resolutionRow].edit->value);
+        if (code > 0) {
+            outputWidth = code / 10000;
+            outputHeight = code % 10000;
+        }
+    }
+    const int modeRow = findRowBySettingId("screen.windowed");
+    if (modeRow >= 0 && std::get<int>(rows_[modeRow].edit->value) == static_cast<int>(WindowMode::WindowedFullscreen)) {
+        SDL_DisplayMode desktop = {};
+        if (SDL_GetDesktopDisplayMode(displayIndex_, &desktop) == 0 && desktop.w >= 640 && desktop.h >= 480) {
+            outputWidth = desktop.w;
+            outputHeight = desktop.h;
+        }
+    }
+    const double available = std::min(outputWidth / 640.0, outputHeight / 480.0);
+    const double maximum = std::clamp(1.0 + std::floor((available - 1.0 + 0.000001) / 0.2) * 0.2, 1.0, 3.0);
+    model_->configureNumericRange("screen.scale_factor", { 1.0, maximum, 0.2 });
+    const int scaleRow = findRowBySettingId("screen.scale_factor");
+    if (scaleRow >= 0 && editNumber(rows_[scaleRow].edit->value) > maximum) {
+        model_->setValue("screen.scale_factor", maximum);
+    }
 }
 
 void OptionsPanel::buildBackgroundTexture()
@@ -367,7 +530,7 @@ int OptionsPanel::rowTop(int index) const
 }
 int OptionsPanel::rowHeight(int index) const
 {
-    return index >= 0 && index < static_cast<int>(rowLayouts_.size()) ? rowLayouts_[index].height : kToggleRowHeight;
+    return index >= 0 && index < static_cast<int>(rowLayouts_.size()) ? rowLayouts_[index].height : kOptionRowHeight;
 }
 int OptionsPanel::rowButtonX() const { return kRowButtonX; }
 int OptionsPanel::rowButtonWidth() const { return kRowButtonWidth; }
@@ -376,6 +539,7 @@ int OptionsPanel::frameInset() const
     const int pageRight = pageX_ + kWidth;
     return screenWidth_ - pageRight >= kScrollbarWidth + kScrollbarOutsideGap ? 0 : kFrameNarrowInset;
 }
+int OptionsPanel::legacyColumnOffset() const { return screenHeight_ > kHeight ? kLegacyColumnsShift : 0; }
 int OptionsPanel::sliderTrackLeft() const { return kSliderX + frameInset(); }
 int OptionsPanel::sliderTrackRight() const { return kSliderRight - frameInset(); }
 int OptionsPanel::sliderTrackTargetX(double ratio) const
@@ -394,7 +558,8 @@ void OptionsPanel::buildRowLayout()
         const size_t separator = id.rfind('.');
         const std::string key = separator == std::string::npos ? id : id.substr(separator + 1);
         int group = 3;
-        if (key == "enabled" || key == "clean_edges" || key == "sharp_text") group = 0;
+        if (key == "enabled" || key == "clean_edges" || key == "sharp_text" || key == "scale_factor") group = 0;
+        else if (key == "resolution_mode" || key == "windowed") group = 0;
         else if (key == "sun" || key == "shadows" || key == "cloud_shadows" || key == "shadow_pixel_size" || key == "shadow_density"
             || key == "sun_swing" || key == "lights" || key == "glow" || key == "glow_strength") group = 1;
         else if (key == "camera_rotation" || key == "camera_rotation_unlimited" || key == "sprite_sides" || key == "zoom" || key == "zoom_min" || key == "zoom_max") group = 2;
@@ -412,7 +577,7 @@ void OptionsPanel::buildRowLayout()
         layout.top = cursor;
         cursor += kGroupHeadingHeight;
         for (int index : groupedRows[group]) {
-            const int height = rows_[index].control == OptionsPanelControl::Slider ? kSliderRowHeight : kToggleRowHeight;
+            const int height = rows_[index].edit->descriptor->section == "screen" ? 42 : kOptionRowHeight;
             rowLayouts_[index] = { cursor, height };
             displayOrder_.push_back(index);
             cursor += height;
@@ -453,18 +618,34 @@ int OptionsPanel::maxScroll() const { return std::max(0, contentHeight_ - screen
 int OptionsPanel::scrollbarX() const
 {
     const int pageRight = pageX_ + kWidth;
-    if (screenWidth_ - pageRight >= kScrollbarWidth + kScrollbarOutsideGap) return pageRight + kScrollbarOutsideGap;
+    if (screenWidth_ - pageRight >= kScrollbarWidth) {
+        return pageRight + std::min(kScrollbarOutsideGap, screenWidth_ - pageRight - kScrollbarWidth);
+    }
     return pageRight - kScrollbarWidth;
 }
 int OptionsPanel::scrollbarTop() const { return kTrackMargin; }
-int OptionsPanel::scrollbarHeight() const { return std::max(1, screenHeight_ - 2 * kTrackMargin); }
+int OptionsPanel::scrollbarHeight() const
+{
+    // On tall screens the footer sits below the frame. End the track at the
+    // frame's lower edge when the page is scrolled to the bottom.
+    const int footerSpace = screenHeight_ > kHeight ? contentHeight_ - panelBottom_ : kTrackMargin;
+    return std::max(kScrollbarThumbHeight, screenHeight_ - kTrackMargin - std::max(kTrackMargin, footerSpace));
+}
 int OptionsPanel::scrollbarThumbHeight() const { return kScrollbarThumbHeight; }
 int OptionsPanel::scrollbarThumbTop() const
 {
     const int travel = std::max(0, scrollbarHeight() - scrollbarThumbHeight());
     return scrollbarTop() + travel * scroll_ / std::max(1, maxScroll());
 }
-void OptionsPanel::mouseToPageCoordinates(int& x, int& y) const { x -= pageX_; y = y - pageY_ + scroll_; }
+void OptionsPanel::mouseToPageCoordinates(int& x, int& y) const
+{
+    x -= pageX_;
+    y = y - pageY_ + scroll_;
+    if (screenHeight_ > kHeight && x < kLegacyColumnsRight
+        && y >= 40 + kLegacyColumnsShift && y < kLegacyColumnsBottom + kLegacyColumnsShift) {
+        y -= kLegacyColumnsShift;
+    }
+}
 void OptionsPanel::setLabelResolver(LabelResolver resolver) { labelResolver_ = resolver; }
 
 void OptionsPanel::setButtonLayout(const std::vector<std::pair<int, int>>& legacyButtons, int speedButton, int speedTop, const std::vector<int>& rowButtons)
@@ -497,6 +678,26 @@ void OptionsPanel::showPanelForSnapshot(bool bottom)
     setScroll(bottom ? maxScroll() : 0);
 }
 
+void OptionsPanel::showDropdownForSnapshot(const std::string& settingId)
+{
+    const std::string id = settingId == "mode" ? "screen.windowed" : "screen.resolution_mode";
+    dropdownRow_ = findRowBySettingId(id);
+    if (dropdownRow_ < 0) return;
+    const int targetRowTop = std::max(0, screenHeight_ / 3 - rowHeight(dropdownRow_) / 2);
+    setScroll(pageY_ + rowTop(dropdownRow_) - targetRowTop);
+    const auto& choices = rows_[dropdownRow_].edit->descriptor->choices;
+    const int selected = std::get<int>(rows_[dropdownRow_].edit->value);
+    const auto found = std::find_if(choices.begin(), choices.end(), [selected](const SettingChoice& choice) {
+        return choice.value == selected;
+    });
+    dropdownHighlight_ = found == choices.end() ? 0 : static_cast<int>(found - choices.begin());
+    const int visibleCount = dropdownVisibleItemCount();
+    dropdownScroll_ = std::clamp(dropdownHighlight_ - visibleCount / 2, 0,
+        std::max(0, static_cast<int>(choices.size()) - visibleCount));
+    drawRows();
+    refresh();
+}
+
 void OptionsPanel::updateButtons()
 {
     Window* window = windowGetWindow(windowId_);
@@ -516,7 +717,11 @@ void OptionsPanel::updateButtons()
             break;
         }
     };
-    for (const auto& item : legacyButtons_) place(item.first, item.second, screenHeight_);
+    for (const auto& item : legacyButtons_) {
+        const bool shifted = screenHeight_ > kHeight && item.second < kLegacyColumnsBottom
+            && buttonLefts_[item.first] < kLegacyColumnsRight;
+        place(item.first, item.second + (shifted ? kLegacyColumnsShift : 0), screenHeight_);
+    }
     place(speedButton_, speedTop_, screenHeight_);
     for (size_t index = 0; index < rowButtons_.size(); index++) place(rowButtons_[index], rowTop(static_cast<int>(index)), screenHeight_);
 }
@@ -599,8 +804,49 @@ void OptionsPanel::draw()
             }
         }
     }
+    // The supplied pieces include the dark inset and transparent outer corners.
+    // Preserve the tiled glass centre while repeating only the edited edges.
+    const auto& pieces = ownerFramePieces();
+    if (pieces[0].width == 47 && pieces[1].width == 352 && pieces[2].width == 47
+        && pieces[3].width == 47 && pieces[4].width == 47 && pieces[5].width == 47
+        && pieces[6].width == 352 && pieces[7].width == 47 && panelHeight >= 96) {
+        const int inset = frameInset();
+        const int width = kWidth - 2 * inset;
+        for (int y = 0; y < panelHeight; ++y) {
+            for (int x = 0; x < width; ++x) {
+                panel[static_cast<size_t>(kWidth) * y + inset + x] = backgroundTexturePixel(pageX_ + inset + x, pageY_ + kPanelTop + y);
+                // Do not draw the outermost source column: the user's trimmed
+                // corner and side pieces must share the same outside edge.
+                if (x == 0 || x == width - 1) continue;
+                int part = -1, sx = 0, sy = 0;
+                if (y < 48) {
+                    part = x < 47 ? 0 : (x >= width - 47 ? 2 : 1);
+                    sx = x < 47 ? x : (x >= width - 47 ? x - (width - 47) : (x - 47) % 352);
+                    sy = y;
+                } else if (y >= panelHeight - 48) {
+                    part = x < 47 ? 5 : (x >= width - 47 ? 7 : 6);
+                    sx = x < 47 ? x : (x >= width - 47 ? x - (width - 47) : (x - 47) % 352);
+                    sy = y - (panelHeight - 48);
+                } else if (x < 47 || x >= width - 47) {
+                    part = x < 47 ? 3 : 4;
+                    sx = x < 47 ? x : x - (width - 47);
+                    sy = (y - 48) % 32;
+                } else {
+                    panel[static_cast<size_t>(kWidth) * y + inset + x] = frame_[static_cast<size_t>(frameWidth_) * (200 + (y - 32) % 32) + 340 + (x - 32) % 32];
+                }
+                if (part >= 0 && sy < static_cast<int>(pieces[part].height)) {
+                    const size_t offset = (static_cast<size_t>(sy) * pieces[part].width + sx) * 4;
+                    const auto& rgba = pieces[part].rgba;
+                    if (rgba[offset + 3] >= 128) {
+                        const int rgb = (rgba[offset] << 16) | (rgba[offset + 1] << 8) | rgba[offset + 2];
+                        panel[static_cast<size_t>(kWidth) * y + inset + x] = _colorTable[rgb555(rgb)];
+                    }
+                }
+            }
+        }
+    }
     rowFrameBackground_.assign(panel, panel + static_cast<size_t>(kWidth) * panelHeight);
-    fontSetCurrent(104);
+    fontSetCurrent(103);
     fontDrawText(panel + kWidth * 62 + 52 + frameInset(), localized("3D OPTIONS"), 520, kWidth, COLOR_GREEN);
     fontSetCurrent(101);
     drawRows();
@@ -612,10 +858,18 @@ void OptionsPanel::drawRows()
     if (model_ == nullptr) return;
     const int inset = frameInset();
     unsigned char* panel = content_.data() + static_cast<size_t>(kWidth) * kPanelTop;
-    for (const GroupLayout& group : groupLayouts_) {
+    // A dropdown can cover gaps and section headings, not just control rows.
+    // Restore the whole panel before redrawing so closing it leaves no residue.
+    std::memcpy(panel, rowFrameBackground_.data(), rowFrameBackground_.size());
+    fontSetCurrent(103);
+    fontDrawText(panel + kWidth * 62 + 52 + inset, localized("3D OPTIONS"), 520, kWidth, COLOR_GREEN);
+    for (size_t groupIndex = 0; groupIndex < groupLayouts_.size(); ++groupIndex) {
+        const GroupLayout& group = groupLayouts_[groupIndex];
         const int groupY = group.top - kPanelTop;
         fontSetCurrent(101);
         fontDrawText(panel + kWidth * (groupY + 1) + kLabelX + inset, localized(group.title.c_str()), 270, kWidth, COLOR_GREEN);
+        const int dividerY = groupY + fontGetLineHeight() + 3;
+        bufferDrawLine(panel, kWidth, kLabelX + inset, dividerY, kWidth - kLabelX - inset, dividerY, COLOR_DARK_GREEN);
     }
     for (int index : displayOrder_) {
         const OptionsPanelRow& row = rows_[index];
@@ -635,20 +889,27 @@ void OptionsPanel::drawRows()
             ? localizedLabel
             : (descriptor.fallbackLabel.empty() ? descriptor.id : descriptor.fallbackLabel);
         fontDrawText(panel + kWidth * (rowY + kLabelTextOffset) + kLabelX + inset, displayLabel.c_str(), 270, kWidth, color);
+        if (descriptor.section == "screen" && descriptor.applyPolicy == SettingApplyPolicy::Restart) {
+            fontDrawText(panel + kWidth * (rowY + 23) + kLabelX + inset, localized("Requires restart"), 270, kWidth, COLOR_DARK_YELLOW);
+        }
 
         char valueText[128] = {};
         switch (row.control) {
         case OptionsPanelControl::Toggle: {
             bool value = std::get<bool>(row.edit->value);
-            std::snprintf(valueText, sizeof(valueText), "[%c] %s", value ? 'X' : ' ', localized(value ? "On" : "Off"));
-            drawRightAlignedControlText(panel, rowY, kToggleX - inset, kToggleX + kToggleWidth - inset, valueText, color);
+            drawCheckboxControl(panel, rowY, sliderTrackRight(), value, color);
+            const int valueRight = kSliderValueX + kSliderValueWidth - inset;
+            const int valueWidth = std::max(fontGetStringWidth(localized("On")), fontGetStringWidth(localized("Off")));
+            drawRightAlignedControlText(panel, rowY, valueRight - valueWidth, valueRight,
+                localized(value ? "On" : "Off"), color);
             break;
         }
         case OptionsPanelControl::Slider: {
             double value = editNumber(row.edit->value);
             const SettingNumericRange& range = *descriptor.numericRange;
             double ratio = std::clamp((value - range.minimum) / (range.maximum - range.minimum), 0.0, 1.0);
-            std::snprintf(valueText, sizeof(valueText), "%.2f", value);
+            if (descriptor.id == "screen.scale_factor") std::snprintf(valueText, sizeof(valueText), "%.1fx", value);
+            else std::snprintf(valueText, sizeof(valueText), "%.2f", value);
             drawRightAlignedControlText(panel, rowY, kSliderValueX - inset, kSliderValueX + kSliderValueWidth - inset, valueText, color);
             const int trackY = sliderTrackY(index) - kPanelTop;
             bufferDrawLine(panel, kWidth, sliderTrackLeft(), trackY, sliderTrackRight(), trackY, color);
@@ -662,7 +923,7 @@ void OptionsPanel::drawRows()
             for (const SettingChoice& choice : descriptor.choices) {
                 if (choice.value == selected) { label = choice.fallbackLabel.c_str(); break; }
             }
-            std::snprintf(valueText, sizeof(valueText), "< %s >", label);
+            std::snprintf(valueText, sizeof(valueText), "< %s v >", localized(label));
             drawRightAlignedControlText(panel, rowY, kValueX - inset, kValueX + kValueWidth - inset, valueText, color);
             break;
         }
@@ -675,6 +936,57 @@ void OptionsPanel::drawRows()
             break;
         }
     }
+    drawDropdown();
+}
+
+void OptionsPanel::drawDropdown()
+{
+    if (dropdownRow_ < 0 || dropdownRow_ >= rowCount()) return;
+    const SettingDescriptor& descriptor = *rows_[dropdownRow_].edit->descriptor;
+    if (descriptor.choices.empty()) return;
+    constexpr int itemHeight = 22;
+    const int inset = frameInset();
+    const int left = kValueX - inset;
+    const int right = kValueX + kValueWidth - inset;
+    const int visibleCount = dropdownVisibleItemCount();
+    const int popupTop = dropdownAbove_
+        ? rowTop(dropdownRow_) - visibleCount * itemHeight - 2
+        : rowTop(dropdownRow_) + rowHeight(dropdownRow_);
+    const int top = popupTop - kPanelTop;
+    const int bottom = std::min(panelBottom_ - kPanelTop - 2, top + visibleCount * itemHeight + 2);
+    auto fillRect = [this](int x, int y, int width, int height, Color color) {
+        for (int row = std::max(0, y); row < std::min(panelBottom_ - kPanelTop, y + height); row++) {
+            std::fill(content_.begin() + static_cast<size_t>(kPanelTop + row) * kWidth + std::max(0, x),
+                content_.begin() + static_cast<size_t>(kPanelTop + row) * kWidth + std::min(kWidth, x + width), color);
+        }
+    };
+    fillRect(left, top, right - left, bottom - top, COLOR_DARK_GREEN_2);
+    bufferDrawRect(content_.data() + static_cast<size_t>(kWidth) * kPanelTop, kWidth, left, top, right - 1, bottom - 1, COLOR_GREEN);
+    fontSetCurrent(101);
+    for (int item = 0; item < visibleCount; item++) {
+        const int choiceIndex = dropdownScroll_ + item;
+        if (choiceIndex >= static_cast<int>(descriptor.choices.size())) break;
+        const SettingChoice& choice = descriptor.choices[choiceIndex];
+        const int itemTop = top + 2 + item * itemHeight;
+        if (choiceIndex == dropdownHighlight_) fillRect(left + 1, itemTop, right - left - 2, itemHeight - 1, COLOR_DARK_GREEN);
+        fontDrawText(content_.data() + static_cast<size_t>(kWidth) * (kPanelTop + itemTop + 3) + left + 5,
+            localized(choice.fallbackLabel.c_str()), right - left - 10, kWidth, COLOR_GREEN);
+    }
+}
+
+int OptionsPanel::dropdownVisibleItemCount()
+{
+    if (dropdownRow_ < 0 || dropdownRow_ >= rowCount()) return 0;
+    constexpr int itemHeight = 22;
+    const int choiceCount = static_cast<int>(rows_[dropdownRow_].edit->descriptor->choices.size());
+    const int rowScreenTop = pageY_ + rowTop(dropdownRow_) - scroll_;
+    const int rowScreenBottom = rowScreenTop + rowHeight(dropdownRow_);
+    const int visiblePanelTop = pageY_ + kPanelTop - scroll_ + 8;
+    const int availableAbove = std::max(0, rowScreenTop - visiblePanelTop);
+    const int availableBelow = std::max(0, screenHeight_ - rowScreenBottom - 8);
+    dropdownAbove_ = availableBelow / itemHeight < std::min(choiceCount, 3) && availableAbove > availableBelow;
+    const int available = dropdownAbove_ ? availableAbove : availableBelow;
+    return std::max(1, std::min(choiceCount, std::max(1, (available - 4) / itemHeight)));
 }
 
 void OptionsPanel::compose()
@@ -691,11 +1003,33 @@ void OptionsPanel::compose()
     const int pastVisibleRow = std::min(screenHeight_, contentHeight_ - sourceTop);
     const int left = std::max(0, pageX_);
     const int right = std::min(screenWidth_, pageX_ + kWidth);
-    if (firstVisibleRow < pastVisibleRow && left < right) {
+    if (screenHeight_ <= kHeight && firstVisibleRow < pastVisibleRow && left < right) {
         const int sourceY = sourceTop + firstVisibleRow;
         blitBufferToBuffer(content_.data() + static_cast<size_t>(kWidth) * sourceY + left - pageX_,
             right - left, pastVisibleRow - firstVisibleRow, kWidth,
             surface_ + static_cast<size_t>(screenWidth_) * firstVisibleRow + left, screenWidth_);
+    }
+    if (screenHeight_ > kHeight) {
+        // Keep the standard title at the top, but give the two left columns
+        // more air below it. Copy each region separately so sharp text follows
+        // the same transformation as the indexed framebuffer.
+        auto copyRegion = [&](int sx, int sy, int width, int height, int offsetY) {
+            int dx = pageX_ + sx;
+            int dy = pageY_ + sy + offsetY - scroll_;
+            if (dx < 0) { sx -= dx; width += dx; dx = 0; }
+            if (dy < 0) { sy -= dy; height += dy; dy = 0; }
+            width = std::min(width, screenWidth_ - dx);
+            height = std::min(height, screenHeight_ - dy);
+            if (width > 0 && height > 0) {
+                blitBufferToBuffer(content_.data() + static_cast<size_t>(sy) * kWidth + sx,
+                    width, height, kWidth, surface_ + static_cast<size_t>(dy) * screenWidth_ + dx, screenWidth_);
+            }
+        };
+        copyRegion(0, 0, kLegacyColumnsRight, 40, 0);
+        copyRegion(0, 40, kLegacyColumnsRight, kLegacyColumnsBottom - 40, kLegacyColumnsShift);
+        copyRegion(0, kLegacyColumnsBottom + kLegacyColumnsShift, kLegacyColumnsRight,
+            contentHeight_ - kLegacyColumnsBottom - kLegacyColumnsShift, 0);
+        copyRegion(kLegacyColumnsRight, 0, kWidth - kLegacyColumnsRight, contentHeight_, 0);
     }
     if (maxScroll() > 0) {
         const int barX = scrollbarX();
@@ -752,6 +1086,7 @@ bool OptionsPanel::setRowValue(int index, const SettingValue& value)
         showError(error);
         return false;
     }
+    if (id == "screen.resolution_mode" || id == "screen.windowed") updateScaleRange();
     error_.clear();
     drawRows();
     refresh();
@@ -810,6 +1145,7 @@ void OptionsPanel::dragSlider(int index)
         if (devtools::preferencesProbeUsesSimulatedMouse()) buttons = mouse_get_last_buttons();
         else _mouse_get_raw_state(&rawX, &rawY, &buttons);
         if ((buttons & MOUSE_STATE_LEFT_BUTTON_DOWN) == 0) break;
+        devtools::scriptedInputPump();
         const int event = inputGetInput();
         devtools::preferencesProbePump();
         updateFromMouse();
@@ -850,6 +1186,52 @@ void OptionsPanel::dragScrollbar(int y)
 
 bool OptionsPanel::handleEvent(int eventCode)
 {
+    if (dropdownWaitRelease_) {
+        if ((mouse_get_last_buttons() & MOUSE_STATE_LEFT_BUTTON_DOWN) == 0) dropdownWaitRelease_ = false;
+        return true;
+    }
+    if (dropdownRow_ >= 0) {
+        int x = 0, y = 0;
+        mouseGetPositionInWindow(windowId_, &x, &y);
+        mouseToPageCoordinates(x, y);
+        const SettingDescriptor& dropdownDescriptor = *rows_[dropdownRow_].edit->descriptor;
+        constexpr int itemHeight = 22;
+        const int inset = frameInset();
+        const int left = kValueX - inset;
+        const int right = kValueX + kValueWidth - inset;
+        const int visibleCount = dropdownVisibleItemCount();
+        const int popupTop = dropdownAbove_
+            ? rowTop(dropdownRow_) - visibleCount * itemHeight - 2
+            : rowTop(dropdownRow_) + rowHeight(dropdownRow_);
+        const int itemTop = popupTop + 2;
+        const bool mousePress = eventCode == -2 && (mouseGetEvent() & MOUSE_EVENT_LEFT_BUTTON_DOWN) != 0;
+        if ((eventCode >= kRowEvent || mousePress) && x >= left && x < right && y >= itemTop && y < itemTop + visibleCount * itemHeight) {
+            const int choiceIndex = dropdownScroll_ + (y - itemTop) / itemHeight;
+            if (choiceIndex >= 0 && choiceIndex < static_cast<int>(dropdownDescriptor.choices.size())) {
+                setRowValue(dropdownRow_, dropdownDescriptor.choices[choiceIndex].value);
+                dropdownRow_ = -1;
+                dropdownWaitRelease_ = true;
+                drawRows();
+                refresh();
+            }
+            return true;
+        }
+        if (eventCode == kRowEvent + dropdownRow_) {
+            dropdownRow_ = -1;
+            drawRows();
+            refresh();
+            return true;
+        }
+        if ((eventCode >= 505 && eventCode <= 524) || eventCode == 527) {
+            dropdownRow_ = -1;
+            drawRows();
+            refresh();
+        } else if (eventCode >= kRowEvent || mousePress) {
+            dropdownRow_ = -1;
+            drawRows();
+            refresh();
+        }
+    }
     if (eventCode == kScrollEvent) {
         int x = 0, y = 0;
         mouseGetPositionInWindow(windowId_, &x, &y);
@@ -873,13 +1255,57 @@ bool OptionsPanel::handleEvent(int eventCode)
         dragSlider(index);
         return true;
     }
-    if (row.control != OptionsPanelControl::Slider) stepRow(index, 1);
+    if (row.control == OptionsPanelControl::Choice) {
+        dropdownRow_ = index;
+        dropdownWaitRelease_ = true;
+        const int selected = std::get<int>(row.edit->value);
+        const auto found = std::find_if(descriptor.choices.begin(), descriptor.choices.end(), [selected](const SettingChoice& choice) {
+            return choice.value == selected;
+        });
+        dropdownHighlight_ = found == descriptor.choices.end() ? 0 : static_cast<int>(found - descriptor.choices.begin());
+        const int visibleCount = dropdownVisibleItemCount();
+        dropdownScroll_ = std::clamp(dropdownHighlight_ - visibleCount / 2, 0,
+            std::max(0, static_cast<int>(descriptor.choices.size()) - visibleCount));
+        drawRows();
+        refresh();
+    } else if (row.control != OptionsPanelControl::Slider) {
+        stepRow(index, 1);
+    }
     return true;
 }
 
 bool OptionsPanel::handleKey(int keyCode)
 {
     if (rowCount() == 0) return false;
+    if (dropdownRow_ >= 0) {
+        const int choiceCount = static_cast<int>(rows_[dropdownRow_].edit->descriptor->choices.size());
+        const int visibleCount = dropdownVisibleItemCount();
+        if (keyCode == KEY_ESCAPE) {
+            dropdownRow_ = -1;
+            drawRows();
+            refresh();
+            return true;
+        }
+        if (keyCode == KEY_ARROW_UP || keyCode == KEY_ARROW_DOWN) {
+            dropdownHighlight_ = std::clamp(dropdownHighlight_ + (keyCode == KEY_ARROW_DOWN ? 1 : -1), 0, std::max(0, choiceCount - 1));
+            if (dropdownHighlight_ < dropdownScroll_) dropdownScroll_ = dropdownHighlight_;
+            if (dropdownHighlight_ >= dropdownScroll_ + visibleCount) dropdownScroll_ = dropdownHighlight_ - visibleCount + 1;
+            drawRows();
+            refresh();
+            return true;
+        }
+        if (keyCode == KEY_RETURN || keyCode == KEY_SPACE) {
+            const auto& choices = rows_[dropdownRow_].edit->descriptor->choices;
+            if (dropdownHighlight_ >= 0 && dropdownHighlight_ < static_cast<int>(choices.size())) {
+                setRowValue(dropdownRow_, choices[dropdownHighlight_].value);
+            }
+            dropdownRow_ = -1;
+            drawRows();
+            refresh();
+            return true;
+        }
+        return false;
+    }
     // T / Shift+T step the game hour by one hour, forth and back: the owner
     // reads each hour's shadow. The sun snaps to the jump, as on waiting.
     if (keyCode == KEY_LOWERCASE_T || keyCode == KEY_UPPERCASE_T) {
@@ -907,6 +1333,15 @@ void OptionsPanel::handleWheel()
 {
     int x = 0, y = 0;
     mouseGetWheel(&x, &y);
+    if (dropdownRow_ >= 0 && y != 0) {
+        const int count = static_cast<int>(rows_[dropdownRow_].edit->descriptor->choices.size());
+        const int visibleCount = dropdownVisibleItemCount();
+        dropdownScroll_ = std::clamp(dropdownScroll_ + (y > 0 ? -3 : 3), 0, std::max(0, count - visibleCount));
+        dropdownHighlight_ = std::clamp(dropdownHighlight_, dropdownScroll_, std::min(count - 1, dropdownScroll_ + visibleCount - 1));
+        drawRows();
+        refresh();
+        return;
+    }
     if (y != 0) setScroll(scroll_ - (y > 0 ? 48 : -48));
 }
 

@@ -53,6 +53,21 @@ param(
     [string]$Tour,
     [switch]$Classic,
     [switch]$Preferences,
+    [string]$DevInput,
+    # -SceneInput: a scripted-input script pumped by the main loop itself, with
+    # the 3D scene up and no options screen on top (the scene begins the script
+    # once its view shows). The script's actions are the -DevInput ones plus
+    # "key <scancode>" (one pressed key, SDL_SCANCODE_* number) and "waitms".
+    [string]$SceneInput,
+    # Snapshots the script takes; the run waits for exactly this many (and the
+    # script's PASS line). 5 matches the options-panel resolution script.
+    [ValidateRange(1, 400)]
+    [int]$DevInputShots = 5,
+    # The script presses [ or ]: turn [3d] camera_rotation on in this run's
+    # isolated config copy, so the keys reach the turn.
+    [switch]$TurnKeys,
+    [ValidateSet('resolution', 'mode')]
+    [string]$PreferencesDropdown,
     [switch]$DevPanel,
     [ValidateSet('Top', 'Bottom')]
     [string]$PreferencesPosition = 'Top',
@@ -79,7 +94,10 @@ param(
     # -Solo R: only the things within R hexes of -ViewTile, no walls or roofs.
     [int]$Solo = -1,
     [string]$OutputDirectory,
+    [string]$BuildExecutable,
+    [string]$TestDirectory,
     [string]$SceneCache,
+    [switch]$ConfiguredDisplay,
     [ValidateSet('english', 'russian')]
     [string]$Language,
     [ValidateSet('save', 'save-key', 'cancel', 'cancel-key', 'escape', 'defaults', 'verify')]
@@ -129,6 +147,8 @@ param(
     [switch]$Shadows,
     # -CloudShadows: clouds only, for an isolated cloud-shadow comparison.
     [switch]$CloudShadows,
+    # -SunShadows: sun shadows only, for an isolated sun-shadow comparison.
+    [switch]$SunShadows,
     # -CloudPhase: cloud drift phase in game minutes, independent of sun time.
     [double]$CloudPhase = -1,
     # -ShadowDebug:N: 1 the raw factor, 2 the face test (the sun hits the
@@ -151,10 +171,18 @@ param(
     [int]$ScreenWidth = 1920,
     [ValidateRange(480, 4320)]
     [int]$ScreenHeight = 1080,
-    [ValidateRange(1, 4)]
-    [int]$Scale = 2
+    [ValidateRange(1.0, 3.0)]
+    [double]$Scale = 2.0
 )
 $ErrorActionPreference = 'Stop'
+if ($DevInput -and (-not $Preferences -or -not $ConfiguredDisplay -or -not $ReuseTestConfig -or -not $OutputDirectory -or -not $CaptureConsole)) {
+    throw '-DevInput requires -Preferences, -ConfiguredDisplay, -ReuseTestConfig, -OutputDirectory and -CaptureConsole.'
+}
+if ($SceneInput -and (-not $OutputDirectory -or -not $CaptureConsole)) {
+    throw '-SceneInput requires -OutputDirectory and -CaptureConsole.'
+}
+if ($SceneInput -and $DevInput) { throw '-SceneInput and -DevInput are two different script modes.' }
+if ($TurnKeys -and -not $SceneInput) { throw '-TurnKeys requires -SceneInput.' }
 if ($ClockLadder) {
     if (-not $OutputDirectory -or $Tour -or $Classic -or $Probe -or $Preferences -or $MuzzleWeapon -or $GlowLadder -or $GlowPair -or $GlowLevels -or $EffectFixture -or $DialogFixture -or $UiFixture) { throw '-ClockLadder requires its own scene run and -OutputDirectory.' }
     $Still=$true; $CaptureConsole=$true
@@ -180,6 +208,7 @@ if ($MuzzleWeapon -gt 0) {
 if (([int][bool]$GlowLadder + [int][bool]$GlowPair + [int][bool]$GlowLevels) -gt 1) { throw 'Choose one glow comparison mode.' }
 if ($EffectLightCheck -and (-not $EffectFixture -or $EffectFixture -like 'sign*' -or $NoEffectEmission)) { throw '-EffectLightCheck requires an emitting projectile or explosion fixture.' }
 if ($EffectFrame -ge 0 -and -not $EffectFixture) { throw '-EffectFrame requires -EffectFixture.' }
+if ($SunShadows -and ($Shadows -or $CloudShadows -or $ShadowDebug)) { throw '-SunShadows cannot be combined with -Shadows, -CloudShadows, or -ShadowDebug.' }
 if ($GlowLadder -or $GlowPair -or $GlowLevels -or $EffectFixture) {
     if ($Glow -or $GlowStrength -ge 0 -or $Preferences -or $Classic -or $Probe -or $Tour -or $DialogFixture -or $UiFixture -or $DevPanel -or $PreferencesProbe) {
         throw 'Glow comparisons and effect fixtures require an ordinary scene capture without other glow overrides or fixtures.'
@@ -227,13 +256,13 @@ if (-not (Test-Path -LiteralPath $GameDir)) {
     $main = (git -C $Root worktree list --porcelain | Select-Object -First 1) -replace '^worktree ', ''
     $GameDir = Join-Path $main 'game'
 }
-$built = Join-Path $Root 'build\fallout2-ce.exe'
+$built = if ($BuildExecutable) { [System.IO.Path]::GetFullPath((Join-Path $Root $BuildExecutable)) } else { Join-Path $Root 'build\fallout2-ce.exe' }
 if (-not (Test-Path $built)) { throw "No build at $built; run tools/configure-build.ps1 first." }
 # The exe's own folder holds the config: build it fresh from the fixed one, so
 # a saved setting can never leak into the next run.
 $fixedConfig = Join-Path $PSScriptRoot 'test-config\fallout2.cfg'
 if (-not (Test-Path -LiteralPath $fixedConfig)) { throw "Missing the fixed test config: $fixedConfig" }
-$exeDirectory = Join-Path $Root 'build\test-run'
+$exeDirectory = if ($TestDirectory) { [System.IO.Path]::GetFullPath((Join-Path $Root $TestDirectory)) } else { Join-Path $Root 'build\test-run' }
 New-Item -ItemType Directory -Path $exeDirectory -Force | Out-Null
 $exe = Join-Path $exeDirectory 'fallout2-ce-test.exe'
 # One test game at a time per worktree (they share this exe and its config);
@@ -268,7 +297,7 @@ if ($PreferencesProbe) {
     if (-not $OutputDirectory -or -not $CaptureConsole) { throw '-PreferencesProbe requires -CaptureConsole and -OutputDirectory.' }
     if ($PreferencesProbe -eq 'verify' -and -not $ReuseTestConfig) { throw 'Use -ReuseTestConfig with the read-only verify probe.' }
 } elseif ($ReuseTestConfig) {
-    throw '-ReuseTestConfig requires -PreferencesProbe.'
+    if (-not $ConfiguredDisplay) { throw '-ReuseTestConfig requires -PreferencesProbe or -ConfiguredDisplay.' }
 }
 if ($DialogFixture) {
     if ($Map -ne 'kladwtwn') { throw '-DialogFixture requires the resource-verified Klamath map kladwtwn.' }
@@ -315,7 +344,7 @@ if ($DialogLayoutCheck) {
     if (-not $DialogFixture) { throw '-DialogLayoutCheck requires -DialogFixture.' }
     if ($DialogPageInspect -or $DialogCursorCheck) { throw '-DialogLayoutCheck cannot be combined with other dialog checks.' }
 }
-if ($ReuseTestConfig) {
+if ($ReuseTestConfig -or $ConfiguredDisplay) {
     if (-not (Test-Path -LiteralPath $configPath -PathType Leaf)) { throw "No isolated config to reuse: $configPath" }
 } else {
     Copy-Item $fixedConfig $configPath -Force
@@ -336,13 +365,35 @@ if ($Language) {
     if (-not $languageFound) { throw 'Could not find [system].language in the isolated test config.' }
     [System.IO.File]::WriteAllLines($configPath, $configLines, [System.Text.UTF8Encoding]::new($false))
 }
+if ($TurnKeys) {
+    $configLines = [System.Collections.Generic.List[string]]::new()
+    $in3dSection = $false
+    $rotationFound = $false
+    foreach ($line in [System.IO.File]::ReadAllLines($configPath)) {
+        if ($line -match '^\s*\[') { $in3dSection = $line.Trim() -eq '[3d]' }
+        if ($in3dSection -and $line -match '^\s*camera_rotation=') {
+            $configLines.Add('camera_rotation=1')
+            $rotationFound = $true
+        } else {
+            $configLines.Add($line)
+        }
+    }
+    if (-not $rotationFound) { throw 'Could not find [3d].camera_rotation in the isolated test config.' }
+    [System.IO.File]::WriteAllLines($configPath, $configLines, [System.Text.UTF8Encoding]::new($false))
+}
 $configHashBefore = (Get-FileHash -LiteralPath $configPath -Algorithm SHA256).Hash
 $initialZoom = Get-TestConfigValue $configPath '3d' 'zoom'
 $initialEnabled = Get-TestConfigValue $configPath '3d' 'enabled'
 $initialDifficulty = Get-TestConfigValue $configPath 'preferences' 'combat_difficulty'
-if (($ScreenWidth % $Scale) -ne 0 -or ($ScreenHeight % $Scale) -ne 0 -or
-    ($ScreenWidth / $Scale) -lt 640 -or ($ScreenHeight / $Scale) -lt 480) {
-    throw 'The requested scale must divide the screen and leave at least a 640x480 logical framebuffer.'
+if ($DevInput -and $Preferences -and $ConfiguredDisplay) {
+    $initialDisplayWidth = Get-TestConfigValue $configPath 'screen' 'resolution_x'
+    $initialDisplayHeight = Get-TestConfigValue $configPath 'screen' 'resolution_y'
+    $initialDisplayScale = Get-TestConfigValue $configPath 'screen' 'scale_factor'
+}
+$logicalWidth = [int][Math]::Round($ScreenWidth / $Scale, [MidpointRounding]::AwayFromZero)
+$logicalHeight = [int][Math]::Round($ScreenHeight / $Scale, [MidpointRounding]::AwayFromZero)
+if ($logicalWidth -lt 640 -or $logicalHeight -lt 480) {
+    throw 'The requested scale must leave at least a 640x480 logical framebuffer.'
 }
 if (-not (Test-Path -LiteralPath $exe) -or
     (Get-FileHash -LiteralPath $built).Hash -ne (Get-FileHash -LiteralPath $exe).Hash) {
@@ -355,6 +406,9 @@ $runId = [guid]::NewGuid().ToString('N')
 $runDirectory = Join-Path $exeDirectory "runs\$($runId.Substring(0, 12))"
 New-Item -ItemType Directory -Path $runDirectory -Force | Out-Null
 $arguments = @('--dev-tools')
+if ($DevInput) { $arguments += "--dev-input=$([System.IO.Path]::GetFullPath($DevInput))" }
+if ($SceneInput) { $arguments += "--dev-scene-input=$([System.IO.Path]::GetFullPath($SceneInput))" }
+if ($TurnKeys) { $arguments += '--dev-camera-turn-keys' }
 if ($MuzzleWeapon -gt 0) {$arguments += @("--dev-muzzle=$MuzzleWeapon", "--dev-muzzle-animation=$MuzzleAnimation", "--dev-muzzle-rotation=$MuzzleRotation")}
 if ($ClockLadder) { $arguments += '--dev-clock-ladder' }
     if ($ScrollStep) { $arguments += "--dev-scroll-step=$ScrollStep" }
@@ -375,8 +429,13 @@ if ($DialogCursorCheck) { $arguments += '--dev-dialog-cursor-check' }
 if ($DialogLayoutCheck) { $arguments += '--dev-dialog-layout-check' }
 if ($PreferencesProbe) {
     $arguments += @('--dev-new-game', "--dev-map=$Map", "--dev-elevation=$Elevation", "--dev-preferences-probe=$PreferencesProbe")
+} elseif ($ConfiguredDisplay) {
+    if ($PreferencesProbe) { throw '-ConfiguredDisplay cannot be combined with -PreferencesProbe.' }
+    $arguments += @('--dev-new-game', "--dev-map=$Map", "--dev-elevation=$Elevation", "--dev-snapshot-run=$runId")
 } else {
-    $arguments += @("--dev-screen=${ScreenWidth}x${ScreenHeight}", "--dev-scale=$Scale",
+    $scaleText = $Scale.ToString('0.0#', [Globalization.CultureInfo]::InvariantCulture)
+    $scaleArgument = if ([Math]::Abs($Scale - [Math]::Round($Scale)) -lt 0.0001) { "--dev-scale=$([int][Math]::Round($Scale))" } else { "--dev-scale-factor=$scaleText" }
+    $arguments += @("--dev-screen=${ScreenWidth}x${ScreenHeight}", $scaleArgument,
         '--dev-new-game', "--dev-map=$Map", "--dev-elevation=$Elevation", "--dev-snapshot-run=$runId")
 }
 if ($Glow) { $arguments += '--dev-glow' }
@@ -389,6 +448,7 @@ if ($EffectFixture) { $arguments += "--dev-effect=$($EffectFixture.ToLowerInvari
 if ($EffectFrame -ge 0) { $arguments += "--dev-effect-frame=$EffectFrame" }
 if ($Shadows) { $arguments += '--dev-shadows' }
 if ($CloudShadows) { $arguments += '--dev-cloud-shadows' }
+if ($SunShadows) { $arguments += '--dev-sun-shadows' }
 if ($CloudPhase -ge 0) { $arguments += "--dev-cloud-phase=$($CloudPhase.ToString([System.Globalization.CultureInfo]::InvariantCulture))" }
 if ($ShadowDebug) { $arguments += "--dev-shadow-debug=$ShadowDebug" }
 if ($NoSpriteSides) { $arguments += '--dev-no-sprite-sides' }
@@ -401,6 +461,7 @@ if ($PreferencesProbe) {
     if ($Probe -or $Tour -or $Still) { throw '-Preferences cannot be combined with -Probe, -Tour, or -Still.' }
     if ($Classic) { $arguments += '--dev-classic' }
     $arguments += '--dev-preferences-snapshot'
+    if ($PreferencesDropdown) { $arguments += "--dev-preferences-dropdown=$PreferencesDropdown" }
     if ($PreferencesPosition -eq 'Bottom') { $arguments += '--dev-preferences-bottom' }
 } elseif ($Classic) { $arguments += '--dev-classic' }
 elseif (-not $NoPreview) { $arguments += '--dev-hero-preview' }
@@ -427,7 +488,9 @@ if ($Still) {
     if ($Probe) { throw '-Still cannot be combined with the interactive -Probe.' }
     $arguments += '--dev-still-snapshot'
 }
-if ($PreferencesProbe) {
+if ($DevInput -or $SceneInput) {
+    $shots = $DevInputShots
+} elseif ($PreferencesProbe) {
     $shots = 0
 } elseif ($Preferences) {
     $shots = 1
@@ -514,7 +577,11 @@ try {
             }
             $log = Join-Path $runDirectory 'logs\devprobe.log'
             $probed = -not $Probe -or ((Test-Path $log) -and (Select-String -Path $log -Pattern 'probe done' -Quiet))
-            if ($UiFixture) {
+            if ($DevInput -or $SceneInput) {
+                $inputLog = Join-Path $OutputDirectory 'process.stdout.log'
+                if ((Test-Path -LiteralPath $inputLog) -and (Select-String -LiteralPath $inputLog -Pattern '^DEV_INPUT FAIL' -Quiet)) { break }
+                if ($snapshots.Count -ge $shots -and (Test-Path -LiteralPath $inputLog) -and (Select-String -LiteralPath $inputLog -Pattern '^DEV_INPUT PASS script complete' -Quiet)) { break }
+            } elseif ($UiFixture) {
                 $fixtureLog = Join-Path $OutputDirectory 'process.stdout.log'
                 if ((Test-Path -LiteralPath $fixtureLog) -and
                     ((Select-String -LiteralPath $fixtureLog -Pattern '^UI_FIXTURE FAIL ' -Quiet) -or
@@ -591,6 +658,29 @@ try {
         if (-not $process.WaitForExit(10000)) { throw 'The background test process did not exit.' }
     }
     Release-TestSlot
+}
+if ($DevInput -or $SceneInput) {
+    $inputLog = Get-Content -Raw -LiteralPath (Join-Path $OutputDirectory 'process.stdout.log')
+    $inputErrors = Get-Content -Raw -LiteralPath (Join-Path $OutputDirectory 'process.stderr.log')
+    if ($inputLog -notmatch '(?m)^DEV_INPUT PASS script complete' -or $inputErrors -match 'DEV_INPUT FAIL' -or $snapshots.Count -ne $DevInputShots) {
+        throw "Scripted input did not complete with exactly $DevInputShots snapshots."
+    }
+    if ($DevInput -and $Preferences -and $ConfiguredDisplay) {
+        # The options-panel resolution script must have saved both a new
+        # resolution and a new scale into the isolated config.
+        $afterWidth = Get-TestConfigValue $configPath 'screen' 'resolution_x'
+        $afterHeight = Get-TestConfigValue $configPath 'screen' 'resolution_y'
+        $afterScale = Get-TestConfigValue $configPath 'screen' 'scale_factor'
+        if (($afterWidth -eq $initialDisplayWidth -and $afterHeight -eq $initialDisplayHeight) -or $afterScale -eq $initialDisplayScale) {
+            throw 'Scripted input did not save both a different resolution and scale.'
+        }
+        [ordered]@{
+            coordinate_space = 'logical'; snapshots = $snapshots.Count
+            initial = @{ resolution_x = $initialDisplayWidth; resolution_y = $initialDisplayHeight; scale_factor = $initialDisplayScale }
+            saved = @{ resolution_x = $afterWidth; resolution_y = $afterHeight; scale_factor = $afterScale }
+            config_sha256 = (Get-FileHash -LiteralPath $configPath -Algorithm SHA256).Hash
+        } | ConvertTo-Json -Depth 4 | Set-Content -Encoding utf8 -LiteralPath (Join-Path $OutputDirectory 'input-result.json')
+    }
 }
 if ($MuzzleWeapon -gt 0) {
     $muzzleText086=Get-Content -Raw -LiteralPath (Join-Path $OutputDirectory 'process.stdout.log')
@@ -698,10 +788,12 @@ if ($UiFixture) {
         $barkMetadata = Get-Content -Raw -LiteralPath $ordered[0].FullName | ConvertFrom-Json
         $clearMetadata = Get-Content -Raw -LiteralPath $ordered[-1].FullName | ConvertFrom-Json
         $expectedResolution = "${ScreenWidth}x${ScreenHeight}"
-        $expectedLogicalResolution = "$([int]($ScreenWidth / $Scale))x$([int]($ScreenHeight / $Scale))"
+        $expectedLogicalResolution = "${logicalWidth}x${logicalHeight}"
+        $expectedLegacyScale = [int][Math]::Round($Scale)
         foreach ($metadata in @($barkMetadata, $clearMetadata)) {
             if ($metadata.snapshot_run -ne $runId -or $metadata.resolution -ne $expectedResolution -or
-                $metadata.logical_resolution -ne $expectedLogicalResolution -or $metadata.scale -ne $Scale) {
+                $metadata.logical_resolution -ne $expectedLogicalResolution -or $metadata.scale -ne $expectedLegacyScale -or
+                [Math]::Abs([double]$metadata.scale_factor - $Scale) -gt 0.01) {
                 throw 'Bark fixture metadata does not match the requested dimensions and scale.'
             }
         }
@@ -721,9 +813,11 @@ if ($UiFixture) {
     if ($snapshots.Count -lt 1) { throw "UI fixture '$UiFixture' passed without a framebuffer snapshot." }
     $uiMetadata = Get-Content -Raw -LiteralPath $snapshots[0].FullName | ConvertFrom-Json
     $expectedResolution = "${ScreenWidth}x${ScreenHeight}"
-    $expectedLogicalResolution = "$([int]($ScreenWidth / $Scale))x$([int]($ScreenHeight / $Scale))"
+    $expectedLogicalResolution = "${logicalWidth}x${logicalHeight}"
+    $expectedLegacyScale = [int][Math]::Round($Scale)
     if ($uiMetadata.snapshot_run -ne $runId -or $uiMetadata.resolution -ne $expectedResolution -or
-        $uiMetadata.logical_resolution -ne $expectedLogicalResolution -or $uiMetadata.scale -ne $Scale) {
+        $uiMetadata.logical_resolution -ne $expectedLogicalResolution -or $uiMetadata.scale -ne $expectedLegacyScale -or
+        [Math]::Abs([double]$uiMetadata.scale_factor - $Scale) -gt 0.01) {
         throw "UI fixture '$UiFixture' snapshot metadata does not match the requested run, dimensions, and scale."
     }
     $passLine = [regex]::Match($fixtureLog, '(?m)^UI_FIXTURE PASS screen=' + [regex]::Escape($UiFixture) + ' window=(\d+) generation=(\d+) font=101 runs=(\d+) screen_runs=(\d+) visible_runs=(\d+) visible_coverage=(\d+) overlay_runs=(\d+) overlay_pixels=(\d+)')

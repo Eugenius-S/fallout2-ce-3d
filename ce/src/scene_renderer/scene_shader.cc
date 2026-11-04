@@ -89,6 +89,13 @@ uniform vec3 uClipPlane0;
 uniform vec3 uClipPlane1;
 uniform vec3 uClipPlane2;
 uniform vec3 uClipPlane3;
+// The roof plane (114): x its height, y 1 while the roofs draw. The game's
+// roof picture hides a room's cards above that plane; the 3D roof sits lower
+// and leaves the band open, so a tall card inside (the bathhouse's table
+// stuff) read over its wall from the street. uRoofGrid says where the roofs
+// cover right now, the egg's see-through circle included.
+uniform vec2 uRoofClip;
+uniform sampler2D uRoofGrid;
 uniform int uEgg; // the see-through circle around the hero
 uniform sampler2D uEggMask;
 uniform vec4 uEggRect; // game logical pixels: left, top, width, height
@@ -127,6 +134,8 @@ uniform bool uShadowOn;
 uniform mat4 uShadowMatrix;
 uniform sampler2D uShadowMap;
 uniform sampler2D uShadowIds;
+uniform bool uShadowOccupancyOn;
+uniform sampler2D uShadowOccupancy; // RG32F, a texel per 16x16 map texels: r 1 where a caster stands, g the farthest one's depth (155)
 uniform float uShadowStrength;
 uniform float uShadowDensity; // the [3d] shadow_density setting, scales the darkening
 uniform vec3 uShadowLight; // towards the sun, GL (x, y up, z)
@@ -182,12 +191,27 @@ float cloudNoise(vec2 lattice, float wrap) {
     float c = cloudHash(mod(whole + vec2(0.0, 1.0), wrap)), d = cloudHash(mod(whole + vec2(1.0, 1.0), wrap));
     return mix(mix(a, b, part.x), mix(c, d, part.x), part.y);
 }
+// Desert cloud shadows: tune density, patch size, and their soft edge here.
+const float kCloudWorldPeriod = 48.0;
+const float kCloudPrimaryScale = 8.0;
+const float kCloudPrimaryWrap = 6.0;
+const float kCloudDetailScale = 4.0;
+const float kCloudDetailWrap = 12.0;
+const float kCloudCoverLow = 0.63;
+const float kCloudCoverHigh = 0.88;
+const float kCloudShadowStrength = 0.22;
+const float kCloudShadeInSunShadow = 1.0;
+float gCloudDarkening = 0.0;
+float gUncloudedLight = 1.0;
+float gSunOnlyLight = 1.0;
 float cloudAmbient(vec3 w) {
     if (!uCloudOn) return 1.0;
     vec2 t = w.xz + uCloudOffset;
-    float cover = cloudNoise(mod(t, 48.0) / 12.0, 4.0) * 0.65
-        + cloudNoise(mod(t + 17.0, 48.0) / 6.0, 8.0) * 0.35;
-    return 1.0 - uShadowStrength * 0.35 * smoothstep(0.52, 0.74, cover);
+    float cover = cloudNoise(mod(t, kCloudWorldPeriod) / kCloudPrimaryScale, kCloudPrimaryWrap) * 0.65
+        + cloudNoise(mod(t + 17.0, kCloudWorldPeriod) / kCloudDetailScale, kCloudDetailWrap) * 0.35;
+    float cloudAmount = smoothstep(kCloudCoverLow, kCloudCoverHigh, cover);
+    return 1.0 - uShadowStrength * kCloudShadowStrength
+        * cloudAmount;
 }
 vec4 pointLights(vec3 w, vec3 n, bool facing, float ambientScale) {
     vec2 hex = hexAt(w);
@@ -212,6 +236,10 @@ vec4 pointLights(vec3 w, vec3 n, bool facing, float ambientScale) {
     }
     float ambient = uAmbient * ambientScale;
     float light = min(max(ambient, 655.0 / 65536.0 + sum), 1.0);
+    float uncloudedLight = min(max(uAmbient, 655.0 / 65536.0 + sum), 1.0);
+    gUncloudedLight = uncloudedLight;
+    gSunOnlyLight = uncloudedLight;
+    if (uCloudOn) gCloudDarkening = max(uncloudedLight - light, 0.0);
     vec3 tint = vec3(1.0);
     if (sum > 0.0 && light > ambient) tint = (vec3(ambient) + (light - ambient) * colored / sum) / light;
     // A colour changes the hue, not how bright the engine lights it.
@@ -358,6 +386,45 @@ float shadowAxisStretch(vec3 t) {
     float along = dot(t, uShadowLight);
     return 1.0 / max(sqrt(max(1.0 - along * along, 0.0)), 0.25);
 }
+// Whether the disk of taps (and the ground walk to each) can reach no caster
+// texel at all (155): every tap then reads the cleared far depth, none is a
+// hit, and the coverage is 0 without a single map fetch. The disk lies inside
+// the square of its four corners and the map is orthographic, so the map
+// rectangle it covers follows from the two axes alone; the occupancy texture
+// says per 16x16 block whether the filled map holds anything there. Anything
+// unsure (the map's edge, a receiver near the far plane, a wide rectangle)
+// answers "no" and takes the full loop, so the result never changes.
+// Also: when every caster in reach stands farther from the ground than
+// uShadowContact, no tap of the ground walk can fall in the contact band
+// (blocker nearer than the receiver by more than the bias and at most
+// contact), so the walk's four extra reads per tap decide nothing.
+// 0: the full loop, 1: nothing in reach (coverage 0), 2: the loop without
+// the walk.
+int shadowDiskReach(vec3 base, vec3 a1, vec3 a2) {
+    if (!uShadowOccupancyOn) return 0;
+    vec4 c = uShadowMatrix * vec4(base, 1.0);
+    vec3 m = c.xyz / c.w * 0.5 + 0.5;
+    vec3 reach = (abs((uShadowMatrix * vec4(a1, 0.0)).xyz) + abs((uShadowMatrix * vec4(a2, 0.0)).xyz)) * 0.5;
+    if (m.z + reach.z + 0.05 >= 0.95 || m.z - reach.z - 0.05 <= 0.0) return 0;
+    vec2 size = vec2(textureSize(uShadowMap, 0));
+    vec2 lo = m.xy - reach.xy - 2.0 / size;
+    vec2 hi = m.xy + reach.xy + 2.0 / size;
+    if (lo.x < 0.0 || lo.y < 0.0 || hi.x >= 1.0 || hi.y >= 1.0) return 0;
+    ivec2 b0 = ivec2(lo * size) / 16;
+    ivec2 b1 = ivec2(hi * size) / 16;
+    if (b1.x - b0.x > 3 || b1.y - b0.y > 3) return 0;
+    float farthest = 0.0;
+    for (int y = b0.y; y <= b1.y; y++) {
+        for (int x = b0.x; x <= b1.x; x++) {
+            vec2 block = texelFetch(uShadowOccupancy, ivec2(x, y), 0).rg;
+            if (block.x > 0.5) farthest = max(farthest, block.y);
+        }
+    }
+    if (farthest == 0.0) return 1;
+    // The receiver's depth at a tap is the center's within the disk's reach,
+    // plus the slope term (at most 16 per uv, a texel away: 0.002).
+    return farthest + uShadowContact + 0.004 < m.z - reach.z ? 2 : 0;
+}
 float shadowCoverage(vec3 base, vec3 t1, vec3 t2, vec2 slope, float selfId) {
     float contact = uShadowContact;
     float sum = 0.0;
@@ -365,10 +432,13 @@ float shadowCoverage(vec3 base, vec3 t1, vec3 t2, vec2 slope, float selfId) {
     bool ground = abs(cross(t1, t2).y) > 0.5;
     vec3 a1 = t1 * (ground ? 1.0 : shadowAxisStretch(t1)) * uShadowStep;
     vec3 a2 = t2 * (ground ? 1.0 : shadowAxisStretch(t2)) * uShadowStep;
+    int diskReach = shadowDiskReach(base, a1, a2);
+    if (diskReach == 1) return 0.0;
+    bool walk = ground && diskReach != 2;
     for (int i = 0; i < 25; i++) {
         vec3 q = base + a1 * kShadowTaps[i].x + a2 * kShadowTaps[i].y;
         bool reached = true;
-        for (int k = 0; k <= 3 && i > 0 && ground; k++) {
+        for (int k = 0; k <= 3 && i > 0 && walk; k++) {
             float on = shadowTapDiff(mix(base, q, float(k) * 0.25), slope, selfId);
             if (on > uShadowBias && on <= contact) {
                 reached = false;
@@ -473,7 +543,8 @@ float sunShadow(float selfId) {
     else if (coverage > 0.0 && seenThroughCaster(vWorld)) coverage = 0.0;
     return coverage;
 }
-// The whole sprite darkens at its feet (082 round 6, deliberately reversing
+)"
+R"(// The whole sprite darkens at its feet (082 round 6, deliberately reversing
 // 063's per-pixel read): one factor at the card's bottom center, lifted a
 // little off the ground, the disk spread in the ground plane. The sprite's
 // own number is excluded at the taps, else it would shadow itself at the
@@ -582,14 +653,22 @@ float shadowDarken(float light) {
         if (texels <= 8.0) return 0.8;
         return 0.95;
     }
+    float cloudDarkening = (uShadowOn && uCloudOn) ? gCloudDarkening : 0.0;
+    float solarFactor = 1.0;
     if (uShadowOn && uShadowStrength > 0.0) {
+        // Keep cloud ambient darkening additive when a caster shadows the
+        // fragment: solar attenuation acts on the unclouded base, then the
+        // same cloud delta is applied once. This preserves solar-shadow
+        // contrast while retaining cloud shade in the overlap.
+        light += cloudDarkening;
         if (uLightMode == 1 || uLightMode == 2) {
             // The ground and the walls: crisp shadows, even inside, the flat
             // shaded value on the faces the sun does not hit (082). 0.35 by
             // the owner's eye (082 round 2): 0.425 read too saturated; the
             // [3d] shadow_density setting scales it, 0 turns the cast
             // shadows off.
-            light *= 1.0 - uShadowStrength * uShadowDensity * 0.35 * sunShadow(selfId);
+            solarFactor = 1.0 - uShadowStrength * uShadowDensity * 0.35 * sunShadow(selfId);
+            light *= solarFactor;
         } else if (uLightMode == 3) {
             // A sprite darkens whole at its feet (082 round 6): the old
             // per-pixel read (063) left lit contour gaps between a character
@@ -600,10 +679,12 @@ float shadowDarken(float light) {
             // verdict keeps 0.3, a whole body darkens lighter than the
             // ground and keeps its read (109).
             float density = uShadowFeet > 0.5 && uShadowGround.x <= 0.5 && !cardTurned() ? 0.3 : 0.35;
-            light *= 1.0 - uShadowStrength * uShadowDensity * density * sunShadowCard(selfId);
+            solarFactor = 1.0 - uShadowStrength * uShadowDensity * density * sunShadowCard(selfId);
+            light *= solarFactor;
         }
     }
-    return light;
+    gSunOnlyLight = gUncloudedLight * solarFactor;
+    return max(light - cloudDarkening, 0.0);
 }
 )"
 R"(// _intensity_mask_buf_to_buf: inside the egg a nonzero mask value is the
@@ -669,6 +750,11 @@ void main() {
             || dot(uClipPlane1.xy, vWorldXZ) + uClipPlane1.z < -0.00001
             || dot(uClipPlane2.xy, vWorldXZ) + uClipPlane2.z < -0.00001
             || dot(uClipPlane3.xy, vWorldXZ) + uClipPlane3.z < -0.00001) discard;
+    }
+    if (uRoofClip.y > 0.5 && vWorld.y > uRoofClip.x) {
+        vec2 square = floor(vWorld.xz + 50.0);
+        if (square == clamp(square, vec2(0.0), vec2(99.0))
+            && texelFetch(uRoofGrid, ivec2(square), 0).r > 0.5) discard;
     }
     if (uTextured == 0) {
         outColor = uColor;
@@ -817,8 +903,22 @@ void main() {
                 outColor = !receiver ? vec4(1.0, 0.0, 1.0, 1.0) : turned ? vec4(0.0, 0.0, 1.0, 1.0) : vec4(vec3(lit.a), 1.0);
                 return;
             }
+)" R"(
             float steps = floor(lit.a * 128.0 + 0.0001);
-            if (steps < 128.0) outColor.rgb = floor(floor(outColor.rgb * 31.0 + 0.5) * steps / 128.0) / 31.0;
+            if (uShadowOn && uCloudOn && (uLightMode == 1 || uLightMode == 2)) {
+                float baseSteps = floor(gUncloudedLight * 128.0 + 0.0001);
+                float cloudSteps = floor(max(gUncloudedLight - gCloudDarkening, 0.0) * 128.0 + 0.0001);
+                float sunSteps = floor(gSunOnlyLight * 128.0 + 0.0001);
+                vec3 color5 = floor(outColor.rgb * 31.0 + 0.5);
+                vec3 cloudColor5 = floor(color5 * cloudSteps / 128.0);
+                vec3 sunColor5 = floor(color5 * sunSteps / 128.0);
+                vec3 baseColor5 = floor(color5 * baseSteps / 128.0);
+                vec3 cloudLoss5 = max(baseColor5 - cloudColor5, 0.0);
+                vec3 combinedColor5 = clamp(sunColor5 - floor(cloudLoss5 * kCloudShadeInSunShadow), 0.0, 31.0);
+                outColor.rgb = combinedColor5 / 31.0;
+            } else if (steps < 128.0) {
+                outColor.rgb = floor(floor(outColor.rgb * 31.0 + 0.5) * steps / 128.0) / 31.0;
+            }
             outColor.rgb *= lit.rgb;
             if (uEgg != 0) {
                 float m = eggShare();
@@ -891,6 +991,8 @@ int gSceneGlassGrayLocation = -1;
 int gScenePickLocation = -1;
 int gSceneClipEnabledLocation = -1;
 int gSceneClipPlaneLocations[4] = { -1, -1, -1, -1 };
+int gSceneRoofClipLocation = -1;
+int gSceneRoofGridLocation = -1;
 int gSceneEggLocation = -1;
 int gSceneEggMaskLocation = -1;
 int gSceneEggRectLocation = -1;
@@ -919,6 +1021,8 @@ int gSceneShadowOnLocation = -1;
 int gSceneShadowMatrixLocation = -1;
 int gSceneShadowMapLocation = -1;
 int gSceneShadowIdsLocation = -1;
+int gSceneShadowOccupancyLocation = -1;
+int gSceneShadowOccupancyOnLocation = -1;
 int gSceneShadowStrengthLocation = -1;
 int gSceneShadowDensityLocation = -1;
 int gSceneShadowLightLocation = -1;
@@ -978,6 +1082,8 @@ bool createSceneShader(std::string* error)
     gSceneClipPlaneLocations[1] = glGetUniformLocation(gSceneProgram, "uClipPlane1");
     gSceneClipPlaneLocations[2] = glGetUniformLocation(gSceneProgram, "uClipPlane2");
     gSceneClipPlaneLocations[3] = glGetUniformLocation(gSceneProgram, "uClipPlane3");
+    gSceneRoofClipLocation = glGetUniformLocation(gSceneProgram, "uRoofClip");
+    gSceneRoofGridLocation = glGetUniformLocation(gSceneProgram, "uRoofGrid");
     gSceneEggLocation = glGetUniformLocation(gSceneProgram, "uEgg");
     gSceneEggMaskLocation = glGetUniformLocation(gSceneProgram, "uEggMask");
     gSceneEggRectLocation = glGetUniformLocation(gSceneProgram, "uEggRect");
@@ -1006,6 +1112,8 @@ bool createSceneShader(std::string* error)
     gSceneShadowMatrixLocation = glGetUniformLocation(gSceneProgram, "uShadowMatrix");
     gSceneShadowMapLocation = glGetUniformLocation(gSceneProgram, "uShadowMap");
     gSceneShadowIdsLocation = glGetUniformLocation(gSceneProgram, "uShadowIds");
+    gSceneShadowOccupancyLocation = glGetUniformLocation(gSceneProgram, "uShadowOccupancy");
+    gSceneShadowOccupancyOnLocation = glGetUniformLocation(gSceneProgram, "uShadowOccupancyOn");
     gSceneShadowStrengthLocation = glGetUniformLocation(gSceneProgram, "uShadowStrength");
     gSceneShadowDensityLocation = glGetUniformLocation(gSceneProgram, "uShadowDensity");
     gSceneShadowLightLocation = glGetUniformLocation(gSceneProgram, "uShadowLight");
@@ -1036,7 +1144,8 @@ bool createSceneShader(std::string* error)
         || gSceneCloudOnLocation < 0 || gSceneCloudOffsetLocation < 0
         || gSceneClipEnabledLocation < 0
         || gSceneClipPlaneLocations[0] < 0 || gSceneClipPlaneLocations[1] < 0
-        || gSceneClipPlaneLocations[2] < 0 || gSceneClipPlaneLocations[3] < 0) {
+        || gSceneClipPlaneLocations[2] < 0 || gSceneClipPlaneLocations[3] < 0
+        || gSceneRoofClipLocation < 0 || gSceneRoofGridLocation < 0) {
         *error = "static floor shader uniforms are missing";
         return false;
     }
@@ -1061,6 +1170,8 @@ void destroySceneShader()
     gSceneLightOriginLocation = -1;
     gSceneClipEnabledLocation = -1;
     for (int index = 0; index < 4; index++) gSceneClipPlaneLocations[index] = -1;
+    gSceneRoofClipLocation = -1;
+    gSceneRoofGridLocation = -1;
 }
 
 } // namespace internal

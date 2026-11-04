@@ -1,0 +1,183 @@
+{
+  "map": "KLADWTWN.MAP",
+  "view_tile": 23293,
+  "hero_tile_requested": 25075,
+  "mode": "vanilla-framebuffer",
+  "scale": 2,
+  "comparison": "main integer scale vs task scale factor",
+  "pixel_dimensions": [
+    1920,
+    1080
+  ],
+  "changed_pixels": 0,
+  "maximum_channel_difference": 0,
+  "main": {
+    "image": "scr00000.png",
+    "view": "vanilla-framebuffer",
+    "map": "KLADWTWN.MAP",
+    "elevation": 0,
+    "still_snapshot": true,
+    "snapshot_run": "1184174e69494a7f889ac570dfc78d60",
+    "view_tile": 23293,
+    "preview_requested": false,
+    "scene_3d_enabled": true,
+    "scene_view": "off",
+    "sharp_text": {
+      "setting": false,
+      "active": false,
+      "drawn": false,
+      "runs": 0,
+      "glyphs": 0,
+      "restored_pixels": 0,
+      "prepare_ms": 0.0
+    },
+    "map_clip": {
+      "enabled": false,
+      "setting_enabled": true,
+      "variant": "authored",
+      "source": "disabled"
+    },
+    "camera": "center tile 23293",
+    "wall_triangles": 0,
+    "wall_pages": 0,
+    "hero": null,
+    "egg": {
+      "shown": false,
+      "wall_rows_marked": 0,
+      "wall_rows_any": false
+    },
+    "objects": {
+      "drawn": 0,
+      "skipped": 0
+    },
+    "preview_availability": "not-requested",
+    "renderer": "scene-gl",
+    "light": "enabled",
+    "effect_emission": true,
+    "glow": {
+      "enabled": false,
+      "strength": 2.0
+    },
+    "weapon_effect": null,
+    "muzzle": null,
+    "sun": {
+      "setting": true,
+      "daylight": false,
+      "game_time": 302400,
+      "up": false,
+      "height": 66.0,
+      "azimuth": -26.565,
+      "direction": [
+        0.3638,
+        0.91355,
+        -0.1819
+      ],
+      "color": [
+        1.0,
+        0.96,
+        0.88
+      ],
+      "strength": 0.0
+    },
+    "resolution": "1920x1080",
+    "logical_resolution": "960x540",
+    "scale": 2,
+    "windowed": true,
+    "drawable": "1920x1080",
+    "ce_commit": "201179a0",
+    "tools_commit": "-",
+    "exe_sha256": "596bfcd51f1f011abe6edac9bba58cabbe84781414eee152d6f5099a78bcc2eb",
+    "taken": "20261102-141726"
+  },
+  "task": {
+    "image": "scr00000.png",
+    "view": "vanilla-framebuffer",
+    "map": "KLADWTWN.MAP",
+    "elevation": 0,
+    "still_snapshot": true,
+    "snapshot_run": "db62aadb04bd4985a85ba8bb8143fb37",
+    "view_tile": 23293,
+    "preview_requested": false,
+    "scene_3d_enabled": true,
+    "scene_view": "off",
+    "sharp_text": {
+      "setting": false,
+      "active": false,
+      "drawn": false,
+      "runs": 0,
+      "glyphs": 0,
+      "restored_pixels": 0,
+      "prepare_ms": 0.0
+    },
+    "map_clip": {
+      "enabled": false,
+      "setting_enabled": true,
+      "variant": "authored",
+      "source": "disabled"
+    },
+    "camera": "center tile 23293",
+    "wall_triangles": 0,
+    "wall_pages": 0,
+    "hero": null,
+    "egg": {
+      "shown": false,
+      "wall_rows_marked": 0,
+      "wall_rows_any": false
+    },
+    "objects": {
+      "drawn": 0,
+      "skipped": 0
+    },
+    "preview_availability": "not-requested",
+    "renderer": "scene-gl",
+    "light": "enabled",
+    "effect_emission": true,
+    "glow": {
+      "enabled": false,
+      "strength": 2.0
+    },
+    "weapon_effect": null,
+    "muzzle": null,
+    "sun": {
+      "setting": true,
+      "daylight": false,
+      "game_time": 302400,
+      "up": false,
+      "height": 66.0,
+      "azimuth": -26.565,
+      "direction": [
+        0.3638,
+        0.91355,
+        -0.1819
+      ],
+      "color": [
+        1.0,
+        0.96,
+        0.88
+      ],
+      "strength": 0.0
+    },
+    "resolution": "1920x1080",
+    "logical_resolution": "960x540",
+    "scale": 2,
+    "scale_factor": 2.0,
+    "windowed": true,
+    "drawable": "1920x1080",
+    "sdl_window": {
+      "flags": 73734,
+      "window_position": "-20000,-20000",
+      "window_size": "1920x1080",
+      "drawable_size": "1920x1080",
+      "fullscreen": false,
+      "fullscreen_desktop": false,
+      "borderless": false
+    },
+    "ce_commit": "c75e2a92",
+    "tools_commit": "-",
+    "exe_sha256": "448e2002684773c69dacf30beebc1a1b4a123771b486420fc5d8d1b406f811a0",
+    "taken": "20261102-141603"
+  },
+  "main_raw_sha256": "468c1393fe1d9e443f5847c1db82225a73c122665d5e293d8b5ee1c7239443d4",
+  "task_raw_sha256": "468c1393fe1d9e443f5847c1db82225a73c122665d5e293d8b5ee1c7239443d4",
+  "note": "Baseline was rebuilt from clean origin/main 201179a0; both captures used --dev-scale, which sets integer scale in main and scale_factor in task. Task embedded commit may be stale; executable SHA identifies the tested binary."
+}

@@ -8,12 +8,19 @@ import struct
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from baked_sidecar import (ENTRY as BAKED_ENTRY, HEADER as BAKED_HEADER, LIFT as BAKED_LIFT, MAGIC as BAKED_MAGIC,
+import numpy as np
+from PIL import Image
+
+from baked_sidecar import (ENTRY as BAKED_ENTRY, GL_MAP_OFFSET, HEADER as BAKED_HEADER, LIFT as BAKED_LIFT,
+                           MAGIC as BAKED_MAGIC,
                            NOCAST as BAKED_NOCAST, SKIP as BAKED_SKIP, FLAT as BAKED_FLAT, FLY_FLAT as BAKED_FLY_FLAT,
-                           FLY_SKIP as BAKED_FLY_SKIP, PLANE as BAKED_PLANE,
+                           FIXED_CARD as BAKED_FIXED_CARD, FLY_SKIP as BAKED_FLY_SKIP, PLANE as BAKED_PLANE,
                            baked_objects, decode_baked_sidecar, encode_baked_sidecar)
 from export import ReadOnlyGameFiles, choose_source, main, parse_args, patch_paths, scene_directory, validate_output_contents
 from floor_sidecar import HEADER, MAGIC, VERSION, cell_content_rect, decode_floor_sidecar, encode_floor_sidecar
+from roof_fringe import (boundary_edges, components_of, donor_tiles, inner_edge, cut_to_walls, own_strip, donate, foot_cover, lay_donor, roof_sides, whole_sides, BELT_LAP, BELT_ROWS, EDGE_ROWS, STRIP_ROWS, belt_art, compose_band, is_fringe, outward, resolve_runs, runs_of,
+                         split_tile, tidy_cell, unproject_cell, unroll, wall_under, write_fringe_art)
+import roof_edge_check
 from projection_sidecar import (HEADER as PROJECTION_HEADER, MAGIC as PROJECTION_MAGIC,
                                 VERSION as PROJECTION_VERSION, decode_projection_sidecar,
                                 encode_projection_sidecar, hero_anchor, standing_card)
@@ -176,7 +183,7 @@ class OutputSafetyTests(unittest.TestCase):
         with TemporaryDirectory() as temp:
             out = Path(temp)
             for name in ("scene.json", "provenance.json", "floor.bin", "walls.bin", "projection.bin",
-                         "baked.bin", "tiles.png", "light.png", "rock.png", "sprites10.png"):
+                         "baked.bin", "tiles.png", "light.png", "rock.png", "roof_fringe.png", "sprites10.png"):
                 (out / name).touch()
             validate_output_contents(out)
 
@@ -258,7 +265,33 @@ class FloorSidecarTests(unittest.TestCase):
         self.assertEqual(decoded["cells"], [(0, 0), (89, 0)])
         self.assertEqual(decoded["floor"][:2], (1, 2))
         self.assertEqual(decoded["roof"][:3], (0, 0, 2))
-        self.assertEqual(len(payload), HEADER.size + 2 * 10000 * 2 + 2 * 4)
+        self.assertEqual(decoded["fringe"], [])
+        self.assertEqual(decoded["patches"], [])
+        self.assertEqual(len(payload), HEADER.size + 2 * 10000 * 2 + 2 * 4 + 2 + 2)
+
+    def test_roof_fringe_list_round_trips_and_is_validated(self):
+        run = (1, 20, 10, 3, 1, 37, 144, 40, 20.125, 1.875, 10.0, 13.0)
+        payload = encode_floor_sidecar(self.sample_scene(), [run])
+        self.assertEqual(decode_floor_sidecar(payload)["fringe"], [run])
+        with self.assertRaisesRegex(ValueError, "roof fringe"):
+            encode_floor_sidecar(self.sample_scene(), [(1, 20, 99, 3, 1, 37, 144, 40, 20.125, 1.875, 99.0, 102.0)])
+        with self.assertRaisesRegex(ValueError, "truncated"):
+            decode_floor_sidecar(payload[:-1])
+
+    def test_roof_patch_list_round_trips_and_is_validated(self):
+        patches = [(2, 1, 40)]
+        payload = encode_floor_sidecar(self.sample_scene(), (), patches)
+        self.assertEqual(decode_floor_sidecar(payload)["patches"], patches)
+        with self.assertRaisesRegex(ValueError, "patch"):
+            encode_floor_sidecar(self.sample_scene(), (), [(0, 1, 40)])
+        with self.assertRaisesRegex(ValueError, "truncated"):
+            decode_floor_sidecar(payload[:-1])
+
+    def test_version_5_floor_lists_still_decode_without_patches(self):
+        payload = bytearray(encode_floor_sidecar(self.sample_scene())[:-2])  # no patch count: version 5 had none
+        struct.pack_into("<H", payload, 4, 5)
+        decoded = decode_floor_sidecar(bytes(payload))
+        self.assertEqual((decoded["version"], decoded["fringe"], decoded["patches"]), (5, [], []))
 
     def test_cell_coordinates_select_inner_square_and_validate_outer_cell(self):
         self.assertEqual(cell_content_rect((0, 0), (100, 100)), (6, 6, 94, 94))
@@ -289,6 +322,457 @@ class FloorSidecarTests(unittest.TestCase):
             decode_floor_sidecar(bad_version)
         with self.assertRaisesRegex(ValueError, "truncated"):
             decode_floor_sidecar(payload[:-1])
+
+
+class RoofFringeTests(unittest.TestCase):
+    @staticmethod
+    def art(painted, colour=(10, 12, 8)):
+        rgba = np.zeros((36, 80, 4), np.uint8)
+        for y, x in painted:
+            rgba[y, x] = (*colour, 255)
+        return rgba
+
+    def test_sparse_dark_ragged_growth_is_a_fringe(self):
+        # blades: a few thin strokes of a dark colour on a mostly empty tile
+        blades = [(y, x) for x in range(30, 60, 5) for y in range(8, 20 + x % 7)]
+        self.assertTrue(is_fringe(self.art(blades)))
+
+    def test_whole_roofs_solid_strips_metal_and_light_growth_are_not(self):
+        ys, xs = np.mgrid[0:36, 0:80]
+        u, v = donor_proj.delta_to_ground(xs + 0.5 - 48, ys + 0.5)
+        diamond = [(y, x) for y, x in zip(*np.nonzero((u >= 0) & (u < 1) & (v >= 0) & (v < 1)))]
+        self.assertFalse(is_fringe(self.art(diamond)))                      # a whole roof tile
+        strip = [(y, x) for y in range(14, 20) for x in range(10, 70)]
+        self.assertFalse(is_fringe(self.art(strip)))                        # a solid trim strip
+        blades = [(y, x) for x in range(30, 60, 5) for y in range(8, 20 + x % 7)]
+        self.assertFalse(is_fringe(self.art(blades, (120, 130, 110))))      # bright: a metal roof with holes
+        self.assertFalse(is_fringe(self.art([])))
+
+    def test_art_image_and_entries(self):
+        blades = [(y, x) for x in range(30, 60, 5) for y in range(8, 20 + x % 7)]
+        with TemporaryDirectory() as temp:
+            png = Path(temp) / "roof_fringe.png"
+            # squares 101, 102 (a run of two) and 105 (another): the same tile art on one wall line
+            entries, patches = write_fringe_art(
+                png, {101: 7, 102: 7, 103: 8, 105: 7}, lambda tile: self.art(blades if tile == 7 else []),
+                lambda edge, plane, start, count: (plane - 0.2, plane + 0.1, 1.88, float(start), float(start + count), []))
+            self.assertTrue(entries)
+            self.assertEqual(patches, [])
+            for edge, plane, start, count, x, y, width, height, face, top, lo, hi in entries:
+                self.assertIn((start, count), [(1, 2), (5, 1), (1, 1)])  # 103 is no fringe: the runs break there
+                self.assertIn(round(face - plane, 3), (-0.2, 0.1))        # the wall's outer face, one of its two sides
+                self.assertEqual((top, lo, hi), (1.88, start, start + count))
+                self.assertEqual((width, height), (count * (-donor_proj.SQ_U[0] if edge < 2 else donor_proj.SQ_V[0]), BELT_ROWS + EDGE_ROWS))
+            self.assertEqual(Image.open(png).height, sum(entry[7] + 1 for entry in entries) + 1)
+            self.assertEqual(write_fringe_art(png, {101: 8}, lambda tile: self.art([]), lambda *run: None), ([], []))
+            self.assertFalse(png.exists())
+
+    def test_the_belt_continues_the_walls_art_and_the_edge_stands_on_it(self):
+        # one wall row along u at v = 3 (edge 0 of squares 3, 4 of row 3), its picture 96 x 60 on a page,
+        # a striped picture: column c is grey 10 + c, the top band (6 rows) above the cap is red
+        page = np.zeros((60, 96, 4), np.uint8)
+        page[..., :3] = (10 + np.arange(96))[None, :, None]
+        page[..., 3] = 255
+        page[:6, :, :3] = (250, 0, 0)
+        walls = [[0, 3.0, 3.0, 5.0, 3.0, 0.0, 2.0, 0, 0, 2.0 - 6 / 96.0, 0.2, -1]]
+        sprites = [[0, 0, 0, 96, 60]]
+        run = (0, 3, 3, [(303, None), (304, None)])
+        belt = belt_art([0], walls, sprites, [page], 96.0, run)
+        self.assertEqual(belt.shape, (BELT_ROWS + BELT_LAP, 96, 4))
+        self.assertTrue((belt[..., 3] == 255).all())
+        # u grows to the left on the screen, so the strip's column 0 is the wall's end (u = 5): the picture's b end
+        self.assertEqual(int(belt[-1, 0, 0]), 10 + 95)
+        self.assertEqual(int(belt[-1, 95, 0]), 10)
+        self.assertEqual(belt_art([], walls, sprites, [page], 96.0, run), None)
+        strip = np.zeros((STRIP_ROWS, 96, 4), np.uint8)
+        strip[-3:, ::2] = (1, 2, 3, 255)
+        band = compose_band(strip, belt)
+        self.assertEqual(band.shape, (BELT_ROWS + EDGE_ROWS, 96, 4))
+        self.assertTrue((band[EDGE_ROWS:, :, 3] == 255).all())      # the belt is solid
+        self.assertEqual(tuple(band[EDGE_ROWS - 1, 0, :3]), (1, 2, 3))  # the strip's outline over the belt's lap rows
+        self.assertEqual(band[0, :, 3].max(), 0)                    # nothing above the ragged edge
+
+    def test_a_run_stands_on_the_outer_face_of_the_wall_under_its_roof_edge(self):
+        class Slab:
+            def __init__(self, axis, plane, side, thick, rows, lo, hi):
+                self.axis, self.plane, self.side, self.thick, self.rows, self.lo, self.hi = axis, plane, side, thick, rows, lo, hi
+
+            def band(self):
+                return min(self.plane, self.plane + self.side * self.thick), max(self.plane, self.plane + self.side * self.thick)
+
+        # rows: [sprite, ua, va, ub, vb, z0, z1, _, _, zc]; a wall along u on v = 9.875, its body up to 10.09
+        walls = [[0, 2.0, 9.875, 6.0, 9.875, 0, 2.0, 0, 0, 1.88]]
+        slabs = [Slab(0, 9.875, 1.0, 0.215, [0], 2.0, 6.0), Slab(0, 14.0, 1.0, 0.215, [], 2.0, 6.0)]
+        # edge 1 (roof below v = 10): the outer face is the high side
+        self.assertEqual(wall_under(slabs, walls, 1, 10, 3, 2), (10.09, 1.88, 3.0, 5.0))
+        # edge 0 (roof above v = 10): the outer face is the low side
+        self.assertEqual(wall_under(slabs, walls, 0, 10, 3, 2), (9.875, 1.88, 3.0, 5.0))
+        # a wall a tile away, one along the other axis, or none under the run: no band
+        self.assertIsNone(wall_under(slabs, walls, 1, 11, 3, 2))
+        self.assertIsNone(wall_under(slabs, walls, 3, 10, 3, 2))
+        self.assertIsNone(wall_under(slabs, walls, 1, 10, 7, 2))
+
+    def test_a_band_that_is_not_genuine_takes_its_roofs_donor_edge(self):
+        # a genuine strip: concrete along the bottom rows, a ragged top over it
+        def strip_of(count, per_tile, upside_down=False):
+            strip = np.zeros((STRIP_ROWS, count * per_tile, 4), np.uint8)
+            strip[-3:] = (30, 30, 30, 255)
+            strip[-EDGE_ROWS:-3, ::3] = (200, 0, 0, 255)  # rebar
+            return strip[::-1].copy() if upside_down else strip
+
+        u_tile, v_tile = int(-donor_proj.SQ_U[0]), int(donor_proj.SQ_V[0])
+        self.assertGreaterEqual(foot_cover(strip_of(2, u_tile)), 0.99)
+        self.assertLess(foot_cover(strip_of(2, u_tile, upside_down=True)), 0.5)  # the straight edge on top: not genuine
+        art = np.zeros((2, 2, 4), np.uint8)
+        mk = lambda edge, plane, start, squares: (edge, plane, start, [(i, art) for i in squares])
+        runs = [mk(1, 11, 3, [103, 104]),                 # genuine, roof A (squares 103-104 and 203 are one footprint)
+                mk(3, 4, 3, [203, 303, 403]),             # slab-cut, roof A: takes A's donor
+                mk(0, 51, 7, [5107, 5108])]               # not genuine, roof B: A is far, B has none: the map's donor
+        strips = [strip_of(2, u_tile), strip_of(3, v_tile, upside_down=True), strip_of(2, u_tile, upside_down=True)]
+        roof = {103: 1, 104: 1, 203: 1, 303: 1, 403: 1, 5107: 1, 5108: 1}
+        comp = components_of(roof)
+        self.assertEqual(comp[103], comp[403])
+        self.assertNotEqual(comp[103], comp[5107])
+        pool = [(runs[0], strips[0], comp[103])]
+        out = donate(runs, strips, [True, False, False], pool, comp)
+        self.assertIs(out[0], strips[0])
+        for n, (run, per_tile) in enumerate(((runs[1], v_tile), (runs[2], u_tile)), start=1):
+            width = len(run[3]) * per_tile
+            self.assertEqual(out[n].shape, (STRIP_ROWS, width, 4))
+            self.assertEqual(out[n][:-EDGE_ROWS, :, 3].max(), 0)             # nothing above the donor's height
+            self.assertGreaterEqual(foot_cover(out[n]), 0.99)                # ragged on top, concrete along the bottom
+            self.assertTrue((out[n][-3:, :, :3] == 30).all())
+            self.assertTrue((out[n][-EDGE_ROWS:-3, 0:width:3, 0] == 200).sum() > 0)  # the donor's rebar, repeated along the run
+        # a run's strip made of the donor repeats it: shifted by the donor's length it is the same
+        repeat = lay_donor((strips[0], 2, 1), 1, 6)
+        self.assertTrue((repeat[:, :2 * u_tile] == repeat[:, 2 * u_tile:4 * u_tile]).all())
+
+    def test_a_band_stands_only_over_squares_with_a_wall_under_it(self):
+        art = np.zeros((2, 2, 4), np.uint8)
+        runs = [(0, 5, 3, [(503 + i, art) for i in range(6)])]
+        wall_of = lambda edge, plane, start, count: None if start in (5, 6) else (0.0, 1.0, 1.88, 0.0, 99.0, [])
+        out, strips, good = cut_to_walls(runs, [object()], [True], wall_of)
+        self.assertEqual([(run[2], len(run[3])) for run in out], [(3, 2), (7, 2)])   # broken where the wall is broken
+        self.assertEqual((strips, good), ([None, None], [False, False]))
+        # a wall under all of it leaves the run as it is
+        out, strips, good = cut_to_walls(runs, ['s'], [True], lambda *run: (0.0, 1.0, 1.88, 0.0, 99.0, []))
+        self.assertEqual((out, strips, good), (runs, ['s'], [True]))
+        # none under it: no band
+        self.assertEqual(cut_to_walls(runs, ['s'], [True], lambda *run: None)[0], [])
+
+    def test_opposite_sides_of_a_one_square_deep_roof_stay_two_runs(self):
+        art = np.zeros((2, 2, 4), np.uint8)
+        roof = {500 + x: 1 for x in range(3, 7)}
+        open_of = {index: [0, 1] for index in roof}
+        sides = roof_sides(roof, open_of)
+        runs = [(0, 5, 3, [(i, art) for i in (503, 504, 505, 506)]), (1, 6, 3, [(i, art) for i in (503, 504, 505, 506)])]
+        out, _, _ = whole_sides(runs, [None, None], [False, False], sides)
+        self.assertEqual(sorted((run[0], run[1], run[2], len(run[3])) for run in out), [(0, 5, 3, 4), (1, 6, 3, 4)])
+
+    def test_a_merged_run_keeps_its_art_and_falls_back_on_it_without_a_donor(self):
+        art = np.zeros((36, 96, 4), np.uint8)
+        art[20:30, 40:60] = 255
+        roof = {500 + x: 1 for x in range(3, 6)}
+        sides = roof_sides(roof, {index: [0] for index in roof})
+        out, strips, _ = whole_sides([(0, 5, 3, [(503, art)])], [None], [False], sides)
+        self.assertIs(out[0][3][0][1], art)
+        self.assertIsNone(out[0][3][1][1])
+        self.assertTrue(own_strip(out[0])[..., 3].any())
+        self.assertTrue(donate(out, strips, [False], [], components_of(roof))[0][..., 3].any())
+
+    def test_a_plain_square_a_band_crosses_keeps_its_roof_as_a_patch(self):
+        blades = [(y, x) for x in range(30, 60, 5) for y in range(8, 20 + x % 7)]
+        with TemporaryDirectory() as temp:
+            plain = self.art([(y, x) for y in range(36) for x in range(80)], (120, 130, 110))
+            roof = {101: 7, 102: 8, 103: 8, 201: 8, 202: 8, 203: 8, 301: 8, 302: 8, 303: 8}
+            entries, patches = write_fringe_art(
+                Path(temp) / "roof_fringe.png", roof, lambda tile: self.art(blades) if tile == 7 else plain,
+                lambda edge, plane, start, count: (plane - 0.2, plane + 0.1, 1.88, float(start), float(start + count), []))
+            crossed = {index for entry in entries for index in roof_edge_check.run_squares(entry)}
+            self.assertTrue({201, 301} <= crossed)                              # the plain squares are in a band ...
+            self.assertTrue({201, 301} <= {index for index, _, _ in patches})   # ... and keep their flat roof
+
+    def test_a_band_faces_the_roof_across_the_edge_away_from_the_outside(self):
+        # the outside past v = face (side 1): the roof is across edge 0 (dz - 1); a ring square open there is no roof
+        self.assertEqual([inner_edge(clip) for clip in ((0, 0.9, 1), (0, 0.1, -1), (1, 0.9, 1), (1, 0.1, -1))], [0, 1, 2, 3])
+
+    def test_a_roof_with_no_plain_tile_has_no_donor(self):
+        plain = self.art([(y, x) for y in range(36) for x in range(80)], (120, 130, 110))
+        blades = self.art([(y, x) for x in range(30, 60, 5) for y in range(8, 20 + x % 7)])
+        roof = {101: 8, 102: 8, 201: 8, 202: 8, 105: 7, 106: 7}
+        art_of = lambda tile: blades if tile == 7 else plain
+        comp = components_of(roof)
+        open_of = boundary_edges(roof)
+        donors = donor_tiles(roof, open_of, set(), comp, art_of)
+        self.assertNotIn(comp[105], donors)   # a ruin borrows no roof from its neighbour
+        self.assertEqual(donors[comp[101]], 8)
+        self.assertEqual(donor_tiles({105: 7, 106: 7}, boundary_edges({105: 7, 106: 7}), set(), components_of({105: 7, 106: 7}), art_of), {})
+
+    def test_a_roof_whose_runs_are_all_cut_away_keeps_its_tidied_patches(self):
+        blades = [(y, x) for x in range(30, 60, 5) for y in range(8, 20 + x % 7)]
+        with TemporaryDirectory() as temp:
+            png = Path(temp) / "roof_fringe.png"
+            plain = self.art([(y, x) for y in range(36) for x in range(80)], (120, 130, 110))
+            roof = {101: 7, 102: 8, 103: 8, 201: 8, 202: 8, 203: 8, 301: 8, 302: 8, 303: 8}
+            art_of = lambda tile: self.art(blades) if tile == 7 else plain
+            with_wall = write_fringe_art(
+                png, roof, art_of,
+                lambda edge, plane, start, count: (plane - 0.2, plane + 0.1, 1.88, float(start), float(start + count), []))
+            self.assertTrue(with_wall[0])
+            entries, patches = write_fringe_art(png, roof, art_of, lambda *run: None)   # no wall stands under any run
+            self.assertEqual(entries, [])                                               # so no band ...
+            self.assertTrue(patches)                                                    # ... but the split roof is still a patch
+            self.assertTrue(png.exists())
+            sheet = np.asarray(Image.open(png).convert("RGBA"))
+            for index, x, y in patches:
+                self.assertTrue(x + 100 <= sheet.shape[1] and y + 100 <= sheet.shape[0])
+            self.assertEqual(write_fringe_art(png, {}, art_of, lambda *run: None), ([], []))
+            self.assertFalse(png.exists())                                              # nothing at all: no image
+
+    def test_a_footprint_side_that_is_not_one_genuine_run_becomes_one_run(self):
+        art = np.zeros((2, 2, 4), np.uint8)
+        # a roof of squares x 3..6 on row 5: its north side (edge 0, line v = 5) is 4 squares along u
+        roof = {5 * 100 + x: 1 for x in range(3, 7)}
+        open_of = {index: [0] for index in roof}
+        sides = roof_sides(roof, open_of)
+        self.assertIn((0, 5, 3, [503, 504, 505, 506]), sides)
+        fragments = [(1, 6, 3, [(503, art)]), (0, 5, 5, [(505, art), (506, art)])]
+        strips = [np.zeros((STRIP_ROWS, 48, 4), np.uint8)] * 2
+        runs, out, good = whole_sides(fragments, strips, [False, False], sides)
+        self.assertEqual([(run[0], run[1], run[2], len(run[3])) for run in runs if run[0] == 0], [(0, 5, 3, 4)])
+        self.assertEqual(len(runs), 1)
+        self.assertEqual((out, good), ([None], [False]))
+        # one genuine run over the whole side stays as it is
+        whole = [(1, 6, 3, [(i, art) for i in (503, 504, 505, 506)])]
+        runs, out, good = whole_sides(whole, [strips[0]], [True], sides)
+        self.assertEqual((runs, good), (whole, [True]))
+
+    def test_bands_that_meet_at_a_corner_end_on_each_others_faces_and_share_a_top(self):
+        art = np.zeros((2, 2, 4), np.uint8)
+        # a band along u on the face v = 10.1 over x 3..6, one along v on the face u = 2.9 over z 10..13: the art
+        # names the other edges (1 and 3), the corner is where the faces cross, both ends are short of it
+        runs = [(1, 11, 3, [(i, art) for i in range(3)]), (3, 3, 10, [(i, art) for i in range(3)])]
+        bodies = [None, None]
+        places = resolve_runs(runs, bodies, [None, None], 1.88)
+        places = [list(place) for place in places]
+        # no wall: the faces are the tile lines 11 and 3: the u band's low end meets the v band's face
+        self.assertAlmostEqual(places[0][2], 3.0)
+        self.assertEqual(places[0][1], places[1][1])
+
+    def test_pieces_of_one_wall_line_that_follow_each_other_are_one_run(self):
+        art = np.zeros((36, 80, 4), np.uint8)
+        # edge 1 of squares (3, 4), (4, 4), (6, 4): the line v = 5; edge 0 of (4, 5) lies on it too
+        runs = runs_of({403: [(1, art)], 404: [(1, art)], 406: [(1, art)], 504: [(0, art)]})
+        self.assertEqual([(edge, plane, start, len(members)) for edge, plane, start, members in runs],
+                         [(0, 5, 4, 1), (1, 5, 3, 2), (1, 5, 6, 1)])
+
+    def test_unrolled_strip_lays_the_wall_line_flat(self):
+        # a slab of ground (u, v) = (0..1, 0..0.2) on square 0, a wall along u at v = 0 (edge 0)
+        ys, xs = np.mgrid[0:36, 0:80]
+        u, v = donor_proj.delta_to_ground(xs + 0.5 - 48, ys + 0.5)
+        art = np.zeros((36, 80, 4), np.uint8)
+        art[(u >= 0) & (u < 1) & (v >= 0) & (v < 0.2)] = (10, 12, 8, 255)
+        strip = unroll(0, 0, 0, [(0, art)])
+        self.assertEqual(strip.shape, (STRIP_ROWS, 48, 4))
+        rows = np.nonzero(strip[..., 3].any(axis=1))[0]
+        # the slab is one band along the bottom of the strip, as thick as its depth on the screen
+        self.assertEqual(rows[-1], STRIP_ROWS - 1)
+        self.assertLessEqual(len(rows), int(0.2 * 32) + 2)
+        self.assertEqual(len(rows), rows[-1] - rows[0] + 1)
+
+
+class RoofEdgeTests(unittest.TestCase):
+    @staticmethod
+    def tile(parts):
+        """An 80 x 36 iso tile: parts is [(u0, u1, v0, v1, rgb)] of the ground square, painted in order."""
+        ys, xs = np.mgrid[0:36, 0:80]
+        u, v = donor_proj.delta_to_ground(xs + 0.5 - 48, ys + 0.5)
+        rgba = np.zeros((36, 80, 4), np.uint8)
+        for u0, u1, v0, v1, rgb in parts:
+            rgba[(u >= u0) & (u < u1) & (v >= v0) & (v < v1)] = (*rgb, 255)
+        return rgba
+
+    def test_a_whole_shingle_tile_is_a_roof_and_a_grey_top_is_a_wall_top(self):
+        pieces, roof = split_tile(self.tile([(0, 1, 0, 1, (120, 80, 50))]))
+        self.assertEqual(pieces, [])
+        pieces, roof = split_tile(self.tile([(0, 1, 0.6, 1, (120, 80, 50)), (0, 1, 0, 0.3, (14, 14, 14))]))
+        self.assertTrue(pieces)                                        # the grey strip stands up
+        self.assertTrue(roof is not None and (roof[..., 3] > 0).any())  # the shingle part stays a roof
+        grey = (np.abs(roof[..., 0].astype(int) - roof[..., 2]) < 6) & (roof[..., 3] > 0)
+        self.assertFalse(grey.any())                                   # none of the dark part is left on the roof
+        self.assertEqual(unproject_cell(roof).shape[:2], (100, 100))
+
+    def test_a_whole_painted_tile_with_a_grey_slab_on_an_open_edge_stands_up_there(self):
+        whole = self.tile([(0, 1, 0, 1, (120, 80, 50)), (0, 1, 0, 0.36, (14, 14, 14))])
+        self.assertEqual(split_tile(whole)[0], [])                       # no open edge known: a roof square
+        self.assertEqual(split_tile(whole, (1, 2))[0], [])               # the slab is not on those edges
+        pieces, roof = split_tile(whole, (0, 2))
+        self.assertEqual([edge for edge, _ in pieces], [0])              # the slab stands up on its edge
+        self.assertTrue(roof is not None and (roof[..., 3] > 0).any())   # the shingle stays a roof
+        grey = (np.abs(roof[..., 0].astype(int) - roof[..., 2]) < 6) & (roof[..., 3] > 0)
+        self.assertFalse(grey.any())
+        plain = self.tile([(0, 1, 0, 1, (120, 80, 50))])
+        self.assertEqual(split_tile(plain, (0, 1, 2, 3))[0], [])         # shingle on every open edge: nothing stands
+
+    def test_a_whole_painted_dark_tile_with_a_slab_on_one_open_edge_stays_a_roof_but_for_the_strip(self):
+        from roof_fringe import LEFT_ROOF, RIM, SLAB_STRIP
+        # painted whole and nearly all dark grey (concrete), a little brown at the far edge: it is a roof square
+        dark = self.tile([(0, 1, 0, 1, (14, 14, 14)), (0, 1, 0.9, 1, (120, 80, 50))])
+        pieces, roof = split_tile(dark, (0,))
+        self.assertEqual([edge for edge, _ in pieces], [0])              # the strip along the open edge stands up
+        self.assertIsNotNone(roof)
+        from roof_fringe import _grid
+        painted, u, v, diamond = _grid(dark)
+        kept = ((roof[..., 3] > 0) & diamond).sum() / diamond.sum()
+        self.assertGreater(kept, 1 - (SLAB_STRIP + RIM) - 0.15)         # only the strip is gone, the rest is flat roof
+        self.assertGreater(kept, 10 * LEFT_ROOF)
+        self.assertFalse(((roof[..., 3] > 0) & diamond & (v < SLAB_STRIP)).any())
+
+    def test_the_edge_check_sees_a_flat_slab_without_the_exporters_classifier(self):
+        from roof_edge_check import flat_slab
+        from floor_sidecar import CELL_OUTER_SIZE
+        from roof_fringe import unproject_cell
+        whole = self.tile([(0, 1, 0, 1, (120, 80, 50)), (0, 1, 0, 0.4, (14, 14, 14))])
+        self.assertEqual(CELL_OUTER_SIZE, unproject_cell(whole).shape[0])
+        self.assertEqual(flat_slab(unproject_cell(whole), (0, 1)), [0])
+        self.assertEqual(flat_slab(unproject_cell(self.tile([(0, 1, 0, 1, (120, 80, 50))])), (0, 1, 2, 3)), [])
+
+    def test_a_flat_cell_keeps_no_dark_ragged_wall_top_whether_or_not_a_band_stands(self):
+        from floor_sidecar import CELL_MARGIN
+        shingle = (120, 80, 50)
+        cell = np.zeros((100, 100, 4), np.uint8)
+        cell[CELL_MARGIN:94, CELL_MARGIN:94] = (*shingle, 255)
+        self.assertTrue((tidy_cell(cell, (0, 1)) == cell).all())          # plain shingle keeps its whole art
+        ragged = cell.copy()
+        ragged[6:40, 6:94] = 0                                            # the cut: clear space along the top
+        for x in range(10, 90, 8):                                        # dark fingers stick up from the roof's body
+            ragged[20:40, x:x + 3] = (12, 12, 12, 255)
+        tidy = tidy_cell(ragged, (0,))
+        dark = (tidy[..., 3] > 0) & (tidy[..., :3].astype(float).mean(axis=2) < 40)
+        self.assertFalse(dark.any())                                      # no finger is left
+        self.assertTrue((tidy[60:90, 20:80, 3] > 0).all())                # the roof's body stays
+        grey = cell.copy()
+        grey[6:40, 6:94] = (14, 14, 14, 255)                              # a grey slab along the open edge, no hole at all
+        self.assertFalse((tidy_cell(grey, (0,))[10:30, 10:90, 3] > 0).any())
+        self.assertTrue((tidy_cell(grey, (1,))[10:30, 10:90, 3] > 0).all())  # not on an edge that is not open
+
+    def test_the_edge_check_counts_dark_ragged_texels_of_any_hue_by_shape_alone(self):
+        shingle = (120, 80, 50)
+        cell = np.zeros((100, 100, 4), np.uint8)
+        cell[6:94, 6:94] = (*shingle, 255)
+        self.assertEqual(int(roof_edge_check.ragged_thin(cell, [0, 1, 2, 3]).sum()), 0)
+        for colour in ((12, 12, 12), (40, 40, 40), (45, 30, 22)):          # black, grey and dark brown fingers
+            cell = np.zeros((100, 100, 4), np.uint8)
+            cell[50:94, 6:94] = (*shingle, 255)
+            for x in range(10, 90, 10):
+                cell[20:50, x:x + 3] = (*colour, 255)
+            self.assertGreater(int(roof_edge_check.ragged_thin(cell, [0]).sum()), 100, colour)
+            self.assertEqual(int(roof_edge_check.ragged_thin(tidy_cell(cell, (0,)), [0]).sum()), 0, colour)
+        dither = np.zeros((100, 100, 4), np.uint8)                          # a checkerboard shading is no wall top
+        dither[50:94, 6:94] = (*shingle, 255)
+        for y in range(20, 50):
+            for x in range(10, 90):
+                if (x + y) % 2:
+                    dither[y, x] = (12, 12, 12, 255)
+        self.assertEqual(int(roof_edge_check.ragged_thin(dither, [0]).sum()), 0)
+        tidied = tidy_cell(dither, (0,))                                    # tidying keeps the dither: its clear texels are no hole
+        shading = np.zeros(dither.shape[:2], bool)
+        shading[30:50, 20:80] = dither[30:50, 20:80, 3] > 0
+        self.assertGreater(int(shading.sum()), 500)
+        self.assertTrue((tidied[..., 3][shading] > 0).all())
+
+    def test_an_all_wall_top_square_is_roofed_up_to_its_band_and_clear_beyond_it(self):
+        shingle, grey = (120, 80, 50), (14, 14, 14)
+        # a tile that is all grey wall top: a thin strip along its v = 0 edge, rebar above it
+        top = self.tile([(0, 1, 0, 0.12, grey), (0.2, 0.25, 0, 0.3, grey), (0.6, 0.65, 0, 0.3, grey)])
+        plain = self.tile([(0, 1, 0, 1, shingle)])
+        # row 1 is all wall top (tile 7, open edge 0); rows 2 and 3 are plain roof, the donor's
+        roof = {101: 7, 102: 7, 103: 7, 201: 8, 202: 8, 203: 8, 301: 8, 302: 8, 303: 8}
+        with TemporaryDirectory() as temp:
+            png = Path(temp) / "roof_fringe.png"
+            # the wall's outer face stands 0.3 into the squares of row 1 (outside is the low side of v)
+            entries, patches = write_fringe_art(
+                png, roof, lambda tile: top if tile == 7 else plain,
+                lambda edge, plane, start, count: (plane + 0.3, plane + 0.4, 1.88, float(start), float(start + count), []))
+            sheet = np.asarray(Image.open(png).convert("RGBA"))
+            cells = {index: sheet[y:y + 100, x:x + 100] for index, x, y in patches}
+            t = (np.arange(100) + 0.5 - 6) / 88
+            v, u = np.meshgrid(t, t, indexing="ij")
+            for index in (101, 102, 103):
+                self.assertIn(index, cells)
+                face = [entry[8] for entry in entries if index in roof_edge_check.run_squares(entry) and entry[0] < 2][0]
+                self.assertAlmostEqual(face - 1, 0.3, places=2)
+                alpha = cells[index][..., 3] > 0
+                core = (u > 0.1) & (u < 0.9)
+                self.assertTrue(alpha[core & (v > 0.33) & (v < 0.9)].all())       # roof right up to the band's plane
+                self.assertFalse(alpha[(v < 0.27) & core].any())                  # nothing beyond it
+            lanes, spills, *_ = roof_edge_check.lane_stats(entries, [], set(roof), {i: (x, y) for i, x, y in patches}, sheet)
+            self.assertEqual((lanes, spills), (0, 0))
+
+    def test_a_square_a_band_crosses_restores_no_dark_wall_top_flat(self):
+        shingle, black = (120, 80, 50), (12, 12, 12)
+        # a square whose art is a body with black fingers on its open edge, whole enough for the classifier to call it a roof
+        art = self.tile([(0, 1, 0.3, 1, shingle)])
+        ys, xs = np.mgrid[0:36, 0:80]
+        u, v = donor_proj.delta_to_ground(xs + 0.5 - 48, ys + 0.5)
+        for k in range(8):
+            art[(u >= 0.1 * k + 0.03) & (u < 0.1 * k + 0.07) & (v >= 0.02) & (v < 0.3)] = (*black, 255)
+        plain = self.tile([(0, 1, 0, 1, shingle)])
+        with TemporaryDirectory() as temp:
+            roof = {101: 7, 102: 8, 103: 8, 201: 8, 202: 8, 203: 8}
+            entries, patches = write_fringe_art(
+                Path(temp) / "roof_fringe.png", roof, lambda tile: art if tile == 7 else plain,
+                lambda edge, plane, start, count: (plane - 0.2, plane + 0.1, 1.88, float(start), float(start + count), []))
+            sheet = np.asarray(Image.open(Path(temp) / "roof_fringe.png").convert("RGBA"))
+            for index, x, y in patches:
+                if index == 101:
+                    flat = sheet[y:y + 100, x:x + 100]
+                    self.assertEqual(int(roof_edge_check.ragged_thin(flat, [0, 1, 2, 3]).sum()), 0)
+                if index in (201, 202):
+                    self.assertTrue((sheet[y + 20:y + 80, x + 20:x + 80, 3] > 0).all())  # plain squares keep full art
+
+    def test_outward_is_the_side_with_fewer_roof_squares_beyond_the_wall(self):
+        roof = {r * 100 + c: 1 for r in range(10, 20) for c in range(10, 14)}  # a roof of rows 10..19
+        self.assertEqual(outward(roof, 0, 9.9, 10.1, 10, 4), -1.0)    # roof beyond the high side only: outside is low
+        self.assertEqual(outward(roof, 0, 19.9, 20.1, 10, 4), 1.0)
+        self.assertEqual(outward({}, 0, 9.9, 10.1, 10, 4), -1.0)      # a tie goes to the edge's own side
+        self.assertEqual(outward({}, 1, 9.9, 10.1, 10, 4), 1.0)
+
+    def test_corner_ends_meet_on_each_others_faces(self):
+        art = np.zeros((36, 80, 4), np.uint8)
+        runs = [(0, 10, 10, [(1010, art)] * 2), (2, 10, 10, [(1010, art)] * 2)]
+        bodies = [(9.8, 10.1, 1.88, 9.0, 13.0, []), (9.8, 10.1, 1.88, 9.0, 13.0, [])]
+        placed = resolve_runs(runs, bodies, [-1.0, -1.0], 1.88)
+        self.assertEqual([place[0] for place in placed], [9.8, 9.8])  # the outer (low) faces
+        self.assertEqual([place[2] for place in placed], [9.8, 9.8])  # each starts on the other's face
+        self.assertEqual([place[3] for place in placed], [12.0, 12.0])
+        # a wall that ends before the run starts is no wall under it: the band stands on its tile line
+        placed = resolve_runs(runs[:1], [(9.8, 10.1, 1.88, 5.0, 8.0, [])], [-1.0], 1.88)
+        self.assertEqual(placed[0], [10.0, 1.88, 10.0, 12.0])
+
+    def test_a_corner_snap_never_empties_or_reverses_a_span(self):
+        art = np.zeros((36, 80, 4), np.uint8)
+        # a one-square run at 10 whose wall covers [10, 10.25], and a band across it with its face at 10.4
+        runs = [(0, 5, 10, [(510, art)]), (2, 10, 5, [(510, art)] * 2)]
+        bodies = [(4.8, 5.1, 1.88, 10.0, 10.25, []), (10.4, 10.7, 1.88, 4.0, 8.0, [])]
+        placed = resolve_runs(runs, bodies, [-1.0, 1.0], 1.88)
+        for place in placed:
+            self.assertGreater(place[3], place[2])
+        self.assertEqual(placed[0][2:], [10.0, 10.7])  # it runs on to the band across it: the corner closes
+
+    def test_check_measures_band_distance_and_ignores_small_blobs(self):
+        slab = type("Slab", (), {"axis": 0, "plane": 9.8, "side": 1.0, "thick": 0.3, "lo": 0.0, "hi": 20.0,
+                                 "band": lambda self: (9.8, 10.1)})()
+        flush = (0, 10, 10, 2, 0, 0, 1, 1, 9.8, 1.88, 10.0, 12.0)
+        inset = (0, 10, 12, 2, 0, 0, 1, 1, 10.1, 1.88, 12.0, 14.0)
+        footprint = {r * 100 + c for r in range(10, 20) for c in range(10, 16)}
+        stats = roof_edge_check.band_stats([flush, inset], [slab], footprint)
+        self.assertAlmostEqual(stats["off_face_max"], 0.3, places=3)
+        self.assertEqual((stats["gap_max"], stats["overshoot_max"]), (0.0, 0.0))
+        cell = np.zeros((100, 100, 4), np.uint8)
+        cell[6:94, 6:94] = (120, 80, 50, 255)
+        cell[40:50, 40:50] = (10, 10, 10, 255)  # a grey blob in the middle of a whole roof, no hole beside it
+        self.assertEqual(int(roof_edge_check.ragged_dark(cell, [0]).sum()), 0)
 
 
 class WallSidecarTests(unittest.TestCase):
@@ -475,6 +959,43 @@ class WallSidecarTests(unittest.TestCase):
         for vertex in drum["batches"][0]["vertices"]:
             self.assertEqual(vertex[5:8], vertex[:3])
 
+    def test_a_back_view_row_points_the_away_faces_at_it_mirrored(self):
+        # 124: a row naming a back view (row[17]) sends its away faces to that
+        # sprite's page, sampled mirrored about the anchor; without the field
+        # they stay on the near sprite's page as they always were.
+        scene = self.sample_scene()
+        scene["walls"] = []
+        scene["pages"].append({"image": "sprites1.png", "size": [100, 100]})
+        scene["sprites"].append([0, 40, 40, 50, 50, -25, -40])       # 2: the near view
+        scene["sprites"].append([1, 0, 0, 100, 100, -50, -50])       # 3: the back view, the whole page
+        scene["props"] = [[2, 10.0, 10.0, 0, 0, 10.0, 10.1, 0.5, 0.4, 0.0, 0.3, 0.0, 0.6,
+                           0, 0, 0, [], 3]]
+        scene["boards"] = [[2, 10.0, 10.0, 1, 0, 0]]
+        decoded = decode_wall_sidecar(encode_wall_sidecar(scene))
+        self.assertIn(1, [batch["page"] for batch in decoded["batches"]])
+        p = scene["proj"]
+
+        def px(u, v, z):
+            return (p["origin"][0] + u * p["squ"][0] + v * p["sqv"][0],
+                    p["origin"][1] + u * p["squ"][1] + v * p["sqv"][1] - p["hpx"] * z)
+
+        ax_, ay_ = px(10.0, 10.0, 0.0)
+        vertices = next(batch["vertices"] for batch in decoded["batches"] if batch["page"] == 1)
+        self.assertEqual(len(vertices), 12)                      # the two away faces, unclipped
+        for k, (x, y, z, s_, t, *_) in enumerate(vertices):
+            u, v, height = x + 50.0, z + 50.0, y
+            # the away faces sample the near faces' points: the v0 face from
+            # the v1 face, the u0 face from the u1 face (six vertices each)
+            su, sv = (u, 10.3) if k < 6 else (10.25, v)
+            sx, sy = px(su, sv, height)
+            # the back view is read mirrored: the texel of the mirrored
+            # world pixel, in the back sprite's own rect
+            self.assertAlmostEqual(s_ * 100.0, 0 + (ax_ - sx) + 50, places=3)
+            self.assertAlmostEqual(t * 100.0, 0 + (sy - ay_) + 50, places=3)
+        scene["props"][0] = scene["props"][0][:16]                   # no back view field
+        decoded = decode_wall_sidecar(encode_wall_sidecar(scene))
+        self.assertNotIn(1, [batch["page"] for batch in decoded["batches"]])
+
     def test_the_fly_camera_gets_a_whole_drum_of_its_own(self):
         # Its near half, for the game's camera alone, shows the sprite's outline
         # stretched round the sides; the fly camera's drum repeats the front.
@@ -512,6 +1033,30 @@ class WallSidecarTests(unittest.TestCase):
         self.assertAlmostEqual(min(body), min(rim), places=3)
         self.assertAlmostEqual(max(body), max(rim), places=3)
         self.assertAlmostEqual(max(rim) - min(rim), 2 * 18.0, places=3)
+
+    def test_a_fly_drum_is_sliced_at_the_walls_it_crosses(self):
+        # A fly-only drum annotated with a wall plane (scene.keep_apart, 120)
+        # keeps its size and ends flat at the plane: the fly mesh loses the part
+        # past it and keeps the rest whole. The game's faces are not drawn anyway.
+        scene = self.sample_scene()
+        scene["walls"] = []
+        scene["pages"][0]["size"] = [400, 400]
+        scene["sprites"].append([0, 100, 100, 200, 200, -100, -150])
+        scene["props"] = [[2, 10.0, 10.0, 0, 1, 10.0, 10.0, 18.0, 8.0, 0.0, 0.5, 0.0, 0.0,
+                           0, 0, 1, [[0, 10.0, 1]]]]
+        scene["boards"] = [[2, 10.0, 10.0, 0, 0, 0]]
+        decoded = decode_wall_sidecar(encode_wall_sidecar(scene))
+        fly = [v for b in decoded["batches"] if b["fly_only"] for v in b["vertices"]]
+        self.assertTrue(fly)
+        us = [v[0] + 50.0 for v in fly]         # the sidecar vertices are ground minus (50, 50)
+        self.assertGreaterEqual(min(us), 10.0 - 1e-4)
+        # The kept side reaches as far as the whole drum did.
+        whole = [2, 10.0, 10.0, 0, 1, 10.0, 10.0, 18.0, 8.0, 0.0, 0.5, 0.0, 0.0, 0, 0, 1]
+        scene["props"] = [whole]
+        whole_us = [v[0] + 50.0 for b in decode_wall_sidecar(encode_wall_sidecar(scene))["batches"]
+                    if b["fly_only"] for v in b["vertices"]]
+        self.assertLess(min(whole_us), 10.0)    # the drum did cross the plane
+        self.assertAlmostEqual(max(us), max(whole_us), places=3)
 
     def test_faces_name_the_map_object_they_show(self):
         from types import SimpleNamespace
@@ -796,10 +1341,12 @@ class WallSidecarTests(unittest.TestCase):
         self.assertGreater(fly(solid), fly(mesh))
         self.assertEqual(fly(None), fly(solid))  # without the atlas every wall counts as solid
         # A lower wall gets no fin: the core's arm in it stays below its top.
+        # (The corner's cap piece stands a hair above the top by design, and a
+        # clear mesh takes no cap at all: no column of its band stays opaque.)
         scene["walls"][1][6], scene["walls"][1][9] = 0.9, 0.8
         vertices = lambda atlas: {tuple(round(n, 4) for n in v[:3]) for batch in decode_wall_sidecar(
             encode_wall_sidecar(scene, atlas=[atlas]))["batches"] if batch["fly_only"] for v in batch["vertices"]}
-        arm = [z for x, z, y in vertices(solid) - vertices(mesh) if y + 50.0 < 1.7]
+        arm = [z for x, z, y in vertices(solid) - vertices(mesh) if y + 50.0 < 1.7 and z < 0.8 + 0.002]
         self.assertTrue(arm)
         self.assertLessEqual(max(arm), 0.8)
 
@@ -928,6 +1475,19 @@ class BakedSidecarTests(unittest.TestCase):
         entries = baked_objects(scene, objects)
         self.assertIn((300, 0x02000099, BAKED_FLY_SKIP, 0.0, 0.0, 0.0), entries)
         self.assertIn((400, 0x00000036, BAKED_SKIP, 0.0, 0.0, 0.0), entries)
+        self.assertEqual(decode_baked_sidecar(encode_baked_sidecar(entries)), entries)
+
+    def test_a_card_on_the_hand_list_keeps_its_plane(self):
+        scene, objects = self.sample()
+        objects += [self.MapObject(600, 0x02000020), self.MapObject(700, 0x02000030), self.MapObject(800, 0x03000040)]
+        scene["sprites"] = [[0, 0, 0, 30, 15], [0, 0, 0, 20, 40]]  # low, tall
+        scene["boards"] += [[1, 1, 1, 0, 0, 5], [1, 1, 1, 0, 0, 6], [1, 1, 1, 0, 0, 7]]
+        names = {0x02000020: "NJUNK1.FRM", 0x02000030: "other.frm", 0x03000040: "NJUNK1.FRM"}
+        entries = baked_objects(scene, objects, frozenset(), frozenset({"njunk1.frm"}), names.get)
+        self.assertIn((600, 0x02000020, BAKED_FIXED_CARD, 0.0, 0.0, 0.0), entries)   # on the list
+        self.assertNotIn(700, [entry[0] for entry in entries])                         # not on it
+        self.assertNotIn(800, [entry[0] for entry in entries])                         # a wall type
+        self.assertNotIn(BAKED_FIXED_CARD, [entry[2] for entry in baked_objects(scene, objects)])
         self.assertEqual(decode_baked_sidecar(encode_baked_sidecar(entries)), entries)
 
     def test_a_detail_of_a_joined_thing_hides_its_card_in_flight_beside_forms(self):
@@ -1299,5 +1859,248 @@ class LidDrumTests(unittest.TestCase):
         self.assertFalse(res[1].lid)   # the feet are not a cap: no lid drum, whatever wins
 
 
+class CarveTests(unittest.TestCase):
+    """Task 120: the carve fallback - a multi-view art the plain fit refused
+    stands as the forced box raised to the art's own height bands."""
+
+    @staticmethod
+    def box_sprite(a, b, lifts):
+        """The true projection of a row of floor-standing boxes (the carve's
+        body and cabin): the near corner right of centre, the boxes marching
+        along the long axis, each `lift` px tall."""
+        import numpy as np
+        from vendor.fp import props
+        ones = np.ones((150, 280), bool)
+        geom = props.Shape(ones, 0, 0)
+        corner = (190.0, 100.0)
+        alpha = np.zeros_like(ones)
+        y = geom.top + np.arange(geom.h)[:, None] + 0.5
+        for n, (run, lift) in enumerate(lifts):
+            block = props.Block(geom, (corner[0] - n * run * props.proj.SQ_U[0], corner[1] - n * run * props.proj.SQ_U[1]),
+                                run, b, 0)
+            alpha |= (y >= block.far[None, :] - lift) & (y < block.near[None, :]) & block.on[None, :]
+        return alpha
+
+    def test_a_car_profile_splits_into_body_and_cabin(self):
+        from vendor.fp import props
+        alpha = self.box_sprite(1.3, 0.9, [(0.8, 22), (0.5, 36)])
+        shape, fit = props.fit(alpha, 0, 0, force="box")
+        carved = props.carved(shape, fit)
+        lifts = sorted(block.lift for block in carved.blocks)
+        self.assertGreaterEqual(len(lifts), 2)                  # the bands split
+        self.assertLess(lifts[0], 22 + 7)                       # the body's own height
+        self.assertGreater(lifts[-1], 36 - 7)                   # the cabin's own height
+        self.assertAlmostEqual(carved.z1, lifts[-1] / props.proj.HPX, places=3)
+
+    def test_a_flat_profile_keeps_one_block_at_the_sprites_height(self):
+        from vendor.fp import props
+        alpha = self.box_sprite(1.4, 0.9, [(1.4, 28)])
+        shape, fit = props.fit(alpha, 0, 0, force="box")
+        carved = props.carved(shape, fit)
+        self.assertEqual(len(carved.blocks), 1)
+        self.assertAlmostEqual(carved.blocks[0].lift, 28.0, delta=7)
+
+    def test_placeholder_cards_are_no_directions(self):
+        from vendor.fp import props
+        import numpy as np
+        view = np.zeros((20, 30), bool)
+        view[4:16, 3:26] = True                                 # a silhouette: open canvas around it
+        card = np.ones((22, 46), bool)                          # the UNUSED ART card: edge to edge
+        self.assertEqual(props.real_directions([view, view, card, card]), 2)
+        self.assertEqual(props.real_directions([card]), 0)
+        self.assertEqual(props.real_directions([view]), 1)
+
+    def test_the_carve_takes_long_low_arts_only(self):
+        # 123: the carve's ground boxes would lie a tall leaning frame down;
+        # the vehicles' profile is long and low.
+        import numpy as np
+        from vendor.fp import props
+        wide = np.zeros((40, 130), bool)
+        wide[10:32, 4:126] = True                               # a car's side view
+        tall = np.zeros((140, 100), bool)
+        tall[6:134, 20:80] = True                               # a leaning burnt frame
+        self.assertGreaterEqual(props.real_aspect([wide, wide]), props.CARVE_LONG)
+        self.assertLess(props.real_aspect([tall, tall]), props.CARVE_LONG)
+        # the placeholder cards count in neither measure
+        card = np.ones((22, 46), bool)
+        self.assertLess(props.real_aspect([tall, tall, card, card]), props.CARVE_LONG)
+
+
+class WallCardTests(unittest.TestCase):
+    """123: a burnt rebar piece joins its wall - the baked sidecar's PLANE."""
+
+    def test_a_wall_card_row_names_the_run_s_plane(self):
+        import math
+        row = [51.5339, 20.9883, 51.5339, 24.7695, 1]           # a run along v, one object
+        scene = {"walls": [], "boards": [], "wallCards": [row]}
+        objects = [BakedSidecarTests.MapObject(9302, 0x2000505), BakedSidecarTests.MapObject(9303, 0x2000506)]
+        entries = baked_objects(scene, objects)
+        self.assertEqual(len(entries), 1)
+        tile, fid, mode, du, dv, dz = entries[0]
+        self.assertEqual((tile, fid), (9303, 0x2000506))
+        self.assertEqual(mode & 0x7FFFFFFF, BAKED_PLANE)
+        self.assertAlmostEqual(du, row[0] - GL_MAP_OFFSET)
+        self.assertAlmostEqual(dv, row[1] - GL_MAP_OFFSET)
+        self.assertAlmostEqual(dz, math.atan2(row[3] - row[1], row[2] - row[0]))
+
+
+class BackSpriteTests(unittest.TestCase):
+    """Task 124: the carve's back view - the art's own opposite direction
+    composed into the near view's pixel frame, and the gates that keep the
+    plain mirror."""
+
+    palette_rgba = None                                        # built once, below
+
+    @classmethod
+    def setUpClass(cls):
+        import numpy as np
+        cls.palette_rgba = np.zeros((4, 4), np.uint8)
+        cls.palette_rgba[1] = (200, 30, 30, 255)               # the near view's colour
+        cls.palette_rgba[2] = (30, 30, 200, 255)               # the opposite view's colour
+
+    @staticmethod
+    def stub_frm(views, x_offsets):
+        """A directions-wide Frm stub over index-array views, the real
+        placement math, one frame per direction."""
+        import types
+
+        class StubFrm:
+            direction_count, frame_count = len(views), 1
+            y_offsets = [0] * len(views)
+
+            def __init__(self):
+                self.x_offsets = x_offsets
+
+            def frame(self, direction, index=0):
+                return types.SimpleNamespace(array=lambda: views[direction])
+
+            def placement(self, direction, index=0, obj_x=0, obj_y=0):
+                height, width = views[direction].shape
+                return (self.x_offsets[direction] + obj_x - width // 2, self.y_offsets[direction] + obj_y - (height - 1),
+                        width, height)
+
+            def rgba(self, palette, direction, index=0):
+                return palette.rgba[views[direction]]
+
+        return StubFrm()
+
+    def builder(self, stub):
+        import types
+        from vendor.fp.atlas import Atlas
+        from vendor.fp.scene import SceneBuilder
+        box = SceneBuilder.__new__(SceneBuilder)
+        box.atlas = Atlas()
+        box.sprites = []
+        box._sprite_ids = {}
+        palette = types.SimpleNamespace(rgba=self.palette_rgba)
+        box.gf = types.SimpleNamespace(art=types.SimpleNamespace(load=lambda fid: stub),
+                                       palette=types.SimpleNamespace(glow_sprite=palette))
+        return box
+
+    def views(self, opposite):
+        """Six views: the near view (direction 0) a red 23x15 blob on a 20x30
+        canvas, direction `opposite` a blue 27x17 blob covering it at the
+        world alignment (its x_offset sits 4 px round), the rest red."""
+        import numpy as np
+        near = np.zeros((20, 30), np.uint8)
+        near[3:18, 4:27] = 1
+        views = [near.copy() for _ in range(6)]
+        if opposite is not None:
+            back = np.zeros((20, 30), np.uint8)
+            back[2:19, 2:29] = 2
+            views[opposite] = back
+        return views
+
+    def piece(self):
+        import types
+        return types.SimpleNamespace(
+            obj=types.SimpleNamespace(fid=0x2000500, rotation=0, frame=0, x=0, y=0))
+
+    def test_the_opposite_view_composes_over_the_near_body(self):
+        import numpy as np
+        from vendor.fp.scene import SceneBuilder
+        views = self.views(3)
+        stub = self.stub_frm(views, [0, 0, 0, 4, 0, 0])
+        box = self.builder(stub)
+        frames = [view != 0 for view in views]
+        left, top, _, _ = stub.placement(0, 0)
+        back = SceneBuilder.back_sprite(box, self.piece(), self.palette_rgba[views[0]], frames, left, top)
+        self.assertGreaterEqual(back, 0)
+        image, ox, oy = box.sprites[back]
+        got = box.atlas.images[image]
+        col0, row0 = ox - left, oy - top
+        # where only the opposite is opaque, its blue; where only the near is,
+        # the near's red as the fallback; and the near silhouette stays whole
+        self.assertEqual(tuple(got[10 - row0, 28 - col0]), (30, 30, 200, 255))
+        self.assertEqual(tuple(got[10 - row0, 5 - col0]), (200, 30, 30, 255))
+        near_alpha = views[0] != 0
+        for i, j in zip(*np.nonzero(near_alpha)):
+            self.assertTrue(got[i - row0, j - col0, 3] > 0, f"hole over the near body at {i}, {j}")
+
+    def test_a_placeholder_opposite_keeps_the_mirror(self):
+        import numpy as np
+        from vendor.fp.scene import SceneBuilder
+        views = self.views(3)
+        views[3] = np.ones((22, 46), np.uint8)                  # the UNUSED ART card
+        stub = self.stub_frm(views, [0, 0, 0, 4, 0, 0])
+        back = SceneBuilder.back_sprite(self.builder(stub), self.piece(), self.palette_rgba[views[0]],
+                                        [v != 0 for v in views], *stub.placement(0, 0)[:2])
+        self.assertEqual(back, -1)
+
+    def test_an_opposite_too_small_against_the_near_body_keeps_the_mirror(self):
+        import numpy as np
+        from vendor.fp.scene import SceneBuilder
+        views = self.views(3)
+        views[3] = np.zeros((20, 30), np.uint8)
+        views[3][8:12, 12:16] = 2                               # 16 texels of 345: under BACK_COVER
+        stub = self.stub_frm(views, [0, 0, 0, 4, 0, 0])
+        back = SceneBuilder.back_sprite(self.builder(stub), self.piece(), self.palette_rgba[views[0]],
+                                        [v != 0 for v in views], *stub.placement(0, 0)[:2])
+        self.assertEqual(back, -1)
+
+    def test_an_art_without_opposite_directions_keeps_the_mirror(self):
+        from vendor.fp.scene import SceneBuilder
+        views = self.views(3)[:3]                               # three stored directions
+        stub = self.stub_frm(views, [0, 0, 0])
+        back = SceneBuilder.back_sprite(self.builder(stub), self.piece(), self.palette_rgba[views[0]],
+                                        [v != 0 for v in views], *stub.placement(0, 0)[:2])
+        self.assertEqual(back, -1)
+
+
 if __name__ == "__main__":
     unittest.main()
+
+
+class FillHolesBandTests(unittest.TestCase):
+    """121: the band pass - a transparent gap the shape straddles fills."""
+
+    def test_a_lid_gap_over_a_body_fills(self):
+        from vendor.fp.props import fill_holes
+        import numpy as np
+        rgba = np.zeros((12, 10, 4), np.uint8)
+        rgba[..., :3] = 200
+        rgba[1:4, 2:8, 3] = 255          # the lid
+        rgba[7:11, 1:9, 3] = 255         # the body
+        out = fill_holes(rgba)
+        self.assertTrue((out[4:7, 3:7, 3] == 255).all())   # the gap between them filled
+        self.assertTrue((out[0, :, 3] == 0).all())          # the open border stays
+
+    def test_an_open_sky_cutout_stays_open(self):
+        from vendor.fp.props import fill_holes
+        import numpy as np
+        rgba = np.zeros((10, 10, 4), np.uint8)
+        rgba[..., :3] = 200
+        rgba[1:9, 1:3, 3] = 255           # a left post
+        rgba[1:9, 7:9, 3] = 255           # a right post
+        out = fill_holes(rgba)
+        self.assertTrue((out[1:9, 4:6, 3] == 0).all())      # between the posts: open to the top
+
+    def test_a_tall_gap_between_rails_stays_open(self):
+        from vendor.fp.props import fill_holes
+        import numpy as np
+        rgba = np.zeros((20, 10, 4), np.uint8)
+        rgba[..., :3] = 200
+        rgba[1:4, 1:9, 3] = 255           # the upper rail
+        rgba[12:15, 1:9, 3] = 255         # the lower rail: 8 open rows between
+        out = fill_holes(rgba)
+        self.assertTrue((out[4:12, 3:7, 3] == 0).all())     # a real gap the game's view shows too

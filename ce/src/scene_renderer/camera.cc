@@ -292,6 +292,28 @@ bool staticGameViewCamera(StaticFlyCamera* camera)
     return true;
 }
 
+bool gameViewGroundStep(double stepX, double stepY, double horizontal[2], double vertical[2])
+{
+    GameView view;
+    if (!currentGameView(&view) || view.logicalHeight <= 0) return false;
+    const double middleX = view.screenCenterSet ? view.screenCenter[0] : view.logicalWidth / 2.0;
+    const double middleY = view.screenCenterSet ? view.screenCenter[1] : view.logicalHeight / 2.0;
+    // Central differences: the projection is oblique and in perspective, so the
+    // step is measured on both sides of the center.
+    double leftX, leftZ, rightX, rightZ, upX, upZ, downX, downZ;
+    if (!gameViewPickGround(view, middleX - stepX, middleY, &leftX, &leftZ)
+        || !gameViewPickGround(view, middleX + stepX, middleY, &rightX, &rightZ)
+        || !gameViewPickGround(view, middleX, middleY - stepY, &upX, &upZ)
+        || !gameViewPickGround(view, middleX, middleY + stepY, &downX, &downZ)) {
+        return false;
+    }
+    horizontal[0] = (rightX - leftX) / 2.0;
+    horizontal[1] = (rightZ - leftZ) / 2.0;
+    vertical[0] = (downX - upX) / 2.0;
+    vertical[1] = (downZ - upZ) / 2.0;
+    return true;
+}
+
 StaticPreviewCamera staticPreviewCamera(bool withWalls)
 {
     GroundPickCamera camera = staticPreviewCameraParameters(withWalls);

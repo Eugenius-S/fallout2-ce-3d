@@ -115,6 +115,12 @@ int& activeTextSharpOffsetY()
     return value;
 }
 
+int& activeTextRightAlignX()
+{
+    static thread_local int value = -1;
+    return value;
+}
+
 scene::TextSizeRole& activeTextSizeRole()
 {
     static thread_local scene::TextSizeRole value = scene::TextSizeRole::Default;
@@ -350,6 +356,17 @@ ScopedTextCaptureTag::~ScopedTextCaptureTag()
     activeTextCaptureTag() = previous_;
     activeTextOutlineColor() = previousOutlineColor_;
     activeTextSharpOffsetY() = previousSharpTextOffsetY_;
+}
+
+ScopedTextRightAlign::ScopedTextRightAlign(int right)
+    : previous_(activeTextRightAlignX())
+{
+    activeTextRightAlignX() = right;
+}
+
+ScopedTextRightAlign::~ScopedTextRightAlign()
+{
+    activeTextRightAlignX() = previous_;
 }
 
 ScopedTextOutlineCapture::ScopedTextOutlineCapture(unsigned char* buffer, int width, int height, int pitch)
@@ -616,7 +633,10 @@ void textCaptureDrawText(unsigned char* buffer, const char* string, int length, 
     run.colorAndFlags = static_cast<unsigned int>(color);
     run.hasOutline = outlinedRun;
     run.outlineColor = outlinedRun ? static_cast<unsigned int>(activeTextOutlineColor()) : 0;
-    run.sharpEligible = run.font == 101;
+    // The original preferences knobs overlap the font's line box. Keep their
+    // compact value labels in the pixel font so the sharp overlay cannot move
+    // or draw them on top of the knob artwork.
+    run.sharpEligible = run.font == 101 && activeTextCaptureTag() != TextCaptureTag::PreferencesControl;
     const Color sourceColor = static_cast<Color>(static_cast<unsigned int>(color) & 0xFF);
     if (run.sharpEligible && isSemanticGreenColor(sourceColor)) {
         if (activeTextCaptureTag() == TextCaptureTag::CharacterStatsPlaque && sourceColor == COLOR_DARK_GREEN_2) {
@@ -635,6 +655,7 @@ void textCaptureDrawText(unsigned char* buffer, const char* string, int length, 
     run.verticalAlignmentBoxY = centeredStatDescription ? verticalBoxY : 0;
     run.verticalAlignmentBoxHeight = verticalBoxHeight;
     run.sharpTextOffsetY = sharpTextOffsetY;
+    run.sharpRightAlignX = activeTextRightAlignX();
     run.characterX.reserve(characterOffsets.size());
     for (int offset : characterOffsets) run.characterX.push_back(x + offset);
     run.characterCellX.reserve(cellOffsets.size());

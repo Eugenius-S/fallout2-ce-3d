@@ -163,6 +163,8 @@ extern int gSceneGlassGrayLocation;
 extern int gScenePickLocation;
 extern int gSceneClipEnabledLocation;
 extern int gSceneClipPlaneLocations[4];
+extern int gSceneRoofClipLocation;
+extern int gSceneRoofGridLocation;
 // The see-through circle (roofs.cc): on/off, its mask (texture unit 1), its
 // rect in game logical pixels, and the GL viewport and logical size to find
 // a fragment's game pixel.
@@ -204,6 +206,8 @@ extern int gSceneShadowOnLocation;
 extern int gSceneShadowMatrixLocation;
 extern int gSceneShadowMapLocation;
 extern int gSceneShadowIdsLocation;
+extern int gSceneShadowOccupancyLocation;
+extern int gSceneShadowOccupancyOnLocation;
 extern int gSceneShadowStrengthLocation;
 extern int gSceneShadowDensityLocation;
 extern int gSceneShadowLightLocation;
@@ -249,9 +253,35 @@ struct RoofSquare {
     int index; // square index, y * 100 + x, as the engine's tileFid
     float x0, z0, x1, z1;
     float u0, v0, u1, v1;
+    // A wall-top tile (roof_fringe.py) stands up under the fly camera: its
+    // pieces, one per wall edge the tile sits on (a corner tile has two), are
+    // the tile's stretch of a band on the wall top below that roof edge.
+    bool fringe = false;
+    float tileX = 0, tileZ = 0; // the square's own corner, GL units
+    struct FringePiece {
+        int edge = 0; // 0: v = plane, 1: v = plane, 2: u = plane, 3: u = plane
+        float plane = 0; // the wall's plane, GL units
+        // The band's bottom (the wall's top, GL height) and its stretch along
+        // the wall, GL units; plane is the wall's outer face.
+        float bottom = 0, span0 = 0, span1 = 0;
+        // The strip's texture (normalized): u at the stretch's low and high
+        // end along the wall, v at the strip's top and bottom row.
+        float uLow = 0, uHigh = 0, vTop = 0, vBottom = 0;
+        // The band's height in strip rows (art pixels, one row a pixel of the game's wall).
+        float rows = 0;
+    };
+    FringePiece pieces[2];
+    int pieceCount = 0;
+    // A mixed tile's roof under the free camera: the flat square comes from a
+    // cell of roof_fringe.png (the wall-top part cut out), drawn with that
+    // texture, in these coordinates.
+    bool patch = false;
+    float patchU0 = 0, patchV0 = 0, patchU1 = 0, patchV1 = 0;
 };
 
 void setRoofSquares(std::vector<RoofSquare> squares);
+// roof_fringe.png as a texture the roofs own (deleted with them); 0 for none.
+void setRoofFringeTexture(unsigned int texture);
 void destroyRoofs();
 // With the scene program in use and the game view's matrix set.
 void drawRoofs(int viewportX, int viewportY, int viewportWidth, int viewportHeight);
@@ -261,6 +291,12 @@ void roofShadowCasters(unsigned int* vao, int* vertexCount);
 // Binds the egg's mask (unit 1) and sets its rect and the viewport; false when
 // no egg is shown.
 bool bindEgg(int viewportX, int viewportY, int viewportWidth, int viewportHeight);
+// The height cards are cut at where a roof covers them (114): the roof plane,
+// 0 when the map has no roofs. The game's own view hides a room's cards above
+// it behind the roof's picture; bindRoofGrid gives the shader the squares the
+// roofs cover right now, the egg's see-through circle included.
+float roofClipHeight();
+void bindRoofGrid(int unit);
 
 // --- lighting.cc: the game's light as point lights -----------------------------
 

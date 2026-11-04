@@ -13,6 +13,7 @@
 #include <time.h>
 #include <cctype>
 #include <cmath>
+#include <string>
 
 #include <algorithm>
 #include <exception>
@@ -56,6 +57,7 @@
 #include "../scene/scene_objects.h"
 #include "../scene/scene_settings.h"
 #include "../scene/scene_view.h"
+#include "../scene_renderer/perf.h"
 #include "../scene_renderer/game_view.h"
 #include "../scene_renderer/camera.h"
 #include "../scene_renderer/context.h"
@@ -134,6 +136,7 @@ int gClockLadderStage = -1;
 bool gPreferencesSnapshotPending = false;
 bool gPreferencesSnapshotActive = false;
 bool gPreferencesSnapshotBottom = false;
+std::string gPreferencesSnapshotDropdown;
 // --dev-map-tour: the map elevations to visit after the startup one; the
 // step counts snapshots taken (-1: no tour).
 struct TourStop {
@@ -160,6 +163,7 @@ bool gDevCycleZero = false;
 int gGlowLadderStep = -1;
 std::vector<double> gGlowLevels = { 0.5, 1.0, 2.0, 4.0, 8.0 };
 bool gBackgroundShadows = false; // --dev-shadows: sun and cloud shadows stay on in a background run
+bool gBackgroundSunShadows = false; // --dev-sun-shadows: sun shadows only, for A/B captures
 bool gBackgroundCloudShadows = false; // --dev-cloud-shadows: clouds only, for A/B captures
 double gDevCloudPhase = -1.0; // --dev-cloud-phase: cloud-only time, in game minutes
 int gShadowDebug = 0; // --dev-shadow-debug=N: 1 factor, 2 fade, 3 coverage
@@ -176,6 +180,7 @@ bool gDevFly = false; // --dev-fly: the fly camera takes off at the first 3D fra
 // from it (a side view of a thing).
 double gDevFlyTurn = 0.0;
 double gDevCameraTurn = 0; // degrees; legacy --dev-camera-turn=N still means quarter turns
+bool gDevCameraTurnKeys = false; // --dev-camera-turn-keys: this background run wants [ and ] to work
 double gDevFlyPitch = -1.0;
 double gDevFlyDistance = -1.0;
 double gDevFlyLift = 0.0; // move the inspection camera vertically after aiming
@@ -730,20 +735,33 @@ static bool applyElevationChange(int elevation)
         targetTile = gMapHeader.enteringTile;
     }
     if (targetTile == -1) {
+        // Small upstairs floors (denbus2's second storey) stand nowhere near
+        // the dude or the entrance: take the nearest free tile of the whole
+        // elevation, deterministic first-found minimum.
+        int bestDistance = -1;
+        for (int tile = 0; tile < HEX_GRID_WIDTH * HEX_GRID_HEIGHT; tile++) {
+            if (!elevationTileFree(tile, elevation)) {
+                continue;
+            }
+            const int distance = tileDistanceBetween(gDude->tile, tile);
+            if (bestDistance == -1 || distance < bestDistance) {
+                bestDistance = distance;
+                targetTile = tile;
+            }
+        }
+    }
+    if (targetTile == -1) {
         snprintf(gStatus, sizeof(gStatus), uiText("no free tile on elevation %d"), elevation);
         return false;
     }
 
-    MapTransition transition;
-    transition.map = gMapHeader.index;
-    transition.elevation = static_cast<MapElevation>(elevation);
-    transition.tile = targetTile;
-    transition.rotation = static_cast<Rotation>(-1);
-
-    if (mapSetTransition(&transition) == -1) {
-        setStatus("transition rejected");
-        return false;
-    }
+    // Direct placement, not the engine's map transition: mapHandleTransition
+    // refuses tile-based placement on a vanilla blacklist of maps (the Modoc
+    // bed and breakfast, the Squat A), which is exactly where the small
+    // floors live, so a same-map transition would never move the dude there.
+    objectSetLocation(gDude, targetTile, static_cast<MapElevation>(elevation), nullptr);
+    mapSetElevation(static_cast<MapElevation>(elevation));
+    tileSetCenter(gDude->tile, TILE_SET_CENTER_REFRESH_WINDOW);
     return true;
 }
 
@@ -755,6 +773,12 @@ bool parseOption(const char* arg)
 {
     if (strcmp(arg, "--dev-tools") == 0) {
         gEnabled = true;
+        return true;
+    }
+    if (gEnabled && parseScriptedInputOption(arg)) {
+        // A scene script is pumped from the main loop itself; only the
+        // options-panel script opens the options screen.
+        if (!scriptedInputSceneMode()) gPreferencesSnapshotPending = true;
         return true;
     }
     if (strcmp(arg, "--dev-panel-snapshot") == 0) {
@@ -865,6 +889,16 @@ bool parseOption(const char* arg)
     if (parseUiFixtureFont101WeightOption(arg)) return true;
     if (strcmp(arg, "--dev-preferences-snapshot") == 0) {
         gPreferencesSnapshotPending = true;
+        return true;
+    }
+    constexpr char preferencesDropdownPrefix[] = "--dev-preferences-dropdown=";
+    if (strncmp(arg, preferencesDropdownPrefix, sizeof(preferencesDropdownPrefix) - 1) == 0) {
+        const char* value = arg + sizeof(preferencesDropdownPrefix) - 1;
+        if (strcmp(value, "resolution") == 0 || strcmp(value, "mode") == 0) {
+            gPreferencesSnapshotDropdown = value;
+        } else {
+            fprintf(stderr, "devtools: invalid preferences dropdown (expected resolution or mode)\n");
+        }
         return true;
     }
     const char* sharpTextPrefix = "--dev-sharp-text=";
@@ -985,6 +1019,11 @@ bool parseOption(const char* arg)
         debugPrint("DEVTOOLS: sun and cloud shadows stay on in this background run\n");
         return true;
     }
+    if (strcmp(arg, "--dev-sun-shadows") == 0) {
+        gBackgroundSunShadows = true;
+        debugPrint("DEVTOOLS: sun shadows stay on without cloud shadows in this background run\n");
+        return true;
+    }
     if (strcmp(arg, "--dev-cloud-shadows") == 0) {
         gBackgroundCloudShadows = true;
         debugPrint("DEVTOOLS: cloud shadows stay on in this background run\n");
@@ -1065,6 +1104,10 @@ bool parseOption(const char* arg)
     const char* zoomPrefix = "--dev-zoom=";
     if (strncmp(arg, zoomPrefix, strlen(zoomPrefix)) == 0) {
         gDevZoom = std::clamp(strtod(arg + strlen(zoomPrefix), nullptr), 0.25, 4.0);
+        return true;
+    }
+    if (strcmp(arg, "--dev-camera-turn-keys") == 0) {
+        gDevCameraTurnKeys = true;
         return true;
     }
     const char* heroPrefix = "--dev-hero-tile=";
@@ -1205,6 +1248,8 @@ void applyFixedScreenOptions()
     settings.screen.resolution_x = gFixedScreenOptions.width;
     settings.screen.resolution_y = gFixedScreenOptions.height;
     settings.screen.scale = gFixedScreenOptions.scale;
+    settings.screen.scale_factor = gFixedScreenOptions.scaleFactor;
+    settings.screen.resolution_mode = 0;
     settings.screen.windowed = WindowMode::Windowed;
     // A background test run shares game/fallout2.cfg with the owner's game:
     // the owner's zoom and camera rotation must not move its views.
@@ -1213,12 +1258,12 @@ void applyFixedScreenOptions()
         settings.scene3d.camera_rotation = false;
         settings.scene3d.glow = gBackgroundGlow;
         if (gDevGlowStrength >= 0.0) settings.scene3d.glow_strength = gDevGlowStrength;
-        settings.scene3d.shadows = gBackgroundShadows;
+        settings.scene3d.shadows = gBackgroundShadows || gBackgroundSunShadows;
         settings.scene3d.cloud_shadows = gBackgroundShadows || gBackgroundCloudShadows;
         if (gDevNoSpriteSides) settings.scene3d.sprite_sides = false;
     }
-    debugPrint("DEVTOOLS: fixed screen %dx%d scale %d, windowed, glow %d%s\n",
-        gFixedScreenOptions.width, gFixedScreenOptions.height, gFixedScreenOptions.scale,
+    debugPrint("DEVTOOLS: fixed screen %dx%d scale %.1fx, windowed, glow %d%s\n",
+        gFixedScreenOptions.width, gFixedScreenOptions.height, gFixedScreenOptions.scaleFactor,
         settings.scene3d.glow ? 1 : 0, gBackgroundGlow ? " (kept on)" : "");
 }
 
@@ -1233,7 +1278,7 @@ void applyBackgroundGlow()
 void applyBackgroundShadows()
 {
     if (backgroundCaptureActive()) {
-        settings.scene3d.shadows = gBackgroundShadows;
+        settings.scene3d.shadows = gBackgroundShadows || gBackgroundSunShadows;
         settings.scene3d.cloud_shadows = gBackgroundShadows || gBackgroundCloudShadows;
     }
     if (gDevNoSpriteSides) settings.scene3d.sprite_sides = false;
@@ -1241,10 +1286,12 @@ void applyBackgroundShadows()
 
 // Runs after the command line is parsed (applyFixedScreenOptions is earlier),
 // so --dev-zoom reaches the scene: a background run is pinned to zoom 1
-// unless the dev argument names another one.
+// unless the dev argument names another one. --dev-camera-turn-keys restores
+// the turn its isolated config asked for.
 void applyBackgroundZoom()
 {
     if (backgroundCaptureActive() && gDevZoom > 0.0) settings.scene3d.zoom = gDevZoom;
+    if (backgroundCaptureActive() && gDevCameraTurnKeys) settings.scene3d.camera_rotation = true;
 }
 
 bool isEnabled()
@@ -1260,6 +1307,11 @@ bool wantsListMaps()
 bool stillSnapshotRequested()
 {
     return gEnabled && gStillSnapshot;
+}
+
+bool gameMoviesSuppressed()
+{
+    return stillSnapshotRequested();
 }
 
 void prepareStillSnapshot()
@@ -1409,6 +1461,17 @@ void update()
 {
     if (!gEnabled) {
         return;
+    }
+    if (!gPreferencesSnapshotActive && scriptedInputActive()) {
+        // A scene script (no -Preferences) starts itself once the 3D view is
+        // up; the options panel's own loop begins the panel scripts.
+        if (!scriptedInputStarted() && scene::activeView() == scene::View::Full && scene::shouldPresent()) {
+            scriptedInputBegin();
+        }
+        if (scriptedInputStarted()) {
+            scriptedInputPump();
+            if (scriptedInputTakeSnapshotRequest()) { renderPresent(); takeSnapshot(); }
+        }
     }
     // The startup --dev-map travel retries here until the opening movie is
     // over and the transition is accepted (089).
@@ -1779,6 +1842,13 @@ void update()
                 gStartupTargetAwaitingFinal = true;
                 snprintf(gStatus, sizeof(gStatus), uiText("moving to elevation %d"), gPendingElevationValue);
                 return; // let the scheduled transition settle before preview activation
+            } else {
+                // Nothing standable on the target elevation: settle at what
+                // loaded, the sidecar's map and elevation stay honest.
+                printf("devtools: elevation %d unreachable on %s: %s\n", gPendingElevationValue, gMapHeader.name,
+                    gStatus);
+                fflush(stdout);
+                gStartupTargetAwaitingFinal = false;
             }
         }
         if (!gStartupTargetAwaitingFinal) gStartupTargetSettled = true;
@@ -1920,6 +1990,11 @@ bool preferencesSnapshotRequested()
 bool preferencesSnapshotAtBottom()
 {
     return gPreferencesSnapshotBottom;
+}
+
+const char* preferencesSnapshotDropdown()
+{
+    return gPreferencesSnapshotDropdown.c_str();
 }
 
 bool suppressInitialSceneEnable()
@@ -2381,6 +2456,7 @@ void scenePresented(const scene::RefreshResult& refreshed)
         return; // still settling
     }
     if (refreshed.heroUpdated && gSnapshotOncePending) {
+        if (scene_renderer::perfHolding()) return;
         if (focusMuzzleFixture() || focusWeaponEffectFixture()) return;
         if ((gScrollProbeKey >= 0 && gScrollProbeStage < 2) || (gScrollEdgeDirection >= 0 && gScrollEdgeStage < 2)
             || (gFollowHeroProbe && gFollowHeroStage < 2) || (gWalkProbe && gWalkProbeStage < 2)) return;
@@ -3454,6 +3530,13 @@ bool takeSnapshot()
     }
     int drawableW = capturedWidth;
     int drawableH = capturedHeight;
+    int windowW = capturedWidth;
+    int windowH = capturedHeight;
+    int windowX = 0;
+    int windowY = 0;
+    int sdlDrawableW = capturedWidth;
+    int sdlDrawableH = capturedHeight;
+    Uint32 windowFlags = 0;
     unsigned int wallTriangles = 0;
     unsigned int wallPages = 0;
     if (withWalls) scene_renderer::staticWallStats(&wallTriangles, &wallPages);
@@ -3509,8 +3592,15 @@ bool takeSnapshot()
             "{\"enabled\":false,\"setting_enabled\":%s,\"variant\":\"%s\",\"source\":\"disabled\"}",
             scene::cleanEdges() ? "true" : "false", clipVariant);
     }
+    if (gSdlWindow != nullptr) {
+        SDL_GetWindowPosition(gSdlWindow, &windowX, &windowY);
+        SDL_GetWindowSize(gSdlWindow, &windowW, &windowH);
+        SDL_GL_GetDrawableSize(gSdlWindow, &sdlDrawableW, &sdlDrawableH);
+        windowFlags = SDL_GetWindowFlags(gSdlWindow);
+    }
     if (!preview && gSdlWindow != nullptr) {
-        SDL_GL_GetDrawableSize(gSdlWindow, &drawableW, &drawableH);
+        drawableW = sdlDrawableW;
+        drawableH = sdlDrawableH;
     }
     // Preview snapshots come before the first frame that would update it.
     scene::updateSunFromGame();
@@ -3548,6 +3638,7 @@ bool takeSnapshot()
         "  \"sharp_text\": {\"setting\":%s,\"active\":%s,\"drawn\":%s,\"runs\":%u,\"glyphs\":%u,\"restored_pixels\":%u,\"prepare_ms\":%.3f},\n"
         "  \"map_clip\": %s,\n"
         "  \"camera\": \"%s\",\n"
+        "  \"camera_turn\": %.4f,\n"
         "  \"wall_triangles\": %u,\n"
         "  \"wall_pages\": %u,\n"
         "  \"hero\": %s,\n"
@@ -3564,8 +3655,11 @@ bool takeSnapshot()
         "  \"resolution\": \"%dx%d\",\n"
         "  \"logical_resolution\": \"%dx%d\",\n"
         "  \"scale\": %d,\n"
+        "  \"scale_factor\": %.1f,\n"
         "  \"windowed\": %s,\n"
         "  \"drawable\": \"%dx%d\",\n"
+        "  \"sdl_window\": {\"flags\": %u,\"window_position\": \"%d,%d\",\"window_size\": \"%dx%d\",\"drawable_size\": \"%dx%d\","
+        "\"fullscreen\": %s,\"fullscreen_desktop\": %s,\"borderless\": %s},\n"
         "  \"ce_commit\": \"%s\",\n"
         "  \"tools_commit\": \"%s\",\n"
         "  \"exe_sha256\": \"%s\",\n"
@@ -3593,6 +3687,7 @@ bool takeSnapshot()
         sharpText.prepareMilliseconds,
         clipMetadata,
         camera,
+        scene::cameraTurnAngle(),
         wallTriangles,
         wallPages,
         heroMetadata,
@@ -3613,9 +3708,21 @@ bool takeSnapshot()
         screenGetWidth(),
         screenGetHeight(),
         settings.screen.scale,
+        settings.screen.scale_factor,
         settings.screen.windowed == WindowMode::Windowed ? "true" : "false",
         drawableW,
         drawableH,
+        windowFlags,
+        windowX,
+        windowY,
+        windowW,
+        windowH,
+        sdlDrawableW,
+        sdlDrawableH,
+        (windowFlags & SDL_WINDOW_FULLSCREEN) != 0 ? "true" : "false",
+        (windowFlags & SDL_WINDOW_FULLSCREEN_DESKTOP) == SDL_WINDOW_FULLSCREEN_DESKTOP ? "true" : "false",
+        ((windowFlags & SDL_WINDOW_BORDERLESS) != 0
+                || (windowFlags & SDL_WINDOW_FULLSCREEN_DESKTOP) == SDL_WINDOW_FULLSCREEN_DESKTOP) ? "true" : "false",
         _BUILD_HASH,
         gToolsCommit,
         exeSha,

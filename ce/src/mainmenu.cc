@@ -671,6 +671,17 @@ static void mainMenuDrawButtonLabels(const MainMenuLayout& layout, const MainMen
         fontSettings = static_cast<Color>(fontSettingsSFall & COLOR_LAST) | DRAW_TEXT_FLAG_NONE;
     }
 
+    int panelOffsetX = MAIN_MENU_PANEL_OFFSET_X;
+    int panelOffsetY = MAIN_MENU_PANEL_OFFSET_Y;
+    configGetInt(&gContentConfig, CONTENT_CONFIG_MAIN_MENU_SECTION, "main_menu_panel_offset_x", &panelOffsetX, MAIN_MENU_PANEL_OFFSET_X);
+    configGetInt(&gContentConfig, CONTENT_CONFIG_MAIN_MENU_SECTION, "main_menu_panel_offset_y", &panelOffsetY, MAIN_MENU_PANEL_OFFSET_Y);
+    const bool hasPanelBounds = layout.art == MenuArt::Hires && mainMenuButtonPanelFrmImage.isLocked();
+    Point panelOrigin = mainMenuTransformPoint(layout, panelOffsetX, panelOffsetY);
+    Size panelSize = hasPanelBounds
+        ? mainMenuTransformSize(layout, mainMenuButtonPanelFrmImage.getWidth(), mainMenuButtonPanelFrmImage.getHeight())
+        : Size { 0, 0 };
+    const int panelRightInset = mainMenuTransformSize(layout, 14, 1).width;
+
     for (int index = 0; index < MAIN_MENU_BUTTON_COUNT; index++) {
         msg.num = mainMenuButtonSpecs[index].labelMessage;
         if (!messageListGetItem(&gMiscMessageList, &msg)) {
@@ -679,6 +690,55 @@ static void mainMenuDrawButtonLabels(const MainMenuLayout& layout, const MainMen
 
         int len = fontGetStringWidth(msg.text);
         Point labelPosition = mainMenuTransformPoint(layout, MAIN_MENU_BUTTON_LABEL_X, MAIN_MENU_BUTTON_LABEL_Y + index * MAIN_MENU_BUTTON_Y_STEP);
+        if (hasPanelBounds) {
+            // HR_MENU_BG.FRM keeps its red button and bevel in the left quarter.
+            // Start the shared label column after that artwork, then fit every
+            // translation between the same left and right bounds.
+            int rowLeft = panelOrigin.x + offsets.menuX + panelSize.width / 4;
+            int rowRight = panelOrigin.x + offsets.menuX + panelSize.width - panelRightInset;
+            int availableWidth = rowRight - rowLeft;
+            if (availableWidth <= 0 || len <= 0) {
+                continue;
+            }
+
+            if (layout.scaleControls) {
+                int naturalWidth = interfaceFontGetStringWidthScaled(msg.text, fontSettings, layout.scale);
+                float fit = naturalWidth > availableWidth
+                    ? static_cast<float>(availableWidth) / naturalWidth
+                    : 1.0f;
+                float textScale = layout.scale * fit;
+                int drawWidth = interfaceFontGetStringWidthScaled(msg.text, fontSettings, textScale);
+                int labelX = rowLeft + (availableWidth - drawWidth) / 2;
+                interfaceFontDrawTextScaled2D(Buffer2D(gMainMenuWindowBuffer, layout.screenWidth, layout.screenHeight),
+                    labelX,
+                    labelPosition.y + offsets.menuY,
+                    msg.text,
+                    fontSettings,
+                    textScale);
+                mainMenuMaskBackground(labelX,
+                    labelPosition.y + offsets.menuY - 2,
+                    drawWidth,
+                    fontGetLineHeight() + 4);
+                continue;
+            }
+
+            float fit = len > availableWidth
+                ? static_cast<float>(availableWidth) / len
+                : 1.0f;
+            int drawWidth = interfaceFontGetStringWidthScaled(msg.text, fontSettings, fit);
+            int lineHeight = fontGetLineHeight();
+            int labelX = rowLeft + (availableWidth - drawWidth) / 2;
+            int labelY = labelPosition.y + offsets.menuY;
+            interfaceFontDrawTextScaled2D(Buffer2D(gMainMenuWindowBuffer, layout.screenWidth, layout.screenHeight),
+                labelX,
+                labelY,
+                msg.text,
+                fontSettings,
+                fit);
+            mainMenuMaskBackground(labelX, labelY, drawWidth, lineHeight);
+            continue;
+        }
+
         if (!layout.scaleControls) {
             int labelY = labelPosition.y + offsets.menuY;
             int labelX = labelPosition.x + offsets.menuX - len / 2;
@@ -757,10 +817,6 @@ int mainMenuWindowInit()
     mainMenuDrawButtonLabels(layout, offsets);
 
     fontSetCurrent(oldFont);
-    mainMenuMaskBackground(std::max(0, layout.backgroundX),
-        layout.backgroundY + static_cast<int>(layout.backgroundHeight * 0.2f),
-        std::min(layout.screenWidth, static_cast<int>(layout.backgroundWidth * 0.28f)),
-        static_cast<int>(layout.backgroundHeight * 0.56f));
     mainMenuBackgroundFrmImage.unlock();
     mainMenuButtonPanelFrmImage.unlock();
 

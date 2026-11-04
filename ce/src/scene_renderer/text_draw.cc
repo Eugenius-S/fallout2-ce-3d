@@ -367,6 +367,16 @@ bool renderSharpText(const std::vector<scene::TextRecord>& records,
         };
         std::vector<PositionedGlyph> positioned;
         positioned.reserve(codepoints.size());
+        // The message log leads every message with the AAF bullet (cp1251
+        // 0x95), drawn by the vanilla font with no side bearing: its ink sits
+        // on the pen, and the first letter follows at the vanilla advance.
+        // The mono interface font's bullet has a wide advance and a bearing,
+        // which pushed the bullet and the letter after it off the log's left
+        // edge. Keep the vanilla positions: the bullet's ink on the pen, the
+        // rest of the line re-flowing from the first letter as usual.
+        const bool logBulletLead = run.colorRole == scene::TextColorRole::HudMessageLogGreen
+            && codepoints.size() >= 2 && codepoints[0] == 0x2022
+            && run.characterX.size() == codepoints.size();
         double cursorX = run.x;
         for (std::size_t index = 0; index < codepoints.size(); ++index) {
             int advanceUnits = 0;
@@ -387,8 +397,29 @@ bool renderSharpText(const std::vector<scene::TextRecord>& records,
             const GlyphBitmap* glyph = getGlyph(codepoints[index], static_cast<float>(fontScaleX * condense),
                 static_cast<float>(fontScaleY), bold);
             if (glyph == nullptr) return false;
+            if (logBulletLead && index == 0) {
+                positioned.push_back({ glyph, anchorX - glyph->xoff });
+                cursorX = static_cast<double>(run.characterX[1]);
+                continue;
+            }
             positioned.push_back({ glyph, anchorX });
             if (!monospaced) cursorX += logicalAdvance * proportionalCondense;
+        }
+        if (run.sharpRightAlignX >= 0) {
+            int inkRight = std::numeric_limits<int>::min();
+            for (const PositionedGlyph& glyph : positioned) {
+                for (int y = 0; y < glyph.bitmap->height; ++y) {
+                    for (int x = 0; x < glyph.bitmap->width; ++x) {
+                        if (glyph.bitmap->pixels[static_cast<std::size_t>(y) * glyph.bitmap->width + x] != 0) {
+                            inkRight = std::max(inkRight, glyph.x + glyph.bitmap->xoff + x + 1);
+                        }
+                    }
+                }
+            }
+            if (inkRight != std::numeric_limits<int>::min()) {
+                const int shift = static_cast<int>(std::lround(run.sharpRightAlignX * sx)) - inkRight;
+                for (PositionedGlyph& glyph : positioned) glyph.x += shift;
+            }
         }
         if (run.verticalAlignmentBoxHeight > 0) {
             int inkTop = std::numeric_limits<int>::max();

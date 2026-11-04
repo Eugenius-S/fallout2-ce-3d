@@ -12,6 +12,7 @@
 #include "dev_output.h"
 #include "dinput.h"
 #include "devtools/devtools.h"
+#include "devtools/preferences_probe.h"
 #include "draw.h"
 #include "game.h"
 #include "kb.h"
@@ -1009,6 +1010,7 @@ void _GNW95_process_message()
     KeyboardData keyboardData;
     SDL_Event e;
     while (SDL_PollEvent(&e)) {
+        devtools::scriptedInputObserveEvent(e);
         switch (e.type) {
         case SDL_MOUSEMOTION:
         case SDL_MOUSEBUTTONDOWN:

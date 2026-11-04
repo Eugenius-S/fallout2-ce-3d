@@ -22,7 +22,7 @@ struct Sun {
 
 // The sun swing the default arguments carry: the [3d] sun_swing setting's
 // default (082 round 2).
-constexpr double kSunSwingDefault = 30.0;
+constexpr double kSunSwingDefault = 40.0;
 
 // Step the debug clock one hour without discarding its day or minute.
 unsigned int stepClockHour(unsigned int gameTime, int direction);

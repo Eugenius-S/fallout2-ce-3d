@@ -1,49 +1,1156 @@
 {
-  "turns": [-45, 0, 45],
-  "distance": 8,
-  "spots": [
-    {"map": "kladwtwn", "elevation": 0, "tile": 24268, "name": "long building, south-west corner (071)"},
-    {"map": "kladwtwn", "elevation": 0, "tile": 24292, "name": "long building, south-east corner (071)"},
-    {"map": "kladwtwn", "elevation": 0, "tile": 20268, "name": "long building, north-west corner (071)"},
-    {"map": "kladwtwn", "elevation": 0, "tile": 20292, "name": "long building, north-east corner (071)"},
-    {"map": "kladwtwn", "elevation": 0, "tile": 20690, "name": "corner by the street (071, 083)"},
-    {"map": "kladwtwn", "elevation": 0, "tile": 19265, "name": "bathhouse front"},
-    {"map": "kladwtwn", "elevation": 0, "tile": 17467, "name": "Vic's shack"},
-    {"map": "kladwtwn", "elevation": 0, "tile": 17104, "name": "dark house corner, light stripe (review2, 076)"},
-    {"map": "kladwtwn", "elevation": 0, "tile": 19108, "name": "gargoyle corner (083)"},
-    {"map": "kladwtwn", "elevation": 0, "tile": 24678, "name": "corner (review2, 076-081)"},
-    {"map": "kladwtwn", "elevation": 0, "tile": 22958, "name": "corner (review2, 076-081)"},
-    {"map": "kladwtwn", "elevation": 0, "tile": 24481, "name": "corner (review2, 076-081)"},
-    {"map": "kladwtwn", "elevation": 0, "tile": 17666, "name": "corner (review2, 076-081)"},
-    {"map": "kladwtwn", "elevation": 0, "tile": 20736, "name": "corner (review2, 076-081)"},
-    {"map": "kladwtwn", "elevation": 0, "tile": 14505, "name": "corner (review2, 076-081)"},
-    {"map": "kladwtwn", "elevation": 0, "tile": 25075, "name": "entrance street, walls"},
-    {"map": "kladwtwn", "elevation": 0, "tile": 23481, "name": "corrals, fences"},
-    {"map": "kladwtwn", "elevation": 0, "tile": 22885, "name": "western rooms, furniture"},
-    {"map": "kladwtwn", "elevation": 0, "tile": 17699, "name": "central doors and rooms"},
-    {"map": "klamall", "elevation": 0, "tile": 13050, "name": "STOP corner (review2 01)"},
-    {"map": "klamall", "elevation": 0, "tile": 12666, "name": "corner, light stripe (076)"},
-    {"map": "klamall", "elevation": 0, "tile": 15450, "name": "corner (083)"},
-    {"map": "klamall", "elevation": 0, "tile": 21700, "name": "mesh fence corner"},
-    {"map": "klamall", "elevation": 0, "tile": 23145, "name": "regression gallery view"},
-    {"map": "klamall", "elevation": 0, "tile": 27886, "name": "south buildings"},
-    {"map": "klamall", "elevation": 0, "tile": 28493, "name": "south-east buildings"},
-    {"map": "klacanyn", "elevation": 0, "tile": 15909, "name": "regression gallery view"},
-    {"map": "klacanyn", "elevation": 0, "tile": 23869, "name": "south of the canyon"},
-    {"map": "klagraz", "elevation": 0, "tile": 24727, "name": "building, regression gallery view"},
-    {"map": "klagraz", "elevation": 0, "tile": 16333, "name": "north fences"},
-    {"map": "klatrap", "elevation": 0, "tile": 21913, "name": "regression gallery view"},
-    {"map": "klatrap", "elevation": 0, "tile": 13913, "name": "north"},
-    {"map": "klatrap", "elevation": 0, "tile": 20733, "name": "building"},
-    {"map": "klaratcv", "elevation": 0, "tile": 21511, "name": "cave, regression gallery view"},
-    {"map": "klaratcv", "elevation": 0, "tile": 13511, "name": "cave, north"},
-    {"map": "klaratcv", "elevation": 1, "tile": 14701, "name": "cave, regression gallery view"},
-    {"map": "klaratcv", "elevation": 1, "tile": 22661, "name": "cave, south"},
-    {"map": "klaratcv", "elevation": 2, "tile": 17107, "name": "cave, regression gallery view"},
-    {"map": "klatoxcv", "elevation": 0, "tile": 15919, "name": "cave, regression gallery view"},
-    {"map": "klatoxcv", "elevation": 0, "tile": 23879, "name": "cave, south"},
-    {"map": "klatoxcv", "elevation": 1, "tile": 19091, "name": "cave, regression gallery view"},
-    {"map": "klatoxcv", "elevation": 1, "tile": 22924, "name": "cave, south-east"},
-    {"map": "klatoxcv", "elevation": 2, "tile": 15065, "name": "cave, regression gallery view"}
-  ]
+ "turns": [
+  -45,
+  0,
+  45
+ ],
+ "distance": 8,
+ "spots": [
+  {
+   "map": "kladwtwn",
+   "elevation": 0,
+   "tile": 24268,
+   "name": "long building, south-west corner (071)"
+  },
+  {
+   "map": "kladwtwn",
+   "elevation": 0,
+   "tile": 24292,
+   "name": "long building, south-east corner (071)"
+  },
+  {
+   "map": "kladwtwn",
+   "elevation": 0,
+   "tile": 20268,
+   "name": "long building, north-west corner (071)"
+  },
+  {
+   "map": "kladwtwn",
+   "elevation": 0,
+   "tile": 20292,
+   "name": "long building, north-east corner (071)"
+  },
+  {
+   "map": "kladwtwn",
+   "elevation": 0,
+   "tile": 20690,
+   "name": "corner by the street (071, 083)"
+  },
+  {
+   "map": "kladwtwn",
+   "elevation": 0,
+   "tile": 19265,
+   "name": "bathhouse front"
+  },
+  {
+   "map": "kladwtwn",
+   "elevation": 0,
+   "tile": 17467,
+   "name": "Vic's shack"
+  },
+  {
+   "map": "kladwtwn",
+   "elevation": 0,
+   "tile": 17104,
+   "name": "dark house corner, light stripe (review2, 076)"
+  },
+  {
+   "map": "kladwtwn",
+   "elevation": 0,
+   "tile": 19108,
+   "name": "gargoyle corner (083)"
+  },
+  {
+   "map": "kladwtwn",
+   "elevation": 0,
+   "tile": 24678,
+   "name": "corner (review2, 076-081)"
+  },
+  {
+   "map": "kladwtwn",
+   "elevation": 0,
+   "tile": 22958,
+   "name": "corner (review2, 076-081)"
+  },
+  {
+   "map": "kladwtwn",
+   "elevation": 0,
+   "tile": 24481,
+   "name": "corner (review2, 076-081)"
+  },
+  {
+   "map": "kladwtwn",
+   "elevation": 0,
+   "tile": 17666,
+   "name": "corner (review2, 076-081)"
+  },
+  {
+   "map": "kladwtwn",
+   "elevation": 0,
+   "tile": 20736,
+   "name": "corner (review2, 076-081)"
+  },
+  {
+   "map": "kladwtwn",
+   "elevation": 0,
+   "tile": 14505,
+   "name": "corner (review2, 076-081)"
+  },
+  {
+   "map": "kladwtwn",
+   "elevation": 0,
+   "tile": 25075,
+   "name": "entrance street, walls"
+  },
+  {
+   "map": "kladwtwn",
+   "elevation": 0,
+   "tile": 23481,
+   "name": "corrals, fences"
+  },
+  {
+   "map": "kladwtwn",
+   "elevation": 0,
+   "tile": 22885,
+   "name": "western rooms, furniture"
+  },
+  {
+   "map": "kladwtwn",
+   "elevation": 0,
+   "tile": 17699,
+   "name": "central doors and rooms"
+  },
+  {
+   "map": "klamall",
+   "elevation": 0,
+   "tile": 13050,
+   "name": "STOP corner (review2 01)"
+  },
+  {
+   "map": "klamall",
+   "elevation": 0,
+   "tile": 12666,
+   "name": "corner, light stripe (076)"
+  },
+  {
+   "map": "klamall",
+   "elevation": 0,
+   "tile": 15450,
+   "name": "corner (083)"
+  },
+  {
+   "map": "klamall",
+   "elevation": 0,
+   "tile": 21700,
+   "name": "mesh fence corner"
+  },
+  {
+   "map": "klamall",
+   "elevation": 0,
+   "tile": 23145,
+   "name": "regression gallery view"
+  },
+  {
+   "map": "klamall",
+   "elevation": 0,
+   "tile": 27886,
+   "name": "south buildings"
+  },
+  {
+   "map": "klamall",
+   "elevation": 0,
+   "tile": 28493,
+   "name": "south-east buildings"
+  },
+  {
+   "map": "klacanyn",
+   "elevation": 0,
+   "tile": 15909,
+   "name": "regression gallery view"
+  },
+  {
+   "map": "klacanyn",
+   "elevation": 0,
+   "tile": 23869,
+   "name": "south of the canyon"
+  },
+  {
+   "map": "klagraz",
+   "elevation": 0,
+   "tile": 24727,
+   "name": "building, regression gallery view"
+  },
+  {
+   "map": "klagraz",
+   "elevation": 0,
+   "tile": 16333,
+   "name": "north fences"
+  },
+  {
+   "map": "klatrap",
+   "elevation": 0,
+   "tile": 21913,
+   "name": "regression gallery view"
+  },
+  {
+   "map": "klatrap",
+   "elevation": 0,
+   "tile": 13913,
+   "name": "north"
+  },
+  {
+   "map": "klatrap",
+   "elevation": 0,
+   "tile": 20733,
+   "name": "building"
+  },
+  {
+   "map": "klaratcv",
+   "elevation": 0,
+   "tile": 21511,
+   "name": "cave, regression gallery view"
+  },
+  {
+   "map": "klaratcv",
+   "elevation": 0,
+   "tile": 13511,
+   "name": "cave, north"
+  },
+  {
+   "map": "klaratcv",
+   "elevation": 1,
+   "tile": 14701,
+   "name": "cave, regression gallery view"
+  },
+  {
+   "map": "klaratcv",
+   "elevation": 1,
+   "tile": 22661,
+   "name": "cave, south"
+  },
+  {
+   "map": "klaratcv",
+   "elevation": 2,
+   "tile": 17107,
+   "name": "cave, regression gallery view"
+  },
+  {
+   "map": "klatoxcv",
+   "elevation": 0,
+   "tile": 15919,
+   "name": "cave, regression gallery view"
+  },
+  {
+   "map": "klatoxcv",
+   "elevation": 0,
+   "tile": 23879,
+   "name": "cave, south"
+  },
+  {
+   "map": "klatoxcv",
+   "elevation": 1,
+   "tile": 19091,
+   "name": "cave, regression gallery view"
+  },
+  {
+   "map": "klatoxcv",
+   "elevation": 1,
+   "tile": 22924,
+   "name": "cave, south-east"
+  },
+  {
+   "map": "klatoxcv",
+   "elevation": 2,
+   "tile": 15065,
+   "name": "cave, regression gallery view"
+  },
+  {
+   "map": "newr1",
+   "elevation": 0,
+   "tile": 24105,
+   "name": "the first street entrance"
+  },
+  {
+   "map": "newr1",
+   "elevation": 1,
+   "tile": 15087,
+   "name": "the first street, upper floor"
+  },
+  {
+   "map": "newr1",
+   "elevation": 2,
+   "tile": 18085,
+   "name": "the first street, top floor"
+  },
+  {
+   "map": "newr2",
+   "elevation": 0,
+   "tile": 20100,
+   "name": "the second street entrance"
+  },
+  {
+   "map": "newr2",
+   "elevation": 1,
+   "tile": 18093,
+   "name": "the second street, upper floor"
+  },
+  {
+   "map": "newr2",
+   "elevation": 2,
+   "tile": 18695,
+   "name": "the second street, top floor"
+  },
+  {
+   "map": "newr3",
+   "elevation": 0,
+   "tile": 29495,
+   "name": "the third street entrance"
+  },
+  {
+   "map": "newr3",
+   "elevation": 1,
+   "tile": 29094,
+   "name": "the third street, upper floor"
+  },
+  {
+   "map": "newr4",
+   "elevation": 0,
+   "tile": 27103,
+   "name": "the fourth street entrance"
+  },
+  {
+   "map": "newr4",
+   "elevation": 1,
+   "tile": 18493,
+   "name": "the fourth street, upper floor"
+  },
+  {
+   "map": "newrcs",
+   "elevation": 0,
+   "tile": 24537,
+   "name": "the chop shop"
+  },
+  {
+   "map": "newrgo",
+   "elevation": 0,
+   "tile": 28101,
+   "name": "Golgatha entrance"
+  },
+  {
+   "map": "newrgo",
+   "elevation": 1,
+   "tile": 24706,
+   "name": "Golgatha, upper floor"
+  },
+  {
+   "map": "newrst",
+   "elevation": 0,
+   "tile": 25915,
+   "name": "the stables"
+  },
+  {
+   "map": "newrst",
+   "elevation": 1,
+   "tile": 24711,
+   "name": "the stables, upper floor"
+  },
+  {
+   "map": "newrba",
+   "elevation": 0,
+   "tile": 20100,
+   "name": "the boxing arena"
+  },
+  {
+   "map": "newrvb",
+   "elevation": 0,
+   "tile": 21732,
+   "name": "the VIP basement"
+  },
+  {
+   "map": "newr1",
+   "elevation": 0,
+   "tile": 18100,
+   "name": "the lit casino corner"
+  },
+  {
+   "map": "newr2",
+   "elevation": 0,
+   "tile": 26105,
+   "name": "the car lot and the murals"
+  },
+  {
+   "map": "newr3",
+   "elevation": 0,
+   "tile": 27495,
+   "name": "the neon corner"
+  },
+  {
+   "map": "newr4",
+   "elevation": 0,
+   "tile": 25103,
+   "name": "the truck by the street"
+  },
+  {
+   "map": "broken1",
+   "elevation": 0,
+   "tile": 17947,
+   "name": "Broken Hills entrance"
+  },
+  {
+   "map": "broken1",
+   "elevation": 1,
+   "tile": 13530,
+   "name": "Broken Hills, upper floor"
+  },
+  {
+   "map": "broken2",
+   "elevation": 0,
+   "tile": 20944,
+   "name": "Broken Hills east entrance"
+  },
+  {
+   "map": "broken2",
+   "elevation": 1,
+   "tile": 21340,
+   "name": "Broken Hills east, level 1"
+  },
+  {
+   "map": "broken2",
+   "elevation": 2,
+   "tile": 21341,
+   "name": "Broken Hills east, level 2"
+  },
+  {
+   "map": "bhrnddst",
+   "elevation": 0,
+   "tile": 22897,
+   "name": "the Broken Hills desert"
+  },
+  {
+   "map": "broken1",
+   "elevation": 0,
+   "tile": 19947,
+   "name": "the jail and the fence line"
+  },
+  {
+   "map": "broken1",
+   "elevation": 0,
+   "tile": 23947,
+   "name": "the brahmin pen"
+  },
+  {
+   "map": "broken2",
+   "elevation": 0,
+   "tile": 18944,
+   "name": "the street with the cactus planters"
+  },
+  {
+   "map": "broken2",
+   "elevation": 0,
+   "tile": 24944,
+   "name": "the brick building and the shack"
+  },
+  {
+   "map": "gecksetl",
+   "elevation": 0,
+   "tile": 23709,
+   "name": "the settlement entrance"
+  },
+  {
+   "map": "geckpwpl",
+   "elevation": 0,
+   "tile": 20533,
+   "name": "the power plant"
+  },
+  {
+   "map": "geckjunk",
+   "elevation": 0,
+   "tile": 26311,
+   "name": "the junkyard"
+  },
+  {
+   "map": "gecktunl",
+   "elevation": 0,
+   "tile": 20100,
+   "name": "the access tunnels"
+  },
+  {
+   "map": "gecksetl",
+   "elevation": 0,
+   "tile": 27709,
+   "name": "the brahmin pen and the farm"
+  },
+  {
+   "map": "geckpwpl",
+   "elevation": 0,
+   "tile": 16533,
+   "name": "the reactor hall"
+  },
+  {
+   "map": "geckjunk",
+   "elevation": 0,
+   "tile": 22311,
+   "name": "the wrecked car and the pens"
+  },
+  {
+   "map": "gecktunl",
+   "elevation": 0,
+   "tile": 16100,
+   "name": "the tunnel crossing"
+  },
+  {
+   "map": "vctyctyd",
+   "elevation": 0,
+   "tile": 27506,
+   "name": "the courtyard entrance"
+  },
+  {
+   "map": "vctydwtn",
+   "elevation": 0,
+   "tile": 24117,
+   "name": "downtown entrance"
+  },
+  {
+   "map": "vctycocl",
+   "elevation": 0,
+   "tile": 19292,
+   "name": "the council entrance"
+  },
+  {
+   "map": "vctyvlt",
+   "elevation": 0,
+   "tile": 17095,
+   "name": "the vault courtyard"
+  },
+  {
+   "map": "vctyvlt",
+   "elevation": 1,
+   "tile": 17095,
+   "name": "the vault, level 1"
+  },
+  {
+   "map": "vctyvlt",
+   "elevation": 2,
+   "tile": 16694,
+   "name": "the vault, level 2"
+  },
+  {
+   "map": "raiders1",
+   "elevation": 0,
+   "tile": 23305,
+   "name": "the raiders ground camp"
+  },
+  {
+   "map": "raiders1",
+   "elevation": 1,
+   "tile": 22703,
+   "name": "the raiders, upper floor"
+  },
+  {
+   "map": "raiders2",
+   "elevation": 0,
+   "tile": 20100,
+   "name": "the raiders cave entrance"
+  },
+  {
+   "map": "raiders2",
+   "elevation": 1,
+   "tile": 20100,
+   "name": "the raiders cave, level 1"
+  },
+  {
+   "map": "raiders2",
+   "elevation": 2,
+   "tile": 19899,
+   "name": "the raiders cave, level 2"
+  },
+  {
+   "map": "vctyctyd",
+   "elevation": 0,
+   "tile": 25506,
+   "name": "the gate with the towers"
+  },
+  {
+   "map": "vctydwtn",
+   "elevation": 0,
+   "tile": 22117,
+   "name": "the downtown blocks"
+  },
+  {
+   "map": "vctydwtn",
+   "elevation": 0,
+   "tile": 28117,
+   "name": "the wall and the gate"
+  },
+  {
+   "map": "vctyvlt",
+   "elevation": 0,
+   "tile": 13095,
+   "name": "the vault corridor crossing"
+  },
+  {
+   "map": "vctyvlt",
+   "elevation": 0,
+   "tile": 21095,
+   "name": "the vault door"
+  },
+  {
+   "map": "vctyvlt",
+   "elevation": 2,
+   "tile": 20694,
+   "name": "the anomaly room"
+  },
+  {
+   "map": "raiders1",
+   "elevation": 0,
+   "tile": 19305,
+   "name": "the cliff and the cave mouth"
+  },
+  {
+   "map": "raiders2",
+   "elevation": 0,
+   "tile": 16100,
+   "name": "the cave fire"
+  },
+  {
+   "map": "raiders2",
+   "elevation": 1,
+   "tile": 22100,
+   "name": "the cave passage"
+  },
+  {
+   "map": "modmain",
+   "elevation": 0,
+   "tile": 23333,
+   "name": "main street entrance"
+  },
+  {
+   "map": "modinn",
+   "elevation": 0,
+   "tile": 25321,
+   "name": "the bed and breakfast"
+  },
+  {
+   "map": "modinn",
+   "elevation": 1,
+   "tile": 25321,
+   "name": "the bed and breakfast, upper floor"
+  },
+  {
+   "map": "modbrah",
+   "elevation": 0,
+   "tile": 19324,
+   "name": "the brahmin pastures"
+  },
+  {
+   "map": "modgard",
+   "elevation": 0,
+   "tile": 18711,
+   "name": "Farrel's garden"
+  },
+  {
+   "map": "modshit",
+   "elevation": 0,
+   "tile": 20699,
+   "name": "the outhouse corner"
+  },
+  {
+   "map": "modwell",
+   "elevation": 0,
+   "tile": 16710,
+   "name": "the town well"
+  },
+  {
+   "map": "gstfarm",
+   "elevation": 0,
+   "tile": 23345,
+   "name": "the ghost farm entrance"
+  },
+  {
+   "map": "gstcav1",
+   "elevation": 0,
+   "tile": 14255,
+   "name": "the main cavern"
+  },
+  {
+   "map": "gstcav2",
+   "elevation": 0,
+   "tile": 25713,
+   "name": "the underground lake"
+  },
+  {
+   "map": "modmain",
+   "elevation": 0,
+   "tile": 19333,
+   "name": "the big barn"
+  },
+  {
+   "map": "modmain",
+   "elevation": 0,
+   "tile": 21333,
+   "name": "the farmhouse and pens"
+  },
+  {
+   "map": "modinn",
+   "elevation": 0,
+   "tile": 21321,
+   "name": "the inn, the car and the pens"
+  },
+  {
+   "map": "modbrah",
+   "elevation": 0,
+   "tile": 17324,
+   "name": "the brahmin herd"
+  },
+  {
+   "map": "modgard",
+   "elevation": 0,
+   "tile": 16711,
+   "name": "the dead brahmin garden"
+  },
+  {
+   "map": "modshit",
+   "elevation": 0,
+   "tile": 18699,
+   "name": "the lit outhouse pit"
+  },
+  {
+   "map": "modwell",
+   "elevation": 0,
+   "tile": 14710,
+   "name": "the well shaft and ladder"
+  },
+  {
+   "map": "gstfarm",
+   "elevation": 0,
+   "tile": 21345,
+   "name": "the massacre in the corn"
+  },
+  {
+   "map": "gstcav1",
+   "elevation": 0,
+   "tile": 12255,
+   "name": "the hermit camp"
+  },
+  {
+   "map": "gstcav2",
+   "elevation": 0,
+   "tile": 23713,
+   "name": "the lake shore camp"
+  },
+  {
+   "map": "arcaves",
+   "elevation": 0,
+   "tile": 28706,
+   "name": "entrance, the caves mouth"
+  },
+  {
+   "map": "arcaves",
+   "elevation": 1,
+   "tile": 28706,
+   "name": "lower cave, entrance"
+  },
+  {
+   "map": "arcaves",
+   "elevation": 2,
+   "tile": 26097,
+   "name": "upper cave, entrance"
+  },
+  {
+   "map": "arvillag",
+   "elevation": 0,
+   "tile": 21115,
+   "name": "village entrance"
+  },
+  {
+   "map": "arbridge",
+   "elevation": 0,
+   "tile": 16686,
+   "name": "bridge entrance"
+  },
+  {
+   "map": "argarden",
+   "elevation": 0,
+   "tile": 21474,
+   "name": "wilderness entrance"
+  },
+  {
+   "map": "ardead",
+   "elevation": 0,
+   "tile": 26719,
+   "name": "destroyed bridge entrance"
+  },
+  {
+   "map": "artemple",
+   "elevation": 0,
+   "tile": 17288,
+   "name": "temple entrance"
+  },
+  {
+   "map": "arvillag",
+   "elevation": 0,
+   "tile": 25115,
+   "name": "the stone head plaza"
+  },
+  {
+   "map": "arvillag",
+   "elevation": 0,
+   "tile": 19115,
+   "name": "north huts"
+  },
+  {
+   "map": "arbridge",
+   "elevation": 0,
+   "tile": 20686,
+   "name": "the rope bridge over the cliff"
+  },
+  {
+   "map": "argarden",
+   "elevation": 0,
+   "tile": 17474,
+   "name": "the forest heart"
+  },
+  {
+   "map": "ardead",
+   "elevation": 0,
+   "tile": 24719,
+   "name": "cliff and the brahmin pen"
+  },
+  {
+   "map": "artemple",
+   "elevation": 0,
+   "tile": 21288,
+   "name": "the camp south of the temple"
+  },
+  {
+   "map": "arcaves",
+   "elevation": 0,
+   "tile": 26706,
+   "name": "the exit gate, torches"
+  },
+  {
+   "map": "arcaves",
+   "elevation": 1,
+   "tile": 22706,
+   "name": "the cave mouth"
+  },
+  {
+   "map": "arcaves",
+   "elevation": 2,
+   "tile": 22097,
+   "name": "the corridor maze"
+  },
+  {
+   "map": "denbus1",
+   "elevation": 0,
+   "tile": 13292,
+   "name": "business street entrance"
+  },
+  {
+   "map": "denbus1",
+   "elevation": 1,
+   "tile": 15070,
+   "name": "business street, upper floor"
+  },
+  {
+   "map": "denbus1",
+   "elevation": 2,
+   "tile": 19487,
+   "name": "business street, top floor"
+  },
+  {
+   "map": "denbus2",
+   "elevation": 0,
+   "tile": 27898,
+   "name": "brothel entrance"
+  },
+  {
+   "map": "denbus2",
+   "elevation": 1,
+   "tile": 1110,
+   "name": "brothel, second storey"
+  },
+  {
+   "map": "denres1",
+   "elevation": 0,
+   "tile": 11308,
+   "name": "residential street entrance"
+  },
+  {
+   "map": "denres1",
+   "elevation": 1,
+   "tile": 11308,
+   "name": "residential street, upper floor"
+  },
+  {
+   "map": "dnslvrun",
+   "elevation": 0,
+   "tile": 26905,
+   "name": "slave run entrance"
+  },
+  {
+   "map": "dnslvrun",
+   "elevation": 1,
+   "tile": 26706,
+   "name": "slave run, upper floor"
+  },
+  {
+   "map": "dnslvrun",
+   "elevation": 2,
+   "tile": 25910,
+   "name": "slave run, top floor"
+  },
+  {
+   "map": "denbus1",
+   "elevation": 0,
+   "tile": 17292,
+   "name": "the shop block, signs"
+  },
+  {
+   "map": "denbus1",
+   "elevation": 1,
+   "tile": 19070,
+   "name": "the upstairs apartment"
+  },
+  {
+   "map": "denbus1",
+   "elevation": 2,
+   "tile": 23487,
+   "name": "the shack interior"
+  },
+  {
+   "map": "denbus2",
+   "elevation": 0,
+   "tile": 25698,
+   "name": "the Cat's Paw sign block"
+  },
+  {
+   "map": "denbus2",
+   "elevation": 1,
+   "tile": 3110,
+   "name": "the small second storey"
+  },
+  {
+   "map": "denres1",
+   "elevation": 0,
+   "tile": 15308,
+   "name": "the residential block"
+  },
+  {
+   "map": "denres1",
+   "elevation": 1,
+   "tile": 15308,
+   "name": "the residential block, upper floor"
+  },
+  {
+   "map": "dnslvrun",
+   "elevation": 0,
+   "tile": 22905,
+   "name": "the fire pit"
+  },
+  {
+   "map": "dnslvrun",
+   "elevation": 1,
+   "tile": 20706,
+   "name": "the slave camp garden"
+  },
+  {
+   "map": "dnslvrun",
+   "elevation": 2,
+   "tile": 21910,
+   "name": "the corn field"
+  },
+  {
+   "map": "reddown",
+   "elevation": 0,
+   "tile": 19059,
+   "name": "downtown entrance"
+  },
+  {
+   "map": "redment",
+   "elevation": 0,
+   "tile": 26912,
+   "name": "the mine entrance"
+  },
+  {
+   "map": "reddtun",
+   "elevation": 0,
+   "tile": 20100,
+   "name": "the downtown tunnels"
+  },
+  {
+   "map": "redmtun",
+   "elevation": 0,
+   "tile": 20100,
+   "name": "the mine tunnels"
+  },
+  {
+   "map": "redwame",
+   "elevation": 0,
+   "tile": 20275,
+   "name": "the Wanamingo mine entrance"
+  },
+  {
+   "map": "redwan1",
+   "elevation": 0,
+   "tile": 26893,
+   "name": "the Wanamingo mine, level 1"
+  },
+  {
+   "map": "redwan1",
+   "elevation": 1,
+   "tile": 26893,
+   "name": "the Wanamingo mine, level 2"
+  },
+  {
+   "map": "ncr1",
+   "elevation": 0,
+   "tile": 20898,
+   "name": "NCR city, elevation 0, overview"
+  },
+  {
+   "map": "ncr1",
+   "elevation": 1,
+   "tile": 20106,
+   "name": "NCR city, elevation 1, overview"
+  },
+  {
+   "map": "ncr2",
+   "elevation": 0,
+   "tile": 20902,
+   "name": "NCR bazaar, elevation 0, overview"
+  },
+  {
+   "map": "ncr3",
+   "elevation": 0,
+   "tile": 21499,
+   "name": "squatters camp, elevation 0, overview"
+  },
+  {
+   "map": "ncr4",
+   "elevation": 0,
+   "tile": 20481,
+   "name": "north NCR, elevation 0, overview"
+  },
+  {
+   "map": "ncrent",
+   "elevation": 0,
+   "tile": 19112,
+   "name": "NCR entrance, elevation 0, overview"
+  },
+  {
+   "map": "ncrent",
+   "elevation": 1,
+   "tile": 22148,
+   "name": "NCR entrance, elevation 1, overview"
+  },
+  {
+   "map": "v15ent",
+   "elevation": 0,
+   "tile": 23907,
+   "name": "Vault 15 entrance, elevation 0, overview"
+  },
+  {
+   "map": "v15ent",
+   "elevation": 1,
+   "tile": 23907,
+   "name": "Vault 15 entrance, elevation 1, overview"
+  },
+  {
+   "map": "v15sent",
+   "elevation": 0,
+   "tile": 19088,
+   "name": "Vault 15 south entrance, elevation 0, overview"
+  },
+  {
+   "map": "vault15",
+   "elevation": 0,
+   "tile": 19094,
+   "name": "Vault 15 ruins, elevation 0, overview"
+  },
+  {
+   "map": "vault15",
+   "elevation": 1,
+   "tile": 21907,
+   "name": "Vault 15 ruins, elevation 1, overview"
+  },
+  {
+   "map": "vault15",
+   "elevation": 2,
+   "tile": 20897,
+   "name": "Vault 15 ruins, elevation 2, overview"
+  },
+  {
+   "map": "ncr1",
+   "elevation": 0,
+   "tile": 13915,
+   "name": "NCR city, elevation 0, entry"
+  },
+  {
+   "map": "ncr1",
+   "elevation": 1,
+   "tile": 13915,
+   "name": "NCR city, elevation 1, entry"
+  },
+  {
+   "map": "ncr2",
+   "elevation": 0,
+   "tile": 20100,
+   "name": "NCR bazaar, elevation 0, entry"
+  },
+  {
+   "map": "ncr3",
+   "elevation": 0,
+   "tile": 23869,
+   "name": "squatters camp, elevation 0, entry"
+  },
+  {
+   "map": "ncr4",
+   "elevation": 0,
+   "tile": 17699,
+   "name": "north NCR, elevation 0, entry"
+  },
+  {
+   "map": "ncrent",
+   "elevation": 0,
+   "tile": 20877,
+   "name": "NCR entrance, elevation 0, entry"
+  },
+  {
+   "map": "v15ent",
+   "elevation": 0,
+   "tile": 29523,
+   "name": "Vault 15 entrance, elevation 0, entry"
+  },
+  {
+   "map": "v15ent",
+   "elevation": 1,
+   "tile": 29523,
+   "name": "Vault 15 entrance, elevation 1, entry"
+  },
+  {
+   "map": "v15sent",
+   "elevation": 0,
+   "tile": 17700,
+   "name": "Vault 15 south entrance, elevation 0, entry"
+  },
+  {
+   "map": "vault15",
+   "elevation": 0,
+   "tile": 20100,
+   "name": "Vault 15 ruins, elevation 0, entry"
+  },
+  {
+   "map": "vault15",
+   "elevation": 1,
+   "tile": 20100,
+   "name": "Vault 15 ruins, elevation 1, entry"
+  },
+  {
+   "map": "vault15",
+   "elevation": 2,
+   "tile": 20100,
+   "name": "Vault 15 ruins, elevation 2, entry"
+  }
+ ]
 }

@@ -2,14 +2,15 @@
 id: 107
 title: A corner post's card splits at its own axis, each half on the face it stands before
 milestone: M1
-status: todo
-owner: none
-suggested: glm
+status: done
+owner: any
+suggested: any
 priority: normal
+tier: 3
 claude-only: no
 user-check: yes
 depends-on: [096]
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -82,3 +83,7 @@ in the inbox), new shadow features.
   visible post art (the rows that carry it have no span past the corner
   line); the art-level split needs its own investigation of the donor
   pictures and the free-camera corner machinery.
+
+### 2026-11-04 claude
+Folded into 189 (walls across every map) as its first rule, in the
+2026-11-04 inbox sweep. Continue there; this file keeps the analysis.

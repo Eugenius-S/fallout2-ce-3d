@@ -7,6 +7,10 @@ the 3D view sees a thing with depth: a bed lies on the floor, a shelf stands
 square to the walls. The faces the game's camera sees show what they land on; the far
 sides face away from it (it culls them) and show their near sides' pixels
 mirrored, as the donor's first person does, for a free camera behind a thing.
+A row may name a back view (row[17], task 124): the art's own opposite
+direction composed in the near view's pixel frame (scene.back_sprite), which
+the far sides then sample mirrored - the artist's back drawing where the art
+holds one, the near mirror where it does not.
 
 As in the donor's game view, a solid's faces take the depth of its card: the
 upright plane of its hex row (a hair nearer), reached along the game's view
@@ -150,19 +154,52 @@ def solid_faces(proj, sprites, boards, row):
         plane = row_plane(proj, bu, bv, stack) + OVER_CARD
     page, x, y, w, h, ox, oy = sprites[s]
     ax, ay = proj.ground_to_px(u, v)
+    # A fly-only drum's wall planes (scene.keep_apart, task 120): [axis, limit,
+    # keep the greater side]. The mesh is cut at them in plan and keeps its size.
+    clips = [(int(c[0]), float(c[1]), bool(c[2])) for c in row[16]] if len(row) > 16 else ()
 
-    def texel_at(point):
+    def texel_at(point, sprite=None, mirror=False):
+        """The sprite texel a world point samples: where it lands on the game's
+        screen - or there mirrored about the anchor, for a back view composed
+        to be read that way (124)."""
+        spage, sx, sy, sw, sh, sox, soy = sprite if sprite is not None else sprites[s]
         px, py = proj.ground_to_px(*point)
-        return [x + px - ax - ox, y + py - ay - oy]
+        return [sx + (ax - px if mirror else px - ax) - sox, sy + py - ay - soy]
 
     faces = []
 
-    def face(points, from_points=None, away=False, camera="both"):
+    def sliced(points, sources=None):
+        """The part of a convex face whose plan position stays this side of every
+        clip plane, with the points it samples cut by the same fractions."""
+        points = [list(p) for p in points]
+        sources = [list(p) for p in (points if sources is None else sources)]
+        for axis, limit, keep_ge in clips:
+            sign = 1.0 if keep_ge else -1.0
+            kept_p, kept_s = [], []
+            for i, p in enumerate(points):
+                q = points[(i + 1) % len(points)]
+                s, t = sources[i], sources[(i + 1) % len(points)]
+                dp, dq = (p[axis] - limit) * sign, (q[axis] - limit) * sign
+                if dp >= 0:
+                    kept_p.append(p)
+                    kept_s.append(s)
+                if dp * dq < 0:
+                    f = dp / (dp - dq)
+                    kept_p.append([c + (d - c) * f for c, d in zip(p, q)])
+                    kept_s.append([c + (d - c) * f for c, d in zip(s, t)])
+            points, sources = kept_p, kept_s
+            if not points:
+                return [], []
+        return points, sources
+
+    def face(points, from_points=None, away=False, camera="both", back=-1):
         shows = from_points or points
-        corners = clip([[*point, *texel_at(shows[i])] for i, point in enumerate(points)], x, y, w, h)
+        sprite = sprites[back] if back >= 0 else sprites[s]
+        corners = clip([[*point, *texel_at(shows[i], sprite, back >= 0)] for i, point in enumerate(points)],
+                       sprite[1], sprite[2], sprite[3], sprite[4])
         if len(corners) >= 3:
-            faces.append((page, [corner + (depth_home(proj, corner, plane) if plane is not None else [0.0, 0.0, 0.0])
-                                 for corner in corners], away, camera))
+            faces.append((sprite[0], [corner + (depth_home(proj, corner, plane) if plane is not None else [0.0, 0.0, 0.0])
+                                      for corner in corners], away, camera))
 
     if round_:
         # The cylinder over the floor ellipse a x b px on the game's screen. Taking
@@ -193,17 +230,45 @@ def solid_faces(proj, sprites, boards, row):
             def source(n):
                 return quarter / 2 + (quarter - n if turn % 2 else n)
 
-            around = side(source(within), source(within + 1))
-            if plane is None:
-                face(side(i, i + 1), around, away=i >= DRUM_SIDES // 2)
+            pts, srcs = sliced(side(i, i + 1), side(source(within), source(within + 1)))
+            if pts:
+                if plane is None:
+                    face(pts, srcs, away=i >= DRUM_SIDES // 2)
+                else:
+                    if i < DRUM_SIDES // 2:
+                        face(side(i, i + 1), camera="game")     # the game's camera never draws a clipped drum
+                    face(pts, srcs, away=i >= DRUM_SIDES // 2, camera="fly")
+        cap, cap_srcs = sliced([rim(i, z1) for i in range(DRUM_SIDES)])
+        if cap:
+            face(cap, cap_srcs)
+        # Each cut gets its own face: the ellipse's chord at the plane, from z0 to
+        # z1, wound both ways (a view into the cut reads the drum's body, not its
+        # hollow inside). Its texels come from the sprite's centre column at the
+        # chord's heights: the cut's own plan points can project onto the art's
+        # transparent edge, and a transparent cut reads as a hole into the drum.
+        for caxis, limit, _ in clips:
+            ends = []
+            for i in range(DRUM_SIDES):
+                p, q = rim(i, 0.0), rim(i + 1, 0.0)
+                dp, dq = p[caxis] - limit, q[caxis] - limit
+                if dp == 0.0:
+                    ends.append([p[0], p[1]])
+                elif dp * dq < 0:
+                    f = dp / (dp - dq)
+                    ends.append([p[0] + (q[0] - p[0]) * f, p[1] + (q[1] - p[1]) * f])
+            if len(ends) < 2:
                 continue
-            if i < DRUM_SIDES // 2:
-                face(side(i, i + 1), camera="game")
-            face(side(i, i + 1), around, away=i >= DRUM_SIDES // 2, camera="fly")
-        face([rim(i, z1) for i in range(DRUM_SIDES)])
+            (x0, y0_), (x1, y1_) = ends[0], ends[-1]
+            chord = [[x0, y0_, z0], [x1, y1_, z0], [x1, y1_, z1], [x0, y0_, z1]]
+            chord, _ = sliced(chord)
+            chord_srcs = [[cu, cv, p[2]] for p in chord]
+            for wound, srcs in ((chord, chord_srcs), (chord[::-1], chord_srcs[::-1])):
+                if len(wound) >= 3:
+                    face(wound, srcs, away=wound is not chord, camera="fly")
         return _forced(row, faces)
 
     u0, u1, v0, v1 = cu - a / 2, cu + a / 2, cv - b / 2, cv + b / 2
+    back = row[17] if len(row) > 17 else -1      # (124) the art's own back view, -1: the near mirror
 
     def along_u(vv, low, high):
         return [[u0, vv, low], [u1, vv, low], [u1, vv, high], [u0, vv, high]]
@@ -214,8 +279,8 @@ def solid_faces(proj, sprites, boards, row):
     face([[u0, v0, z1], [u1, v0, z1], [u1, v1, z1], [u0, v1, z1]])
     face(along_u(v1, z0, z1))
     face(along_v(u1, z0, z1))
-    face(along_u(v0, z0, z1), along_u(v1, z0, z1), away=True)
-    face(along_v(u0, z0, z1), along_v(u1, z0, z1), away=True)
+    face(along_u(v0, z0, z1), along_u(v1, z0, z1), away=True, back=back)
+    face(along_v(u0, z0, z1), along_v(u1, z0, z1), away=True, back=back)
     # What rises behind the top (a headboard): on the far sides, seen from inside.
     if wall_u > z1:
         face(along_u(v0, z1, wall_u))

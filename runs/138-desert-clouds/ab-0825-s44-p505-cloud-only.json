@@ -1,0 +1,16 @@
+{
+  "mode": "cloud-only",
+  "image": "ab-0825-s44-p505-cloud-only.jpg",
+  "map": "KLADWTWN.MAP",
+  "view_tile": 24678,
+  "camera": "fixed eye=(38.14466,46.23085,85.71700), target=(-11.04167,0.00000,11.93750), fov_y=25.0, near=0.1, far=400.0, screen_right=-cross(forward,world_up)",
+  "game_time": 303000,
+  "sun_height": 63.722,
+  "sun_azimuth": -26.565,
+  "sun_swing": 44,
+  "cloud_phase_minutes": 505,
+  "resolution": "1920x1080",
+  "ce_commit": "32005181",
+  "exe_sha256": "8797846cbef7576335dc3972491c01a56c4753fb514d012af8ccb6827fbe8d76",
+  "source_png_sha256": "4f44cd3729c68b517fb152976a8ab76a9ff3d29ada598ca9dd372c938eff1856"
+}

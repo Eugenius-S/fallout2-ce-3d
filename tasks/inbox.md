@@ -2,30 +2,31 @@
 
 What the owner notices and sends in chat goes here first, one line each: the
 date, what is wrong, where (map, hex, turn), the picture in `runs/inbox/`.
-A find is not urgent unless the owner says "now". When an agent takes a task
-in that area, it moves the matching lines into that task's Context; a line
-that fits no task becomes a new task when the board runs dry.
+A find is not urgent unless the owner says "now". Every line ends in one
+state, marked after its date: `(-> NNN)` folded into an open task or batch,
+or its own new task; `(done: ...)` settled, with the task or commit. Fold
+first: a new task only when no open task or batch fits (AGENTS.md, Tasks).
 
-- 2026-10-21 The 3D scene cuts the map edge farther out than the original
+- 2026-10-21 (-> 145, the map edge batch) The 3D scene cuts the map edge farther out than the original
   game (kladwtwn, the bottom edge by the cornfield): the game cuts closer, so
   the wall there would stick out past the edge
   (`runs/inbox/2026-10-21-map-edge-cut.webp`, the red line is where the
   original cuts). Not now. First screenshot the exit zones of the original
   maps to learn where the game cuts a map, then fit the clean edges (016)
   to that.
-- 2026-10-21 Dev mode: teleport the hero to any spot of any map (map,
+- 2026-10-21 (-> 183 step 3, the dev tools batch) Dev mode: teleport the hero to any spot of any map (map,
   elevation, hex), and let an agent do it in the owner's running game on the
   owner's word in chat (for example a command file the game watches). Start
   options exist (`--dev-map`, `--dev-elevation`, a view hex); a jump inside a
   running game does not. Not now.
-- 2026-10-21 The dev panel's floor change put the hero inside the rock on
+- 2026-10-21 (-> 183 step 4, the dev tools batch) The dev panel's floor change put the hero inside the rock on
   the lowest floor of the toxic caves (klatoxcv elevation 2). The hex check
   (`docs/p1-devtools.md`, "Tile choice on a floor change") looks at the floor
   tile and blockers within 4 hexes, not at whether the hero can walk out.
   Belongs with the teleport line above: pick a hex the hero can walk from (a
   path to the map's entrance or to a few hexes around), or let the owner name
   the hex.
-- 2026-10-24 No glows in the owner's live Klamath run. 022 is in main and
+- 2026-10-24 (-> 111) No glows in the owner's live Klamath run. 022 is in main and
   050 (the wide halo) merged on 2026-10-25; Klamath screens are dead art, but
   the burning barrels should glow. Look again in the next build before
   calling it art.
@@ -55,12 +56,12 @@ that fits no task becomes a new task when the board runs dry.
   - 09: clothes lines stick out over the roof.
   - 10: a corner of the house is broken (an open door leaf and the
     corner's material).
-- 2026-10-25 Dialogue answer options: use a hanging indent. Keep bullet
+- 2026-10-25 (-> 193, the UI text batch) Dialogue answer options: use a hanging indent. Keep bullet
   markers to the left of the text column, and align every wrapped continuation
   line with the first text character after the bullet, rather than with the
   bullet itself. The text should have a straight left edge independent of
   the markers. Not now; backlog only.
-- 2026-10-25 A brick house corner in flight (owner's shot
+- 2026-10-25 (done: 081, the wall feet) A brick house corner in flight (owner's shot
   `runs/inbox/2026-10-25-corner-wall-floats.png`): the lower stretch of both
   walls near the corner is missing, so the brick bottom floats above the
   street, and a flat brown box (the corner core) stands under it alone; the
@@ -69,7 +70,7 @@ that fits no task becomes a new task when the board runs dry.
   Task 081: main shows the floating bottom too (wall pictures end above the
   floor); fixed there with feet. The see-through bricks were not seen on
   main; if they stay, they come from 082's `walls.cc` (PR #104).
-- 2026-10-25 Two sun options in the [3d] settings, after 082 lands (it
+- 2026-10-25 (done: 082, #104 `c05a0f34`, `shadow_density` and `sun_swing` in [3d]) Two sun options in the [3d] settings, after 082 lands (it
   rewrites `ce/src/scene/sun.cc`): (1) the darkness of building shadows as a
   slider (none on main or in PR #104 today); (2) how far the sun swings from
   overhead, default 30 degrees each way (morning -30, evening +30; this
@@ -81,7 +82,7 @@ that fits no task becomes a new task when the board runs dry.
   Correct cycle.cc rest-phase colors restore both glows. The final comparison
   also reframes an entire slime pool, rather than cropping its edge.
   No new emission marks or game-source repair was needed.
-- 2026-10-25 The owner, on the night look: at night nothing changes
+- 2026-10-25 (-> 194, alone: no open sky or light task, 142 and 153 are done) The owner, on the night look: at night nothing changes
   visually; there should be a moon of some kind (his words, for later: a
   moon light at night, presumably a dim cool directional like the sun
   line but weak).
@@ -140,15 +141,15 @@ that fits no task becomes a new task when the board runs dry.
 - 2026-10-27 (tasks 101-104) The owner's later shots in `runs/inbox/2026-10-27-*`:
   roof ends and fringe (101), walls from inside and holes (102), the halo on
   walls (103), the camera's bottom edge (104).
-- KLAGRAZ e0 still differs from the stored regression reference by 132 px; clean 098 baseline has the same deviation.
-- 2026-10-27 The 4:3 full-screen art (main menu, splash and loading screens,
+- (-> 129, the Klamath sweep) KLAGRAZ e0 still differs from the stored regression reference by 132 px; clean 098 baseline has the same deviation.
+- 2026-10-27 (-> 128, the wide art batch) The 4:3 full-screen art (main menu, splash and loading screens,
   death and ending slides, the like) extended to 16:9 and 21:9. The owner's
   method, to extend the originals rather than replace them: regenerate the art
   wider from the original, downscale it to the game's pixel size, add dithering
   to match, then lay the untouched original over the middle with a small mask
   at its edges (a gradient to 0) so the original blends into the extension.
   Not now; a note only.
-- 2026-10-27 A list of the unique objects that will need their own 3D model,
+- 2026-10-27 (-> 173) A list of the unique objects that will need their own 3D model,
   because the generic wall, roof and box rules cannot shape them: the big
   stone head in Arroyo, the Vault City gate, the Reno signs, the vertibirds,
   and the like (other one-off landmarks, vehicles and large signs). Go
@@ -161,7 +162,7 @@ that fits no task becomes a new task when the board runs dry.
   only on roofs, not walls (103); no glow on the slime pools and no
   visible point lights in the toxic caves (111). The bottom stop (108)
   passed with no remarks.
-- 2026-10-28 A sky in the 3D view (flight and turned camera), like the
+- 2026-10-28 (done: 142, #204 `3bd28ea5`; 153, #219 `fd8329b4`) A sky in the 3D view (flight and turned camera), like the
   first-person port https://github.com/Apolotary/fallout2-first-person
   (`runs/inbox/2026-10-28-sky-reference.webp`: a dusk gradient sky above
   the walls instead of black). The owner: the 3D view looks better with
@@ -179,7 +180,7 @@ that fits no task becomes a new task when the board runs dry.
   (115, with 102); the stove flat and the lockers flat (116); the message
   window's last line cut (117); the hero's halo still missing (103, in
   work).
-- 2026-10-28 The owner's goal after M1, not for profit: a free release that
+- 2026-10-28 (-> 097, the release goal the video serves) The owner's goal after M1, not for profit: a free release that
   installs from Steam onto the player's own bought Fallout 2 (Steam checks
   the base game, the mod reads its data), the way Enderal ships for Skyrim.
   Needs Bethesda's written consent for the Fallout IP; GOG (Fallout: London
@@ -190,12 +191,127 @@ that fits no task becomes a new task when the board runs dry.
   about Steam. Before asking: a release build, the showcase video (097), a
   project page; tell the authors of fallout2-ce and of the donor (both
   Sustainable Use License) first.
-- 2026-10-29 Main menu, Russian labels: on the owner's screenshot
+- 2026-10-29 (done: 126) Main menu, Russian labels: on the owner's screenshot
   (`runs/inbox/2026-10-29-main-menu-russian-labels.jpg`), «ВСТУПЛЕНИЕ» and
   «НОВАЯ ИГРА» extend left over the red circular button in their rows. The
   owner says both labels do not fit on the buttons. Not now.
-- 2026-10-29 FPS: during a live check, the owner felt that the frame rate
+- 2026-10-29 (-> 127 and 157) FPS: during a live check, the owner felt that the frame rate
   seemed low. No measured value or reproduction conditions were provided.
   Not now.
-- 2026-10-30 FPS counter: the owner requests an in-game FPS counter that can
+- 2026-10-30 (-> 127) FPS counter: the owner requests an in-game FPS counter that can
   be turned on and off. Not now.
+- 2026-11-01 (-> 128, the wide art batch) Wide HUD bar: the owner found a screenshot
+  (`runs/inbox/2026-11-01-wide-hud-bar.webp`) where the bottom interface bar
+  spans the whole wide screen: the stock panel in the middle, metal side
+  panels with a round vault-gear ornament filling the space to each edge.
+  Find which mod ships that art and its license, and take it into our wide
+  HUD if the license allows. Not now.
+- 2026-11-01 (-> 184-188) Restoration Project compatibility: the owner wants our build to
+  run with Killap's Fallout 2 Restoration Project installed on top. It is a
+  content mod (maps, scripts, dialogue) that leans on sfall; fallout2-ce
+  covers sfall only partly. First find which sfall opcodes, hooks and ini
+  settings the mod uses that CE lacks, and whether its new maps and art pass
+  through our scene export; then cut the work. Not now.
+- 2026-11-01 Cut for gpt: the Russian menu labels (126), the FPS counter and
+  the frame rate (127), the wide HUD bar source (128), the 3D options
+  screen finish to the owner's notes (130).
+- 2026-11-01 Cut for glm: a non-stop Klamath graphics sweep (129).
+- 2026-11-01 The owner's live check on main `e434c327`: a long straight hard
+  shadow edge across the downtown street (137); the loading screens blue
+  (131); a blocky band in the main menu's lower left (132).
+- 2026-11-01 Cut for glm: Arroyo in 3D, the opening area exported and swept (136).
+- 2026-11-01 Live check: the halo spot and its save went to 103, the toxic caves staying 2D to 111, the save preview in 3D to 134.
+- 2026-11-01 The 3D view stops in combat, dialogue and open windows; the owner wants it always on (135). The toxic caves 2D shots were combat, 111 corrected.
+- 2026-11-01 The street blotches are cloud shadows (#169), not a regression; the owner wants fewer, smaller, soft-edged desert clouds (138).
+- 2026-11-01 The owner: the game scale in the options menu in 0.1x steps
+  (139); letters cut in the dialogue answers
+  (`runs/inbox/2026-11-01-dialogue-letters-cut.png`, 140, gpt); the 3D
+  options checkboxes out of line, "[ ]" narrower than "[X]" (141, gpt).
+- 2026-11-01 The owner: glm is not with us for now; every task goes to gpt
+  or claude. Moved: 107, 111, 137 to gpt; 135, 136, 139 to claude. 103 and
+  129 still read `doing` by glm; whoever takes them continues from their
+  branches.
+- 2026-11-01 The 3D sky is a saturated blue with daylight stars and soft orange ridges; the owner wants a dusty post-nuclear desert sky (142).
+- 2026-11-01 After #199 the cloud shadows show a hard edge on the dark street; cut as 143.
+- 2026-11-01 The owner: camera turn in 10-degree steps, 30 by default; edge scrolling goes the wrong way on a turned camera (144).
+- 2026-11-01 (-> 148, the README batch) Bolt clips in the README: put the two night projectile clips
+  from 097 (laser pistol, plasma rifle) side by side in one video, compress it for GitHub, and insert it in the middle of the repository
+  description. Not now.
+- 2026-11-01 (done: 137, the asphalt art) Sun shadow blotches: on main `fc37980e` (with the 138 cloud fix)
+  and `cloud_shadows=0`, the Klamath downtown street still shows big dark
+  shapeless patches (`runs/inbox/2026-11-01-sun-shadow-blotches.png`). With
+  the clouds off these are the sun shadows: `shadows=1`, `sun_swing=44`,
+  `shadow_pixel_size=3`, `shadow_density=0.85`. Find what casts them; may be
+  137.
+- 2026-11-01 The owner: Claude stops only reviewing and takes tasks. Closed at merge: 103, 126, 132. To claude: 129 (glm out), 137 with the sun shadow blotches above. Claude starts with 137.
+- 2026-11-01 137 closed: the patches and the straight edge are the asphalt art, the same in 2D and with all shadows off. Found on the way: an orange dithered band at the map edge in 3D (145, gpt).
+- 2026-11-01 The owner asked gpt directly: cloud shadows become an option, off by default, for now (143 notes it).
+- 2026-11-01 The owner: the camera turn step should ease in and out on the brackets (150, gpt).
+- 2026-11-01 Task pool: 146 combat fixture, 147 map transitions in 3D, 148 README turn and combat (gpt); 149 combat overlays follow the turn and zoom (claude, from Codex on #211). 139 moved to gpt. Claude's order: 135, 149, 129, 136.
+- 2026-11-02 The owner played a fight in Klamath on main `a4d47b26` (135 step 1): combat stays in 3D. The only flaw: the target outlines do not scale with the 3D zoom (`runs/inbox/2026-11-02-combat-outlines-unscaled.png`, 149). UI finds: the message log lines start at different left edges (151, gpt); a dark pixel fringe round the main menu's yellow letters (152, gpt).
+- 2026-11-02 After #204 the sky glows bright yellow in flight and haloes the map; the glow pass likely takes the sky as an emitter (153, gpt).
+- 2026-11-02 The owner: in the 3D settings' Main section a resolution dropdown, a fullscreen / window / borderless dropdown and a 1x-3x scale slider in 0.2x steps, high priority (154, gpt; 139 folded in).
+- 2026-11-02 The owner: hitches on load, a stall when sun shadows are turned on, low FPS overall (155, claude); resolution, window mode and scale should change on the fly without a stall (156, gpt).
+- 2026-11-02 The owner on main `e8f168a2`: the game still runs unevenly, wants a steady 60 FPS (157, claude, after 155); wants the FPS counter (127 raised to high, gpt, #181).
+- 2026-11-03 (-> 190, the roofs batch) The owner: roof borders in flight are thick on one side and missing on others, also in the game's own view; they should be even, as thick as a wall (not critical, 129 follow-up).
+- 2026-11-03 (-> 145, the map edge batch) An orange translucent wedge at the map edge, seen in fly shots: pre-existing and unrelated to roofs (see 145).
+- 2026-11-04 The owner: glm sweeps every map in the game's order, non-stop.
+  Cut: 136 Arroyo (to glm), 158 Den, 159 Modoc and the Ghost Town, 160 Vault
+  City, 161 Gecko, 162 Broken Hills, 163 New Reno, 164 Redding, 165 NCR and
+  Vault 15, 166 Vault 13 and the Sierra Army Depot, 167 the Military Base, 168
+  San Francisco and Navarro, 169-171 the random encounters.
+- 2026-11-04 The owner: every open task to gpt. Moved to gpt: the area sweeps
+  164-171 (from glm), 129 and 149 (from claude). Claude keeps the
+  design-heavy 135 and 157 in progress; 090 and 097 stay claude-only.
+- 2026-11-04 The owner's strategy: merge on green CI, review later per city
+  (175-182, claude); 3D never off on a local map, a plane for what cannot be
+  built (173); multi-part objects as one (174); speed first: the frame-time
+  log and baselines (127), a 2 s warm-cache load (172), no stall on a
+  settings change (156), a steady 60 FPS (157). AGENTS.md updated.
+- 2026-11-04 The owner: 173 by kind (a bulky unique object is a billboard,
+  a flat thing a fixed plane, fences untouched); the feedback screenshot with
+  its JSON (183, right after 127).
+- 2026-11-04 The owner: the Restoration Project, top priority, to gpt.
+  Cut: 184 install into a scratch copy and boot, 185 the sfall gap list,
+  186 fill the gaps, 187 RP content in 3D, 188 an RP boot check.
+- 2026-11-04 The owner's board order: 0 crashes and blockers, 1 measuring
+  (127, 183), 2 whole-game systems (speed, 173, 174, RP), 3 batches by kind
+  (189-192 geometry, the UI), 4 local fixes from the owner's shots last. A
+  `tier` field on every open task; tasks.ps1 -Next sorts by it.
+- 2026-11-04 The owner: one task pool for gpt and glm. Open tasks are
+  `owner: any`; a draft PR `NNN: ...` is the lock; Claude's reviews stay
+  `owner: claude`. AGENTS.md and tasks.ps1 updated.
+- 2026-11-04 The owner: the per-city reviews (175-182) are the owner's
+  flights with 183's shots; agents turn them into fixes. A find: a dark
+  fringe strip past a building's wall over the street on a Modoc-like farm
+  map (needs a devshot after 183), folded into 190 roofs as find 1.
+- 2026-11-04 The owner: dialogue text indents its first line and sits too
+  tight; flush left and about 130% line height for every sharp text block
+  (193, the UI batch).
+- 2026-11-04 Inbox sweep (the owner: fold first, AGENTS.md). 22 lines had
+  no task: 16 folded into open tasks and batches (145 map edge, 183 dev
+  tools, 111, 193 UI text, 129, 128 wide art, 173, 097, 127, 157, 184-188,
+  148 README, 190 roofs), 5 marked done, 1 new task (194 the moon, alone).
+  107 folded into 189 walls as its first rule.
+- 2026-11-04 (-> 130, the UI batch) The owner: a cursor movement speed
+  setting in the game settings.
+- 2026-11-04 (-> 195, alone: no open camera task) The owner: the camera turn
+  easing from 150 feels harsh; soft starts and soft stops wanted.
+- 2026-11-04 (-> 156, the renderer lifetime) The owner: in fullscreen the
+  NVIDIA overlay toast keeps popping up during play; the device is
+  recreated mid-run.
+- 2026-11-04 (-> 193, the UI text batch) The owner: the message log's left
+  edge slants and its lines sit tight
+  (`runs/inbox/2026-11-04-message-log-left-edge.png`).
+- 2026-11-04 (-> 156, settings without a restart) The owner: the sharp-text
+  switch should apply on the fly (`runs/inbox/2026-11-04-sharp-text-live.png`).
+- 2026-11-04 (-> 193 part B, the UI batch)
+  The owner: full-screen screens on a fading black backdrop, the panel's
+  corners rounded 4 to 6 px.
+- 2026-11-04 (-> 196, tier 0, alone: under every batch) gpt stopped 156,
+  127, 140, 146 and the 165 walk probes on live checks that hang (map
+  dialogues, the combat start, the display change). 165 merged as #265;
+  #259 closed, superseded by #263.
+- 2026-11-04 (-> 197, alone: an art pipeline trial) The owner: a trial AI
+  HD remaster of one character's standing and walk frames, for gpt, not
+  urgent (`runs/inbox/2026-11-04-hd-sprite-remaster-reference.png`).

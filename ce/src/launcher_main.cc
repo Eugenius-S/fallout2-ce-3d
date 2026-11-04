@@ -1,4 +1,4 @@
-// Windows launcher for Fallout 2 CE 3D (task 091).
+// Windows launcher for Fallout 2: Reimagined (task 091).
 //
 // One small console exe a player runs against a clean Fallout 2 (Steam, GOG
 // or a plain copy).  First run: find the game, install our build from the
@@ -33,7 +33,7 @@ namespace {
 
 constexpr const char* kZipAsset = "fallout2-ce-3d-win64.zip";
 constexpr const char* kDefaultUpdateBase =
-    "https://github.com/Eugenius-S/fallout2-ce-3d/releases/download/latest";
+    "https://github.com/Eugenius-S/f2-reimagined/releases/download/latest";
 constexpr const char* kGameExe = "fallout2-ce.exe";
 constexpr const char* kCfg = "fallout2.cfg";
 constexpr const char* kVersionTxt = "version.txt";
@@ -543,7 +543,7 @@ Options parseOptions(int argc, char** argv)
         } else if (arg == "--") {
             passthrough = true;
         } else if (arg == "--help" || arg == "-h") {
-            log("fallout2-ce-3d-launcher: installs Fallout 2 CE 3D onto a clean Fallout 2 and keeps");
+            log("fallout2-ce-3d-launcher: installs Fallout 2: Reimagined onto a clean Fallout 2 and keeps");
             log("it updated from the rolling `latest` GitHub release, then starts the game.");
             log("");
             log("  --game-root <dir>   the Fallout 2 folder (default: registry lookup, then a picker)");

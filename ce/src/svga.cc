@@ -1,6 +1,7 @@
 #include "svga.h"
 
 #include <limits.h>
+#include <cmath>
 #include <stdio.h>
 #include <string.h>
 
@@ -28,6 +29,7 @@
 #include "scene_renderer/live_objects.h"
 #include "scene_renderer/picking.h"
 #include "scene_renderer/post.h"
+#include "scene_renderer/perf.h"
 #include "scene_renderer/scene_draw.h"
 #include "scene_renderer/static_scene.h"
 #include "scene_renderer/text_present.h"
@@ -169,19 +171,23 @@ void _zero_vid_mem()
 // 0x4CAE1C GNW95_init_mode_ex
 int _GNW95_init_mode_ex(int width, int height, int bpp)
 {
-    width = settings.screen.resolution_x;
-    height = settings.screen.resolution_y;
-    int scale = settings.screen.scale;
+    int outputWidth = settings.screen.resolution_x;
+    int outputHeight = settings.screen.resolution_y;
+    if (settings.screen.resolution_mode > 0) {
+        outputWidth = settings.screen.resolution_mode / 10000;
+        outputHeight = settings.screen.resolution_mode % 10000;
+    }
+    double factor = settings.screen.scale_factor;
+    width = static_cast<int>(std::lround(outputWidth / factor));
+    height = static_cast<int>(std::lround(outputHeight / factor));
 
-    // Only allow scaling if resulting game resolution is >= 640x480
-    if ((width / scale) < 640 || (height / scale) < 480) {
-        scale = 1;
-    } else {
-        width /= scale;
-        height /= scale;
+    // Preserve the minimum game surface size even for a stale configuration.
+    if (width < 640 || height < 480) {
+        width = outputWidth;
+        height = outputHeight;
     }
 
-    if (_GNW95_init_window(width, height, settings.screen.windowed, scale) == -1) {
+    if (_GNW95_init_window(width, height, settings.screen.windowed, outputWidth, outputHeight) == -1) {
         return -1;
     }
 
@@ -218,12 +224,16 @@ int _init_vesa_mode(int width, int height)
 }
 
 // 0x4CAEDC GNW95_init_window
-int _GNW95_init_window(int width, int height, WindowMode mode, int scale)
+int _GNW95_init_window(int width, int height, WindowMode mode, int outputWidth, int outputHeight)
 {
     if (gSdlWindow == nullptr) {
         SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");
 
         Uint32 windowFlags = SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI;
+        const bool backgroundRun = SDL_getenv("F2CE_DEV_BACKGROUND") != nullptr;
+        if (backgroundRun) {
+            SDL_SetHint(SDL_HINT_WINDOW_NO_ACTIVATION_WHEN_SHOWN, "1");
+        }
 
         if (mode == WindowMode::Fullscreen) {
             windowFlags |= SDL_WINDOW_FULLSCREEN;
@@ -231,20 +241,16 @@ int _GNW95_init_window(int width, int height, WindowMode mode, int scale)
             windowFlags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
         }
 
-        // Dev test runs (tools/dev-snapshot.ps1) open the window off screen,
-        // off the taskbar and never activated, so they run beside the user's
-        // own session. Never activated also means never losing focus, which
-        // would pause the game (_GNW95_lost_focus).
+        // Dev test runs stay out of the way of the user's active game.
         int windowX = SDL_WINDOWPOS_UNDEFINED;
         int windowY = SDL_WINDOWPOS_UNDEFINED;
-        if (SDL_getenv("F2CE_DEV_BACKGROUND") != nullptr && mode == WindowMode::Windowed) {
-            SDL_SetHint(SDL_HINT_WINDOW_NO_ACTIVATION_WHEN_SHOWN, "1");
+        if (backgroundRun && mode == WindowMode::Windowed) {
             windowFlags |= SDL_WINDOW_SKIP_TASKBAR;
             windowX = -20000;
             windowY = -20000;
         }
 
-        gSdlWindow = SDL_CreateWindow(gProgramWindowTitle, windowX, windowY, width * scale, height * scale, windowFlags);
+        gSdlWindow = SDL_CreateWindow(gProgramWindowTitle, windowX, windowY, outputWidth, outputHeight, windowFlags);
         if (gSdlWindow == nullptr) {
             return -1;
         }
@@ -596,12 +602,16 @@ void renderPresent()
             if (view == scene::View::Full) {
                 // With the glow on, the scene renders into its own
                 // framebuffer, which comes back with its bleed added.
+                scene_renderer::perfBegin();
                 const bool glow = scene_renderer::beginSceneCapture();
                 scene_renderer::drawStaticHeroPreview();
+                scene_renderer::perfMark("scene");
                 if (glow) scene_renderer::compositeGlow();
+                scene_renderer::perfMark("glow");
                 // A fly camera shows the world alone.
                 if (scene_renderer::staticFlyCameraActive()) {
                     scene_renderer::swap();
+                    scene_renderer::perfEnd();
                     return;
                 }
                 if (!gRgbaBackground.empty()) {
@@ -617,12 +627,15 @@ void renderPresent()
                         static_cast<const unsigned char*>(gSdlTextureSurface->pixels),
                         gSdlTextureSurface->w, gSdlTextureSurface->h, gSdlTextureSurface->pitch);
                     scene_renderer::swap();
+                    scene_renderer::perfEnd();
                     devtools::sceneOverlayPresented();
                     return;
                 }
                 // The game's interface, mouse cursor and floating text over it.
                 scene_renderer::drawSceneOverlayWithSharpText(gSdlSurface, gSdlTextureSurface, sharpTextReady);
+                scene_renderer::perfMark("overlay");
                 scene_renderer::swap();
+                scene_renderer::perfEnd();
                 devtools::sceneOverlayPresented();
                 return;
             }
