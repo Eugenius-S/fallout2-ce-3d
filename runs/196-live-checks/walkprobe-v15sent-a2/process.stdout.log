@@ -1,0 +1,15 @@
+devtools: startup target v15sent e0 accepted=1 blocking=0
+scene: cache build\scene-cache\v15sent\0
+devtools: static wall+hero preview started for V15SENT.MAP elevation 0
+scene: preview policy=available gameState=0 gameMode=0x0 uiDisabled=0 isoDisabled=0 combat=0 dialog=0 movie=0
+WALK_PROBE START map=V15SENT.MAP elevation=0 start=17700 center=19088 target=17080 path=20
+DEV_WATCHDOG state map=V15SENT.MAP elevation=0 tile=17898 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=1
+DEV_WATCHDOG state map=V15SENT.MAP elevation=0 tile=18096 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=1
+DEV_WATCHDOG state map=V15SENT.MAP elevation=0 tile=18293 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=1
+DEV_WATCHDOG state map=V15SENT.MAP elevation=0 tile=18091 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=1
+DEV_WATCHDOG state map=V15SENT.MAP elevation=0 tile=17688 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=1
+DEV_WATCHDOG state map=V15SENT.MAP elevation=0 tile=17486 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=1
+scene: preview policy=game-state gameState=4 gameMode=0x4 uiDisabled=0 isoDisabled=1 combat=0 dialog=0 movie=0
+WATCHDOG STOP reason=step timeout after 25 s without progress
+last_step=WALK_PROBE START map=V15SENT.MAP elevation=0 start=17700 center=19088 target=17080 path=20
+last_game_state=scene: preview policy=game-state gameState=4 gameMode=0x4 uiDisabled=0 isoDisabled=1 combat=0 dialog=0 movie=0

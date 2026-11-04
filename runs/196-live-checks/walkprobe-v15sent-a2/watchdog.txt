@@ -1,0 +1,4 @@
+WATCHDOG STOP reason=step timeout after 25 s without progress
+last_step=WALK_PROBE START map=V15SENT.MAP elevation=0 start=17700 center=19088 target=17080 path=20
+last_game_state=scene: preview policy=game-state gameState=4 gameMode=0x4 uiDisabled=0 isoDisabled=1 combat=0 dialog=0 movie=0
+screenshot=capture failed: The test process has no capturable window.

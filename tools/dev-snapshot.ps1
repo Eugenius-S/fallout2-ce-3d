@@ -36,6 +36,8 @@ param(
     [string]$Map = "kladwtwn",
     [int]$Elevation = 0,
     [int]$TimeoutSeconds = 90,
+    [ValidateRange(1, 3600)]
+    [int]$StepTimeoutSeconds = 30,
     # How long to wait for this worktree's previous test game to finish.
     [ValidateRange(0, 240)]
     [int]$WaitMinutes = 30,
@@ -78,6 +80,7 @@ param(
     [ValidateRange(0, 39999)]
     [int]$HeroTile,
     [switch]$Still,
+    [switch]$LiveFrame,
     [ValidateRange(0, 65536)]
     [int]$Ambient = -1,
     [switch]$Fly,
@@ -97,6 +100,8 @@ param(
     [string]$BuildExecutable,
     [string]$TestDirectory,
     [string]$SceneCache,
+    [ValidateRange(1, 10)]
+    [int]$DevLoadGameSlot = 0,
     [switch]$ConfiguredDisplay,
     [ValidateSet('english', 'russian')]
     [string]$Language,
@@ -140,6 +145,7 @@ param(
     [string]$ScrollEdge,
     [switch]$FollowHero,
     [switch]$WalkProbe,
+    [switch]$SkipScriptBlocking,
     [ValidateRange(0, 1000)]
     [int]$EffectFrame = -1,
     # -Shadows: keep sun and cloud shadows on in this background run (they are
@@ -406,6 +412,7 @@ $runId = [guid]::NewGuid().ToString('N')
 $runDirectory = Join-Path $exeDirectory "runs\$($runId.Substring(0, 12))"
 New-Item -ItemType Directory -Path $runDirectory -Force | Out-Null
 $arguments = @('--dev-tools')
+$arguments += '--dev-watchdog'
 if ($DevInput) { $arguments += "--dev-input=$([System.IO.Path]::GetFullPath($DevInput))" }
 if ($SceneInput) { $arguments += "--dev-scene-input=$([System.IO.Path]::GetFullPath($SceneInput))" }
 if ($TurnKeys) { $arguments += '--dev-camera-turn-keys' }
@@ -415,6 +422,7 @@ if ($ClockLadder) { $arguments += '--dev-clock-ladder' }
 if ($ScrollEdge) { $arguments += "--dev-scroll-edge=$ScrollEdge" }
 if ($FollowHero) { $arguments += '--dev-follow-hero' }
     if ($WalkProbe) { $arguments += '--dev-walk-probe' }
+if ($SkipScriptBlocking) { $arguments += '--dev-skip-script-blocking' }
 if ($NoEffectEmission) { $arguments += '--dev-no-effect-emission' }
 if ($EffectLightCheck) { $arguments += '--dev-effect-light-check' }
 if ($SharpText) { $arguments += '--dev-sharp-text=1' } else { $arguments += '--dev-sharp-text=0' }
@@ -431,12 +439,16 @@ if ($PreferencesProbe) {
     $arguments += @('--dev-new-game', "--dev-map=$Map", "--dev-elevation=$Elevation", "--dev-preferences-probe=$PreferencesProbe")
 } elseif ($ConfiguredDisplay) {
     if ($PreferencesProbe) { throw '-ConfiguredDisplay cannot be combined with -PreferencesProbe.' }
-    $arguments += @('--dev-new-game', "--dev-map=$Map", "--dev-elevation=$Elevation", "--dev-snapshot-run=$runId")
+    if ($DevLoadGameSlot -gt 0) { $arguments += "--dev-load-game=$DevLoadGameSlot" }
+    else { $arguments += @('--dev-new-game', "--dev-map=$Map", "--dev-elevation=$Elevation") }
+    $arguments += "--dev-snapshot-run=$runId"
 } else {
     $scaleText = $Scale.ToString('0.0#', [Globalization.CultureInfo]::InvariantCulture)
     $scaleArgument = if ([Math]::Abs($Scale - [Math]::Round($Scale)) -lt 0.0001) { "--dev-scale=$([int][Math]::Round($Scale))" } else { "--dev-scale-factor=$scaleText" }
-    $arguments += @("--dev-screen=${ScreenWidth}x${ScreenHeight}", $scaleArgument,
-        '--dev-new-game', "--dev-map=$Map", "--dev-elevation=$Elevation", "--dev-snapshot-run=$runId")
+    $arguments += @("--dev-screen=${ScreenWidth}x${ScreenHeight}", $scaleArgument)
+    if ($DevLoadGameSlot -gt 0) { $arguments += "--dev-load-game=$DevLoadGameSlot" }
+    else { $arguments += @('--dev-new-game', "--dev-map=$Map", "--dev-elevation=$Elevation") }
+    $arguments += "--dev-snapshot-run=$runId"
 }
 if ($Glow) { $arguments += '--dev-glow' }
 if ($GlowStrength -ge 0) { $arguments += "--dev-glow-strength=$($GlowStrength.ToString([System.Globalization.CultureInfo]::InvariantCulture))" }
@@ -488,8 +500,17 @@ if ($Still) {
     if ($Probe) { throw '-Still cannot be combined with the interactive -Probe.' }
     $arguments += '--dev-still-snapshot'
 }
+if ($LiveFrame) {
+    if ($Still -or $Preferences -or $PreferencesProbe -or $Probe -or $Tour -or $DialogFixture -or $UiFixture) {
+        throw '-LiveFrame cannot be combined with a still, preference, probe, tour, dialog, or UI fixture mode.'
+    }
+    $arguments += '--dev-live-snapshot-once'
+}
+if ($DevLoadGameSlot -gt 0 -and -not $LiveFrame) { throw '-DevLoadGameSlot requires -LiveFrame.' }
 if ($DevInput -or $SceneInput) {
     $shots = $DevInputShots
+} elseif ($LiveFrame) {
+    $shots = 1
 } elseif ($PreferencesProbe) {
     $shots = 0
 } elseif ($Preferences) {
@@ -535,6 +556,14 @@ $process = $null
 $probeHarnessStoppedProcess = $false
 $snapshots = @()
 $dialogFixtureFailed = $false
+$watchdogExpired = $false
+$watchdogReason = ''
+$watchdogLastProgress = Get-Date
+$watchdogLastLine = ''
+$watchdogProgressObserved = $false
+$watchdogStdout = if ($CaptureConsole) { Join-Path $OutputDirectory 'process.stdout.log' } else { Join-Path $runDirectory 'process.stdout.log' }
+$watchdogStderr = if ($CaptureConsole) { Join-Path $OutputDirectory 'process.stderr.log' } else { Join-Path $runDirectory 'process.stderr.log' }
+$shotPath = Join-Path $runDirectory 'watchdog.png'
 try {
     $startParameters = @{
         FilePath = $exe
@@ -543,18 +572,30 @@ try {
         PassThru = $true
         ArgumentList = $arguments
     }
-    if ($CaptureConsole) {
-        if (-not $OutputDirectory) { throw '-CaptureConsole requires -OutputDirectory.' }
-        New-Item -ItemType Directory -Path $OutputDirectory -Force | Out-Null
-        $startParameters.RedirectStandardOutput = Join-Path $OutputDirectory 'process.stdout.log'
-        $startParameters.RedirectStandardError = Join-Path $OutputDirectory 'process.stderr.log'
-    }
+    if ($CaptureConsole -and -not $OutputDirectory) { throw '-CaptureConsole requires -OutputDirectory.' }
+    if ($OutputDirectory) { New-Item -ItemType Directory -Path $OutputDirectory -Force | Out-Null }
+    $startParameters.RedirectStandardOutput = $watchdogStdout
+    $startParameters.RedirectStandardError = $watchdogStderr
     $process = Start-Process @startParameters
     $deadline = $started.AddSeconds($TimeoutSeconds)
     $probeCompletedBeforeDeadline = $false
     if ($PreferencesProbe) {
         $probeStdoutPath = Join-Path $OutputDirectory 'process.stdout.log'
         while ((Get-Date) -lt $deadline -and -not $process.HasExited) {
+            if (Test-Path -LiteralPath $watchdogStdout) {
+                $lines = Get-Content -LiteralPath $watchdogStdout -Tail 40 -ErrorAction SilentlyContinue
+                $progress = @($lines | Where-Object { $_ -match '(^| )(STEP|START|PASS|FAIL|RESULT|DEV_INPUT pushed|DEV_INPUT snap|pending map id|waiting for map id)' } | Select-Object -Last 1)
+                if ($progress.Count -gt 0 -and $progress[0] -ne $watchdogLastLine) {
+                    $watchdogLastLine = [string]$progress[0]
+                    $watchdogLastProgress = Get-Date
+                    $watchdogProgressObserved = $true
+                }
+            }
+            if ($watchdogProgressObserved -and ((Get-Date) - $watchdogLastProgress).TotalSeconds -ge $StepTimeoutSeconds) {
+                $watchdogExpired = $true
+                $watchdogReason = "step timeout after $StepTimeoutSeconds s without progress"
+                break
+            }
             if ((Test-Path -LiteralPath $probeStdoutPath) -and
                 (Select-String -LiteralPath $probeStdoutPath -Pattern 'PREFERENCES_PROBE finished; requesting isolated helper exit' -Quiet)) {
                 $probeCompletedBeforeDeadline = $true
@@ -564,6 +605,20 @@ try {
         }
     } else {
         while ((Get-Date) -lt $deadline -and -not $process.HasExited) {
+            if (Test-Path -LiteralPath $watchdogStdout) {
+                $lines = Get-Content -LiteralPath $watchdogStdout -Tail 40 -ErrorAction SilentlyContinue
+                $progress = @($lines | Where-Object { $_ -match '(^| )(STEP|START|PASS|FAIL|RESULT|DEV_INPUT pushed|DEV_INPUT snap|pending map id|waiting for map id)' } | Select-Object -Last 1)
+                if ($progress.Count -gt 0 -and $progress[0] -ne $watchdogLastLine) {
+                    $watchdogLastLine = [string]$progress[0]
+                    $watchdogLastProgress = Get-Date
+                    $watchdogProgressObserved = $true
+                }
+            }
+            if ($watchdogProgressObserved -and ((Get-Date) - $watchdogLastProgress).TotalSeconds -ge $StepTimeoutSeconds) {
+                $watchdogExpired = $true
+                $watchdogReason = "step timeout after $StepTimeoutSeconds s without progress"
+                break
+            }
             # The exe writes into shots\dev\<date>\; the root scan also catches a
             # writer that could not make the folder. Both are filtered by the run
             # id below.
@@ -644,6 +699,64 @@ try {
             Start-Sleep -Milliseconds 500
         }
     }
+    if (-not $process.HasExited -and -not $watchdogExpired -and (Get-Date) -ge $deadline) {
+        $watchdogExpired = $true
+        $watchdogReason = "whole-run timeout after $TimeoutSeconds s"
+    }
+    if ($watchdogExpired -and $null -ne $process -and -not $process.HasExited) {
+        $stateLines = if (Test-Path -LiteralPath $watchdogStdout) { @(Get-Content -LiteralPath $watchdogStdout -Tail 80 -ErrorAction SilentlyContinue) } else { @() }
+        $lastStep = if ($watchdogLastLine) { $watchdogLastLine } else { '<no progress marker>' }
+        $diag = "WATCHDOG STOP reason=$watchdogReason`nlast_step=$lastStep`nlast_game_state=$(@($stateLines | Where-Object { $_ -match 'pending map id|waiting for map id|WALK_PROBE|DEV_INPUT|TOUR|COMBAT|DEV_WATCHDOG state' } | Select-Object -Last 1))"
+        $diagPath = Join-Path $runDirectory 'watchdog.txt'
+        Set-Content -LiteralPath $diagPath -Value $diag -Encoding utf8
+        try {
+            $requestPath = Join-Path $runDirectory 'watchdog.request'
+            $gameStatePath = Join-Path $runDirectory 'watchdog-state.txt'
+            Set-Content -LiteralPath $requestPath -Value 'capture' -Encoding ascii
+            $captureDeadline = (Get-Date).AddSeconds(5)
+            while ((Get-Date) -lt $captureDeadline -and -not (Test-Path -LiteralPath $gameStatePath)) { Start-Sleep -Milliseconds 100 }
+            if (Test-Path -LiteralPath $gameStatePath) {
+                $gameState = Get-Content -Raw -LiteralPath $gameStatePath
+                Add-Content -LiteralPath $diagPath -Value "game_state=$gameState"
+                $sidecar = Get-ChildItem (Join-Path $runDirectory 'shots\dev') -Recurse -Filter 'devshot-*.json' -File -ErrorAction SilentlyContinue |
+                    Sort-Object LastWriteTime -Descending | Select-Object -First 1
+                if ($sidecar) {
+                    $metadata = Get-Content -Raw -LiteralPath $sidecar.FullName | ConvertFrom-Json
+                    $sourceImage = Join-Path $sidecar.DirectoryName $metadata.image
+                    if (Test-Path -LiteralPath $sourceImage) {
+                        Copy-Item -LiteralPath $sourceImage -Destination $shotPath -Force
+                        Copy-Item -LiteralPath $sidecar.FullName -Destination (Join-Path $runDirectory 'watchdog.json') -Force
+                        Add-Content -LiteralPath $diagPath -Value "screenshot=$shotPath"
+                    } else { Add-Content -LiteralPath $diagPath -Value 'screenshot=engine capture image missing' }
+                } else { Add-Content -LiteralPath $diagPath -Value 'screenshot=engine capture metadata missing' }
+            } else {
+                Add-Content -LiteralPath $diagPath -Value 'game_state=engine watchdog capture timed out'
+            }
+            if (-not (Test-Path -LiteralPath $shotPath)) {
+                $lastImageMeta = Get-ChildItem (Join-Path $runDirectory 'shots\dev') -Recurse -Filter 'devshot-*.json' -File -ErrorAction SilentlyContinue |
+                    Sort-Object LastWriteTime -Descending | Select-Object -First 1
+                if ($lastImageMeta) {
+                    $metadata = Get-Content -Raw -LiteralPath $lastImageMeta.FullName | ConvertFrom-Json
+                    $sourceImage = Join-Path $lastImageMeta.DirectoryName $metadata.image
+                    if (Test-Path -LiteralPath $sourceImage) {
+                        Copy-Item -LiteralPath $sourceImage -Destination $shotPath -Force
+                        Copy-Item -LiteralPath $lastImageMeta.FullName -Destination (Join-Path $runDirectory 'watchdog.json') -Force
+                        Add-Content -LiteralPath $diagPath -Value "screenshot=last game snapshot before timeout ($shotPath)"
+                    }
+                }
+            }
+        } catch { Add-Content -LiteralPath $diagPath -Value "screenshot=capture failed: $($_.Exception.Message)" }
+        Add-Content -LiteralPath $watchdogStdout -Value $diag
+        if ($OutputDirectory) {
+            Copy-Item -LiteralPath $diagPath -Destination $OutputDirectory -Force
+            if (Test-Path -LiteralPath $shotPath) { Copy-Item -LiteralPath $shotPath -Destination $OutputDirectory -Force }
+            foreach ($watchdogArtifact in @((Join-Path $runDirectory 'watchdog.json'), $gameStatePath)) {
+                if (Test-Path -LiteralPath $watchdogArtifact) { Copy-Item -LiteralPath $watchdogArtifact -Destination $OutputDirectory -Force }
+            }
+        }
+        Stop-Process -Id $process.Id -Force
+        $probeHarnessStoppedProcess = $true
+    }
     Start-Sleep -Milliseconds 500
 } finally {
     $env:F2CE_DEV_BACKGROUND = $previousBackground
@@ -682,6 +795,7 @@ if ($DevInput -or $SceneInput) {
         } | ConvertTo-Json -Depth 4 | Set-Content -Encoding utf8 -LiteralPath (Join-Path $OutputDirectory 'input-result.json')
     }
 }
+if ($watchdogExpired) { throw "Live check watchdog: $watchdogReason. Diagnostics: $(Join-Path $runDirectory 'watchdog.txt')" }
 if ($MuzzleWeapon -gt 0) {
     $muzzleText086=Get-Content -Raw -LiteralPath (Join-Path $OutputDirectory 'process.stdout.log')
     if ($muzzleText086 -notmatch 'MUZZLE_FIXTURE PASS' -or $muzzleText086 -match 'MUZZLE_FIXTURE FAIL') {throw 'Muzzle batch did not finish successfully.'}
