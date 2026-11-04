@@ -78,6 +78,10 @@ MAP_GROUPS = {
     # the depot's surface bunker and its underground levels (the game's
     # maps/v13*.map and depol*.map files).
     "vault13depot": ("v13ent", "vault13", "depolv1", "depolva", "depolvb"),
+    # San Francisco and Navarro: Chinatown, the docks, the tanker, the
+    # shuttle, the Elronologists' base and the Navarro base (the game's
+    # maps/sf*.map files and navarro.map).
+    "sanfran": ("sfdock", "sfchina", "sfchina2", "sftanker", "sfshutl1", "sfshutl2", "sfelronb", "navarro"),
 }
 EXPECTED_OUTPUT_FILES = {"scene.json", "provenance.json", "floor.bin", "walls.bin", "projection.bin", "baked.bin",
                          "shadows.bin", "tiles.png", "light.png", "rock.png", "roof_fringe.png"}
