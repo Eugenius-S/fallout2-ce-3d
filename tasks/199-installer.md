@@ -2,7 +2,7 @@
 id: 199
 title: A proper installer with the project logo, one-click updates, Russian and RP options
 milestone: M1
-status: doing
+status: done
 owner: gpt
 suggested: gpt
 priority: high
@@ -10,7 +10,7 @@ tier: 1
 claude-only: no
 user-check: yes
 depends-on: []
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -70,3 +70,21 @@ Restoration Project is shown as one, disabled for now.
 RP itself (184-188), macOS.
 
 ## Log
+
+### 2026-11-05 gpt
+Done: Added the bilingual Win32 installer window and embedded project logo,
+release version and notes, game folder detection, install progress, play,
+automatic updates, rollback, the official RPU Russian text option, and a
+disabled Restoration Project option. Updated both Install sections and removed
+the full-installer Plans entries. Evidence is in `runs/199-installer/`.
+Rights: the upstream RPU repository has no GitHub license metadata or root
+`LICENSE` file, so this change does not assume redistribution rights. The
+launcher fetches the translation from the official RPU release at the player's
+request and does not bundle or rehost it. RPU project credits list Russian
+translators. The UPU translation notes identify Russian text as based on 1C
+and Drobovik & Co., but do not license the RPU asset.
+Check: MSVC Release build, CTest 20/20, standalone exporter build, clean
+install, update-on-launch, rollback, English and Russian UI, and the official
+RPU translation install all passed on isolated scratch copies. See the live
+screenshots and metadata in `runs/199-installer/`.
+Next: CI for PR #285 on the final commit.
