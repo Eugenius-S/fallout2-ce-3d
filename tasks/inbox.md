@@ -324,3 +324,6 @@ first: a new task only when no open task or batch fits (AGENTS.md, Tasks).
 - 2026-11-04 (-> 168, owner priority) The owner: San Francisco's sea fills
   the horizon past the map; the tanker's side a vertical plane at the pier
   (173's plane rule).
+- 2026-11-04 (-> 199, alone: builds on 091's launcher) The owner: a proper
+  installer with the logo, one-click updates from GitHub, a Russian option
+  and a disabled Restoration Project option.
