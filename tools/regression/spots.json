@@ -118,6 +118,27 @@
       "elevation": 0,
       "tile": 21913,
       "coverage": "The most detailed gallery view of this map elevation (task 011)"
+    },
+    {
+      "name": "redding-downtown",
+      "map": "reddown",
+      "elevation": 0,
+      "tile": 19059,
+      "coverage": "Redding downtown"
+    },
+    {
+      "name": "redding-mine-entrance",
+      "map": "redment",
+      "elevation": 0,
+      "tile": 26912,
+      "coverage": "The mine entrance"
+    },
+    {
+      "name": "redding-wanamingo",
+      "map": "redwame",
+      "elevation": 0,
+      "tile": 20275,
+      "coverage": "The Wanamingo mine entrance"
     }
   ]
 }
