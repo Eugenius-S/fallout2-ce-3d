@@ -43,12 +43,16 @@ DEFAULT_MAP = "kladwtwn"
 # Map groups for --maps: every elevation each map has.
 MAP_GROUPS = {
     "klamath": ("kladwtwn", "klatrap", "klacanyn", "klagraz", "klamall", "klaratcv", "klatoxcv"),
-    # Arroyo, the game's opening area: temple, caves, both village maps,
-    # bridge, wilderness, dead brahmin (the game's maps/ar*.map files).
-    "arroyo": ("arcaves", "arvillag", "arvill2", "arbridge", "argarden", "ardead", "artemple"),
     # The starting vault: its screens (monitr, bvs, comp arts) carry live
     # cycling colours, unlike Klamath's dead ones (task 050).
     "vault15": ("vault15",),
+    "den": ("denbus1", "denbus2", "denres1"),
+    # Modoc and the Ghost Town: the town, the farms, the well, the ghost
+    # farm and its caves (the game's maps/mod*.map and gst*.map files).
+    "modoc": ("modmain", "modinn", "modbrah", "modgard", "modshit", "modwell", "gstfarm", "gstcav1", "gstcav2"),
+    # Arroyo, the game's opening area: temple, caves, both village maps,
+    # bridge, wilderness, dead brahmin (the game's maps/ar*.map files).
+    "arroyo": ("arcaves", "arvillag", "arvill2", "arbridge", "argarden", "ardead", "artemple"),
     # Den: business and residential streets, the slave run's open ground
     # (the game's maps/den*.map files).
     "den": ("denbus1", "denbus2", "denres1", "dnslvrun"),

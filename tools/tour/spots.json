@@ -265,6 +265,126 @@
    "name": "cave, regression gallery view"
   },
   {
+   "map": "modmain",
+   "elevation": 0,
+   "tile": 23333,
+   "name": "main street entrance"
+  },
+  {
+   "map": "modinn",
+   "elevation": 0,
+   "tile": 25321,
+   "name": "the bed and breakfast"
+  },
+  {
+   "map": "modinn",
+   "elevation": 1,
+   "tile": 25321,
+   "name": "the bed and breakfast, upper floor"
+  },
+  {
+   "map": "modbrah",
+   "elevation": 0,
+   "tile": 19324,
+   "name": "the brahmin pastures"
+  },
+  {
+   "map": "modgard",
+   "elevation": 0,
+   "tile": 18711,
+   "name": "Farrel's garden"
+  },
+  {
+   "map": "modshit",
+   "elevation": 0,
+   "tile": 20699,
+   "name": "the outhouse corner"
+  },
+  {
+   "map": "modwell",
+   "elevation": 0,
+   "tile": 16710,
+   "name": "the town well"
+  },
+  {
+   "map": "gstfarm",
+   "elevation": 0,
+   "tile": 23345,
+   "name": "the ghost farm entrance"
+  },
+  {
+   "map": "gstcav1",
+   "elevation": 0,
+   "tile": 14255,
+   "name": "the main cavern"
+  },
+  {
+   "map": "gstcav2",
+   "elevation": 0,
+   "tile": 25713,
+   "name": "the underground lake"
+  },
+  {
+   "map": "modmain",
+   "elevation": 0,
+   "tile": 19333,
+   "name": "the big barn"
+  },
+  {
+   "map": "modmain",
+   "elevation": 0,
+   "tile": 21333,
+   "name": "the farmhouse and pens"
+  },
+  {
+   "map": "modinn",
+   "elevation": 0,
+   "tile": 21321,
+   "name": "the inn, the car and the pens"
+  },
+  {
+   "map": "modbrah",
+   "elevation": 0,
+   "tile": 17324,
+   "name": "the brahmin herd"
+  },
+  {
+   "map": "modgard",
+   "elevation": 0,
+   "tile": 16711,
+   "name": "the dead brahmin garden"
+  },
+  {
+   "map": "modshit",
+   "elevation": 0,
+   "tile": 18699,
+   "name": "the lit outhouse pit"
+  },
+  {
+   "map": "modwell",
+   "elevation": 0,
+   "tile": 14710,
+   "name": "the well shaft and ladder"
+  },
+  {
+   "map": "gstfarm",
+   "elevation": 0,
+   "tile": 21345,
+   "name": "the massacre in the corn"
+  },
+  {
+   "map": "gstcav1",
+   "elevation": 0,
+   "tile": 12255,
+   "name": "the hermit camp"
+  },
+  {
+   "map": "gstcav2",
+   "elevation": 0,
+   "tile": 23713,
+   "name": "the lake shore camp"
+  },
+  {
    "map": "arcaves",
    "elevation": 0,
    "tile": 28706,

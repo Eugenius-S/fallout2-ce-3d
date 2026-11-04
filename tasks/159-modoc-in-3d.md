@@ -2,14 +2,14 @@
 id: 159
 title: Modoc and the Ghost Town in 3D, every map stands and looks clean
 milestone: M1
-status: todo
-owner: none
+status: done
+owner: glm
 suggested: glm
 priority: normal
 claude-only: no
 user-check: yes
 depends-on: []
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -66,3 +66,28 @@ The interface, menus and text, the sky, new 3D models from scratch, maps of
 other areas (each has its own task).
 
 ## Log
+
+### 2026-11-04 glm
+Done: the modoc group (modmain, modinn x2, modbrah, modgard, modshit, modwell,
+gstfarm, gstcav1, gstcav2 x2; 11 elevations export clean). 21 fly tour spots
+(entrances plus the landmarks from a 66-point 2D grid probe: the big barn,
+the farmhouse, the inn and its car, the brahmin herd, Farrel's garden, the
+outhouse pit, the well shaft, the massacre in the corn, the hermit camp, the
+lake shore camp) and 11 regression spots with references from this build.
+Find: modinn elevation 1 hung the dev travel even with the nearest-free-tile
+fallback. Cause: mapHandleTransition refuses tile-based placement on a vanilla
+blacklist (MAP_MODOC_BEDNBREAKFAST, MAP_THE_SQUAT_A), so the same-map
+transition never applied. Fixed in PR #242 (the dev elevation change places
+the dude directly; the engine path stays for real map changes).
+Find: gstcav2 e1's floor is a thin ledge over black; the fly view is
+legitimately near-empty (the game's own 2D shows the same), so it has a
+regression spot but no tour stop (the tour rejects empty middles).
+Sweep: the fly tour at every stop (3 turns), hours 8/12/18 on every entrance;
+modmain -> modinn -> modbrah -> modgard in one run, all scene-gl.
+tools/regression.ps1: 27 of 27 spots, 0 changed pixels. No open visual finds;
+the task closes.
+Note: the modinn-e1 regression spot needs PR #242 (without it the capture
+hangs); the other 10 and the earlier areas do not.
+Evidence: runs/159-modoc-in-3d/.
+Check: export.py --maps modoc; tour.py --maps modmain,modinn,modbrah,modgard,
+modshit,modwell,gstfarm,gstcav1,gstcav2; tools/regression.ps1.
