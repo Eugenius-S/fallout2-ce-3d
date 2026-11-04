@@ -21,6 +21,11 @@ scale. The "restart needed" notes go away for what now applies live.
 
 ## Context
 
+- Folded in (the owner, 2026-11-04, `runs/inbox/2026-11-04-sharp-text-live.png`,
+  the panel's Lighting section in the original pixel font): the sharp-text
+  switch (025) should apply on the fly like the other settings. Turning it on
+  or off changes all text right away (the settings panel itself, dialogue,
+  the message log) with no restart and no stall; today it needs a restart.
 - Folded in (the owner, 2026-11-04, a screenshot over Klamath): in
   fullscreen, NVIDIA's "Press Ctrl+Alt+Z to open the overlay" toast keeps
   popping up during play, as if the game were starting again. The NVIDIA
@@ -60,6 +65,9 @@ scale. The "restart needed" notes go away for what now applies live.
   create and destroy is logged with its reason; a fullscreen session
   through a map change, a dialogue, combat and the options screen logs no
   recreate after launch, and the overlay toast shows at most once.
+
+- Sharp text toggled with the panel open: the panel, a dialogue and the
+  message log before and after, no frame over 33 ms around the toggle.
 
 ## Out of scope
 

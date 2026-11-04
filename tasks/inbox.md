@@ -303,3 +303,5 @@ first: a new task only when no open task or batch fits (AGENTS.md, Tasks).
 - 2026-11-04 (-> 193, the UI text batch) The owner: the message log's left
   edge slants and its lines sit tight
   (`runs/inbox/2026-11-04-message-log-left-edge.png`).
+- 2026-11-04 (-> 156, settings without a restart) The owner: the sharp-text
+  switch should apply on the fly (`runs/inbox/2026-11-04-sharp-text-live.png`).
