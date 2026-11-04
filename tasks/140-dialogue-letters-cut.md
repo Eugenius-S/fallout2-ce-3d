@@ -73,3 +73,7 @@ fixture's before/after remained pixel-identical.
 Done: removed the local scene-cache path from the failed cursor-check stdout log. The PR's last CI failure was the public-content check on that path; the screenshot attempt remains a failed assertion and no additional runtime attempt was made.
 Next: retain the draft until the clipped reply is reproducible and the sharp overlay passes with matched before/after evidence.
 Check: `tools/check_public_content.py origin/main` and `tools/check_runs_size.py origin/main` pass after this commit.
+
+### 2026-11-04 gpt: merge fresh origin/main
+
+Merged `origin/main` at `3b288fd6` with no conflicts. Existing normal and hover-state fixtures still do not reproduce the owner's clipped reply; the hover check assertion failed and did not save a frame. PR #206 stays draft pending a visible matching reproduction.
