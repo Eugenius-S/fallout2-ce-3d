@@ -119,3 +119,8 @@ capture, so the runtime check is blocked pending a fixture that reaches the
 actual answer state. Diagnostic source changes are unverified and PR #206
 remains draft. Release build and CTest 20/20 pass; no hover acceptance is
 claimed.
+
+### 2026-11-04 gpt: release after answer-capture limit
+Done: rebased the existing branch on current `origin/main` (`f2ef1236`). The two latest answer-hover attempts still do not expose the selected reply in the screen buffer, so there is no valid after-frame for the owner's clipping report. The older dialog, message and character captures do not reproduce that reported state. Task 140 remains incomplete; the claim is released, and PR #206 stays draft.
+Next: resume only when the dialogue fixture can expose and capture the actual selected answer text, then produce the required matched English and Russian crops.
+Check: the last Release build and CTest passed 20/20 before rebase. The rebased PR CI will validate the current SHA; no more runtime retries are made under the two-failure limit.
