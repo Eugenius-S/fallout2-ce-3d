@@ -2,9 +2,9 @@
 id: 164
 title: Redding in 3D, every map stands and looks clean
 milestone: M1
-status: todo
-owner: any
-suggested: any
+status: doing
+owner: gpt
+suggested: gpt
 priority: normal
 tier: 3
 claude-only: no
