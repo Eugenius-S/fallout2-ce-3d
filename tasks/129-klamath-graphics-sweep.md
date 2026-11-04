@@ -3,8 +3,8 @@ id: 129
 title: Klamath graphics sweep, find and fix every visible defect
 milestone: M1
 status: todo
-owner: none
-suggested: gpt
+owner: any
+suggested: any
 priority: low
 tier: 4
 claude-only: no

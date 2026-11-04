@@ -3,8 +3,8 @@ id: 134
 title: The save preview shows the 3D view cleanly
 milestone: M1
 status: todo
-owner: none
-suggested: gpt
+owner: any
+suggested: any
 priority: normal
 tier: 3
 claude-only: no

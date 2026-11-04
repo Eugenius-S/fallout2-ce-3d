@@ -3,8 +3,8 @@ id: 107
 title: A corner post's card splits at its own axis, each half on the face it stands before
 milestone: M1
 status: todo
-owner: none
-suggested: gpt
+owner: any
+suggested: any
 priority: normal
 tier: 3
 claude-only: no

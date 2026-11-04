@@ -3,7 +3,7 @@ id: 178
 title: Fly-through review of Modoc and the Ghost Town
 milestone: M1
 status: todo
-owner: none
+owner: claude
 suggested: claude
 priority: low
 tier: 4

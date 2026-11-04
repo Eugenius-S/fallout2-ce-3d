@@ -3,8 +3,8 @@ id: 190
 title: Roofs across every map, one rule per PR
 milestone: M1
 status: todo
-owner: none
-suggested: gpt
+owner: any
+suggested: any
 priority: normal
 tier: 3
 claude-only: no

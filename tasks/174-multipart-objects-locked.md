@@ -3,8 +3,8 @@ id: 174
 title: Objects made of several parts stand and move as one
 milestone: M1
 status: todo
-owner: none
-suggested: gpt
+owner: any
+suggested: any
 priority: high
 tier: 2
 claude-only: no

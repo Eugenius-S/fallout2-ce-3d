@@ -102,6 +102,7 @@ if ($Next) {
     } else {
         $free = @($rows | Where-Object {
             $_.status -eq 'todo' `
+                -and ($_.owner -in 'none', 'any', '' -or $_.owner -eq $agent) `
                 -and ($_.claude -ne 'yes' -or $agent -eq 'claude') `
                 -and (($_.deps -replace '[\[\]]', '').Split(',') | Where-Object { $_.Trim() } |
                     ForEach-Object { [bool]$done[$_.Trim()] }) -notcontains $false

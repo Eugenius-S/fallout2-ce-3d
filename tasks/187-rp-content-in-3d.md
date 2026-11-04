@@ -3,8 +3,8 @@ id: 187
 title: RP's new and changed maps build in 3D under the same rules
 milestone: M1
 status: todo
-owner: none
-suggested: gpt
+owner: any
+suggested: any
 priority: high
 tier: 2
 claude-only: no

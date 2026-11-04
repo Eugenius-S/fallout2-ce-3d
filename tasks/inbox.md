@@ -277,3 +277,6 @@ that fits no task becomes a new task when the board runs dry.
   (127, 183), 2 whole-game systems (speed, 173, 174, RP), 3 batches by kind
   (189-192 geometry, the UI), 4 local fixes from the owner's shots last. A
   `tier` field on every open task; tasks.ps1 -Next sorts by it.
+- 2026-11-04 The owner: one task pool for gpt and glm. Open tasks are
+  `owner: any`; a draft PR `NNN: ...` is the lock; Claude's reviews stay
+  `owner: claude`. AGENTS.md and tasks.ps1 updated.

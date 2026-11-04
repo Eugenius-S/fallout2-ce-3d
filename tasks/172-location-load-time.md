@@ -3,8 +3,8 @@ id: 172
 title: A location loads in 2 s from a warm cache
 milestone: M1
 status: todo
-owner: none
-suggested: gpt
+owner: any
+suggested: any
 priority: high
 tier: 2
 claude-only: no

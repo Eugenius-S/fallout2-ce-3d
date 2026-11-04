@@ -3,8 +3,8 @@ id: 188
 title: A check that RP still boots, without committing RP
 milestone: M1
 status: todo
-owner: none
-suggested: gpt
+owner: any
+suggested: any
 priority: high
 tier: 2
 claude-only: no

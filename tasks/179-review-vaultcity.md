@@ -3,7 +3,7 @@ id: 179
 title: Fly-through review of Vault City
 milestone: M1
 status: todo
-owner: none
+owner: claude
 suggested: claude
 priority: low
 tier: 4

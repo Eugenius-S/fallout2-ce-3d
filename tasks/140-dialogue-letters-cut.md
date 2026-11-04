@@ -3,8 +3,8 @@ id: 140
 title: Letters in the dialogue answers are not cut at the top or bottom
 milestone: M1
 status: todo
-owner: none
-suggested: gpt
+owner: any
+suggested: any
 priority: normal
 tier: 3
 claude-only: no

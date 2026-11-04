@@ -3,8 +3,8 @@ id: 186
 title: Fill RP's sfall gaps, the blocking and most frequent first
 milestone: M1
 status: todo
-owner: none
-suggested: gpt
+owner: any
+suggested: any
 priority: high
 tier: 2
 claude-only: no
