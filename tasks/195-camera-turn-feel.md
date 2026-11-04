@@ -22,9 +22,8 @@ target. The wheel zoom (042) gets the same feel check.
 
 ## Context
 
-- The owner, 2026-11-04, after playing the current main build: "какие то
-  говёные изинги, резкие, должны быть плавные толчки и плавные замедления"
-  (the easing is harsh; it should start smoothly and slow down smoothly).
+- The owner, 2026-11-04, after playing the current main build: the easing
+  is harsh; it should start smoothly and slow down smoothly.
 - Follow-up to 150 (#233). Stands alone: no open camera task fits. 150's
   Log: `cameraTurnEaseStep` in `camera_turn.h` makes one 10-degree step a
   zero-to-zero ride of about 56 ms, under the held key's 80 ms repeat, so
