@@ -108,7 +108,7 @@ header carries it and `tools/tasks.ps1 -Next` sorts by it:
 3. Batches by kind: geometry, one class of objects across every map per
    task and per PR (189 walls, 190 roofs, 191 furniture and props, 192
    vehicles; the area exports 164-171 feed them); the UI as one batch
-   (140, 130, 134, 149, 128).
+   (140, 130, 134, 149, 128, 193).
 4. Local fixes per location, last: only from the owner's fly-through
    screenshots (183), one batch per city (175 on, `owner: owner` until the
    owner's shots land); local-only tasks wait here.

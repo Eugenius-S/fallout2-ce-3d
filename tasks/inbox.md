@@ -284,3 +284,6 @@ that fits no task becomes a new task when the board runs dry.
   flights with 183's shots; agents turn them into fixes. A find: a dark
   fringe strip past a building's wall over the street on a Modoc-like farm
   map (needs a devshot after 183), folded into 190 roofs as find 1.
+- 2026-11-04 The owner: dialogue text indents its first line and sits too
+  tight; flush left and about 130% line height for every sharp text block
+  (193, the UI batch).
