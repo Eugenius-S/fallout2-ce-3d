@@ -2,8 +2,8 @@
 id: 196
 title: The background live checks never hang, a stuck run ends with its reason
 milestone: M1
-status: todo
-owner: any
+status: doing
+owner: gpt
 suggested: any
 priority: high
 tier: 0
