@@ -312,3 +312,6 @@ first: a new task only when no open task or batch fits (AGENTS.md, Tasks).
   127, 140, 146 and the 165 walk probes on live checks that hang (map
   dialogues, the combat start, the display change). 165 merged as #265;
   #259 closed, superseded by #263.
+- 2026-11-04 (-> 197, alone: an art pipeline trial) The owner: a trial AI
+  HD remaster of one character's standing and walk frames, for gpt, not
+  urgent (`runs/inbox/2026-11-04-hd-sprite-remaster-reference.png`).
