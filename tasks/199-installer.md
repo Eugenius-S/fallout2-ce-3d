@@ -2,8 +2,8 @@
 id: 199
 title: A proper installer with the project logo, one-click updates, Russian and RP options
 milestone: M1
-status: todo
-owner: any
+status: doing
+owner: gpt
 suggested: gpt
 priority: high
 tier: 1
