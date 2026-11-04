@@ -21,6 +21,14 @@ at about 130% of the font size apart (at least 120%).
 
 ## Context
 
+- Folded in (2026-11-04 inbox sweep), the inbox line of 2026-10-25: the
+  dialogue answer options keep a hanging indent. The bullet marker stands
+  left of the text column and every wrapped line aligns with the first
+  letter after the bullet, so the text has a straight left edge. The replies
+  have no indent at all (flush left, as above).
+- Batch: the UI text. 140 (letters cut in the dialogue answers, gpt's draft
+  #206) is the same text layout code; whoever takes 193 starts from 140's
+  merged state.
 - The owner, 2026-11-04 (a screenshot in chat): a dialogue reply, green mono
   text on the dark grid panel, "The spirits with me, fren! They be all
   around. Sometimes talk." The first line starts indented (a leading space),
@@ -35,6 +43,9 @@ at about 130% of the font size apart (at least 120%).
 - Part of the UI batch (tier 3).
 
 ## Acceptance
+
+- A wrapped dialogue answer option: the bullet left of the text, every line
+  of the text on one left edge.
 
 - Before | after devshots of the same dialogue reply panel, the message log
   and a floating text in `runs/193-text-indent-and-line-height/`; the first
