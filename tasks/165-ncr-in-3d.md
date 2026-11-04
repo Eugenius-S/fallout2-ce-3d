@@ -94,6 +94,13 @@ other areas (each has its own task).
   e0, timed out consecutively. Per the two-failure limit, runtime probes stop
   here; their logs are in the matching `walkprobe-*` folders. The task PR stays
   draft for this unresolved walk-probe coverage.
+- Static follow-up (no additional runtime runs): the V15SENT e0 log changes to
+  `GameState::DialogFinished` (2), and VAULT15 e0 changes to
+  `GameState::DialogActive` (4, game mode 0x4) immediately after the walk starts.
+  Those map scripts leave the probe waiting without a result. NCR3 e0
+  finds a path of length 20 but logs no result or state transition; that timeout
+  remains unexplained. Next step: a dialogue-aware walk check or a safe route
+  for those maps, after the runtime-attempt limit is reset.
 - Checks: Release build; ctest 20/20; scene exporter tests 121/121; regression
   tests 12/12; all 13 new regression points pass against their references.
 - Finds: no confirmed scene defects to move to tasks 189-192 or 173.
