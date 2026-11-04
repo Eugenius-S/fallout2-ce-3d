@@ -115,7 +115,8 @@ other areas (each has its own task).
   probes on ncr1, ncr2, v15ent. Fly tour before/after identical on 13
   entrance spots. Dark views (ncr1-e1, ncrent-e1, vault15-e0/e2) match the
   game's own 2D (-Classic). 3 extra regression spots (ncr-council-square,
-  v15-entrance, vault15-level) with references; full suite 78/78 pass 0
-  changed pixels with them. The scene content itself: no defects; nothing
+  v15-entrance, vault15-level) with references; full suite pass 0
+  changed pixels with them (78/78 on this branch's suite, 91/91 after the
+  merge with gpt's 13 spots, all green). The scene content itself: no defects; nothing
   to move to 189-192 or 173. Evidence: runs/165-ncr-in-3d/ (probe-sheet.jpg,
   tour-*.jpg, grid-*.jpg, hours-*.jpg, walk-*.jpg, classic-2d-checks.jpg).
