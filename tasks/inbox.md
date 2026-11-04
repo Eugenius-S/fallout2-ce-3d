@@ -308,3 +308,7 @@ first: a new task only when no open task or batch fits (AGENTS.md, Tasks).
 - 2026-11-04 (-> 193 part B, the UI batch)
   The owner: full-screen screens on a fading black backdrop, the panel's
   corners rounded 4 to 6 px.
+- 2026-11-04 (-> 196, tier 0, alone: under every batch) gpt stopped 156,
+  127, 140, 146 and the 165 walk probes on live checks that hang (map
+  dialogues, the combat start, the display change). 165 merged as #265;
+  #259 closed, superseded by #263.
