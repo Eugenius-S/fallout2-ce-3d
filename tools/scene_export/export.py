@@ -74,6 +74,10 @@ MAP_GROUPS = {
     # NCR and the ruined Vault 15 levels (the game's maps/ncr*.map and
     # v15*.map files). vault15 is also part of the Vault City group.
     "ncr": ("ncr1", "ncr2", "ncr3", "ncr4", "ncrent", "v15ent", "v15sent", "vault15"),
+    # Vault 13 and the Sierra Army Depot: the vault's entrance and levels,
+    # the depot's surface bunker and its underground levels (the game's
+    # maps/v13*.map and depol*.map files).
+    "vault13depot": ("v13ent", "vault13", "depolv1", "depolva", "depolvb"),
 }
 EXPECTED_OUTPUT_FILES = {"scene.json", "provenance.json", "floor.bin", "walls.bin", "projection.bin", "baked.bin",
                          "shadows.bin", "tiles.png", "light.png", "rock.png", "roof_fringe.png"}
