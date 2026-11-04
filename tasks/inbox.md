@@ -293,3 +293,15 @@ first: a new task only when no open task or batch fits (AGENTS.md, Tasks).
   tools, 111, 193 UI text, 129, 128 wide art, 173, 097, 127, 157, 184-188,
   148 README, 190 roofs), 5 marked done, 1 new task (194 the moon, alone).
   107 folded into 189 walls as its first rule.
+- 2026-11-04 (-> 130, the UI batch) The owner: a cursor movement speed
+  setting in the game settings.
+- 2026-11-04 (-> 195, alone: no open camera task) The owner: the camera turn
+  easing from 150 feels harsh; soft starts and soft stops wanted.
+- 2026-11-04 (-> 156, the renderer lifetime) The owner: in fullscreen the
+  NVIDIA overlay toast keeps popping up during play; the device is
+  recreated mid-run.
+- 2026-11-04 (-> 193, the UI text batch) The owner: the message log's left
+  edge slants and its lines sit tight
+  (`runs/inbox/2026-11-04-message-log-left-edge.png`).
+- 2026-11-04 (-> 156, settings without a restart) The owner: the sharp-text
+  switch should apply on the fly (`runs/inbox/2026-11-04-sharp-text-live.png`).
