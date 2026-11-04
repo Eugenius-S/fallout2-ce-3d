@@ -43,32 +43,31 @@ DEFAULT_MAP = "kladwtwn"
 # Map groups for --maps: every elevation each map has.
 MAP_GROUPS = {
     "klamath": ("kladwtwn", "klatrap", "klacanyn", "klagraz", "klamall", "klaratcv", "klatoxcv"),
+    # Arroyo, the game's opening area: temple, caves, both village maps,
+    # bridge, wilderness, dead brahmin (the game's maps/ar*.map files).
+    "arroyo": ("arcaves", "arvillag", "arvill2", "arbridge", "argarden", "ardead", "artemple"),
     # The starting vault: its screens (monitr, bvs, comp arts) carry live
     # cycling colours, unlike Klamath's dead ones (task 050).
     "vault15": ("vault15",),
-    "den": ("denbus1", "denbus2", "denres1"),
-    # New Reno: the four streets, the chop shop, Golgatha, the stables, the
-    # boxing arena, the VIP basement (the game's maps/newr*.map files).
-    "newreno": ("newr1", "newr2", "newr3", "newr4", "newr1a", "newr2a", "newrcs", "newrgo", "newrst", "newrba", "newrvb"),
-    # Broken Hills: the two town maps and the surrounding desert and
-    # mountain (the game's maps/broken*.map and bhrnd*.map files).
-    "brokenhills": ("broken1", "broken2", "bhrnddst", "bhrndmtn"),
-    # Gecko: the settlement, the power plant, the junkyard and the access
-    # tunnels (the game's maps/geck*.map files).
-    "gecko": ("gecksetl", "geckpwpl", "geckjunk", "gecktunl"),
+    # Den: business and residential streets, the slave run's open ground
+    # (the game's maps/den*.map files).
+    "den": ("denbus1", "denbus2", "denres1", "dnslvrun"),
+    # Modoc and the Ghost Town: the town, the farms, the well, the ghost
+    # farm and its caves (the game's maps/mod*.map and gst*.map files).
+    "modoc": ("modmain", "modinn", "modbrah", "modgard", "modshit", "modwell", "gstfarm", "gstcav1", "gstcav2"),
     # Vault City and the raiders: the concrete town and the vault's own
     # corridors, the raiders' cave camp (the game's maps/vcty*.map and
     # raiders*.map files).
     "vaultcity": ("vctyctyd", "vctydwtn", "vctycocl", "vctyvlt", "raiders1", "raiders2"),
-    # Modoc and the Ghost Town: the town, the farms, the well, the ghost
-    # farm and its caves (the game's maps/mod*.map and gst*.map files).
-    "modoc": ("modmain", "modinn", "modbrah", "modgard", "modshit", "modwell", "gstfarm", "gstcav1", "gstcav2"),
-    # Arroyo, the game's opening area: temple, caves, both village maps,
-    # bridge, wilderness, dead brahmin (the game's maps/ar*.map files).
-    "arroyo": ("arcaves", "arvillag", "arvill2", "arbridge", "argarden", "ardead", "artemple"),
-    # Den: business and residential streets, the slave run's open ground
-    # (the game's maps/den*.map files).
-    "den": ("denbus1", "denbus2", "denres1", "dnslvrun"),
+    # Gecko: the settlement, the power plant, the junkyard and the access
+    # tunnels (the game's maps/geck*.map files).
+    "gecko": ("gecksetl", "geckpwpl", "geckjunk", "gecktunl"),
+    # Broken Hills: the two town maps and the surrounding desert and
+    # mountain (the game's maps/broken*.map and bhrnd*.map files).
+    "brokenhills": ("broken1", "broken2", "bhrnddst", "bhrndmtn"),
+    # New Reno: the four streets, the chop shop, Golgatha, the stables, the
+    # boxing arena, the VIP basement (the game's maps/newr*.map files).
+    "newreno": ("newr1", "newr2", "newr3", "newr4", "newr1a", "newr2a", "newrcs", "newrgo", "newrst", "newrba", "newrvb"),
 }
 EXPECTED_OUTPUT_FILES = {"scene.json", "provenance.json", "floor.bin", "walls.bin", "projection.bin", "baked.bin",
                          "shadows.bin", "tiles.png", "light.png", "rock.png", "roof_fringe.png"}
