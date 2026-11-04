@@ -2,7 +2,7 @@
 
 **English** | [Русский](README.ru.md)
 
-https://github.com/user-attachments/assets/e2fb04bc-243a-49a0-a775-7aa46c1ee8d2
+<a href="https://www.youtube.com/watch?v=rFMGHM7ZNDc"><img src="https://img.youtube.com/vi/rFMGHM7ZNDc/maxresdefault.jpg" alt="Watch the showcase on YouTube" width="100%"></a>
 
 This project is made out of love for, and as a tribute to, Fallout 2, the
 best game in the world: the game I grew up on and still play through every
