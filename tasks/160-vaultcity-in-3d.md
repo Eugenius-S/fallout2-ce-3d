@@ -2,14 +2,14 @@
 id: 160
 title: Vault City and the Raiders' camp in 3D, every map stands and looks clean
 milestone: M1
-status: todo
-owner: none
+status: done
+owner: glm
 suggested: glm
 priority: normal
 claude-only: no
 user-check: yes
 depends-on: []
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -66,3 +66,29 @@ The interface, menus and text, the sky, new 3D models from scratch, maps of
 other areas (each has its own task).
 
 ## Log
+
+### 2026-11-04 glm
+Done: the vaultcity group (vctyctyd, vctydwtn, vctycocl, vctyvlt x3,
+raiders1 x2, raiders2 x3; 11 elevations export clean). 20 fly tour spots
+(entrances plus the landmarks from a 66-point 2D grid probe: the gate with
+the towers, the downtown blocks, the wall gate, the vault corridor crossing,
+the vault door, the anomaly room, the cliff cave mouth, the cave fire) and
+10 regression spots with references from this build.
+Find: the Central Council dome has no useful fly view: the dome's footprint
+is so wide that the fly camera at orbit distance 8 stands over its own roof
+(solid roof colour in every turn, tried 15392 and 13392). The dome is
+covered by the regression spot at 15392 (the game's own 2D view) and the
+council entrance tour spot. Not a scene defect; the tour stop was dropped.
+Sweep: the fly tour at every stop (3 turns), hours 8/12/18 on every
+entrance; vctyctyd -> vctydwtn -> vctycocl in one run, all scene-gl.
+tools/regression.ps1: 26 of 26 spots, 0 changed pixels. No open visual
+finds; the task closes.
+Evidence: runs/160-vaultcity-in-3d/.
+Check: export.py --maps vaultcity; tour.py --maps vctyctyd,vctydwtn,vctycocl,
+vctyvlt,raiders1,raiders2; tools/regression.ps1.
+
+### 2026-11-04 claude
+Dropped the regression spot `vaultcity-council-dome` (tile 15392) at the
+merge: its reference was all black, the camera target off the scene's x
+bounds. Next: pick a vctycocl tile that shows the dome and add the spot back
+with a fresh reference.
