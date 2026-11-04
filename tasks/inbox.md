@@ -295,3 +295,5 @@ first: a new task only when no open task or batch fits (AGENTS.md, Tasks).
   107 folded into 189 walls as its first rule.
 - 2026-11-04 (-> 130, the UI batch) The owner: a cursor movement speed
   setting in the game settings.
+- 2026-11-04 (-> 195, alone: no open camera task) The owner: the camera turn
+  easing from 150 feels harsh; soft starts and soft stops wanted.
