@@ -67,6 +67,8 @@ $rows = foreach ($file in $files) {
         owner = $header['owner']
         suggested = $header['suggested']
         priority = $header['priority']
+        # the board order lives on main, whatever the branch's copy says.
+        tier = if ($onMain -and $onMain['tier']) { [int]$onMain['tier'] } elseif ($header['tier']) { [int]$header['tier'] } else { 3 }
         claude = $header['claude-only']
         deps = $header['depends-on']
         reviewed = $header['reviewed']
@@ -84,9 +86,9 @@ if ($Review) {
 
 if ($Next) {
     $agent = $Next
-    $mine = @($rows | Where-Object { $_.status -in 'doing', 'stale' -and $_.owner -eq $agent } | Sort-Object { [int]$_.id })
+    $mine = @($rows | Where-Object { $_.status -in 'doing', 'stale' -and $_.owner -eq $agent } | Sort-Object { $_.tier }, { [int]$_.id })
     $stale = @($rows | Where-Object { $_.status -eq 'stale' -and ($_.claude -ne 'yes' -or $agent -eq 'claude') } |
-        Sort-Object { [int]$_.id })
+        Sort-Object { $_.tier }, { [int]$_.id })
     $done = @{}
     foreach ($r in $rows) { if ($r.status -eq 'done') { $done[$r.id] = $true } }
 
@@ -104,8 +106,8 @@ if ($Next) {
                 -and (($_.deps -replace '[\[\]]', '').Split(',') | Where-Object { $_.Trim() } |
                     ForEach-Object { [bool]$done[$_.Trim()] }) -notcontains $false
         })
-        # priority: high comes before the rest, then the lower id.
-        $order = @({ if ($_.priority -eq 'high') { 0 } else { 1 } }, { [int]$_.id })
+        # the board order: the lower tier first, then high priority, then the lower id.
+        $order = @({ $_.tier }, { switch ($_.priority) { 'high' { 0 } 'low' { 2 } default { 1 } } }, { [int]$_.id })
         $suggested = @($free | Where-Object { $_.suggested -eq $agent } | Sort-Object $order)
         if ($suggested.Count -gt 0) {
             $task = $suggested[0]

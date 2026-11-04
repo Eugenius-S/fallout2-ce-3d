@@ -6,6 +6,7 @@ status: todo
 owner: none
 suggested: gpt
 priority: high
+tier: 1
 claude-only: no
 user-check: yes
 depends-on: []

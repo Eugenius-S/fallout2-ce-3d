@@ -86,6 +86,29 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools/regression.ps1
 
 Read a check's result before the next step; never chain a merge after it.
 
+## Board order
+
+Take tasks in this order (the owner, 2026-11-04); the `tier` field in the
+header carries it and `tools/tasks.ps1 -Next` sorts by it:
+
+0. Out of turn, always first: anything that crashes the game or leaves a
+   place the player cannot get past. Cut it with `tier: 0`.
+1. Measurement tools: 127 (the FPS counter and frame-time log), then 183
+   (the screenshot with its metadata).
+2. Whole-game systems: speed (172 location load, 156 no stall on a settings
+   change, 157 a steady 60 FPS), 173 (3D never off, the plane fallback),
+   174 (multi-part objects), the Restoration Project (184-188).
+3. Batches by kind: geometry, one class of objects across every map per
+   task and per PR (189 walls, 190 roofs, 191 furniture and props, 192
+   vehicles; the area exports 164-171 feed them); the UI as one batch
+   (140, 130, 134, 149, 128).
+4. Local fixes per location, last: only from the owner's fly-through
+   screenshots, one batch per city (175 on); local-only tasks wait here.
+
+One batch is one PR in size. Speed work and geometry work run one after the
+other, never side by side (both touch the renderer); work on other files
+(RP sfall, tools, UI) may run in parallel with either.
+
 ## Tasks
 
 One task is one file `tasks/NNN-slug.md` with `Goal`, `Context`,
@@ -99,6 +122,7 @@ status: todo        # todo | doing | done
 owner: none         # claude | gpt | glm | none
 suggested: gpt      # a preference: if that agent is out of limits, take it
 priority: normal    # high: taken before the other free tasks
+tier: 3             # the board order below (0 first)
 claude-only: no
 user-check: no      # yes: the owner looks after the merge (never blocks)
 depends-on: []

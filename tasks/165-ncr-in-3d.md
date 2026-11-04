@@ -6,6 +6,7 @@ status: todo
 owner: none
 suggested: gpt
 priority: normal
+tier: 3
 claude-only: no
 user-check: yes
 depends-on: []
@@ -43,7 +44,11 @@ The same loop as 136, without waiting for anyone:
 3. Sweep: every map, elevation, camera and hour; write each defect as one
    numbered line in the Log (map, tile or spot, camera, hour, a crop in
    `runs/165-ncr-in-3d/finds/`, the likely cause).
-4. Group the finds by cause, fix the most visible group on its own branch
+4. Since 2026-11-04 (the owner): the fixes go by kind, not by area. Move
+   each find to its batch (189 walls, 190 roofs, 191 furniture and props,
+   192 vehicles, 173 what cannot be built) and fix it there. A crash or a
+   place the player cannot get past is fixed here at once. The old loop
+   below stays for finds that fit no batch: fix the most visible group on its own branch
    `task/165-<short-cause>` from current origin/main, one PR titled
    `165: <cause>` with before | after crops. Mark the finds it closes.
 5. Back to 4; when the list is empty, sweep again (3).
