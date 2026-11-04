@@ -77,3 +77,7 @@ was made.
 Merged `origin/main` (`d8cff6b0`) into this branch. Resolved the `tools/dev-snapshot.ps1` overlap by keeping the combat fixture arguments, four-capture polling, and main's scripted-input/scene-input options together. PowerShell parser and `git diff --check` pass. Runtime combat proof remains blocked as described above; PR stays draft.
 
 - CI `runs-size` public-content subcheck identified absolute drive-qualified cache paths in the two existing attempt logs. Replaced those environment-specific paths with `build/scene-cache`; rerunning the public-content check after committing this cleanup.
+
+### 2026-11-04 gpt: merge fresh origin/main
+
+Merged `origin/main` at `3b288fd6` with no conflicts. The two recorded combat attempts did not reach the combat fixture, so PR #220 stays draft and the task remains `doing` under the two-attempt limit.
