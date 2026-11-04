@@ -2,8 +2,8 @@
 id: 111
 title: The slime pools glow and the lamps light the walls in the live caves
 milestone: M1
-status: doing
-owner: gpt
+status: todo
+owner: any
 suggested: any
 priority: low
 tier: 4
