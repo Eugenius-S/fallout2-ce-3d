@@ -2,7 +2,7 @@
 id: 196
 title: The background live checks never hang, a stuck run ends with its reason
 milestone: M1
-status: doing
+status: done
 owner: gpt
 suggested: any
 priority: high
@@ -10,7 +10,7 @@ tier: 0
 claude-only: no
 user-check: no
 depends-on: []
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -90,8 +90,10 @@ devtools live snapshot reads the indexed framebuffer before that GL overlay.
 This needs a capture path that reads the presented GL frame; the 127 feature
 remains unverified.
 
-The five-case/three-run acceptance matrix is incomplete; keep PR #270 draft
-and task status `doing`. No code from the other task branches was changed.
+The five-case/three-run runtime matrix is incomplete. Per the owner's
+exception, the watchdog code may merge with those unverified runtime rows
+clearly recorded here once final CI is green. No code from the other task
+branches was changed.
 
 ### Watchdog investigation for Task 140
 
@@ -111,3 +113,18 @@ two-attempt limit.
 The Task 146 combat flag is absent from this branch's runner and devtools.
 Its existing PR had already reached two failed combat starts. No additional
 combat attempt was made.
+
+### 2026-11-04 gpt: code complete
+
+Done: Added bounded step/whole-run watchdogs, state/step diagnostics, capture
+fallback, test-only script dialogue/movie skipping, and dialog-fixture
+baseline snapshots. Runtime rows 165 (3x each V15SENT, VAULT15, NCR3) and 156
+(3 successful transaction runs) are verified. Task 127 has two corrected
+live-frame captures without FPS/frame-time text; Task 140 has two watchdog
+diagnostics but still no hovered-answer acceptance; Task 146 remains
+unverified in this branch because its combat fixture is absent and its prior
+two starts failed. The owner permits merging this code with these rows
+unverified after green CI.
+Check: Release build via `tools/configure-build.ps1`; CTest 20/20; CI run
+41813269064 green on the preceding implementation SHA. Latest evidence is in
+`runs/196-live-checks/`.
