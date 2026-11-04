@@ -2,7 +2,7 @@
 id: 197
 title: A trial AI HD remaster of one character's standing and walking sprites
 milestone: M1
-status: todo
+status: doing
 owner: gpt
 suggested: gpt
 priority: low
