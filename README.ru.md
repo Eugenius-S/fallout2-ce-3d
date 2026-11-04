@@ -21,7 +21,8 @@ Fallout 2 сохранена полностью, в основе лежит ор
 [Скачайте лаунчер](https://github.com/Eugenius-S/fallout2-ce-3d/releases/download/latest/fallout2-ce-3d-launcher.exe)
 из постоянно обновляемого [релиза latest](https://github.com/Eugenius-S/fallout2-ce-3d/releases/tag/latest).
 
-1. Установите Fallout 2 из Steam или GOG.
+1. Установите Fallout 2 из Steam или GOG. Для игры на русском сразу
+   поставьте в папку игры любой русификатор, до запуска лаунчера.
 2. Запустите лаунчер. Он сам находит эти установки; если игра не нашлась,
    укажите её папку, где лежат `master.dat` и `critter.dat`.
 3. Для первой установки и обновлений нужен интернет.
