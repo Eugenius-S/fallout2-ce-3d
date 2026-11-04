@@ -959,6 +959,48 @@
    "elevation": 2,
    "tile": 21910,
    "name": "the corn field"
+  },
+  {
+   "map": "reddown",
+   "elevation": 0,
+   "tile": 19059,
+   "name": "downtown entrance"
+  },
+  {
+   "map": "redment",
+   "elevation": 0,
+   "tile": 26912,
+   "name": "the mine entrance"
+  },
+  {
+   "map": "reddtun",
+   "elevation": 0,
+   "tile": 20100,
+   "name": "the downtown tunnels"
+  },
+  {
+   "map": "redmtun",
+   "elevation": 0,
+   "tile": 20100,
+   "name": "the mine tunnels"
+  },
+  {
+   "map": "redwame",
+   "elevation": 0,
+   "tile": 20275,
+   "name": "the Wanamingo mine entrance"
+  },
+  {
+   "map": "redwan1",
+   "elevation": 0,
+   "tile": 26893,
+   "name": "the Wanamingo mine, level 1"
+  },
+  {
+   "map": "redwan1",
+   "elevation": 1,
+   "tile": 26893,
+   "name": "the Wanamingo mine, level 2"
   }
  ]
 }
