@@ -1,4 +1,4 @@
-# Fallout 2: Reimagined
+<h1 align="center"><img src="docs/images/logo.png" alt="Fallout 2: Reimagined" width="500"></h1>
 
 **English** | [Русский](README.ru.md)
 
