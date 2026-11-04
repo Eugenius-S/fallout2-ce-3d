@@ -122,3 +122,10 @@ two failed KLAGRAZ exit-probe attempts remain the limit; no repeat was made
 without a probe-path fix. Task status is `blocked`, and PR #221 remains draft:
 only the KLAMALL-to-KLADWTWN arrival is captured, with all other routes,
 elevations, world-map and save/load transitions unverified.
+### 2026-11-04 gpt: rebase CI handoff
+
+The branch was force-pushed with lease at `78483130` after rebasing onto
+`origin/main` `f2ef1236`. At the time of this note, GitHub still reports PR
+head `fac7cd9c` and its active CI is for that pre-rebase commit, while the
+branch API reports `78483130`. No new transition capture was made. The PR
+remains draft because acceptance is incomplete.
