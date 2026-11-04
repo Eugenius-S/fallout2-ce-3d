@@ -42,3 +42,13 @@ Other kinds of objects (their own batches), per-location fixes from the
 owner's shots that are not of this kind.
 
 ## Log
+
+### 2026-11-04 claude
+Find 1 (the owner, a screenshot in chat): on a farm map with a cow pen
+(Modoc-like, likely modmain or modbrah), the building at the bottom left
+shows a dark fringe strip past its wall, across the street: a thin diagonal
+row of dark grass-like edge pixels beyond the building's footprint, over the
+road. Likely the edge fringe of a roof or wall top (roof_fringe.py, the band
+of task 129) built outside the footprint. No crop in the repository yet: the
+map needs a devshot after 183. The rule to check: no fringe or band piece
+reaches past the footprint of the wall it belongs to.

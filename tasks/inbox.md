@@ -280,3 +280,7 @@ that fits no task becomes a new task when the board runs dry.
 - 2026-11-04 The owner: one task pool for gpt and glm. Open tasks are
   `owner: any`; a draft PR `NNN: ...` is the lock; Claude's reviews stay
   `owner: claude`. AGENTS.md and tasks.ps1 updated.
+- 2026-11-04 The owner: the per-city reviews (175-182) are the owner's
+  flights with 183's shots; agents turn them into fixes. A find: a dark
+  fringe strip past a building's wall over the street on a Modoc-like farm
+  map (needs a devshot after 183), folded into 190 roofs as find 1.

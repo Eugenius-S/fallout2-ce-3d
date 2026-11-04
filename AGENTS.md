@@ -5,7 +5,8 @@ changes these rules as the work goes.
 
 - `gpt` and `glm` share one pool of tasks: whoever has limits left takes the
   top free task (`owner: any`) in the board order below. `claude` keeps the
-  strategy, the board and the per-city reviews (`owner: claude`).
+  strategy and the board. The per-city reviews are the owner's flights
+  (`owner: owner`); the pool turns their shots into fixes.
 - `gpt` works through exactly one `gpt-6-luna` subagent as its controller
   and writes no code itself. `glm` works by itself, with no subagent. Goals and
 decisions: [the roadmap](docs/2026-10-19-roadmap-design.md).
@@ -109,7 +110,8 @@ header carries it and `tools/tasks.ps1 -Next` sorts by it:
    vehicles; the area exports 164-171 feed them); the UI as one batch
    (140, 130, 134, 149, 128).
 4. Local fixes per location, last: only from the owner's fly-through
-   screenshots, one batch per city (175 on); local-only tasks wait here.
+   screenshots (183), one batch per city (175 on, `owner: owner` until the
+   owner's shots land); local-only tasks wait here.
 
 One batch is one PR in size. Speed work and geometry work run one after the
 other, never side by side (both touch the renderer); work on other files
@@ -125,7 +127,7 @@ id: 003
 title: Regression snapshot test
 milestone: M0
 status: todo        # todo | doing | done
-owner: none         # claude | gpt | glm | none
+owner: any          # claude | gpt | glm | any | owner (the owner's own step)
 suggested: gpt      # a preference: if that agent is out of limits, take it
 priority: normal    # high: taken before the other free tasks
 tier: 3             # the board order below (0 first)
@@ -176,8 +178,8 @@ another: a hard task is split (step 4), not handed over.
 
 The one merge gate is green CI (build, tests, regression). The PR body says
 what it touched. The author merges as soon as CI is green; nothing else is
-reviewed before the merge. Claude reviews each city later in a fly-through
-pass of its own (tasks 175 on), and the finds become new tasks.
+reviewed before the merge. The owner reviews each city later in a fly-through
+with 183's shots (tasks 175 on), and the pool turns the finds into fixes.
 
 The checks are the review. The author sets `reviewed: yes` on finishing,
 except when the PR retook regression references, changed a file format the
