@@ -2,7 +2,7 @@
 id: 197
 title: A trial AI HD remaster of one character's standing and walking sprites
 milestone: M1
-status: todo
+status: done
 owner: gpt
 suggested: gpt
 priority: low
@@ -10,7 +10,7 @@ tier: 4
 claude-only: no
 user-check: yes
 depends-on: []
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -50,3 +50,16 @@ In `runs/197-hd-sprite-trial/`, never in game data:
 Putting any of it into the game; other characters.
 
 ## Log
+
+### 2026-11-04 gpt: default jumpsuit sprite remaster trial
+
+Done: used the default male jumpsuit (`hmjmps`) from `critter.dat`: six stand directions and all eight unarmed walk frames in direction 0. The source sheet retains original FRM direction shifts and per-frame offsets. Prompts and source layout are in `runs/197-hd-sprite-trial/prompts.md` and `frame-layout.json`.
+
+- Original vs generated sheets: `comparison-x1.jpg`, `comparison-x2.jpg`, `comparison-x4.jpg`; transparent AI outputs: `generated-x2.png` and `generated-x4.png`.
+- The generator kept the character and the 14-frame layout, but the redraw loses the original pixel-art feel, especially at x4. Treat both outputs as rejected experiments, not game assets.
+- At x1, generated walking-frame bounds range from 1.038x to 1.227x source width and 0.916x to 1.063x source height. Their bottom anchors shift upward by 0 to 7 px; this suggests possible jitter, not a verified playback flicker. Measurements are in `metrics.json`.
+- The two image requests took about 50 s and 48 s. Dividing by 14 occupied frames gives 3.6 s and 3.4 s per frame as a rough average; generation was per sheet. The tool reported neither backend model variant nor billing, so Luna/low-effort selection and monetary cost cannot be verified.
+- No game data was changed.
+
+Check: `py -3 tools/check_public_content.py origin/main` and `py -3 tools/check_runs_size.py origin/main` pass; each image is below 1 MB.
+Next: none; this one-character trial is complete.
