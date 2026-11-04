@@ -2,8 +2,8 @@
 id: 156
 title: Resolution, window mode and scale change on the fly, without a restart
 milestone: M1
-status: doing
-owner: gpt
+status: todo
+owner: any
 suggested: gpt
 priority: high
 tier: 2
@@ -12,6 +12,11 @@ user-check: yes
 depends-on: [154]
 reviewed: no
 ---
+
+### 2026-11-04 gpt: release after runtime blocker
+Done: rebased the branch on current `origin/main` and retained the draft PR. The current-source scripted transactions from task 196 saved the display settings in about 17 ms, but they used the static wall-and-hero preview and did not capture the requested live resolution, window-mode, scale, pointer or regression behavior. Attempts 7 and 8 remain two consecutive runtime failures at different refresh stages. No further same-path runtime retry is justified without a diagnosed fix.
+Next: return to this task when the intermittent display-buffer/window refresh stop has a concrete fix; do not treat this task as complete.
+Check: PR #227 CI run 41817508524 on `a0dc37f2` (Windows build pending at handoff); prior local Release build and CTest passed, runtime acceptance is still missing.
 
 ## Goal
 
