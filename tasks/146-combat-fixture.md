@@ -93,3 +93,11 @@ still fail before the fixture begins. PR #220 remains draft and task 146 stays
 
 Check: Release build passed; CTest passed 20/20. No pixel-regression or
 combat-runtime result is claimed for this merge.
+
+### 2026-11-04 gpt: merge current main
+
+Merged fetched `origin/main` at `46f697873c84`. The only conflict was the task
+header; kept main's current board fields (`todo`, `any`, tier 3) and preserved
+the combat task text and blocker log. No new runtime attempt was made after
+the two documented startup timeouts. PR #220 stays draft; four-phase 3D and
+Classic captures remain outstanding.
