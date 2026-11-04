@@ -10,12 +10,14 @@
 //
 // Only Windows system libraries are used (winhttp, bcrypt, advapi32, shell).
 
+#define NOMINMAX
 #include <windows.h>
 #include <winhttp.h>
 #include <bcrypt.h>
 #include <shobjidl.h>
 
 #include <algorithm>
+#include <cctype>
 #include <cstdarg>
 #include <cstdio>
 #include <cstdlib>
@@ -34,6 +36,10 @@ namespace {
 constexpr const char* kZipAsset = "fallout2-ce-3d-win64.zip";
 constexpr const char* kDefaultUpdateBase =
     "https://github.com/Eugenius-S/f2-reimagined/releases/download/latest";
+constexpr const char* kDefaultReleaseInfoUrl =
+    "https://api.github.com/repos/Eugenius-S/f2-reimagined/releases/tags/latest";
+constexpr const char* kRpuLatestApiUrl =
+    "https://api.github.com/repos/BGforgeNet/Fallout2_Restoration_Project/releases/latest";
 constexpr const char* kGameExe = "fallout2-ce.exe";
 constexpr const char* kCfg = "fallout2.cfg";
 constexpr const char* kVersionTxt = "version.txt";
@@ -43,9 +49,13 @@ constexpr const char* kDefaultMaps = "klamath";
 struct Options {
     std::string gameRoot;
     std::string updateBase = kDefaultUpdateBase;
+    std::string releaseInfoUrl = kDefaultReleaseInfoUrl;
     std::string maps = kDefaultMaps;
     bool noStart = false;
     bool forceExport = false;
+    bool checkRelease = false;
+    bool rollback = false;
+    bool installRussian = false;
     std::vector<std::string> gameArgs;
 };
 
@@ -83,8 +93,10 @@ std::string wideToUtf8(const std::wstring& wide)
 {
     if (wide.empty()) return std::string();
     int size = WideCharToMultiByte(CP_UTF8, 0, wide.c_str(), -1, nullptr, 0, nullptr, nullptr);
-    std::string out(size - 1, '\0');
-    WideCharToMultiByte(CP_UTF8, 0, wide.c_str(), -1, out.data(), size, nullptr, nullptr);
+    if (size <= 1) return std::string();
+    std::string out(static_cast<size_t>(size), '\0');
+    if (WideCharToMultiByte(CP_UTF8, 0, wide.c_str(), -1, out.data(), size, nullptr, nullptr) == 0) return std::string();
+    out.resize(static_cast<size_t>(size - 1));
     return out;
 }
 
@@ -92,8 +104,10 @@ std::wstring utf8ToWide(const std::string& text)
 {
     if (text.empty()) return std::wstring();
     int size = MultiByteToWideChar(CP_UTF8, 0, text.c_str(), -1, nullptr, 0);
-    std::wstring out(size - 1, L'\0');
-    MultiByteToWideChar(CP_UTF8, 0, text.c_str(), -1, out.data(), size);
+    if (size <= 1) return std::wstring();
+    std::wstring out(static_cast<size_t>(size), L'\0');
+    if (MultiByteToWideChar(CP_UTF8, 0, text.c_str(), -1, out.data(), size) == 0) return std::wstring();
+    out.resize(static_cast<size_t>(size - 1));
     return out;
 }
 
@@ -520,6 +534,246 @@ bool copyIfPresent(const fs::path& stage, const char* name, const fs::path& dest
     return true;
 }
 
+const std::vector<std::string>& buildFiles()
+{
+    static const std::vector<std::string> names = {kGameExe, "ce.dat", kExporterExe, kVersionTxt};
+    return names;
+}
+
+bool backupInstalledBuild(const fs::path& root, const std::string& version)
+{
+    std::string backupVersion = version.empty() ? "manual" : version;
+    for (char& ch : backupVersion) {
+        if (!(std::isalnum(static_cast<unsigned char>(ch)) || ch == '.' || ch == '-' || ch == '_')) ch = '_';
+    }
+    if (backupVersion.size() > 100) backupVersion.resize(100);
+    fs::path backup = root / "f2reimagined-backups" / backupVersion;
+    std::error_code error;
+    fs::create_directories(backup, error);
+    if (error) {
+        logf("cannot create build backup: %s", error.message().c_str());
+        return false;
+    }
+    bool savedAny = false;
+    for (const std::string& name : buildFiles()) {
+        fs::path source = root / name;
+        if (!fs::is_regular_file(source, error)) continue;
+        fs::copy_file(source, backup / name, fs::copy_options::overwrite_existing, error);
+        if (error) {
+            logf("cannot back up %s: %s", name.c_str(), error.message().c_str());
+            return false;
+        }
+        savedAny = true;
+    }
+    if (!savedAny) {
+        log("no installed build files were available to back up");
+        return false;
+    }
+    if (!fs::exists(backup / kVersionTxt)) {
+        std::ofstream versionFile(backup / kVersionTxt, std::ios::binary | std::ios::trunc);
+        versionFile << backupVersion;
+        if (!versionFile) return false;
+    }
+    logf("backed up build %s to f2reimagined-backups", version.c_str());
+    return true;
+}
+
+bool rollbackInstalledBuild(const fs::path& root)
+{
+    std::string currentVersion;
+    {
+        std::ifstream file(root / kVersionTxt);
+        if (file) currentVersion = trim(std::string((std::istreambuf_iterator<char>(file)),
+            std::istreambuf_iterator<char>()));
+    }
+    fs::path backupRoot = root / "f2reimagined-backups";
+    fs::path selected;
+    std::string selectedVersion;
+    fs::file_time_type selectedTime = fs::file_time_type::min();
+    std::error_code error;
+    if (!fs::is_directory(backupRoot, error)) {
+        log("no previous build backup is available");
+        return false;
+    }
+    for (fs::directory_iterator it(backupRoot, error), end; !error && it != end; it.increment(error)) {
+        if (!it->is_directory(error)) continue;
+        std::ifstream versionFile(it->path() / kVersionTxt);
+        if (!versionFile) continue;
+        std::string version = trim(std::string((std::istreambuf_iterator<char>(versionFile)),
+            std::istreambuf_iterator<char>()));
+        if (version.empty() || version == currentVersion) continue;
+        fs::file_time_type time = fs::last_write_time(it->path(), error);
+        if (error) { error.clear(); continue; }
+        if (selected.empty() || time > selectedTime) {
+            selected = it->path();
+            selectedVersion = version;
+            selectedTime = time;
+        }
+    }
+    if (selected.empty()) {
+        log("no build different from the installed version is available for rollback");
+        return false;
+    }
+    for (const std::string& name : buildFiles()) {
+        fs::path source = selected / name;
+        if (!fs::is_regular_file(source, error)) continue;
+        fs::copy_file(source, root / name, fs::copy_options::overwrite_existing, error);
+        if (error) {
+            logf("rollback failed for %s: %s", name.c_str(), error.message().c_str());
+            return false;
+        }
+    }
+    logf("restored previous build %s", selectedVersion.c_str());
+    return true;
+}
+
+bool setLanguage(const fs::path& root, const char* language)
+{
+    fs::path path = root / kCfg;
+    std::ifstream in(path, std::ios::binary);
+    if (!in) {
+        log("cannot set the game language: fallout2.cfg is missing");
+        return false;
+    }
+    std::string input((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+    std::string output;
+    bool inSystem = false;
+    bool found = false;
+    size_t begin = 0;
+    while (begin < input.size()) {
+        size_t end = input.find('\n', begin);
+        if (end == std::string::npos) end = input.size(); else end++;
+        std::string line = input.substr(begin, end - begin);
+        std::string content = line;
+        while (!content.empty() && (content.back() == '\r' || content.back() == '\n')) content.pop_back();
+        if (!content.empty() && content[0] == '[') inSystem = content == "[system]";
+        if (inSystem && content.rfind("language=", 0) == 0) {
+            std::string ending = line.substr(content.size());
+            line = std::string("language=") + language + ending;
+            found = true;
+        }
+        output += line;
+        begin = end;
+    }
+    if (!found) {
+        log("cannot set the game language: [system].language was not found");
+        return false;
+    }
+    std::ofstream out(path, std::ios::binary | std::ios::trunc);
+    out.write(output.data(), static_cast<std::streamsize>(output.size()));
+    if (!out) {
+        log("cannot write fallout2.cfg");
+        return false;
+    }
+    return true;
+}
+
+std::string jsonStringValue(const std::string& json, const char* key);
+
+bool enableRussianMod(const fs::path& root)
+{
+    fs::path mods = root / "mods";
+    fs::create_directories(mods);
+    fs::path orderPath = mods / "mods_order.txt";
+    std::string input;
+    {
+        std::ifstream in(orderPath, std::ios::binary);
+        if (in) input.assign((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+    }
+    std::string lower = input;
+    std::transform(lower.begin(), lower.end(), lower.begin(), [](unsigned char ch) { return static_cast<char>(std::tolower(ch)); });
+    if (lower.find("rpu_russian.dat") == std::string::npos) {
+        std::string output;
+        std::stringstream lines(input);
+        std::string line;
+        bool inserted = false;
+        while (std::getline(lines, line)) {
+            output += line + "\r\n";
+            std::string normalized = trim(line);
+            std::transform(normalized.begin(), normalized.end(), normalized.begin(),
+                [](unsigned char ch) { return static_cast<char>(std::tolower(ch)); });
+            if (!inserted && normalized == "rpu.dat") {
+                output += "rpu_russian.dat\r\n";
+                inserted = true;
+            }
+        }
+        if (!inserted) output = "rpu_russian.dat\r\n" + output;
+        std::ofstream out(orderPath, std::ios::binary | std::ios::trunc);
+        out.write(output.data(), static_cast<std::streamsize>(output.size()));
+        if (!out) {
+            log("cannot update mods/mods_order.txt");
+            return false;
+        }
+    }
+    return setLanguage(root, "russian");
+}
+
+bool installRussianTranslation(const fs::path& root)
+{
+    fs::path translation = root / "mods" / "rpu_russian.dat";
+    if (!fs::exists(translation)) {
+        const char* networkError = nullptr;
+        std::string release;
+        if (!httpGet(kRpuLatestApiUrl, &release, &networkError)) {
+            logf("cannot reach the official RPU release (%s)",
+                networkError != nullptr ? networkError : "network error");
+            return false;
+        }
+        std::string tag = jsonStringValue(release, "tag_name");
+        if (tag.empty()) {
+            log("the official RPU release did not provide a version tag");
+            return false;
+        }
+        std::string filename = "rpu_" + tag + "_translations.zip";
+        std::string url = "https://github.com/BGforgeNet/Fallout2_Restoration_Project/releases/download/"
+            + tag + "/" + filename;
+        char tempPath[MAX_PATH] = {};
+        GetTempPathA(MAX_PATH, tempPath);
+        fs::path work = fs::path(tempPath) / ("f2ce3d-russian-" + std::to_string(GetCurrentProcessId()));
+        std::error_code error;
+        fs::remove_all(work, error);
+        fs::create_directories(work / "stage", error);
+        if (error) {
+            logf("cannot create translation staging folder: %s", error.message().c_str());
+            return false;
+        }
+        fs::path zip = work / filename;
+        logf("downloading the official Russian translation from RPU %s", tag.c_str());
+        if (!httpDownload(url, zip, &networkError) || !unpackZip(zip, work / "stage")) {
+            logf("the Russian translation download failed (%s)",
+                networkError != nullptr ? networkError : "unpack failed");
+            fs::remove_all(work, error);
+            return false;
+        }
+        fs::path source;
+        for (fs::recursive_directory_iterator it(work / "stage", error), end; !error && it != end; it.increment(error)) {
+            if (it->is_regular_file() && it->path().filename() == "rpu_russian.dat") {
+                source = it->path();
+                break;
+            }
+        }
+        if (source.empty()) {
+            log("the official translation archive does not contain rpu_russian.dat");
+            fs::remove_all(work, error);
+            return false;
+        }
+        fs::create_directories(translation.parent_path(), error);
+        fs::copy_file(source, translation, fs::copy_options::overwrite_existing, error);
+        bool copySucceeded = !error;
+        fs::remove_all(work, error);
+        if (!copySucceeded) {
+            log("failed to install the Russian translation file");
+            return false;
+        }
+        log("  installed mods/rpu_russian.dat from the official RPU release");
+    } else {
+        log("  kept the existing mods/rpu_russian.dat");
+    }
+    if (!enableRussianMod(root)) return false;
+    log("  game language set to Russian; mods/mods_order.txt updated");
+    return true;
+}
+
 // --- command line --------------------------------------------------------
 
 // The release base may come with a trailing slash; the asset names do not.
@@ -530,6 +784,73 @@ std::string joinUrl(const std::string& base, const char* name)
     out += "/";
     out += name;
     return out;
+}
+
+std::string jsonStringValue(const std::string& json, const char* key)
+{
+    std::string needle = std::string("\"") + key + "\"";
+    size_t pos = json.find(needle);
+    if (pos == std::string::npos) return std::string();
+    pos = json.find(':', pos + needle.size());
+    if (pos == std::string::npos) return std::string();
+    pos = json.find('"', pos + 1);
+    if (pos == std::string::npos) return std::string();
+    std::string value;
+    for (size_t i = pos + 1; i < json.size(); i++) {
+        char ch = json[i];
+        if (ch == '"') return value;
+        if (ch == '\\' && i + 1 < json.size()) {
+            char escaped = json[++i];
+            switch (escaped) {
+            case 'n': value.push_back('\n'); break;
+            case 'r': value.push_back('\r'); break;
+            case 't': value.push_back('\t'); break;
+            case '\\': value.push_back('\\'); break;
+            case '"': value.push_back('"'); break;
+            default: value.push_back(escaped); break;
+            }
+        } else {
+            value.push_back(ch);
+        }
+    }
+    return std::string();
+}
+
+std::string shortNotes(const std::string& body)
+{
+    std::stringstream lines(body);
+    std::string line;
+    std::string result;
+    int kept = 0;
+    while (std::getline(lines, line) && kept < 2) {
+        line = trim(line);
+        while (!line.empty() && (line[0] == '#' || line[0] == '*' || line[0] == '-' || line[0] == ' ')) {
+            line.erase(line.begin());
+        }
+        line = trim(line);
+        if (line.empty()) continue;
+        if (!result.empty()) result += " | ";
+        result += line;
+        kept++;
+    }
+    return result;
+}
+
+bool fetchReleaseInfo(const std::string& updateBase, const std::string& releaseInfoUrl,
+    std::string* version, std::string* notes)
+{
+    const char* error = nullptr;
+    std::string versionBody;
+    if (!httpGet(joinUrl(updateBase, kVersionTxt), &versionBody, &error)) return false;
+    *version = trim(versionBody);
+    notes->clear();
+    if (!releaseInfoUrl.empty()) {
+        std::string response;
+        if (httpGet(releaseInfoUrl, &response, &error)) {
+            *notes = shortNotes(jsonStringValue(response, "body"));
+        }
+    }
+    return !version->empty();
 }
 
 Options parseOptions(int argc, char** argv)
@@ -548,21 +869,33 @@ Options parseOptions(int argc, char** argv)
             log("");
             log("  --game-root <dir>   the Fallout 2 folder (default: registry lookup, then a picker)");
             log("  --update-url <url>  where version.txt and the zip live (default: the latest release)");
+            log("  --release-info-url <url>  release API for the version notes");
             log("  --maps <list>       maps the exporter covers, comma separated (default: klamath)");
             log("  --force-export      rebuild the 3D scene data even if it looks current");
             log("  --no-start          do everything except starting the game");
+            log("  --rollback          restore the most recent backed-up game build");
+            log("  --russian           install the official RPU Russian text translation");
+            log("  --check-release     print the latest version and release notes");
             log("  -- <args>           arguments handed over to the game");
             std::exit(0);
         } else if (arg == "--game-root" && i + 1 < argc) {
             options.gameRoot = argv[++i];
         } else if (arg == "--update-url" && i + 1 < argc) {
             options.updateBase = argv[++i];
+        } else if (arg == "--release-info-url" && i + 1 < argc) {
+            options.releaseInfoUrl = argv[++i];
         } else if (arg == "--maps" && i + 1 < argc) {
             options.maps = argv[++i];
         } else if (arg == "--no-start") {
             options.noStart = true;
         } else if (arg == "--force-export") {
             options.forceExport = true;
+        } else if (arg == "--rollback") {
+            options.rollback = true;
+        } else if (arg == "--russian") {
+            options.installRussian = true;
+        } else if (arg == "--check-release") {
+            options.checkRelease = true;
         } else {
             die("unknown option: " + arg + " (see --help)");
         }
@@ -584,11 +917,29 @@ std::vector<std::string> splitMaps(const std::string& maps)
 
 } // namespace
 
-int main(int argc, char** argv)
+std::string findGameRootForUi()
 {
-    Options options = parseOptions(argc, argv);
+    return findGameRoot(false);
+}
+
+int runLauncherUi(int argc, char** argv);
+
+int runConsole(Options options)
+{
     log("fallout2-ce-3d-launcher");
     log("");
+
+    if (options.checkRelease) {
+        std::string version;
+        std::string notes;
+        if (!fetchReleaseInfo(options.updateBase, options.releaseInfoUrl, &version, &notes)) {
+            log("release check failed");
+            return 1;
+        }
+        logf("RELEASE_VERSION:%s", version.c_str());
+        logf("RELEASE_NOTES:%s", notes.c_str());
+        return 0;
+    }
 
     // --- the game folder ---
     fs::path root;
@@ -601,6 +952,8 @@ int main(int argc, char** argv)
         if (found.empty()) die("no Fallout 2 folder given");
         root = found;
     }
+
+    if (options.rollback) return rollbackInstalledBuild(root) ? 0 : 1;
 
     bool installedGamePresent = fs::exists(root / kGameExe);
     std::string installedVersion;
@@ -670,6 +1023,12 @@ int main(int argc, char** argv)
             die("the package does not hold the game exe");
         }
 
+        if (installedGamePresent && !backupInstalledBuild(root,
+            installedVersion.empty() ? std::string("manual") : installedVersion)) {
+            fs::remove_all(work, error);
+            die("cannot back up the installed build before updating");
+        }
+
         // --- into the game folder; the player's things stay theirs ---
         log("installing into the game folder:");
         copyIfPresent(stage, kGameExe, root, true, "installed");
@@ -726,6 +1085,10 @@ int main(int argc, char** argv)
         }
     }
 
+    if (options.installRussian && !installRussianTranslation(root)) {
+        die("the Russian translation could not be installed");
+    }
+
     if (options.noStart) {
         log("done (--no-start)");
         return 0;
@@ -766,4 +1129,12 @@ int main(int argc, char** argv)
         savesAfter == savesBefore ? "unchanged" : "CHANGED");
     log("bye");
     return 0;
+}
+
+int main(int argc, char** argv)
+{
+    if (argc == 1 || (argc >= 2 && std::string(argv[1]) == "--ui")) {
+        return runLauncherUi(argc, argv);
+    }
+    return runConsole(parseOptions(argc, argv));
 }

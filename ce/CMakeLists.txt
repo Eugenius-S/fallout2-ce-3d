@@ -752,10 +752,15 @@ if((NOT ANDROID) AND (NOT IOS) AND (NOT CMAKE_SYSTEM_NAME MATCHES "Emscripten"))
     # rolling latest release onto a clean Fallout 2 and starts the game.
     add_executable(fallout2-ce-3d-launcher
         "src/launcher_main.cc"
+        "src/launcher_ui.cc"
+        "src/launcher.rc"
     )
     target_include_directories(fallout2-ce-3d-launcher PRIVATE "src")
     if(WIN32)
-        target_link_libraries(fallout2-ce-3d-launcher winhttp bcrypt advapi32 ole32 uuid)
+        target_link_libraries(fallout2-ce-3d-launcher winhttp bcrypt advapi32 ole32 uuid comctl32 shell32)
+        if(MSVC)
+            target_compile_options(fallout2-ce-3d-launcher PRIVATE /utf-8)
+        endif()
     endif()
     if(MINGW)
         target_link_options(fallout2-ce-3d-launcher PRIVATE

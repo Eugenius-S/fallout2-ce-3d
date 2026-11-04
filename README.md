@@ -24,17 +24,25 @@ contribute. If you want to take part, message me on
 [Download the launcher](https://github.com/Eugenius-S/f2-reimagined/releases/download/latest/fallout2-ce-3d-launcher.exe)
 from the rolling [latest release](https://github.com/Eugenius-S/f2-reimagined/releases/tag/latest).
 
-1. Install Fallout 2 from Steam or GOG. To play in Russian, put any Russian
-   translation into the game folder first, before you run the launcher.
+1. Install Fallout 2 from Steam or GOG.
 2. Run the launcher. It detects those installs; if it cannot find the game,
    choose its folder containing `master.dat` and `critter.dat`.
-3. The first install and later updates need an internet connection.
+3. Choose English or Russian for the launcher. To play in Russian, select
+   **Install Russian text**; the launcher downloads it from the official RPU
+   release. The Restoration Project option is shown as coming soon.
+4. Choose **Install / Update**. Turn on automatic updates if you want the
+   launcher to install a newer build when it starts. Press **Play** when the
+   installation finishes. **Roll back** restores the previous build.
+
+An internet connection is needed for a new install, updates and the optional
+Russian text download.
 
 The launcher installs or updates `fallout2-ce.exe`, `ce.dat` and
-`scene-exporter.exe`, then builds scene data from your game files. An
-existing `fallout2.cfg` is kept; a default is installed only when it is
-missing. The launcher does not replace the original `fallout2.exe` or alter
-save files.
+`scene-exporter.exe`, then builds scene data from your game files. An existing
+`fallout2.cfg` is kept during install and updates; if you choose Russian, only
+`[system].language` is set to `russian`. A default config is installed only
+when it is missing. The launcher does not replace the original `fallout2.exe`
+or alter save files.
 
 ## What works
 
@@ -83,7 +91,6 @@ enabled=0
 - Restoration Project support
 - 3D models of unique landmarks: the Vault Dweller's head, the New Reno
   sign, the Vault City gate and more
-- A full installer
 - macOS support
 - DLSS 5 support (a long shot, but worth a try)
 
