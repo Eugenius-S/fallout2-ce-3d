@@ -19,6 +19,10 @@ Every wall in every map stands right in 3D: faces, tops, corners, posts, edges, 
 
 ## Context
 
+- Rule 1 folded in (2026-11-04 sweep): task 107, a corner post's card
+  splits at its own axis, each half on the face it stands before. Its file
+  `tasks/107-*.md` keeps the full analysis; gpt's draft #170 (stale since
+  2026-11-01) is the start: continue from its branch.
 - The owner, 2026-11-04: geometry is fixed by kind, one class of objects
   across every map per task and per PR, never map by map.
 - Sources: the finds of this kind in the area tasks' Logs (136, 158-171),

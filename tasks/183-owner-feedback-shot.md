@@ -47,6 +47,20 @@ by location, and turn them into tasks.
   pixel rect, the map tiles or hexes it covers, and the objects, wall and
   roof pieces under it (id, type, art name).
 
+- Batch: the dev tools (2026-11-04 inbox sweep). Two more steps, each its
+  own PR after step 1:
+  - Step 3, the teleport (inbox 2026-10-21): jump the hero to any spot of any
+    map (map, elevation, hex) inside a running game, from the dev panel and
+    from a command file the game watches, so an agent can do it in the
+    owner's running game on the owner's word. Start options already exist
+    (`--dev-map`, `--dev-elevation`, a view hex).
+  - Step 4, a safe floor change (inbox 2026-10-21): the dev panel's floor
+    change put the hero inside the rock on klatoxcv elevation 2. The hex
+    check (`docs/p1-devtools.md`, "Tile choice on a floor change") looks at
+    the floor tile and blockers within 4 hexes only. Pick a hex the hero can
+    walk from (a path to the map's entrance or to a few hexes around), or
+    take the hex the owner names. The teleport uses the same check.
+
 ## Acceptance
 
 - Three shots on different maps in `runs/183-owner-feedback-shot/` with
@@ -59,6 +73,10 @@ by location, and turn them into tasks.
   region lists its tiles and the objects under it. `docs/owner-shots.md`
   tells the agent to start from `regions` and the objects listed in them.
 - ctest passes.
+
+- Step 3: a command-file jump to klatoxcv e2 and to a hex on another map
+  lands the hero on a walkable hex; the dev panel does the same.
+- Step 4: the floor change to klatoxcv e2 leaves the hero able to walk.
 
 ## Out of scope
 

@@ -117,3 +117,20 @@ content in all turns. The refreshed comparison is in
 `runs/164-redding-in-3d/fly-tour-origin-main/`.
 
 Next: commit this correction, push it, and wait for CI on the new SHA.
+
+### 2026-11-04 gpt merge
+
+Done: merged latest `origin/main` (`2bcf027b`). The main-side PR added Redding
+evidence files but left the exporter map group, tour points, and task status
+out of the main tree, so this branch still carries the implementation. Two
+add/add conflicts were shared regression sidecars: their PNG object hashes
+were identical in both trees. The JSON files differed only in capture run,
+CE/executable provenance and timestamps; kept main's sidecars and all main
+changes, including its additional Wanamingo reference. The seven branch
+regression spots and fourteen updated tour spots remain intact.
+
+Checks after merge: Release build passed; CTest 20/20; scene-export unit tests
+121/121; regression unit tests 12/12. Rechecking all seven Redding references
+on the merged branch before push.
+
+Next: commit and push the merge, then wait for CI on the new SHA.

@@ -1,4 +1,4 @@
-# Working on Fallout 2 CE 3D
+# Working on Fallout 2: Reimagined
 
 Three agents: `claude`, `gpt`, `glm`. The owner accepts the visuals and
 changes these rules as the work goes.
@@ -21,6 +21,10 @@ decisions: [the roadmap](docs/2026-10-19-roadmap-design.md).
   the design-heavy core; the board always has free work for `gpt` and `glm`.
 - The owner's finds from chat go to [tasks/inbox.md](tasks/inbox.md), not
   into the current work, unless the owner says "now".
+- Fold first. A new find or task first goes through the open tasks and
+  batches: if one fits, it joins that one (a Context line there); a new task
+  is cut only when nothing fits. Every new board entry (an inbox line, a
+  task) names the batch it joined, or says why it stands alone.
 
 Where things are: [shapes and camera rotation](docs/2026-10-20-shapes-and-rotation-design.md),
 [dev tools](docs/p1-devtools.md) (snapshots, tours, the fly camera, restarting
