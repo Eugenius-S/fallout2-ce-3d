@@ -2,7 +2,9 @@
 
 [English](README.md) | **Русский**
 
-<a href="https://www.youtube.com/watch?v=rFMGHM7ZNDc"><img src="https://img.youtube.com/vi/rFMGHM7ZNDc/maxresdefault.jpg" alt="Смотреть ролик на YouTube" width="100%"></a>
+https://github.com/user-attachments/assets/a922572c-d8ae-4121-b489-971a467a1e6a
+
+[Смотреть в 1080p на YouTube](https://www.youtube.com/watch?v=rFMGHM7ZNDc)
 
 Этот проект делается из любви и как дань уважения к Fallout 2, лучшей игре в
 мире, на которой я вырос и которую до сих пор прохожу раз в пару лет.
