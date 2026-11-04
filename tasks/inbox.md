@@ -297,3 +297,6 @@ first: a new task only when no open task or batch fits (AGENTS.md, Tasks).
   setting in the game settings.
 - 2026-11-04 (-> 195, alone: no open camera task) The owner: the camera turn
   easing from 150 feels harsh; soft starts and soft stops wanted.
+- 2026-11-04 (-> 156, the renderer lifetime) The owner: in fullscreen the
+  NVIDIA overlay toast keeps popping up during play; the device is
+  recreated mid-run.

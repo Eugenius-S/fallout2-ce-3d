@@ -21,6 +21,16 @@ scale. The "restart needed" notes go away for what now applies live.
 
 ## Context
 
+- Folded in (the owner, 2026-11-04, a screenshot over Klamath): in
+  fullscreen, NVIDIA's "Press Ctrl+Alt+Z to open the overlay" toast keeps
+  popping up during play, as if the game were starting again. The NVIDIA
+  app shows it when a process creates a new D3D or GL device or swapchain in
+  fullscreen, so something recreates the presentation device during play.
+  Suspects: `svga.cc` `handleWindowSizeChanged()` destroys and recreates the
+  SDL renderer whenever the scene renderer is not active (combat, dialogue,
+  menus, movies); a switch between the GL scene path and the SDL renderer
+  path (if that is the cause, it ends with 173); an exclusive-fullscreen
+  mode switch. Same renderer and surface lifetime as this task.
 - The owner, 2026-11-02: wants resolution and scale to change on the fly
   and without a stall.
 - 154 saves `[screen] resolution_x`, `resolution_y`, `windowed` and the
@@ -45,6 +55,11 @@ scale. The "restart needed" notes go away for what now applies live.
   cache; it rebuilds only the render targets or shader state it touches.
 - The switch takes under a second; the original view regression stays
   pixel for pixel; ctest passes.
+
+- One presentation device for the whole run: every renderer and context
+  create and destroy is logged with its reason; a fullscreen session
+  through a map change, a dialogue, combat and the options screen logs no
+  recreate after launch, and the overlay toast shows at most once.
 
 ## Out of scope
 
