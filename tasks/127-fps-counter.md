@@ -95,3 +95,7 @@ The task remains `doing`; PR #181 remains draft after two new live-capture attem
 
 Next: needs a separately verified live 3D/Fly capture with the FPS and frame-time number visible, then check task regressions and current-SHA CI.
 Check: `tools/configure-build.ps1 Release` passed; CTest passed 19/19. The exact captured 3D frame and sidecar are in `runs/127-fps-counter/liveframe-attempt2/`.
+
+### 2026-11-04 gpt: fresh main merge
+
+Merged `origin/main` at `3b288fd6`; no conflicts. The two most recent live-frame attempts remain documented above, with no FPS overlay visible in an accepted live 3D frame. Per the two-attempt limit, no further runtime capture was made; PR #181 stays draft and the task remains `doing`.
