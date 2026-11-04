@@ -78,6 +78,9 @@ MAP_GROUPS = {
     # the depot's surface bunker and its underground levels (the game's
     # maps/v13*.map and depol*.map files).
     "vault13depot": ("v13ent", "vault13", "depolv1", "depolva", "depolvb"),
+    # The Mariposa military base: the surface entrance and the underground
+    # levels (the game's maps/mb*.map files).
+    "militarybase": ("mbclose", "mbase12", "mbase34"),
 }
 EXPECTED_OUTPUT_FILES = {"scene.json", "provenance.json", "floor.bin", "walls.bin", "projection.bin", "baked.bin",
                          "shadows.bin", "tiles.png", "light.png", "rock.png", "roof_fringe.png"}

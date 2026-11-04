@@ -2016,7 +2016,7 @@ void update()
 
     // --dev-map-tour: a snapshot where the startup landed, then one on each
     // listed map elevation in turn, all in this process.
-    if (gTourStep >= 0 && gStartupFloorPreviewAttempted && !gPendingElevation && !inBlockingGameState()) {
+    if (gTourStep >= 0 && gStartupFloorPreviewAttempted && !gPendingElevation) {
         bool arrived = gTourStep == 0;
         if (!arrived) {
             char base[64];
@@ -2041,13 +2041,20 @@ void update()
             startFlying(false);
             if (gFlying) circleFlight(stop.turn == 0.0 ? 0.01 : stop.turn, -1.0, stop.distance);
         }
-        const bool ready = arrived && gTourFrames >= 30;
-        const bool stuck = !arrived && gTourFrames >= 600;
+        const bool ready = arrived && gTourFrames >= 30 && !inBlockingGameState();
+        // A map whose enter script sits in combat, a dialog or a movie would
+        // hold the tour forever; snapshot where the game is and go on.
+        const bool stuck = gTourFrames >= 600;
         if (ready || stuck) {
             gTourFrames = 0;
             if (stuck) {
-                const TourStop& stop = gTour[gTourStep - 1];
-                printf("devtools: map tour did not reach %s e%d: %s\n", stop.map.c_str(), stop.elevation, gStatus);
+                if (!arrived) {
+                    const TourStop& stop = gTour[gTourStep - 1];
+                    printf("devtools: map tour did not reach %s e%d: %s\n", stop.map.c_str(), stop.elevation, gStatus);
+                } else {
+                    printf("devtools: map tour blocked by the game state on %s e%d, snapshotting where the game is\n",
+                        gMapHeader.name, gElevation);
+                }
                 fflush(stdout);
             }
             takeSnapshot();
@@ -2058,9 +2065,11 @@ void update()
                 // Another view of this map elevation needs no transition.
                 const bool sameMap = compat_stricmp(here, next.map.c_str()) == 0 && static_cast<int>(gElevation) == next.elevation;
                 if (!sameMap && !requestMapChange(next.map.c_str(), next.elevation)) {
-                    printf("devtools: map tour stopped at %s e%d: %s\n", next.map.c_str(), next.elevation, gStatus);
+                    // A stop the game cannot enter (an elevation without a
+                    // free entrance hex, a locked map) does not kill the tour:
+                    // the next frames snapshot where the game is and go on.
+                    printf("devtools: map tour skipped %s e%d: %s\n", next.map.c_str(), next.elevation, gStatus);
                     fflush(stdout);
-                    gTourStep = -1;
                 }
             } else {
                 gTourStep = -1;

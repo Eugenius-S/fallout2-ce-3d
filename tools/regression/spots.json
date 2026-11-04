@@ -685,6 +685,27 @@
       "elevation": 0,
       "tile": 21910,
       "coverage": "The depot robotics bay"
+    },
+    {
+      "name": "mbase-surface",
+      "map": "mbclose",
+      "elevation": 0,
+      "tile": 23939,
+      "coverage": "The Mariposa surface sheds and rocks"
+    },
+    {
+      "name": "mbase-corridors",
+      "map": "mbase12",
+      "elevation": 0,
+      "tile": 16089,
+      "coverage": "The base corridor level 1"
+    },
+    {
+      "name": "mbase-vats",
+      "map": "mbase34",
+      "elevation": 1,
+      "tile": 15131,
+      "coverage": "The glowing vat room"
     }
   ]
 }
