@@ -315,3 +315,6 @@ first: a new task only when no open task or batch fits (AGENTS.md, Tasks).
 - 2026-11-04 (-> 197, alone: an art pipeline trial) The owner: a trial AI
   HD remaster of one character's standing and walk frames, for gpt, not
   urgent (`runs/inbox/2026-11-04-hd-sprite-remaster-reference.png`).
+- 2026-11-04 (-> 198, alone: the local machine) The owner: the showcase
+  project, the final video and the logo into `marketing/`; clean up the
+  `E:\Projects` root.
