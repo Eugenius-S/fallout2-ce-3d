@@ -1,4 +1,4 @@
-# Working on Fallout 2 CE 3D
+# Working on Fallout 2: Reimagined
 
 Three agents: `claude`, `gpt`, `glm`. The owner accepts the visuals and
 changes these rules as the work goes.
