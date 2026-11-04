@@ -4,7 +4,7 @@ title: Klamath graphics sweep, find and fix every visible defect
 milestone: M1
 status: todo
 owner: none
-suggested: claude
+suggested: gpt
 priority: high
 claude-only: no
 user-check: yes

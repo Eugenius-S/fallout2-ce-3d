@@ -4,9 +4,9 @@ Three agents: `claude`, `gpt` (GPT Sol 6.1), `glm` (GLM 5.3). The owner
 accepts the visuals and changes these rules as the work goes. Goals and
 decisions: [the roadmap](docs/2026-10-19-roadmap-design.md).
 
-- One agent works at a time, whoever has limits. Any agent may stop at any
-  moment: the next one continues from the last pushed commit and the task's
-  `Log`, without asking anybody.
+- Agents work in parallel, each in its own worktree. Any agent may stop at
+  any moment: the next one continues from the last pushed commit and the
+  task's `Log`, without asking anybody.
 - Nobody waits. Nothing waits for the owner's or Claude's approval; whatever
   the owner rejects later becomes a new task.
 - Claude keeps the strategy (the order of the board, big tasks cut into
@@ -55,6 +55,12 @@ in `tools/shapes/eval/` (`eval.py shoot | sheets | score`), the fly tour
   and did not, or changed and should not, is fixed before the merge.
 - Upstream CE code (`ce/src/*.cc` outside `scene/`, `scene_renderer/`,
   `devtools/`) gets a hook or a call at most; the logic lives in our modules.
+- On a local map the 3D view never turns off. An object that cannot be
+  built in 3D yet stands as a flat picture (a billboard or a fixed plane),
+  never as a switch back to 2D. The world map, dialogs and menus stay 2D.
+- Speed is a feature: a steady 60 FPS, a warm-cache map change in 2 s, no
+  stall over 100 ms on a settings change. Measure with the frame-time log
+  (127) before and after any change that may cost time.
 - A fix in the 3D scene is a rule that holds for every map, object and
   wall of its kind, never a case for one prototype, tile or map (the owner,
   2026-10-27). A PR names the rule and shows it on more than the one spot
@@ -133,6 +139,11 @@ another: a hard task is split (step 4), not handed over.
    ride in the same PR; no separate commits to `main` for bookkeeping.
 
 ## Review
+
+The one merge gate is green CI (build, tests, regression). The PR body says
+what it touched. The author merges as soon as CI is green; nothing else is
+reviewed before the merge. Claude reviews each city later in a fly-through
+pass of its own (tasks 175 on), and the finds become new tasks.
 
 The checks are the review. The author sets `reviewed: yes` on finishing,
 except when the PR retook regression references, changed a file format the

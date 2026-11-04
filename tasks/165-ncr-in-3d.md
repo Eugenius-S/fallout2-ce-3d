@@ -4,7 +4,7 @@ title: NCR and Vault 15 in 3D, every map stands and looks clean
 milestone: M1
 status: todo
 owner: none
-suggested: glm
+suggested: gpt
 priority: normal
 claude-only: no
 user-check: yes

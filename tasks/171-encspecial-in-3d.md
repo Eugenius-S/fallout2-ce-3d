@@ -4,7 +4,7 @@ title: The special encounters and the rest in 3D, every map stands and looks cle
 milestone: M1
 status: todo
 owner: none
-suggested: glm
+suggested: gpt
 priority: normal
 claude-only: no
 user-check: yes

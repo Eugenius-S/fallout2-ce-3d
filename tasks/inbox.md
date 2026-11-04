@@ -259,3 +259,17 @@ that fits no task becomes a new task when the board runs dry.
   City, 161 Gecko, 162 Broken Hills, 163 New Reno, 164 Redding, 165 NCR and
   Vault 15, 166 Vault 13 and the Sierra Army Depot, 167 the Military Base, 168
   San Francisco and Navarro, 169-171 the random encounters.
+- 2026-11-04 The owner: every open task to gpt. Moved to gpt: the area sweeps
+  164-171 (from glm), 129 and 149 (from claude). Claude keeps the
+  design-heavy 135 and 157 in progress; 090 and 097 stay claude-only.
+- 2026-11-04 The owner's strategy: merge on green CI, review later per city
+  (175-182, claude); 3D never off on a local map, a plane for what cannot be
+  built (173); multi-part objects as one (174); speed first: the frame-time
+  log and baselines (127), a 2 s warm-cache load (172), no stall on a
+  settings change (156), a steady 60 FPS (157). AGENTS.md updated.
+- 2026-11-04 The owner: 173 by kind (a bulky unique object is a billboard,
+  a flat thing a fixed plane, fences untouched); the feedback screenshot with
+  its JSON (183, right after 127).
+- 2026-11-04 The owner: the Restoration Project, top priority, to gpt.
+  Cut: 184 install into a scratch copy and boot, 185 the sfall gap list,
+  186 fill the gaps, 187 RP content in 3D, 188 an RP boot check.
