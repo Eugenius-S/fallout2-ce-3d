@@ -1,0 +1,162 @@
+[
+  {
+    "area": "arroyo",
+    "jpeg": "runs/173-never-off-live/arroyo/area.jpg",
+    "jpeg_bytes": 782405,
+    "metadata": "runs/173-never-off-live/arroyo/area.json",
+    "source_png": "devhero-20261104-190616-000.png",
+    "map": "ARTEMPLE.MAP",
+    "elevation": 0,
+    "scene_view": "full",
+    "preview_availability": "available",
+    "objects": {
+      "drawn": 1082,
+      "skipped": 0
+    },
+    "renderer": "scene-gl",
+    "resolution": "1920x1080",
+    "logical_resolution": "960x540",
+    "exe_sha256": "6c3576d2a227da4884134554f087d554ce5d02547341bc349bf43ee75e340d5f",
+    "ce_commit": "cfcdf287"
+  },
+  {
+    "area": "klamath",
+    "jpeg": "runs/173-never-off-live/klamath/area.jpg",
+    "jpeg_bytes": 791222,
+    "metadata": "runs/173-never-off-live/klamath/area.json",
+    "source_png": "devhero-20261104-190628-000.png",
+    "map": "KLADWTWN.MAP",
+    "elevation": 0,
+    "scene_view": "full",
+    "preview_availability": "available",
+    "objects": {
+      "drawn": 4600,
+      "skipped": 0
+    },
+    "renderer": "scene-gl",
+    "resolution": "1920x1080",
+    "logical_resolution": "960x540",
+    "exe_sha256": "6c3576d2a227da4884134554f087d554ce5d02547341bc349bf43ee75e340d5f",
+    "ce_commit": "cfcdf287"
+  },
+  {
+    "area": "den",
+    "jpeg": "runs/173-never-off-live/den/area.jpg",
+    "jpeg_bytes": 759822,
+    "metadata": "runs/173-never-off-live/den/area.json",
+    "source_png": "devhero-20261104-190639-000.png",
+    "map": "DENBUS1.MAP",
+    "elevation": 0,
+    "scene_view": "full",
+    "preview_availability": "available",
+    "objects": {
+      "drawn": 3895,
+      "skipped": 0
+    },
+    "renderer": "scene-gl",
+    "resolution": "1920x1080",
+    "logical_resolution": "960x540",
+    "exe_sha256": "6c3576d2a227da4884134554f087d554ce5d02547341bc349bf43ee75e340d5f",
+    "ce_commit": "cfcdf287"
+  },
+  {
+    "area": "modoc",
+    "jpeg": "runs/173-never-off-live/modoc/area.jpg",
+    "jpeg_bytes": 823651,
+    "metadata": "runs/173-never-off-live/modoc/area.json",
+    "source_png": "devhero-20261104-190650-000.png",
+    "map": "MODMAIN.MAP",
+    "elevation": 0,
+    "scene_view": "full",
+    "preview_availability": "available",
+    "objects": {
+      "drawn": 5159,
+      "skipped": 0
+    },
+    "renderer": "scene-gl",
+    "resolution": "1920x1080",
+    "logical_resolution": "960x540",
+    "exe_sha256": "6c3576d2a227da4884134554f087d554ce5d02547341bc349bf43ee75e340d5f",
+    "ce_commit": "cfcdf287"
+  },
+  {
+    "area": "vaultcity",
+    "jpeg": "runs/173-never-off-live/vaultcity/area.jpg",
+    "jpeg_bytes": 697789,
+    "metadata": "runs/173-never-off-live/vaultcity/area.json",
+    "source_png": "devhero-20261104-190700-000.png",
+    "map": "VCTYCTYD.MAP",
+    "elevation": 0,
+    "scene_view": "full",
+    "preview_availability": "available",
+    "objects": {
+      "drawn": 3559,
+      "skipped": 0
+    },
+    "renderer": "scene-gl",
+    "resolution": "1920x1080",
+    "logical_resolution": "960x540",
+    "exe_sha256": "6c3576d2a227da4884134554f087d554ce5d02547341bc349bf43ee75e340d5f",
+    "ce_commit": "cfcdf287"
+  },
+  {
+    "area": "gecko",
+    "jpeg": "runs/173-never-off-live/gecko/area.jpg",
+    "jpeg_bytes": 805776,
+    "metadata": "runs/173-never-off-live/gecko/area.json",
+    "source_png": "devhero-20261104-190710-000.png",
+    "map": "GECKSETL.MAP",
+    "elevation": 0,
+    "scene_view": "full",
+    "preview_availability": "available",
+    "objects": {
+      "drawn": 3358,
+      "skipped": 0
+    },
+    "renderer": "scene-gl",
+    "resolution": "1920x1080",
+    "logical_resolution": "960x540",
+    "exe_sha256": "6c3576d2a227da4884134554f087d554ce5d02547341bc349bf43ee75e340d5f",
+    "ce_commit": "cfcdf287"
+  },
+  {
+    "area": "brokenhills",
+    "jpeg": "runs/173-never-off-live/brokenhills/area.jpg",
+    "jpeg_bytes": 706952,
+    "metadata": "runs/173-never-off-live/brokenhills/area.json",
+    "source_png": "devhero-20261104-190721-000.png",
+    "map": "BROKEN1.MAP",
+    "elevation": 0,
+    "scene_view": "full",
+    "preview_availability": "available",
+    "objects": {
+      "drawn": 5483,
+      "skipped": 0
+    },
+    "renderer": "scene-gl",
+    "resolution": "1920x1080",
+    "logical_resolution": "960x540",
+    "exe_sha256": "6c3576d2a227da4884134554f087d554ce5d02547341bc349bf43ee75e340d5f",
+    "ce_commit": "cfcdf287"
+  },
+  {
+    "area": "newreno",
+    "jpeg": "runs/173-never-off-live/newreno/area.jpg",
+    "jpeg_bytes": 555602,
+    "metadata": "runs/173-never-off-live/newreno/area.json",
+    "source_png": "devhero-20261104-190732-000.png",
+    "map": "NEWR1.MAP",
+    "elevation": 0,
+    "scene_view": "full",
+    "preview_availability": "available",
+    "objects": {
+      "drawn": 3567,
+      "skipped": 0
+    },
+    "renderer": "scene-gl",
+    "resolution": "1920x1080",
+    "logical_resolution": "960x540",
+    "exe_sha256": "6c3576d2a227da4884134554f087d554ce5d02547341bc349bf43ee75e340d5f",
+    "ce_commit": "cfcdf287"
+  }
+]

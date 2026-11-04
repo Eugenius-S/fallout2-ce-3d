@@ -1,0 +1,4 @@
+scene_renderer: OpenGL 4.1.0 NVIDIA 621.01; renderer=NVIDIA GeForce RTX 5070/PCIe/SSE2; profile=0x1 flags=0x1
+CASTERS: pages 1, ranges 1, vertices 369, x -19.21..1.13, z -29.96..-10.53, wall cards 0
+CASTERS: pages 2, ranges 2, vertices 114459, x -21.32..17.69, z -22.21..40.06, wall cards 14
+CASTERS: pages 2, ranges 2, vertices 4815, x -27.29..20.14, z -17.89..17.42, wall cards 40
