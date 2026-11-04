@@ -2,8 +2,8 @@
 id: 188
 title: A check that RP still boots, without committing RP
 milestone: M1
-status: todo
-owner: any
+status: doing
+owner: gpt
 suggested: any
 priority: high
 tier: 1
@@ -43,3 +43,4 @@ later changes do not break it.
 Fixing what it finds.
 
 ## Log
+
