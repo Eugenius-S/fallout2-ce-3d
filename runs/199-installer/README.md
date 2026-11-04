@@ -2,7 +2,7 @@
 
 Live Windows evidence for [task 199](../../tasks/199-installer.md). All game
 operations ran on a separate copy of the game data at
-`E:\Projects\f2-installer-test-199-run3`; the installed game and cache in the
+a separate scratch directory outside the repository; the installed game and cache in the
 owner's checkout were not used.
 
 ## Screenshots
