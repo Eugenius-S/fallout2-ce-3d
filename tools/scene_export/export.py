@@ -47,6 +47,9 @@ MAP_GROUPS = {
     # cycling colours, unlike Klamath's dead ones (task 050).
     "vault15": ("vault15",),
     "den": ("denbus1", "denbus2", "denres1"),
+    # Broken Hills: the two town maps and the surrounding desert and
+    # mountain (the game's maps/broken*.map and bhrnd*.map files).
+    "brokenhills": ("broken1", "broken2", "bhrnddst", "bhrndmtn"),
     # Gecko: the settlement, the power plant, the junkyard and the access
     # tunnels (the game's maps/geck*.map files).
     "gecko": ("gecksetl", "geckpwpl", "geckjunk", "gecktunl"),

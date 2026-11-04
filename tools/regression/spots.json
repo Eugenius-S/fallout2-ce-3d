@@ -120,6 +120,34 @@
       "coverage": "The most detailed gallery view of this map elevation (task 011)"
     },
     {
+      "name": "brokenhills-entrance",
+      "map": "broken1",
+      "elevation": 0,
+      "tile": 17947,
+      "coverage": "Broken Hills main street"
+    },
+    {
+      "name": "brokenhills-east",
+      "map": "broken2",
+      "elevation": 0,
+      "tile": 20944,
+      "coverage": "Broken Hills east side"
+    },
+    {
+      "name": "brokenhills-desert",
+      "map": "bhrnddst",
+      "elevation": 0,
+      "tile": 22897,
+      "coverage": "The Broken Hills desert"
+    },
+    {
+      "name": "brokenhills-jail",
+      "map": "broken1",
+      "elevation": 0,
+      "tile": 19947,
+      "coverage": "The jail, the fence line and the barrels"
+    },
+    {
       "name": "gecko-settlement",
       "map": "gecksetl",
       "elevation": 0,
