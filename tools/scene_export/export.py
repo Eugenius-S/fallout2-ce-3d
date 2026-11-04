@@ -47,6 +47,9 @@ MAP_GROUPS = {
     # cycling colours, unlike Klamath's dead ones (task 050).
     "vault15": ("vault15",),
     "den": ("denbus1", "denbus2", "denres1"),
+    # Redding: downtown, the mine entrance and tunnels, the downtown
+    # tunnels, the Wanamingo mine (the game's maps/red*.map files).
+    "redding": ("reddown", "redment", "reddtun", "redmtun", "redwame", "redwan1"),
 }
 EXPECTED_OUTPUT_FILES = {"scene.json", "provenance.json", "floor.bin", "walls.bin", "projection.bin", "baked.bin",
                          "shadows.bin", "tiles.png", "light.png", "rock.png", "roof_fringe.png"}
