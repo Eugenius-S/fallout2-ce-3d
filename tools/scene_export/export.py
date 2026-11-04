@@ -82,6 +82,9 @@ MAP_GROUPS = {
     # shuttle, the Elronologists' base and the Navarro base (the game's
     # maps/sf*.map files and navarro.map).
     "sanfran": ("sfdock", "sfchina", "sfchina2", "sftanker", "sfshutl1", "sfshutl2", "sfelronb", "navarro"),
+    # The Mariposa military base: the surface entrance and the underground
+    # levels (the game's maps/mb*.map files).
+    "militarybase": ("mbclose", "mbase12", "mbase34"),
 }
 EXPECTED_OUTPUT_FILES = {"scene.json", "provenance.json", "floor.bin", "walls.bin", "projection.bin", "baked.bin",
                          "shadows.bin", "tiles.png", "light.png", "rock.png", "roof_fringe.png"}

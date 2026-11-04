@@ -1367,6 +1367,36 @@
    "elevation": 2,
    "tile": 28694,
    "name": "Navarro, the hangar level"
+  },
+  {
+   "map": "mbclose",
+   "elevation": 0,
+   "tile": 23939,
+   "name": "the military base surface"
+  },
+  {
+   "map": "mbase12",
+   "elevation": 0,
+   "tile": 16089,
+   "name": "the military base corridors"
+  },
+  {
+   "map": "mbase12",
+   "elevation": 1,
+   "tile": 16089,
+   "name": "the military base lower level"
+  },
+  {
+   "map": "mbase34",
+   "elevation": 0,
+   "tile": 14141,
+   "name": "the base corridor fork"
+  },
+  {
+   "map": "mbase34",
+   "elevation": 1,
+   "tile": 15131,
+   "name": "the vat room"
   }
  ]
 }
