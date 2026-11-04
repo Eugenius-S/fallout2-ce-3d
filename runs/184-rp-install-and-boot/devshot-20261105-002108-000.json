@@ -131,7 +131,7 @@
   "exe_sha256": "d0d9c3ab763311ff64be8e80f5358e44449db8c03577631195158a0f0f00e567",
   "taken": "20261105-002108",
   "image_conversion": "Full-resolution JPEG quality 86 from the original PNG",
-  "raw_image_path": "E:\\Projects\\f2-rp-scratch-184-gpt\\evidence-raw\\devhero-20261105-002108-000.png",
+  "raw_image_path": "<scratch>/evidence-raw/devhero-20261105-002108-000.png",
   "raw_image_sha256": "39fd8bbf6affaea310361d061e5d5d7e9a8554e87e192f4a105eb5f30658d5a7",
   "evidence_image_sha256": "fa5ccd44a0483fa8ee5c6bcb31c7f952f8a46a2ae2f33b65f29eb5007c84150d"
-}
+}\n

@@ -7,7 +7,7 @@ Its release metadata reports SHA-256
 `226b2252840a9230bb4ced1550becb2bd69d3580c15ee5c2148d5dc0a750f898`.
 
 The source game folder already contained RPU 2.4.34. Its installed copy was
-copied to `E:\Projects\f2-rp-scratch-184-gpt\game`, outside the repository;
+copied to a separate scratch game directory outside the repository;
 `mod-cache`, logs, shots, user assets and saves were excluded. This records a
 boot of the installed release in an isolated copy. The installer itself was
 not rerun. No game files were added to this repository.
@@ -27,7 +27,7 @@ SHA-256: `27db830e0fb67d02b60e166e2acb772a92292f5f4dd88f733b740b406a0864ee`.
 | Klamath Town (`KLADWTWN`) | 0 | 4601 | 48385 | `devhero-20261105-002112-000.jpg` |
 
 The matching JSON files preserve snapshot metadata. Original PNGs are kept
-outside the repository at `E:\Projects\f2-rp-scratch-184-gpt\evidence-raw`;
+outside the repository in the scratch copy's `evidence-raw` directory;
 the committed JPEGs are full-resolution conversions, all under 1 MB.
 
 Build executable SHA-256: `d0d9c3ab763311ff64be8e80f5358e44449db8c03577631195158a0f0f00e567`.
