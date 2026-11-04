@@ -4,7 +4,7 @@ title: Vault 13 and the Sierra Army Depot in 3D, every map stands and looks clea
 milestone: M1
 status: todo
 owner: none
-suggested: glm
+suggested: gpt
 priority: normal
 claude-only: no
 user-check: yes
