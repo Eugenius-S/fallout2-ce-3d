@@ -265,6 +265,54 @@
    "name": "cave, regression gallery view"
   },
   {
+   "map": "gecksetl",
+   "elevation": 0,
+   "tile": 23709,
+   "name": "the settlement entrance"
+  },
+  {
+   "map": "geckpwpl",
+   "elevation": 0,
+   "tile": 20533,
+   "name": "the power plant"
+  },
+  {
+   "map": "geckjunk",
+   "elevation": 0,
+   "tile": 26311,
+   "name": "the junkyard"
+  },
+  {
+   "map": "gecktunl",
+   "elevation": 0,
+   "tile": 20100,
+   "name": "the access tunnels"
+  },
+  {
+   "map": "gecksetl",
+   "elevation": 0,
+   "tile": 27709,
+   "name": "the brahmin pen and the farm"
+  },
+  {
+   "map": "geckpwpl",
+   "elevation": 0,
+   "tile": 16533,
+   "name": "the reactor hall"
+  },
+  {
+   "map": "geckjunk",
+   "elevation": 0,
+   "tile": 22311,
+   "name": "the wrecked car and the pens"
+  },
+  {
+   "map": "gecktunl",
+   "elevation": 0,
+   "tile": 16100,
+   "name": "the tunnel crossing"
+  },
+  {
    "map": "vctyctyd",
    "elevation": 0,
    "tile": 27506,

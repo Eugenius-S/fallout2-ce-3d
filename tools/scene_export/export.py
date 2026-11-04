@@ -47,6 +47,9 @@ MAP_GROUPS = {
     # cycling colours, unlike Klamath's dead ones (task 050).
     "vault15": ("vault15",),
     "den": ("denbus1", "denbus2", "denres1"),
+    # Gecko: the settlement, the power plant, the junkyard and the access
+    # tunnels (the game's maps/geck*.map files).
+    "gecko": ("gecksetl", "geckpwpl", "geckjunk", "gecktunl"),
     # Vault City and the raiders: the concrete town and the vault's own
     # corridors, the raiders' cave camp (the game's maps/vcty*.map and
     # raiders*.map files).
