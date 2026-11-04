@@ -107,3 +107,15 @@ game/mod-cache/scene).
 Next: the owner's answer or save; the live-capture tool defect as its
 own task.
 Check: the cave-still-glow.jpg pair in runs/111-cave-glow-and-lamps-live/.
+
+### 2026-11-04 gpt: the old owner screenshots were 2D; fresh out-of-combat live captures still hang
+
+Done: the owner's 2026-11-01 answer resolves the question above: those shots were the original 2D view because the hero was in combat. I started a fresh KLATOXCV elevation 1 scene with gameState=0, combat=0, dialog=0, using the latest available watchdog build and the main checkout's scene cache.
+
+- Attempt 1, run 3a7e4a55e93b: LiveFrame with Glow, CyclePalette, SkipScriptBlocking, 20-second step timeout. The startup preview began but no live snapshot arrived. The watchdog stopped the test game; no image was produced. The wrapper then hit a file-lock error while appending diagnostics to process.stdout.log.
+- Attempt 2, run 357981da968b: same setup with NoPreview. The live snapshot still did not arrive after startup accepted the map; the watchdog stopped the test game with no image. The wrapper hit the same stdout file-lock error.
+
+The watchdog records are in runs/111-cave-glow-and-lamps-live/attempt-1.txt and attempt-2.txt. These two out-of-combat attempts did not prove whether the live glow and point lights work. No further runtime attempt is made on this path until the live snapshot trigger and wrapper log sharing are fixed.
+
+Next: fix the live capture path in the devtools task, then repeat this exact out-of-combat KLATOXCV check and compare the pool glow and wall lighting.
+Check: the two watchdog records above; neither contains a screenshot.

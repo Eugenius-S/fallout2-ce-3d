@@ -1,0 +1,2 @@
+Attempt 2: fresh KLATOXCV elevation 1 scene, gameState=0, combat=0. LiveFrame with NoPreview, Glow, CyclePalette, SkipScriptBlocking. Watchdog stopped after 20 seconds without progress. Last states: startup target accepted; preview available, no combat/dialog/movie. No image or snapshot metadata was produced. Run id: 357981da968b.
+Wrapper issue: dev-snapshot.ps1 failed while appending watchdog diagnostics because process.stdout.log was locked by the running game.
