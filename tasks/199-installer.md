@@ -22,7 +22,8 @@ Restoration Project is shown as one, disabled for now.
 
 ## Context
 
-- High priority (the owner, 2026-11-04). It goes right after 184 (RP
+- High priority (the owner, 2026-11-04); the installer in Russian and
+  English too. It goes right after 184 (RP
   install and boot): the RP option needs to know how RP installs. If gpt is
   busy, glm may take it between map areas.
 - The owner, 2026-11-04: a proper installer that looks good, with the
@@ -46,6 +47,10 @@ Restoration Project is shown as one, disabled for now.
 
 1. The installer window: the project logo, the game's look, an install
    path, a progress bar, a finish page with a Play button.
+1a. The installer and launcher speak Russian and English: on first start
+   the language follows the system's, a switch in the window changes it,
+   and the choice is remembered. The UI language only; the "Russian" game
+   option stays a separate checkbox.
 2. Updates: the launcher's GitHub check shows what is new (the version and
    short notes), updates in one click or by itself on start (a setting),
    and can roll back to the previous build.
