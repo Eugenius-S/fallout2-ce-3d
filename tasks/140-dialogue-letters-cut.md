@@ -77,3 +77,23 @@ Check: `tools/check_public_content.py origin/main` and `tools/check_runs_size.py
 ### 2026-11-04 gpt: merge fresh origin/main
 
 Merged `origin/main` at `3b288fd6` with no conflicts. Existing normal and hover-state fixtures still do not reproduce the owner's clipped reply; the hover check assertion failed and did not save a frame. PR #206 stays draft pending a visible matching reproduction.
+
+### 2026-11-04 gpt: current main merge and hover assertion diagnosis
+
+Fetched and merged `origin/main` at `8e135a73867b` without conflicts. Checked
+the last hover-state log: the opaque cursor pixel correctly covers underlying
+glyph alpha (`103 -> 0`), the transparent cursor cell still contains ink
+(`175 -> 195`), and reply ink remains (`465 -> 439`). The assertion required
+the transparent cell's alpha to be numerically unchanged, even though hovering
+changes the reply highlight. Updated the fixture to require visible ink at
+that transparent cell before and after the move, while retaining the opaque
+cursor, same-reply, and nonzero-ink checks. This is a test-only diagnostic
+change; no image was produced and the clipped reply is still unreproduced.
+
+The updated source compiled, but the local Release link failed with unresolved
+OpenGL query-pointer symbols referenced from `perf.cc`; the development
+executable was not rebuilt, so no third hover capture was run. CTest reported
+19/20, with `settings_3d_tests` failing its `clean_edges` default assertion.
+The PowerShell parser passed. PR #206 remains draft and task 140 stays
+`doing`; next, resolve the build blockers and capture the actual hovered reply
+before claiming visual acceptance.

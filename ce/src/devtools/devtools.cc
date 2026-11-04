@@ -2738,8 +2738,11 @@ void vanillaPresented()
                         failCursorCheck("cursor-not-drawn-at-target-in-indexed-frame");
                         return;
                     }
+                    // Hovering a reply changes its highlight, so non-cursor
+                    // glyph alpha can change. The transparent cursor cell must
+                    // still show ink; it need not preserve the previous alpha.
                     if (targetBefore == 0 || targetAfter != 0 || transparentBefore == 0
-                        || transparentAfter != transparentBefore || beforeInkPixels == 0 || afterInkPixels == 0) {
+                        || transparentAfter == 0 || beforeInkPixels == 0 || afterInkPixels == 0) {
                         printf("DIALOG_CURSOR_CHECK FAIL map=%s script=%s speaker=%d reason=overlay-assertion opaque_alpha=%u->%u transparent_alpha=%u->%u before_ink=%u after_ink=%u\n",
                             gMapHeader.name, gDialogFixtureScript, gDialogFixtureSpeakerId,
                             targetBefore, targetAfter, transparentBefore, transparentAfter, beforeInkPixels, afterInkPixels);

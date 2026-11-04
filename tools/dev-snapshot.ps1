@@ -882,7 +882,7 @@ if ($DialogCursorCheck) {
         throw "Dialog cursor check failed or timed out within $TimeoutSeconds s.`n$cursorLog"
     }
     if ([int]$cursorPass.Groups[8].Value -le 0 -or [int]$cursorPass.Groups[9].Value -le 0 -or
-        [int]$cursorPass.Groups[9].Value -ne [int]$cursorPass.Groups[10].Value -or
+        [int]$cursorPass.Groups[10].Value -le 0 -or
         [int]$cursorPass.Groups[11].Value -le [int]$cursorPass.Groups[12].Value -or
         [int]$cursorPass.Groups[12].Value -le 0) {
         throw 'Dialog cursor check did not preserve sharp text at the transparent cursor cell.'
