@@ -568,7 +568,14 @@ int gameHandleKey(int eventCode, bool isInCombatMode)
 
     // NOTE: Uninline.
     if (gameGetState() == GameState::DialogRequested) {
-        _gdialogSystemEnter();
+        if (devtools::skipScriptDialogRequest()) {
+            gameRequestState(GameState::DialogFinished);
+            gameUpdateState();
+            gameRequestState(GameState::Normal);
+            gameUpdateState();
+        } else {
+            _gdialogSystemEnter();
+        }
     }
 
     if (eventCode == -1) {
