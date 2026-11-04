@@ -92,3 +92,12 @@ paths unverified.
 Done: removed absolute local paths from the captured stdout logs under `runs/147-map-transitions-keep-3d/`; the transition captures and timing are unchanged. The previous PR check failed only on these paths. The two failed exit-probe attempts remain the runtime limit, so no new capture was made. The transition evidence is still partial and the PR remains draft.
 Next: continue with task 140 as recorded above; revisit 147 only when the exit probe can use a verified pickable route.
 Check: `tools/check_public_content.py origin/main` and `tools/check_runs_size.py origin/main` pass after this commit.
+
+### 2026-11-03 merge origin/main
+
+Merged `origin/main` (`d8cff6b0`) into this branch. Resolved the `tools/dev-snapshot.ps1` overlap by preserving transition-watch/exit-probe completion checks together with main's scripted-input completion checks. PowerShell parser and `git diff --check` pass. Runtime transition coverage remains incomplete as listed above; PR stays draft.
+
+### 2026-11-04 gpt: merge fresh origin/main
+
+Merged `origin/main` at `3b288fd6` with no conflicts. The transition matrix remains incomplete and its single captured arrival does not establish flash behavior or all route coverage. PR #221 stays draft; no additional runtime attempt was made.
+
