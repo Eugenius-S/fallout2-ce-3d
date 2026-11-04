@@ -2,14 +2,14 @@
 id: 163
 title: New Reno in 3D, every map stands and looks clean
 milestone: M1
-status: todo
-owner: none
+status: done
+owner: glm
 suggested: glm
 priority: normal
 claude-only: no
 user-check: yes
 depends-on: []
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -66,3 +66,21 @@ The interface, menus and text, the sky, new 3D models from scratch, maps of
 other areas (each has its own task).
 
 ## Log
+
+### 2026-11-04 glm
+Done: the newreno group (newr1 x3, newr2 x3, newr3 x2, newr4 x2, newrcs,
+newrgo x2, newrst x2, newrba, newrvb; 21 elevations export clean). 21 fly
+tour spots (entrances plus the landmarks from a 24-point 2D grid probe: the
+lit casino corner, the car lot with the murals, the neon corner, the truck)
+and 6 regression spots with references from this build.
+Find: newr1a and newr2a are not in the game's data/maps.txt, so the game can
+never travel there (devtools: not in the worldmap registry). They export,
+but no tour or regression spot is possible. owner: unused leftover maps,
+like arvill2 (136) and bhrndmtn (162).
+Sweep: the fly tour at every stop (3 turns), hours 8/12/18 on every
+entrance; newr1 -> newr2 -> newr3 -> newr4 in one run, all scene-gl.
+tools/regression.ps1: 22 of 22 spots, 0 changed pixels. No open visual
+finds; the task closes.
+Evidence: runs/163-newreno-in-3d/.
+Check: export.py --maps newreno; tour.py --maps newr1,newr2,newr3,newr4,
+newrcs,newrgo,newrst,newrba,newrvb; tools/regression.ps1.
