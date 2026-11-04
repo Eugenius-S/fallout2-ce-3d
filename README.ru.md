@@ -1,4 +1,4 @@
-# Fallout 2 CE 3D
+<h1 align="center"><img src="docs/images/logo.png" alt="Fallout 2: Reimagined" width="500"></h1>
 
 [English](README.md) | **Русский**
 
@@ -18,10 +18,11 @@ Fallout 2 сохранена полностью, в основе лежит ор
 
 ## Установка
 
-[Скачайте лаунчер](https://github.com/Eugenius-S/fallout2-ce-3d/releases/download/latest/fallout2-ce-3d-launcher.exe)
-из постоянно обновляемого [релиза latest](https://github.com/Eugenius-S/fallout2-ce-3d/releases/tag/latest).
+[Скачайте лаунчер](https://github.com/Eugenius-S/f2-reimagined/releases/download/latest/fallout2-ce-3d-launcher.exe)
+из постоянно обновляемого [релиза latest](https://github.com/Eugenius-S/f2-reimagined/releases/tag/latest).
 
-1. Установите Fallout 2 из Steam или GOG.
+1. Установите Fallout 2 из Steam или GOG. Для игры на русском сразу
+   поставьте в папку игры любой русификатор, до запуска лаунчера.
 2. Запустите лаунчер. Он сам находит эти установки; если игра не нашлась,
    укажите её папку, где лежат `master.dat` и `critter.dat`.
 3. Для первой установки и обновлений нужен интернет.
@@ -118,3 +119,9 @@ py -3 tools/scene_export/export.py --game-root ./game --maps klamath
 Код движка и конвертера распространяется на условиях исходных проектов:
 Sustainable Use License 1.0 (см. `ce/LICENSE.md` и лицензии в
 `tools/scene_export/`). Это неофициальный некоммерческий фанатский проект.
+
+## Угостить кофе
+
+Если проект нравится и хочется сказать спасибо, можно
+[угостить меня кофе](https://app.lava.top/eugenius_s?tabId=donate).
+Это по желанию: проект в любом случае остаётся бесплатным.

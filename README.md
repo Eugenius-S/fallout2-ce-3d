@@ -1,4 +1,4 @@
-# Fallout 2 CE 3D
+<h1 align="center"><img src="docs/images/logo.png" alt="Fallout 2: Reimagined" width="500"></h1>
 
 **English** | [Русский](README.ru.md)
 
@@ -19,10 +19,11 @@ contribute. If you want to take part, message me on
 
 ## Install
 
-[Download the launcher](https://github.com/Eugenius-S/fallout2-ce-3d/releases/download/latest/fallout2-ce-3d-launcher.exe)
-from the rolling [latest release](https://github.com/Eugenius-S/fallout2-ce-3d/releases/tag/latest).
+[Download the launcher](https://github.com/Eugenius-S/f2-reimagined/releases/download/latest/fallout2-ce-3d-launcher.exe)
+from the rolling [latest release](https://github.com/Eugenius-S/f2-reimagined/releases/tag/latest).
 
-1. Install Fallout 2 from Steam or GOG.
+1. Install Fallout 2 from Steam or GOG. To play in Russian, put any Russian
+   translation into the game folder first, before you run the launcher.
 2. Run the launcher. It detects those installs; if it cannot find the game,
    choose its folder containing `master.dat` and `critter.dat`.
 3. The first install and later updates need an internet connection.
@@ -120,3 +121,9 @@ The game files and generated scene data stay local. See
 The engine and converter code are distributed under the terms of the original
 projects: Sustainable Use License 1.0 (see `ce/LICENSE.md` and the licenses
 in `tools/scene_export/`). This is an unofficial non-commercial fan project.
+
+## Buy me a coffee
+
+If you enjoy the project and want to say thanks, you can
+[buy me a coffee](https://app.lava.top/eugenius_s?tabId=donate).
+It is entirely optional: the project stays free either way.

@@ -3,9 +3,10 @@ id: 146
 title: A background combat fixture: start a fight and capture each phase
 milestone: M1
 status: todo
-owner: none
-suggested: gpt
-priority: high
+owner: any
+suggested: any
+priority: normal
+tier: 3
 claude-only: no
 user-check: no
 depends-on: []

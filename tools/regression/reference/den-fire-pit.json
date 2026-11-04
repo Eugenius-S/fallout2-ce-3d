@@ -1,0 +1,141 @@
+{
+  "image": "den-fire-pit.png",
+  "view": "static-wall-plus-hero-preview",
+  "map": "DNSLVRUN.MAP",
+  "elevation": 0,
+  "still_snapshot": true,
+  "snapshot_run": "b72b1047387f44e4b59ad76a81a4db0c",
+  "view_tile": 22905,
+  "preview_requested": true,
+  "scene_3d_enabled": true,
+  "scene_view": "full",
+  "sharp_text": {
+    "setting": false,
+    "active": false,
+    "drawn": false,
+    "runs": 0,
+    "glyphs": 0,
+    "restored_pixels": 0,
+    "prepare_ms": 0.0
+  },
+  "map_clip": {
+    "enabled": true,
+    "setting_enabled": true,
+    "variant": "authored",
+    "source": "authored",
+    "world_bounds": [
+      -29.541667,
+      -32.0625,
+      33.458333,
+      29.9375
+    ],
+    "planes": [
+      [
+        0.4472136,
+        0.8944272,
+        27.3545647
+      ],
+      [
+        -0.8320503,
+        0.5547002,
+        20.2465572
+      ],
+      [
+        -0.4472136,
+        -0.8944272,
+        27.2054939
+      ],
+      [
+        0.8320503,
+        -0.5547002,
+        15.8089552
+      ]
+    ]
+  },
+  "camera": "fixed eye=(51.64466,46.23085,80.96700), target=(2.45833,0.00000,7.18750), fov_y=25.0, near=0.1, far=400.0, screen_right=-cross(forward,world_up)",
+  "camera_turn": 0.0,
+  "wall_triangles": 2916,
+  "wall_pages": 3,
+  "hero": {
+    "tile": 26905,
+    "fid": 16777278,
+    "frame": 0,
+    "rotation": 5,
+    "world_anchor": [
+      2.458333333,
+      17.1875
+    ]
+  },
+  "egg": {
+    "shown": true,
+    "rect": [
+      767,
+      414,
+      129,
+      98
+    ],
+    "zoom": 1.0,
+    "wall_rows_marked": 64,
+    "wall_rows_any": true
+  },
+  "objects": {
+    "drawn": 2786,
+    "skipped": 0
+  },
+  "preview_availability": "available",
+  "renderer": "scene-gl",
+  "light": "enabled",
+  "effect_emission": true,
+  "glow": {
+    "enabled": false,
+    "strength": 2.0
+  },
+  "weapon_effect": null,
+  "muzzle": null,
+  "sun": {
+    "setting": true,
+    "daylight": true,
+    "game_time": 302400,
+    "up": true,
+    "height": 66.0,
+    "azimuth": -26.565,
+    "direction": [
+      0.3638,
+      0.91355,
+      -0.1819
+    ],
+    "color": [
+      1.0,
+      0.96,
+      0.88
+    ],
+    "strength": 1.0
+  },
+  "resolution": "1920x1080",
+  "logical_resolution": "960x540",
+  "scale": 2,
+  "scale_factor": 2.0,
+  "windowed": true,
+  "drawable": "1920x1080",
+  "sdl_window": {
+    "flags": 73734,
+    "window_position": "-20000,-20000",
+    "window_size": "1920x1080",
+    "drawable_size": "1920x1080",
+    "fullscreen": false,
+    "fullscreen_desktop": false,
+    "borderless": false
+  },
+  "ce_commit": "df358238",
+  "tools_commit": "-",
+  "exe_sha256": "7bd5d255f517536ff43add5f34a42d0dc931c716e3250a534832324681601467",
+  "taken": "20261104-031308",
+  "capture_image": "devhero-20261104-031308-000.png",
+  "spot": {
+    "name": "den-fire-pit",
+    "map": "dnslvrun",
+    "elevation": 0,
+    "tile": 22905,
+    "coverage": "The slave run fire pit and tents"
+  }
+}

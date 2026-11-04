@@ -3,9 +3,10 @@ id: 111
 title: The slime pools glow and the lamps light the walls in the live caves
 milestone: M1
 status: todo
-owner: none
-suggested: gpt
-priority: normal
+owner: any
+suggested: any
+priority: low
+tier: 4
 claude-only: no
 user-check: yes
 depends-on: []
@@ -20,6 +21,8 @@ slime pools glow (022, 073) and the point lights light the walls near them
 
 ## Context
 
+- Folded in (2026-11-04 inbox sweep): the inbox line of 2026-10-24, no
+  glows in the owner's live Klamath run; the burning barrels should glow.
 The owner, 2026-10-28, live on main `9705aca4`:
 
 - `runs/inbox/2026-10-28-slime-no-glow.png`: the toxic caves
