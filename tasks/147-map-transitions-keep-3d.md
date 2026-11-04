@@ -101,7 +101,7 @@ Merged `origin/main` (`d8cff6b0`) into this branch. Resolved the `tools/dev-snap
 
 Merged `origin/main` at `3b288fd6` with no conflicts. The transition matrix remains incomplete and its single captured arrival does not establish flash behavior or all route coverage. PR #221 stays draft; no additional runtime attempt was made.
 
-*### 2026-11-04 gpt: merge current main
+### 2026-11-04 gpt: merge current main
 
 Fetched and merged `origin/main` at `8e135a73867b` into the existing task
 branch; no conflicts. Pushed merge commit `b51c67952f2e4271e31af54a7f5608e6a2cdbaa9`.
@@ -112,3 +112,13 @@ incomplete.
 Check: PowerShell parser, public-content check, runs-size check and
 `git diff --check` pass. No new runtime or pixel-regression result is claimed.
 
+
+### 2026-11-04 gpt: rebased on current main and blocked
+
+Rebased the owned task branch onto `origin/main` at `f2ef1236` as requested.
+Resolved the task-header and `tools/dev-snapshot.ps1` conflicts by retaining
+the transition diagnostics and the main branch's scripted-input checks. The
+two failed KLAGRAZ exit-probe attempts remain the limit; no repeat was made
+without a probe-path fix. Task status is `blocked`, and PR #221 remains draft:
+only the KLAMALL-to-KLADWTWN arrival is captured, with all other routes,
+elevations, world-map and save/load transitions unverified.
