@@ -485,12 +485,21 @@ def _from_floor(shape, force=False, allow_lid=False):
         ys, xs = np.nonzero(shape.alpha)
         found = all(np.hypot(xs + shape.left + 0.5 - x, ys + shape.top + 0.5 - y).min() <= CORNER_PX for x, y in corners)
         centre = (corner[0] + (a * proj.SQ_U[0] + b * proj.SQ_V[0]) / -2, corner[1] - (a * proj.SQ_U[1] + b * proj.SQ_V[1]) / 2 - lift)
+        if force == "multipart-flat":
+            # Numbered scenery parts can be one broad, nearly planar picture
+            # (the SF Dock tanker). Keep its composed silhouette together as
+            # a shallow top instead of leaving its source cards at separate
+            # hex anchors.
+            lift = max(lift, MIN_HEIGHT)
         box = Fit("box", shape, centre, a, b, flat.far - lift, flat.near - lift, 0.0, lift / proj.HPX)
         # A thing with a flat top (a table, a bed) may carry and hide much of itself; without
         # one, a box that leaves a good part of the sprite above its "top" is the foot of a heap.
         bulk = box.side_fill >= BULK
         furniture = found and box.legs and (box.top_fill >= FLAT_TOP or not bulk)
         if force == "box" and lift >= MIN_HEIGHT:
+            box.blocks = [flat]
+            return [(shape.off(shape.lower, flat.near), box)]
+        if force == "multipart-flat":
             box.blocks = [flat]
             return [(shape.off(shape.lower, flat.near), box)]
         if lift >= MIN_HEIGHT and (furniture or bulk) and box.cover >= (MIN_COVER if furniture else BULK_COVER):
@@ -558,7 +567,7 @@ def _from_top(shape):
 def fit(alpha, left, top, force=False, allow_lid=False):
     """The solid for a sprite (its opaque pixels without the floor's shade, light.outer_dark;
     left / top: px of its first pixel from the anchor), or None if it had better stay a card.
-    force: "box" or "drum" whenever one stands (chairs and crates are as ragged as plants).
+    force: "box", "drum", or "multipart-flat" whenever one stands (chairs and crates are as ragged as plants).
     allow_lid: a drum with a lid may win the pick (the mapper's loose clutter only: stood up,
     a lid's gap is transparent in the game's own views, so those keep the card; task 119).
     -> (Shape, Fit)"""
@@ -592,6 +601,7 @@ SEAM_PX = 12            # sprites that meet along a straight vertical line this 
 WITHIN = 0.95           # share of a sprite inside the bounds of a bigger one of its name: a detail of that thing
 MULTIPART_DISTANCE = 15 # hexes: nearby records from a numbered scenery assembly
 MULTIPART_MIN_PARTS = 8 # distinct, once-placed frames: small variant sets are not assemblies
+MULTIPART_VISUAL_GAP = 8 # px: the sprite bounds must form one connected picture
 
 
 class Piece:
@@ -663,7 +673,30 @@ def multipart_groups(pieces):
             variants = {part_by_index[i] for i in indices}
             prototypes = {getattr(pieces[i].obj, "pid", None) for i in indices}
             if len(variants) >= MULTIPART_MIN_PARTS and len(indices) == len(variants) and len(prototypes) == len(variants):
-                out.append([pieces[i] for i in indices])
+                group = [pieces[i] for i in indices]
+                names = {str(piece.name).casefold() for piece in group
+                         if str(piece.name).casefold() != "shadow"}
+                if len(names) != 1:
+                    continue
+                parent = list(range(len(group)))
+
+                def root(i):
+                    while parent[i] != i:
+                        parent[i] = parent[parent[i]]
+                        i = parent[i]
+                    return i
+
+                for i, piece in enumerate(group):
+                    x0, y0, x1, y1 = piece.bounds
+                    for j, other in enumerate(group[i + 1:], i + 1):
+                        ox0, oy0, ox1, oy1 = other.bounds
+                        gap_x = max(0, x0 - ox1, ox0 - x1)
+                        gap_y = max(0, y0 - oy1, oy0 - y1)
+                        if gap_x <= MULTIPART_VISUAL_GAP and gap_y <= MULTIPART_VISUAL_GAP:
+                            parent[root(i)] = root(j)
+                if len({root(i) for i in range(len(group))}) != 1:
+                    continue
+                out.append(group)
     return out
 
 

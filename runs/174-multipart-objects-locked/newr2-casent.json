@@ -1,0 +1,65 @@
+{
+  "image": "newr2-casent.jpg",
+  "task": 174,
+  "object_group": "newr2-casent",
+  "map": "newr2",
+  "elevation": 0,
+  "view_tile": 18691,
+  "turns_degrees": [
+    -45,
+    0,
+    45
+  ],
+  "fly_pitch_degrees": 35,
+  "fly_distance": 35,
+  "ambient": 65536,
+  "still": true,
+  "resolution": "1920x1080",
+  "crop_pixels": [
+    384,
+    162,
+    1536,
+    918
+  ],
+  "capture_mode": "background dev-snapshot with -Fly; scene_view full and renderer scene-gl",
+  "before_cache": "build/main-scene-cache",
+  "after_cache": "build/scene-cache",
+  "raw_captures_before": "build/task174/evidence-raw/before-newr2-casent-wide",
+  "raw_captures_after": "build/task174/evidence-raw/after-newr2-casent-wide",
+  "before": [
+    {
+      "image": "devhero-20261104-231257-000.png",
+      "taken": "20261104-231257",
+      "exe_sha256": "3d5adb93c48251be01da89aa5c97a7e38e68833dc79a6ac1c452968fe7270df6"
+    },
+    {
+      "image": "devhero-20261104-231309-000.png",
+      "taken": "20261104-231309",
+      "exe_sha256": "3d5adb93c48251be01da89aa5c97a7e38e68833dc79a6ac1c452968fe7270df6"
+    },
+    {
+      "image": "devhero-20261104-231320-000.png",
+      "taken": "20261104-231320",
+      "exe_sha256": "3d5adb93c48251be01da89aa5c97a7e38e68833dc79a6ac1c452968fe7270df6"
+    }
+  ],
+  "after": [
+    {
+      "image": "devhero-20261104-231528-000.png",
+      "taken": "20261104-231528",
+      "exe_sha256": "3d5adb93c48251be01da89aa5c97a7e38e68833dc79a6ac1c452968fe7270df6"
+    },
+    {
+      "image": "devhero-20261104-231539-000.png",
+      "taken": "20261104-231539",
+      "exe_sha256": "3d5adb93c48251be01da89aa5c97a7e38e68833dc79a6ac1c452968fe7270df6"
+    },
+    {
+      "image": "devhero-20261104-231551-000.png",
+      "taken": "20261104-231551",
+      "exe_sha256": "3d5adb93c48251be01da89aa5c97a7e38e68833dc79a6ac1c452968fe7270df6"
+    }
+  ],
+  "sheet_bytes": 357905,
+  "jpeg_quality": 86
+}

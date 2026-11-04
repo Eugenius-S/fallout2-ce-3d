@@ -1634,15 +1634,22 @@ def encode_wall_sidecar(scene, skip_props=frozenset(), skip_rests=frozenset(), m
         # each from both sides.
         game.object = fly.object = axis_owner.get((row[1], row[2]), -1.0)
         page, corners = rest_card(proj, sprites, row, axis_plane.get((row[1], row[2])))
-        seen = row[5] if len(row) > 5 else 0     # 1: of a solid the fly camera alone sees, 2: the game's
-        if (row[1], row[2]) not in forced_axes and seen != 1:  # the game's camera sees that solid's card whole
+        seen = row[5] if len(row) > 5 else 0     # 1: crossed fly-only rest, 2: game card, 3: fixed fly-only plane
+        if (row[1], row[2]) not in forced_axes and seen not in (1, 3):
             _polygon(game, proj, page, pages[page], corners)
-        for page, corners in rest_cross(proj, sprites, row) if seen != 2 else ():
-            # The sheet across the screen is a line to the game's camera, so
-            # it is wound both ways without asking that camera.
+        if seen == 3:
+            # A grouped flat picture is one fixed plane, not two crossed copies.
+            # The fly camera can approach it from either side.
             for wound in (corners, corners[::-1]):
                 for index in range(1, len(wound) - 1):
                     _quad_triangle(fly, page, pages[page], (wound[0], wound[index], wound[index + 1]))
+        elif seen != 2:
+            for page, corners in rest_cross(proj, sprites, row):
+                # The sheet across the screen is a line to the game's camera, so
+                # it is wound both ways without asking that camera.
+                for wound in (corners, corners[::-1]):
+                    for index in range(1, len(wound) - 1):
+                        _quad_triangle(fly, page, pages[page], (wound[0], wound[index], wound[index + 1]))
     fly.object = game.object = -1.0
 
     groups = [(0, page, batches[page]) for page in sorted(batches)] + [(FLY_ONLY, page, fly[page]) for page in sorted(fly)] \

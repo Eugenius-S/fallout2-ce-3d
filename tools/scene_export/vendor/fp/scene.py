@@ -33,7 +33,7 @@ import numpy as np
 from f2lib import MapFile, geometry, ids, mapstxt, pro
 from f2lib import map as mapfile
 
-from . import boxes, light, proj, props, rock, sets, tents, things, walls
+from . import atlas, boxes, light, proj, props, rock, sets, tents, things, walls
 from .atlas import Atlas, save_png
 
 TILE_RES = 88       # texels per square side. > 80 makes the un-projection lossless: every
@@ -774,7 +774,7 @@ class SceneBuilder:
             # A box by name (tools/scene_export/shapes/overrides.json): chairs and
             # crates the fit takes for plants.
             forced = FORCED.get((self.gf.art.name(first.obj.fid) or "").lower()) if len(group) == 1 else \
-                ("box" if multipart else None)
+                ("multipart-flat" if multipart else None)
             narrow = len(group) == 1 and not blocking and first.index.shape[1] < WALK_THROUGH and not forced
             index, rgba, x, y = props.compose(group) if len(group) > 1 else (first.index, first.rgba, first.x, first.y)
             ax, ay = (int(round(c)) for c in proj.hex_px(first.obj.tile))       # the anchor: the first piece's hex
@@ -810,6 +810,35 @@ class SceneBuilder:
                 if run is not None:
                     self.wall_join(first, (ax, ay), left, top, run)
             if not found:
+                if multipart:
+                        # A nearly flat multi-part picture may have no valid box
+                        # fit. In flight, draw one fixed plane of the composed
+                        # group and skip its source cards; the game view keeps
+                        # every original map object.
+                    rows, columns = np.flatnonzero(rgba[..., 3].any(axis=1)), np.flatnonzero(rgba[..., 3].any(axis=0))
+                    if len(rows) and len(columns):
+                        image = rgba[rows[0]:rows[-1] + 1, columns[0]:columns[-1] + 1]
+                        image_left, image_top = x + int(columns[0]) - ax, y + int(rows[0]) - ay
+                        center_dx = image_left + image.shape[1] / 2
+                        center_dy = image_top + image.shape[0] / 2
+                        max_width = atlas.PAGE_WIDTH - 2 * atlas.PAD
+                        scale = 1.0
+                        if image.shape[1] > max_width:
+                            from PIL import Image
+                            scale = max_width / image.shape[1]
+                            height = max(1, round(image.shape[0] * max_width / image.shape[1]))
+                            image = np.array(Image.fromarray(image).resize(
+                                (max_width, height), Image.Resampling.LANCZOS))
+                            image[..., 3] = np.where(image[..., 3] >= 128, 255, 0)
+                        center = np.asarray(self.anchor(first.obj)) + proj.delta_to_ground(
+                            center_dx * scale, center_dy * scale)
+                        sprite = self.sprite(image, -(image.shape[1] // 2), -image.shape[0])
+                        self.rests.append([sprite] + _round((*center, 0.0, 0.0)) + [3])
+                        self.fly_sprites.add(sprite)
+                        fly_hidden += [piece.board for piece in group if piece.board is not None]
+                        self.fly_decals.update(piece.decal for piece in group if hasattr(piece, "decal"))
+                        made.add(frozenset(map(id, group)))
+                        continue
                 continue
             shape, fit = found
             if (loose or narrow) and not fit.lid:

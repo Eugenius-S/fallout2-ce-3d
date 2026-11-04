@@ -793,6 +793,20 @@ class WallSidecarTests(unittest.TestCase):
             "doors": [[0, 5.0, 6.0, 7.0, 6.0, 0.0, 1.0, 46, 400]],
         }
 
+    def test_a_fixed_fly_rest_is_one_fly_only_plane(self):
+        scene = self.sample_scene()
+        scene["sprites"][0][5:] = [-5, -20]
+        scene["walls"] = []
+        scene["trims"] = []
+        scene["doors"] = []
+        scene["rests"] = [[0, 10.0, 10.0, 0.0, 0.0, 3]]
+
+        batches = decode_wall_sidecar(encode_wall_sidecar(scene))["batches"]
+        self.assertEqual(len(batches), 1)
+        self.assertTrue(batches[0]["fly_only"])
+        self.assertFalse(batches[0]["game_only"])
+        self.assertEqual(batches[0]["triangles"], 4)
+
     def test_encodes_game_view_front_and_cap_only(self):
         decoded = decode_wall_sidecar(encode_wall_sidecar(self.sample_scene()))
         self.assertEqual(decoded["version"], WALL_VERSION)
@@ -1681,7 +1695,7 @@ class ThingShapeTests(unittest.TestCase):
         pieces = []
         for cluster, tiles in enumerate((first, second)):
             for part, tile in enumerate(tiles):
-                p = self.piece(f"part-{cluster}-{part}", part * 20, cluster * 200, 8, 8,
+                p = self.piece("Vertibird", part * 8, cluster * 200, 8, 8,
                                tile=tile, order=len(pieces))
                 p.family = ("verti", part + 1)
                 p.obj.pid = 1000 + part
@@ -1697,6 +1711,21 @@ class ThingShapeTests(unittest.TestCase):
         self.assertEqual([1, 1, 1, 9, 9], [len(group) for group in groups])
         self.assertTrue(all(not any(p in small for p in group) for group in groups if len(group) > 1))
         self.assertEqual([9, 9], sorted(len(group) for group in props.multipart_groups(pieces)))
+
+    def test_numbered_art_from_separate_objects_does_not_join_by_family_alone(self):
+        from vendor.fp import props
+        pieces = []
+        for i in range(props.MULTIPART_MIN_PARTS):
+            piece = self.piece("Graffiti", i * 100, 0, 20, 20, tile=10000 + i, order=i)
+            piece.family = ("gy", i + 1)
+            piece.obj.pid = 3000 + i
+            pieces.append(piece)
+        self.assertEqual([], props.multipart_groups(pieces))
+
+        for i, piece in enumerate(pieces):
+            piece.name = "Weed" if i % 2 else "Scrub"
+            piece.family = ("weed", i + 1)
+        self.assertEqual([], props.multipart_groups(pieces))
 
     def scene(self, rows, boxes=()):
         from types import SimpleNamespace
