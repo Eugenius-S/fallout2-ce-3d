@@ -90,8 +90,8 @@ HRP release, variant-6 author, and explicit art redistribution permission
 remain unknown. No art was committed.
 Check: inspected `f2_res.ini` and parsed member sizes/frame geometry in the
 installed `f2_res.dat` with the repository's read-only DAT/FRM parsers.
-Next: keep status doing pending review because provenance and redistribution
-terms for variant 6 are not fully proven.
+At that time: variant-6 provenance and redistribution terms were unresolved;
+the final conservative verdict is recorded below.
 
 ### 2026-11-04 gpt: license and release decision
 Done: checked Mash's Fallout 2 High Resolution Patch readme (versions 4.1.7/4.1.8) against the installed archive. It says mod makers may include the patch and replace or modify included art, asks that it not be sold or passed off as the author's own, and recommends retaining the readme. It credits `HR_IFACE_800.FRM` to Continuum. The author's current GitHub repository labels its MIT license for the patch source code; that license does not establish rights to separately redistributed FRM artwork. The local archive is 903,780 bytes and calls itself the HRP for sfall v5.x, but its exact release is not identified. The stock HRP documentation covers side variants 1 and 2; the installed variant 6 and its author/source remain unverified.
