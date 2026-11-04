@@ -2,8 +2,8 @@
 id: 184
 title: The Restoration Project installs into a scratch game copy and boots in CE
 milestone: M1
-status: todo
-owner: any
+status: doing
+owner: gpt
 suggested: gpt
 priority: high
 tier: 1
