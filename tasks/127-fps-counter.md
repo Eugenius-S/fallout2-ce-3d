@@ -2,7 +2,7 @@
 id: 127
 title: An in-game FPS counter the player can turn on and off
 milestone: M1
-status: doing
+status: blocked
 owner: gpt
 suggested: gpt
 priority: high
@@ -134,3 +134,20 @@ captures; its full-map cache export was stopped partway through. It is not a
 completed pixel-regression result. The current attempt sidecars/logs and
 unaccepted preview are in `runs/127-fps-counter/liveframe-delay-attempt3/`
 through `liveframe-delay-attempt5/`.
+
+### 2026-11-04 gpt: new watchdog live-frame attempts
+
+Fetched and merged fresh `origin/main` before this task; the branch has now
+been rebased onto that main. Two corrected-config live captures from Task
+196's rebuilt Task 127 source are recorded in
+`runs/127-fps-counter/liveframe-task196/`. Both sidecars confirm a 3D scene
+and `fps_counter_enabled=true`; neither image contains the requested
+FPS/frame-time text. The screenshots are byte-identical, so they do not count
+as accepted proof. No further runtime attempts will be made under the
+two-failure limit. Keep PR #181 draft and mark the task blocked until the live
+capture path includes the composed GL overlay.
+
+The likely capture mismatch is recorded on Task 196: the fly FPS overlay is
+composited by `scene_renderer::drawOverlay`, while the current devtools
+capture reads the indexed framebuffer. This is a diagnostic inference, not a
+verified fix.
