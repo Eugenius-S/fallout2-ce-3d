@@ -81,3 +81,14 @@ Merged `origin/main` (`d8cff6b0`) into this branch. Resolved the `tools/dev-snap
 ### 2026-11-04 gpt: merge fresh origin/main
 
 Merged `origin/main` at `3b288fd6` with no conflicts. The two recorded combat attempts did not reach the combat fixture, so PR #220 stays draft and the task remains `doing` under the two-attempt limit.
+
+### 2026-11-04 gpt: merge current main
+
+Fetched and merged `origin/main` at `8e135a73867b` into the existing task
+branch; no conflicts. Pushed merge commit `be7d1efbe5fd1be30e0a90a1606d3de5da125d82`.
+No new runtime attempt was made because the two documented combat starts
+still fail before the fixture begins. PR #220 remains draft and task 146 stays
+`doing` with the four 3D and four Classic captures outstanding.
+
+Check: Release build passed; CTest passed 20/20. No pixel-regression or
+combat-runtime result is claimed for this merge.
