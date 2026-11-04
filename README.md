@@ -121,3 +121,9 @@ The game files and generated scene data stay local. See
 The engine and converter code are distributed under the terms of the original
 projects: Sustainable Use License 1.0 (see `ce/LICENSE.md` and the licenses
 in `tools/scene_export/`). This is an unofficial non-commercial fan project.
+
+## Buy me a coffee
+
+If you enjoy the project and want to say thanks, you can
+[buy me a coffee](https://app.lava.top/eugenius_s?tabId=donate).
+It is entirely optional: the project stays free either way.
