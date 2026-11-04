@@ -267,3 +267,6 @@ that fits no task becomes a new task when the board runs dry.
   built (173); multi-part objects as one (174); speed first: the frame-time
   log and baselines (127), a 2 s warm-cache load (172), no stall on a
   settings change (156), a steady 60 FPS (157). AGENTS.md updated.
+- 2026-11-04 The owner: 173 by kind (a bulky unique object is a billboard,
+  a flat thing a fixed plane, fences untouched); the feedback screenshot with
+  its JSON (183, right after 127).

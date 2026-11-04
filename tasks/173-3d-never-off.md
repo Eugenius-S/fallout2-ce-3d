@@ -30,9 +30,12 @@ its art on a fixed plane.
   in the Log first.
 - A map without a cache builds one on entry (or shows its 2D art on the
   ground plane while it builds), never the 2D view.
-- An unsupported object: its art as a billboard (critters and items already
-  stand as cards) or on a plane fixed to its tile; pick by the object's kind
-  and write the rule.
+- An unsupported object, by its kind (the owner, 2026-11-04):
+  - a bulky unique object (the crashed vertibird lying on the ground) is a
+    billboard turned to the camera, always;
+  - a flat thing (a mattress, a rug) is a plane laid the right way and fixed
+    in the world.
+- Fences have their own working algorithm: do not touch them.
 
 ## Acceptance
 
