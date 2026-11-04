@@ -83,3 +83,37 @@ The interface, menus and text, the sky, new 3D models from scratch, maps of
 other areas (each has its own task).
 
 ## Log
+
+- 2026-11-05, glm. Group `sanfran` = sfdock sfchina sfchina2 sftanker
+  sfshutl1 sfshutl2 sfelronb navarro; 14 scene elevations exported clean
+  (sfdock e0, sfchina e0, sfchina2 e0-e2, sftanker e0-e2, sfshutl1 e0,
+  sfshutl2 e0, sfelronb e0, navarro e0-e2). No exporter errors or warnings.
+- Entrance probes 14/14 (tiles: sfdock 20100, sfchina 26504, sfchina2
+  26504/20133/24722, sftanker 27701 x2 / 23490, sfshutl1 26311, sfshutl2
+  20695, sfelronb 23155, navarro 28694 x3). No hangs, no travel failures.
+- Fly tour 14 spots, before/after identical everywhere ("0 of 14 spots
+  changed"). Hour sweep 8/12/18 on all 14: outdoor ambient shifts with the
+  hour, interiors stable. Dark views checked: sftanker-e1's black deck
+  matches the game's own 2D (`-Classic`, tile 27701) — the map's own
+  lighting, not a defect.
+- Walk chain sfdock -> sfchina -> sfchina2 e0-e2 -> sftanker e0-e2 ->
+  sfshutl1 -> sfshutl2 -> sfelronb -> navarro e0-e2: 14/14 captures, 3D
+  stays on.
+- Regression: full suite 100 spots, 0 changed pixels (3 new spots:
+  sanfran-docks 20100, sanfran-tanker-deck 27701, navarro-base 28694).
+  One reference regenerated with an explanation: depot-gatehouse (a 166
+  spot whose reference predates #274's multipart-object rule) re-captured
+  on the current renderer, a 6-pixel multipart edge shift, strictly 0 after.
+- Finds (open, the owner's priorities, both belong in the batch 173 plane
+  fallback per this task's Context):
+  1. sfdock: the water stops at the map tiles' edge; flat brown void beyond
+     (probe-sfdock-e0.jpg, tour sheet sfdock-e0.jpg). General rule to build:
+     a map edge that is water continues as water past the edge.
+  2. sftanker / sfdock: the tanker's hull has no standing side — the deck
+     floats over void and from the docks the side is a slanted sliver
+     (probe-sftanker-e0.jpg). General rule to build: big hull art stands as
+     one vertical plane perpendicular to the water, touching the pier.
+- Scene content otherwise: no defects; nothing else to move to 189-192 or
+  173. The task stays open until the two rules above land.
+- Evidence: runs/168-sanfran-in-3d/ (probe shots, tour sheets, hour sheets,
+  walk shots, the sftanker 2D comparison).

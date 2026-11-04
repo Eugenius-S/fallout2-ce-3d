@@ -685,6 +685,27 @@
       "elevation": 0,
       "tile": 21910,
       "coverage": "The depot robotics bay"
+    },
+    {
+      "name": "sanfran-docks",
+      "map": "sfdock",
+      "elevation": 0,
+      "tile": 20100,
+      "coverage": "The docks pier and the sea edge"
+    },
+    {
+      "name": "sanfran-tanker-deck",
+      "map": "sftanker",
+      "elevation": 0,
+      "tile": 27701,
+      "coverage": "The tanker deck, bow"
+    },
+    {
+      "name": "navarro-base",
+      "map": "navarro",
+      "elevation": 0,
+      "tile": 28694,
+      "coverage": "Navarro, the base floor"
     }
   ]
 }

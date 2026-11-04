@@ -1283,6 +1283,90 @@
    "elevation": 0,
    "tile": 21910,
    "name": "the robotics bay"
+  },
+  {
+   "map": "sfdock",
+   "elevation": 0,
+   "tile": 20100,
+   "name": "the docks pier"
+  },
+  {
+   "map": "sfchina",
+   "elevation": 0,
+   "tile": 26504,
+   "name": "Chinatown street"
+  },
+  {
+   "map": "sfchina2",
+   "elevation": 0,
+   "tile": 26504,
+   "name": "Chinatown, the shaman's floor"
+  },
+  {
+   "map": "sfchina2",
+   "elevation": 1,
+   "tile": 20133,
+   "name": "Chinatown, the upper walk"
+  },
+  {
+   "map": "sfchina2",
+   "elevation": 2,
+   "tile": 24722,
+   "name": "Chinatown, the top floor"
+  },
+  {
+   "map": "sftanker",
+   "elevation": 0,
+   "tile": 27701,
+   "name": "the tanker deck, bow"
+  },
+  {
+   "map": "sftanker",
+   "elevation": 1,
+   "tile": 27701,
+   "name": "the tanker deck, midship"
+  },
+  {
+   "map": "sftanker",
+   "elevation": 2,
+   "tile": 23490,
+   "name": "the tanker, the top level"
+  },
+  {
+   "map": "sfshutl1",
+   "elevation": 0,
+   "tile": 26311,
+   "name": "the shuttle exterior"
+  },
+  {
+   "map": "sfshutl2",
+   "elevation": 0,
+   "tile": 20695,
+   "name": "the shuttle interior"
+  },
+  {
+   "map": "sfelronb",
+   "elevation": 0,
+   "tile": 23155,
+   "name": "the Elronologists' base"
+  },
+  {
+   "map": "navarro",
+   "elevation": 0,
+   "tile": 28694,
+   "name": "Navarro, the base floor"
+  },
+  {
+   "map": "navarro",
+   "elevation": 1,
+   "tile": 28694,
+   "name": "Navarro, the lower floor"
+  },
+  {
+   "map": "navarro",
+   "elevation": 2,
+   "tile": 28694,
+   "name": "Navarro, the hangar level"
   }
  ]
 }
