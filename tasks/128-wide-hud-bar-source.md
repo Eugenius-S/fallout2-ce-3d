@@ -2,7 +2,7 @@
 id: 128
 title: Wide-screen art, the HUD bar and the 4:3 full-screen art, with licenses
 milestone: M1
-status: doing
+status: done
 owner: gpt
 suggested: gpt
 priority: normal
@@ -10,7 +10,7 @@ tier: 3
 claude-only: no
 user-check: no
 depends-on: []
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -92,3 +92,9 @@ Check: inspected `f2_res.ini` and parsed member sizes/frame geometry in the
 installed `f2_res.dat` with the repository's read-only DAT/FRM parsers.
 Next: keep status doing pending review because provenance and redistribution
 terms for variant 6 are not fully proven.
+
+### 2026-11-04 gpt: license and release decision
+Done: checked Mash's Fallout 2 High Resolution Patch readme (versions 4.1.7/4.1.8) against the installed archive. It says mod makers may include the patch and replace or modify included art, asks that it not be sold or passed off as the author's own, and recommends retaining the readme. It credits `HR_IFACE_800.FRM` to Continuum. The author's current GitHub repository labels its MIT license for the patch source code; that license does not establish rights to separately redistributed FRM artwork. The local archive is 903,780 bytes and calls itself the HRP for sfall v5.x, but its exact release is not identified. The stock HRP documentation covers side variants 1 and 2; the installed variant 6 and its author/source remain unverified.
+Verdict: do not ship or use the combined bar and variant-6 side art. The documented permission does not establish that this downstream variant-6 artwork is covered. Keep the original files only in the player's existing installation. No art was committed.
+Check: inspected the installed `f2_res.ini` and DAT/FRM entries; checked the HRP author's source repository and its MIT license, and the HRP 4.1.8 readme copy. The exact local archive release and variant-6 provenance remain unresolved and are stated as such.
+Next: implementation of any wider HUD art is a separate task and must use newly authored assets or art with verified redistribution terms.
