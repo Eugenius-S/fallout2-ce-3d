@@ -52,6 +52,7 @@ stems become upright cards on the solid's axis (scene.py).
 several map objects, so that it is fitted as one thing.
 """
 import numpy as np
+import re
 
 from . import proj, walls
 
@@ -589,6 +590,8 @@ def fit(alpha, left, top, force=False, allow_lid=False):
 # ------------------------------------------------------------------ composites
 SEAM_PX = 12            # sprites that meet along a straight vertical line this long are slices of one picture
 WITHIN = 0.95           # share of a sprite inside the bounds of a bigger one of its name: a detail of that thing
+MULTIPART_DISTANCE = 15 # hexes: nearby records from a numbered scenery assembly
+MULTIPART_MIN_PARTS = 8 # distinct, once-placed frames: small variant sets are not assemblies
 
 
 class Piece:
@@ -601,6 +604,7 @@ class Piece:
 
     def __init__(self, obj, index, rgba, x, y, order, name, board=None, sheet=None):
         self.obj, self.index, self.rgba, self.x, self.y, self.order, self.name = obj, index, rgba, x, y, order, name
+        self.family = None
         self.board, self.sheet = board, sheet
         columns = np.flatnonzero((index != 0).any(axis=0))
         rows = np.flatnonzero((index != 0).any(axis=1))
@@ -613,6 +617,56 @@ class Piece:
         return self.y + np.flatnonzero(self.index[:, (self.right - 1 if right else self.left) - self.x])
 
 
+def art_family(name):
+    """(prefix, numeric part) for a numbered scenery frame filename."""
+    match = re.fullmatch(r"(.+?)(\d+)\.frm", (name or "").lower())
+    return (match.group(1), int(match.group(2))) if match else None
+
+
+def multipart_groups(pieces):
+    """Numbered scenery assemblies placed as one nearby set of distinct parts."""
+    families = {}
+    for i, piece in enumerate(pieces):
+        family = getattr(piece, "family", None)
+        if family is not None:
+            elevation = getattr(piece.obj, "elevation", 0)
+            families.setdefault((elevation, family[0]), []).append((i, family[1]))
+    out = []
+    for members in families.values():
+        part_by_index = dict(members)
+        if len(set(part_by_index.values())) < MULTIPART_MIN_PARTS:
+            continue
+        parent = {i: i for i, _ in members}
+
+        def find(i):
+            while parent[i] != i:
+                parent[i] = parent[parent[i]]
+                i = parent[i]
+            return i
+
+        by_tile = {}
+        for i, _ in members:
+            by_tile.setdefault(pieces[i].obj.tile, []).append(i)
+        tile_roots = {tile: indices[0] for tile, indices in by_tile.items()}
+        for indices in by_tile.values():
+            for i in indices[1:]:
+                parent[find(i)] = find(indices[0])
+        tiles = list(by_tile)
+        for n, tile in enumerate(tiles):
+            for other in tiles[n + 1:]:
+                if proj.geometry.distance(tile, other) <= MULTIPART_DISTANCE:
+                    parent[find(tile_roots[tile])] = find(tile_roots[other])
+        components = {}
+        for i, _ in members:
+            components.setdefault(find(i), []).append(i)
+        for indices in components.values():
+            variants = {part_by_index[i] for i in indices}
+            prototypes = {getattr(pieces[i].obj, "pid", None) for i in indices}
+            if len(variants) >= MULTIPART_MIN_PARTS and len(indices) == len(variants) and len(prototypes) == len(variants):
+                out.append([pieces[i] for i in indices])
+    return out
+
+
 def groups(pieces, details=True):
     """Sort pieces into things: [[Piece]].
 
@@ -623,7 +677,9 @@ def groups(pieces, details=True):
     (the housing and the wheel of Vault 13's door), and objects of one name
     whose smaller sprite lies within the bigger one's bounds (a bed's rail or a
     bookshelf's lower half painted as an object of its own): fitted alone, such
-    a detail became a plank in mid-air (details=False: not the details).
+    a detail became a plank in mid-air (details=False: not the details). A
+    numbered scenery series is also one prop when the map places each of at
+    least eight distinct parts once in a nearby cluster.
     """
     parent = list(range(len(pieces)))
 
@@ -644,6 +700,12 @@ def groups(pieces, details=True):
     for same in places.values():
         for i in same[1:]:
             parent[find(i)] = find(same[0])
+    # Numbered multi-part art, such as a single vehicle made from distinct
+    # map records, turns together around one anchor.
+    for group in multipart_groups(pieces):
+        first = pieces.index(group[0])
+        for piece in group[1:]:
+            parent[find(pieces.index(piece))] = find(first)
     named = {}
     for i, piece in enumerate(pieces if details else ()):
         named.setdefault(piece.name, []).append(i)

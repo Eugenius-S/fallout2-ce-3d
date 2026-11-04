@@ -1452,6 +1452,14 @@ class BakedSidecarTests(unittest.TestCase):
         self.assertIn((100, 0x03000010, BAKED_SKIP, 0.0, 0.0, 0.0), entries)
         self.assertEqual(decode_baked_sidecar(encode_baked_sidecar(entries)), entries)
 
+    def test_a_flat_part_in_a_composite_is_skipped_only_in_flight(self):
+        scene, objects = self.sample()
+        objects.append(self.MapObject(600, 0x02000020))
+        scene["decals"] = [[0, 1, 1, 0, 5]]
+        scene["flyDecals"] = [0]
+        entries = baked_objects(scene, objects)
+        self.assertIn((600, 0x02000020, BAKED_FLY_SKIP, 0.0, 0.0, 0.0), entries)
+
     def test_doors_lie_on_their_wall_and_low_cards_lie_flat_in_flight(self):
         scene, objects = self.sample()
         objects += [self.MapObject(600, 0x02000020), self.MapObject(700, 0x02000030), self.MapObject(800, 0x02000040)]
@@ -1665,6 +1673,30 @@ class ThingShapeTests(unittest.TestCase):
         self.assertIs(bed, props.lead(groups[1]))
         apart = self.piece("Bed", 70, 30, 25, 20, tile=402)          # half of it outside the bed: a bed of its own
         self.assertEqual(2, len(props.groups([bed, apart])))
+
+    def test_numbered_art_parts_join_by_nearby_tile_cluster(self):
+        from vendor.fp import props
+        first = [10722, 10723, 11922, 12127, 12316, 12330, 12517, 13323, 13325]
+        second = [16522, 16721, 17921, 17926, 18315, 18316, 18329, 19122, 19124]
+        pieces = []
+        for cluster, tiles in enumerate((first, second)):
+            for part, tile in enumerate(tiles):
+                p = self.piece(f"part-{cluster}-{part}", part * 20, cluster * 200, 8, 8,
+                               tile=tile, order=len(pieces))
+                p.family = ("verti", part + 1)
+                p.obj.pid = 1000 + part
+                p.stands = part != 0
+                pieces.append(p)
+        # A short numbered pair is too ambiguous to treat as one object.
+        small = [self.piece(f"small-{i}", i * 30, 500, 8, 8, tile=25000 + i * 10, order=18 + i)
+                 for i in range(3)]
+        for i, p in enumerate(small):
+            p.family = ("pair", i + 1)
+            p.obj.pid = 2000 + i
+        groups = sorted(props.groups(pieces + small), key=len)
+        self.assertEqual([1, 1, 1, 9, 9], [len(group) for group in groups])
+        self.assertTrue(all(not any(p in small for p in group) for group in groups if len(group) > 1))
+        self.assertEqual([9, 9], sorted(len(group) for group in props.multipart_groups(pieces)))
 
     def scene(self, rows, boxes=()):
         from types import SimpleNamespace

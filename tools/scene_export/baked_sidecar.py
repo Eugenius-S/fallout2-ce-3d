@@ -86,11 +86,14 @@ def baked_objects(scene, map_objects, live_boards=frozenset(), fixed_frms=frozen
             continue
         obj = _object(map_objects, boards[board][5], f"lifted board {board}")
         entries.setdefault((obj.tile, obj.fid), (LIFT, float(du), float(dv), float(dz)))
+    fly_decals = set(scene.get("flyDecals") or [])
     for index, row in enumerate(scene.get("decals") or []):
         if not isinstance(row, list) or len(row) < 5:
             raise ValueError(f"invalid decal {index} record")
         obj = _object(map_objects, row[4], f"decal {index}")
-        if (int(obj.fid) >> 24) & 0xF in FLAT_TYPES:
+        if index in fly_decals:
+            entries[(obj.tile, obj.fid)] = (FLY_SKIP, 0.0, 0.0, 0.0)
+        elif (int(obj.fid) >> 24) & 0xF in FLAT_TYPES:
             entries.setdefault((obj.tile, obj.fid), (FLAT, 0.0, 0.0, 0.0))
     sprites = scene.get("sprites") or []
     for index, row in enumerate(boards):
