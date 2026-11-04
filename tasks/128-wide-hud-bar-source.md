@@ -21,6 +21,7 @@ or reuse that art.
 
 ## Context
 
+- Part C of the UI batch (193): taken together with 193 in one PR.
 - Batch: the wide art (2026-11-04 inbox sweep). Step 2 folded in, the
   inbox line of 2026-10-27: the 4:3 full-screen art (main menu, splash and
   loading screens, death and ending slides) extended to 16:9 and 21:9. The

@@ -1,6 +1,6 @@
 ---
 id: 193
-title: Interface text starts flush left and gets room between lines
+title: The UI batch, text flush left with room, full-screen screens on a fading backdrop, wide art
 milestone: M1
 status: todo
 owner: any
@@ -8,14 +8,19 @@ suggested: any
 priority: normal
 tier: 3
 claude-only: no
-user-check: no
+user-check: yes
 depends-on: []
 reviewed: no
 ---
 
 ## Goal
 
-Every text block drawn by the sharp interface text pass starts each line at
+The UI batch (the owner, 2026-11-04: take the UI together). One agent takes
+it in one PR, in three parts: A, the text below; B, the full-screen
+screens' backdrop and corners; C, the wide art of 128 (`tasks/128-*.md`,
+its rights first), which closes with this batch.
+
+Part A, the text. Every text block drawn by the sharp interface text pass starts each line at
 the same left edge, with no indent on the first line, and its lines stand
 at about 130% of the font size apart (at least 120%).
 
@@ -49,6 +54,25 @@ at about 130% of the font size apart (at least 120%).
   panel: a block that no longer fits scrolls or wraps the way it did before.
 - Part of the UI batch (tier 3).
 
+## Part B, the full-screen screens
+
+- The owner, 2026-11-04, with a frame from the showcase video of the
+  dialogue screen centred on black
+  (`runs/inbox/2026-11-04-fullscreen-black-backdrop.webp`): everywhere a
+  screen was full-screen and the world now shows round it, the same black
+  backdrop, darkening smoothly with a fade; the character screen, dialogue,
+  the world map, the Pip-Boy in general; and round the panel's corners a
+  little, by 4 to 6 pixels.
+- Linked to 173: the world map, dialogs and menus stay 2D,
+  and this backdrop is what sits round them on a local map.
+- Screens: the character screen, dialogue, the world map, the Pip-Boy, and
+  every other screen that filled 640x480 in the original (inventory, barter,
+  loot, options, save and load, the skilldex if it is full-screen).
+- The fade: about 150 to 250 ms, eased, in on open and out on close, one
+  shared value for every screen.
+- The corners: the panel art cut round by 4 to 6 window pixels to the
+  backdrop, at any scale.
+
 ## Acceptance
 
 - The message log: every line's bullet starts at the same x, wrapped lines
@@ -62,6 +86,16 @@ at about 130% of the font size apart (at least 120%).
   and the wrapped lines start at the same x, measured in the Log.
 - With sharp text off the game's own view stays pixel for pixel; ctest
   passes.
+
+Part B:
+
+- Before | after of each listed screen at 16:9 and 21:9 in
+  `runs/193-text-indent-and-line-height/`.
+- A frame-step capture of the fade in and the fade out.
+- The corners checked at x1 and x2.
+- The original view regression stays pixel for pixel; ctest passes.
+
+Part C: the Acceptance of 128.
 
 ## Out of scope
 
