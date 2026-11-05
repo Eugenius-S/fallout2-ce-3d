@@ -57,6 +57,8 @@ constexpr double kZoomGlideSeconds = 0.2;
 double gZoomShown = 0.0; // the zoom applied last frame (0: nothing applied yet)
 bool gZoomGliding = false;
 double gZoomGlideFrom = 1.0;
+double gZoomGlideStartVelocity = 0.0;
+double gZoomGlideVelocity = 0.0;
 Uint64 gZoomGlideStarted = 0;
 // The map elevation whose scene the renderer holds, and the last one that
 // could not be loaded (not tried again until the game leaves it).
@@ -735,9 +737,10 @@ void adjustZoom(int steps)
     if (zoom < low) zoom = low;
     if (zoom > high) zoom = high;
     settings.scene3d.zoom = zoom; // written back on save, kept between sessions
-    // Ease from what is on the screen now: a step in mid-glide re-anchors and
-    // keeps the motion continuous.
+    // Re-anchor on the visible zoom and carry its current velocity into the
+    // next glide, so a wheel event during motion does not jump the speed.
     if (gZoomShown <= 0.0) gZoomShown = zoom;
+    gZoomGlideStartVelocity = gZoomGliding ? gZoomGlideVelocity : 0.0;
     gZoomGlideFrom = gZoomShown;
     gZoomGlideStarted = SDL_GetPerformanceCounter();
     gZoomGliding = true;
@@ -752,9 +755,21 @@ double shownZoom()
             / static_cast<double>(SDL_GetPerformanceFrequency());
         if (seconds < kZoomGlideSeconds) {
             const double t = seconds / kZoomGlideSeconds;
-            zoom = gZoomGlideFrom + (zoom - gZoomGlideFrom) * (1.0 - std::pow(1.0 - t, 3.0));
+            const double t2 = t * t;
+            const double t3 = t2 * t;
+            const double h00 = 2.0 * t3 - 3.0 * t2 + 1.0;
+            const double h10 = t3 - 2.0 * t2 + t;
+            const double h01 = -2.0 * t3 + 3.0 * t2;
+            zoom = h00 * gZoomGlideFrom + h10 * kZoomGlideSeconds * gZoomGlideStartVelocity
+                + h01 * settings.scene3d.zoom;
+            const double dh00 = 6.0 * t2 - 6.0 * t;
+            const double dh10 = 3.0 * t2 - 4.0 * t + 1.0;
+            const double dh01 = -6.0 * t2 + 6.0 * t;
+            gZoomGlideVelocity = (dh00 * gZoomGlideFrom + dh10 * kZoomGlideSeconds * gZoomGlideStartVelocity
+                + dh01 * settings.scene3d.zoom) / kZoomGlideSeconds;
         } else {
             gZoomGliding = false;
+            gZoomGlideVelocity = 0.0;
         }
     }
     return zoom;
