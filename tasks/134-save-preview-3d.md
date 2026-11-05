@@ -45,6 +45,3 @@ Done: save-time 3D capture is quantized into the existing indexed thumbnail form
 Next: repeat the old-save comparison with a pre-existing save that has a non-empty thumbnail, then capture a matched before/after from the same map and camera.
 Check: `3d-final/process.stdout.log`, `classic-final/process.stdout.log`, `existing-save/process.stdout.log`, and `runs/134-save-preview-3d/current-3d-vs-classic.jpg`.
 Blocked: the available existing slot 01 loads, but its stored 29,792-byte thumbnail is entirely palette index 0. The supplied screenshot shows a different save state and cannot serve as a pixel-matched baseline. The game save under the main checkout was only read, then copied into the scratch profile; the source was not changed.
-
-
-
