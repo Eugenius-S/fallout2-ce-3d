@@ -2,8 +2,8 @@
 id: 195
 title: The camera turn starts and stops softly, a held key turns in one smooth sweep
 milestone: M1
-status: todo
-owner: any
+status: doing
+owner: gpt
 suggested: any
 priority: high
 tier: 3
