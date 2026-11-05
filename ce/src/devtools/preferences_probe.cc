@@ -158,6 +158,7 @@ enum class ProbeMode {
     Escape,
     Defaults,
     Verify,
+    CursorSpeed,
 };
 
 enum class DragProbe {
@@ -183,6 +184,8 @@ int gMouseTargetY = 0;
 int gWheelScrollBefore = 0;
 int gScrollBeforeDrag = 0;
 int gZoomRow = -1;
+int gCursorSpeedRow = -1;
+std::string gCursorSpeedBefore;
 std::string gZoomBefore;
 int gLegacyDifficultyBefore = -1;
 int gStagedLegacyDifficulty = -1;
@@ -269,8 +272,9 @@ bool parsePreferencesProbeOption(const char* arg)
     else if (strcmp(mode, "escape") == 0) gMode = ProbeMode::Escape;
     else if (strcmp(mode, "defaults") == 0) gMode = ProbeMode::Defaults;
     else if (strcmp(mode, "verify") == 0) gMode = ProbeMode::Verify;
+    else if (strcmp(mode, "cursor-speed") == 0) gMode = ProbeMode::CursorSpeed;
     else {
-        printf("PREFERENCES_PROBE FAIL: expected save, save-key, cancel, cancel-key, escape, defaults, or verify\n");
+        printf("PREFERENCES_PROBE FAIL: expected save, save-key, cancel, cancel-key, escape, defaults, verify, or cursor-speed\n");
         gMode = ProbeMode::Cancel;
         gFailed = true;
     }
@@ -363,6 +367,17 @@ void preferencesProbeComplete(bool success, scene::OptionsPanel* panel, int stag
         printf("PREFERENCES_PROBE PASS readback zoom=%s enabled=%s combat_difficulty=%d\n",
             panel->settingValueForProbe("3d.zoom").c_str(), panel->settingValueForProbe("3d.enabled").c_str(),
             static_cast<int>(settings.preferences.combat_difficulty));
+    } else if (gMode == ProbeMode::CursorSpeed) {
+        const std::string committed = panel->settingValueForProbe("preferences.mouse_sensitivity");
+        const double expected = std::strtod(committed.c_str(), nullptr);
+        if (committed == gCursorSpeedBefore
+            || std::abs(settings.preferences.mouse_sensitivity - expected) > 0.00001
+            || std::abs(mouseGetSensitivity() - expected) > 0.00001) {
+            failProbe("Done did not apply the cursor speed to settings and mouse input");
+            return;
+        }
+        printf("PREFERENCES_PROBE PASS cursor_speed before=%s committed=%s runtime=%.6f\n",
+            gCursorSpeedBefore.c_str(), committed.c_str(), mouseGetSensitivity());
     } else if (gMode == ProbeMode::Save || gMode == ProbeMode::SaveKeyboard) {
         const std::string committedZoom = panel->settingValueForProbe("3d.zoom");
         if (committedZoom == gZoomBefore || panel->settingValueForProbe("3d.enabled") == gEnabledBefore
@@ -470,6 +485,8 @@ int preferencesProbeNextEvent(int eventCode, scene::OptionsPanel* panel, int win
         }
         gZoomBefore = panel->settingValueForProbe("3d.zoom");
         gEnabledBefore = panel->settingValueForProbe("3d.enabled");
+        gCursorSpeedRow = panel->findRowBySettingId("preferences.mouse_sensitivity");
+        gCursorSpeedBefore = panel->settingValueForProbe("preferences.mouse_sensitivity");
         gLegacyDifficultyBefore = static_cast<int>(settings.preferences.combat_difficulty);
         gStagedLegacyDifficulty = gLegacyDifficultyBefore;
         if (Window* window = windowGetWindow(windowId)) {
@@ -485,8 +502,55 @@ int preferencesProbeNextEvent(int eventCode, scene::OptionsPanel* panel, int win
             gAwaitingCompletion = true;
             return KEY_ESCAPE;
         }
+        if (gMode == ProbeMode::CursorSpeed) {
+            if (gCursorSpeedRow < 0 || gCursorSpeedBefore.empty()) {
+                failProbe("cursor speed slider was not found in the production options panel");
+                return KEY_ESCAPE;
+            }
+            const SettingDescriptor* descriptor = nullptr;
+            for (const auto& item : settingsGetDescriptors()) {
+                if (item.id == "preferences.mouse_sensitivity") { descriptor = &item; break; }
+            }
+            if (descriptor == nullptr || !descriptor->numericRange.has_value()) {
+                failProbe("cursor speed setting does not have a numeric slider range");
+                return KEY_ESCAPE;
+            }
+            Window* window = windowGetWindow(windowId);
+            const double minimum = descriptor->numericRange->minimum;
+            const double maximum = descriptor->numericRange->maximum;
+            // Begin at the center of the track, matching the production zoom
+            // probe. This avoids depending on the cursor's persisted position.
+            const double startRatio = 0.5;
+            const double current = std::strtod(gCursorSpeedBefore.c_str(), nullptr);
+            const double currentRatio = std::clamp((current - minimum) / (maximum - minimum), 0.0, 1.0);
+            const double targetRatio = currentRatio < 0.5 ? 1.0 : 0.0;
+            const int y = mouseYForWindow(window, panel->sliderTrackY(gCursorSpeedRow) - panel->scroll());
+            gMouseTargetX = mouseXForWindow(window, pageOffsetX(window) + panel->sliderTrackTargetX(startRatio));
+            gMouseDragTargetX = mouseXForWindow(window, pageOffsetX(window) + panel->sliderTrackTargetX(targetRatio));
+            gMouseTargetY = y;
+            setMouseAt(gMouseTargetX, y, MOUSE_STATE_LEFT_BUTTON_DOWN);
+            gDrag = DragProbe::Slider;
+            gPumpStep = 0;
+            gPumpCount = 0;
+            printf("PREFERENCES_PROBE cursor speed slider armed row=%d before=%s\n", gCursorSpeedRow, gCursorSpeedBefore.c_str());
+            return 600 + gCursorSpeedRow;
+        }
         return KEY_SPACE;
     case 2:
+        if (gMode == ProbeMode::CursorSpeed) {
+            const std::string staged = panel->settingValueForProbe("preferences.mouse_sensitivity");
+            if (staged == gCursorSpeedBefore) {
+                failProbe("cursor speed slider did not stage a new value");
+                return KEY_ESCAPE;
+            }
+            printf("PREFERENCES_PROBE PASS cursor_speed staged %s -> %s\n", gCursorSpeedBefore.c_str(), staged.c_str());
+            panel->setScroll(panel->maxScroll());
+            gWaitingForFooter = true;
+            gExpectedFooterEvent = 504;
+            scheduleFooterMouse(504);
+            printf("PREFERENCES_PROBE queued isolated mouse click for Done after cursor speed change\n");
+            return -1;
+        }
         if (panel->settingValueForProbe("3d.enabled") == gEnabledBefore) {
             failProbe("Space did not change the selected 3D toggle");
             return KEY_ESCAPE;

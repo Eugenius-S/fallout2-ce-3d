@@ -1,5 +1,7 @@
 #include "options_settings_model.h"
 
+#include "mouse.h"
+
 #include <algorithm>
 
 namespace fallout {
@@ -108,8 +110,14 @@ bool OptionsSettingsModel::commit(std::string* error)
             for (const auto& rollbackEdit : edits_) {
                 if (rollbackEdit.value == rollbackEdit.originalValue) continue;
                 settingsSetValue(*rollbackEdit.descriptor, rollbackEdit.originalValue);
+                if (rollbackEdit.descriptor->id == "preferences.mouse_sensitivity") {
+                    mouseSetSensitivity(settings.preferences.mouse_sensitivity);
+                }
             }
             return false;
+        }
+        if (edit.descriptor->id == "preferences.mouse_sensitivity") {
+            mouseSetSensitivity(settings.preferences.mouse_sensitivity);
         }
     }
 
@@ -117,6 +125,9 @@ bool OptionsSettingsModel::commit(std::string* error)
         for (const auto& edit : edits_) {
             if (edit.value == edit.originalValue) continue;
             settingsSetValue(*edit.descriptor, edit.originalValue);
+            if (edit.descriptor->id == "preferences.mouse_sensitivity") {
+                mouseSetSensitivity(settings.preferences.mouse_sensitivity);
+            }
         }
         settingsWriteToConfig();
         if (error != nullptr) *error = "Unable to save the configuration file.";

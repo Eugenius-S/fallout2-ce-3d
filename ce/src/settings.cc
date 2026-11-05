@@ -3,6 +3,7 @@
 #include "audio_channels.h"
 #include "debug.h"
 #include "game_config.h"
+#include "mouse.h"
 #include "platform_compat.h"
 #include "sound.h"
 #include "scene/menu_text.h"
@@ -398,7 +399,16 @@ void initSettingsRegistry(bool isMapper)
     SETTING(text_base_delay);
     SETTING(text_line_delay);
     SETTING(brightness);
-    SETTING(mouse_sensitivity);
+    registerSetting("preferences", "mouse_sensitivity", settings.preferences.mouse_sensitivity,
+        clamp(MOUSE_SENSITIVITY_MIN, MOUSE_SENSITIVITY_MAX));
+    SettingDescriptor& mouseSensitivityDescriptor = settingDescriptors.back();
+    mouseSensitivityDescriptor.category = SettingCategory::Preferences;
+    mouseSensitivityDescriptor.applyPolicy = SettingApplyPolicy::OnClose;
+    mouseSensitivityDescriptor.subsection = "3D";
+    mouseSensitivityDescriptor.fallbackLabel = "Cursor speed";
+    mouseSensitivityDescriptor.fallbackDescription = "How far the cursor moves when you move the mouse.";
+    mouseSensitivityDescriptor.numericRange = SettingNumericRange { MOUSE_SENSITIVITY_MIN, MOUSE_SENSITIVITY_MAX, 0.05 };
+    settingsRegistry.back().descriptor = mouseSensitivityDescriptor;
     SETTING(running_burning_guy);
 #undef SECT
 

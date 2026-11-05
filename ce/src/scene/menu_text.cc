@@ -78,6 +78,8 @@ const std::vector<Translation>& catalog()
         { "Scales the game picture and interface from 1.0x to 3.0x.", cp1251(u8"Масштабирует изображение и интерфейс от 1,0x до 3,0x.") },
         { "Resolution", cp1251(u8"Разрешение") },
         { "Select an available display resolution.", cp1251(u8"Выберите доступное разрешение экрана.") },
+        { "Cursor speed", cp1251(u8"Скорость курсора") },
+        { "How far the cursor moves when you move the mouse.", cp1251(u8"Насколько далеко перемещается курсор при движении мыши.") },
         { "Window mode", cp1251(u8"Режим окна") },
         { "Choose fullscreen, windowed, or borderless mode.", cp1251(u8"Выберите полный экран, окно или окно без рамки.") },
         { "Fullscreen", cp1251(u8"Полный экран") },
@@ -193,7 +195,8 @@ void localizeMenuDescriptors(std::vector<SettingDescriptor>& descriptors, const 
 {
     for (auto& descriptor : descriptors) {
         if (descriptor.section != "3d" && descriptor.id != "screen.scale_factor"
-            && descriptor.id != "screen.resolution_mode" && descriptor.id != "screen.windowed") continue;
+            && descriptor.id != "screen.resolution_mode" && descriptor.id != "screen.windowed"
+            && descriptor.id != "preferences.mouse_sensitivity") continue;
         descriptor.fallbackLabel = menuText(descriptor.fallbackLabel.c_str(), language);
         descriptor.fallbackDescription = menuText(descriptor.fallbackDescription.c_str(), language);
         for (auto& choice : descriptor.choices) choice.fallbackLabel = menuText(choice.fallbackLabel.c_str(), language);

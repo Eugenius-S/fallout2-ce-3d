@@ -1,5 +1,6 @@
 #include "options_panel_model.h"
 #include "options_schema.h"
+#include "cursor_sensitivity.h"
 
 #include <cstdio>
 #include <string>
@@ -62,16 +63,19 @@ int main()
     descriptors.push_back(descriptor("3d.third", "3d", SettingValueType::Choice));
     descriptors.back().choices = { { 0, "Low" }, { 1, "High" } };
     descriptors.push_back(descriptor("3d.future", "3d", SettingValueType::Text));
+    descriptors.push_back(descriptor("preferences.mouse_sensitivity", "preferences", SettingValueType::Real));
+    descriptors.back().numericRange = SettingNumericRange { 0.25, 2.5, 0.05 };
     std::vector<OptionsSettingEdit> edits {
         { &descriptors[0], SettingValue(false), SettingValue(true) },
         { &descriptors[1], SettingValue(false), SettingValue(false) },
         { &descriptors[2], SettingValue(1.0), SettingValue(1.5) },
         { &descriptors[3], SettingValue(0), SettingValue(1) },
         { &descriptors[4], SettingValue(std::string("old")), SettingValue(std::string("new")) },
+        { &descriptors[5], SettingValue(1.0), SettingValue(1.5) },
     };
 
     const auto rows = optionsPanelRows(edits, "3d");
-    if (!check(rows.size() == 4, "panel projection includes every descriptor in the requested section")) return 1;
+    if (!check(rows.size() == 5, "panel projection includes 3D settings and cursor speed")) return 1;
     if (!check(rows[0].edit == &edits[0] && std::get<bool>(rows[0].edit->value)
             && rows[0].control == OptionsPanelControl::Toggle,
             "boolean descriptor becomes a toggle in registry order")) return 1;
@@ -83,6 +87,20 @@ int main()
             "choice descriptor becomes a choice row")) return 1;
     if (!check(rows[3].edit == &edits[4] && rows[3].control == OptionsPanelControl::Value,
             "future unsupported descriptor remains visible as a value row")) return 1;
+    if (!check(rows[4].edit == &edits[5] && rows[4].control == OptionsPanelControl::Slider,
+            "cursor speed from preferences is exposed as a bounded slider")) return 1;
+
+    AbsoluteCursorSensitivity cursorSensitivity;
+    auto cursor = cursorSensitivity.update(100, 100, 0.5, 639, 479);
+    if (!check(cursor.first == 100 && cursor.second == 100, "absolute sensitivity starts at the current pointer")) return 1;
+    cursor = cursorSensitivity.update(101, 100, 0.5, 639, 479);
+    if (!check(cursor.first == 101, "fractional movement accumulates instead of stopping at slow sensitivity")) return 1;
+    cursor = cursorSensitivity.update(102, 100, 0.5, 639, 479);
+    if (!check(cursor.first == 101, "fractional sensitivity advances at half the physical distance")) return 1;
+    cursor = cursorSensitivity.update(103, 100, 2.0, 639, 479);
+    if (!check(cursor.first == 103, "changing sensitivity scales the next physical delta")) return 1;
+    cursor = cursorSensitivity.update(600, 100, 2.0, 639, 479);
+    if (!check(cursor.first == 639, "scaled absolute movement clips at the logical screen edge")) return 1;
     if (!check(optionsPanelRows(edits, nullptr).empty(), "null section returns no rows")) return 1;
 
     gConfigValues.clear();
