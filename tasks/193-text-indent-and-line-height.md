@@ -2,7 +2,7 @@
 id: 193
 title: The UI batch, text flush left with room, full-screen screens on a fading backdrop, wide art
 milestone: M1
-status: doing
+status: blocked
 owner: gpt
 suggested: any
 priority: normal
