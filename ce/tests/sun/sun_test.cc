@@ -49,6 +49,9 @@ int main()
     const Sun dusk = sunAt(day + 18 * kHour, 1.0, true, 30.0);
     failures += !check(!dusk.up, "18:00: the day's end, no light");
     failures += !check(close(dusk.tilt, 30.0, 1e-9), "18:00: tilted +30 degrees");
+    const Sun duskMoon = sunAt(day + 18 * kHour + kHour / 2, 1.0, true);
+    failures += !check(duskMoon.up && duskMoon.moon && duskMoon.strength > 0.0f && duskMoon.strength < 0.3f,
+        "18:30: moonlight fades in at dusk");
 
     // Linear between, in one plane, always a unit vector.
     const Sun morning = sunAt(day + 7 * kHour, 1.0, true, 30.0);

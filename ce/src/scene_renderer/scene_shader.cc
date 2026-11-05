@@ -927,7 +927,7 @@ void main() {
                     : uLightMode == 2 ? shadowPaintedNormal(shadowFaceNormal()) : vec3(0.0, 1.0, 0.0);
                 float direct = max(dot(n, uMoonDirection), 0.0);
                 float tint = uMoonStrength * 0.75;
-                outColor.rgb *= 0.62 + 0.18 * direct;
+                outColor.rgb *= 1.0 - uMoonStrength * (1.27 - 0.60 * direct);
                 outColor.rgb *= mix(vec3(1.0), vec3(0.72, 0.84, 1.0), tint);
                 outColor.rgb *= 1.0 + uMoonStrength * 0.3 * direct;
             }
