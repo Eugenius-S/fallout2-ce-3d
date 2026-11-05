@@ -2,8 +2,8 @@
 id: 192
 title: Vehicles across every map, one rule per PR
 milestone: M1
-status: todo
-owner: any
+status: doing
+owner: gpt
 suggested: any
 priority: normal
 tier: 3
