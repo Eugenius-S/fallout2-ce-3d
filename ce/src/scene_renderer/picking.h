@@ -18,7 +18,6 @@ int pickStaticObjects(int logicalX, int logicalY, bool (*wanted)(int pickId, voi
 // Screen pixel (game logical pixels) where the scene shows the floor point the
 // game draws at a game pixel.
 bool staticScreenFromGamePixel(double pixelX, double pixelY, double* logicalX, double* logicalY);
-
 } // namespace scene_renderer
 } // namespace fallout
 

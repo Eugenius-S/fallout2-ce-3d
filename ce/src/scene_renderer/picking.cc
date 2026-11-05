@@ -22,7 +22,18 @@ bool pickStaticGroundTile(int logicalX, int logicalY, GroundPickResult* result)
         { gHeroProjection.sqv[0], gHeroProjection.sqv[1] },
         { gHeroProjection.origin[0], gHeroProjection.origin[1] },
     };
-    const StaticPreviewCamera staticCamera = staticPreviewCamera(true);
+    StaticPreviewCamera staticCamera = staticPreviewCamera(true);
+    if (staticFlyCameraActive()) {
+        StaticFlyCamera fly;
+        if (!staticFlyCamera(&fly)) return false;
+        float forward[3], right[3];
+        staticFlyCameraAxes(fly, forward, right);
+        staticCamera = {
+            { fly.eye[0], fly.eye[1], fly.eye[2] },
+            { fly.eye[0] + forward[0], fly.eye[1] + forward[1], fly.eye[2] + forward[2] },
+            fly.fovY, 0.05f, 400.0f, true,
+        };
+    }
     const GroundPickCamera camera = {
         { staticCamera.eye[0], staticCamera.eye[1], staticCamera.eye[2] },
         { staticCamera.target[0], staticCamera.target[1], staticCamera.target[2] }, staticCamera.fovY,
@@ -31,6 +42,10 @@ bool pickStaticGroundTile(int logicalX, int logicalY, GroundPickResult* result)
     const GroundPickViewport viewport = { gLogicalWidth, gLogicalHeight, gWindowWidth, gWindowHeight, windowWidth, windowHeight };
     GameView view;
     if (!currentGameView(&view)) {
+        return pickGroundTile(projection, camera, viewport, logicalX, logicalY, result)
+            && mapClipContains(staticMapClip(), result->worldX, result->worldZ);
+    }
+    if (staticFlyCameraActive()) {
         return pickGroundTile(projection, camera, viewport, logicalX, logicalY, result)
             && mapClipContains(staticMapClip(), result->worldX, result->worldZ);
     }
@@ -55,6 +70,13 @@ bool pickStaticGroundTile(int logicalX, int logicalY, GroundPickResult* result)
 
 bool staticScreenFromGamePixel(double pixelX, double pixelY, double* logicalX, double* logicalY)
 {
+    if (staticFlyCameraActive()) {
+        SpriteCardProjection projection;
+        double worldX, worldZ;
+        if (!currentGameProjection(&projection)
+            || !spritePixelToGround(projection, pixelX, pixelY, &worldX, &worldZ)) return false;
+        return staticScreenFromWorld(worldX, 0.0, worldZ, logicalX, logicalY);
+    }
     GameView view;
     return currentGameView(&view) && gameViewProjectGroundPixel(view, pixelX, pixelY, logicalX, logicalY);
 }
@@ -66,7 +88,12 @@ int pickStaticObjects(int logicalX, int logicalY, bool (*wanted)(int pickId, voi
     if (logicalX < 0 || logicalY < 0 || logicalX >= gLogicalWidth || logicalY >= gLogicalHeight) return 0;
     GameView view;
     float mvp[16];
-    if (!currentGameView(&view) || !gameViewMatrix(view, mvp)) return 0;
+    if (!currentGameView(&view)) return 0;
+    if (staticFlyCameraActive()) {
+        if (!flyCameraMvp(static_cast<float>(view.logicalWidth) / view.logicalHeight, mvp)) return 0;
+    } else if (!gameViewMatrix(view, mvp)) {
+        return 0;
+    }
     SDL_GL_GetDrawableSize(gWindow, &gWindowWidth, &gWindowHeight);
     int x, y, width, height;
     if (!fitRect(gLogicalWidth, gLogicalHeight, gWindowWidth, gWindowHeight, &x, &y, &width, &height)) return 0;
