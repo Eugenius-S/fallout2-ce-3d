@@ -2,7 +2,7 @@
 id: 171
 title: The special encounters and the rest in 3D, every map stands and looks clean
 milestone: M1
-status: todo
+status: doing
 owner: glm
 suggested: glm
 priority: normal

@@ -93,6 +93,10 @@ MAP_GROUPS = {
     # and mountain paths (the game's maps/city*.map, cave*.map and
     # mountn*.map files).
     "enccitycave": ("city1", "city2", "city3", "city4", "city5", "city6", "city7", "city8", "cave0", "cave1", "cave2", "cave3", "cave4", "cave5", "cave6", "cave7", "mountn1", "mountn2", "mountn3", "mountn4", "mountn5", "mountn6"),
+    # The special encounters, the fixed encounters and the car's map: the
+    # whale, the cafe, the bridge, the shuttle and the rest (the game's
+    # maps/rnd*.map, enc*.map, cowbomb.map and cardesrt.map files).
+    "encspecial": ("rndwhale", "rndtinwd", "rndbhead", "rndshutl", "rnduvilg", "rndbridg", "rndcafe", "rndholy1", "rndholy2", "rndforvr", "rndtoxic", "rndparih", "rndexcow", "rndbess", "encdet", "encdock", "encfite", "encgd", "encpres", "encrctr", "enctrp", "cowbomb", "cardesrt"),
 }
 EXPECTED_OUTPUT_FILES = {"scene.json", "provenance.json", "floor.bin", "walls.bin", "projection.bin", "baked.bin",
                          "shadows.bin", "tiles.png", "light.png", "rock.png", "roof_fringe.png"}
