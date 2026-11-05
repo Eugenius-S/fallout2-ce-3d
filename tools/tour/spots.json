@@ -1313,6 +1313,60 @@
    "elevation": 1,
    "tile": 15131,
    "name": "the vat room"
+  },
+  {
+   "map": "coast1",
+   "elevation": 0,
+   "tile": 20100,
+   "name": "the coast road and the car"
+  },
+  {
+   "map": "coast2",
+   "elevation": 0,
+   "tile": 20100,
+   "name": "the night shore"
+  },
+  {
+   "map": "coast4",
+   "elevation": 0,
+   "tile": 18488,
+   "name": "the cliffs and the cave mouth"
+  },
+  {
+   "map": "coast10",
+   "elevation": 0,
+   "tile": 19716,
+   "name": "the shanty camp by the road"
+  },
+  {
+   "map": "desert5",
+   "elevation": 0,
+   "tile": 21099,
+   "name": "the rock wall and the arch"
+  },
+  {
+   "map": "desert5",
+   "elevation": 1,
+   "tile": 508,
+   "name": "the canyon rim"
+  },
+  {
+   "map": "desert7",
+   "elevation": 0,
+   "tile": 20101,
+   "name": "the dry trees"
+  },
+  {
+   "map": "desrt10",
+   "elevation": 0,
+   "tile": 21894,
+   "name": "the varnish trader camp"
+  },
+  {
+   "map": "desrt13",
+   "elevation": 0,
+   "tile": 20100,
+   "name": "the night camp"
   }
  ]
 }
