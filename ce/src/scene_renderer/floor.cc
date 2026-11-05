@@ -30,6 +30,10 @@ unsigned int gFloorVbo = 0;
 MapClip gFloorMapClip;
 MapClip gActiveMapClip;
 std::vector<unsigned char> gFloorOccupancy;
+// A tile-less elevation (171): every square is the nothing tile, the floor
+// grid holds no drawn square. The void is the ground; the game's own
+// walkability decides where the hero steps.
+bool gFloorTileLess = false;
 
 } // namespace
 
@@ -56,6 +60,7 @@ void destroyStaticFloor()
     gFloorMapClip = {};
     gActiveMapClip = {};
     gFloorOccupancy.clear();
+    gFloorTileLess = false;
 }
 
 } // namespace internal
@@ -132,12 +137,15 @@ bool loadStaticFloor(const std::filesystem::path& cacheDirectory, std::string* e
     const size_t waterAt = patchesAt + (version >= 6 ? 2 + patchCount * kPatchEntryBytes : 0);
     constexpr size_t kGridSquares = 100 * 100;
     const size_t expectedSize = waterAt + (version >= 7 ? 3 + kGridSquares : 0);
-    if ((version < 1 || version > 7) || gridWidth != 100 || gridHeight != 100 || tileCount == 0
+    // tileCount 0 is a tile-less elevation (171): the map's squares are all
+    // the nothing tile, the scene draws no tiles and the void carries it.
+    if ((version < 1 || version > 7) || gridWidth != 100 || gridHeight != 100
         || cellSize != 88 || cellMargin != 6 || imageWidth == 0 || imageHeight == 0
         || imageWidth > 8192 || imageHeight > 8192
         || sidecar.size() != expectedSize) {
         return fail("floor.bin version, dimensions, or length is unsupported");
     }
+    gFloorTileLess = tileCount == 0;
 
     std::vector<unsigned char> rgba;
     unsigned pngWidth = 0;
@@ -366,7 +374,7 @@ bool loadStaticFloor(const std::filesystem::path& cacheDirectory, std::string* e
         }
         size_t filledCount = queue.size();
         static constexpr int kSteps[4][2] = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
-        for (size_t head = 0; head < queue.size() && filledCount < 6000; head++) {
+        for (size_t head = 0; head < queue.size() && filledCount < kGridSquares; head++) {
             const int r = queue[head].first;
             const int c = queue[head].second;
             for (const auto& step : kSteps) {
@@ -496,6 +504,9 @@ MapClip staticFloorMapClip()
 bool staticFloorHasGround(double x, double z)
 {
     if (gFloorOccupancy.size() != 10000) return false;
+    // A tile-less elevation has no drawn square anywhere; the void box is
+    // walkable wherever the game's own data says so (171).
+    if (gFloorTileLess) return true;
     return floorGridContainsWorldPoint(gFloorOccupancy.data(), 100, 100, x, z);
 }
 

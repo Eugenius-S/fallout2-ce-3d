@@ -57,7 +57,10 @@ def encode_floor_sidecar(scene, fringe=(), patches=(), water=None, water_color=N
     image_width, image_height = size
     if image_width <= 0 or image_height <= 0 or image_width > 65535 or image_height > 65535:
         raise ValueError("tiles image dimensions are outside sidecar limits")
-    if not isinstance(cells, list) or not cells or len(cells) > 65535:
+    # An empty cells list is a tile-less elevation (encfite's void boxes:
+    # every square is the nothing tile); a drawn square over it fails below
+    # at "floor references a missing tiles.cells entry".
+    if not isinstance(cells, list) or len(cells) > 65535:
         raise ValueError("invalid tiles.cells list")
 
     layers = []
@@ -135,7 +138,7 @@ def decode_floor_sidecar(data):
     expected = body_end + ((3 + GRID_WIDTH * GRID_HEIGHT) if version >= 7 else 0)
     if len(data) < expected:
         raise ValueError("truncated floor sidecar")
-    if len(data) != expected or tile_count == 0 or image_w == 0 or image_h == 0:
+    if len(data) != expected or image_w == 0 or image_h == 0:
         raise ValueError("invalid floor sidecar length or dimensions")
     floor_start = HEADER.size
     roof_start = floor_start + FLOOR_BYTES
