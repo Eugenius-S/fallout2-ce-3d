@@ -376,6 +376,13 @@ int main()
     const SettingDescriptor* zoom = findDescriptor("3d.zoom");
     const SettingDescriptor* zoomMin = findDescriptor("3d.zoom_min");
     const SettingDescriptor* zoomMax = findDescriptor("3d.zoom_max");
+    const SettingDescriptor* cursorSpeed = findDescriptor("preferences.mouse_sensitivity");
+    if (!check(cursorSpeed != nullptr && cursorSpeed->applyPolicy == SettingApplyPolicy::OnClose
+            && cursorSpeed->numericRange.has_value()
+            && cursorSpeed->numericRange->minimum == 0.25
+            && cursorSpeed->numericRange->maximum == 2.5
+            && cursorSpeed->fallbackLabel == "Cursor speed",
+            "existing mouse sensitivity is registered as a saved cursor speed slider")) return 1;
     if (!check(zoom != nullptr && zoomMin != nullptr && zoomMax != nullptr,
             "camera zoom descriptors are registered")) return 1;
     for (const SettingDescriptor* numericSetting : { zoom, zoomMin, zoomMax }) {
@@ -495,7 +502,7 @@ int main()
             "camera zoom applies immediately through its registered OnClose descriptor")) return 1;
     if (!check(settingsSetValue(*zoom, SettingValue(1.0), &zoomError), "camera zoom test restores the default")) return 1;
     for (const auto& item : settingsGetDescriptors()) {
-        if (item.section != "3d") continue;
+        if (item.section != "3d" && item.id != "preferences.mouse_sensitivity") continue;
         if (!check(scene::hasMenuTranslation(item.fallbackLabel.c_str()),
                 (item.id + " needs a Russian menu label").c_str())) return 1;
         if (!check(scene::hasMenuTranslation(item.fallbackDescription.c_str()),
@@ -517,7 +524,7 @@ int main()
     scene::localizeMenuDescriptors(localizedDescriptors, "russian");
     for (std::size_t i = 0; i < localizedDescriptors.size(); ++i) {
         const auto& original = settingsGetDescriptors()[i];
-        if (original.section != "3d") continue;
+        if (original.section != "3d" && original.id != "preferences.mouse_sensitivity") continue;
         if (!check(localizedDescriptors[i].fallbackLabel != original.fallbackLabel
                 && localizedDescriptors[i].fallbackDescription != original.fallbackDescription
                 && localizedDescriptors[i].id == original.id,
@@ -536,7 +543,7 @@ int main()
     gConfiguredLanguage = "russian";
     if (!check(initializeWith(nullptr), "initialize real descriptors in Russian")) return 1;
     for (std::size_t i = 0; i < englishDescriptors.size(); ++i) {
-        if (englishDescriptors[i].section != "3d") continue;
+        if (englishDescriptors[i].section != "3d" && englishDescriptors[i].id != "preferences.mouse_sensitivity") continue;
         if (!check(settingsGetDescriptors()[i].fallbackLabel != englishDescriptors[i].fallbackLabel
                 && settingsGetDescriptors()[i].fallbackDescription != englishDescriptors[i].fallbackDescription,
                 "settings initialization localizes all real 3D labels and descriptions")) return 1;

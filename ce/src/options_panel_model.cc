@@ -38,7 +38,7 @@ std::vector<OptionsPanelRow> optionsPanelRows(const std::vector<OptionsSettingEd
         if (descriptor.section != section
             && !(std::strcmp(section, "3d") == 0
                 && (descriptor.id == "screen.scale_factor" || descriptor.id == "screen.resolution_mode"
-                    || descriptor.id == "screen.windowed"))) continue;
+                    || descriptor.id == "screen.windowed" || descriptor.id == "preferences.mouse_sensitivity"))) continue;
         rows.push_back({ &edit, controlFor(descriptor) });
     }
     return rows;

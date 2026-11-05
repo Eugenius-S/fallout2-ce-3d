@@ -558,7 +558,8 @@ void OptionsPanel::buildRowLayout()
         const size_t separator = id.rfind('.');
         const std::string key = separator == std::string::npos ? id : id.substr(separator + 1);
         int group = 3;
-        if (key == "enabled" || key == "clean_edges" || key == "sharp_text" || key == "scale_factor") group = 0;
+        if (key == "enabled" || key == "clean_edges" || key == "sharp_text" || key == "scale_factor"
+            || key == "mouse_sensitivity") group = 0;
         else if (key == "resolution_mode" || key == "windowed") group = 0;
         else if (key == "sun" || key == "shadows" || key == "cloud_shadows" || key == "shadow_pixel_size" || key == "shadow_density"
             || key == "sun_swing" || key == "lights" || key == "glow" || key == "glow_strength") group = 1;

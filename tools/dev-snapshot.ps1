@@ -107,7 +107,7 @@ param(
     [switch]$ConfiguredDisplay,
     [ValidateSet('english', 'russian')]
     [string]$Language,
-    [ValidateSet('save', 'save-key', 'cancel', 'cancel-key', 'escape', 'defaults', 'verify')]
+    [ValidateSet('save', 'save-key', 'cancel', 'cancel-key', 'escape', 'defaults', 'verify', 'cursor-speed')]
     [string]$PreferencesProbe,
     [switch]$ReuseTestConfig,
     [switch]$CaptureConsole,
@@ -397,6 +397,7 @@ $configHashBefore = (Get-FileHash -LiteralPath $configPath -Algorithm SHA256).Ha
 $initialZoom = Get-TestConfigValue $configPath '3d' 'zoom'
 $initialEnabled = Get-TestConfigValue $configPath '3d' 'enabled'
 $initialDifficulty = Get-TestConfigValue $configPath 'preferences' 'combat_difficulty'
+$initialMouseSensitivity = Get-TestConfigValue $configPath 'preferences' 'mouse_sensitivity'
 if ($DevInput -and $Preferences -and $ConfiguredDisplay) {
     $initialDisplayWidth = Get-TestConfigValue $configPath 'screen' 'resolution_x'
     $initialDisplayHeight = Get-TestConfigValue $configPath 'screen' 'resolution_y'
@@ -832,6 +833,7 @@ if ($PreferencesProbe) {
     $zoomAfter = Get-TestConfigValue $configPath '3d' 'zoom'
     $enabledAfter = Get-TestConfigValue $configPath '3d' 'enabled'
     $difficultyAfter = Get-TestConfigValue $configPath 'preferences' 'combat_difficulty'
+    $mouseSensitivityAfter = Get-TestConfigValue $configPath 'preferences' 'mouse_sensitivity'
     switch ($PreferencesProbe) {
         { $_ -in 'cancel', 'cancel-key', 'escape', 'verify' } {
             if ($configHashAfter -ne $configHashBefore) { throw "$PreferencesProbe changed the isolated config hash." }
@@ -861,9 +863,17 @@ if ($PreferencesProbe) {
                 throw 'Fresh process did not load the saved values from the isolated config.'
             }
         }
+        'cursor-speed' {
+            $speedMatch = [regex]::Match($probeLog, 'PREFERENCES_PROBE PASS cursor_speed before=([0-9.]+) committed=([0-9.]+) runtime=([0-9.]+)')
+            if (-not $speedMatch.Success -or
+                [math]::Abs(([double]$mouseSensitivityAfter) - ([double]$speedMatch.Groups[2].Value)) -gt 0.00001 -or
+                [math]::Abs(([double]$mouseSensitivityAfter) - ([double]$initialMouseSensitivity)) -lt 0.00001) {
+                throw 'Saved config does not contain the cursor speed committed by the options panel.'
+            }
+        }
     }
     Write-Output $probeLog
-    Write-Output "PREFERENCES_PROBE CONFIG $PreferencesProbe hash_before=$configHashBefore hash_after=$configHashAfter zoom=$zoomAfter enabled=$enabledAfter combat_difficulty=$difficultyAfter"
+    Write-Output "PREFERENCES_PROBE CONFIG $PreferencesProbe hash_before=$configHashBefore hash_after=$configHashAfter zoom=$zoomAfter enabled=$enabledAfter combat_difficulty=$difficultyAfter mouse_sensitivity=$mouseSensitivityAfter"
     $probeResult = [ordered]@{
         mode = $PreferencesProbe
         config_sha256_before = $configHashBefore
@@ -872,11 +882,13 @@ if ($PreferencesProbe) {
             zoom = $initialZoom
             enabled = $initialEnabled
             combat_difficulty = $initialDifficulty
+            mouse_sensitivity = $initialMouseSensitivity
         }
         final = [ordered]@{
             zoom = $zoomAfter
             enabled = $enabledAfter
             combat_difficulty = $difficultyAfter
+            mouse_sensitivity = $mouseSensitivityAfter
         }
         executable_sha256 = (Get-FileHash -LiteralPath $exe -Algorithm SHA256).Hash
         completion = [ordered]@{

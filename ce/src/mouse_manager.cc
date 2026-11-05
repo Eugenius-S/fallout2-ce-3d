@@ -8,6 +8,7 @@
 #include "input.h"
 #include "memory_manager.h"
 #include "mouse.h"
+#include "settings.h"
 #include "platform_compat.h"
 #include "svga.h"
 
@@ -217,7 +218,7 @@ MouseManagerCacheEntry* mouseManagerFindCacheEntry(const char* fileName, unsigne
 // 0x48568C initMousemgr
 void mouseManagerInit()
 {
-    mouseSetSensitivity(1.0);
+    mouseSetSensitivity(settings.preferences.mouse_sensitivity);
 }
 
 // 0x48569C mousemgrClose
