@@ -2,8 +2,8 @@
 id: 130
 title: The 3D options screen finished the way the owner says, ready for the showcase video
 milestone: M1
-status: todo
-owner: any
+status: doing
+owner: gpt
 suggested: any
 priority: normal
 tier: 3
