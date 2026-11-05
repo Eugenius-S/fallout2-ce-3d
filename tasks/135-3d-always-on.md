@@ -2,7 +2,7 @@
 id: 135
 title: The 3D view stays on in combat and whenever the map is on screen
 milestone: M1
-status: doing
+status: blocked
 owner: gpt
 suggested: claude
 priority: high
@@ -100,3 +100,8 @@ in combat by script.
 Claimed the remaining acceptance on fresh main after merged PRs #211 and #218. No complete combat run or combat-picking evidence is recorded in the existing Log. The new branch preserves both merged steps and does not touch their old branches.
 Next: inspect the existing combat test hooks and build a background-only full-fight verification path; keep the owner game and cache untouched.
 Check: fresh base `38df715d`; no open PR #135 existed at claim time.
+
+### 2026-11-05 gpt, dependency blocker
+The remaining acceptance is the four-phase combat capture and scripted combat picking in two maps. Task 146 supplies the capture fixture and is blocked after two consecutive incomplete runtime attempts; its PR #220 remains draft. No 135 combat code or runtime evidence can be completed until the fixture starts. Keep PR #296 draft and resume after #146 is unblocked. The already merged #211 and #218 steps remain intact.
+Next: take the next independent board task.
+Check: `runs/146-combat-fixture/klatoxcv-3d-fixed-startup/process.stdout.log` has no `COMBAT_FIXTURE START`; no 135 combat phase captures were generated.
