@@ -102,3 +102,23 @@ Part C: the Acceptance of 128.
 The font itself, colours.
 
 ## Log
+
+### 2026-11-06 gpt
+
+Part A code is on draft PR #310 at `a9f75174`; CI run `42097178128` passed.
+The HUD log and dialogue fixtures confirm the changed text placement and
+line pitch. The dialogue fixture currently has no wrapped answer, and the
+required floating-text, sharp-text-off pixel comparison, and full x1/x2
+before/after set are still missing.
+
+Part B remains unverified. A Pip-Boy fixture capture at 1920x1080 produced
+the same framebuffer as the prior fixture capture, so it does not prove that
+the backdrop, fade, corners, or the 21:9 behavior changed. A generic window
+hook prototype was removed because that capture did not validate it. Further
+captures must read scene data from the task worktree's `build/scene-cache`;
+the last fixture log used the main checkout's existing cache, whose files
+were last modified on 2026-11-03. No files in that cache were changed.
+
+Part C remains blocked on art rights: Task 128's variant-6 assets cannot be
+used, and no replacement art has been authored. Keep PR #310 draft until
+the missing acceptance is implemented and evidenced.
