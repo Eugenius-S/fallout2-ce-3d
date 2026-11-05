@@ -55,6 +55,13 @@ bool pickStaticGroundTile(int logicalX, int logicalY, GroundPickResult* result)
 
 bool staticScreenFromGamePixel(double pixelX, double pixelY, double* logicalX, double* logicalY)
 {
+    if (staticFlyCameraActive()) {
+        SpriteCardProjection projection;
+        double worldX, worldZ;
+        if (!currentGameProjection(&projection)
+            || !spritePixelToGround(projection, pixelX, pixelY, &worldX, &worldZ)) return false;
+        return staticScreenFromWorld(worldX, 0.0, worldZ, logicalX, logicalY);
+    }
     GameView view;
     return currentGameView(&view) && gameViewProjectGroundPixel(view, pixelX, pixelY, logicalX, logicalY);
 }

@@ -8,6 +8,7 @@
 #include "input.h"
 #include "memory.h"
 #include "object.h"
+#include "scene/scene_view.h"
 #include "settings.h"
 #include "scene/floating_text.h"
 #include "svga.h"
@@ -265,16 +266,19 @@ void textObjectsRenderInRect(Rect* rect)
 
     for (int index = 0; index < gTextObjectsCount; index++) {
         TextObject* textObject = gTextObjects[index];
-        tileToScreenXY(textObject->tile, &(textObject->x), &(textObject->y));
-        textObject->x += textObject->sx;
-        textObject->y += textObject->sy;
+        if (!scene::floatingTextScreenPosition(textObject->tile, textObject->sx, textObject->sy,
+                &textObject->x, &textObject->y)) {
+            tileToScreenXY(textObject->tile, &(textObject->x), &(textObject->y));
+            textObject->x += textObject->sx;
+            textObject->y += textObject->sy;
 
-        // Dev 3D view: over the hex where the scene shows it.
-        int sceneX;
-        int sceneY;
-        tileSceneShift(textObject->tile, &sceneX, &sceneY);
-        textObject->x += sceneX;
-        textObject->y += sceneY;
+            // In the game's view, keep text anchored to its scene hex.
+            int sceneX;
+            int sceneY;
+            tileSceneShift(textObject->tile, &sceneX, &sceneY);
+            textObject->x += sceneX;
+            textObject->y += sceneY;
+        }
 
         scene::floatingTextRenderInRect(textObject->dataLayout,
             textObject->data, textObject->x, textObject->y, *rect,

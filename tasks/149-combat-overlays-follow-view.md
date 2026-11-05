@@ -46,3 +46,27 @@ hex, floating text above the head.
 
 - 2026-11-01 Cut from Codex's review of #211.
 - 2026-11-02 The owner, live: the outlines keep their size on a zoomed view (`runs/inbox/2026-11-02-combat-outlines-unscaled.png`).
+
+### 2026-11-05 gpt
+
+Done: Turned/zoomed outlines now use `shownObjectArt()` and the projected
+sprite card. Floating text anchors project from the same game-space tile and
+height; cursor and tile anchors use the active camera projection. The old path
+is kept at zoom 1 with no turn. Preliminary live captures and sidecars are in
+`runs/149-combat-overlays-follow-view/`.
+
+Next: Capture the combat outline, hex cursor/to-hit number and damage text at
+zoom 0.5/1/2 and turns 0/+30/-30, plus the unchanged 2D and unturned zoom 1
+views. The available background save is not in combat. PR #220's combat
+fixture remains draft after its two startup failures. A Klamath bark-fixture
+run at zoom 2/turn 30 stopped after one scene capture and did not complete the
+fixture. Its diagnostic image and metadata are in
+`runs/149-combat-overlays-follow-view/`. No combat-overlay acceptance is
+claimed; keep this PR draft.
+
+Check: Release build passed; CTest 20/20, scene-export tests 125/125,
+regression tests 12/12, `git diff --check`, `check_runs_size.py origin/main`,
+and `check_public_content.py origin/main` passed. A live scene snapshot showed
+30 degrees at zoom 0.5. The unturned probe snapshot showed the zoom 0.5 cursor.
+The first probe used the wrong `-SceneCache` directory and correctly failed
+with a missing `floor.bin`; the run passed after using `build/scene-cache`.

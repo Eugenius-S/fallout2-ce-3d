@@ -292,6 +292,47 @@ bool staticGameViewCamera(StaticFlyCamera* camera)
     return true;
 }
 
+bool sceneCameraTransformed()
+{
+    return gFlying || std::abs(gZoom - 1.0) > 1e-6;
+}
+
+void staticFaceSpriteCardToCamera(SpriteCardVertex corners[4])
+{
+    if (!gFlying || corners == nullptr) return;
+    double rightX, rightZ;
+    if (!flyCameraRight(&rightX, &rightZ)) return;
+    const double middleX = (corners[0].x + corners[1].x + corners[2].x + corners[3].x) / 4.0;
+    const double middleZ = (corners[0].z + corners[1].z + corners[2].z + corners[3].z) / 4.0;
+    const double leftX = (corners[0].x + corners[1].x) / 2.0 - middleX;
+    const double leftZ = (corners[0].z + corners[1].z) / 2.0 - middleZ;
+    const double half = std::hypot(leftX, leftZ);
+    for (int index = 0; index < 4; index++) {
+        const double side = index < 2 ? -half : half;
+        corners[index].x = middleX + rightX * side;
+        corners[index].z = middleZ + rightZ * side;
+    }
+}
+
+bool staticScreenFromWorld(double worldX, double worldY, double worldZ, double* logicalX, double* logicalY)
+{
+    if (logicalX == nullptr || logicalY == nullptr) return false;
+    GameView view;
+    if (!currentGameView(&view)) return false;
+    if (!gFlying) return gameViewProject(view, worldX, worldY, worldZ, logicalX, logicalY);
+    float mvp[16];
+    if (!flyCameraMvp(static_cast<float>(view.logicalWidth) / view.logicalHeight, mvp)) return false;
+    const float point[4] = { static_cast<float>(worldX), static_cast<float>(worldY), static_cast<float>(worldZ), 1.0f };
+    float clip[4] = {};
+    for (int row = 0; row < 4; row++) {
+        for (int column = 0; column < 4; column++) clip[row] += mvp[column * 4 + row] * point[column];
+    }
+    if (!(clip[3] > 1e-6f) || !std::isfinite(clip[3])) return false;
+    *logicalX = (clip[0] / clip[3] + 1.0) * 0.5 * view.logicalWidth;
+    *logicalY = (1.0 - clip[1] / clip[3]) * 0.5 * view.logicalHeight;
+    return std::isfinite(*logicalX) && std::isfinite(*logicalY);
+}
+
 bool gameViewGroundStep(double stepX, double stepY, double horizontal[2], double vertical[2])
 {
     GameView view;

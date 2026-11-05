@@ -5101,6 +5101,75 @@ void objectDrawOutline(Object* object, Rect* rect)
     artUnlock(cacheEntry);
 }
 
+void objectDrawSceneOutline(Object* object, int fid, int rotation, ObjectOutlineProject project, void* context)
+{
+    if (object == nullptr || project == nullptr || gObjectsWindowBuffer == nullptr
+        || rotation < ROTATION_FIRST || rotation >= ROTATION_COUNT) return;
+    CacheEntry* cacheEntry = nullptr;
+    Art* art = artLock(FrmId(fid), &cacheEntry);
+    if (art == nullptr) return;
+    int width = 0;
+    int height = 0;
+    artGetSize(art, object->frame, static_cast<Rotation>(rotation), &width, &height);
+    if (width <= 0 || height <= 0 || width > 2048 || height > 2048) {
+        artUnlock(cacheEntry);
+        return;
+    }
+    int left = 0;
+    int top = 0;
+    if (object->tile == -1) {
+        left = object->sx;
+        top = object->sy;
+    } else {
+        int tileX = 0;
+        int tileY = 0;
+        tileToScreenXY(object->tile, &tileX, &tileY);
+        left = tileX + 16 + art->xOffsets[rotation] + object->x - width / 2;
+        top = tileY + 8 + art->yOffsets[rotation] + object->y - (height - 1);
+    }
+    artUnlock(cacheEntry);
+
+    static std::vector<unsigned char> scratch;
+    const int scratchPitch = width + 2;
+    const int scratchHeight = height + 2;
+    const int scratchSize = scratchPitch * scratchHeight;
+    scratch.resize(static_cast<size_t>(scratchSize));
+    std::fill(scratch.begin(), scratch.end(), 0);
+    unsigned char* const savedBuffer = gObjectsWindowBuffer;
+    const int savedPitch = gObjectsWindowPitch;
+    const int savedSize = gObjectsWindowBufferSize;
+    const Rect savedRect = gObjectsWindowRect;
+    gObjectsWindowBuffer = scratch.data();
+    gObjectsWindowBufferSize = scratchSize;
+    gObjectsWindowPitch = scratchPitch;
+    gObjectsWindowRect = { 0, 0, scratchPitch - 1, scratchHeight - 1 };
+    Object outline = *object;
+    outline.fid = fid;
+    outline.rotation = static_cast<Rotation>(rotation);
+    outline.tile = -1;
+    outline.sx = 1;
+    outline.sy = 1;
+    objectDrawOutline(&outline, &gObjectsWindowRect);
+    gObjectsWindowBuffer = savedBuffer;
+    gObjectsWindowPitch = savedPitch;
+    gObjectsWindowBufferSize = savedSize;
+    gObjectsWindowRect = savedRect;
+
+    for (int sourceY = 0; sourceY < scratchHeight; sourceY++) {
+        for (int sourceX = 0; sourceX < scratchPitch; sourceX++) {
+            const unsigned char color = scratch[static_cast<size_t>(sourceY) * scratchPitch + sourceX];
+            if (color == 0) continue;
+            int targetX = 0;
+            int targetY = 0;
+            const double u = (sourceX + 0.5 - 1.0) / width;
+            const double v = (sourceY + 0.5 - 1.0) / height;
+            if (!project(u, v, &targetX, &targetY, context)
+                || targetX < 0 || targetY < 0 || targetX > savedRect.right || targetY > savedRect.bottom) continue;
+            savedBuffer[static_cast<size_t>(targetY) * savedPitch + targetX] = color;
+        }
+    }
+}
+
 // Whether the game draws `object` see-through inside the egg around the
 // hero: a wall or scenery the hero stands behind (from _obj_render_object).
 bool objectSeeThroughAroundDude(Object* object)
