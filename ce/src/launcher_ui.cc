@@ -1,5 +1,6 @@
 #define NOMINMAX
 #include <windows.h>
+#include <windowsx.h>
 #include <commctrl.h>
 #include <shobjidl.h>
 
@@ -35,6 +36,8 @@ constexpr int ID_LOG = 1011;
 constexpr int ID_INSTALL = 1012;
 constexpr int ID_ROLLBACK = 1013;
 constexpr int ID_PLAY = 1014;
+constexpr int ID_LOG_SCROLL = 1015;
+constexpr int ID_PATH_HINT = 1016;
 constexpr WORD IDB_LAUNCHER_LOGO = 201;
 
 struct UiArgs {
@@ -66,8 +69,12 @@ HWND g_log = nullptr;
 HWND g_install = nullptr;
 HWND g_rollback = nullptr;
 HWND g_play = nullptr;
+HWND g_logScroll = nullptr;
+HWND g_pathHint = nullptr;
+WNDPROC g_logOriginalProc = nullptr;
 HBITMAP g_logo = nullptr;
 HFONT g_font = nullptr;
+HFONT g_headingFont = nullptr;
 HBRUSH g_background = nullptr;
 HBRUSH g_editBackground = nullptr;
 UiArgs g_args;
@@ -76,12 +83,105 @@ std::wstring g_uiLanguage;
 std::wstring g_releaseVersion;
 std::wstring g_releaseNotes;
 bool g_autoUpdates = false;
+bool g_russianInstall = false;
+bool g_logDragging = false;
 bool g_busy = false;
 bool g_haveRelease = false;
 bool g_installed = false;
 bool g_operationCompleted = false;
 bool g_lastRollback = false;
 int g_progressValue = 0;
+
+int logVisibleLines()
+{
+    RECT rect = {};
+    SendMessageW(g_log, EM_GETRECT, 0, reinterpret_cast<LPARAM>(&rect));
+    TEXTMETRICW metrics = {};
+    HDC dc = GetDC(g_log);
+    HGDIOBJ oldFont = SelectObject(dc, g_font);
+    GetTextMetricsW(dc, &metrics);
+    SelectObject(dc, oldFont);
+    ReleaseDC(g_log, dc);
+    return metrics.tmHeight > 0 ? std::max(1, static_cast<int>((rect.bottom - rect.top) / metrics.tmHeight)) : 1;
+}
+
+void updateLogScroll()
+{
+    if (g_log == nullptr || g_logScroll == nullptr) return;
+    int lines = static_cast<int>(SendMessageW(g_log, EM_GETLINECOUNT, 0, 0));
+    int visible = logVisibleLines();
+    ShowWindow(g_logScroll, lines > visible ? SW_SHOW : SW_HIDE);
+    InvalidateRect(g_logScroll, nullptr, TRUE);
+}
+
+LRESULT CALLBACK logEditProc(HWND control, UINT message, WPARAM wParam, LPARAM lParam)
+{
+    if (message == WM_MOUSEWHEEL) {
+        const int delta = GET_WHEEL_DELTA_WPARAM(wParam);
+        UINT wheelLines = 3;
+        SystemParametersInfoW(SPI_GETWHEELSCROLLLINES, 0, &wheelLines, 0);
+        const int lines = std::max(1, static_cast<int>(wheelLines));
+        const int steps = delta / WHEEL_DELTA;
+        if (steps != 0) SendMessageW(control, EM_LINESCROLL, 0, -steps * lines);
+        updateLogScroll();
+        return 0;
+    }
+    return CallWindowProcW(g_logOriginalProc, control, message, wParam, lParam);
+}
+
+LRESULT CALLBACK logScrollProc(HWND control, UINT message, WPARAM wParam, LPARAM lParam)
+{
+    if (message == WM_PAINT) {
+        PAINTSTRUCT paint = {};
+        HDC dc = BeginPaint(control, &paint);
+        RECT bounds = {};
+        GetClientRect(control, &bounds);
+        FillRect(dc, &bounds, g_editBackground);
+        int lines = static_cast<int>(SendMessageW(g_log, EM_GETLINECOUNT, 0, 0));
+        int visible = logVisibleLines();
+        int range = std::max(0, lines - visible);
+        if (range > 0) {
+            int height = bounds.bottom - bounds.top;
+            int thumbHeight = std::max(18, height * visible / lines);
+            int first = static_cast<int>(SendMessageW(g_log, EM_GETFIRSTVISIBLELINE, 0, 0));
+            int top = bounds.top + (height - thumbHeight) * std::min(first, range) / range;
+            HBRUSH thumb = CreateSolidBrush(RGB(236, 190, 91));
+            HGDIOBJ old = SelectObject(dc, thumb);
+            SelectObject(dc, GetStockObject(NULL_PEN));
+            RoundRect(dc, bounds.left + 3, top, bounds.right - 3, top + thumbHeight, 8, 8);
+            SelectObject(dc, old);
+            DeleteObject(thumb);
+        }
+        EndPaint(control, &paint);
+        return 0;
+    }
+    if (message == WM_MOUSEWHEEL) {
+        SendMessageW(g_log, message, wParam, lParam);
+        updateLogScroll();
+        return 0;
+    }
+    if (message == WM_LBUTTONDOWN || (message == WM_MOUSEMOVE && g_logDragging) || message == WM_LBUTTONUP) {
+        const bool wasDragging = g_logDragging;
+        if (message == WM_LBUTTONDOWN) { g_logDragging = true; SetCapture(control); }
+        if (message == WM_LBUTTONUP) g_logDragging = false;
+        if (g_logDragging || wasDragging) {
+            RECT bounds = {};
+            GetClientRect(control, &bounds);
+            int lines = static_cast<int>(SendMessageW(g_log, EM_GETLINECOUNT, 0, 0));
+            int visible = logVisibleLines();
+            int range = std::max(0, lines - visible);
+            int height = std::max(1, static_cast<int>(bounds.bottom - bounds.top));
+            int y = static_cast<int>(GET_Y_LPARAM(lParam)) - bounds.top;
+            int first = std::clamp(y * range / height, 0, range);
+            int current = static_cast<int>(SendMessageW(g_log, EM_GETFIRSTVISIBLELINE, 0, 0));
+            SendMessageW(g_log, EM_LINESCROLL, 0, first - current);
+            updateLogScroll();
+        }
+        if (message == WM_LBUTTONUP) ReleaseCapture();
+        return 0;
+    }
+    return DefWindowProcW(control, message, wParam, lParam);
+}
 
 std::wstring utf8ToWide(const std::string& text)
 {
@@ -259,10 +359,10 @@ void setBusy(bool busy)
     EnableWindow(g_play, !busy && g_installed);
     if (busy) {
         g_progressValue = 2;
-        SendMessageW(g_progress, PBM_SETPOS, g_progressValue, 0);
+        InvalidateRect(g_progress, nullptr, TRUE);
     } else if (g_progressValue < 100) {
         g_progressValue = 0;
-        SendMessageW(g_progress, PBM_SETPOS, 0, 0);
+        InvalidateRect(g_progress, nullptr, TRUE);
     }
 }
 
@@ -273,13 +373,16 @@ void appendLog(const std::wstring& line)
     std::wstring text = line + L"\r\n";
     SendMessageW(g_log, EM_REPLACESEL, FALSE, reinterpret_cast<LPARAM>(text.c_str()));
     g_progressValue = std::min(95, g_progressValue + 2);
-    SendMessageW(g_progress, PBM_SETPOS, g_progressValue, 0);
+    InvalidateRect(g_progress, nullptr, TRUE);
+    updateLogScroll();
 }
 
 void updateLabels()
 {
     SetWindowTextW(g_window, tr(L"Fallout 2: Reimagined", L"Fallout 2: Reimagined").c_str());
     SetWindowTextW(GetDlgItem(g_window, ID_GAME_ROOT - 100), tr(L"Game folder", L"Папка игры").c_str());
+    SetWindowTextW(g_pathHint, tr(L"Choose the folder that contains master.dat and critter.dat.",
+        L"Выберите папку, где находятся master.dat и critter.dat.").c_str());
     SetWindowTextW(g_browse, tr(L"Browse...", L"Обзор...").c_str());
     SetWindowTextW(g_russian, tr(L"Install Russian text from the official RPU release", L"Установить русский текст из официального релиза RPU").c_str());
     SetWindowTextW(g_rp, tr(L"Restoration Project: coming soon", L"Restoration Project: скоро").c_str());
@@ -332,7 +435,7 @@ std::vector<std::wstring> workerArguments(bool rollback)
     }
     if (rollback) {
         args = {L"--game-root", g_args.gameRoot, L"--rollback"};
-    } else if (SendMessageW(g_russian, BM_GETCHECK, 0, 0) == BST_CHECKED) {
+    } else if (g_russianInstall) {
         args.push_back(L"--russian");
     }
     return args;
@@ -492,38 +595,45 @@ void createControls(HWND window)
 {
     g_font = CreateFontW(18, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET,
         OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_DONTCARE, L"Segoe UI");
-    createControl(window, L"STATIC", L"Game folder", SS_LEFT, 24, 206, 180, 25, ID_GAME_ROOT - 100);
+    g_headingFont = CreateFontW(18, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE, DEFAULT_CHARSET,
+        OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_DONTCARE, L"Segoe UI");
+    createControl(window, L"STATIC", L"Game folder", SS_LEFT, 24, 186, 580, 22, ID_GAME_ROOT - 100);
+    SendMessageW(GetDlgItem(window, ID_GAME_ROOT - 100), WM_SETFONT, reinterpret_cast<WPARAM>(g_headingFont), TRUE);
+    createControl(window, L"STATIC", L"Choose the folder that contains master.dat and critter.dat.",
+        SS_LEFT, 24, 210, 580, 20, ID_PATH_HINT);
+    g_pathHint = GetDlgItem(window, ID_PATH_HINT);
     createControl(window, L"EDIT", L"", ES_AUTOHSCROLL, 25, 245, 603, 25, ID_GAME_ROOT);
     g_root = GetDlgItem(window, ID_GAME_ROOT);
+    SendMessageW(g_root, EM_SETMARGINS, EC_LEFTMARGIN, MAKELPARAM(10, 0));
     createControl(window, L"BUTTON", L"Browse...", BS_OWNERDRAW, 642, 234, 130, 38, ID_BROWSE);
     g_browse = GetDlgItem(window, ID_BROWSE);
     createControl(window, L"BUTTON", L"Install Russian text from the official RPU release",
-        BS_AUTOCHECKBOX | BS_NOTIFY, 24, 284, 690, 28, ID_RUSSIAN);
+        BS_OWNERDRAW | BS_NOTIFY, 24, 284, 690, 28, ID_RUSSIAN);
     g_russian = GetDlgItem(window, ID_RUSSIAN);
-    createControl(window, L"BUTTON", L"Restoration Project: coming soon", BS_AUTOCHECKBOX,
+    createControl(window, L"BUTTON", L"Restoration Project: coming soon", BS_OWNERDRAW,
         24, 316, 690, 28, ID_RP);
     g_rp = GetDlgItem(window, ID_RP);
     EnableWindow(g_rp, FALSE);
     createControl(window, L"BUTTON", L"Install updates automatically on launch",
-        BS_AUTOCHECKBOX | BS_NOTIFY, 24, 348, 690, 28, ID_AUTO_UPDATE);
+        BS_OWNERDRAW | BS_NOTIFY, 24, 348, 690, 28, ID_AUTO_UPDATE);
     g_autoUpdate = GetDlgItem(window, ID_AUTO_UPDATE);
-    SendMessageW(g_autoUpdate, BM_SETCHECK, g_autoUpdates ? BST_CHECKED : BST_UNCHECKED, 0);
     createControl(window, L"STATIC", L"", SS_LEFT, 24, 398, 752, 24, ID_RELEASE);
     g_release = GetDlgItem(window, ID_RELEASE);
     createControl(window, L"STATIC", L"", SS_LEFT | SS_NOPREFIX, 24, 424, 752, 52, ID_NOTES);
     g_notes = GetDlgItem(window, ID_NOTES);
-    createControl(window, PROGRESS_CLASSW, L"", PBS_SMOOTH, 24, 485, 752, 20, ID_PROGRESS);
+    createControl(window, L"BUTTON", L"", BS_OWNERDRAW, 24, 485, 752, 20, ID_PROGRESS);
     g_progress = GetDlgItem(window, ID_PROGRESS);
-    SetWindowRgn(g_progress, CreateRoundRectRgn(0, 0, 752, 20, 12, 12), TRUE);
-    SendMessageW(g_progress, PBM_SETRANGE32, 0, 100);
-    SendMessageW(g_progress, PBM_SETBARCOLOR, 0, RGB(155, 180, 105));
-    SendMessageW(g_progress, PBM_SETBKCOLOR, 0, RGB(32, 39, 47));
     createControl(window, L"STATIC", L"", SS_LEFT, 24, 511, 752, 22, ID_STATUS);
     g_status = GetDlgItem(window, ID_STATUS);
-    createControl(window, L"EDIT", L"", ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY | WS_VSCROLL,
-        30, 544, 740, 78, ID_LOG);
+    createControl(window, L"EDIT", L"", ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY,
+        30, 544, 726, 78, ID_LOG);
     g_log = GetDlgItem(window, ID_LOG);
-    SetWindowRgn(g_log, CreateRoundRectRgn(0, 0, 740, 78, 12, 12), TRUE);
+    g_logOriginalProc = reinterpret_cast<WNDPROC>(SetWindowLongPtrW(g_log, GWLP_WNDPROC,
+        reinterpret_cast<LONG_PTR>(logEditProc)));
+    SetWindowLongPtrW(g_log, GWL_STYLE, GetWindowLongPtrW(g_log, GWL_STYLE) & ~WS_BORDER);
+    g_logScroll = CreateWindowExW(0, L"F2CELogScroll", L"", WS_CHILD,
+        758, 544, 16, 78, window, reinterpret_cast<HMENU>(static_cast<INT_PTR>(ID_LOG_SCROLL)),
+        GetModuleHandleW(nullptr), nullptr);
     createControl(window, L"BUTTON", L"Install / Update", BS_OWNERDRAW, 24, 660, 200, 36, ID_INSTALL);
     g_install = GetDlgItem(window, ID_INSTALL);
     createControl(window, L"BUTTON", L"Roll back", BS_OWNERDRAW, 236, 660, 150, 36, ID_ROLLBACK);
@@ -569,6 +679,9 @@ LRESULT CALLBACK launcherWindowProc(HWND window, UINT message, WPARAM wParam, LP
         createControls(window);
         SetTimer(window, 1, 100, nullptr);
         return 0;
+    case WM_TIMER:
+        updateLogScroll();
+        return 0;
     case WM_PAINT: {
         PAINTSTRUCT paint = {};
         HDC dc = BeginPaint(window, &paint);
@@ -604,6 +717,12 @@ LRESULT CALLBACK launcherWindowProc(HWND window, UINT message, WPARAM wParam, LP
     case WM_CTLCOLORSTATIC:
     case WM_CTLCOLORBTN: {
         HDC dc = reinterpret_cast<HDC>(wParam);
+        if (reinterpret_cast<HWND>(lParam) == g_log) {
+            SetTextColor(dc, RGB(234, 231, 218));
+            SetBkColor(dc, RGB(8, 13, 19));
+            SetBkMode(dc, OPAQUE);
+            return reinterpret_cast<LRESULT>(g_editBackground);
+        }
         SetTextColor(dc, RGB(228, 219, 191));
         SetBkColor(dc, RGB(18, 25, 34));
         SetBkMode(dc, OPAQUE);
@@ -618,6 +737,63 @@ LRESULT CALLBACK launcherWindowProc(HWND window, UINT message, WPARAM wParam, LP
     }
     case WM_DRAWITEM: {
         DRAWITEMSTRUCT* item = reinterpret_cast<DRAWITEMSTRUCT*>(lParam);
+        if (item->CtlID == ID_RUSSIAN || item->CtlID == ID_RP || item->CtlID == ID_AUTO_UPDATE) {
+            const bool enabled = (item->itemState & ODS_DISABLED) == 0;
+            const bool checked = item->CtlID == ID_RUSSIAN ? g_russianInstall
+                : item->CtlID == ID_AUTO_UPDATE ? g_autoUpdates : false;
+            RECT box = item->rcItem;
+            box.left += 2;
+            box.top += (box.bottom - box.top - 18) / 2;
+            box.right = box.left + 18;
+            box.bottom = box.top + 18;
+            HBRUSH background = CreateSolidBrush(RGB(18, 25, 34));
+            FillRect(item->hDC, &item->rcItem, background);
+            DeleteObject(background);
+            HBRUSH fill = CreateSolidBrush(checked ? RGB(236, 190, 91) : RGB(8, 13, 19));
+            HPEN border = CreatePen(PS_SOLID, 1, RGB(140, 112, 69));
+            HGDIOBJ oldBrush = SelectObject(item->hDC, fill);
+            HGDIOBJ oldPen = SelectObject(item->hDC, border);
+            RoundRect(item->hDC, box.left, box.top, box.right, box.bottom, 6, 6);
+            SelectObject(item->hDC, oldBrush);
+            SelectObject(item->hDC, oldPen);
+            DeleteObject(fill);
+            DeleteObject(border);
+            if (checked) {
+                HPEN checkPen = CreatePen(PS_SOLID, 2, RGB(18, 25, 34));
+                oldPen = SelectObject(item->hDC, checkPen);
+                MoveToEx(item->hDC, box.left + 4, box.top + 9, nullptr);
+                LineTo(item->hDC, box.left + 8, box.top + 13);
+                LineTo(item->hDC, box.left + 15, box.top + 5);
+                SelectObject(item->hDC, oldPen);
+                DeleteObject(checkPen);
+            }
+            wchar_t label[160] = {};
+            GetWindowTextW(item->hwndItem, label, static_cast<int>(std::size(label)));
+            RECT labelRect = item->rcItem;
+            labelRect.left = box.right + 9;
+            SetBkMode(item->hDC, TRANSPARENT);
+            SetTextColor(item->hDC, enabled ? RGB(228, 219, 191) : RGB(95, 99, 101));
+            DrawTextW(item->hDC, label, -1, &labelRect, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+            return TRUE;
+        }
+        if (item->CtlID == ID_PROGRESS) {
+            RECT r = item->rcItem;
+            HBRUSH bg = CreateSolidBrush(RGB(32, 39, 47));
+            HBRUSH fg = CreateSolidBrush(RGB(155, 180, 105));
+            HGDIOBJ oldBrush = SelectObject(item->hDC, bg);
+            HGDIOBJ oldPen = SelectObject(item->hDC, GetStockObject(NULL_PEN));
+            RoundRect(item->hDC, r.left, r.top, r.right, r.bottom, 12, 12);
+            if (g_progressValue > 0) {
+                SelectObject(item->hDC, fg);
+                const int width = (r.right - r.left) * g_progressValue / 100;
+                RoundRect(item->hDC, r.left, r.top, r.left + width, r.bottom, 12, 12);
+            }
+            SelectObject(item->hDC, oldBrush);
+            SelectObject(item->hDC, oldPen);
+            DeleteObject(bg);
+            DeleteObject(fg);
+            return TRUE;
+        }
         if (item->CtlID != ID_LANGUAGE && item->CtlID != ID_BROWSE && item->CtlID != ID_INSTALL && item->CtlID != ID_ROLLBACK && item->CtlID != ID_PLAY) break;
         bool enabled = (item->itemState & ODS_DISABLED) == 0;
         COLORREF color = item->CtlID == ID_LANGUAGE ? RGB(8, 13, 19)
@@ -638,6 +814,7 @@ LRESULT CALLBACK launcherWindowProc(HWND window, UINT message, WPARAM wParam, LP
         if (item->CtlID == ID_LANGUAGE) {
             wcscpy_s(label, g_uiLanguage == L"ru" ? L"Русский" : L"English");
             RECT labelRect = item->rcItem;
+            labelRect.left += 8;
             labelRect.right -= 20;
             DrawTextW(item->hDC, label, -1, &labelRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
             POINT arrow[] = {{item->rcItem.right - 15, item->rcItem.top + 15},
@@ -675,8 +852,12 @@ LRESULT CALLBACK launcherWindowProc(HWND window, UINT message, WPARAM wParam, LP
         } else if (LOWORD(wParam) == ID_BROWSE) {
             chooseGameFolder();
         } else if (LOWORD(wParam) == ID_AUTO_UPDATE && HIWORD(wParam) == BN_CLICKED) {
-            g_autoUpdates = SendMessageW(g_autoUpdate, BM_GETCHECK, 0, 0) == BST_CHECKED;
+            g_autoUpdates = !g_autoUpdates;
+            InvalidateRect(g_autoUpdate, nullptr, TRUE);
             saveSettings();
+        } else if (LOWORD(wParam) == ID_RUSSIAN && HIWORD(wParam) == BN_CLICKED) {
+            g_russianInstall = !g_russianInstall;
+            InvalidateRect(g_russian, nullptr, TRUE);
         } else if (LOWORD(wParam) == ID_INSTALL && HIWORD(wParam) == BN_CLICKED) {
             startOperation(false);
         } else if (LOWORD(wParam) == ID_ROLLBACK && HIWORD(wParam) == BN_CLICKED) {
@@ -733,7 +914,7 @@ LRESULT CALLBACK launcherWindowProc(HWND window, UINT message, WPARAM wParam, LP
             g_operationCompleted = true;
             g_lastRollback = rollback;
             g_progressValue = 100;
-            SendMessageW(g_progress, PBM_SETPOS, 100, 0);
+            InvalidateRect(g_progress, nullptr, TRUE);
             setStatus(rollback ? tr(L"The previous build was restored.", L"Предыдущая сборка восстановлена.")
                                : tr(L"Installation complete. Press Play to start.", L"Установка завершена. Нажмите «Играть»."));
             g_installed = true;
@@ -750,6 +931,7 @@ LRESULT CALLBACK launcherWindowProc(HWND window, UINT message, WPARAM wParam, LP
         saveSettings();
         if (g_logo != nullptr) DeleteObject(g_logo);
         if (g_font != nullptr) DeleteObject(g_font);
+        if (g_headingFont != nullptr) DeleteObject(g_headingFont);
         if (g_background != nullptr) DeleteObject(g_background);
         if (g_editBackground != nullptr) DeleteObject(g_editBackground);
         PostQuitMessage(0);
@@ -801,6 +983,13 @@ int runLauncherUi(int argc, char** argv)
     wc.hCursor = LoadCursorW(nullptr, MAKEINTRESOURCEW(32512));
     wc.hbrBackground = g_background;
     RegisterClassW(&wc);
+    WNDCLASSW scrollClass = {};
+    scrollClass.lpfnWndProc = logScrollProc;
+    scrollClass.hInstance = GetModuleHandleW(nullptr);
+    scrollClass.hCursor = LoadCursorW(nullptr, MAKEINTRESOURCEW(32649));
+    scrollClass.hbrBackground = g_editBackground;
+    scrollClass.lpszClassName = L"F2CELogScroll";
+    RegisterClassW(&scrollClass);
     RECT rect = {0, 0, 800, 720};
     AdjustWindowRect(&rect, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX, FALSE);
     HWND window = CreateWindowExW(g_args.noActivate ? WS_EX_NOACTIVATE : 0, wc.lpszClassName, L"Fallout 2: Reimagined",
