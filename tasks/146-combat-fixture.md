@@ -2,8 +2,8 @@
 id: 146
 title: A background combat fixture: start a fight and capture each phase
 milestone: M1
-status: todo
-owner: any
+status: doing
+owner: gpt
 suggested: any
 priority: normal
 tier: 3
@@ -93,6 +93,23 @@ still fail before the fixture begins. PR #220 remains draft and task 146 stays
 
 Check: Release build passed; CTest passed 20/20. No pixel-regression or
 combat-runtime result is claimed for this merge.
+
+### 2026-11-05 gpt: startup preview correction
+
+Done: Added `gCombatFixtureRequested` to the startup-preview trigger. The
+combat-only command did not request any of the flags that made
+`gStartupFloorPreviewAttempted` true, so `prepareCombatFixture()` could only
+wait forever. Release build and CTest passed 20/20.
+Next: Keep PR #220 draft. A capture after this fix still logged the initial
+`COMBAT_FIXTURE WAIT` and `static wall+hero preview started` but never logged
+`COMBAT_FIXTURE START` or a phase capture. This is the second consecutive
+uncompleted runtime attempt; stop runtime retries. Diagnose the update-loop
+readiness with a bounded code-level probe before any new capture.
+Check: `runs/146-combat-fixture/klatoxcv-3d-fixed-startup/process.stdout.log`.
+The run was stopped after its timeout. `build/scene-cache` was absent, so the
+game selected the shared checkout's default cache path. I did not manually
+modify or clean it; the game may have touched that path during startup. Export
+to a worktree-local `build/scene-cache` before any future runtime attempt.
 
 ### 2026-11-04 gpt: merge current main
 

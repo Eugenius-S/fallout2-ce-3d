@@ -2100,7 +2100,7 @@ void update()
     }
 
     if ((gStartupFloorPreviewRequested || gStartupWallPreviewRequested || gStartupHeroPreviewRequested || gStartupWalkPreviewRequested
-            || gClassic || gSnapshotOncePending || gTourStep >= 0)
+            || gClassic || gCombatFixtureRequested || gSnapshotOncePending || gTourStep >= 0)
         && !gStartupFloorPreviewAttempted
         && !gPendingElevation && gMapHeader.name[0] != '\0' && !inBlockingGameState()) {
         if (gHeroTile >= 0) {
