@@ -1,0 +1,11 @@
+{
+  "evidence_file": "modoc-inn-car.jpg",
+  "map": "MODMAIN e0",
+  "object": "the inn car",
+  "source_task": 159,
+  "source_pr": 249,
+  "source_file": "runs\\159-modoc-in-3d\\tour-modmain.jpg",
+  "capture": "reused merged area-task before/after sheet, not a new runtime capture",
+  "status": "car stays grounded and present at the -45/0/+45 views",
+  "bytes": 326856
+}

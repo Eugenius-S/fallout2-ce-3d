@@ -1,0 +1,11 @@
+{
+  "evidence_file": "coast-road-car.jpg",
+  "map": "COAST1 e0",
+  "object": "roadside car",
+  "source_task": 169,
+  "source_pr": 286,
+  "source_file": "runs\\169-encdesertcoast-in-3d\\coast1-e0.jpg",
+  "capture": "reused merged area-task before/after sheet, not a new runtime capture",
+  "status": "car stays grounded and present at the -45/0/+45 views",
+  "bytes": 120620
+}
