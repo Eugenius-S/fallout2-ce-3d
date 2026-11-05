@@ -1,0 +1,10 @@
+Matched live captures: KLADWTWN tile 24678, 1920x1080, 2x scale, full scene-gl, shadows enabled. Both performance runs use the same executable SHA 442617999961fb18f3627c7b6a7e1854a9e4a97f6532da82d13ac295113daf36 and embedded CE commit 4137bfe9. F2CE_PERF=1; F2CE_PERF_HOLD=22 seconds.
+
+Exclude the first three 2-second windows (startup variance) and the final window (capture/exit). Seven steady windows per condition, copied to perf-noon-windows.txt and perf-midnight-windows.txt.
+Noon frame_avg_ms: 16.78, 16.91, 16.73, 17.05, 16.67, 16.97, 16.74; mean 16.84 ms.
+Midnight frame_avg_ms: 16.39, 16.82, 16.64, 16.88, 16.63, 16.78, 16.77; mean 16.70 ms.
+Midnight minus noon: -0.14 ms (faster). Median GPU stage: noon 5.82 ms; midnight 8.50 ms. The GPU stage is not whole-frame time; measured frame_avg_ms is the acceptance comparison.
+
+Fresh scene-image luma over the 3D viewport: noon 49.71, dusk 51.89, midnight 17.87. Blue/red ratio: noon 0.6653, dusk 0.6788, midnight 0.6767. The game ambient reported in the sidecars is 65536 at noon/dusk and 28426 at midnight. Midnight is visibly darker and cooler than noon while the scene remains readable.
+
+Full regression.ps1: 106/106 spots and elevations pass with 0 changed pixels. Python tests: scene_export 125/125, regression 12/12. CTest: 20/20. Fly-tour emitted 57/57 captures before and after; its comparison checkout was 27428dd7, not origin/main f6ffaa2b, and included unrelated PR #299 camera/scene changes, so those changed-pixel sheets are not claimed as valid main-baseline regression evidence.

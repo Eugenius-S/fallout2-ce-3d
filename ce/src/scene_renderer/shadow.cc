@@ -647,6 +647,8 @@ bool bindStaticShadows(const float* sceneMvp)
     glUniform1i(gSceneCloudOnLocation, 0);
     if (sceneMvp == nullptr) return false;
     const scene::Sun& sun = scene::currentSun();
+    glUniform1f(gSceneMoonStrengthLocation, sun.moon ? sun.strength : 0.0f);
+    glUniform3f(gSceneMoonDirectionLocation, sun.direction[0], sun.direction[1], sun.direction[2]);
     if (!sun.up || sun.strength <= 0.0f) return false;
     glUniform1i(gSceneCloudOnLocation, settings.scene3d.cloud_shadows ? 1 : 0);
     glUniform1f(gSceneShadowStrengthLocation, sun.strength);

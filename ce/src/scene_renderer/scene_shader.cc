@@ -137,6 +137,8 @@ uniform sampler2D uShadowIds;
 uniform bool uShadowOccupancyOn;
 uniform sampler2D uShadowOccupancy; // RG32F, a texel per 16x16 map texels: r 1 where a caster stands, g the farthest one's depth (155)
 uniform float uShadowStrength;
+uniform float uMoonStrength;
+uniform vec3 uMoonDirection;
 uniform float uShadowDensity; // the [3d] shadow_density setting, scales the darkening
 uniform vec3 uShadowLight; // towards the sun, GL (x, y up, z)
 uniform float uShadowStep;
@@ -920,6 +922,15 @@ void main() {
                 outColor.rgb = floor(floor(outColor.rgb * 31.0 + 0.5) * steps / 128.0) / 31.0;
             }
             outColor.rgb *= lit.rgb;
+            if (uMoonStrength > 0.0 && (uLightMode == 1 || uLightMode == 2 || uLightMode == 3)) {
+                vec3 n = uLightMode == 1 ? vec3(0.0, 1.0, 0.0)
+                    : uLightMode == 2 ? shadowPaintedNormal(shadowFaceNormal()) : vec3(0.0, 1.0, 0.0);
+                float direct = max(dot(n, uMoonDirection), 0.0);
+                float tint = uMoonStrength * 0.75;
+                outColor.rgb *= 1.0 - uMoonStrength * (1.27 - 0.60 * direct);
+                outColor.rgb *= mix(vec3(1.0), vec3(0.72, 0.84, 1.0), tint);
+                outColor.rgb *= 1.0 + uMoonStrength * 0.3 * direct;
+            }
             if (uEgg != 0) {
                 float m = eggShare();
                 if (m > 0.0) outColor.a *= m / 128.0;
@@ -1024,6 +1035,8 @@ int gSceneShadowIdsLocation = -1;
 int gSceneShadowOccupancyLocation = -1;
 int gSceneShadowOccupancyOnLocation = -1;
 int gSceneShadowStrengthLocation = -1;
+int gSceneMoonStrengthLocation = -1;
+int gSceneMoonDirectionLocation = -1;
 int gSceneShadowDensityLocation = -1;
 int gSceneShadowLightLocation = -1;
 int gSceneShadowStepLocation = -1;
@@ -1115,6 +1128,8 @@ bool createSceneShader(std::string* error)
     gSceneShadowOccupancyLocation = glGetUniformLocation(gSceneProgram, "uShadowOccupancy");
     gSceneShadowOccupancyOnLocation = glGetUniformLocation(gSceneProgram, "uShadowOccupancyOn");
     gSceneShadowStrengthLocation = glGetUniformLocation(gSceneProgram, "uShadowStrength");
+    gSceneMoonStrengthLocation = glGetUniformLocation(gSceneProgram, "uMoonStrength");
+    gSceneMoonDirectionLocation = glGetUniformLocation(gSceneProgram, "uMoonDirection");
     gSceneShadowDensityLocation = glGetUniformLocation(gSceneProgram, "uShadowDensity");
     gSceneShadowLightLocation = glGetUniformLocation(gSceneProgram, "uShadowLight");
     gSceneShadowStepLocation = glGetUniformLocation(gSceneProgram, "uShadowStep");
@@ -1141,6 +1156,7 @@ bool createSceneShader(std::string* error)
         || gSceneLightOriginLocation < 0 || gSceneLightAnchorLocation < 0 || gSceneAmbientLocation < 0
         || gSceneHexUnitLocation < 0 || gSceneTowardCameraLocation < 0 || gSceneLightCountLocation < 0
         || gSceneLightPosLocation < 0 || gSceneLightColorLocation < 0 || gSceneLightWindowLocation < 0
+        || gSceneMoonStrengthLocation < 0 || gSceneMoonDirectionLocation < 0
         || gSceneCloudOnLocation < 0 || gSceneCloudOffsetLocation < 0
         || gSceneClipEnabledLocation < 0
         || gSceneClipPlaneLocations[0] < 0 || gSceneClipPlaneLocations[1] < 0
