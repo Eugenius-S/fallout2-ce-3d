@@ -79,3 +79,18 @@ and rebuilding before the second did not change the result. Diagnostics:
 not involved.
 Next: Keep PR #289 draft and investigate why the tour command stalls at the
 static preview, before any further runtime attempt.
+
+### 2026-11-05 gpt: isolate the RP tour startup stall
+The two explicit-root tour runs stop at the same point: the `SFSHENG.MAP`
+static preview starts while `gameState=5` (`DialogRequested`), and the scene
+policy blocks presentation. The successful live San Fran walk starts in the
+same state but advances to `scene_view=full`; the tour's `-Still` startup
+freezes the map-enter script before the request can settle. RP tours now omit
+still mode and the automatic static hero preview, then let the map enter
+normally. The stamp records that startup mode so older captures cannot be
+reused.
+Next: Run one explicit-root SFSHENG tour after this change. If it still
+times out, log the new result and leave the PR draft.
+Check: prior diagnostics are in `build/test-run/runs/8f670f030a88/watchdog.txt`
+and `build/test-run/runs/e8ea6a3d43bc/watchdog.txt`; the live walk log is in
+`build/rp-live/sfsheng/process.stdout.log`.
