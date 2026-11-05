@@ -16,5 +16,12 @@ from 22703 in 518 frames; San Fran Dr. Sheng reached tile 16100 from 20100 in
 
 The San Fran Dr. Sheng run used a private copy of the existing RPU 2.4.34
 scratch install under this worktree's ignored `build/` directory. Its source
-scratch copy was left untouched. RP-only fly-tour spots and explicit RP-root
-gating remain to be implemented.
+scratch copy was left untouched.
+
+`tools/tour/rp_spots.json` now has a center spot for each exported map and
+elevation. The tour only selects this list when `--rp-game-root` points to an
+install containing `mods/rpu.dat`; without that argument, an RP-only map is
+rejected as having no spots. With the explicit root, two smoke runs stalled
+at startup before any tour progress (one used an old game executable and one
+used the rebuilt executable). The PR stays draft until that runner issue is
+understood.

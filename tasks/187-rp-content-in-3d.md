@@ -66,3 +66,16 @@ smoke-test the gated tour and run the task checks.
 Check: `build/rp-live/sfsheng/process.stdout.log` and sidecar; runtime frame
 `runs/187-rp-content-in-3d/sfsheng-walk.jpg`. The RPU map-cache check found all
 19 maps; post-rebase scene-export tests passed 122/122.
+
+### 2026-11-05 gpt
+Done: Added 36 RP map/elevation center spots in `tools/tour/rp_spots.json`.
+`tools/tour/tour.py` selects them only when `--rp-game-root` names an install
+with `mods/rpu.dat`; without that option, an RP-only filter returns no spots.
+Check: The no-root gate behaved as expected. Two explicit-root smoke runs
+timed out before the first tour progress; the first used a stale executable,
+and rebuilding before the second did not change the result. Diagnostics:
+`build/test-run/runs/8f670f030a88/watchdog.txt` and
+`build/test-run/runs/e8ea6a3d43bc/watchdog.txt`. The user's game and cache were
+not involved.
+Next: Keep PR #289 draft and investigate why the tour command stalls at the
+static preview, before any further runtime attempt.
