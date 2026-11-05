@@ -706,6 +706,12 @@ LRESULT CALLBACK launcherWindowProc(HWND window, UINT message, WPARAM wParam, LP
     case WM_CTLCOLORSTATIC:
     case WM_CTLCOLORBTN: {
         HDC dc = reinterpret_cast<HDC>(wParam);
+        if (reinterpret_cast<HWND>(lParam) == g_log) {
+            SetTextColor(dc, RGB(234, 231, 218));
+            SetBkColor(dc, RGB(8, 13, 19));
+            SetBkMode(dc, OPAQUE);
+            return reinterpret_cast<LRESULT>(g_editBackground);
+        }
         SetTextColor(dc, RGB(228, 219, 191));
         SetBkColor(dc, RGB(18, 25, 34));
         SetBkMode(dc, OPAQUE);

@@ -55,15 +55,16 @@ Other installer layout, install/update/rollback behavior, and game UI.
 Done: Added left padding to the path edit, shifted the language label for the
 dropdown arrow, replaced the three stock checkboxes with rounded owner-drawn
 controls, kept Restoration Project visibly disabled and dark, drew the
-progress bar without theme stripes, removed the log edit border, and replaced
-the native log scrollbar with an overflow-only rounded yellow thumb. The log
-supports wheel scrolling and thumb dragging. Evidence is in
+progress bar without theme stripes, matched the read-only log EDIT background
+to its panel (including its `WM_CTLCOLORSTATIC` path), and replaced the native
+log scrollbar with an overflow-only rounded yellow thumb. The log supports
+wheel scrolling and thumb dragging. Evidence is in
 `runs/201-installer-controls-and-log-scrollbar/`.
 
 Check: `tools/configure-build.ps1 Release` passed with MSVC 14.40 and Windows
 SDK 10.0.22621.0. `ctest --test-dir build --output-on-failure` passed 20/20.
 The current Release launcher SHA-256 is
-`98E46BC2847885E11AA8D0DF83815BBB6B8622AF093155C3C50A903EE9061E21`.
+`BB75D95E94A7E5C1F92B98AE78F6E28C209A4B09E252B32FC8542B557B8B7B4C`.
 Fresh English and Russian screenshots are 816 x 759. The path text round-trip
 passed; the language popup selected Russian and English and persisted both;
 the auto-update checkbox persisted its change; the Restoration Project
