@@ -2,8 +2,8 @@
 id: 134
 title: The save preview shows the 3D view cleanly
 milestone: M1
-status: todo
-owner: any
+status: doing
+owner: gpt
 suggested: any
 priority: normal
 tier: 3
@@ -39,4 +39,5 @@ hero, sharp, the right colours, not stretched or cut.
 The save and load screens' layout, wide screen fit of those screens.
 
 ## Log
+
 
