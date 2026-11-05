@@ -1,0 +1,25 @@
+{
+  "task": 129,
+  "pr": 311,
+  "branch": "task/129-partial-grey-gpt",
+  "tour": "py -3 tools/tour/tour.py --before build/scene-cache --after build/after-cache --maps kladwtwn,klatrap,klacanyn,klagraz,klamall,klaratcv,klatoxcv --out build/tour/129-partial-grey",
+  "views": 43,
+  "changedSpots": 26,
+  "baseline": "Exporter from origin/main efc585fb",
+  "after": "Current roof_fringe.py exporter with unsupported partial grey tiles preserved",
+  "executable": "build/fallout2-ce.exe",
+  "executableSha256": "5E2AECD8279B1DC88CD582AD3093ED391D79F9B838AC954020848EF9D25D6883",
+  "gameViewRegression": [
+    {
+      "result": "pass",
+      "spot": "entrance",
+      "changedPixels": 0
+    },
+    {
+      "result": "pass",
+      "spot": "klamall-e0",
+      "changedPixels": 0
+    }
+  ],
+  "generatedUtc": "2026-11-05T21:03:46Z"
+}
