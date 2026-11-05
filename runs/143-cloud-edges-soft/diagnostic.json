@@ -1,0 +1,57 @@
+{
+  "status": "blocked",
+  "owner_input": {
+    "path": "runs/inbox/2026-11-01-cloud-hard-edge.png",
+    "sha256": "6bf194f5d0dc806d305e33c84caf17083fc0c254287f8b075022ebedeb445a85",
+    "width": 432,
+    "height": 505,
+    "sidecar": null
+  },
+  "candidate_camera": {
+    "map": "KLADWTWN.MAP",
+    "elevation": 0,
+    "view_tile": 24678,
+    "camera": "fixed eye=(38.14466,46.23085,85.71700), target=(-11.04167,0.00000,11.93750), fov_y=25.0",
+    "resolution": "1920x1080",
+    "executable_commit": "2cbfbe45",
+    "executable_sha256": "afb36a41fcba6a848f33eddac2461b2c5c7aa807ee1912c926c406ca1cec3cf2"
+  },
+  "candidate_pairs": [
+    {
+      "game_time": 288000,
+      "sun_swing": 40,
+      "cloud_phase_minutes": 0,
+      "on": "sun and cloud shadows enabled",
+      "off": "sun shadows enabled, cloud shadows disabled",
+      "gray_mean_absolute_difference_full_frame": 2.684,
+      "gray_pixels_over_10_full_frame_fraction": 0.0709,
+      "template_correlation_at_half_scale": 0.368
+    },
+    {
+      "game_time": 303000,
+      "sun_swing": 44,
+      "cloud_phase_minutes": 505,
+      "on": "sun and cloud shadows enabled",
+      "off": "sun shadows enabled, cloud shadows disabled",
+      "template_correlation_at_half_scale": 0.386,
+      "candidate_location_xy": [
+        396,
+        523
+      ],
+      "gray_mean_absolute_difference_at_candidate": 1.57,
+      "gray_pixels_over_10_at_candidate_fraction": 0.0,
+      "gray_mean_absolute_difference_full_frame": 0.97,
+      "gray_pixels_over_10_full_frame_fraction": 0.004
+    }
+  ],
+  "conclusion": "The reported edge did not reproduce in the candidate camera. The input crop match is too weak to establish the same camera, time, zoom, and pixels. Neither cloud quantization nor a lamp edge is confirmed, and no shader change was made.",
+  "checks": {
+    "release_build": "passed, 763 of 763",
+    "ctest": "passed, 18 of 18",
+    "scene_export_resources_read": 1467,
+    "pixel_regression": "passed, 16 of 16 spots, zero changed pixels",
+    "game_mod_cache_used": false,
+    "pixel_regression_run": "runs/regression/20261101-231614-494-54244"
+  },
+  "next": "Provide a source capture sidecar or exact camera, zoom, and time for the owner frame, then repeat the matched cloud-on/cloud-off comparison."
+}
