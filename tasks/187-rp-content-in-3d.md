@@ -66,4 +66,3 @@ smoke-test the gated tour and run the task checks.
 Check: `build/rp-live/sfsheng/process.stdout.log` and sidecar; runtime frame
 `runs/187-rp-content-in-3d/sfsheng-walk.jpg`. The RPU map-cache check found all
 19 maps; post-rebase scene-export tests passed 122/122.
-
