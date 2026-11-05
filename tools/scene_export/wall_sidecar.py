@@ -208,7 +208,7 @@ def _wall_back(batches, sprites, pages, row, hpx, keep=(0.0, 1.0), atlas=None, p
 
 
 def _wall_front(batches, proj, sprites, pages, row, toward_camera, continues, keep=(0.0, 1.0), top_keep=None,
-                foot=None, atlas=None, corner=None):
+                foot=None, atlas=None, corner=None, post_homes=None):
     """The front up to the cap line, then the slab's top as a real horizontal
     face as deep as the wall is thick, and what of the picture is higher than
     that top as an upright face on the slab's far side. Each point samples the
@@ -252,6 +252,19 @@ def _wall_front(batches, proj, sprites, pages, row, toward_camera, continues, ke
         own = (lo, min(hi, f)) if not past_low else (max(lo, f), hi)
         past = (max(lo, f), hi) if not past_low else (lo, min(hi, f))
         stretches = [(own, None), (past, (axis, s_cut, ray))]
+    for split, _, _ in post_homes or ():
+        if lo < split < hi:
+            stretches = [((a, min(b, split)), home) for (a, b), home in stretches if min(b, split) > a] + \
+                        [((max(a, split), b), home) for (a, b), home in stretches if b > max(a, split)]
+    if post_homes:
+        refined = []
+        for part, home in stretches:
+            middle = (part[0] + part[1]) / 2
+            for split, to_end, post_home in post_homes:
+                if ((middle >= split) if to_end else (middle <= split)):
+                    home = post_home
+            refined.append((part, home))
+        stretches = refined
     for part, home in stretches:
         if part[1] <= part[0]:
             continue
@@ -726,6 +739,99 @@ def _corner_fits(walls, hidden, toward_camera, width=None, px=(1.0, 1.0)):
                         continue
                     corners.thin_cuts[index] = (b.plane, out)
     return corners
+
+
+def _corner_post_homes(walls, sprites, atlas, toward_camera):
+    """Split an opaque terminal post only where its own perpendicular wall meets it.
+
+    A few fence and wall rows paint the corner post into the end of the face
+    picture. The same map object supplies the perpendicular face; rehome the
+    end half of the opaque stem to that face while keeping unrelated alpha
+    runs on ordinary wall rows in place.
+    """
+    if atlas is None:
+        return {}
+    import numpy as np
+
+    by_owner = {}
+    for index, row in enumerate(walls):
+        owner = row[8]
+        if isinstance(owner, int) and owner >= 0:
+            by_owner.setdefault(owner, []).append(index)
+
+    result = {}
+    for owner_rows in by_owner.values():
+        for index in owner_rows:
+            row = walls[index]
+            sprite = sprites[_int(row[0], "wall sprite")]
+            page, x, y, width, height = (_int(value, "wall sprite rectangle") for value in sprite[:5])
+            if width < 8 or height < 8 or row[10] >= CORE_THICK or not (0 <= page < len(atlas)):
+                continue
+            image = atlas[page]
+            if x < 0 or y < 0 or x + width > image.shape[1] or y + height > image.shape[0]:
+                continue
+            density = (image[y:y + height, x:x + width, 3] >= 128).mean(axis=0)
+            runs = []
+            start = None
+            for column, opaque in enumerate(density >= 0.80):
+                if opaque and start is None:
+                    start = column
+                if start is not None and (not opaque or column == width - 1):
+                    end = column - 1 if not opaque else column
+                    run_width = end - start + 1
+                    edge_gap = min(start, width - 1 - end)
+                    if run_width >= 3 and run_width <= width * 0.75 and edge_gap <= max(2, width * 0.20):
+                        runs.append((start, end))
+                    start = None
+            if not runs:
+                continue
+
+            axis = 0 if abs(row[2] - row[4]) < 1e-9 else 1
+            if abs(row[1 + axis] - row[3 + axis]) < 1e-9:
+                continue
+            endpoints = ((row[1], row[2]), (row[3], row[4]))
+            neighbors = []
+            for other_index in owner_rows:
+                if other_index == index:
+                    continue
+                other = walls[other_index]
+                other_sprite = sprites[_int(other[0], "wall sprite")]
+                other_width, other_height = _int(other_sprite[3], "wall sprite width"), _int(other_sprite[4], "wall sprite height")
+                if other_width < 8 or other_height < 8 or other[10] >= CORE_THICK:
+                    continue
+                other_axis = 0 if abs(other[2] - other[4]) < 1e-9 else 1
+                if axis == other_axis:
+                    continue
+                overlap = min(row[9], other[9]) - max(row[5], other[5])
+                shorter = min(row[9] - row[5], other[9] - other[5])
+                if shorter <= 0 or overlap < 0.80 * shorter:
+                    continue
+                other_endpoints = ((other[1], other[2]), (other[3], other[4]))
+                matches = [(math.hypot(a[0] - b[0], a[1] - b[1]), a_end, b_end)
+                           for a_end, a in enumerate(endpoints) for b_end, b in enumerate(other_endpoints)]
+                distance, endpoint, other_endpoint = min(matches)
+                if distance > 0.025:
+                    continue
+                # The split must terminate on the actual end of the same perpendicular face.
+                length = math.hypot(other[3] - other[1], other[4] - other[2])
+                neighbors.append((distance, -length, other_index, other_axis, endpoint, other_endpoint))
+            if not neighbors:
+                continue
+            distance, _, other_index, other_axis, endpoint, other_endpoint = min(neighbors)
+            other = walls[other_index]
+            near_start = endpoint == 0
+            for start, end in runs:
+                if near_start:
+                    if start > max(2, width * 0.20):
+                        continue
+                elif width - 1 - end > max(2, width * 0.20):
+                    continue
+                split = (start + end + 1) / (2 * width)
+                other_plane_axis = 1 - other_axis
+                other_plane = other[1 + other_plane_axis]
+                result.setdefault(index, []).append((split, not near_start,
+                                                     (other_plane_axis, other_plane, toward_camera)))
+    return result
 
 
 def _picture(sprites, row, hpx):
@@ -1518,6 +1624,7 @@ def encode_wall_sidecar(scene, skip_props=frozenset(), skip_rests=frozenset(), m
     px = (abs(squ[0]), abs(sqv[0]))  # picture columns per unit of wall along u, along v
     corners = _corner_fits(walls, hidden_walls, toward_camera,
                            lambda index: _int(sprites[_int(walls[index][0], "wall sprite")][3], "wall sprite width"), px)
+    post_homes = _corner_post_homes(walls, sprites, atlas, proj.toward)
     for index, row in enumerate(walls):
         batches.object = game.object = fly.object = owner(row[8])
         if row[10] > 0 and index in corners.keep:
@@ -1535,10 +1642,11 @@ def encode_wall_sidecar(scene, skip_props=frozenset(), skip_rests=frozenset(), m
                 corner = fly_corner = (cut[0], cut[1], proj.toward)
             else:
                 corner = fly_corner = None
-            _wall_front(game, proj, sprites, pages, row, toward_camera, continuations[index], corner=corner)
+            _wall_front(game, proj, sprites, pages, row, toward_camera, continuations[index], corner=corner,
+                        post_homes=post_homes.get(index))
             _wall_front(fly, proj, sprites, pages, row, toward_camera, continuations[index], corners.keep[index],
                         corners.top_keep[index], None if index in hidden_walls else fly, atlas,
-                        corner=fly_corner)
+                        corner=fly_corner, post_homes=post_homes.get(index))
         elif row[10] > 0:
             # A thin wall (a fence) whose span crosses the line it corners
             # with (096): the stretch past that line takes the face it
@@ -1546,7 +1654,8 @@ def encode_wall_sidecar(scene, skip_props=frozenset(), skip_rests=frozenset(), m
             cut = corners.thin_cuts.get(index)
             corner = (cut[0], cut[1], proj.toward) if cut is not None else None
             _wall_front(batches, proj, sprites, pages, row, toward_camera, continuations[index],
-                        foot=None if index in hidden_walls else fly, atlas=atlas, corner=corner)
+                        foot=None if index in hidden_walls else fly, atlas=atlas, corner=corner,
+                        post_homes=post_homes.get(index))
         else:
             _record(row, 7, f"thin wall {index}")
             sprite = _int(row[0], "thin wall sprite index")
