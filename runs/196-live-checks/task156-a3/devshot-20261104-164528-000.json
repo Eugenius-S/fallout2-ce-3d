@@ -1,0 +1,133 @@
+{
+  "image": "devhero-20261104-164528-000.jpg",
+  "view": "static-wall-plus-hero-preview",
+  "map": "KLADWTWN.MAP",
+  "elevation": 0,
+  "still_snapshot": false,
+  "snapshot_run": "80d0b22992e14406bff47c894cff8019",
+  "view_tile": 24084,
+  "preview_requested": true,
+  "scene_3d_enabled": true,
+  "scene_view": "full",
+  "sharp_text": {
+    "setting": false,
+    "active": false,
+    "drawn": false,
+    "runs": 0,
+    "glyphs": 0,
+    "restored_pixels": 0,
+    "prepare_ms": 0.0
+  },
+  "map_clip": {
+    "enabled": true,
+    "setting_enabled": true,
+    "variant": "authored",
+    "source": "authored",
+    "world_bounds": [
+      -38.041667,
+      -34.5625,
+      35.958333,
+      34.4375
+    ],
+    "planes": [
+      [
+        0.4472136,
+        0.8944272,
+        29.1434193
+      ],
+      [
+        -0.8320503,
+        0.5547002,
+        22.4653587
+      ],
+      [
+        -0.4472136,
+        -0.8944272,
+        28.0999203
+      ],
+      [
+        0.8320503,
+        -0.5547002,
+        24.1294594
+      ]
+    ]
+  },
+  "camera": "fixed eye=(41.14183,46.23085,84.22036), target=(-8.04450,0.00000,10.44087), fov_y=25.0, near=0.1, far=400.0, screen_right=-cross(forward,world_up)",
+  "camera_turn": 0.0,
+  "wall_triangles": 48385,
+  "wall_pages": 6,
+  "hero": {
+    "tile": 24480,
+    "fid": 16777278,
+    "frame": 0,
+    "rotation": 4,
+    "world_anchor": [
+      -10.041666667,
+      11.4375
+    ]
+  },
+  "egg": {
+    "shown": true,
+    "rect": [
+      698,
+      251,
+      129,
+      98
+    ],
+    "zoom": 0.5,
+    "wall_rows_marked": 386,
+    "wall_rows_any": true
+  },
+  "objects": {
+    "drawn": 4604,
+    "skipped": 0
+  },
+  "preview_availability": "available",
+  "renderer": "scene-gl",
+  "light": "enabled",
+  "effect_emission": true,
+  "glow": {
+    "enabled": true,
+    "strength": 2.0
+  },
+  "weapon_effect": null,
+  "muzzle": null,
+  "sun": {
+    "setting": true,
+    "daylight": true,
+    "game_time": 302450,
+    "up": true,
+    "height": 66.009,
+    "azimuth": -26.565,
+    "direction": [
+      0.36366,
+      0.91361,
+      -0.18183
+    ],
+    "color": [
+      1.0,
+      0.96,
+      0.88
+    ],
+    "strength": 1.0
+  },
+  "resolution": "1920x1080",
+  "logical_resolution": "1371x771",
+  "scale": 1,
+  "scale_factor": 1.4,
+  "windowed": true,
+  "drawable": "1920x1080",
+  "sdl_window": {
+    "flags": 73734,
+    "window_position": "-20000,-20000",
+    "window_size": "1920x1080",
+    "drawable_size": "1920x1080",
+    "fullscreen": false,
+    "fullscreen_desktop": false,
+    "borderless": false
+  },
+  "ce_commit": "e6cb3d52",
+  "tools_commit": "-",
+  "exe_sha256": "36a2ef26f480e297be4dc224cac7d5114d99305217d7675e0828e4df5f99b17c",
+  "taken": "20261104-164528"
+}

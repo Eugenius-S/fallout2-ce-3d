@@ -1,0 +1,5 @@
+WATCHDOG STOP reason=step timeout after 15 s without progress
+last_step=WALK_PROBE START map=VAULT15.MAP elevation=0 start=20100 center=19094 target=16298 path=22
+last_game_state=scene: preview policy=game-state gameState=4 gameMode=0x4 uiDisabled=0 isoDisabled=1 combat=0 dialog=0 movie=0
+game_state=engine watchdog capture timed out
+screenshot=watchdog.jpg (last available game frame before timeout; see watchdog.jpg)

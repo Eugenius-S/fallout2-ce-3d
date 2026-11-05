@@ -10,6 +10,7 @@
 #include "content_config.h"
 #include "cycle.h"
 #include "debug.h"
+#include "devtools/devtools.h"
 #include "game.h"
 #include "game_mouse.h"
 #include "game_sound.h"
@@ -150,6 +151,11 @@ int gameMoviesSave(File* stream)
 // 0x44E690 gmovie_play
 int gameMoviePlay(int movie, int flags)
 {
+    if (devtools::gameMoviesSuppressed()) {
+        debugPrint("\ngmovie_play() skipped: background dev run\n");
+        return -1;
+    }
+
     if (movie < 0 || movie >= GAME_MOVIE_MAX_COUNT || movieFileNames[movie].empty()) {
         debugPrint("\ngmovie_play() - Error: Invalid movie %d\n", movie);
         return -1;

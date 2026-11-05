@@ -3,8 +3,9 @@
 # that process. The build runs as build/test-run/fallout2-ce-test.exe with the
 # fixed config from tools/test-config/ (the game reads and saves fallout2.cfg
 # next to its exe), so the owner's game/fallout2.cfg and game/fallout2-ce.exe
-# (dev-launch.ps1 installs new builds) are never read or written; the game's
-# resources stay in game/, which remains the working directory.
+# (dev-launch.ps1 installs new builds) are never read or written. Resources
+# stay in game/, which remains the working directory, unless -GameRoot selects
+# an isolated scratch install.
 #
 # Every file the run writes (snapshots, logs, the game's saved maps, automap
 # and world map) goes to its own folder, build/test-run/runs/<id> (the exe's
@@ -36,6 +37,8 @@ param(
     [string]$Map = "kladwtwn",
     [int]$Elevation = 0,
     [int]$TimeoutSeconds = 90,
+    [ValidateRange(1, 3600)]
+    [int]$StepTimeoutSeconds = 30,
     # How long to wait for this worktree's previous test game to finish.
     [ValidateRange(0, 240)]
     [int]$WaitMinutes = 30,
@@ -53,6 +56,21 @@ param(
     [string]$Tour,
     [switch]$Classic,
     [switch]$Preferences,
+    [string]$DevInput,
+    # -SceneInput: a scripted-input script pumped by the main loop itself, with
+    # the 3D scene up and no options screen on top (the scene begins the script
+    # once its view shows). The script's actions are the -DevInput ones plus
+    # "key <scancode>" (one pressed key, SDL_SCANCODE_* number) and "waitms".
+    [string]$SceneInput,
+    # Snapshots the script takes; the run waits for exactly this many (and the
+    # script's PASS line). 5 matches the options-panel resolution script.
+    [ValidateRange(1, 400)]
+    [int]$DevInputShots = 5,
+    # The script presses [ or ]: turn [3d] camera_rotation on in this run's
+    # isolated config copy, so the keys reach the turn.
+    [switch]$TurnKeys,
+    [ValidateSet('resolution', 'mode')]
+    [string]$PreferencesDropdown,
     [switch]$DevPanel,
     [ValidateSet('Top', 'Bottom')]
     [string]$PreferencesPosition = 'Top',
@@ -63,6 +81,7 @@ param(
     [ValidateRange(0, 39999)]
     [int]$HeroTile,
     [switch]$Still,
+    [switch]$LiveFrame,
     [ValidateRange(0, 65536)]
     [int]$Ambient = -1,
     [switch]$Fly,
@@ -79,7 +98,13 @@ param(
     # -Solo R: only the things within R hexes of -ViewTile, no walls or roofs.
     [int]$Solo = -1,
     [string]$OutputDirectory,
+    [string]$BuildExecutable,
+    [string]$TestDirectory,
+    [string]$GameRoot,
     [string]$SceneCache,
+    [ValidateRange(1, 10)]
+    [int]$DevLoadGameSlot = 0,
+    [switch]$ConfiguredDisplay,
     [ValidateSet('english', 'russian')]
     [string]$Language,
     [ValidateSet('save', 'save-key', 'cancel', 'cancel-key', 'escape', 'defaults', 'verify')]
@@ -122,6 +147,7 @@ param(
     [string]$ScrollEdge,
     [switch]$FollowHero,
     [switch]$WalkProbe,
+    [switch]$SkipScriptBlocking,
     [ValidateRange(0, 1000)]
     [int]$EffectFrame = -1,
     # -Shadows: keep sun and cloud shadows on in this background run (they are
@@ -153,10 +179,18 @@ param(
     [int]$ScreenWidth = 1920,
     [ValidateRange(480, 4320)]
     [int]$ScreenHeight = 1080,
-    [ValidateRange(1, 4)]
-    [int]$Scale = 2
+    [ValidateRange(1.0, 3.0)]
+    [double]$Scale = 2.0
 )
 $ErrorActionPreference = 'Stop'
+if ($DevInput -and (-not $Preferences -or -not $ConfiguredDisplay -or -not $ReuseTestConfig -or -not $OutputDirectory -or -not $CaptureConsole)) {
+    throw '-DevInput requires -Preferences, -ConfiguredDisplay, -ReuseTestConfig, -OutputDirectory and -CaptureConsole.'
+}
+if ($SceneInput -and (-not $OutputDirectory -or -not $CaptureConsole)) {
+    throw '-SceneInput requires -OutputDirectory and -CaptureConsole.'
+}
+if ($SceneInput -and $DevInput) { throw '-SceneInput and -DevInput are two different script modes.' }
+if ($TurnKeys -and -not $SceneInput) { throw '-TurnKeys requires -SceneInput.' }
 if ($ClockLadder) {
     if (-not $OutputDirectory -or $Tour -or $Classic -or $Probe -or $Preferences -or $MuzzleWeapon -or $GlowLadder -or $GlowPair -or $GlowLevels -or $EffectFixture -or $DialogFixture -or $UiFixture) { throw '-ClockLadder requires its own scene run and -OutputDirectory.' }
     $Still=$true; $CaptureConsole=$true
@@ -224,19 +258,23 @@ if ($DevPanel) {
     $Classic = $true
 }
 $Root = Split-Path -Parent $PSScriptRoot
-$GameDir = Join-Path $Root 'game'
-if (-not (Test-Path -LiteralPath $GameDir)) {
+$GameDir = if ($GameRoot) {
+    if ([System.IO.Path]::IsPathRooted($GameRoot)) { [System.IO.Path]::GetFullPath($GameRoot) }
+    else { [System.IO.Path]::GetFullPath((Join-Path $Root $GameRoot)) }
+} else { Join-Path $Root 'game' }
+if (-not $GameRoot -and -not (Test-Path -LiteralPath $GameDir)) {
     # An agent's worktree has no game: use the main checkout's, with this build.
     $main = (git -C $Root worktree list --porcelain | Select-Object -First 1) -replace '^worktree ', ''
     $GameDir = Join-Path $main 'game'
 }
-$built = Join-Path $Root 'build\fallout2-ce.exe'
+if (-not (Test-Path -LiteralPath $GameDir -PathType Container)) { throw "No game root at $GameDir" }
+$built = if ($BuildExecutable) { [System.IO.Path]::GetFullPath((Join-Path $Root $BuildExecutable)) } else { Join-Path $Root 'build\fallout2-ce.exe' }
 if (-not (Test-Path $built)) { throw "No build at $built; run tools/configure-build.ps1 first." }
 # The exe's own folder holds the config: build it fresh from the fixed one, so
 # a saved setting can never leak into the next run.
 $fixedConfig = Join-Path $PSScriptRoot 'test-config\fallout2.cfg'
 if (-not (Test-Path -LiteralPath $fixedConfig)) { throw "Missing the fixed test config: $fixedConfig" }
-$exeDirectory = Join-Path $Root 'build\test-run'
+$exeDirectory = if ($TestDirectory) { [System.IO.Path]::GetFullPath((Join-Path $Root $TestDirectory)) } else { Join-Path $Root 'build\test-run' }
 New-Item -ItemType Directory -Path $exeDirectory -Force | Out-Null
 $exe = Join-Path $exeDirectory 'fallout2-ce-test.exe'
 # One test game at a time per worktree (they share this exe and its config);
@@ -271,7 +309,7 @@ if ($PreferencesProbe) {
     if (-not $OutputDirectory -or -not $CaptureConsole) { throw '-PreferencesProbe requires -CaptureConsole and -OutputDirectory.' }
     if ($PreferencesProbe -eq 'verify' -and -not $ReuseTestConfig) { throw 'Use -ReuseTestConfig with the read-only verify probe.' }
 } elseif ($ReuseTestConfig) {
-    throw '-ReuseTestConfig requires -PreferencesProbe.'
+    if (-not $ConfiguredDisplay) { throw '-ReuseTestConfig requires -PreferencesProbe or -ConfiguredDisplay.' }
 }
 if ($DialogFixture) {
     if ($Map -ne 'kladwtwn') { throw '-DialogFixture requires the resource-verified Klamath map kladwtwn.' }
@@ -318,7 +356,7 @@ if ($DialogLayoutCheck) {
     if (-not $DialogFixture) { throw '-DialogLayoutCheck requires -DialogFixture.' }
     if ($DialogPageInspect -or $DialogCursorCheck) { throw '-DialogLayoutCheck cannot be combined with other dialog checks.' }
 }
-if ($ReuseTestConfig) {
+if ($ReuseTestConfig -or $ConfiguredDisplay) {
     if (-not (Test-Path -LiteralPath $configPath -PathType Leaf)) { throw "No isolated config to reuse: $configPath" }
 } else {
     Copy-Item $fixedConfig $configPath -Force
@@ -339,13 +377,35 @@ if ($Language) {
     if (-not $languageFound) { throw 'Could not find [system].language in the isolated test config.' }
     [System.IO.File]::WriteAllLines($configPath, $configLines, [System.Text.UTF8Encoding]::new($false))
 }
+if ($TurnKeys) {
+    $configLines = [System.Collections.Generic.List[string]]::new()
+    $in3dSection = $false
+    $rotationFound = $false
+    foreach ($line in [System.IO.File]::ReadAllLines($configPath)) {
+        if ($line -match '^\s*\[') { $in3dSection = $line.Trim() -eq '[3d]' }
+        if ($in3dSection -and $line -match '^\s*camera_rotation=') {
+            $configLines.Add('camera_rotation=1')
+            $rotationFound = $true
+        } else {
+            $configLines.Add($line)
+        }
+    }
+    if (-not $rotationFound) { throw 'Could not find [3d].camera_rotation in the isolated test config.' }
+    [System.IO.File]::WriteAllLines($configPath, $configLines, [System.Text.UTF8Encoding]::new($false))
+}
 $configHashBefore = (Get-FileHash -LiteralPath $configPath -Algorithm SHA256).Hash
 $initialZoom = Get-TestConfigValue $configPath '3d' 'zoom'
 $initialEnabled = Get-TestConfigValue $configPath '3d' 'enabled'
 $initialDifficulty = Get-TestConfigValue $configPath 'preferences' 'combat_difficulty'
-if (($ScreenWidth % $Scale) -ne 0 -or ($ScreenHeight % $Scale) -ne 0 -or
-    ($ScreenWidth / $Scale) -lt 640 -or ($ScreenHeight / $Scale) -lt 480) {
-    throw 'The requested scale must divide the screen and leave at least a 640x480 logical framebuffer.'
+if ($DevInput -and $Preferences -and $ConfiguredDisplay) {
+    $initialDisplayWidth = Get-TestConfigValue $configPath 'screen' 'resolution_x'
+    $initialDisplayHeight = Get-TestConfigValue $configPath 'screen' 'resolution_y'
+    $initialDisplayScale = Get-TestConfigValue $configPath 'screen' 'scale_factor'
+}
+$logicalWidth = [int][Math]::Round($ScreenWidth / $Scale, [MidpointRounding]::AwayFromZero)
+$logicalHeight = [int][Math]::Round($ScreenHeight / $Scale, [MidpointRounding]::AwayFromZero)
+if ($logicalWidth -lt 640 -or $logicalHeight -lt 480) {
+    throw 'The requested scale must leave at least a 640x480 logical framebuffer.'
 }
 if (-not (Test-Path -LiteralPath $exe) -or
     (Get-FileHash -LiteralPath $built).Hash -ne (Get-FileHash -LiteralPath $exe).Hash) {
@@ -358,12 +418,17 @@ $runId = [guid]::NewGuid().ToString('N')
 $runDirectory = Join-Path $exeDirectory "runs\$($runId.Substring(0, 12))"
 New-Item -ItemType Directory -Path $runDirectory -Force | Out-Null
 $arguments = @('--dev-tools')
+$arguments += '--dev-watchdog'
+if ($DevInput) { $arguments += "--dev-input=$([System.IO.Path]::GetFullPath($DevInput))" }
+if ($SceneInput) { $arguments += "--dev-scene-input=$([System.IO.Path]::GetFullPath($SceneInput))" }
+if ($TurnKeys) { $arguments += '--dev-camera-turn-keys' }
 if ($MuzzleWeapon -gt 0) {$arguments += @("--dev-muzzle=$MuzzleWeapon", "--dev-muzzle-animation=$MuzzleAnimation", "--dev-muzzle-rotation=$MuzzleRotation")}
 if ($ClockLadder) { $arguments += '--dev-clock-ladder' }
     if ($ScrollStep) { $arguments += "--dev-scroll-step=$ScrollStep" }
 if ($ScrollEdge) { $arguments += "--dev-scroll-edge=$ScrollEdge" }
 if ($FollowHero) { $arguments += '--dev-follow-hero' }
     if ($WalkProbe) { $arguments += '--dev-walk-probe' }
+if ($SkipScriptBlocking) { $arguments += '--dev-skip-script-blocking' }
 if ($NoEffectEmission) { $arguments += '--dev-no-effect-emission' }
 if ($EffectLightCheck) { $arguments += '--dev-effect-light-check' }
 if ($SharpText) { $arguments += '--dev-sharp-text=1' } else { $arguments += '--dev-sharp-text=0' }
@@ -378,9 +443,18 @@ if ($DialogCursorCheck) { $arguments += '--dev-dialog-cursor-check' }
 if ($DialogLayoutCheck) { $arguments += '--dev-dialog-layout-check' }
 if ($PreferencesProbe) {
     $arguments += @('--dev-new-game', "--dev-map=$Map", "--dev-elevation=$Elevation", "--dev-preferences-probe=$PreferencesProbe")
+} elseif ($ConfiguredDisplay) {
+    if ($PreferencesProbe) { throw '-ConfiguredDisplay cannot be combined with -PreferencesProbe.' }
+    if ($DevLoadGameSlot -gt 0) { $arguments += "--dev-load-game=$DevLoadGameSlot" }
+    else { $arguments += @('--dev-new-game', "--dev-map=$Map", "--dev-elevation=$Elevation") }
+    $arguments += "--dev-snapshot-run=$runId"
 } else {
-    $arguments += @("--dev-screen=${ScreenWidth}x${ScreenHeight}", "--dev-scale=$Scale",
-        '--dev-new-game', "--dev-map=$Map", "--dev-elevation=$Elevation", "--dev-snapshot-run=$runId")
+    $scaleText = $Scale.ToString('0.0#', [Globalization.CultureInfo]::InvariantCulture)
+    $scaleArgument = if ([Math]::Abs($Scale - [Math]::Round($Scale)) -lt 0.0001) { "--dev-scale=$([int][Math]::Round($Scale))" } else { "--dev-scale-factor=$scaleText" }
+    $arguments += @("--dev-screen=${ScreenWidth}x${ScreenHeight}", $scaleArgument)
+    if ($DevLoadGameSlot -gt 0) { $arguments += "--dev-load-game=$DevLoadGameSlot" }
+    else { $arguments += @('--dev-new-game', "--dev-map=$Map", "--dev-elevation=$Elevation") }
+    $arguments += "--dev-snapshot-run=$runId"
 }
 if ($Glow) { $arguments += '--dev-glow' }
 if ($GlowStrength -ge 0) { $arguments += "--dev-glow-strength=$($GlowStrength.ToString([System.Globalization.CultureInfo]::InvariantCulture))" }
@@ -405,6 +479,7 @@ if ($PreferencesProbe) {
     if ($Probe -or $Tour -or $Still) { throw '-Preferences cannot be combined with -Probe, -Tour, or -Still.' }
     if ($Classic) { $arguments += '--dev-classic' }
     $arguments += '--dev-preferences-snapshot'
+    if ($PreferencesDropdown) { $arguments += "--dev-preferences-dropdown=$PreferencesDropdown" }
     if ($PreferencesPosition -eq 'Bottom') { $arguments += '--dev-preferences-bottom' }
 } elseif ($Classic) { $arguments += '--dev-classic' }
 elseif (-not $NoPreview) { $arguments += '--dev-hero-preview' }
@@ -431,7 +506,18 @@ if ($Still) {
     if ($Probe) { throw '-Still cannot be combined with the interactive -Probe.' }
     $arguments += '--dev-still-snapshot'
 }
-if ($PreferencesProbe) {
+if ($LiveFrame) {
+    if ($Still -or $Preferences -or $PreferencesProbe -or $Probe -or $Tour -or $DialogFixture -or $UiFixture) {
+        throw '-LiveFrame cannot be combined with a still, preference, probe, tour, dialog, or UI fixture mode.'
+    }
+    $arguments += '--dev-live-snapshot-once'
+}
+if ($DevLoadGameSlot -gt 0 -and -not $LiveFrame) { throw '-DevLoadGameSlot requires -LiveFrame.' }
+if ($DevInput -or $SceneInput) {
+    $shots = $DevInputShots
+} elseif ($LiveFrame) {
+    $shots = 1
+} elseif ($PreferencesProbe) {
     $shots = 0
 } elseif ($Preferences) {
     $shots = 1
@@ -476,6 +562,14 @@ $process = $null
 $probeHarnessStoppedProcess = $false
 $snapshots = @()
 $dialogFixtureFailed = $false
+$watchdogExpired = $false
+$watchdogReason = ''
+$watchdogLastProgress = Get-Date
+$watchdogLastLine = ''
+$watchdogProgressObserved = $false
+$watchdogStdout = if ($CaptureConsole) { Join-Path $OutputDirectory 'process.stdout.log' } else { Join-Path $runDirectory 'process.stdout.log' }
+$watchdogStderr = if ($CaptureConsole) { Join-Path $OutputDirectory 'process.stderr.log' } else { Join-Path $runDirectory 'process.stderr.log' }
+$shotPath = Join-Path $runDirectory 'watchdog.png'
 try {
     $startParameters = @{
         FilePath = $exe
@@ -484,18 +578,30 @@ try {
         PassThru = $true
         ArgumentList = $arguments
     }
-    if ($CaptureConsole) {
-        if (-not $OutputDirectory) { throw '-CaptureConsole requires -OutputDirectory.' }
-        New-Item -ItemType Directory -Path $OutputDirectory -Force | Out-Null
-        $startParameters.RedirectStandardOutput = Join-Path $OutputDirectory 'process.stdout.log'
-        $startParameters.RedirectStandardError = Join-Path $OutputDirectory 'process.stderr.log'
-    }
+    if ($CaptureConsole -and -not $OutputDirectory) { throw '-CaptureConsole requires -OutputDirectory.' }
+    if ($OutputDirectory) { New-Item -ItemType Directory -Path $OutputDirectory -Force | Out-Null }
+    $startParameters.RedirectStandardOutput = $watchdogStdout
+    $startParameters.RedirectStandardError = $watchdogStderr
     $process = Start-Process @startParameters
     $deadline = $started.AddSeconds($TimeoutSeconds)
     $probeCompletedBeforeDeadline = $false
     if ($PreferencesProbe) {
         $probeStdoutPath = Join-Path $OutputDirectory 'process.stdout.log'
         while ((Get-Date) -lt $deadline -and -not $process.HasExited) {
+            if (Test-Path -LiteralPath $watchdogStdout) {
+                $lines = Get-Content -LiteralPath $watchdogStdout -Tail 40 -ErrorAction SilentlyContinue
+                $progress = @($lines | Where-Object { $_ -match '(^| )(STEP|START|PASS|FAIL|RESULT|DEV_INPUT pushed|DEV_INPUT snap|pending map id|waiting for map id)' } | Select-Object -Last 1)
+                if ($progress.Count -gt 0 -and $progress[0] -ne $watchdogLastLine) {
+                    $watchdogLastLine = [string]$progress[0]
+                    $watchdogLastProgress = Get-Date
+                    $watchdogProgressObserved = $true
+                }
+            }
+            if ($watchdogProgressObserved -and ((Get-Date) - $watchdogLastProgress).TotalSeconds -ge $StepTimeoutSeconds) {
+                $watchdogExpired = $true
+                $watchdogReason = "step timeout after $StepTimeoutSeconds s without progress"
+                break
+            }
             if ((Test-Path -LiteralPath $probeStdoutPath) -and
                 (Select-String -LiteralPath $probeStdoutPath -Pattern 'PREFERENCES_PROBE finished; requesting isolated helper exit' -Quiet)) {
                 $probeCompletedBeforeDeadline = $true
@@ -505,6 +611,20 @@ try {
         }
     } else {
         while ((Get-Date) -lt $deadline -and -not $process.HasExited) {
+            if (Test-Path -LiteralPath $watchdogStdout) {
+                $lines = Get-Content -LiteralPath $watchdogStdout -Tail 40 -ErrorAction SilentlyContinue
+                $progress = @($lines | Where-Object { $_ -match '(^| )(STEP|START|PASS|FAIL|RESULT|DEV_INPUT pushed|DEV_INPUT snap|pending map id|waiting for map id)' } | Select-Object -Last 1)
+                if ($progress.Count -gt 0 -and $progress[0] -ne $watchdogLastLine) {
+                    $watchdogLastLine = [string]$progress[0]
+                    $watchdogLastProgress = Get-Date
+                    $watchdogProgressObserved = $true
+                }
+            }
+            if ($watchdogProgressObserved -and ((Get-Date) - $watchdogLastProgress).TotalSeconds -ge $StepTimeoutSeconds) {
+                $watchdogExpired = $true
+                $watchdogReason = "step timeout after $StepTimeoutSeconds s without progress"
+                break
+            }
             # The exe writes into shots\dev\<date>\; the root scan also catches a
             # writer that could not make the folder. Both are filtered by the run
             # id below.
@@ -518,7 +638,11 @@ try {
             }
             $log = Join-Path $runDirectory 'logs\devprobe.log'
             $probed = -not $Probe -or ((Test-Path $log) -and (Select-String -Path $log -Pattern 'probe done' -Quiet))
-            if ($UiFixture) {
+            if ($DevInput -or $SceneInput) {
+                $inputLog = Join-Path $OutputDirectory 'process.stdout.log'
+                if ((Test-Path -LiteralPath $inputLog) -and (Select-String -LiteralPath $inputLog -Pattern '^DEV_INPUT FAIL' -Quiet)) { break }
+                if ($snapshots.Count -ge $shots -and (Test-Path -LiteralPath $inputLog) -and (Select-String -LiteralPath $inputLog -Pattern '^DEV_INPUT PASS script complete' -Quiet)) { break }
+            } elseif ($UiFixture) {
                 $fixtureLog = Join-Path $OutputDirectory 'process.stdout.log'
                 if ((Test-Path -LiteralPath $fixtureLog) -and
                     ((Select-String -LiteralPath $fixtureLog -Pattern '^UI_FIXTURE FAIL ' -Quiet) -or
@@ -581,6 +705,66 @@ try {
             Start-Sleep -Milliseconds 500
         }
     }
+    if (-not $process.HasExited -and -not $watchdogExpired -and (Get-Date) -ge $deadline) {
+        $watchdogExpired = $true
+        $watchdogReason = "whole-run timeout after $TimeoutSeconds s"
+    }
+    if ($watchdogExpired -and $null -ne $process -and -not $process.HasExited) {
+        $stateLines = if (Test-Path -LiteralPath $watchdogStdout) { @(Get-Content -LiteralPath $watchdogStdout -Tail 80 -ErrorAction SilentlyContinue) } else { @() }
+        $lastStep = if ($watchdogLastLine) { $watchdogLastLine } else { '<no progress marker>' }
+        $diag = "WATCHDOG STOP reason=$watchdogReason`nlast_step=$lastStep`nlast_game_state=$(@($stateLines | Where-Object { $_ -match 'pending map id|waiting for map id|WALK_PROBE|DEV_INPUT|TOUR|COMBAT|DEV_WATCHDOG state' } | Select-Object -Last 1))"
+        $diagPath = Join-Path $runDirectory 'watchdog.txt'
+        Set-Content -LiteralPath $diagPath -Value $diag -Encoding utf8
+        try {
+            $requestPath = Join-Path $runDirectory 'watchdog.request'
+            $gameStatePath = Join-Path $runDirectory 'watchdog-state.txt'
+            Set-Content -LiteralPath $requestPath -Value 'capture' -Encoding ascii
+            $captureDeadline = (Get-Date).AddSeconds(5)
+            while ((Get-Date) -lt $captureDeadline -and -not (Test-Path -LiteralPath $gameStatePath)) { Start-Sleep -Milliseconds 100 }
+            if (Test-Path -LiteralPath $gameStatePath) {
+                $gameState = Get-Content -Raw -LiteralPath $gameStatePath
+                Add-Content -LiteralPath $diagPath -Value "game_state=$gameState"
+                $sidecar = Get-ChildItem (Join-Path $runDirectory 'shots\dev') -Recurse -Filter 'devshot-*.json' -File -ErrorAction SilentlyContinue |
+                    Sort-Object LastWriteTime -Descending | Select-Object -First 1
+                if ($sidecar) {
+                    $metadata = Get-Content -Raw -LiteralPath $sidecar.FullName | ConvertFrom-Json
+                    $sourceImage = Join-Path $sidecar.DirectoryName $metadata.image
+                    if (Test-Path -LiteralPath $sourceImage) {
+                        Copy-Item -LiteralPath $sourceImage -Destination $shotPath -Force
+                        Copy-Item -LiteralPath $sidecar.FullName -Destination (Join-Path $runDirectory 'watchdog.json') -Force
+                        Add-Content -LiteralPath $diagPath -Value "screenshot=$shotPath"
+                    } else { Add-Content -LiteralPath $diagPath -Value 'screenshot=engine capture image missing' }
+                } else { Add-Content -LiteralPath $diagPath -Value 'screenshot=engine capture metadata missing' }
+            } else {
+                Add-Content -LiteralPath $diagPath -Value 'game_state=engine watchdog capture timed out'
+            }
+            if (-not (Test-Path -LiteralPath $shotPath)) {
+                $lastImageMeta = Get-ChildItem (Join-Path $runDirectory 'shots\dev') -Recurse -Filter 'devshot-*.json' -File -ErrorAction SilentlyContinue |
+                    Sort-Object LastWriteTime -Descending | Select-Object -First 1
+                if ($lastImageMeta) {
+                    $metadata = Get-Content -Raw -LiteralPath $lastImageMeta.FullName | ConvertFrom-Json
+                    $sourceImage = Join-Path $lastImageMeta.DirectoryName $metadata.image
+                    if (Test-Path -LiteralPath $sourceImage) {
+                        Copy-Item -LiteralPath $sourceImage -Destination $shotPath -Force
+                        Copy-Item -LiteralPath $lastImageMeta.FullName -Destination (Join-Path $runDirectory 'watchdog.json') -Force
+                        Add-Content -LiteralPath $diagPath -Value "screenshot=last game snapshot before timeout ($shotPath)"
+                    }
+                }
+            }
+        } catch { Add-Content -LiteralPath $diagPath -Value "screenshot=capture failed: $($_.Exception.Message)" }
+        # The game may still hold its redirected stdout open here (a fast
+        # exit races this write); the diagnostic line is best-effort.
+        try { Add-Content -LiteralPath $watchdogStdout -Value $diag } catch { }
+        if ($OutputDirectory) {
+            Copy-Item -LiteralPath $diagPath -Destination $OutputDirectory -Force
+            if (Test-Path -LiteralPath $shotPath) { Copy-Item -LiteralPath $shotPath -Destination $OutputDirectory -Force }
+            foreach ($watchdogArtifact in @((Join-Path $runDirectory 'watchdog.json'), $gameStatePath)) {
+                if (Test-Path -LiteralPath $watchdogArtifact) { Copy-Item -LiteralPath $watchdogArtifact -Destination $OutputDirectory -Force }
+            }
+        }
+        Stop-Process -Id $process.Id -Force
+        $probeHarnessStoppedProcess = $true
+    }
     Start-Sleep -Milliseconds 500
 } finally {
     $env:F2CE_DEV_BACKGROUND = $previousBackground
@@ -596,6 +780,30 @@ try {
     }
     Release-TestSlot
 }
+if ($DevInput -or $SceneInput) {
+    $inputLog = Get-Content -Raw -LiteralPath (Join-Path $OutputDirectory 'process.stdout.log')
+    $inputErrors = Get-Content -Raw -LiteralPath (Join-Path $OutputDirectory 'process.stderr.log')
+    if ($inputLog -notmatch '(?m)^DEV_INPUT PASS script complete' -or $inputErrors -match 'DEV_INPUT FAIL' -or $snapshots.Count -ne $DevInputShots) {
+        throw "Scripted input did not complete with exactly $DevInputShots snapshots."
+    }
+    if ($DevInput -and $Preferences -and $ConfiguredDisplay) {
+        # The options-panel resolution script must have saved both a new
+        # resolution and a new scale into the isolated config.
+        $afterWidth = Get-TestConfigValue $configPath 'screen' 'resolution_x'
+        $afterHeight = Get-TestConfigValue $configPath 'screen' 'resolution_y'
+        $afterScale = Get-TestConfigValue $configPath 'screen' 'scale_factor'
+        if (($afterWidth -eq $initialDisplayWidth -and $afterHeight -eq $initialDisplayHeight) -or $afterScale -eq $initialDisplayScale) {
+            throw 'Scripted input did not save both a different resolution and scale.'
+        }
+        [ordered]@{
+            coordinate_space = 'logical'; snapshots = $snapshots.Count
+            initial = @{ resolution_x = $initialDisplayWidth; resolution_y = $initialDisplayHeight; scale_factor = $initialDisplayScale }
+            saved = @{ resolution_x = $afterWidth; resolution_y = $afterHeight; scale_factor = $afterScale }
+            config_sha256 = (Get-FileHash -LiteralPath $configPath -Algorithm SHA256).Hash
+        } | ConvertTo-Json -Depth 4 | Set-Content -Encoding utf8 -LiteralPath (Join-Path $OutputDirectory 'input-result.json')
+    }
+}
+if ($watchdogExpired) { throw "Live check watchdog: $watchdogReason. Diagnostics: $(Join-Path $runDirectory 'watchdog.txt')" }
 if ($MuzzleWeapon -gt 0) {
     $muzzleText086=Get-Content -Raw -LiteralPath (Join-Path $OutputDirectory 'process.stdout.log')
     if ($muzzleText086 -notmatch 'MUZZLE_FIXTURE PASS' -or $muzzleText086 -match 'MUZZLE_FIXTURE FAIL') {throw 'Muzzle batch did not finish successfully.'}
@@ -702,10 +910,12 @@ if ($UiFixture) {
         $barkMetadata = Get-Content -Raw -LiteralPath $ordered[0].FullName | ConvertFrom-Json
         $clearMetadata = Get-Content -Raw -LiteralPath $ordered[-1].FullName | ConvertFrom-Json
         $expectedResolution = "${ScreenWidth}x${ScreenHeight}"
-        $expectedLogicalResolution = "$([int]($ScreenWidth / $Scale))x$([int]($ScreenHeight / $Scale))"
+        $expectedLogicalResolution = "${logicalWidth}x${logicalHeight}"
+        $expectedLegacyScale = [int][Math]::Round($Scale)
         foreach ($metadata in @($barkMetadata, $clearMetadata)) {
             if ($metadata.snapshot_run -ne $runId -or $metadata.resolution -ne $expectedResolution -or
-                $metadata.logical_resolution -ne $expectedLogicalResolution -or $metadata.scale -ne $Scale) {
+                $metadata.logical_resolution -ne $expectedLogicalResolution -or $metadata.scale -ne $expectedLegacyScale -or
+                [Math]::Abs([double]$metadata.scale_factor - $Scale) -gt 0.01) {
                 throw 'Bark fixture metadata does not match the requested dimensions and scale.'
             }
         }
@@ -725,9 +935,11 @@ if ($UiFixture) {
     if ($snapshots.Count -lt 1) { throw "UI fixture '$UiFixture' passed without a framebuffer snapshot." }
     $uiMetadata = Get-Content -Raw -LiteralPath $snapshots[0].FullName | ConvertFrom-Json
     $expectedResolution = "${ScreenWidth}x${ScreenHeight}"
-    $expectedLogicalResolution = "$([int]($ScreenWidth / $Scale))x$([int]($ScreenHeight / $Scale))"
+    $expectedLogicalResolution = "${logicalWidth}x${logicalHeight}"
+    $expectedLegacyScale = [int][Math]::Round($Scale)
     if ($uiMetadata.snapshot_run -ne $runId -or $uiMetadata.resolution -ne $expectedResolution -or
-        $uiMetadata.logical_resolution -ne $expectedLogicalResolution -or $uiMetadata.scale -ne $Scale) {
+        $uiMetadata.logical_resolution -ne $expectedLogicalResolution -or $uiMetadata.scale -ne $expectedLegacyScale -or
+        [Math]::Abs([double]$uiMetadata.scale_factor - $Scale) -gt 0.01) {
         throw "UI fixture '$UiFixture' snapshot metadata does not match the requested run, dimensions, and scale."
     }
     $passLine = [regex]::Match($fixtureLog, '(?m)^UI_FIXTURE PASS screen=' + [regex]::Escape($UiFixture) + ' window=(\d+) generation=(\d+) font=101 runs=(\d+) screen_runs=(\d+) visible_runs=(\d+) visible_coverage=(\d+) overlay_runs=(\d+) overlay_pixels=(\d+)')

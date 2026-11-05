@@ -4,7 +4,7 @@
   "map": "KLACANYN.MAP",
   "elevation": 0,
   "still_snapshot": true,
-  "snapshot_run": "232c2efb365f4c439187ef01db8abc4c",
+  "snapshot_run": "cb2e54307e0a4e778ced9610d42b0dfb",
   "view_tile": 15909,
   "preview_requested": true,
   "scene_3d_enabled": true,
@@ -53,7 +53,8 @@
     ]
   },
   "camera": "fixed eye=(53.64466,46.23085,63.46700), target=(4.45833,0.00000,-10.31250), fov_y=25.0, near=0.1, far=400.0, screen_right=-cross(forward,world_up)",
-  "wall_triangles": 113,
+  "camera_turn": 0.0,
+  "wall_triangles": 78,
   "wall_pages": 2,
   "hero": {
     "tile": 21871,
@@ -96,12 +97,12 @@
     "daylight": true,
     "game_time": 302400,
     "up": true,
-    "height": 72.0,
+    "height": 66.0,
     "azimuth": -26.565,
     "direction": [
-      0.27639,
-      0.95106,
-      -0.1382
+      0.3638,
+      0.91355,
+      -0.1819
     ],
     "color": [
       1.0,
@@ -113,13 +114,23 @@
   "resolution": "1920x1080",
   "logical_resolution": "960x540",
   "scale": 2,
+  "scale_factor": 2.0,
   "windowed": true,
   "drawable": "1920x1080",
-  "ce_commit": "a8d0b83e",
+  "sdl_window": {
+    "flags": 73734,
+    "window_position": "-20000,-20000",
+    "window_size": "1920x1080",
+    "drawable_size": "1920x1080",
+    "fullscreen": false,
+    "fullscreen_desktop": false,
+    "borderless": false
+  },
+  "ce_commit": "6ecfbadb",
   "tools_commit": "-",
-  "exe_sha256": "3aace7b1eef2ec8f922de2bc1b5826724f81f7f7d233ab12622ca04a93a3b697",
-  "taken": "20261101-123009",
-  "capture_image": "devhero-20261101-123009-000.png",
+  "exe_sha256": "3d5adb93c48251be01da89aa5c97a7e38e68833dc79a6ac1c452968fe7270df6",
+  "taken": "20261104-221213",
+  "capture_image": "devhero-20261104-221213-000.png",
   "spot": {
     "name": "klacanyn-e0",
     "map": "klacanyn",

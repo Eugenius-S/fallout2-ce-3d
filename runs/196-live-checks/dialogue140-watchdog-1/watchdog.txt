@@ -1,0 +1,4 @@
+WATCHDOG STOP reason=step timeout after 30 s without progress
+last_step=DIALOG_FIXTURE START map=KLADWTWN.MAP elevation=0 script=Kcsulik.int speaker=26 speaker_tile=23478 hero=25075 talk_result=0
+last_game_state=scene: preview policy=iso-disabled gameState=0 gameMode=0x4 uiDisabled=0 isoDisabled=1 combat=0 dialog=0 movie=0
+game_state=engine watchdog capture timed out

@@ -8,7 +8,6 @@ PreviewBlockReason previewBlockReason(const PreviewRuntimeState& state)
     if (!state.gameNormal) return PreviewBlockReason::GameState;
     if (!state.gameModeShowsMap) return PreviewBlockReason::GameMode;
     if (!state.isoEnabled) return PreviewBlockReason::IsoDisabled;
-    if (!state.noDialog) return PreviewBlockReason::Dialog;
     if (!state.noMovie) return PreviewBlockReason::Movie;
     return PreviewBlockReason::None;
 }

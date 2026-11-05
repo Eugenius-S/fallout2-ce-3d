@@ -1,0 +1,56 @@
+DEV_INPUT snap
+DEV_INPUT pushed move
+DEV_INPUT motion 910 244
+DEV_INPUT pushed down
+DEV_INPUT button 1 at 910 244
+DEV_INPUT pushed up
+DEV_INPUT button 0 at 910 244
+DEV_INPUT snap
+DEV_INPUT pushed move
+DEV_INPUT motion 810 307
+DEV_INPUT pushed down
+DEV_INPUT button 1 at 810 307
+DEV_INPUT pushed up
+DEV_INPUT button 0 at 810 307
+DEV_INPUT snap
+DEV_INPUT pushed move
+DEV_INPUT motion 785 328
+DEV_INPUT pushed down
+DEV_INPUT button 1 at 785 328
+DEV_INPUT pushed move
+DEV_INPUT motion 825 328
+DEV_INPUT pushed up
+DEV_INPUT button 0 at 825 328
+DEV_INPUT snap
+DEV_INPUT pushed wheel
+DEV_INPUT pushed wheel
+DEV_INPUT pushed wheel
+DEV_INPUT pushed wheel
+DEV_INPUT pushed wheel
+DEV_INPUT pushed wheel
+DEV_INPUT pushed wheel
+DEV_INPUT pushed wheel
+DEV_INPUT pushed wheel
+DEV_INPUT pushed wheel
+DEV_INPUT pushed wheel
+DEV_INPUT pushed wheel
+DEV_INPUT pushed wheel
+DEV_INPUT pushed wheel
+DEV_INPUT pushed wheel
+DEV_INPUT pushed wheel
+DEV_INPUT pushed wheel
+DEV_INPUT pushed wheel
+DEV_INPUT pushed wheel
+DEV_INPUT pushed wheel
+DEV_INPUT pushed wheel
+DEV_INPUT pushed wheel
+DEV_INPUT pushed wheel
+DEV_INPUT pushed wheel
+DEV_INPUT pushed move
+DEV_INPUT motion 519 735
+DEV_INPUT pushed down
+DEV_INPUT button 1 at 519 735
+DEV_INPUT pushed up
+DEV_INPUT button 0 at 519 735
+DEV_INPUT snap
+DEV_INPUT PASS script complete

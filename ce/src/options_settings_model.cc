@@ -8,15 +8,37 @@ OptionsSettingsModel::OptionsSettingsModel()
 {
     const auto& descriptors = settingsGetDescriptors();
     edits_.reserve(descriptors.size());
+    descriptors_.reserve(descriptors.size());
     for (const auto& descriptor : descriptors) {
-        SettingValue value = settingsGetConfiguredValue(descriptor);
-        edits_.push_back({ &descriptor, value, std::move(value) });
+        descriptors_.push_back(descriptor);
+        SettingValue value = settingsGetConfiguredValue(descriptors_.back());
+        edits_.push_back({ &descriptors_.back(), value, std::move(value) });
     }
 }
 
 const std::vector<OptionsSettingEdit>& OptionsSettingsModel::edits() const
 {
     return edits_;
+}
+
+bool OptionsSettingsModel::configureChoice(const std::string& id, const std::vector<SettingChoice>& choices)
+{
+    auto descriptor = std::find_if(descriptors_.begin(), descriptors_.end(), [&id](const SettingDescriptor& value) {
+        return value.id == id;
+    });
+    if (descriptor == descriptors_.end() || descriptor->valueType != SettingValueType::Choice) return false;
+    descriptor->choices = choices;
+    return true;
+}
+
+bool OptionsSettingsModel::configureNumericRange(const std::string& id, const SettingNumericRange& range)
+{
+    auto descriptor = std::find_if(descriptors_.begin(), descriptors_.end(), [&id](const SettingDescriptor& value) {
+        return value.id == id;
+    });
+    if (descriptor == descriptors_.end() || !descriptor->numericRange.has_value()) return false;
+    descriptor->numericRange = range;
+    return true;
 }
 
 bool OptionsSettingsModel::setValue(const std::string& id, const SettingValue& value, std::string* error)

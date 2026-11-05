@@ -1,0 +1,356 @@
+{
+  "model": "hmjmps",
+  "source": "critter.dat art/critters/hmjmpsaa.frm + hmjmpsab.frm",
+  "actions": {
+    "standing": "ANIM_STAND (0), first frame, six directions NE,E,SE,SW,W,NW",
+    "walking": "ANIM_WALK (1), direction 0 (NE), all frames"
+  },
+  "frame_count_standing_file": 12,
+  "frame_count_walking": 8,
+  "cell_size": [
+    41,
+    83
+  ],
+  "grid": [
+    4,
+    4
+  ],
+  "frames": [
+    {
+      "slot": 0,
+      "label": "stand_dir0",
+      "frame_size": [
+        28,
+        63
+      ],
+      "frame_offset": [
+        0,
+        0
+      ],
+      "direction_shift": [
+        -1,
+        3
+      ],
+      "cell_origin": [
+        0,
+        0
+      ],
+      "sprite_origin": [
+        5,
+        23
+      ]
+    },
+    {
+      "slot": 1,
+      "label": "stand_dir1",
+      "frame_size": [
+        13,
+        65
+      ],
+      "frame_offset": [
+        0,
+        0
+      ],
+      "direction_shift": [
+        -1,
+        5
+      ],
+      "cell_origin": [
+        41,
+        0
+      ],
+      "sprite_origin": [
+        54,
+        23
+      ]
+    },
+    {
+      "slot": 2,
+      "label": "stand_dir2",
+      "frame_size": [
+        28,
+        64
+      ],
+      "frame_offset": [
+        0,
+        0
+      ],
+      "direction_shift": [
+        -1,
+        4
+      ],
+      "cell_origin": [
+        82,
+        0
+      ],
+      "sprite_origin": [
+        87,
+        23
+      ]
+    },
+    {
+      "slot": 3,
+      "label": "stand_dir3",
+      "frame_size": [
+        28,
+        63
+      ],
+      "frame_offset": [
+        0,
+        0
+      ],
+      "direction_shift": [
+        0,
+        3
+      ],
+      "cell_origin": [
+        123,
+        0
+      ],
+      "sprite_origin": [
+        129,
+        23
+      ]
+    },
+    {
+      "slot": 4,
+      "label": "stand_dir4",
+      "frame_size": [
+        14,
+        66
+      ],
+      "frame_offset": [
+        0,
+        0
+      ],
+      "direction_shift": [
+        2,
+        5
+      ],
+      "cell_origin": [
+        0,
+        83
+      ],
+      "sprite_origin": [
+        15,
+        105
+      ]
+    },
+    {
+      "slot": 5,
+      "label": "stand_dir5",
+      "frame_size": [
+        27,
+        63
+      ],
+      "frame_offset": [
+        0,
+        0
+      ],
+      "direction_shift": [
+        0,
+        3
+      ],
+      "cell_origin": [
+        41,
+        83
+      ],
+      "sprite_origin": [
+        48,
+        106
+      ]
+    },
+    {
+      "slot": 6,
+      "label": "walk_dir0_frame00",
+      "frame_size": [
+        25,
+        63
+      ],
+      "frame_offset": [
+        3,
+        -4
+      ],
+      "direction_shift": [
+        -2,
+        4
+      ],
+      "cell_origin": [
+        82,
+        83
+      ],
+      "sprite_origin": [
+        91,
+        103
+      ]
+    },
+    {
+      "slot": 7,
+      "label": "walk_dir0_frame01",
+      "frame_size": [
+        22,
+        63
+      ],
+      "frame_offset": [
+        5,
+        -2
+      ],
+      "direction_shift": [
+        -2,
+        4
+      ],
+      "cell_origin": [
+        123,
+        83
+      ],
+      "sprite_origin": [
+        135,
+        105
+      ]
+    },
+    {
+      "slot": 8,
+      "label": "walk_dir0_frame02",
+      "frame_size": [
+        29,
+        65
+      ],
+      "frame_offset": [
+        5,
+        0
+      ],
+      "direction_shift": [
+        -2,
+        4
+      ],
+      "cell_origin": [
+        0,
+        166
+      ],
+      "sprite_origin": [
+        9,
+        188
+      ]
+    },
+    {
+      "slot": 9,
+      "label": "walk_dir0_frame03",
+      "frame_size": [
+        23,
+        64
+      ],
+      "frame_offset": [
+        3,
+        -7
+      ],
+      "direction_shift": [
+        -2,
+        4
+      ],
+      "cell_origin": [
+        41,
+        166
+      ],
+      "sprite_origin": [
+        51,
+        182
+      ]
+    },
+    {
+      "slot": 10,
+      "label": "walk_dir0_frame04",
+      "frame_size": [
+        23,
+        64
+      ],
+      "frame_offset": [
+        4,
+        -3
+      ],
+      "direction_shift": [
+        -2,
+        4
+      ],
+      "cell_origin": [
+        82,
+        166
+      ],
+      "sprite_origin": [
+        93,
+        186
+      ]
+    },
+    {
+      "slot": 11,
+      "label": "walk_dir0_frame05",
+      "frame_size": [
+        26,
+        66
+      ],
+      "frame_offset": [
+        5,
+        -1
+      ],
+      "direction_shift": [
+        -2,
+        4
+      ],
+      "cell_origin": [
+        123,
+        166
+      ],
+      "sprite_origin": [
+        133,
+        186
+      ]
+    },
+    {
+      "slot": 12,
+      "label": "walk_dir0_frame06",
+      "frame_size": [
+        26,
+        67
+      ],
+      "frame_offset": [
+        5,
+        -1
+      ],
+      "direction_shift": [
+        -2,
+        4
+      ],
+      "cell_origin": [
+        0,
+        249
+      ],
+      "sprite_origin": [
+        10,
+        268
+      ]
+    },
+    {
+      "slot": 13,
+      "label": "walk_dir0_frame07",
+      "frame_size": [
+        27,
+        66
+      ],
+      "frame_offset": [
+        4,
+        -7
+      ],
+      "direction_shift": [
+        -2,
+        4
+      ],
+      "cell_origin": [
+        41,
+        249
+      ],
+      "sprite_origin": [
+        50,
+        263
+      ]
+    }
+  ]
+}

@@ -150,6 +150,19 @@ the game loop (`mapLoadById`), the hero on the map's entrance tile, the
 camera centered, the map scripts run. In combat/dialog/movies the
 transition is refused with a status in the panel.
 
+Background live checks have a whole-run timeout (`-TimeoutSeconds`, default
+90) and a stalled-step timeout (`-StepTimeoutSeconds`, default 30). A timeout
+stops only the test process and preserves `watchdog.txt`, process logs, and
+the latest game snapshot in the failed run folder. The report includes the
+last progress marker and most recent map/combat/dialog/movie state. If the
+game loop is blocked and cannot take a fresh frame, it keeps the last frame
+captured before the block. The dialog fixture also records a baseline frame
+before entering the modal interaction. Use
+`-SkipScriptBlocking` to enable the dev-only `--dev-skip-script-blocking`
+option: script-requested dialogue is skipped before its UI opens, and
+script-requested movies are skipped, with each skip recorded in stdout. This
+option is off unless requested.
+
 ## A snapshot
 
 F9/SNAP writes `devshot-YYYYMMDD-HHMMSS.json` + `scrNNNNN.png` into `game\shots\dev\<date>\` and `game\shots\game\` (the game folder root keeps only the game's own files):
@@ -337,3 +350,21 @@ for a before comparison. `-EffectLightCheck` exercises a synthetic effect light
 through move/offset/hide/restore/lights-off, checks the unchanged native light
 map and object light fields, and records light_check in weapon_effect metadata.
 The legacy light metadata field now reports the actual lighting setting.
+
+## Frame profiler (task 155)
+
+Set `F2CE_PERF=1` in the environment of a game or a `dev-snapshot.ps1` run and
+the run folder's `logs/devperf.log` gets, every two seconds, the frame rate, the
+average, 1% low and worst frame time, the CPU time to submit a frame, the GPU
+time and the GPU time of each pass (sky_light, shadow, floor, flat_objects,
+walls, objects, hero_egg_glass, roofs, glow, overlay), plus the wall time of
+the scene load stages (`perf load ...`). The same build can restore the old
+shadow costs for a before and after: `F2CE_SHADOW_NO_CACHE=1` draws the shadow
+map every frame, `F2CE_SHADOW_NO_SKIP=1` runs the full tap loop everywhere.
+
+- `F2CE_PERF_HOLD=N`: a one-shot snapshot run keeps drawing for N seconds, so
+  there is something to measure.
+- `F2CE_PERF_TOGGLE="shadows=1@4,glow=0@8"`: flips a `[3d]` option (shadows,
+  glow, clouds, lights, sun) at the given second of the run; the frame it lands
+  in is logged as `perf toggle ... frame_ms=`.
+- Measured results of the task: `runs/155-performance/results.md`.

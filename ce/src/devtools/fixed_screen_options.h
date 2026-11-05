@@ -9,6 +9,7 @@ struct FixedScreenOptions {
     int width = 0;
     int height = 0;
     int scale = 0;
+    double scaleFactor = 0.0;
 };
 
 // Parses --dev-screen=<width>x<height> and --dev-scale=<1..4> from the full

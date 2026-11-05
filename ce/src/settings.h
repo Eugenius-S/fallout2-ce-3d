@@ -106,9 +106,11 @@ struct SystemSettings {
 struct ScreenSettings {
     int resolution_x = 640;
     int resolution_y = 480;
+    int resolution_mode = 0;
     WindowMode windowed = WindowMode::Fullscreen;
     bool mouse_lock = false;
     int scale = 1;
+    double scale_factor = 1.0;
 };
 
 struct UISettings {
@@ -294,7 +296,7 @@ struct Scene3dSettings {
     bool lights = true;
     bool sun = true;
     bool shadows = true;
-    bool cloud_shadows = true;
+    bool cloud_shadows = false;
     double shadow_pixel_size = 1.0; // 082: crisp by default, the knob softens
     double shadow_density = 0.8; // scales the shadow darkening; 0 turns the cast shadows off
     double sun_swing = 40.0; // degrees off vertical at dawn and dusk (082)

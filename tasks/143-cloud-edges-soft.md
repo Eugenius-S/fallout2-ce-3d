@@ -3,9 +3,10 @@ id: 143
 title: Cloud shadow edges stay soft on the ground
 milestone: M1
 status: todo
-owner: none
-suggested: gpt
-priority: high
+owner: any
+suggested: any
+priority: normal
+tier: 3
 claude-only: no
 user-check: yes
 depends-on: []
@@ -48,3 +49,5 @@ line or one-step contour at its edge, on dark ground as well as on light.
 ## Log
 
 - 2026-11-01 Cut from the owner's live find after #199.
+
+- 2026-11-01 The owner asked gpt directly to make cloud shadows an option that is off by default for now; this task still makes the edges soft for when they are on.

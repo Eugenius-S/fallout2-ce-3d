@@ -1,0 +1,78 @@
+---
+id: 156
+title: Resolution, window mode and scale change on the fly, without a restart
+milestone: M1
+status: todo
+owner: any
+suggested: any
+priority: high
+tier: 2
+claude-only: no
+user-check: yes
+depends-on: [154]
+reviewed: yes
+---
+
+## Goal
+
+The display rows in the 3D settings (154) take effect when the panel
+closes, without restarting the game: window mode, resolution and picture
+scale. The "restart needed" notes go away for what now applies live.
+
+## Context
+
+- Folded in (the owner, 2026-11-04, `runs/inbox/2026-11-04-sharp-text-live.png`,
+  the panel's Lighting section in the original pixel font): the sharp-text
+  switch (025) should apply on the fly like the other settings. Turning it on
+  or off changes all text right away (the settings panel itself, dialogue,
+  the message log) with no restart and no stall; today it needs a restart.
+- Folded in (the owner, 2026-11-04, a screenshot over Klamath): in
+  fullscreen, NVIDIA's "Press Ctrl+Alt+Z to open the overlay" toast keeps
+  popping up during play, as if the game were starting again. The NVIDIA
+  app shows it when a process creates a new D3D or GL device or swapchain in
+  fullscreen, so something recreates the presentation device during play.
+  Suspects: `svga.cc` `handleWindowSizeChanged()` destroys and recreates the
+  SDL renderer whenever the scene renderer is not active (combat, dialogue,
+  menus, movies); a switch between the GL scene path and the SDL renderer
+  path (if that is the cause, it ends with 173); an exclusive-fullscreen
+  mode switch. Same renderer and surface lifetime as this task.
+- The owner, 2026-11-02: wants resolution and scale to change on the fly
+  and without a stall.
+- 154 saves `[screen] resolution_x`, `resolution_y`, `windowed` and the
+  scale factor and asks for a restart. Window mode is an SDL window flag
+  change. Resolution and scale change the logical framebuffer size
+  (`ce/src/svga.cc`), so the SDL texture, the 3D render targets and the 2D
+  game windows (interface bar, map view, open dialogs) laid out at start
+  for that size must be rebuilt or re-laid out. Find what CE sizes at start
+  and choose: rebuild live everywhere, or live from the options screen with
+  the map window re-created on return. Write the choice in the Log first.
+- A mode that fails falls back to the previous one, as in 154.
+
+## Acceptance
+
+- Scripted input (154's dev input) switches 1920x1080 1.4x window to
+  2560x1440 2.0x and to borderless and back in one run, with frames after
+  each switch in `runs/156-live-display-change/`: the interface fits, the
+  cursor lands where it points, the 3D view fills the window.
+- Every 3D settings row (shadows, glow, clouds, lights, scale, resolution)
+  applies without a stall: measured with 127's frame-time log, no frame
+  over 100 ms on the change. A change never re-exports or re-reads the scene
+  cache; it rebuilds only the render targets or shader state it touches.
+- The switch takes under a second; the original view regression stays
+  pixel for pixel; ctest passes.
+
+- One presentation device for the whole run: every renderer and context
+  create and destroy is logged with its reason; a fullscreen session
+  through a map change, a dialogue, combat and the options screen logs no
+  recreate after launch, and the overlay toast shows at most once.
+
+- Sharp text toggled with the panel open: the panel, a dialogue and the
+  message log before and after, no frame over 33 ms around the toggle.
+
+## Out of scope
+
+Speed of the game in general (157).
+
+## Log
+
+- 2026-11-02 Cut from the owner's request; 154 asked for a restart.

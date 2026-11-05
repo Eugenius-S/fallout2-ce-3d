@@ -348,8 +348,11 @@ set(FALLOUT_PLATFORM_SOURCES
     "src/devtools/test_run_state.h"
     "src/devtools/ui_fixture.h"
     "src/scene_renderer/gl_api.cc"
+    "src/scene_renderer/band_span.h"
     "src/scene_renderer/gl_api.h"
     "src/scene_renderer/gl_procs.h"
+    "src/scene_renderer/perf.cc"
+    "src/scene_renderer/perf.h"
     "src/scene_renderer/camera.cc"
     "src/scene_renderer/camera.h"
     "src/scene_renderer/context.cc"
@@ -427,6 +430,12 @@ set(FALLOUT_PLATFORM_SOURCES
 
 include(CTest)
 if(BUILD_TESTING)
+    add_executable(camera_turn_tests
+        "tests/camera_turn/camera_turn_test.cc"
+    )
+    target_include_directories(camera_turn_tests PRIVATE "src/scene")
+    add_test(NAME camera_turn_tests COMMAND camera_turn_tests)
+
     add_executable(preview_policy_tests
         "src/scene/preview_policy.cc"
         "tests/preview_policy/preview_policy_test.cc"
@@ -465,6 +474,7 @@ if(BUILD_TESTING)
     add_subdirectory(tests/effect_emission)
     add_subdirectory(tests/muzzle_mask)
     add_subdirectory(tests/sun)
+    add_subdirectory(tests/band_span)
     add_subdirectory(tests/text_layer)
     add_subdirectory(tests/dialogue_layout)
 endif()
@@ -742,10 +752,15 @@ if((NOT ANDROID) AND (NOT IOS) AND (NOT CMAKE_SYSTEM_NAME MATCHES "Emscripten"))
     # rolling latest release onto a clean Fallout 2 and starts the game.
     add_executable(fallout2-ce-3d-launcher
         "src/launcher_main.cc"
+        "src/launcher_ui.cc"
+        "src/launcher.rc"
     )
     target_include_directories(fallout2-ce-3d-launcher PRIVATE "src")
     if(WIN32)
-        target_link_libraries(fallout2-ce-3d-launcher winhttp bcrypt advapi32 ole32 uuid)
+        target_link_libraries(fallout2-ce-3d-launcher winhttp bcrypt advapi32 ole32 uuid comctl32 shell32)
+        if(MSVC)
+            target_compile_options(fallout2-ce-3d-launcher PRIVATE /utf-8)
+        endif()
     endif()
     if(MINGW)
         target_link_options(fallout2-ce-3d-launcher PRIVATE

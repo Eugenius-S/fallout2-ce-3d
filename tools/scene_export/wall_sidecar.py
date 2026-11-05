@@ -466,6 +466,17 @@ class _Corners:
         self.thin_cuts = {}  # {thin wall row: (the other line's plane, out)} (096)
 
 
+def wall_slabs(scene):
+    """The scene's thick wall lines (_Slab), for what stands on a wall: the roof
+    edge bands (roof_fringe.py)."""
+    projection = scene["proj"]
+    squ, sqv, hpx = projection["squ"], projection["sqv"], projection["hpx"]
+    ray = [sqv[0], -squ[0], (sqv[0] * squ[1] - squ[0] * sqv[1]) / hpx]
+    length = math.sqrt(sum(component * component for component in ray))
+    toward_camera = [component / length for component in ray]
+    return _slabs(scene.get("walls") or [], set(scene.get("hiddenWalls") or []), toward_camera)
+
+
 def _corner_fits(walls, hidden, toward_camera, width=None, px=(1.0, 1.0)):
     """width(row): its picture's columns; px: picture columns per unit along
     u and along v. A block, face or cap takes its picture from a row at least
@@ -1623,15 +1634,22 @@ def encode_wall_sidecar(scene, skip_props=frozenset(), skip_rests=frozenset(), m
         # each from both sides.
         game.object = fly.object = axis_owner.get((row[1], row[2]), -1.0)
         page, corners = rest_card(proj, sprites, row, axis_plane.get((row[1], row[2])))
-        seen = row[5] if len(row) > 5 else 0     # 1: of a solid the fly camera alone sees, 2: the game's
-        if (row[1], row[2]) not in forced_axes and seen != 1:  # the game's camera sees that solid's card whole
+        seen = row[5] if len(row) > 5 else 0     # 1: crossed fly-only rest, 2: game card, 3: fixed fly-only plane
+        if (row[1], row[2]) not in forced_axes and seen not in (1, 3):
             _polygon(game, proj, page, pages[page], corners)
-        for page, corners in rest_cross(proj, sprites, row) if seen != 2 else ():
-            # The sheet across the screen is a line to the game's camera, so
-            # it is wound both ways without asking that camera.
+        if seen == 3:
+            # A grouped flat picture is one fixed plane, not two crossed copies.
+            # The fly camera can approach it from either side.
             for wound in (corners, corners[::-1]):
                 for index in range(1, len(wound) - 1):
                     _quad_triangle(fly, page, pages[page], (wound[0], wound[index], wound[index + 1]))
+        elif seen != 2:
+            for page, corners in rest_cross(proj, sprites, row):
+                # The sheet across the screen is a line to the game's camera, so
+                # it is wound both ways without asking that camera.
+                for wound in (corners, corners[::-1]):
+                    for index in range(1, len(wound) - 1):
+                        _quad_triangle(fly, page, pages[page], (wound[0], wound[index], wound[index + 1]))
     fly.object = game.object = -1.0
 
     groups = [(0, page, batches[page]) for page in sorted(batches)] + [(FLY_ONLY, page, fly[page]) for page in sorted(fly)] \

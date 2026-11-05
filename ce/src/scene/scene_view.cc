@@ -25,6 +25,7 @@
 #include "../map_edge.h"
 #include "../object.h"
 #include "../scene_renderer/game_view.h"
+#include "../scene_renderer/perf.h"
 #include "../scene_renderer/ground_pick.h"
 #include "../scene_renderer/picking.h"
 #include "../combat.h"
@@ -274,14 +275,21 @@ bool loadScene(View view, const std::string& map, int elevation, std::string* me
     printf("scene: cache %s\n", cacheDirectory.string().c_str());
     fflush(stdout);
     std::string error;
-    if (!scene_renderer::loadStaticFloor(cacheDirectory, &error)) {
-        *message = "floor preview unavailable: " + error;
-        return false;
+    scene_renderer::PerfScope total("scene_total");
+    {
+        scene_renderer::PerfScope stage("floor");
+        if (!scene_renderer::loadStaticFloor(cacheDirectory, &error)) {
+            *message = "floor preview unavailable: " + error;
+            return false;
+        }
     }
     setSceneDaylight(readDaylight(cacheDirectory));
-    if (view != View::Floor && !scene_renderer::loadStaticWalls(cacheDirectory, &error)) {
-        *message = "wall preview unavailable: " + error;
-        return false;
+    if (view != View::Floor) {
+        scene_renderer::PerfScope stage("walls");
+        if (!scene_renderer::loadStaticWalls(cacheDirectory, &error)) {
+            *message = "wall preview unavailable: " + error;
+            return false;
+        }
     }
     if (view == View::Full && !scene_renderer::loadStaticProjection(cacheDirectory, &error)) {
         *message = "hero projection unavailable: " + error;
@@ -347,7 +355,6 @@ PreviewRuntimeState runtimeState()
         gameGetState() == GameState::Normal,
         gameModeShowsMap(static_cast<unsigned int>(GameMode::getCurrentGameMode())),
         !isoIsDisabled(),
-        _inDialog == 0,
         _moviePlaying() == 0,
     };
 }
@@ -359,7 +366,6 @@ const char* blockReasonName(PreviewBlockReason reason)
     case PreviewBlockReason::GameState: return "game-state";
     case PreviewBlockReason::GameMode: return "game-mode";
     case PreviewBlockReason::IsoDisabled: return "iso-disabled";
-    case PreviewBlockReason::Dialog: return "dialog";
     case PreviewBlockReason::Movie: return "movie";
     }
     return "unknown";
@@ -609,11 +615,11 @@ namespace {
 
 double gTurnAt = 0.0; // degrees round, where the camera is
 double gTurnTo = 0.0; // and where it goes
+double gTurnSpeed = 0.0; // degrees a second, signed, of the eased turn
 bool gTurnOwnsCamera = false;
 bool gTurnDevOverride = false;
 Uint64 gTurnLast = 0;
 scene_renderer::StaticFlyCamera gTurnPose = {};
-constexpr double kTurnSpeed = 360.0; // degrees a second
 
 double cameraTurnDegrees()
 {
@@ -622,7 +628,7 @@ double cameraTurnDegrees()
 
 void landCameraTurn()
 {
-    gTurnAt = gTurnTo = 0.0;
+    gTurnAt = gTurnTo = gTurnSpeed = 0.0;
     if (gTurnOwnsCamera) scene_renderer::setStaticFlyCamera(nullptr);
     gTurnOwnsCamera = false;
     gTurnDevOverride = false;
@@ -649,6 +655,7 @@ void setCameraTurnNow(double degrees)
 {
     gTurnDevOverride = true;
     gTurnAt = gTurnTo = degrees;
+    gTurnSpeed = 0.0;
     gTurnLast = 0;
 }
 
@@ -693,9 +700,10 @@ void updateCameraTurn()
     const double seconds = gTurnLast == 0 ? 0.0
         : static_cast<double>(now - gTurnLast) / static_cast<double>(SDL_GetPerformanceFrequency());
     gTurnLast = now;
-    const double step = std::min(kTurnSpeed * seconds, std::abs(gTurnTo - gTurnAt));
-    gTurnAt += gTurnTo > gTurnAt ? step : -step;
-    if (gTurnAt == gTurnTo && std::fmod(gTurnTo, 360.0) == 0.0) {
+    // The step eases in and out; a press mid-turn keeps the speed and bends
+    // the turn into the new target.
+    const bool landed = cameraTurnEaseStep(gTurnAt, gTurnTo, gTurnSpeed, seconds);
+    if (landed && std::fmod(gTurnTo, 360.0) == 0.0) {
         landCameraTurn();
         return;
     }

@@ -39,6 +39,7 @@ bool fixedScreenOptionsEnabled();
 bool backgroundCaptureActive();
 bool preferencesSnapshotRequested();
 bool preferencesSnapshotAtBottom();
+const char* preferencesSnapshotDropdown();
 void applyFixedScreenOptions();
 // The command line is parsed after the fixed options apply (main.cc), so a
 // background run re-applies the glow switch and the zoom once the flags are
@@ -53,6 +54,11 @@ bool wantsListMaps();
 // Opt-in deterministic test runs only; never used by normal gameplay.
 bool stillSnapshotRequested();
 void prepareStillSnapshot();
+// A still snapshot run skips game movies: the movie playback advances on the
+// tickers the fixture freezes, so a script-triggered movie would never end.
+bool gameMoviesSuppressed();
+// True only for a background probe explicitly told to skip script dialogue.
+bool skipScriptDialogRequest();
 
 // Prints the maps available in game resources (stdout). Requires the game
 // (db) to be initialized.

@@ -1,0 +1,4 @@
+WATCHDOG STOP reason=step timeout after 90 s without progress
+last_step=devtools: static wall+hero preview started for KLADWTWN.MAP elevation 0
+last_game_state=scene: preview policy=available gameState=0 gameMode=0x0 uiDisabled=0 isoDisabled=0 combat=0 dialog=0 movie=0
+game_state=engine watchdog capture timed out

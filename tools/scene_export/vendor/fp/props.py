@@ -52,6 +52,7 @@ stems become upright cards on the solid's axis (scene.py).
 several map objects, so that it is fitted as one thing.
 """
 import numpy as np
+import re
 
 from . import proj, walls
 
@@ -484,12 +485,21 @@ def _from_floor(shape, force=False, allow_lid=False):
         ys, xs = np.nonzero(shape.alpha)
         found = all(np.hypot(xs + shape.left + 0.5 - x, ys + shape.top + 0.5 - y).min() <= CORNER_PX for x, y in corners)
         centre = (corner[0] + (a * proj.SQ_U[0] + b * proj.SQ_V[0]) / -2, corner[1] - (a * proj.SQ_U[1] + b * proj.SQ_V[1]) / 2 - lift)
+        if force == "multipart-flat":
+            # Numbered scenery parts can be one broad, nearly planar picture
+            # (the SF Dock tanker). Keep its composed silhouette together as
+            # a shallow top instead of leaving its source cards at separate
+            # hex anchors.
+            lift = max(lift, MIN_HEIGHT)
         box = Fit("box", shape, centre, a, b, flat.far - lift, flat.near - lift, 0.0, lift / proj.HPX)
         # A thing with a flat top (a table, a bed) may carry and hide much of itself; without
         # one, a box that leaves a good part of the sprite above its "top" is the foot of a heap.
         bulk = box.side_fill >= BULK
         furniture = found and box.legs and (box.top_fill >= FLAT_TOP or not bulk)
         if force == "box" and lift >= MIN_HEIGHT:
+            box.blocks = [flat]
+            return [(shape.off(shape.lower, flat.near), box)]
+        if force == "multipart-flat":
             box.blocks = [flat]
             return [(shape.off(shape.lower, flat.near), box)]
         if lift >= MIN_HEIGHT and (furniture or bulk) and box.cover >= (MIN_COVER if furniture else BULK_COVER):
@@ -557,7 +567,7 @@ def _from_top(shape):
 def fit(alpha, left, top, force=False, allow_lid=False):
     """The solid for a sprite (its opaque pixels without the floor's shade, light.outer_dark;
     left / top: px of its first pixel from the anchor), or None if it had better stay a card.
-    force: "box" or "drum" whenever one stands (chairs and crates are as ragged as plants).
+    force: "box", "drum", or "multipart-flat" whenever one stands (chairs and crates are as ragged as plants).
     allow_lid: a drum with a lid may win the pick (the mapper's loose clutter only: stood up,
     a lid's gap is transparent in the game's own views, so those keep the card; task 119).
     -> (Shape, Fit)"""
@@ -589,6 +599,9 @@ def fit(alpha, left, top, force=False, allow_lid=False):
 # ------------------------------------------------------------------ composites
 SEAM_PX = 12            # sprites that meet along a straight vertical line this long are slices of one picture
 WITHIN = 0.95           # share of a sprite inside the bounds of a bigger one of its name: a detail of that thing
+MULTIPART_DISTANCE = 15 # hexes: nearby records from a numbered scenery assembly
+MULTIPART_MIN_PARTS = 8 # distinct, once-placed frames: small variant sets are not assemblies
+MULTIPART_VISUAL_GAP = 8 # px: the sprite bounds must form one connected picture
 
 
 class Piece:
@@ -601,6 +614,7 @@ class Piece:
 
     def __init__(self, obj, index, rgba, x, y, order, name, board=None, sheet=None):
         self.obj, self.index, self.rgba, self.x, self.y, self.order, self.name = obj, index, rgba, x, y, order, name
+        self.family = None
         self.board, self.sheet = board, sheet
         columns = np.flatnonzero((index != 0).any(axis=0))
         rows = np.flatnonzero((index != 0).any(axis=1))
@@ -613,6 +627,79 @@ class Piece:
         return self.y + np.flatnonzero(self.index[:, (self.right - 1 if right else self.left) - self.x])
 
 
+def art_family(name):
+    """(prefix, numeric part) for a numbered scenery frame filename."""
+    match = re.fullmatch(r"(.+?)(\d+)\.frm", (name or "").lower())
+    return (match.group(1), int(match.group(2))) if match else None
+
+
+def multipart_groups(pieces):
+    """Numbered scenery assemblies placed as one nearby set of distinct parts."""
+    families = {}
+    for i, piece in enumerate(pieces):
+        family = getattr(piece, "family", None)
+        if family is not None:
+            elevation = getattr(piece.obj, "elevation", 0)
+            families.setdefault((elevation, family[0]), []).append((i, family[1]))
+    out = []
+    for members in families.values():
+        part_by_index = dict(members)
+        if len(set(part_by_index.values())) < MULTIPART_MIN_PARTS:
+            continue
+        parent = {i: i for i, _ in members}
+
+        def find(i):
+            while parent[i] != i:
+                parent[i] = parent[parent[i]]
+                i = parent[i]
+            return i
+
+        by_tile = {}
+        for i, _ in members:
+            by_tile.setdefault(pieces[i].obj.tile, []).append(i)
+        tile_roots = {tile: indices[0] for tile, indices in by_tile.items()}
+        for indices in by_tile.values():
+            for i in indices[1:]:
+                parent[find(i)] = find(indices[0])
+        tiles = list(by_tile)
+        for n, tile in enumerate(tiles):
+            for other in tiles[n + 1:]:
+                if proj.geometry.distance(tile, other) <= MULTIPART_DISTANCE:
+                    parent[find(tile_roots[tile])] = find(tile_roots[other])
+        components = {}
+        for i, _ in members:
+            components.setdefault(find(i), []).append(i)
+        for indices in components.values():
+            variants = {part_by_index[i] for i in indices}
+            prototypes = {getattr(pieces[i].obj, "pid", None) for i in indices}
+            if len(variants) >= MULTIPART_MIN_PARTS and len(indices) == len(variants) and len(prototypes) == len(variants):
+                group = [pieces[i] for i in indices]
+                names = {str(piece.name).casefold() for piece in group
+                         if str(piece.name).casefold() != "shadow"}
+                if len(names) != 1:
+                    continue
+                parent = list(range(len(group)))
+
+                def root(i):
+                    while parent[i] != i:
+                        parent[i] = parent[parent[i]]
+                        i = parent[i]
+                    return i
+
+                for i, piece in enumerate(group):
+                    x0, y0, x1, y1 = piece.bounds
+                    for j, other in enumerate(group[i + 1:], i + 1):
+                        ox0, oy0, ox1, oy1 = other.bounds
+                        gap_x = max(0, x0 - ox1, ox0 - x1)
+                        gap_y = max(0, y0 - oy1, oy0 - y1)
+                        if gap_x <= MULTIPART_VISUAL_GAP and gap_y <= MULTIPART_VISUAL_GAP:
+                            parent[root(i)] = root(j)
+                if len({root(i) for i in range(len(group))}) != 1:
+                    continue
+                out.append(group)
+    return out
+
+
 def groups(pieces, details=True):
     """Sort pieces into things: [[Piece]].
 
@@ -623,7 +710,9 @@ def groups(pieces, details=True):
     (the housing and the wheel of Vault 13's door), and objects of one name
     whose smaller sprite lies within the bigger one's bounds (a bed's rail or a
     bookshelf's lower half painted as an object of its own): fitted alone, such
-    a detail became a plank in mid-air (details=False: not the details).
+    a detail became a plank in mid-air (details=False: not the details). A
+    numbered scenery series is also one prop when the map places each of at
+    least eight distinct parts once in a nearby cluster.
     """
     parent = list(range(len(pieces)))
 
@@ -644,6 +733,12 @@ def groups(pieces, details=True):
     for same in places.values():
         for i in same[1:]:
             parent[find(i)] = find(same[0])
+    # Numbered multi-part art, such as a single vehicle made from distinct
+    # map records, turns together around one anchor.
+    for group in multipart_groups(pieces):
+        first = pieces.index(group[0])
+        for piece in group[1:]:
+            parent[find(pieces.index(piece))] = find(first)
     named = {}
     for i, piece in enumerate(pieces if details else ()):
         named.setdefault(piece.name, []).append(i)
