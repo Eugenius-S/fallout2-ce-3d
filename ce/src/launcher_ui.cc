@@ -42,6 +42,7 @@ struct UiArgs {
     std::wstring updateUrl;
     std::wstring releaseInfoUrl;
     std::wstring settingsFile;
+    bool noActivate = false;
 };
 
 struct ReleaseInfo {
@@ -491,41 +492,42 @@ void createControls(HWND window)
 {
     g_font = CreateFontW(18, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET,
         OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_DONTCARE, L"Segoe UI");
-    createControl(window, L"STATIC", L"Game folder", SS_LEFT, 24, 265, 180, 25, ID_GAME_ROOT - 100);
-    createControl(window, L"EDIT", L"", ES_AUTOHSCROLL | WS_BORDER, 24, 291, 605, 32, ID_GAME_ROOT);
+    createControl(window, L"STATIC", L"Game folder", SS_LEFT, 24, 206, 180, 25, ID_GAME_ROOT - 100);
+    createControl(window, L"EDIT", L"", ES_AUTOHSCROLL | WS_BORDER, 25, 234, 603, 36, ID_GAME_ROOT);
     g_root = GetDlgItem(window, ID_GAME_ROOT);
-    createControl(window, L"BUTTON", L"Browse...", BS_OWNERDRAW, 642, 291, 130, 32, ID_BROWSE);
+    SetWindowRgn(g_root, CreateRoundRectRgn(0, 0, 603, 36, 12, 12), TRUE);
+    createControl(window, L"BUTTON", L"Browse...", BS_OWNERDRAW, 642, 234, 130, 38, ID_BROWSE);
     g_browse = GetDlgItem(window, ID_BROWSE);
     createControl(window, L"BUTTON", L"Install Russian text from the official RPU release",
-        BS_AUTOCHECKBOX | BS_NOTIFY, 24, 335, 690, 28, ID_RUSSIAN);
+        BS_AUTOCHECKBOX | BS_NOTIFY, 24, 284, 690, 28, ID_RUSSIAN);
     g_russian = GetDlgItem(window, ID_RUSSIAN);
     createControl(window, L"BUTTON", L"Restoration Project: coming soon", BS_AUTOCHECKBOX,
-        24, 368, 690, 28, ID_RP);
+        24, 316, 690, 28, ID_RP);
     g_rp = GetDlgItem(window, ID_RP);
     EnableWindow(g_rp, FALSE);
     createControl(window, L"BUTTON", L"Install updates automatically on launch",
-        BS_AUTOCHECKBOX | BS_NOTIFY, 24, 401, 690, 28, ID_AUTO_UPDATE);
+        BS_AUTOCHECKBOX | BS_NOTIFY, 24, 348, 690, 28, ID_AUTO_UPDATE);
     g_autoUpdate = GetDlgItem(window, ID_AUTO_UPDATE);
     SendMessageW(g_autoUpdate, BM_SETCHECK, g_autoUpdates ? BST_CHECKED : BST_UNCHECKED, 0);
-    createControl(window, L"STATIC", L"", SS_LEFT, 24, 437, 740, 24, ID_RELEASE);
+    createControl(window, L"STATIC", L"", SS_LEFT, 24, 398, 752, 24, ID_RELEASE);
     g_release = GetDlgItem(window, ID_RELEASE);
-    createControl(window, L"STATIC", L"", SS_LEFT | SS_NOPREFIX, 24, 461, 740, 40, ID_NOTES);
+    createControl(window, L"STATIC", L"", SS_LEFT | SS_NOPREFIX, 24, 424, 752, 52, ID_NOTES);
     g_notes = GetDlgItem(window, ID_NOTES);
-    createControl(window, PROGRESS_CLASSW, L"", PBS_SMOOTH, 24, 508, 748, 22, ID_PROGRESS);
+    createControl(window, PROGRESS_CLASSW, L"", PBS_SMOOTH, 24, 485, 752, 20, ID_PROGRESS);
     g_progress = GetDlgItem(window, ID_PROGRESS);
     SendMessageW(g_progress, PBM_SETRANGE32, 0, 100);
     SendMessageW(g_progress, PBM_SETBARCOLOR, 0, RGB(155, 180, 105));
     SendMessageW(g_progress, PBM_SETBKCOLOR, 0, RGB(32, 39, 47));
-    createControl(window, L"STATIC", L"", SS_LEFT, 24, 535, 740, 22, ID_STATUS);
+    createControl(window, L"STATIC", L"", SS_LEFT, 24, 511, 752, 22, ID_STATUS);
     g_status = GetDlgItem(window, ID_STATUS);
     createControl(window, L"EDIT", L"", ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY | WS_VSCROLL | WS_BORDER,
-        24, 560, 748, 91, ID_LOG);
+        24, 538, 752, 90, ID_LOG);
     g_log = GetDlgItem(window, ID_LOG);
-    createControl(window, L"BUTTON", L"Install / Update", BS_OWNERDRAW, 24, 670, 200, 36, ID_INSTALL);
+    createControl(window, L"BUTTON", L"Install / Update", BS_OWNERDRAW, 24, 660, 200, 36, ID_INSTALL);
     g_install = GetDlgItem(window, ID_INSTALL);
-    createControl(window, L"BUTTON", L"Roll back", BS_OWNERDRAW, 236, 670, 150, 36, ID_ROLLBACK);
+    createControl(window, L"BUTTON", L"Roll back", BS_OWNERDRAW, 236, 660, 150, 36, ID_ROLLBACK);
     g_rollback = GetDlgItem(window, ID_ROLLBACK);
-    createControl(window, L"BUTTON", L"Play", BS_OWNERDRAW, 622, 670, 150, 36, ID_PLAY);
+    createControl(window, L"BUTTON", L"Play", BS_OWNERDRAW, 626, 660, 150, 36, ID_PLAY);
     g_play = GetDlgItem(window, ID_PLAY);
     EnableWindow(g_play, FALSE);
     EnableWindow(g_rollback, FALSE);
@@ -533,13 +535,10 @@ void createControls(HWND window)
     HWND languageLabel = CreateWindowExW(0, L"STATIC", L"Language", WS_CHILD | WS_VISIBLE | SS_LEFT,
         614, 18, 150, 24, window, nullptr, GetModuleHandleW(nullptr), nullptr);
     SendMessageW(languageLabel, WM_SETFONT, reinterpret_cast<WPARAM>(g_font), TRUE);
-    g_language = CreateWindowExW(0, WC_COMBOBOXW, L"", WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST | WS_VSCROLL,
-        614, 43, 150, 100, window, reinterpret_cast<HMENU>(static_cast<INT_PTR>(ID_LANGUAGE)),
+    g_language = CreateWindowExW(0, L"BUTTON", L"", WS_CHILD | WS_VISIBLE | BS_OWNERDRAW,
+        614, 43, 150, 38, window, reinterpret_cast<HMENU>(static_cast<INT_PTR>(ID_LANGUAGE)),
         GetModuleHandleW(nullptr), nullptr);
     SendMessageW(g_language, WM_SETFONT, reinterpret_cast<WPARAM>(g_font), TRUE);
-    SendMessageW(g_language, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(L"English"));
-    SendMessageW(g_language, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(L"Русский"));
-    SendMessageW(g_language, CB_SETCURSEL, g_uiLanguage == L"ru" ? 1 : 0, 0);
 
     g_logo = LoadBitmapW(GetModuleHandleW(nullptr), MAKEINTRESOURCEW(IDB_LAUNCHER_LOGO));
     if (!g_args.gameRoot.empty()) SetWindowTextW(g_root, g_args.gameRoot.c_str());
@@ -554,7 +553,7 @@ void paintLogo(HDC dc)
     BITMAP bitmap = {};
     GetObjectW(g_logo, sizeof(bitmap), &bitmap);
     SetStretchBltMode(dc, HALFTONE);
-    StretchBlt(dc, 24, 15, 500, 243, memory, 0, 0, bitmap.bmWidth, bitmap.bmHeight, SRCCOPY);
+    StretchBlt(dc, 24, 18, 340, 165, memory, 0, 0, bitmap.bmWidth, bitmap.bmHeight, SRCCOPY);
     SelectObject(memory, old);
     DeleteDC(memory);
 }
@@ -575,10 +574,9 @@ LRESULT CALLBACK launcherWindowProc(HWND window, UINT message, WPARAM wParam, LP
         RECT client = {};
         GetClientRect(window, &client);
         FillRect(dc, &client, g_background);
-        HPEN pen = CreatePen(PS_SOLID, 2, RGB(140, 112, 69));
+        HPEN pen = CreatePen(PS_SOLID, 1, RGB(140, 112, 69));
         HGDIOBJ oldPen = SelectObject(dc, pen);
         HGDIOBJ oldBrush = SelectObject(dc, GetStockObject(HOLLOW_BRUSH));
-        Rectangle(dc, 10, 10, client.right - 10, client.bottom - 10);
         SelectObject(dc, oldBrush);
         SelectObject(dc, oldPen);
         DeleteObject(pen);
@@ -603,28 +601,60 @@ LRESULT CALLBACK launcherWindowProc(HWND window, UINT message, WPARAM wParam, LP
     }
     case WM_DRAWITEM: {
         DRAWITEMSTRUCT* item = reinterpret_cast<DRAWITEMSTRUCT*>(lParam);
-        if (item->CtlID != ID_BROWSE && item->CtlID != ID_INSTALL && item->CtlID != ID_ROLLBACK && item->CtlID != ID_PLAY) break;
+        if (item->CtlID != ID_LANGUAGE && item->CtlID != ID_BROWSE && item->CtlID != ID_INSTALL && item->CtlID != ID_ROLLBACK && item->CtlID != ID_PLAY) break;
         bool enabled = (item->itemState & ODS_DISABLED) == 0;
-        COLORREF color = enabled ? RGB(48, 58, 62) : RGB(34, 38, 41);
+        COLORREF color = item->CtlID == ID_LANGUAGE ? RGB(8, 13, 19)
+            : (enabled ? RGB(48, 58, 62) : RGB(34, 38, 41));
         HBRUSH brush = CreateSolidBrush(color);
-        FillRect(item->hDC, &item->rcItem, brush);
+        HPEN borderPen = CreatePen(PS_SOLID, 1, item->CtlID == ID_LANGUAGE ? RGB(140, 112, 69) : RGB(100, 111, 111));
+        RECT rect = item->rcItem;
+        HGDIOBJ oldBrush = SelectObject(item->hDC, brush);
+        HGDIOBJ oldPen = SelectObject(item->hDC, borderPen);
+        RoundRect(item->hDC, rect.left, rect.top, rect.right, rect.bottom, 12, 12);
+        SelectObject(item->hDC, oldBrush);
+        SelectObject(item->hDC, oldPen);
         DeleteObject(brush);
-        FrameRect(item->hDC, &item->rcItem, static_cast<HBRUSH>(GetStockObject(GRAY_BRUSH)));
+        DeleteObject(borderPen);
         SetBkMode(item->hDC, TRANSPARENT);
         SetTextColor(item->hDC, enabled ? RGB(236, 210, 139) : RGB(125, 126, 121));
         wchar_t label[128] = {};
-        GetWindowTextW(item->hwndItem, label, static_cast<int>(std::size(label)));
-        DrawTextW(item->hDC, label, -1, &item->rcItem, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+        if (item->CtlID == ID_LANGUAGE) {
+            wcscpy_s(label, g_uiLanguage == L"ru" ? L"Русский" : L"English");
+            RECT labelRect = item->rcItem;
+            labelRect.right -= 20;
+            DrawTextW(item->hDC, label, -1, &labelRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+            POINT arrow[] = {{item->rcItem.right - 15, item->rcItem.top + 15},
+                {item->rcItem.right - 7, item->rcItem.top + 15},
+                {item->rcItem.right - 11, item->rcItem.top + 20}};
+            HBRUSH arrowBrush = CreateSolidBrush(RGB(236, 210, 139));
+            HGDIOBJ oldArrowBrush = SelectObject(item->hDC, arrowBrush);
+            Polygon(item->hDC, arrow, static_cast<int>(std::size(arrow)));
+            SelectObject(item->hDC, oldArrowBrush);
+            DeleteObject(arrowBrush);
+        } else {
+            GetWindowTextW(item->hwndItem, label, static_cast<int>(std::size(label)));
+            DrawTextW(item->hDC, label, -1, &item->rcItem, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+        }
         return TRUE;
     }
     case WM_COMMAND:
         if (LOWORD(wParam) == ID_GAME_ROOT && HIWORD(wParam) == EN_CHANGE) {
             EnableWindow(g_install, !g_busy && GetWindowTextLengthW(g_root) != 0);
-        } else if (LOWORD(wParam) == ID_LANGUAGE && HIWORD(wParam) == CBN_SELCHANGE) {
-            g_uiLanguage = SendMessageW(g_language, CB_GETCURSEL, 0, 0) == 1 ? L"ru" : L"en";
-            saveSettings();
-            updateLabels();
-            refreshStatusFromRelease();
+        } else if (LOWORD(wParam) == ID_LANGUAGE && HIWORD(wParam) == BN_CLICKED) {
+            HMENU menu = CreatePopupMenu();
+            AppendMenuW(menu, MF_STRING | (g_uiLanguage == L"en" ? MF_CHECKED : 0), 1, L"English");
+            AppendMenuW(menu, MF_STRING | (g_uiLanguage == L"ru" ? MF_CHECKED : 0), 2, L"Русский");
+            RECT rect = {};
+            GetWindowRect(g_language, &rect);
+            int choice = TrackPopupMenu(menu, TPM_RETURNCMD | TPM_RIGHTBUTTON, rect.left, rect.bottom, 0, window, nullptr);
+            DestroyMenu(menu);
+            if (choice == 1 || choice == 2) {
+                g_uiLanguage = choice == 2 ? L"ru" : L"en";
+                saveSettings();
+                updateLabels();
+                refreshStatusFromRelease();
+                InvalidateRect(g_language, nullptr, TRUE);
+            }
         } else if (LOWORD(wParam) == ID_BROWSE) {
             chooseGameFolder();
         } else if (LOWORD(wParam) == ID_AUTO_UPDATE && HIWORD(wParam) == BN_CLICKED) {
@@ -716,6 +746,10 @@ UiArgs parseUiArgs(int argc, char** argv)
     UiArgs args;
     for (int i = 1; i < argc; i++) {
         std::string key = argv[i];
+        if (key == "--no-activate") {
+            args.noActivate = true;
+            continue;
+        }
         if ((key == "--game-root" || key == "--update-url" || key == "--release-info-url" || key == "--settings-file") && i + 1 < argc) {
             std::wstring value = utf8ToWide(argv[++i]);
             if (key == "--game-root") args.gameRoot = value;
@@ -752,7 +786,7 @@ int runLauncherUi(int argc, char** argv)
     RegisterClassW(&wc);
     RECT rect = {0, 0, 800, 720};
     AdjustWindowRect(&rect, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX, FALSE);
-    HWND window = CreateWindowExW(0, wc.lpszClassName, L"Fallout 2: Reimagined",
+    HWND window = CreateWindowExW(g_args.noActivate ? WS_EX_NOACTIVATE : 0, wc.lpszClassName, L"Fallout 2: Reimagined",
         WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX,
         CW_USEDEFAULT, CW_USEDEFAULT, rect.right - rect.left, rect.bottom - rect.top,
         nullptr, nullptr, wc.hInstance, nullptr);
@@ -761,7 +795,7 @@ int runLauncherUi(int argc, char** argv)
         return 1;
     }
     g_window = window;
-    ShowWindow(window, SW_SHOW);
+    ShowWindow(window, g_args.noActivate ? SW_SHOWNOACTIVATE : SW_SHOW);
     UpdateWindow(window);
 
     // Existing installs are discovered without opening the owner's game or

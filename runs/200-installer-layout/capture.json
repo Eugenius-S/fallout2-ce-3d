@@ -1,0 +1,30 @@
+[
+  {
+    "language": "en",
+    "pid": 48124,
+    "raw_size": "1020x949",
+    "evidence_size": "1000x939",
+    "capture": "desktop pixels from current launcher window",
+    "crop": "exclude 10px DWM resize shadow at left, right, bottom",
+    "screen_x": 80,
+    "screen_y": 60,
+    "exe_sha256": "65ACDE90B377ED9BAB48AA2448AA22241986C9928F781F0E3D3B31080CC87793",
+    "image": "installer-en.jpg",
+    "bytes": 118773,
+    "display_path": "C:\\Games\\Fallout 2 (placeholder; no install action)"
+  },
+  {
+    "language": "ru",
+    "pid": 63332,
+    "raw_size": "1020x949",
+    "evidence_size": "1000x939",
+    "capture": "desktop pixels from current launcher window",
+    "crop": "exclude 10px DWM resize shadow at left, right, bottom",
+    "screen_x": 80,
+    "screen_y": 60,
+    "exe_sha256": "65ACDE90B377ED9BAB48AA2448AA22241986C9928F781F0E3D3B31080CC87793",
+    "image": "installer-ru.jpg",
+    "bytes": 121941,
+    "display_path": "C:\\Games\\Fallout 2 (placeholder; no install action)"
+  }
+]
