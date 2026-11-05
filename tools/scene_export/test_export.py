@@ -679,6 +679,20 @@ class RoofEdgeTests(unittest.TestCase):
         self.assertFalse(grey.any())                                   # none of the dark part is left on the roof
         self.assertEqual(unproject_cell(roof).shape[:2], (100, 100))
 
+    def test_an_unsupported_partial_grey_roof_tile_stays_flat(self):
+        partial = self.tile([(0, 1, 0, 0.3, (14, 14, 14))])
+        pieces, roof = split_tile(partial, (0, 1, 2, 3), wall_supported=False)
+        self.assertEqual(pieces, [])
+        self.assertIs(roof, partial)
+
+        with TemporaryDirectory() as temp:
+            png = Path(temp) / "roof_fringe.png"
+            entries, patches = write_fringe_art(png, {101: 7}, lambda _: partial,
+                                                lambda *run: None)
+            self.assertEqual(entries, [])
+            self.assertEqual(patches, [])
+            self.assertFalse(png.exists())
+
     def test_a_whole_painted_tile_with_a_grey_slab_on_an_open_edge_stands_up_there(self):
         whole = self.tile([(0, 1, 0, 1, (120, 80, 50)), (0, 1, 0, 0.36, (14, 14, 14))])
         self.assertEqual(split_tile(whole)[0], [])                       # no open edge known: a roof square
