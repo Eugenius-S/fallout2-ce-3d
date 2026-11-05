@@ -25,6 +25,7 @@ import base64
 import json
 import math
 import os
+import re
 from collections import Counter
 from pathlib import Path
 
@@ -41,7 +42,14 @@ TILE_RES = 88       # texels per square side. > 80 makes the un-projection lossl
 TILE_MARGIN = 6     # texels around the square: tile art overhangs its rhombus by a pixel or two
 MAX_IDLE_FRAMES = 24
 WALL_BLOCKER_REACH = 0.3    # an invisible blocker this close to a wall face is part of that wall (units)
-NO_TILE = 1
+NO_TILE = 1       # the sentinel for "this square draws nothing" (the raw square's hidden bit,
+                  # 0x1000, becomes this in layers[]). It collides with tile id 1 on purpose:
+                  # grid000.frm, the near-black tile the retail maps paint their sea with, stays
+                  # undrawn like the hidden corners, so the atlases, the light bake and the walls
+                  # stay what they always were (168). The sea returns as the renderer's flat
+                  # extension planes, guided by build_water's flags and colour.
+WATER_ART = re.compile(r"^(grid|seas|cwater)\d+\.frm$")    # open-water tile families (168)
+SHORE_ART = re.compile(r"^shore\d+\.frm$")                 # the waterline tile family (168)
 DARK_TILE = 40      # mean brightness (0..255) below which the commonest floor tile is rock or blackness,
                     # which makes a map without any roof an underground one
 SET_LIGHT_LEVEL = b"\x80\xE9"       # script opcode (interpreter_extra.cc); its argument is pushed just before
@@ -160,11 +168,13 @@ class SceneBuilder:
         sheet = np.zeros((max(rows, 1) * (cell + 1), per_row * (cell + 1), 4), np.uint8)
         assert sheet.shape[0] <= 4096, "too many tiles for one atlas"   # retail maximum is 381 tiles = 1843 px
         cells = []
+        names = {}
         index_of = {}
         bright = np.zeros(0x1000, bool)                 # tiles that are floor, not the black top of the rock (rock.py)
         self.clipped_tiles = []
         for n, tile_id in enumerate(used):
             frm = self.gf.art.load(ids.make_fid(ids.OBJ_TYPE_TILE, tile_id))
+            names[n] = (self.gf.art.name(ids.make_fid(ids.OBJ_TYPE_TILE, tile_id)) or "").lower()
             rgba = frm.rgba(self.gf.palette.glow_tile)
             h, w = rgba.shape[:2]
             inside = (src_x >= 0) & (src_x < w) & (src_y >= 0) & (src_y < h)
@@ -178,14 +188,67 @@ class SceneBuilder:
             index_of[tile_id] = n + 1
             bright[tile_id] = rgba[..., :3][rgba[..., 3] > 0].mean() >= rock.DARK if rgba[..., 3].any() else False
         index_of[NO_TILE] = 0
+        self.tile_index_of = dict(index_of)
         lookup = np.zeros(0x1000, np.uint16)
         for tile_id, n in index_of.items():
             lookup[tile_id] = n
+        self.water_cells = {n + 1 for n, name in names.items() if WATER_ART.match(name)}
+        self.shore_cells = {n + 1 for n, name in names.items() if SHORE_ART.match(name)}
+        self.water_names = names
         self.floor, self.roof = lookup[layers[0]], lookup[layers[1]]
         self.floor_ids, self.roof_ids = layers
         self.lit = bright[layers[0]].reshape(100, 100)
         self.tile_sheet, self.tile_cells = sheet, cells
         self.build_ground(sheet)
+        self.build_water()
+
+    def build_water(self):
+        """Per floor square, what continues past a map edge there (168).
+
+        1 open water: the square's tile is grid000 (raw value 1: the retail
+        maps paint their sea with it and leave it undrawn) or its drawn cell
+        is open-water art (the grid, seas and cwater families). 2 the shore
+        line (the shore family). 0 ordinary land or nothing. The sea itself
+        stays undrawn - the renderer fills the flagged squares with its flat
+        water colour in flight and turned views.
+        """
+        flags = np.zeros(10000, np.uint8)
+        raw = np.asarray(self.map.tiles[self.elevation]).ravel()
+        floor = self.floor.ravel()
+        weights = {}
+        for index in range(10000):
+            value = int(raw[index])
+            if value & 0x1000:
+                continue
+            tile = value & 0xFFF
+            if tile == 1 or int(floor[index]) in self.water_cells:
+                flags[index] = 1
+            elif int(floor[index]) in self.shore_cells:
+                flags[index] = 2
+            else:
+                continue
+            if tile == 1 and int(floor[index]):
+                tile = self.tile_index_of.get(tile, tile)
+            weights[tile] = weights.get(tile, 0) + 1
+        self.water = flags.reshape(100, 100)
+        # The flat water colour: the water squares' own art, opaque pixels
+        # only, weighted by how many squares each tile covers (the docks'
+        # near-black grid000, the abbey's seas).
+        total = np.zeros(3)
+        pixels = 0
+        for tile, count in weights.items():
+            try:
+                art = self.gf.art.load(ids.make_fid(ids.OBJ_TYPE_TILE, tile))
+                rgba = art.rgba(self.gf.palette.glow_tile)
+            except (FileNotFoundError, ValueError, KeyError):
+                continue
+            opaque = rgba[..., 3] > 0
+            if not opaque.any():
+                continue
+            share = count * int(opaque.sum())
+            total += rgba[..., :3][opaque].mean(axis=0) * share
+            pixels += share
+        self.water_color = [round(float(v), 4) for v in total / pixels / 255.0] if pixels else [0.04, 0.04, 0.045]
 
     def build_ground(self, sheet):
         """The commonest floor tile says what lies around the map and whether we are underground."""

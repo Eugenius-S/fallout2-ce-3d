@@ -117,3 +117,33 @@ other areas (each has its own task).
   173. The task stays open until the two rules above land.
 - Evidence: runs/168-sanfran-in-3d/ (probe shots, tour sheets, hour sheets,
   walk shots, the sftanker 2D comparison).
+- 2026-11-05, glm. Rule 1 (the sea) built, branch task/168-sea-horizon, PR
+  pending. Root cause: the retail maps paint their sea with grid000, whose
+  tile value 1 the tile layer keeps undrawn (NO_TILE's sentinel), so the sea
+  squares never drew anything. The rule, general for every map: the exporter
+  marks each water square in floor.bin 7 (1 open water: grid000 or the grid,
+  seas, cwater art families; 2 the shore family) with the water's flat
+  colour (the water arts' own opaque pixels, weighted by squares); the
+  renderer fills the flagged void squares, spills to the shore line (never
+  wrapping a land corner), and stretches strips of the flat colour past
+  every boundary water square out to the horizon (steps 1 tile then
+  doubling), drawn in flight and turned views only, never clipped to the
+  clean map edges. vctydwtn's waste ponds are grid000 too, so they gain the
+  same flat plane instead of holes. Two defects found and fixed on the way:
+  (a) floor.bin 7's length check missed the 3 colour bytes, so every scene
+  stayed 2D and the whole regression run failed (106 spots, zero captures,
+  2.5 h) - found via scene.log's "stays 2D: floor preview unavailable",
+  fixed, ctest 20/20, single captures verified, full regression re-run;
+  (b) an older floor.bin 6 made the tile draw count negative (the
+  extensions' split offset falls back to the whole buffer). Regression:
+  106/106 spots, 0 changed pixels everywhere, game camera pixel for pixel.
+- Fly tour: 241/241 views change, all by the one rule - the maps' own
+  grid000 squares (the near-black art that paints the sea and every black
+  edge) continue past the edges in flight and turned views, in the water's
+  colour at the docks and in the same near-black on land maps, where the
+  brown void used to be. Evidence pairs (full frames, the tour's own
+  sheets crop the horizon away): runs/168-sea-continues/. Tooling find:
+  the tour's watchdog killed any 32+-capture tour (a capture past the
+  thirtieth in one game process ran past the 30 s step budget; reproduced
+  on origin/main's exe, it is a slow capture, not a hang) - main's 194
+  already raised the step budget to 120 s, nothing left to fix here.

@@ -11,6 +11,7 @@
 #include "perf.h"
 #include "post.h"
 #include "../scene/scene_overlay.h"
+#include "../scene/scene_view.h"
 #include "text_present.h"
 #include "scene_internal.h"
 #include "shadow.h"
@@ -129,7 +130,24 @@ void drawStaticPreview(bool withWalls, bool withHero)
     glUniform1i(gSceneTexturedLocation, 1);
     glUniform1f(gSceneCutoffLocation, 0.01f);
     glUniform1i(gSceneLightModeLocation, lit ? 1 : 0);
-    glDrawArrays(kTriangles, 6, gFloorVertexCount - 6);
+    // The sea extensions sit past the tiles in the buffer; an older sidecar
+    // without them ends the buffer at the tiles (the count falls back so a
+    // version 6 floor.bin keeps its whole draw).
+    glDrawArrays(kTriangles, 6,
+        (gFloorExtensionFirst > 0 ? gFloorExtensionFirst : gFloorVertexCount) - 6);
+    // The sea past the map's water edges (168): flight and turned views only
+    // (the game's own view stays pixel for pixel), and never cut by the clean
+    // map edges, whose whole point is where the map ends - the sea goes on.
+    // Flat colour: the water squares' own art is the sea's near-black, and a
+    // tile stretched over miles would read as grids.
+    if (gFloorExtensionCount > 0 && (flying || scene::cameraTurned())) {
+        glUniform1i(gSceneClipEnabledLocation, 0);
+        glUniform1i(gSceneTexturedLocation, 0);
+        glUniform4f(gSceneColorLocation, gFloorSeaColor[0], gFloorSeaColor[1], gFloorSeaColor[2], 1.0f);
+        glDrawArrays(kTriangles, gFloorExtensionFirst, gFloorExtensionCount);
+        glUniform1i(gSceneTexturedLocation, 1);
+        bindStaticMapClipUniforms();
+    }
     glDepthMask(1);
     perfMark("floor");
 

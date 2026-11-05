@@ -259,7 +259,7 @@ class FloorSidecarTests(unittest.TestCase):
         payload = encode_floor_sidecar(self.sample_scene())
         decoded = decode_floor_sidecar(payload)
         self.assertEqual(payload[:4], MAGIC)
-        self.assertEqual(decoded["version"], VERSION)
+        self.assertEqual(decoded["version"], 6)  # no water flags given: stays version 6
         self.assertEqual(decoded["grid_size"], (100, 100))
         self.assertEqual(decoded["image_size"], (512, 512))
         self.assertEqual(decoded["cells"], [(0, 0), (89, 0)])
@@ -284,6 +284,34 @@ class FloorSidecarTests(unittest.TestCase):
         self.assertEqual(decode_floor_sidecar(payload)["patches"], patches)
         with self.assertRaisesRegex(ValueError, "patch"):
             encode_floor_sidecar(self.sample_scene(), (), [(0, 1, 40)])
+        with self.assertRaisesRegex(ValueError, "truncated"):
+            decode_floor_sidecar(payload[:-1])
+
+    def test_water_flags_round_trip_and_stay_version_6_without_them(self):
+        scene = self.sample_scene()
+        plain = encode_floor_sidecar(scene)
+        self.assertEqual(decode_floor_sidecar(plain)["version"], 6)
+        self.assertIsNone(decode_floor_sidecar(plain)["water"])
+        water = bytearray(100 * 100)
+        water[0] = 1
+        water[1] = 2
+        water[9999] = 1
+        payload = encode_floor_sidecar(scene, water=water, water_color=[0.04, 0.047, 0.045])
+        decoded = decode_floor_sidecar(payload)
+        self.assertEqual(decoded["version"], VERSION)
+        self.assertEqual(decoded["water"][0], 1)
+        self.assertEqual(decoded["water"][1], 2)
+        self.assertEqual(decoded["water"][2], 0)
+        self.assertEqual(decoded["water"][9999], 1)
+        for got, want in zip(decoded["waterColor"], (10, 12, 11)):
+            self.assertEqual(got, want / 255)
+        self.assertEqual(len(payload), len(plain) + 3 + 100 * 100)
+        with self.assertRaisesRegex(ValueError, "water flags"):
+            encode_floor_sidecar(scene, water=bytearray(99 * 99), water_color=[0.1, 0.1, 0.1])
+        with self.assertRaisesRegex(ValueError, "water flags"):
+            encode_floor_sidecar(scene, water=b"\x03" + bytearray(100 * 100 - 1), water_color=[0.1, 0.1, 0.1])
+        with self.assertRaisesRegex(ValueError, "water colour"):
+            encode_floor_sidecar(scene, water=water, water_color=[0.1, 0.1])
         with self.assertRaisesRegex(ValueError, "truncated"):
             decode_floor_sidecar(payload[:-1])
 
