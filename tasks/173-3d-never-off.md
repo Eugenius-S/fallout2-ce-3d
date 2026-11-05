@@ -31,7 +31,14 @@ its art on a fixed plane.
   here first; name each with its map and shot, ordered by how much a player
   sees it, so the remodelling can follow.
 - The owner, 2026-11-04. The world map, dialogs and menus stay 2D; this is
-  about local maps only.
+  about local maps only.- Folded in (2026-11-05, from 169): the upper elevations of some desert
+  and coast encounter maps (desert5 e1, desert6 e1, shots in
+  runs/169-encdesertcoast-in-3d/finds/) export with no floor art and no
+  sprites (walls.bin 24 bytes, tiles.png empty, indoor=true), so the 3D
+  view is black where the game's own picture shows dim content (2D mean
+  46 vs 3D 0.8). The scene ships; the elevation needs its tiles and
+  light built or a plane fallback.
+
 - Find every place the 3D view falls back to 2D or switches itself off on a
   local map: a missing or failed cache, an export error, an unsupported
   object or tile, a feature's "switches itself off if it fails to start"

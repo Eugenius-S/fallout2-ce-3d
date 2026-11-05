@@ -2,8 +2,8 @@
 id: 174
 title: Objects made of several parts stand and move as one
 milestone: M1
-status: todo
-owner: any
+status: done
+owner: gpt
 suggested: any
 priority: high
 tier: 2
@@ -41,3 +41,8 @@ the fly camera and on a turned view, with no gaps or drift.
 New 3D models.
 
 ## Log
+
+### 2026-11-04 gpt
+Done: grouped contiguous same-name multipart families using projected sprite bounds, and added a fly-only fixed-plane fallback for groups that cannot be built as solids. Added tests for assembled fly-only rows and for disconnected/mixed-name false matches. Scanned all exported maps; candidate groups are Klamath and Navarro Vertibirds, the New Reno Vertibird, New Reno signage and casino entrance, and the San Francisco tanker. False family matches (graffiti, goo, unrelated furniture and mixed weeds) are filtered. Evidence sheets under `runs/174-multipart-objects-locked/` compare the Klamath Vertibird, both Navarro elevation-2 Vertibirds, New Reno Vertibird and New Reno casino entrance at -45/0/+45. Raw captures and sidecars are in the ignored `build/task174/evidence-raw/` folder.
+Check: Release build; `ctest --test-dir build --output-on-failure` (20/20); scene-export unit tests (125/125); full pixel regression `runs/regression/20261104-222933-516-64992` (83/83, zero changed pixels); focused false-positive spots all zero. `git diff --check` passed.
+Next: runtime evidence is missing for New Reno signage (`NEWR1`) and the San Francisco tanker. Two 90-second live capture attempts for each target timed out; no further retries were made. The owner authorized merging completed code after two runtime failures with this limitation recorded. Task status is done for the implementation; `reviewed: no` remains because regression references were updated.

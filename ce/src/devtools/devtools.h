@@ -57,6 +57,8 @@ void prepareStillSnapshot();
 // A still snapshot run skips game movies: the movie playback advances on the
 // tickers the fixture freezes, so a script-triggered movie would never end.
 bool gameMoviesSuppressed();
+// True only for a background probe explicitly told to skip script dialogue.
+bool skipScriptDialogRequest();
 
 // Prints the maps available in game resources (stdout). Requires the game
 // (db) to be initialized.

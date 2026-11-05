@@ -1,0 +1,9 @@
+devtools: startup target vault15 e0 accepted=1 blocking=0
+scene: cache build\scene-cache\vault15\0
+devtools: static wall+hero preview started for VAULT15.MAP elevation 0
+scene: preview policy=available gameState=0 gameMode=0x0 uiDisabled=0 isoDisabled=0 combat=0 dialog=0 movie=0
+WALK_PROBE START map=VAULT15.MAP elevation=0 start=20100 center=19094 target=16298 path=22
+scene: preview policy=game-state gameState=4 gameMode=0x4 uiDisabled=0 isoDisabled=1 combat=0 dialog=0 movie=0
+WATCHDOG STOP reason=step timeout after 15 s without progress
+last_step=WALK_PROBE START map=VAULT15.MAP elevation=0 start=20100 center=19094 target=16298 path=22
+last_game_state=scene: preview policy=game-state gameState=4 gameMode=0x4 uiDisabled=0 isoDisabled=1 combat=0 dialog=0 movie=0

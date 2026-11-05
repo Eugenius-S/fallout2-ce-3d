@@ -2,15 +2,15 @@
 id: 184
 title: The Restoration Project installs into a scratch game copy and boots in CE
 milestone: M1
-status: todo
-owner: any
-suggested: any
+status: done
+owner: gpt
+suggested: gpt
 priority: high
-tier: 2
+tier: 1
 claude-only: no
 user-check: no
 depends-on: []
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -49,3 +49,10 @@ if it is simple, a script) to install RP into their own game.
 Filling sfall gaps (186 on), 3D of RP's content (187).
 
 ## Log
+
+### 2026-11-05 gpt
+Done: Added the scratch-game-root option to `tools/dev-snapshot.ps1`, the install/backup/rollback guide at `docs/restoration-project.md`, and the runtime evidence in `runs/184-rp-install-and-boot/`. A background new-game run on the scratch copy started at Arroyo Temple and loaded Arroyo Village and Klamath Town. The scratch copy was made from the existing installed RPU 2.4.34 game; the official installer was not rerun. No RP files are committed.
+Next: Wait for CI on PR #283 at the final SHA.
+Check: CTest 20/20; scene-export unit tests 125/125; regression unit tests 12/12; live run logs and three map snapshots in `runs/184-rp-install-and-boot/`.
+
+Official release checked 2026-11-05: RPU v2.4.34, published 2025-10-18. Installer: https://github.com/BGforgeNet/Fallout2_Restoration_Project/releases/download/v2.4.34/rpu_v2.4.34.exe (published SHA-256 `226b2252840a9230bb4ced1550becb2bd69d3580c15ee5c2148d5dc0a750f898`). Latest page: https://github.com/BGforgeNet/Fallout2_Restoration_Project/releases/latest.

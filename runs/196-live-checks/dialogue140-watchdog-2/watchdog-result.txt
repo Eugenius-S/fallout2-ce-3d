@@ -1,0 +1,1 @@
+DIALOG_CURSOR_CHECK PASS, but the isolated script returned nonzero because tools/check_png_pixel.py is absent from this worktree. Its screenshot is a baseline scene with NPC text, not the requested hovered answer. Baseline JPEG and sidecar are included.

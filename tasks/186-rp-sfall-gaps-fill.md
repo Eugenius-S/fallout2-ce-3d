@@ -6,7 +6,7 @@ status: todo
 owner: any
 suggested: any
 priority: high
-tier: 2
+tier: 1
 claude-only: no
 user-check: no
 depends-on: [185]

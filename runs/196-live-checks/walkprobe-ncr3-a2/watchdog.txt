@@ -1,0 +1,5 @@
+WATCHDOG STOP reason=step timeout after 15 s without progress
+last_step=WALK_PROBE START map=NCR3.MAP elevation=0 start=23869 center=21499 target=19868 path=20
+last_game_state=WALK_PROBE START map=NCR3.MAP elevation=0 start=23869 center=21499 target=19868 path=20
+game_state=engine watchdog capture timed out
+screenshot=watchdog.jpg (last available game frame before timeout; see watchdog.jpg)

@@ -622,6 +622,132 @@
       "elevation": 2,
       "tile": 20897,
       "coverage": "Vault 15 ruins, elevation 2"
+    },
+    {
+      "name": "ncr-council-square",
+      "map": "ncr1",
+      "elevation": 0,
+      "tile": 13915,
+      "coverage": "The NCR council square and streets"
+    },
+    {
+      "name": "v15-entrance",
+      "map": "v15ent",
+      "elevation": 0,
+      "tile": 29325,
+      "coverage": "The Vault 15 entrance desert"
+    },
+    {
+      "name": "vault15-level",
+      "map": "vault15",
+      "elevation": 1,
+      "tile": 27103,
+      "coverage": "Inside Vault 15, level 1"
+    },
+    {
+      "name": "v13ent-cave",
+      "map": "v13ent",
+      "elevation": 0,
+      "tile": 25943,
+      "coverage": "The Vault 13 entrance cave and rock face"
+    },
+    {
+      "name": "vault13-corridors",
+      "map": "vault13",
+      "elevation": 0,
+      "tile": 17095,
+      "coverage": "The Vault 13 command centre corridors"
+    },
+    {
+      "name": "vault13-deathclaw-floor",
+      "map": "vault13",
+      "elevation": 2,
+      "tile": 16694,
+      "coverage": "The Vault 13 deathclaw floor"
+    },
+    {
+      "name": "depot-gatehouse",
+      "map": "depolv1",
+      "elevation": 0,
+      "tile": 27705,
+      "coverage": "The Sierra depot surface gatehouse and fences"
+    },
+    {
+      "name": "depot-robot-hall",
+      "map": "depolva",
+      "elevation": 1,
+      "tile": 26504,
+      "coverage": "The depot robot storage hall"
+    },
+    {
+      "name": "depot-robotics-bay",
+      "map": "depolvb",
+      "elevation": 0,
+      "tile": 21910,
+      "coverage": "The depot robotics bay"
+    },
+    {
+      "name": "sanfran-docks",
+      "map": "sfdock",
+      "elevation": 0,
+      "tile": 20100,
+      "coverage": "The docks pier and the sea edge"
+    },
+    {
+      "name": "sanfran-tanker-deck",
+      "map": "sftanker",
+      "elevation": 0,
+      "tile": 27701,
+      "coverage": "The tanker deck, bow"
+    },
+    {
+      "name": "navarro-base",
+      "map": "navarro",
+      "elevation": 0,
+      "tile": 28694,
+      "coverage": "Navarro, the base floor"
+    },
+    {
+      "name": "mbase-surface",
+      "map": "mbclose",
+      "elevation": 0,
+      "tile": 23939,
+      "coverage": "The Mariposa surface sheds and rocks"
+    },
+    {
+      "name": "mbase-corridors",
+      "map": "mbase12",
+      "elevation": 0,
+      "tile": 16089,
+      "coverage": "The base corridor level 1"
+    },
+    {
+      "name": "mbase-vats",
+      "map": "mbase34",
+      "elevation": 1,
+      "tile": 15131,
+      "coverage": "The glowing vat room"
+    },
+    {
+      "name": "coast-road-car",
+      "map": "coast1",
+      "elevation": 0,
+      "tile": 20100,
+      "coverage": "The coast road with the highwayman car"
+    },
+    {
+      "name": "desert-arch",
+      "map": "desert5",
+      "elevation": 0,
+      "tile": 21099,
+      "coverage": "The desert rock wall and arch"
+    },
+    {
+      "name": "coast-shanty",
+      "map": "coast10",
+      "elevation": 0,
+      "tile": 19716,
+      "coverage": "The shanty camp by the coast road"
     }
   ]
 }

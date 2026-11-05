@@ -312,3 +312,18 @@ first: a new task only when no open task or batch fits (AGENTS.md, Tasks).
   127, 140, 146 and the 165 walk probes on live checks that hang (map
   dialogues, the combat start, the display change). 165 merged as #265;
   #259 closed, superseded by #263.
+- 2026-11-04 (-> 197, alone: an art pipeline trial) The owner: a trial AI
+  HD remaster of one character's standing and walk frames, for gpt, not
+  urgent (`runs/inbox/2026-11-04-hd-sprite-remaster-reference.png`).
+- 2026-11-04 (-> 198, alone: the local machine) The owner: the showcase
+  project, the final video and the logo into `marketing/`; clean up the
+  the projects folder root.
+- 2026-11-04 The owner: the Restoration Project up, 184, 185, 186 and 188 to
+  tier 1 (184 suggested gpt; 187 stays tier 2, it needs the map work). The
+  remaining maps 166-171 to glm, in id order, one after another.
+- 2026-11-04 (-> 168, owner priority) The owner: San Francisco's sea fills
+  the horizon past the map; the tanker's side a vertical plane at the pier
+  (173's plane rule).
+- 2026-11-04 (-> 199, tier 1 high, alone: builds on 091's launcher) The owner: a proper
+  installer with the logo, one-click updates from GitHub, a Russian option
+  and a disabled Restoration Project option.

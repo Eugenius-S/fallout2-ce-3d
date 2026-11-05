@@ -2,15 +2,15 @@
 id: 188
 title: A check that RP still boots, without committing RP
 milestone: M1
-status: todo
-owner: any
+status: done
+owner: gpt
 suggested: any
 priority: high
-tier: 2
+tier: 1
 claude-only: no
 user-check: no
 depends-on: [184]
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -43,3 +43,16 @@ later changes do not break it.
 Fixing what it finds.
 
 ## Log
+
+### 2026-11-05 gpt
+Done: Added `tools/rp-check.ps1`, a local checker for isolated RP scratch
+copies, and named its invocation in `AGENTS.md`. The Release build from
+`dd4f4102` booted and loaded six representative maps, with each loaded map
+checked against snapshot metadata. A copied executable with a corrupted PE
+signature was rejected with exit code 1. Evidence: `runs/188-rp-boot-check/`.
+An optional wider sweep reached the `HUBSTASH` startup marker but did not
+progress to a snapshot within 30 seconds; it is explicitly unverified.
+Next: Wait for PR #288 CI on the final SHA.
+Check: `tools/rp-check.ps1` positive and negative runs; `ctest --test-dir
+build --output-on-failure` (20/20 passed).
+

@@ -152,7 +152,7 @@ int gameMoviesSave(File* stream)
 int gameMoviePlay(int movie, int flags)
 {
     if (devtools::gameMoviesSuppressed()) {
-        debugPrint("\ngmovie_play() skipped: still snapshot run\n");
+        debugPrint("\ngmovie_play() skipped: background dev run\n");
         return -1;
     }
 

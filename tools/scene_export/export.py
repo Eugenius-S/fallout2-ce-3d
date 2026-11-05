@@ -74,6 +74,21 @@ MAP_GROUPS = {
     # NCR and the ruined Vault 15 levels (the game's maps/ncr*.map and
     # v15*.map files). vault15 is also part of the Vault City group.
     "ncr": ("ncr1", "ncr2", "ncr3", "ncr4", "ncrent", "v15ent", "v15sent", "vault15"),
+    # Vault 13 and the Sierra Army Depot: the vault's entrance and levels,
+    # the depot's surface bunker and its underground levels (the game's
+    # maps/v13*.map and depol*.map files).
+    "vault13depot": ("v13ent", "vault13", "depolv1", "depolva", "depolvb"),
+    # San Francisco and Navarro: Chinatown, the docks, the tanker, the
+    # shuttle, the Elronologists' base and the Navarro base (the game's
+    # maps/sf*.map files and navarro.map).
+    "sanfran": ("sfdock", "sfchina", "sfchina2", "sftanker", "sfshutl1", "sfshutl2", "sfelronb", "navarro"),
+    # The Mariposa military base: the surface entrance and the underground
+    # levels (the game's maps/mb*.map files).
+    "militarybase": ("mbclose", "mbase12", "mbase34"),
+    # The desert and coast random encounters: open sand, rocks, coastline
+    # and water edges (the game's maps/desert*.map, desrt*.map and
+    # coast*.map files).
+    "encdesertcoast": ("desert1", "desert2", "desert3", "desert4", "desert5", "desert6", "desert7", "desert8", "desert9", "desrt10", "desrt11", "desrt12", "desrt13", "coast1", "coast2", "coast3", "coast4", "coast5", "coast6", "coast7", "coast8", "coast9", "coast10", "coast11", "coast12"),
 }
 EXPECTED_OUTPUT_FILES = {"scene.json", "provenance.json", "floor.bin", "walls.bin", "projection.bin", "baked.bin",
                          "shadows.bin", "tiles.png", "light.png", "rock.png", "roof_fringe.png"}

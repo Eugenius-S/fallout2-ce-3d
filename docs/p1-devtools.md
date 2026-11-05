@@ -150,6 +150,19 @@ the game loop (`mapLoadById`), the hero on the map's entrance tile, the
 camera centered, the map scripts run. In combat/dialog/movies the
 transition is refused with a status in the panel.
 
+Background live checks have a whole-run timeout (`-TimeoutSeconds`, default
+90) and a stalled-step timeout (`-StepTimeoutSeconds`, default 30). A timeout
+stops only the test process and preserves `watchdog.txt`, process logs, and
+the latest game snapshot in the failed run folder. The report includes the
+last progress marker and most recent map/combat/dialog/movie state. If the
+game loop is blocked and cannot take a fresh frame, it keeps the last frame
+captured before the block. The dialog fixture also records a baseline frame
+before entering the modal interaction. Use
+`-SkipScriptBlocking` to enable the dev-only `--dev-skip-script-blocking`
+option: script-requested dialogue is skipped before its UI opens, and
+script-requested movies are skipped, with each skip recorded in stdout. This
+option is off unless requested.
+
 ## A snapshot
 
 F9/SNAP writes `devshot-YYYYMMDD-HHMMSS.json` + `scrNNNNN.png` into `game\shots\dev\<date>\` and `game\shots\game\` (the game folder root keeps only the game's own files):

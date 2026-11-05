@@ -1,0 +1,2 @@
+#define IDB_LAUNCHER_LOGO 201
+IDB_LAUNCHER_LOGO BITMAP "launcher_logo.bmp"

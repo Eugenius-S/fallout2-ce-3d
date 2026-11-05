@@ -84,6 +84,8 @@
 namespace fallout {
 namespace devtools {
 
+bool takeSnapshot();
+
 namespace {
 
 // Our log files live in logs/, not next to the exe.
@@ -131,6 +133,11 @@ int gWalkProbeTargetTile = -1;
 int gWalkProbeStartCenter = -1;
 int gWalkProbeFrames = 0;
 bool gWalkProbeCenterChanged = false;
+bool gSkipScriptBlocking = false;
+bool gDialogSkipReported = false;
+bool gMovieSkipReported = false;
+int gWatchdogStateFrames = 0;
+bool gWatchdogEnabled = false;
 bool gClockLadder = false;
 int gClockLadderStage = -1;
 bool gPreferencesSnapshotPending = false;
@@ -192,6 +199,7 @@ char gSnapshotRun[33] = {};
 bool gDialogFixtureRequested = false;
 bool gDialogFixtureStarted = false;
 bool gDialogFixtureFinished = false;
+bool gDialogFixtureBaselineCaptured = false;
 bool gDialogPageInspectRequested = false;
 int gDialogPageInspectStage = 0;
 std::vector<std::string> gDialogPageInspectInitialText;
@@ -864,6 +872,14 @@ bool parseOption(const char* arg)
         gWalkProbe = true;
         return true;
     }
+    if (strcmp(arg, "--dev-skip-script-blocking") == 0) {
+        gSkipScriptBlocking = true;
+        return true;
+    }
+    if (strcmp(arg, "--dev-watchdog") == 0) {
+        gWatchdogEnabled = true;
+        return true;
+    }
     if (strcmp(arg, "--dev-clock-ladder") == 0) {
         gClockLadder = true;
         return true;
@@ -1311,7 +1327,16 @@ bool stillSnapshotRequested()
 
 bool gameMoviesSuppressed()
 {
-    return stillSnapshotRequested();
+    return stillSnapshotRequested() || (gEnabled && gSkipScriptBlocking);
+}
+
+bool skipScriptDialogRequest()
+{
+    if (!gEnabled || !gSkipScriptBlocking) return false;
+    printf("DEV_WATCHDOG skipped script dialog request map=%s elevation=%d tile=%d\n",
+        gMapHeader.name, static_cast<int>(gElevation), gDude != nullptr ? gDude->tile : -1);
+    fflush(stdout);
+    return true;
 }
 
 void prepareStillSnapshot()
@@ -1462,6 +1487,60 @@ void update()
     if (!gEnabled) {
         return;
     }
+    if (gWatchdogEnabled) {
+        const std::filesystem::path requestPath = dev_output::outputFile("watchdog.request");
+        std::error_code error;
+        if (std::filesystem::exists(requestPath, error) && !error) {
+            std::filesystem::remove(requestPath, error);
+            const bool captured = takeSnapshot();
+            const std::filesystem::path statePath = dev_output::outputFile("watchdog-state.txt");
+            if (FILE* state = fopen(statePath.string().c_str(), "wb")) {
+                fprintf(state, "captured=%d game_state=%d game_mode=0x%x map=%s elevation=%d tile=%d combat=%d dialog=%d movie=%d view=%d tour_step=%d walk_stage=%d scripted_input=%d snapshot_status=%s\n",
+                    captured ? 1 : 0, static_cast<int>(gameGetState()),
+                    static_cast<unsigned int>(GameMode::getCurrentGameMode()),
+                    gMapHeader.name, static_cast<int>(gElevation), gDude != nullptr ? gDude->tile : -1,
+                    isInCombat() ? 1 : 0, _inDialog != 0 ? 1 : 0, _moviePlaying() != 0 ? 1 : 0,
+                    static_cast<int>(scene::activeView()), gTourStep, gWalkProbeStage,
+                    scriptedInputActive() ? 1 : 0, gStatus);
+                fclose(state);
+            }
+            printf("DEV_WATCHDOG capture requested captured=%d map=%s tile=%d walk_stage=%d tour_step=%d\n",
+                captured ? 1 : 0, gMapHeader.name, gDude != nullptr ? gDude->tile : -1, gWalkProbeStage, gTourStep);
+            fflush(stdout);
+        }
+    }
+    if (gSkipScriptBlocking) {
+        if (_inDialog != 0) {
+            if (!gDialogSkipReported) {
+                printf("DEV_WATCHDOG skipped script dialog map=%s elevation=%d tile=%d\n",
+                    gMapHeader.name, static_cast<int>(gElevation), gDude != nullptr ? gDude->tile : -1);
+                fflush(stdout);
+                gDialogSkipReported = true;
+            }
+            _dialogQuit();
+        } else {
+            gDialogSkipReported = false;
+        }
+        if (_moviePlaying() != 0) {
+            if (!gMovieSkipReported) {
+                printf("DEV_WATCHDOG skipped script movie map=%s elevation=%d tile=%d\n",
+                    gMapHeader.name, static_cast<int>(gElevation), gDude != nullptr ? gDude->tile : -1);
+                fflush(stdout);
+                gMovieSkipReported = true;
+            }
+            _movieStop();
+        } else {
+            gMovieSkipReported = false;
+        }
+    }
+    if (++gWatchdogStateFrames >= 60) {
+        gWatchdogStateFrames = 0;
+        printf("DEV_WATCHDOG state map=%s elevation=%d tile=%d combat=%d dialog=%d movie=%d view=%d tour_step=%d walk_stage=%d\n",
+            gMapHeader.name, static_cast<int>(gElevation), gDude != nullptr ? gDude->tile : -1,
+            isInCombat() ? 1 : 0, _inDialog != 0 ? 1 : 0, _moviePlaying() != 0 ? 1 : 0,
+            static_cast<int>(scene::activeView()), gTourStep, gWalkProbeStage);
+        fflush(stdout);
+    }
     if (!gPreferencesSnapshotActive && scriptedInputActive()) {
         // A scene script (no -Preferences) starts itself once the 3D view is
         // up; the options panel's own loop begins the panel scripts.
@@ -1584,6 +1663,7 @@ void update()
                 gMapHeader.name, gElevation, gWalkProbeStartTile, gWalkProbeStartCenter,
                 gWalkProbeTargetTile, pathLength);
             fflush(stdout);
+            takeSnapshot();
             gWalkProbeStage = 1;
         }
     } else if (gWalkProbe && gWalkProbeStage == 1 && gDude != nullptr) {
@@ -1624,6 +1704,13 @@ void update()
     }
     if (gDialogFixtureRequested && !gDialogFixtureStarted && !gDialogFixtureFinished
         && sceneStartupReady() && !inBlockingGameState()) {
+        if (!gDialogFixtureBaselineCaptured) {
+            gDialogFixtureBaselineCaptured = true;
+            const bool captured = takeSnapshot();
+            printf("DIALOG_FIXTURE BASELINE %s: %s\n", captured ? "saved" : "failed", gStatus);
+            fflush(stdout);
+            return;
+        }
         gDialogFixtureStarted = true;
         std::string mapName(gMapHeader.name);
         std::transform(mapName.begin(), mapName.end(), mapName.begin(),
@@ -1929,7 +2016,7 @@ void update()
 
     // --dev-map-tour: a snapshot where the startup landed, then one on each
     // listed map elevation in turn, all in this process.
-    if (gTourStep >= 0 && gStartupFloorPreviewAttempted && !gPendingElevation && !inBlockingGameState()) {
+    if (gTourStep >= 0 && gStartupFloorPreviewAttempted && !gPendingElevation) {
         bool arrived = gTourStep == 0;
         if (!arrived) {
             char base[64];
@@ -1954,13 +2041,20 @@ void update()
             startFlying(false);
             if (gFlying) circleFlight(stop.turn == 0.0 ? 0.01 : stop.turn, -1.0, stop.distance);
         }
-        const bool ready = arrived && gTourFrames >= 30;
-        const bool stuck = !arrived && gTourFrames >= 600;
+        const bool ready = arrived && gTourFrames >= 30 && !inBlockingGameState();
+        // A map whose enter script sits in combat, a dialog or a movie would
+        // hold the tour forever; snapshot where the game is and go on.
+        const bool stuck = gTourFrames >= 600;
         if (ready || stuck) {
             gTourFrames = 0;
             if (stuck) {
-                const TourStop& stop = gTour[gTourStep - 1];
-                printf("devtools: map tour did not reach %s e%d: %s\n", stop.map.c_str(), stop.elevation, gStatus);
+                if (!arrived) {
+                    const TourStop& stop = gTour[gTourStep - 1];
+                    printf("devtools: map tour did not reach %s e%d: %s\n", stop.map.c_str(), stop.elevation, gStatus);
+                } else {
+                    printf("devtools: map tour blocked by the game state on %s e%d, snapshotting where the game is\n",
+                        gMapHeader.name, gElevation);
+                }
                 fflush(stdout);
             }
             takeSnapshot();
@@ -1971,9 +2065,11 @@ void update()
                 // Another view of this map elevation needs no transition.
                 const bool sameMap = compat_stricmp(here, next.map.c_str()) == 0 && static_cast<int>(gElevation) == next.elevation;
                 if (!sameMap && !requestMapChange(next.map.c_str(), next.elevation)) {
-                    printf("devtools: map tour stopped at %s e%d: %s\n", next.map.c_str(), next.elevation, gStatus);
+                    // A stop the game cannot enter (an elevation without a
+                    // free entrance hex, a locked map) does not kill the tour:
+                    // the next frames snapshot where the game is and go on.
+                    printf("devtools: map tour skipped %s e%d: %s\n", next.map.c_str(), next.elevation, gStatus);
                     fflush(stdout);
-                    gTourStep = -1;
                 }
             } else {
                 gTourStep = -1;

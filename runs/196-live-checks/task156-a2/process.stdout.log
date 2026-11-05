@@ -1,0 +1,7 @@
+devtools: startup target kladwtwn e0 accepted=1 blocking=0
+scene: cache task156-source\build\scene-cache\kladwtwn\0
+devtools: static wall+hero preview started for KLADWTWN.MAP elevation 0
+scene: preview policy=available gameState=0 gameMode=0x0 uiDisabled=0 isoDisabled=0 combat=0 dialog=0 movie=0
+WATCHDOG STOP reason=step timeout after 90 s without progress
+last_step=devtools: static wall+hero preview started for KLADWTWN.MAP elevation 0
+last_game_state=scene: preview policy=available gameState=0 gameMode=0x0 uiDisabled=0 isoDisabled=0 combat=0 dialog=0 movie=0
