@@ -909,6 +909,181 @@
    "elevation": 0,
    "tile": 19683,
    "coverage": "Mountain encounter 6: the summit trail at the spawn"
+  },
+  {
+   "name": "encsp-whale",
+   "map": "rndwhale",
+   "elevation": 0,
+   "tile": 17705,
+   "coverage": "Special whale encounter at the spawn"
+  },
+  {
+   "name": "encsp-woodsman",
+   "map": "rndtinwd",
+   "elevation": 0,
+   "tile": 18920,
+   "coverage": "Special woodsman encounter at the spawn"
+  },
+  {
+   "name": "encsp-brahmin-head",
+   "map": "rndbhead",
+   "elevation": 0,
+   "tile": 23323,
+   "coverage": "Special giant head encounter at the spawn"
+  },
+  {
+   "name": "encsp-shuttle",
+   "map": "rndshutl",
+   "elevation": 0,
+   "tile": 17699,
+   "coverage": "Special shuttle encounter at the spawn"
+  },
+  {
+   "name": "encsp-unwashed",
+   "map": "rnduvilg",
+   "elevation": 0,
+   "tile": 20100,
+   "coverage": "Special unwashed village at the spawn"
+  },
+  {
+   "name": "encsp-bridge",
+   "map": "rndbridg",
+   "elevation": 0,
+   "tile": 19298,
+   "coverage": "Special bridge encounter at the spawn"
+  },
+  {
+   "name": "encsp-cafe",
+   "map": "rndcafe",
+   "elevation": 0,
+   "tile": 21302,
+   "coverage": "Special cafe encounter at the spawn"
+  },
+  {
+   "name": "encsp-holy1",
+   "map": "rndholy1",
+   "elevation": 0,
+   "tile": 18323,
+   "coverage": "Special holy encounter 1 at the spawn"
+  },
+  {
+   "name": "encsp-holy2",
+   "map": "rndholy2",
+   "elevation": 0,
+   "tile": 19270,
+   "coverage": "Special holy encounter 2 at the spawn"
+  },
+  {
+   "name": "encsp-holy2-top",
+   "map": "rndholy2",
+   "elevation": 1,
+   "tile": 19270,
+   "coverage": "Special holy encounter 2, upper floor"
+  },
+  {
+   "name": "encsp-guardian",
+   "map": "rndforvr",
+   "elevation": 0,
+   "tile": 17095,
+   "coverage": "Special guardian encounter at the spawn"
+  },
+  {
+   "name": "encsp-guardian-top",
+   "map": "rndforvr",
+   "elevation": 1,
+   "tile": 17095,
+   "coverage": "Special guardian encounter, upper floor"
+  },
+  {
+   "name": "encsp-toxic",
+   "map": "rndtoxic",
+   "elevation": 0,
+   "tile": 20512,
+   "coverage": "Special toxic dump at the spawn"
+  },
+  {
+   "name": "encsp-pariahs",
+   "map": "rndparih",
+   "elevation": 0,
+   "tile": 20100,
+   "coverage": "Special pariahs encounter at the spawn"
+  },
+  {
+   "name": "encsp-mad-cow",
+   "map": "rndexcow",
+   "elevation": 0,
+   "tile": 20100,
+   "coverage": "Special mad brahmin encounter at the spawn"
+  },
+  {
+   "name": "encsp-bess",
+   "map": "rndbess",
+   "elevation": 0,
+   "tile": 13085,
+   "coverage": "Bess dead encounter at the spawn"
+  },
+  {
+   "name": "encsp-bess-top",
+   "map": "rndbess",
+   "elevation": 1,
+   "tile": 20100,
+   "coverage": "Bess dead encounter, upper floor"
+  },
+  {
+   "name": "encsp-detention",
+   "map": "encdet",
+   "elevation": 0,
+   "tile": 20100,
+   "coverage": "Enclave detention at the spawn"
+  },
+  {
+   "name": "encsp-dock",
+   "map": "encdock",
+   "elevation": 0,
+   "tile": 20100,
+   "coverage": "Enclave dock at the spawn"
+  },
+  {
+   "name": "encsp-fight",
+   "map": "encfite",
+   "elevation": 0,
+   "tile": 20100,
+   "coverage": "Enclave end fight room at the spawn"
+  },
+  {
+   "name": "encsp-barracks",
+   "map": "encgd",
+   "elevation": 0,
+   "tile": 20100,
+   "coverage": "Enclave guard barracks at the spawn"
+  },
+  {
+   "name": "encsp-presidential",
+   "map": "encpres",
+   "elevation": 0,
+   "tile": 20100,
+   "coverage": "Enclave presidential hall at the spawn"
+  },
+  {
+   "name": "encsp-reactor",
+   "map": "encrctr",
+   "elevation": 0,
+   "tile": 20100,
+   "coverage": "Enclave reactor at the spawn"
+  },
+  {
+   "name": "encsp-trap",
+   "map": "enctrp",
+   "elevation": 0,
+   "tile": 20100,
+   "coverage": "Enclave trap room at the spawn"
+  },
+  {
+   "name": "encsp-car-desert",
+   "map": "cardesrt",
+   "elevation": 0,
+   "tile": 20100,
+   "coverage": "The car's desert map at the spawn"
   }
  ]
 }
