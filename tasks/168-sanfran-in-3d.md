@@ -147,3 +147,35 @@ other areas (each has its own task).
   thirtieth in one game process ran past the 30 s step budget; reproduced
   on origin/main's exe, it is a slow capture, not a hang) - main's 194
   already raised the step budget to 120 s, nothing left to fix here.
+- 2026-11-05, glm. Rule 2 (the hull) built, branch task/168-hull-plane,
+  PR pending. Root cause: a hull-sized grouped rest seen only from the fly
+  camera went through rest_card, which puts it on the game-screen plane,
+  so from the docks the tanker's side leaned as a slanted sliver above the
+  pier. The rule, general for every map: a grouped rest seen==3 (fly-only
+  plane) whose art is at least 288 px wide, anchored on a water square,
+  stands as ONE vertical plane on the nearest water line - the exporter
+  BFS-walks the floor.bin 7 water flags from the anchor square to the
+  nearest orthogonal land, and the plane rises from that boundary line
+  (tile units, the -50 centering stays downstream) to the art's height.
+  Exporter-only change (renderer diff is empty); anything not hull-sized
+  or not on water keeps rest_card's plane unchanged (byte-identical
+  proven by the no-water test). sfdock's hull: vertical plane at the
+  water line v=31.00, span 35.4 tiles = the 2028 px art, height 529 px,
+  base on the ground; un-mirrored against the game's own 2D at the same
+  water tile 10694 (dotted plates, dark belts, rust streaks left to
+  right in both). Tooling find: a correct origin/main baseline for an
+  exporter-only change is cheaper as a baseline cache - 106 junctions
+  into a folder that mixes the current exports with the few maps
+  re-exported on a stashed clean tree (md5: only the intended walls.bin
+  differ) - instead of re-exporting 107 scenes on main. Tooling find 2:
+  a one-off dead game process produced four literally pure-black frames
+  (scene_3d_enabled=true in the sidecars) and the tour's check_views
+  raised "every turn is the same picture" - the same exe and cache
+  re-shot the spot with 157 colours, so it was the process, not the
+  branch; the tour resumes with --reuse. Regression: 106/106 spots, 0
+  changed pixels (the C++ diff is empty). ctest 129/129. Full fly tour
+  against the correct baseline: 1 of 241 spots changed - sfdock e0 tile
+  20100 "the docks pier", only the +45 turn, bbox (478,0,867,112), the
+  distant tanker; exactly the designed blast radius. Evidence pairs:
+  runs/168-hull-stands/ (full frames, the magnified hull crop pair, the
+  2D-vs-3D stance comparison). Find 2 from the Log closed.
