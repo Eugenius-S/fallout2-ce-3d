@@ -121,6 +121,11 @@ were last modified on 2026-11-03; later captures used a copy in the task
 worktree's `build/scene-cache`. No files in the main checkout cache were
 changed.
 
+The 03:14 inventory fixture still shows the 3D scene around the inventory
+panel at 1920x1080. The test executable contained the generic backdrop
+prototype (`2ee641f2...`), so that prototype did not establish the requested
+backdrop. It was removed; the screenshot is kept only in ignored build output.
+
 Part C remains blocked on art rights: Task 128's variant-6 assets cannot be
 used, and no replacement art has been authored. Keep PR #310 draft until
 the missing acceptance is implemented and evidenced.
