@@ -2,7 +2,7 @@
 id: 128
 title: Wide-screen art, the HUD bar and the 4:3 full-screen art, with licenses
 milestone: M1
-status: todo
+status: doing
 owner: gpt
 suggested: gpt
 priority: normal
@@ -99,7 +99,13 @@ Verdict: do not ship or use the combined bar and variant-6 side art. The documen
 Check: inspected the installed `f2_res.ini` and DAT/FRM entries; checked the HRP author's source repository and its MIT license, and the HRP 4.1.8 readme copy. The exact local archive release and variant-6 provenance remain unresolved and are stated as such.
 Next: implementation of any wider HUD art is a separate task and must use newly authored assets or art with verified redistribution terms.
 
+### 2026-11-05 gpt: close the source and rights step
+Done: the task's acceptance is complete in PR #184: the likely HRP source and FRM dimensions are identified, and the decision is not to ship or load the artwork because redistribution rights and the installed variant-6 provenance are unverified. No art was committed.
+Next: the separate wide-screen art implementation belongs to Part C of task 193, after that batch's own requirements; it does not reopen this source-and-rights task.
+Check: PR #184 is merged; the source, file list, license limits, and verdict are recorded above.
+
 ### 2026-11-05 claude
 Step 1 (the HUD bar source and its rights) done above, merged as #184. The
 task stays open for step 2 (the 4:3 art) and the art itself, inside the UI
 batch (193 part C).
+
