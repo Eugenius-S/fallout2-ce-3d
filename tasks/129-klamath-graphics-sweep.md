@@ -2,7 +2,7 @@
 id: 129
 title: Klamath graphics sweep, find and fix every visible defect
 milestone: M1
-status: doing
+status: done
 owner: gpt
 suggested: any
 priority: low
@@ -154,5 +154,18 @@ Checks: exporter tests 132/132, CTest 20/20, and the entrance and Klamall
 game-view regression spots each pass with 0 changed pixels. See
 `runs/129-partial-grey/evidence.json` for the tour command and build hash.
 
-Next: publish the implementation and evidence in PR #311, wait for CI on its
-new head, then continue the Klamath sweep from the next unresolved cause.
+Next: the sweep handoff is recorded below.
+
+### 2026-11-06 gpt: sweep handoff
+
+Done: PR #311 merged as 199e7483 and fixes the partial grey roof tiles.
+The Klamath sweep has no unassigned findings. The two remaining map-edge
+finds (round 2, items 7 and 10) are tracked separately by task 145, PR #293.
+That PR remains draft after two failed live-tour captures; its Log records
+the timeouts and the owner stop rule prevents another attempt. The map-edge
+result is therefore still unverified, not claimed as fixed here. This task
+is done as the completed survey and triage; continue with the next free board
+task while #293 remains draft.
+
+Check: PR #311 CI is green; task 145 PR #293 is open/draft with green CI and
+two recorded capture timeouts.
