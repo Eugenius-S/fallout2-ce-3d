@@ -2,8 +2,8 @@
 id: 191
 title: Furniture and props across every map, one rule per PR
 milestone: M1
-status: doing
-owner: gpt
+status: todo
+owner: owner
 suggested: any
 priority: normal
 tier: 3
