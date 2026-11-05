@@ -2,8 +2,8 @@
 id: 187
 title: RP's new and changed maps build in 3D under the same rules
 milestone: M1
-status: todo
-owner: any
+status: doing
+owner: gpt
 suggested: any
 priority: high
 tier: 2
@@ -43,3 +43,4 @@ ones: 3D never off, a plane or billboard for what cannot be built (173).
 sfall gaps (186).
 
 ## Log
+
