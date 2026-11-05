@@ -6,6 +6,14 @@
 namespace fallout {
 namespace scene {
 
+int dialogueOptionTextOffset(bool firstLine, bool bulletLead,
+    int initialIndent, int bulletAdvance, int spaceAdvance)
+{
+    if (!bulletLead) return 0;
+    const int continuationIndent = firstLine ? 0 : std::max(0, bulletAdvance) + std::max(0, spaceAdvance);
+    return std::max(0, initialIndent) + continuationIndent;
+}
+
 int dialogueOptionGroupGap(const std::vector<DialogueOptionLayoutProbe>& options,
     int bottom, bool enabled)
 {

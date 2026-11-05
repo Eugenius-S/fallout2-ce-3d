@@ -2553,20 +2553,27 @@ void _gdProcessUpdate()
     }
 
     const int lineHeight = fontGetLineHeight();
+    const int linePitch = scene::sharpTextLinePitch(lineHeight, scene::sharpTextWanted());
+    const int bulletAdvance = fontGetStringWidth("\x95");
+    const int spaceAdvance = fontGetStringWidth(" ");
     const scene::DialogueLayout optionLayout = scene::layoutDialogueOptions(
         gameDialogOptionEntriesLength,
         _optionRect.top,
         _optionRect.bottom,
         scene::sharpTextWanted(),
-        [lineHeight](std::size_t index, int top) {
+        [linePitch, bulletAdvance, spaceAdvance](std::size_t index, int top) {
             GameDialogOptionEntry* dialogOptionEntry = &(dialogOptionEntries[index]);
-            return _text_num_lines(dialogOptionEntry->text, _optionRect.right - _optionRect.left) * lineHeight + top + 2;
+            const bool bulletLead = static_cast<unsigned char>(dialogOptionEntry->text[0]) == 0x95;
+            const int indent = scene::sharpTextWanted()
+                ? scene::dialogueOptionTextOffset(false, bulletLead, 10, bulletAdvance, spaceAdvance) : 0;
+            const int width = std::max(1, _optionRect.right - _optionRect.left - indent);
+            return _text_num_lines(dialogOptionEntry->text, width) * linePitch + top + 2;
         },
-        [lineHeight](std::size_t index, int top) {
+        [linePitch](std::size_t index, int top) {
             GameDialogOptionEntry* dialogOptionEntry = &(dialogOptionEntries[index]);
             Rect drawRect = { _optionRect.left, top, _optionRect.right, _optionRect.bottom };
             return gameDialogDrawText(nullptr, &drawRect, dialogOptionEntry->text,
-                nullptr, lineHeight, 393, COLOR_GREEN | DRAW_TEXT_FLAG_NO_BG, 0);
+                nullptr, linePitch, 393, COLOR_GREEN | DRAW_TEXT_FLAG_NO_BG, 0);
         });
 
     for (int index = 0; index < gameDialogOptionEntriesLength; index++) {
@@ -3410,6 +3417,9 @@ int _text_num_lines(const char* text, int maxWidth)
 // 0x447F80
 static int text_to_rect_wrapped(unsigned char* buffer, Rect* rect, const char* string, int* textOffset, int height, int pitch, ColorWithFlags color)
 {
+    if (scene::sharpTextWanted()) {
+        height = scene::sharpTextLinePitch(height, true);
+    }
     return gameDialogDrawText(buffer, rect, string, textOffset, height, pitch, color, 1);
 }
 
@@ -3434,9 +3444,18 @@ static int gameDialogDrawText(unsigned char* buffer, Rect* rect, const char* str
         start = mutableText;
     }
 
-    int maxWidth = rect->right - rect->left;
+    const bool sharpText = scene::sharpTextWanted();
+    const bool bulletLead = static_cast<unsigned char>(mutableText[0]) == 0x95;
+    const int initialIndent = 10;
+    const int bulletAdvance = fontGetStringWidth("\x95");
+    const int spaceAdvance = fontGetStringWidth(" ");
     char* end = nullptr;
     while (start != nullptr && *start != '\0') {
+        const int lineOffset = sharpText
+            ? scene::dialogueOptionTextOffset(start == mutableText, bulletLead,
+                  initialIndent, bulletAdvance, spaceAdvance)
+            : ((draw != 1 || start == mutableText) ? initialIndent : 0);
+        const int maxWidth = std::max(1, rect->right - rect->left - lineOffset);
         if (fontGetStringWidth(start) > maxWidth) {
             end = start + 1;
             while (*end != '\0' && *end != ' ') {
@@ -3469,16 +3488,12 @@ static int gameDialogDrawText(unsigned char* buffer, Rect* rect, const char* str
                     *end = '\0';
                 }
             } else {
-                if (rect->bottom - fontGetLineHeight() < rect->top) {
+                if (rect->bottom - height < rect->top) {
                     return rect->top;
                 }
 
                 if (draw != 0) {
-                    if (draw != 1 || start == mutableText) {
-                        fontDrawText(buffer + pitch * rect->top + 10, start, maxWidth, pitch, color);
-                    } else {
-                        fontDrawText(buffer + pitch * rect->top, start, maxWidth, pitch, color);
-                    }
+                    fontDrawText(buffer + pitch * rect->top + lineOffset, start, maxWidth, pitch, color);
                 }
 
                 if (textOffset != nullptr) {
@@ -3496,19 +3511,14 @@ static int gameDialogDrawText(unsigned char* buffer, Rect* rect, const char* str
         }
 
         if (draw != 0) {
-            if (rect->bottom - fontGetLineHeight() < rect->top) {
+            if (rect->bottom - height < rect->top) {
                 if (end != nullptr && *end == '\0') {
                     *end = ' ';
                 }
                 return rect->top;
             }
 
-            unsigned char* dest;
-            if (draw != 1 || start == mutableText) {
-                dest = buffer + 10;
-            } else {
-                dest = buffer;
-            }
+            unsigned char* dest = buffer + lineOffset;
             fontDrawText(dest + pitch * rect->top, start, maxWidth, pitch, color);
         }
 
