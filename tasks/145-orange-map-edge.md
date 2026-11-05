@@ -52,3 +52,8 @@ ground before the black, and the edge is cut where the original cuts it.
 ## Log
 
 - 2026-11-01 Cut from Claude's 137 captures.
+
+### 2026-11-05 gpt
+Done: Traced the orange band to translucent exit-grid markers: a matched diagnostic capture with exit-grid cards hidden removes the band while preserving the same map, view tile, zoom, daylight and authored clip. Exit-grid objects now remain in the picking data but render as pick-only cards, so the transition stays available without drawing the marker overlay. Added dev snapshot logging for the active EDG rects and an `F2CE_DEV_CLEAN_EDGES=off` comparison mode. Release build and CTest passed (20/20); the fixed matched capture is in `build/task145-after/`, compared with `build/task145-3d-24678/` and `build/task145-classic-24678/`.
+Next: Finish the regression run, create the compact before/after and Classic evidence sheet under `runs/145-orange-map-edge/`, then verify the map-edge-only visual change before moving the PR out of draft.
+Check: `tools/dev-snapshot.ps1 -Map kladwtwn -Still -Hour 8 -ViewTile 24678 -Zoom 0.5` confirms the band disappears with the rendering change. `ctest --test-dir build --output-on-failure` passed 20/20. `tools/regression.ps1` is running; its result is not yet known.
