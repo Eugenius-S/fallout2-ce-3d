@@ -183,3 +183,28 @@ other areas (each has its own task).
   (#305). Find 1 closed by #303, find 2 by #305; no other defects on the
   sweep. The area plays in 3D: 14 scene elevations, walk chain 14/14,
   hour sweep 8/12/18. Task done.
+
+- 2026-11-06, glm. Error work on the merged rules' codex finds. Find 3
+  (the codex P2 on #305, hull water lookup): fixed on
+  task/168-hull-containing-cell. hull_plane read the water grid at
+  int(round(u)), int(round(v)): a fractional anchor on a boundary picked
+  the neighbouring square's water, and the water[r] lookup ran before the
+  bounds check, so a row-split grid at v=99.75 raises IndexError and
+  aborts the export. Now the containing square decides (math.floor) and
+  the bounds come before any water access; two unit tests (the
+  fractional anchor stands as before, the past-the-edge anchor keeps
+  rest_card's plane) fail against the old code and pass against the
+  new. Exporter-only change; regression 154/154 spots 0 changed px.
+  Find 4 (the codex P2 on #303, the sea past water corners):
+  investigated, NOT fixed, owner:. The finding is real - the edge
+  strips stay perpendicular to their edges and the quadrant beyond a
+  water corner square gets no quad (sfdock e0 has all four corners
+  water-flagged). The attempted fill (the strips' doubling steps, two
+  quads a step) blanks the map on the fly camera: quads 2-16 tiles out
+  erase the map's own screen area (bisect frames in
+  runs/168-codex-finds/), and even one 1x1 quad at the corner renders
+  far larger than its ground footprint, though the depth test is on and
+  the tiles write depth in flight. The extension pass's depth/clip
+  semantics for the fly camera need their own investigation before any
+  quadrant geometry ships; the sea rule's accepted behaviour is
+  unchanged (this branch does not touch floor.cc).

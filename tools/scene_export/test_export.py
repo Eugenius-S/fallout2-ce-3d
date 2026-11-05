@@ -966,6 +966,30 @@ class WallSidecarTests(unittest.TestCase):
         self.assertEqual(encode_wall_sidecar(scene),
                          encode_wall_sidecar(scene, water=bytearray(100 * 100)))
 
+    def test_a_fractional_anchor_uses_the_square_it_lands_in(self):
+        scene = self.hull_scene()
+        scene["rests"] = [[0, 10.75, 10.75, 0.0, 0.0, 3]]
+        water = bytearray(100 * 100)          # row 10 water, its north row land
+        for col in range(100):
+            water[10 * 100 + col] = 1
+        batches = decode_wall_sidecar(encode_wall_sidecar(scene, water=water))["batches"]
+        self.assertEqual(len(batches), 1)
+        # The containing square (10, 10) decides: the hull stands on row 9's
+        # south edge, exactly as an integral anchor there would. Rounding read
+        # the neighbour (11, 11) — land — and kept the game-screen plane.
+        vs = {round(vertex[2], 6) for vertex in batches[0]["vertices"]}
+        self.assertEqual(vs, {-40.0})
+
+    def test_an_anchor_past_the_far_edge_reads_no_water(self):
+        scene = self.hull_scene()
+        scene["rests"] = [[0, 10.0, 99.75, 0.0, 0.0, 3]]
+        rows = [[1] * 100 for _ in range(100)]   # all water, no shore in reach
+        # floor(99.75) is the containing row 99: the walk finds no shore and
+        # the anchor keeps rest_card's plane. Rounding read water[100] of the
+        # row-split grid and raised IndexError before the bounds check.
+        self.assertEqual(encode_wall_sidecar(scene, water=rows),
+                         encode_wall_sidecar(scene))
+
     def test_encodes_game_view_front_and_cap_only(self):
         decoded = decode_wall_sidecar(encode_wall_sidecar(self.sample_scene()))
         self.assertEqual(decoded["version"], WALL_VERSION)
