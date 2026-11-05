@@ -43,6 +43,8 @@ param(
     [ValidateRange(0, 240)]
     [int]$WaitMinutes = 30,
     [switch]$Probe,
+    [switch]$SavePreviewFixture,
+    [switch]$ExistingSavePreviewFixture,
     [switch]$DialogFixture,
     [switch]$DialogPageInspect,
     [switch]$DialogCursorCheck,
@@ -207,6 +209,22 @@ if ($SceneInput -and (-not $OutputDirectory -or -not $CaptureConsole)) {
     throw '-SceneInput requires -OutputDirectory and -CaptureConsole.'
 }
 if ($SceneInput -and $DevInput) { throw '-SceneInput and -DevInput are two different script modes.' }
+if ($SavePreviewFixture) {
+    if (-not $OutputDirectory -or -not $CaptureConsole) {
+        throw '-SavePreviewFixture requires -CaptureConsole and -OutputDirectory.'
+    }
+    if ($Probe -or $Tour -or $Preferences -or $DialogFixture -or $UiFixture -or $DevInput -or $SceneInput) {
+        throw '-SavePreviewFixture needs its own background run.'
+    }
+}
+if ($ExistingSavePreviewFixture) {
+    if (-not $CaptureConsole -or -not $OutputDirectory) {
+        throw '-ExistingSavePreviewFixture requires -CaptureConsole and -OutputDirectory.'
+    }
+    if ($Probe -or $Tour -or $Preferences -or $DialogFixture -or $UiFixture -or $DevInput -or $SceneInput -or $SavePreviewFixture) {
+        throw '-ExistingSavePreviewFixture needs its own background run.'
+    }
+}
 if ($TurnKeys -and -not $SceneInput) { throw '-TurnKeys requires -SceneInput.' }
 if ($ClockLadder) {
     if (-not $OutputDirectory -or $Tour -or $Classic -or $Probe -or $Preferences -or $MuzzleWeapon -or $GlowLadder -or $GlowPair -or $GlowLevels -or $EffectFixture -or $DialogFixture -or $UiFixture) { throw '-ClockLadder requires its own scene run and -OutputDirectory.' }
@@ -462,6 +480,8 @@ if ($DevLoadGameSlot -gt 0) {
 }
 $arguments = @('--dev-tools')
 $arguments += '--dev-watchdog'
+if ($SavePreviewFixture) { $arguments += '--dev-save-preview-fixture' }
+if ($ExistingSavePreviewFixture) { $arguments += '--dev-existing-save-preview-fixture' }
 if ($DevInput) { $arguments += "--dev-input=$([System.IO.Path]::GetFullPath($DevInput))" }
 if ($SceneInput) { $arguments += "--dev-scene-input=$([System.IO.Path]::GetFullPath($SceneInput))" }
 if ($TurnKeys) { $arguments += '--dev-camera-turn-keys' }
@@ -570,7 +590,11 @@ if ($LiveFrame) {
 if ($DevLoadGameSlot -gt 0 -and -not $LiveFrame) {
     throw '-DevLoadGameSlot requires -LiveFrame.'
 }
-if ($DevInput -or $SceneInput) {
+if ($SavePreviewFixture) {
+    $shots = 2
+} elseif ($ExistingSavePreviewFixture) {
+    $shots = 1
+} elseif ($DevInput -or $SceneInput) {
     $shots = $DevInputShots
 } elseif ($LiveFrame) {
     $shots = 1
@@ -709,6 +733,11 @@ try {
                 }
                 if ($snapshots.Count -ge $shots -and (Test-Path -LiteralPath $fixtureLog) -and
                     (Select-String -LiteralPath $fixtureLog -Pattern ('^UI_FIXTURE PASS screen=' + [regex]::Escape($UiFixture) + ' ') -Quiet)) { break }
+            } elseif ($SavePreviewFixture) {
+                $fixtureLog = Join-Path $OutputDirectory 'process.stdout.log'
+                if ((Test-Path -LiteralPath $fixtureLog) -and (Select-String -LiteralPath $fixtureLog -Pattern '^SAVE_PREVIEW_FIXTURE FAIL ' -Quiet)) { break }
+                if ($snapshots.Count -ge 1 -and (Test-Path -LiteralPath $fixtureLog) -and
+                    (Select-String -LiteralPath $fixtureLog -Pattern '^SAVE_PREVIEW_FIXTURE PASS ' -Quiet)) { break }
             } elseif ($DialogPageInspect) {
                 $fixtureLog = Join-Path $OutputDirectory 'process.stdout.log'
                 if ((Test-Path -LiteralPath $fixtureLog) -and
@@ -866,6 +895,20 @@ if ($DevInput -or $SceneInput) {
     }
 }
 if ($watchdogExpired) { throw "Live check watchdog: $watchdogReason. Diagnostics: $(Join-Path $runDirectory 'watchdog.txt')" }
+if ($SavePreviewFixture) {
+    $savePreviewLog = Get-Content -Raw -LiteralPath (Join-Path $OutputDirectory 'process.stdout.log')
+    if ($savePreviewLog -notmatch '(?m)^SAVE_PREVIEW_FIXTURE PASS ' -or $savePreviewLog -match '(?m)^SAVE_PREVIEW_FIXTURE FAIL ') {
+        throw "Save preview fixture failed or timed out within $TimeoutSeconds s.`n$savePreviewLog"
+    }
+    if ($snapshots.Count -ne 2) { throw "Save preview fixture must produce exactly two save and load screen snapshots, got $($snapshots.Count)." }
+}
+if ($ExistingSavePreviewFixture) {
+    $existingPreviewLog = Get-Content -Raw -LiteralPath (Join-Path $OutputDirectory 'process.stdout.log')
+    if ($existingPreviewLog -notmatch '(?m)^EXISTING_SAVE_PREVIEW_FIXTURE PASS ' -or $existingPreviewLog -match '(?m)^EXISTING_SAVE_PREVIEW_FIXTURE FAIL ') {
+        throw "Existing save preview fixture failed or timed out within $TimeoutSeconds s.`n$existingPreviewLog"
+    }
+    if ($snapshots.Count -ne 1) { throw "Existing save preview fixture must produce exactly one load-screen snapshot, got $($snapshots.Count)." }
+}
 if ($MuzzleWeapon -gt 0) {
     $muzzleText086=Get-Content -Raw -LiteralPath (Join-Path $OutputDirectory 'process.stdout.log')
     if ($muzzleText086 -notmatch 'MUZZLE_FIXTURE PASS' -or $muzzleText086 -match 'MUZZLE_FIXTURE FAIL') {throw 'Muzzle batch did not finish successfully.'}

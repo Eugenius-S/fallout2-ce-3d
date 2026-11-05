@@ -325,9 +325,14 @@ void drawStaticHeroPreview()
 namespace {
 
 // The back buffer as drawn so far, into top-down RGBA rows: the GL readback
-// the file variants encode (183).
+// the file variants encode (183), and the buffer form the save preview reads
+// (134).
 bool readBackBuffer(std::vector<unsigned char>& topDown, int drawableWidth, int drawableHeight, std::string* error)
 {
+    if (rgba == nullptr || drawableWidth <= 0 || drawableHeight <= 0) {
+        if (error != nullptr) *error = "invalid OpenGL backbuffer dimensions";
+        return false;
+    }
     const size_t rowBytes = static_cast<size_t>(drawableWidth) * 4;
     std::vector<unsigned char> bottomUp(rowBytes * static_cast<size_t>(drawableHeight));
     topDown.resize(bottomUp.size());
@@ -355,7 +360,7 @@ bool writeBackBufferPng(const std::filesystem::path& path, int drawableWidth, in
     if (encodeError != 0) {
         std::error_code ec;
         std::filesystem::remove(path, ec); // Remove only output this call may have partially written.
-        *error = std::string("PNG encode failed: ") + lodepng_error_text(encodeError);
+        if (error != nullptr) *error = std::string("PNG encode failed: ") + lodepng_error_text(encodeError);
         return false;
     }
     return true;
@@ -564,6 +569,18 @@ bool captureStaticPreviewBuffer(bool withWalls, bool withHero, bool includeOverl
     if (height != nullptr) *height = drawableHeight;
     if (error != nullptr) error->clear();
     return true;
+}
+
+// 134: the pointer form the save preview reads; the same static scene render
+// into a caller's buffer, without touching a file.
+bool captureStaticPreviewRgba(bool withWalls, bool withHero, std::vector<unsigned char>* rgba,
+    int* width, int* height, std::string* error, bool includeOverlay)
+{
+    if (rgba == nullptr) {
+        if (error != nullptr) *error = "RGBA destination is null";
+        return false;
+    }
+    return captureStaticPreviewBuffer(withWalls, withHero, includeOverlay, *rgba, width, height, error);
 }
 
 } // namespace scene_renderer

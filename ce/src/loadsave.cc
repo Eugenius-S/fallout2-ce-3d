@@ -2,10 +2,12 @@
 
 #include <assert.h>
 #include <stdio.h>
+#include <string>
 #include <string.h>
 #include <time.h>
 
 #include <algorithm>
+#include <vector>
 
 #include "art.h"
 #include "automap.h"
@@ -21,6 +23,7 @@
 #include "dbox.h"
 #include "debug.h"
 #include "delay.h"
+#include "devtools/devtools.h"
 #include "display_monitor.h"
 #include "draw.h"
 #include "file_utils.h"
@@ -49,6 +52,9 @@
 #include "queue.h"
 #include "random.h"
 #include "scripts.h"
+#include "scene/scene_view.h"
+#include "scene_renderer/context.h"
+#include "scene_renderer/scene_draw.h"
 #include "settings.h"
 #include "sfall_callbacks.h"
 #include "sfall_ext.h"
@@ -162,6 +168,7 @@ typedef enum LoadSaveFrm {
 } LoadSaveFrm;
 
 static int _QuickSnapShot();
+static bool captureSceneSavePreview(unsigned char* destination);
 static int lsgWindowInit(int windowType);
 static int lsgWindowFree(int windowType);
 static int lsgPerformSaveGame();
@@ -652,6 +659,15 @@ int lsgSaveGame(int mode)
     _DrawInfoBox(_slot_cursor);
     windowRefresh(gLoadSaveWindow);
 
+    if (devtools::savePreviewFixtureActive()) {
+        renderPresent();
+        const bool captured = devtools::takeSnapshot();
+        devtools::savePreviewFixtureComplete(captured);
+        const bool saved = captured && lsgPerformSaveGame() != -1;
+        lsgWindowFree(windowType);
+        return saved ? 1 : -1;
+    }
+
     _dbleclkcntr = 24;
 
     int rc = -1;
@@ -1084,6 +1100,11 @@ static int _QuickSnapShot()
         return -1;
     }
 
+    if (captureSceneSavePreview(_snapshot)) {
+        _snapshotBuf = _snapshot;
+        return 1;
+    }
+
     bool gameMouseWasVisible = gameMouseObjectsIsVisible();
     if (gameMouseWasVisible) {
         gameMouseObjectsHide();
@@ -1114,6 +1135,74 @@ static int _QuickSnapShot()
     _snapshotBuf = _snapshot;
 
     return 1;
+}
+
+static bool captureSceneSavePreview(unsigned char* destination)
+{
+    if (destination == nullptr || !scene_renderer::isActive() || scene::activeView() != scene::View::Full
+        || !scene::showsCurrentMap()) {
+        return false;
+    }
+
+    std::vector<unsigned char> rgba;
+    int frameWidth = 0;
+    int frameHeight = 0;
+    std::string error;
+    if (!scene_renderer::captureStaticPreviewRgba(true, true, &rgba, &frameWidth, &frameHeight, &error, false)) {
+        debugPrint("LOADSAVE: 3D preview capture failed: %s\n", error.c_str());
+        return false;
+    }
+
+    Window* isoWindow = windowGetWindow(gIsoWindow);
+    if (isoWindow == nullptr || screenGetWidth() <= 0 || screenGetHeight() <= 0) {
+        debugPrint("LOADSAVE: 3D preview capture has no isometric viewport\n");
+        return false;
+    }
+
+    Rect isoRect;
+    if (windowGetRect(gIsoWindow, &isoRect) != 0) {
+        debugPrint("LOADSAVE: 3D preview capture cannot read the isometric viewport\n");
+        return false;
+    }
+
+    const int logicalLeft = isoRect.left + (isoWindow->width - ORIGINAL_ISO_WINDOW_WIDTH) / 2;
+    const int logicalTop = isoRect.top + (isoWindow->height - ORIGINAL_ISO_WINDOW_HEIGHT) / 2;
+    const int frameLeft = logicalLeft * frameWidth / screenGetWidth();
+    const int frameTop = logicalTop * frameHeight / screenGetHeight();
+    const int frameRight = (logicalLeft + ORIGINAL_ISO_WINDOW_WIDTH) * frameWidth / screenGetWidth();
+    const int frameBottom = (logicalTop + ORIGINAL_ISO_WINDOW_HEIGHT) * frameHeight / screenGetHeight();
+    const int cropWidth = frameRight - frameLeft;
+    const int cropHeight = frameBottom - frameTop;
+    if (cropWidth <= 0 || cropHeight <= 0 || frameLeft < 0 || frameTop < 0
+        || frameRight > frameWidth || frameBottom > frameHeight
+        || rgba.size() < static_cast<size_t>(frameWidth) * frameHeight * 4) {
+        debugPrint("LOADSAVE: 3D preview capture viewport is outside the frame\n");
+        return false;
+    }
+
+    const unsigned char* palette = directDrawGetPalette();
+    for (int y = 0; y < LS_PREVIEW_HEIGHT; y++) {
+        const int sourceY = frameTop + (2 * y + 1) * cropHeight / (2 * LS_PREVIEW_HEIGHT);
+        for (int x = 0; x < LS_PREVIEW_WIDTH; x++) {
+            const int sourceX = frameLeft + (2 * x + 1) * cropWidth / (2 * LS_PREVIEW_WIDTH);
+            const unsigned char* pixel = rgba.data() + (static_cast<size_t>(sourceY) * frameWidth + sourceX) * 4;
+            int bestIndex = 0;
+            int bestDistance = 0x7FFFFFFF;
+            for (int index = 0; index < 256; index++) {
+                const int deltaRed = static_cast<int>(pixel[0]) - palette[index * 3] * 4;
+                const int deltaGreen = static_cast<int>(pixel[1]) - palette[index * 3 + 1] * 4;
+                const int deltaBlue = static_cast<int>(pixel[2]) - palette[index * 3 + 2] * 4;
+                const int distance = deltaRed * deltaRed + deltaGreen * deltaGreen + deltaBlue * deltaBlue;
+                if (distance < bestDistance) {
+                    bestDistance = distance;
+                    bestIndex = index;
+                }
+            }
+            destination[y * LS_PREVIEW_WIDTH + x] = static_cast<unsigned char>(bestIndex);
+        }
+    }
+
+    return true;
 }
 
 // LoadGame
@@ -1277,6 +1366,12 @@ int lsgLoadGame(int mode)
     renderPresent();
     if (mode == LOAD_SAVE_MODE_FROM_MAIN_MENU) {
         mainMenuShowSubscreen(true);
+    }
+    if (devtools::savePreviewFixtureLoadActive()) {
+        const bool captured = devtools::takeSnapshot();
+        devtools::savePreviewFixtureLoadComplete(captured);
+        lsgWindowFree(windowType);
+        return captured ? 1 : -1;
     }
     _dbleclkcntr = 24;
 
@@ -1664,6 +1759,10 @@ static int lsgWindowInit(int windowType)
     _thumbnail_image = _snapshot;
     _snapshotBuf = _snapshot + LS_PREVIEW_SIZE;
 
+    const bool scenePreviewCaptured = (windowType == LOAD_SAVE_WINDOW_TYPE_SAVE_GAME
+        || windowType == LOAD_SAVE_WINDOW_TYPE_PICK_QUICK_SAVE_SLOT)
+        && captureSceneSavePreview(_snapshotBuf);
+
     if (windowType != LOAD_SAVE_WINDOW_TYPE_LOAD_GAME_FROM_MAIN_MENU) {
         gLoadSaveWindowIsoWasEnabled = isoDisable();
     }
@@ -1686,19 +1785,22 @@ static int lsgWindowInit(int windowType)
             gameMouseObjectsShow();
         }
 
-        // For preview take 640x380 area in the center of isometric window.
-        Window* window = windowGetWindow(gIsoWindow);
-        unsigned char* isoWindowBuffer = window->buffer
-            + window->width * (window->height - ORIGINAL_ISO_WINDOW_HEIGHT) / 2
-            + (window->width - ORIGINAL_ISO_WINDOW_WIDTH) / 2;
-        blitBufferToBufferStretch(isoWindowBuffer,
-            ORIGINAL_ISO_WINDOW_WIDTH,
-            ORIGINAL_ISO_WINDOW_HEIGHT,
-            windowGetWidth(gIsoWindow),
-            _snapshotBuf,
-            LS_PREVIEW_WIDTH,
-            LS_PREVIEW_HEIGHT,
-            LS_PREVIEW_WIDTH);
+        if (!scenePreviewCaptured) {
+            // For the original view, take the 640x380 area in the center of
+            // the isometric window exactly as before.
+            Window* window = windowGetWindow(gIsoWindow);
+            unsigned char* isoWindowBuffer = window->buffer
+                + window->width * (window->height - ORIGINAL_ISO_WINDOW_HEIGHT) / 2
+                + (window->width - ORIGINAL_ISO_WINDOW_WIDTH) / 2;
+            blitBufferToBufferStretch(isoWindowBuffer,
+                ORIGINAL_ISO_WINDOW_WIDTH,
+                ORIGINAL_ISO_WINDOW_HEIGHT,
+                windowGetWidth(gIsoWindow),
+                _snapshotBuf,
+                LS_PREVIEW_WIDTH,
+                LS_PREVIEW_HEIGHT,
+                LS_PREVIEW_WIDTH);
+        }
     }
 
     for (int index = 0; index < LOAD_SAVE_FRM_COUNT; index++) {

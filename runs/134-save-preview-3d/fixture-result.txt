@@ -1,0 +1,5 @@
+3D save/load: SAVE_PREVIEW_FIXTURE PASS map=KLADWTWN.MAP mode=3d save_ui=1 load_ui=1 saved=1 loaded=1
+Original-view save/load: SAVE_PREVIEW_FIXTURE PASS map=KLADWTWN.MAP mode=classic save_ui=1 load_ui=1 saved=1 loaded=1
+Existing save slot 01 display: EXISTING_SAVE_PREVIEW_FIXTURE PASS map=KLADWTWN.MAP load_ui=1 loaded=1
+Existing slot thumbnail inspection: 29,792 bytes, all palette index 0; no prior image to compare.
+All runtime runs used the same 1920x1080 window and isolated test root.
