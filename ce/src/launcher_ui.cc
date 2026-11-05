@@ -597,10 +597,10 @@ void createControls(HWND window)
         OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_DONTCARE, L"Segoe UI");
     g_headingFont = CreateFontW(18, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE, DEFAULT_CHARSET,
         OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_DONTCARE, L"Segoe UI");
-    createControl(window, L"STATIC", L"Game folder", SS_LEFT, 24, 190, 580, 23, ID_GAME_ROOT - 100);
+    createControl(window, L"STATIC", L"Game folder", SS_LEFT, 24, 186, 580, 22, ID_GAME_ROOT - 100);
     SendMessageW(GetDlgItem(window, ID_GAME_ROOT - 100), WM_SETFONT, reinterpret_cast<WPARAM>(g_headingFont), TRUE);
     createControl(window, L"STATIC", L"Choose the folder that contains master.dat and critter.dat.",
-        SS_LEFT, 24, 215, 580, 22, ID_PATH_HINT);
+        SS_LEFT, 24, 210, 580, 20, ID_PATH_HINT);
     g_pathHint = GetDlgItem(window, ID_PATH_HINT);
     createControl(window, L"EDIT", L"", ES_AUTOHSCROLL, 25, 245, 603, 25, ID_GAME_ROOT);
     g_root = GetDlgItem(window, ID_GAME_ROOT);

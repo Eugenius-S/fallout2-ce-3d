@@ -108,3 +108,15 @@ Next: Review CI on the final SHA, then merge the PR when green.
 
 Check: See the Release build, CTest output, current-build images, and
 `interaction-check.json` under `runs/201-installer-controls-and-log-scrollbar/`.
+
+### 2026-11-05 gpt
+
+Done: The owner found that the hint sat too close to the path field border.
+Moved the heading and hint upward while keeping both below the logo.
+
+Check: Rebuilt Release with MSVC 14.40 and Windows SDK 10.0.22621.0; CTest
+passed 20/20. Fresh RU/EN captures show the full gold field outline and a gap
+below the hint. The current launcher SHA-256 is
+`B2F26B1F984991DA8F371CAE0E952C4BB6F4C690516327D8715BA534B572754D`.
+
+Next: Review CI on the final SHA, then merge the PR when green.
