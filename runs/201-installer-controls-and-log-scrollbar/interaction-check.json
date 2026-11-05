@@ -1,0 +1,16 @@
+{
+    "log_line_count":  7,
+    "log_first_visible_line_before_wheel":  3,
+    "log_first_visible_line_after_wheel":  0,
+    "wheel":  "physical MOUSEEVENTF_WHEEL +120 over the log",
+    "scrollbar_visible_before":  true,
+    "scrollbar_visible_after":  true,
+    "language_ru_after_selection":  "ru",
+    "language_en_after_selection":  "en",
+    "restoration_checkbox_enabled_before":  false,
+    "restoration_checkbox_enabled_after":  false,
+    "checkbox_auto_updates_click":  "sent BM_CLICK",
+    "scratch_game":  "build/task201-scratch-game",
+    "russian_checkbox_click":  "sent BM_CLICK",
+    "settings_auto_updates_after_click":  "1"
+}
