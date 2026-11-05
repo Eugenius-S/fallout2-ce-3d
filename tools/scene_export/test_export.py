@@ -321,6 +321,27 @@ class FloorSidecarTests(unittest.TestCase):
         decoded = decode_floor_sidecar(bytes(payload))
         self.assertEqual((decoded["version"], decoded["fringe"], decoded["patches"]), (5, [], []))
 
+    def test_tileless_elevation_round_trips_with_an_empty_atlas(self):
+        # encfite's void boxes: every square is the nothing tile (the lookup's
+        # 0), the atlas holds no cell, the sidecar stays valid (171).
+        scene = self.sample_scene()
+        scene["floor"] = base64.b64encode(bytes(100 * 100 * 2)).decode("ascii")
+        scene["roof"] = base64.b64encode(bytes(100 * 100 * 2)).decode("ascii")
+        scene["tiles"]["cells"] = []
+        payload = encode_floor_sidecar(scene, water=bytearray(100 * 100), water_color=[0.05, 0.05, 0.05])
+        decoded = decode_floor_sidecar(payload)
+        self.assertEqual(decoded["version"], VERSION)
+        self.assertEqual(decoded["cells"], [])
+        self.assertEqual(decoded["water"], [0] * 100 * 100)
+        # one drawn square over the empty atlas is still a broken scene
+        drawn = self.sample_scene()
+        drawn["tiles"]["cells"] = []
+        with self.assertRaisesRegex(ValueError, "missing tiles.cells entry"):
+            encode_floor_sidecar(drawn, water=bytearray(100 * 100), water_color=[0.05, 0.05, 0.05])
+        # the plain form without water stays version 6 and round-trips too
+        plain = encode_floor_sidecar(scene)
+        self.assertEqual(decode_floor_sidecar(plain)["version"], 6)
+
     def test_cell_coordinates_select_inner_square_and_validate_outer_cell(self):
         self.assertEqual(cell_content_rect((0, 0), (100, 100)), (6, 6, 94, 94))
         scene = self.sample_scene()
