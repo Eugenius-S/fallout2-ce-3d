@@ -1,0 +1,5 @@
+devtools: startup target denbus1 e0 accepted=1 blocking=0
+scene: cache <scene-cache>\denbus1\0
+devtools: static wall+hero preview started for DENBUS1.MAP elevation 0
+scene: preview policy=available gameState=0 gameMode=0x0 uiDisabled=0 isoDisabled=0 combat=0 dialog=0 movie=0
+devtools: one-shot hero preview snapshot saved: snapshot: devshot-20261104-190639-000.json

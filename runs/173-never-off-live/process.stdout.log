@@ -1,0 +1,39 @@
+devtools: startup target kladwtwn e0 accepted=1 blocking=0
+scene: cache <scene-cache>\kladwtwn\0
+devtools: static wall+hero preview started for KLADWTWN.MAP elevation 0
+scene: preview policy=available gameState=0 gameMode=0x0 uiDisabled=0 isoDisabled=0 combat=0 dialog=0 movie=0
+scene: cache <scene-cache>\artemple\0
+scene: preview policy=iso-disabled gameState=0 gameMode=0x0 uiDisabled=0 isoDisabled=1 combat=0 dialog=0 movie=0
+scene: preview policy=available gameState=0 gameMode=0x0 uiDisabled=0 isoDisabled=0 combat=0 dialog=0 movie=0
+scene: cache <scene-cache>\arvillag\0
+scene: preview policy=iso-disabled gameState=0 gameMode=0x0 uiDisabled=0 isoDisabled=1 combat=0 dialog=0 movie=0
+scene: preview policy=available gameState=0 gameMode=0x0 uiDisabled=0 isoDisabled=0 combat=0 dialog=0 movie=0
+scene: cache <scene-cache>\kladwtwn\0
+scene: preview policy=iso-disabled gameState=0 gameMode=0x0 uiDisabled=0 isoDisabled=1 combat=0 dialog=0 movie=0
+scene: preview policy=available gameState=0 gameMode=0x0 uiDisabled=0 isoDisabled=0 combat=0 dialog=0 movie=0
+scene: cache <scene-cache>\klatrap\0
+scene: preview policy=iso-disabled gameState=0 gameMode=0x0 uiDisabled=0 isoDisabled=1 combat=0 dialog=0 movie=0
+scene: preview policy=available gameState=0 gameMode=0x0 uiDisabled=0 isoDisabled=0 combat=0 dialog=0 movie=0
+scene: cache <scene-cache>\denbus1\0
+scene: preview policy=iso-disabled gameState=0 gameMode=0x0 uiDisabled=0 isoDisabled=1 combat=0 dialog=0 movie=0
+scene: preview policy=available gameState=0 gameMode=0x0 uiDisabled=0 isoDisabled=0 combat=0 dialog=0 movie=0
+scene: cache <scene-cache>\denres1\0
+scene: preview policy=iso-disabled gameState=0 gameMode=0x0 uiDisabled=0 isoDisabled=1 combat=0 dialog=0 movie=0
+scene: preview policy=available gameState=0 gameMode=0x0 uiDisabled=0 isoDisabled=0 combat=0 dialog=0 movie=0
+scene: cache <scene-cache>\modmain\0
+scene: preview policy=iso-disabled gameState=0 gameMode=0x0 uiDisabled=0 isoDisabled=1 combat=0 dialog=0 movie=0
+scene: preview policy=available gameState=0 gameMode=0x0 uiDisabled=0 isoDisabled=0 combat=0 dialog=0 movie=0
+scene: cache <scene-cache>\modbrah\0
+scene: preview policy=iso-disabled gameState=0 gameMode=0x0 uiDisabled=0 isoDisabled=1 combat=0 dialog=0 movie=0
+scene: preview policy=available gameState=0 gameMode=0x0 uiDisabled=0 isoDisabled=0 combat=0 dialog=0 movie=0
+scene: cache <scene-cache>\vctyctyd\0
+scene: preview policy=iso-disabled gameState=0 gameMode=0x0 uiDisabled=0 isoDisabled=1 combat=0 dialog=0 movie=0
+scene: preview policy=available gameState=0 gameMode=0x0 uiDisabled=0 isoDisabled=0 combat=0 dialog=0 movie=0
+scene: preview policy=game-state gameState=2 gameMode=0x0 uiDisabled=0 isoDisabled=0 combat=0 dialog=0 movie=0
+scene: cache <scene-cache>\vctyvlt\0
+scene: cache <scene-cache>\gecksetl\0
+scene: cache <scene-cache>\geckpwpl\0
+scene: cache <scene-cache>\broken1\0
+scene: cache <scene-cache>\broken2\0
+scene: cache <scene-cache>\newr1\0
+scene: cache <scene-cache>\newr2\0

@@ -1,0 +1,139 @@
+{
+  "image": "area.jpg",
+  "view": "static-wall-plus-hero-preview",
+  "map": "GECKSETL.MAP",
+  "elevation": 0,
+  "still_snapshot": true,
+  "snapshot_run": "1df6a9d6805c443590af0f0fc572d4c2",
+  "view_tile": 23709,
+  "preview_requested": true,
+  "scene_3d_enabled": true,
+  "scene_view": "full",
+  "sharp_text": {
+    "setting": false,
+    "active": false,
+    "drawn": false,
+    "runs": 0,
+    "glyphs": 0,
+    "restored_pixels": 0,
+    "prepare_ms": 0.0
+  },
+  "map_clip": {
+    "enabled": true,
+    "setting_enabled": true,
+    "variant": "authored",
+    "source": "authored",
+    "world_bounds": [
+      -36.041667,
+      -30.5625,
+      28.958333,
+      30.9375
+    ],
+    "planes": [
+      [
+        0.4472136,
+        0.8944272,
+        27.3545647
+      ],
+      [
+        -0.8320503,
+        0.5547002,
+        16.9183559
+      ],
+      [
+        -0.4472136,
+        -0.8944272,
+        24.522213
+      ],
+      [
+        0.8320503,
+        -0.5547002,
+        23.0200577
+      ]
+    ]
+  },
+  "camera": "fixed eye=(53.64466,46.23085,82.96700), target=(4.45833,0.00000,9.18750), fov_y=25.0, near=0.1, far=400.0, screen_right=-cross(forward,world_up)",
+  "camera_turn": 0.0,
+  "wall_triangles": 12893,
+  "wall_pages": 4,
+  "hero": {
+    "tile": 23909,
+    "fid": 16777278,
+    "frame": 0,
+    "rotation": 0,
+    "world_anchor": [
+      4.458333333,
+      9.6875
+    ]
+  },
+  "egg": {
+    "shown": true,
+    "rect": [
+      432,
+      160,
+      129,
+      98
+    ],
+    "zoom": 1.0,
+    "wall_rows_marked": 99,
+    "wall_rows_any": true
+  },
+  "objects": {
+    "drawn": 3358,
+    "skipped": 0
+  },
+  "preview_availability": "available",
+  "renderer": "scene-gl",
+  "light": "enabled",
+  "effect_emission": true,
+  "glow": {
+    "enabled": false,
+    "strength": 2.0
+  },
+  "weapon_effect": null,
+  "muzzle": null,
+  "sun": {
+    "setting": true,
+    "daylight": true,
+    "game_time": 302400,
+    "up": true,
+    "height": 66.0,
+    "azimuth": -26.565,
+    "direction": [
+      0.3638,
+      0.91355,
+      -0.1819
+    ],
+    "color": [
+      1.0,
+      0.96,
+      0.88
+    ],
+    "strength": 1.0
+  },
+  "resolution": "1920x1080",
+  "logical_resolution": "960x540",
+  "scale": 2,
+  "scale_factor": 2.0,
+  "windowed": true,
+  "drawable": "1920x1080",
+  "sdl_window": {
+    "flags": 73734,
+    "window_position": "-20000,-20000",
+    "window_size": "1920x1080",
+    "drawable_size": "1920x1080",
+    "fullscreen": false,
+    "fullscreen_desktop": false,
+    "borderless": false
+  },
+  "ce_commit": "cfcdf287",
+  "tools_commit": "-",
+  "exe_sha256": "6c3576d2a227da4884134554f087d554ce5d02547341bc349bf43ee75e340d5f",
+  "taken": "20261104-190710",
+  "source_image_png": "devhero-20261104-190710-000.png",
+  "evidence_conversion": {
+    "format": "JPEG",
+    "quality": 90,
+    "source_resolution": "1920x1080"
+  }
+}

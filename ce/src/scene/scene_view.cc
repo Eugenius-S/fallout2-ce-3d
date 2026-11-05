@@ -507,17 +507,38 @@ void syncToMap()
             gFailure.clear();
         } else {
             scene_renderer::unloadStaticScene();
-            gLoadedMap.clear();
-            gLoadedElevation = -1;
-            gFailedMap = map;
-            gFailedElevation = elevation;
-            gFailure = message;
-            printf("scene: %s elevation %d stays 2D: %s\n", map.c_str(), elevation, message.c_str());
-            fflush(stdout);
-            // A file too: the Windows build has no console.
-            if (FILE* log = fopen((dev_output::outputDirectory("logs") / "scene.log").string().c_str(), "a")) {
-                fprintf(log, "scene: %s elevation %d stays 2D: %s\n", map.c_str(), elevation, message.c_str());
-                fclose(log);
+            std::string floorError;
+            // Keep a usable 3D ground plane when a map's wall or projection
+            // sidecar is missing or damaged. This is also the fallback for
+            // incomplete exports; it must not silently turn the whole map 2D.
+            if (gView != View::Floor && loadScene(View::Floor, map, elevation, &floorError)) {
+                gLoadedMap = map;
+                gLoadedElevation = elevation;
+                gLoadedView = View::Floor;
+                gFailedMap = map;
+                gFailedElevation = elevation;
+                gFailure = message;
+                const std::string line = "scene: " + map + " elevation " + std::to_string(elevation)
+                    + " uses 3D ground plane: " + message;
+                printf("%s\n", line.c_str());
+                fflush(stdout);
+                if (FILE* log = fopen((dev_output::outputDirectory("logs") / "scene.log").string().c_str(), "a")) {
+                    fprintf(log, "%s\n", line.c_str());
+                    fclose(log);
+                }
+            } else {
+                gLoadedMap.clear();
+                gLoadedElevation = -1;
+                gFailedMap = map;
+                gFailedElevation = elevation;
+                gFailure = message;
+                printf("scene: %s elevation %d stays 2D: %s\n", map.c_str(), elevation, message.c_str());
+                fflush(stdout);
+                // A file too: the Windows build has no console.
+                if (FILE* log = fopen((dev_output::outputDirectory("logs") / "scene.log").string().c_str(), "a")) {
+                    fprintf(log, "scene: %s elevation %d stays 2D: %s\n", map.c_str(), elevation, message.c_str());
+                    fclose(log);
+                }
             }
         }
     }
@@ -594,7 +615,7 @@ View requestedView()
 
 View activeView()
 {
-    return settings.scene3d.enabled && gView != View::Off && showsCurrentMap() ? gView : View::Off;
+    return settings.scene3d.enabled && gView != View::Off && showsCurrentMap() ? gLoadedView : View::Off;
 }
 
 bool shouldPresent()

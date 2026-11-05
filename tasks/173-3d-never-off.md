@@ -66,3 +66,35 @@ its art on a fixed plane.
 The world map, dialogs, menus.
 
 ## Log
+
+- 2026-11-04 audit: `scene_view::syncToMap` gave up after any floor, wall or
+  projection load error, cleared the loaded map, and logged `stays 2D`.
+  Changed this path to retry the floor sidecar and keep its 3D ground plane
+  when walls/projection are missing or invalid. `activeView()` now reports the
+  actually loaded level (`Floor`) so presentation draws the ground-plane view.
+  A missing/invalid floor sidecar still has no ground geometry to show; this
+  remains an unresolved fallback and needs an on-entry cache build or a
+  ground-plane source from the live map. No claim that this case is fixed.
+- Other inspected fallback paths: launcher reports 2D if the exporter is
+  missing or export fails; `loadScene` rejects missing floor/walls/projection;
+  map transition retries per map/elevation; unsupported object cards are
+  skipped when rotation, FRM lock/data/dimensions or renderer insertion fails;
+  missing/hidden hero only skips the hero card; explicit 3D-off setting,
+  menus/dialogs/world map, movies and iso-disabled fades are deliberate gates;
+  OpenGL startup failure uses the vanilla SDL renderer. The object-card and
+  hero skips currently have counters/logs but no replacement for every skip;
+  inventory and representative area walks remain outstanding.
+- 2026-11-04 full regression completed: all 88 references matched (`0 changed
+  pixels`). First combined 16-map runtime tour proved 9 stops in full 3D, then
+  caught the game during map-transition state for 7 remaining snapshots.
+  Independent fresh-game captures for the 8 requested areas all reported
+  `scene_view=full`, `preview_availability=available`, and zero skipped object
+  cards. Two follow-up area-tour attempts failed in the harness: Arroyo stopped
+  at `arvill2` because it is absent from the worldmap registry, and Klamath
+  reached `klacanyn` with 3D available but produced no third snapshot; the
+  helper waited for its fixed count until timeout. Only those test processes
+  were stopped. The attempted tour-readiness code change was reverted. Do not
+  claim scripted area-walk acceptance; next diagnostic should make the helper
+  stop promptly and report the actual route/availability instead of waiting
+  for an impossible snapshot count. The eight independent map captures and
+  full regression remain valid.
