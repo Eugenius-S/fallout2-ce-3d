@@ -2,7 +2,7 @@
 id: 149
 title: Combat outlines, the hex cursor and floating text follow the 3D turn and zoom
 milestone: M1
-status: doing
+status: blocked
 owner: gpt
 suggested: any
 priority: normal
@@ -77,3 +77,9 @@ Done: Added two inspected runtime JPEGs showing the live Klamath bark text at zo
 Next: Combat outline, cursor/to-hit and damage-text acceptance is still missing. This new text capture is unturned and does not establish combat behavior or camera-turn projection. Keep PR #300 draft.
 
 Check: `dev-snapshot.ps1 -UiFixture bark -Zoom 2` completed with `UI_FIXTURE PASS`, first/replacement text visible, and clear of old runs. Inspected the captured game frames. The earlier passing build and test results remain applicable because this documentation/evidence-only update does not change code.
+
+### 2026-11-05 gpt blocked
+Done: Added a live unturned zoom-2 Klamath bark capture; the floating text fixture passes. It does not establish combat overlays or turned projection.
+Next: Resume the combat acceptance when task 146's fixture works, or a separate safe combat save becomes available. Keep PR #300 draft.
+Blocked: The combat fixture PR #220 is draft after two startup failures, and the available background save is not in combat. The one turned zoom-2 bark fixture attempt stopped after its initial scene capture; it was not repeated. No combat overlay acceptance is claimed.
+Check: `runs/149-combat-overlays-follow-view/devhero-20261105-153127-000-zoom2-unturned-bark.jpg` and sidecar; #220 is still draft at 3751e138, #300 remains draft.
