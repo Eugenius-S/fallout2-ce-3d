@@ -66,3 +66,56 @@ turns the glow and the lights off, then fix that cause, not the look.
 New glow kinds, the glow's look, light strength.
 
 ## Log
+
+### 2026-11-01 glm: the glow and the lights verify in the owner's conditions; the live capture tool hangs
+
+Done: the reproduction sweep, no code change.
+
+- The still fixture in the owner's own mod-cache (klatoxcv e1, view 22924,
+  the 073 slime spot) shows the slime pools glowing and the pool light
+  spilling on the floor and the barrels: runs/111-cave-glow-and-lamps-live/
+  (cave-still-glow.jpg). The same frame with the sun shadows forced on
+  (-Shadows) is identical: the cave is indoor and the shadow pass honours
+  it, so the owner's shadow settings are not the cause.
+- The settings check: glow defaults true, lights true; the owner's
+  glow_strength 1.0 only weakens the halo (the 073 ladder shows a visible
+  glow at 0.5). His other custom keys (sun_swing, shadow_density,
+  shadow_pixel_size, sharp_text) do not touch the cave lighting.
+- The palette cycle cannot remove the glow: the emission classification is
+  by sprite index (the marked texels 252-254), the cycle only recolours
+  the entries; the live object textures rebuild from the live palette and
+  keep their indices.
+- The lights are the game's own per-tile light state read live each frame;
+  nothing in the still fixture freezes them.
+- The live (non-still) capture is blocked by a tool defect: a plain run,
+  -NoPreview, -WalkProbe and -ScrollStep all time out after "startup
+  target accepted" with no snapshot. In the live path the snapshot trigger
+  (devtools.cc scenePresented, the gSnapshotOncePending branch) is never
+  reached: with the walk preview the flow stays in the startup preview
+  block, and the scroll/walk probes' stage guards return before it. The
+  still path has its own trigger inside the startup block and works. This
+  is gpt's PR #156 blocker, now localized. Recorded as a tool task, not
+  part of this fix.
+
+owner: were the caves seen in the 3D view? The 2D view (Ctrl+F10 toggles
+the 3D off) has no glow and no point lights by design, and the runtime
+toggle survives map changes in a session. If it was the 3D view: the
+save from that moment would settle it in one still run
+(dev-snapshot.ps1 -Slot N -Still -CyclePalette -SceneCache
+game/mod-cache/scene).
+
+Next: the owner's answer or save; the live-capture tool defect as its
+own task.
+Check: the cave-still-glow.jpg pair in runs/111-cave-glow-and-lamps-live/.
+
+### 2026-11-04 gpt: the old owner screenshots were 2D; fresh out-of-combat live captures still hang
+
+Done: the owner's 2026-11-01 answer resolves the question above: those shots were the original 2D view because the hero was in combat. I started a fresh KLATOXCV elevation 1 scene with gameState=0, combat=0, dialog=0, using the latest available watchdog build and the main checkout's scene cache.
+
+- Attempt 1, run 3a7e4a55e93b: LiveFrame with Glow, CyclePalette, SkipScriptBlocking, 20-second step timeout. The startup preview began but no live snapshot arrived. The watchdog stopped the test game; no image was produced. The wrapper then hit a file-lock error while appending diagnostics to process.stdout.log.
+- Attempt 2, run 357981da968b: same setup with NoPreview. The live snapshot still did not arrive after startup accepted the map; the watchdog stopped the test game with no image. The wrapper hit the same stdout file-lock error.
+
+The watchdog records are in runs/111-cave-glow-and-lamps-live/attempt-1.txt and attempt-2.txt. These two out-of-combat attempts did not prove whether the live glow and point lights work. No further runtime attempt is made on this path until the live snapshot trigger and wrapper log sharing are fixed.
+
+Next: fix the live capture path in the devtools task, then repeat this exact out-of-combat KLATOXCV check and compare the pool glow and wall lighting.
+Check: the two watchdog records above; neither contains a screenshot.
