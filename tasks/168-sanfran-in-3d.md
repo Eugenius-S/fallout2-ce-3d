@@ -2,7 +2,7 @@
 id: 168
 title: San Francisco and Navarro in 3D, every map stands and looks clean
 milestone: M1
-status: in-progress
+status: done
 owner: glm
 suggested: glm
 priority: normal
@@ -179,3 +179,7 @@ other areas (each has its own task).
   distant tanker; exactly the designed blast radius. Evidence pairs:
   runs/168-hull-stands/ (full frames, the magnified hull crop pair, the
   2D-vs-3D stance comparison). Find 2 from the Log closed.
+- 2026-11-05, glm. Both rules landed: the sea (#303) and the hull
+  (#305). Find 1 closed by #303, find 2 by #305; no other defects on the
+  sweep. The area plays in 3D: 14 scene elevations, walk chain 14/14,
+  hour sweep 8/12/18. Task done.
