@@ -832,7 +832,8 @@ bool parseOption(const char* arg)
         }
         return true;
     }
-    if (strcmp(arg, "--dev-snapshot-once") == 0) {
+    if (strcmp(arg, "--dev-snapshot-once") == 0
+        || strcmp(arg, "--dev-live-snapshot-once") == 0) {
         gSnapshotOncePending = true;
         return true;
     }
@@ -3703,10 +3704,11 @@ bool takeSnapshot()
     const scene::Sun& sun = scene::currentSun();
     char sunMetadata[384];
     snprintf(sunMetadata, sizeof(sunMetadata),
-        "{\"setting\":%s,\"daylight\":%s,\"game_time\":%u,\"up\":%s,\"height\":%.3f,\"azimuth\":%.3f,"
+        "{\"setting\":%s,\"daylight\":%s,\"game_time\":%u,\"ambient\":%d,\"up\":%s,\"moon\":%s,\"height\":%.3f,\"azimuth\":%.3f,"
         "\"direction\":[%.5f,%.5f,%.5f],\"color\":[%.4f,%.4f,%.4f],\"strength\":%.4f}",
         settings.scene3d.sun ? "true" : "false", scene::sceneDaylight() ? "true" : "false", gameTimeGetTime(),
-        sun.up ? "true" : "false", sun.height, sun.azimuth, sun.direction[0], sun.direction[1], sun.direction[2],
+        lightGetAmbientIntensity(),
+        sun.up ? "true" : "false", sun.moon ? "true" : "false", sun.height, sun.azimuth, sun.direction[0], sun.direction[1], sun.direction[2],
         sun.color[0], sun.color[1], sun.color[2], sun.strength);
     const scene_renderer::PreparedSharpTextFrame& sharpText = scene_renderer::preparedSharpTextFrame();
 
