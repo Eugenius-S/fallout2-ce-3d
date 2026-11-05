@@ -1,0 +1,39 @@
+{
+    "build_sha256":  "98E46BC2847885E11AA8D0DF83815BBB6B8622AF093155C3C50A903EE9061E21",
+    "captures":  [
+                     {
+                         "language":  "en",
+                         "file":  "installer-en.jpg",
+                         "pixel_width":  816,
+                         "pixel_height":  759,
+                         "path_text":  "E:\\Projects\\fallout2-ce-3d-201-gpt\\build\\task201-scratch-game",
+                         "path_readback":  "E:\\Projects\\fallout2-ce-3d-201-gpt\\build\\task201-scratch-game",
+                         "capture":  "PrintWindow flags=2",
+                         "log_scrollbar_visible_without_overflow":  false
+                     },
+                     {
+                         "language":  "en",
+                         "file":  "progress-active.jpg",
+                         "pixel_width":  816,
+                         "pixel_height":  759,
+                         "capture":  "PrintWindow flags=2 during worker activity"
+                     },
+                     {
+                         "language":  "en",
+                         "file":  "log-scroll.jpg",
+                         "pixel_width":  816,
+                         "pixel_height":  759,
+                         "capture":  "PrintWindow flags=2 after physical wheel-up; first visible line 3 to 0"
+                     },
+                     {
+                         "language":  "ru",
+                         "file":  "installer-ru.jpg",
+                         "pixel_width":  816,
+                         "pixel_height":  759,
+                         "path_text":  "E:\\Projects\\fallout2-ce-3d-201-gpt\\build\\task201-scratch-game",
+                         "path_readback":  "E:\\Projects\\fallout2-ce-3d-201-gpt\\build\\task201-scratch-game",
+                         "capture":  "PrintWindow flags=2",
+                         "log_scrollbar_visible_without_overflow":  false
+                     }
+                 ]
+}
