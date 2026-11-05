@@ -48,7 +48,7 @@ def emitters(objects):
     """
     lights = []
     for obj in objects:
-        if obj.light_intensity <= 0 or not obj.flags & mapfile.OBJECT_LIGHTING:
+        if obj.light_intensity <= INTENSITY_FLOOR or not obj.flags & mapfile.OBJECT_LIGHTING:
             continue
         u, v = proj.px_to_ground(*proj.hex_px(obj.tile))
         power = min(obj.light_intensity, INTENSITY_MAX)

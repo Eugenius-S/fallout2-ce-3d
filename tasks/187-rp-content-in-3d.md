@@ -44,3 +44,15 @@ sfall gaps (186).
 
 ## Log
 
+### 2026-11-05 gpt
+Done: Exported all 19 restored-map names from the installed RPU copy into
+`build/scene-cache` (36 map/elevation scenes); the export `--check` passed.
+Fixed export failures for engine PID -1 script-helper records and lights at
+the reset-floor intensity; scene-export tests pass 127/127. A live walk probe
+on Abbey passed from tile 22703 to 18702 in 518 frames with `scene-gl` and
+`scene_view=full`. Evidence: `runs/187-rp-content-in-3d/`.
+Next: Verify a second restored area in 3D, then add RP-only tour spots gated
+by an explicit RP game root. PR #289 stays draft.
+Check: `export.py --check`; scene-export unit tests; Abbey walk log at
+`build/rp-live/abbey/process.stdout.log` and sidecar.
+

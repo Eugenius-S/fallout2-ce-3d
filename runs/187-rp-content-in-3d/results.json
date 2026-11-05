@@ -1,0 +1,28 @@
+{
+  "export": {
+    "result": "pass",
+    "map_count": 19,
+    "map_elevation_scene_count": 36,
+    "cache": "build/scene-cache",
+    "check_command": "export.py --maps <RPU maps> --cache-root build/scene-cache --check"
+  },
+  "live_walk": {
+    "result": "pass",
+    "map": "ABBEY.MAP",
+    "elevation": 0,
+    "start_tile": 22703,
+    "target_tile": 18702,
+    "frames": 518,
+    "renderer": "scene-gl",
+    "scene_view": "full",
+    "fallback_during_walk": false,
+    "sidecar": "build/rp-live/abbey/devhero-20261105-071803-000.json"
+  },
+  "tests": {
+    "scene_export_unit_tests": "127 passed"
+  },
+  "remaining": [
+    "live walk check in a second restored area",
+    "separate RP fly-tour spot file and RP-gated tour option"
+  ]
+}
