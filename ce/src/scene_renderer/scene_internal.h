@@ -246,6 +246,11 @@ extern unsigned int gFloorVao;
 extern unsigned int gFloorTexture;
 extern int gFloorVertexCount;
 extern bool gFloorLoaded;
+// The sea past the map's water edges (168): the vertex range in the floor's
+// buffer, drawn in flight and turned views only, flat in gFloorSeaColor.
+extern int gFloorExtensionFirst;
+extern int gFloorExtensionCount;
+extern float gFloorSeaColor[3];
 
 void destroyStaticFloor();
 
