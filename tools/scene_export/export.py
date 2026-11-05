@@ -89,6 +89,10 @@ MAP_GROUPS = {
     # and water edges (the game's maps/desert*.map, desrt*.map and
     # coast*.map files).
     "encdesertcoast": ("desert1", "desert2", "desert3", "desert4", "desert5", "desert6", "desert7", "desert8", "desert9", "desrt10", "desrt11", "desrt12", "desrt13", "coast1", "coast2", "coast3", "coast4", "coast5", "coast6", "coast7", "coast8", "coast9", "coast10", "coast11", "coast12"),
+    # The city, cave and mountain random encounters: ruined streets, caves
+    # and mountain paths (the game's maps/city*.map, cave*.map and
+    # mountn*.map files).
+    "enccitycave": ("city1", "city2", "city3", "city4", "city5", "city6", "city7", "city8", "cave0", "cave1", "cave2", "cave3", "cave4", "cave5", "cave6", "cave7", "mountn1", "mountn2", "mountn3", "mountn4", "mountn5", "mountn6"),
 }
 EXPECTED_OUTPUT_FILES = {"scene.json", "provenance.json", "floor.bin", "walls.bin", "projection.bin", "baked.bin",
                          "shadows.bin", "tiles.png", "light.png", "rock.png", "roof_fringe.png"}
