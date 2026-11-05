@@ -1,0 +1,11 @@
+{
+  "evidence_file": "klamath-vertibird.jpg",
+  "map": "KLACANYN",
+  "object": "multipart Vertibird",
+  "source_task": 174,
+  "source_pr": 274,
+  "source_file": "runs/174-multipart-objects-locked/klacanyn-vertibird.jpg",
+  "capture": "reused merged task-174 before/after turn sheet, not a new runtime capture",
+  "status": "group stays assembled at -45/0/+45",
+  "bytes": 445333
+}
