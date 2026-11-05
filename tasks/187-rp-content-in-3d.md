@@ -2,7 +2,7 @@
 id: 187
 title: RP's new and changed maps build in 3D under the same rules
 milestone: M1
-status: doing
+status: blocked
 owner: gpt
 suggested: any
 priority: high
@@ -94,3 +94,16 @@ times out, log the new result and leave the PR draft.
 Check: prior diagnostics are in `build/test-run/runs/8f670f030a88/watchdog.txt`
 and `build/test-run/runs/e8ea6a3d43bc/watchdog.txt`; the live walk log is in
 `build/rp-live/sfsheng/process.stdout.log`.
+
+### 2026-11-05 gpt: bounded tour retry also timed out
+The candidate live-start change did not work: the one rerun with `-NoPreview`
+and without `-Still` timed out before the map cache or scene appeared.
+Diagnostic: `build/test-run/runs/19efb76b0b72/watchdog.txt`. The two earlier
+runs reached the static preview but remained blocked by `gameState=5`.
+The candidate `tour.py` mode was reverted; it is not validated.
+Next: add a bounded fixture that lets the map-enter script finish its pending
+dialog request before taking a still tour. Do not rerun the same tour path
+without that code change.
+Check: CTest 20/20; exporter Python tests 127 passed; regression Python tests
+12 passed. Existing two restored-area walk probes remain in the evidence.
+Blocked: the RP-specific tour acceptance is not yet proven. PR #289 stays draft.
