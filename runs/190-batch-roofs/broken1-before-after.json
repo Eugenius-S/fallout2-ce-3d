@@ -5,14 +5,14 @@
   "resolution": "1920x1080",
   "scale": 2,
   "language": "scene-only; no UI text",
-  "camera": "fly turn 90, pitch 40, distance 8; same for baseline and after",
+  "camera": "fly turn 90, pitch 40, distance 8; matched baseline and after",
   "baseline": {
-    "cache": "origin/main 321003e1",
-    "source": "baseline-broken1/devhero-20261105-221929-000.png"
+    "cache": "origin/main 215086a7",
+    "source": "baseline-broken1-final/devhero-20261105-232109-000.png"
   },
   "after": {
-    "cache": "task exporter, branch commit 8cacac78",
-    "source": "after-broken1-medoid/devhero-20261105-222435-000.png"
+    "cache": "merged branch 31ee225f",
+    "source": "after-broken1-final/devhero-20261105-232234-000.png"
   },
   "crop_box": [
     1050,
@@ -20,18 +20,16 @@
     1920,
     420
   ],
-  "crop_size_before_after": [
-    760,
-    367
+  "crop_size_px": [
+    870,
+    420
   ],
-  "pixel_comparison": {
-    "changed": 15011,
-    "bbox": [
-      1413,
-      0,
-      1920,
-      176
-    ]
-  },
+  "changed_pixels": 15011,
+  "diff_bbox": [
+    1413,
+    0,
+    1920,
+    176
+  ],
   "executable_sha256": "500969e0ac5f0cd10ee0efc34288249382f56b661a45d3f984aa7cd72e313912"
 }
