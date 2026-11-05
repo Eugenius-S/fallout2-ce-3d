@@ -1,6 +1,7 @@
 import csv
 import json
 import math
+import os
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
@@ -69,7 +70,7 @@ def zoom_samples(ease):
 
 
 def font(size):
-    return ImageFont.truetype(r"C:\Windows\Fonts\arial.ttf", size)
+    return ImageFont.truetype(str(Path(os.environ["WINDIR"]) / "Fonts" / "arial.ttf"), size)
 
 
 def plot_panel(draw, box, title, series, x_max, y_min, y_max, unit):
