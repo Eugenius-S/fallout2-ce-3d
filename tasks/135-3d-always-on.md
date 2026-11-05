@@ -3,7 +3,7 @@ id: 135
 title: The 3D view stays on in combat and whenever the map is on screen
 milestone: M1
 status: doing
-owner: claude
+owner: gpt
 suggested: claude
 priority: high
 tier: 2
@@ -95,3 +95,8 @@ fades, dialogue), movie. Check: `dev-snapshot.ps1 -Map kladwtwn
 Next: the combat checks wait for 146 (the combat fixture): the to-hit cursor,
 an attack, an enemy turn, the end of combat in klatoxcv and kladwtwn, clicks
 in combat by script.
+
+### 2026-11-05 gpt, continuation
+Claimed the remaining acceptance on fresh main after merged PRs #211 and #218. No complete combat run or combat-picking evidence is recorded in the existing Log. The new branch preserves both merged steps and does not touch their old branches.
+Next: inspect the existing combat test hooks and build a background-only full-fight verification path; keep the owner game and cache untouched.
+Check: fresh base `38df715d`; no open PR #135 existed at claim time.
