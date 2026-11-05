@@ -115,9 +115,11 @@ Part B remains unverified. A Pip-Boy fixture capture at 1920x1080 produced
 the same framebuffer as the prior fixture capture, so it does not prove that
 the backdrop, fade, corners, or the 21:9 behavior changed. A generic window
 hook prototype was removed because that capture did not validate it. Further
-captures must read scene data from the task worktree's `build/scene-cache`;
-the last fixture log used the main checkout's existing cache, whose files
-were last modified on 2026-11-03. No files in that cache were changed.
+captures must read scene data from the task worktree's `build/scene-cache`.
+The 03:05 fixture log used the main checkout's existing cache, whose files
+were last modified on 2026-11-03; later captures used a copy in the task
+worktree's `build/scene-cache`. No files in the main checkout cache were
+changed.
 
 Part C remains blocked on art rights: Task 128's variant-6 assets cannot be
 used, and no replacement art has been authored. Keep PR #310 draft until
