@@ -1,0 +1,24 @@
+[
+  {
+    "language": "en",
+    "pid": 64860,
+    "raw_size": "816x759",
+    "evidence_size": "796x749",
+    "exe_sha256": "986A4656D3DC1DDD896661D960EC4D7AB45D2321AB243A1128D4C80E2BEACB88",
+    "image": "installer-en.jpg",
+    "bytes": 67876,
+    "capture": "fresh PrintWindow rendering of current launcher HWND; no installation started",
+    "previous_foreground_pid": 31092
+  },
+  {
+    "language": "ru",
+    "pid": 35328,
+    "raw_size": "816x759",
+    "evidence_size": "796x749",
+    "exe_sha256": "986A4656D3DC1DDD896661D960EC4D7AB45D2321AB243A1128D4C80E2BEACB88",
+    "image": "installer-ru.jpg",
+    "bytes": 69161,
+    "capture": "fresh PrintWindow rendering of current launcher HWND; no installation started",
+    "previous_foreground_pid": 31092
+  }
+]
