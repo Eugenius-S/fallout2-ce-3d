@@ -37,7 +37,7 @@ from wall_sidecar import decode_wall_sidecar, encode_wall_sidecar, wall_slabs  #
 from shadow_sidecar import VERSION as SHADOW_SIDECAR_VERSION  # noqa: E402
 from shadow_sidecar import decode_shadow_sidecar, encode_shadow_sidecar  # noqa: E402
 
-EXPORTER_VERSION = "1.12.0"
+EXPORTER_VERSION = "1.13.0"
 DONOR_REVISION = "0da1cd449f1dc7f2f6986ff7e8728a4b6ae20584"
 DEFAULT_MAP = "kladwtwn"
 # Map groups for --maps: every elevation each map has.
@@ -511,7 +511,8 @@ def export_scene(gf, game_root: Path, map_name: str, elevation: int, out_dir: Pa
         "inputFingerprintSha256": fingerprint,
     }
     scene_path.write_text(json.dumps(scene, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    (out_dir / "floor.bin").write_bytes(encode_floor_sidecar(scene, fringe, patches))
+    (out_dir / "floor.bin").write_bytes(encode_floor_sidecar(scene, fringe, patches, builder.water,
+                                                             builder.water_color))
     artifact_hashes = {p.name: sha256_file(p) for p in sorted(out_dir.iterdir()) if p.name != "provenance.json"}
     provenance = {
         "exporter": "fallout2-sprite-lighting scene_export",
