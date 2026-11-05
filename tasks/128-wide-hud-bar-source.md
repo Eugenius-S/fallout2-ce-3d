@@ -2,7 +2,7 @@
 id: 128
 title: Wide-screen art, the HUD bar and the 4:3 full-screen art, with licenses
 milestone: M1
-status: done
+status: blocked
 owner: gpt
 suggested: gpt
 priority: normal
@@ -108,3 +108,9 @@ Check: PR #184 is merged; the source, file list, license limits, and verdict are
 Step 1 (the HUD bar source and its rights) done above, merged as #184. The
 task stays open for step 2 (the 4:3 art) and the art itself, inside the UI
 batch (193 part C).
+
+### 2026-11-05 gpt: Step 2 blocker
+Done: the source and rights review is complete in PR #184. The identified HRP art is not safe to ship or load because redistribution rights and the installed variant-6 provenance remain unknown.
+Next: Part C of task 193 needs newly authored art or a verified authorized source for the wide HUD and 4:3 screens.
+Check: PR #184 is merged; the decision and evidence are recorded above.
+Blocked: the only identified art source has unresolved redistribution rights, and the required new art is not present in the task files or this worktree. Keep the task open until an authorized art source is available.
