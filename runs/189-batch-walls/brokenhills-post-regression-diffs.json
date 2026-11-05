@@ -1,0 +1,59 @@
+{
+  "baseline_commit": "321003e1",
+  "task_head": "b9992ada",
+  "note": "Expected painted post changes; updated references and spot checks now pass 0 px",
+  "spots": [
+    {
+      "spot": "brokenhills-entrance",
+      "baseline_before_update": "runs\\regression\\20261105-210752-689-12980\\brokenhills-entrance\\reference-before.png",
+      "capture": "runs\\regression\\20261105-204732-995-56512\\brokenhills-entrance\\devhero-20261105-205119-000.png",
+      "changed_pixels": 76,
+      "bbox": [
+        361,
+        934,
+        385,
+        1042
+      ],
+      "crop": [
+        291,
+        864,
+        455,
+        1080
+      ],
+      "resolution": [
+        1920,
+        1080
+      ],
+      "wall_triangles": [
+        49426,
+        49426
+      ]
+    },
+    {
+      "spot": "brokenhills-jail",
+      "baseline_before_update": "runs\\regression\\20261105-210844-922-42984\\brokenhills-jail\\reference-before.png",
+      "capture": "runs\\regression\\20261105-204732-995-56512\\brokenhills-jail\\devhero-20261105-205149-000.png",
+      "changed_pixels": 60,
+      "bbox": [
+        49,
+        661,
+        67,
+        765
+      ],
+      "crop": [
+        0,
+        591,
+        137,
+        835
+      ],
+      "resolution": [
+        1920,
+        1080
+      ],
+      "wall_triangles": [
+        49426,
+        49426
+      ]
+    }
+  ]
+}
