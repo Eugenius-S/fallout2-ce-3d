@@ -2,7 +2,7 @@
 id: 128
 title: Wide-screen art, the HUD bar and the 4:3 full-screen art, with licenses
 milestone: M1
-status: doing
+status: done
 owner: gpt
 suggested: gpt
 priority: normal
@@ -108,4 +108,3 @@ Check: PR #184 is merged; the source, file list, license limits, and verdict are
 Step 1 (the HUD bar source and its rights) done above, merged as #184. The
 task stays open for step 2 (the 4:3 art) and the art itself, inside the UI
 batch (193 part C).
-
