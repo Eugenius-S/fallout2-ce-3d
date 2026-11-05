@@ -1,0 +1,12 @@
+{
+  "image": "oldsave-existing-preview-detail.jpg",
+  "source_image": "oldsave-existing-preview.jpg",
+  "crop_xyxy": [
+    980,
+    140,
+    1560,
+    710
+  ],
+  "display_scale": 2,
+  "evidence": "Detail crop from the same load-screen capture; includes the stored thumbnail and the save label."
+}

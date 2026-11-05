@@ -1,0 +1,138 @@
+{
+  "image": "oldsave-existing-preview.jpg",
+  "view": "vanilla-framebuffer",
+  "map": "KLADWTWN.MAP",
+  "elevation": 0,
+  "still_snapshot": false,
+  "snapshot_run": "b4ff03040afb48e18bdb382b0ad6e366",
+  "view_tile": 25075,
+  "preview_requested": true,
+  "scene_3d_enabled": true,
+  "scene_view": "full",
+  "sharp_text": {
+    "setting": false,
+    "active": false,
+    "drawn": false,
+    "runs": 0,
+    "glyphs": 0,
+    "restored_pixels": 0,
+    "prepare_ms": 0.0
+  },
+  "map_clip": {
+    "enabled": true,
+    "setting_enabled": true,
+    "variant": "authored",
+    "source": "floor",
+    "world_bounds": [
+      -41.75,
+      -38.125,
+      39.5,
+      37.75
+    ],
+    "planes": [
+      [
+        0.4472136,
+        0.8944272,
+        32.199379
+      ],
+      [
+        0.8320503,
+        -0.5547002,
+        26.348259
+      ],
+      [
+        -0.4472136,
+        -0.8944272,
+        30.8577385
+      ],
+      [
+        -0.8320503,
+        0.5547002,
+        24.6841583
+      ]
+    ]
+  },
+  "camera": "center tile 25075",
+  "camera_turn": 0.0,
+  "wall_triangles": 0,
+  "wall_pages": 0,
+  "hero": null,
+  "egg": {
+    "shown": true,
+    "rect": [
+      416,
+      148,
+      129,
+      98
+    ],
+    "zoom": 1.0,
+    "wall_rows_marked": 375,
+    "wall_rows_any": true
+  },
+  "objects": {
+    "drawn": 0,
+    "skipped": 0
+  },
+  "preview_availability": "iso-disabled",
+  "renderer": "scene-gl",
+  "light": "enabled",
+  "effect_emission": true,
+  "glow": {
+    "enabled": false,
+    "strength": 2.0
+  },
+  "weapon_effect": null,
+  "muzzle": null,
+  "sun": {
+    "setting": true,
+    "daylight": true,
+    "game_time": 302402,
+    "up": true,
+    "height": 66.0,
+    "azimuth": -26.565,
+    "direction": [
+      0.36379,
+      0.91355,
+      -0.1819
+    ],
+    "color": [
+      1.0,
+      0.96,
+      0.88
+    ],
+    "strength": 1.0
+  },
+  "resolution": "1920x1080",
+  "logical_resolution": "960x540",
+  "scale": 2,
+  "scale_factor": 2.0,
+  "windowed": true,
+  "drawable": "1920x1080",
+  "sdl_window": {
+    "flags": 73734,
+    "window_position": "-20000,-20000",
+    "window_size": "1920x1080",
+    "drawable_size": "1920x1080",
+    "fullscreen": false,
+    "fullscreen_desktop": false,
+    "borderless": false
+  },
+  "ce_commit": "05f8d233",
+  "tools_commit": "-",
+  "exe_sha256": "aa743c20109802aec08f1e021004c7d1ae811c93d2554a4e40b1923413e0a7e5",
+  "taken": "20261105-154456",
+  "evidence": "Existing save slot 01 loaded in the background test copy. The visible load-screen card reads Narg, 25 JUL 2241, 0824, Arroyo Temple Entrance and shows the previously stored thumbnail. The map and camera fields describe the Klamath startup scene behind the load panel, not the saved location.",
+  "existing_save": {
+    "profile": "runtime-review-20261018",
+    "slot": 1,
+    "character": "Narg",
+    "date": "25 JUL 2241",
+    "time": "0824",
+    "location": "Arroyo Temple Entrance",
+    "save_dat_sha256": "2b0fccc91538bca99d4be52cd5c6fccf281f37f16c5d05039ae66ebc4967ba67",
+    "preview_offset": 131,
+    "preview_bytes": 29792,
+    "preview_nonzero_bytes": 29495,
+    "preview_unique_indices": 84
+  }
+}

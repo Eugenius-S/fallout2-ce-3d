@@ -1,0 +1,29 @@
+{
+  "image": "current-3d-vs-classic.jpg",
+  "comparison": "Same startup map, save slot 01, language, 1920x1080 output, 960x540 logical buffer, scale 2, and build SHA; top uses 3D scene thumbnail capture, bottom uses the original indexed framebuffer path.",
+  "top": {
+    "source_sidecar": "3d-save-load.json",
+    "capture": "load screen after 3D save and reload",
+    "map": "KLADWTWN.MAP",
+    "view": "vanilla-framebuffer",
+    "preview_requested": true,
+    "camera_turn": 0,
+    "scale": 2,
+    "resolution": "1920x1080",
+    "ce_commit": "05f8d233",
+    "exe_sha256": "aa743c20109802aec08f1e021004c7d1ae811c93d2554a4e40b1923413e0a7e5"
+  },
+  "bottom": {
+    "source_sidecar": "classic-save-load.json",
+    "capture": "load screen after original-view save and reload",
+    "map": "KLADWTWN.MAP",
+    "view": "vanilla-framebuffer",
+    "preview_requested": false,
+    "camera_turn": 0,
+    "scale": 2,
+    "resolution": "1920x1080",
+    "ce_commit": "05f8d233",
+    "exe_sha256": "aa743c20109802aec08f1e021004c7d1ae811c93d2554a4e40b1923413e0a7e5"
+  },
+  "result": "Both save/load fixtures passed. The surrounding UI and save label are stable; only the stored thumbnail differs as expected."
+}

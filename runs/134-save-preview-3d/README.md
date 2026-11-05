@@ -1,7 +1,7 @@
-## Save thumbnail round-trip evidence
+## Save preview evidence
 
-`current-3d-vs-classic.jpg` shows slot 01 after a save and reload from the same isolated Klamath startup: 3D save at top, original/classic view at bottom. Both use a 1920x1080 window. Each run reports `SAVE_PREVIEW_FIXTURE PASS` with save and load UI captures; the load screens display the stored slot comment and thumbnail.
+`current-3d-vs-classic.jpg` compares the same Klamath startup and save slot after two round trips: a 3D save at the top, an original-view save at the bottom. Both use 1920x1080 output, a 960x540 logical buffer, scale 2, and the same executable. The save/load fixtures passed in both modes. The JSON sidecar records the details for each half.
 
-The preview box differs between these matched runs (mean RGB absolute delta 21.15, 17.22, 15.53); the surrounding UI is stable. Loaded screenshot metadata is in `3d-final/devshot-20261105-132921-001.json` and `classic-final/devshot-20261105-132932-001.json`; both images are `scr00001.png`. `fixture-result.txt` records the sanitized runtime PASS lines. The classic run exercises the original indexed-framebuffer thumbnail path.
+`oldsave-existing-preview.jpg` and `oldsave-existing-preview-detail.jpg` show a pre-existing slot from the archived `runtime-review-20261018` test profile. The visible load card reads Narg, 25 JUL 2241, 0824, Arroyo Temple Entrance, and the prior thumbnail is visible. Its `SAVE.DAT` preview record at offset 131 is 29,792 bytes, with 29,495 non-zero bytes and 84 palette indices. The source profile was only read and copied to the isolated scratch root; the source save was not modified. The fixture passed.
 
-An additional read-only copy of the existing slot 01 was loaded from a scratch root. Its preview bytes are all palette index 0, so that save has no prior image to compare. The supplied screenshot is from another save state and is not a matched baseline. The owner game save was only read and copied to scratch; it was not modified. A valid pre-existing save with a non-empty thumbnail is still needed for the old-preview comparison.
+All JPEG evidence is below 1 MB. Full raw captures and the scratch game copy are preserved under ignored `build/134-oldsave-runtime-review-capture-source/` and `build/134-oldsave-runtime-review-game/`.
