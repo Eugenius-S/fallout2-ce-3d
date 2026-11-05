@@ -9,7 +9,12 @@ The exporter fixes cover two archive cases found by the first batch: engine
 script-helper records with PID -1, and light intensity equal to the engine's
 reset floor. Scene-export tests pass 127/127.
 
-One live 3D walk check passed on Abbey: start tile 22703, destination 18702,
-518 frames, `scene-gl` / `scene_view=full`; the log and sidecar show no view
-fallback during the walk. `abbey-walk.jpg` is the real runtime frame. A second
-restored area and RP-only fly-tour spots remain to be checked.
+Two live 3D walk checks passed on restored RPU maps. Abbey reached tile 18702
+from 22703 in 518 frames; San Fran Dr. Sheng reached tile 16100 from 20100 in
+542 frames. Both logs keep `scene_view=full` throughout and report the
+`scene-gl` renderer. `abbey-walk.jpg` and `sfsheng-walk.jpg` are runtime frames.
+
+The San Fran Dr. Sheng run used a private copy of the existing RPU 2.4.34
+scratch install under this worktree's ignored `build/` directory. Its source
+scratch copy was left untouched. RP-only fly-tour spots and explicit RP-root
+gating remain to be implemented.

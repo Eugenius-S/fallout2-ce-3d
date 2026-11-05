@@ -6,23 +6,38 @@
     "cache": "build/scene-cache",
     "check_command": "export.py --maps <RPU maps> --cache-root build/scene-cache --check"
   },
-  "live_walk": {
-    "result": "pass",
-    "map": "ABBEY.MAP",
-    "elevation": 0,
-    "start_tile": 22703,
-    "target_tile": 18702,
-    "frames": 518,
-    "renderer": "scene-gl",
-    "scene_view": "full",
-    "fallback_during_walk": false,
-    "sidecar": "build/rp-live/abbey/devhero-20261105-071803-000.json"
-  },
+  "live_walks": [
+    {
+      "result": "pass",
+      "map": "ABBEY.MAP",
+      "elevation": 0,
+      "start_tile": 22703,
+      "target_tile": 18702,
+      "frames": 518,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "fallback_during_walk": false,
+      "sidecar": "build/rp-live/abbey/devhero-20261105-071803-000.json",
+      "image": "abbey-walk.jpg"
+    },
+    {
+      "result": "pass",
+      "map": "SFSHENG.MAP",
+      "elevation": 0,
+      "start_tile": 20100,
+      "target_tile": 16100,
+      "frames": 542,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "fallback_during_walk": false,
+      "sidecar": "build/rp-live/sfsheng/devshot-20261105-085222.json",
+      "image": "sfsheng-walk.jpg"
+    }
+  ],
   "tests": {
     "scene_export_unit_tests": "127 passed"
   },
   "remaining": [
-    "live walk check in a second restored area",
     "separate RP fly-tour spot file and RP-gated tour option"
   ]
 }

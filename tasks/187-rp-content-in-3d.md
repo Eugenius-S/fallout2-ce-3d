@@ -56,3 +56,14 @@ by an explicit RP game root. PR #289 stays draft.
 Check: `export.py --check`; scene-export unit tests; Abbey walk log at
 `build/rp-live/abbey/process.stdout.log` and sidecar.
 
+### 2026-11-05 gpt
+Done: Verified a second restored area on San Fran Dr. Sheng. The isolated RPU
+scratch copy reached tile 16100 from 20100 in 542 frames; the engine reported
+`scene-gl`, full scene view, and no view fallback during the walk. Evidence is
+in `runs/187-rp-content-in-3d/`.
+Next: Add RP-only tour spots behind an explicit `--rp-game-root` option, then
+smoke-test the gated tour and run the task checks.
+Check: `build/rp-live/sfsheng/process.stdout.log` and sidecar; runtime frame
+`runs/187-rp-content-in-3d/sfsheng-walk.jpg`. The RPU map-cache check found all
+19 maps; post-rebase scene-export tests passed 122/122.
+
