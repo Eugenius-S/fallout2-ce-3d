@@ -1,0 +1,62 @@
+{
+  "baseline_commit": "321003e1",
+  "task_head": "b9992ada",
+  "captures": [
+    {
+      "hour": 8,
+      "view_tile": 18930,
+      "camera_turn": [
+        40.0,
+        40.0
+      ],
+      "zoom": [
+        2.5,
+        2.5
+      ],
+      "resolution": [
+        "1920x1080",
+        "1920x1080"
+      ],
+      "camera_match": true,
+      "wall_triangles": [
+        48385,
+        48393
+      ],
+      "renderer_sha256": [
+        "f74e35b34a984ee883e524d88b12d4a6684a4be59a2f0c0c9e89ad81efaa7294",
+        "f74e35b34a984ee883e524d88b12d4a6684a4be59a2f0c0c9e89ad81efaa7294"
+      ],
+      "baseline_png": "build\\baseline-captures\\main321\\bathhouse-18930-z2.5-turn40-h8\\devhero-20261105-211350-000.png",
+      "task_png": "build\\after-captures\\task\\bathhouse-18930-z2.5-turn40-h8\\devhero-20261105-211400-000.png",
+      "pixel_diff": 0
+    },
+    {
+      "hour": 17,
+      "view_tile": 18930,
+      "camera_turn": [
+        40.0,
+        40.0
+      ],
+      "zoom": [
+        2.5,
+        2.5
+      ],
+      "resolution": [
+        "1920x1080",
+        "1920x1080"
+      ],
+      "camera_match": true,
+      "wall_triangles": [
+        48385,
+        48393
+      ],
+      "renderer_sha256": [
+        "f74e35b34a984ee883e524d88b12d4a6684a4be59a2f0c0c9e89ad81efaa7294",
+        "f74e35b34a984ee883e524d88b12d4a6684a4be59a2f0c0c9e89ad81efaa7294"
+      ],
+      "baseline_png": "build\\baseline-captures\\main321\\bathhouse-18930-z2.5-turn40-h17\\devhero-20261105-211516-000.png",
+      "task_png": "build\\after-captures\\task\\bathhouse-18930-z2.5-turn40-h17\\devhero-20261105-211527-000.png",
+      "pixel_diff": 0
+    }
+  ]
+}

@@ -1,0 +1,62 @@
+{
+  "base_commit": "321003e1",
+  "task_head": "b9992ada",
+  "captures": [
+    {
+      "hour": 8,
+      "before": "build\\baseline-captures\\main321\\modinn-19531-h8\\devhero-20261105-193753-000.png",
+      "after": "build\\after-captures\\task\\modinn-19531-h8\\devhero-20261105-193924-000.png",
+      "view_tile": 19531,
+      "hero_tile": 19531,
+      "camera_match": true,
+      "resolution": "1920x1080",
+      "pixel_changes": 104,
+      "bbox": [
+        59,
+        392,
+        1115,
+        654
+      ],
+      "wall_triangles": [
+        18189,
+        18226
+      ],
+      "exe_sha256": [
+        "f74e35b34a984ee883e524d88b12d4a6684a4be59a2f0c0c9e89ad81efaa7294",
+        "f74e35b34a984ee883e524d88b12d4a6684a4be59a2f0c0c9e89ad81efaa7294"
+      ],
+      "game_time": [
+        288000,
+        288000
+      ]
+    },
+    {
+      "hour": 17,
+      "before": "build\\baseline-captures\\main321\\modinn-19531-h17\\devhero-20261105-193803-000.png",
+      "after": "build\\after-captures\\task\\modinn-19531-h17\\devhero-20261105-193935-000.png",
+      "view_tile": 19531,
+      "hero_tile": 19531,
+      "camera_match": true,
+      "resolution": "1920x1080",
+      "pixel_changes": 104,
+      "bbox": [
+        59,
+        392,
+        1115,
+        654
+      ],
+      "wall_triangles": [
+        18189,
+        18226
+      ],
+      "exe_sha256": [
+        "f74e35b34a984ee883e524d88b12d4a6684a4be59a2f0c0c9e89ad81efaa7294",
+        "f74e35b34a984ee883e524d88b12d4a6684a4be59a2f0c0c9e89ad81efaa7294"
+      ],
+      "game_time": [
+        612000,
+        612000
+      ]
+    }
+  ]
+}
