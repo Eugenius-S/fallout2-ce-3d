@@ -884,6 +884,53 @@ class WallSidecarTests(unittest.TestCase):
         self.assertFalse(batches[0]["game_only"])
         self.assertEqual(batches[0]["triangles"], 4)
 
+    @staticmethod
+    def hull_scene():
+        scene = json.loads(json.dumps(WallSidecarTests.sample_scene()))
+        scene["pages"] = [{"image": "sprites0.png", "size": [4096, 4096]}]
+        scene["sprites"][0][3:] = [2028, 529, -1014, -529]
+        scene["walls"] = []
+        scene["trims"] = []
+        scene["doors"] = []
+        scene["rests"] = [[0, 10.0, 10.0, 0.0, 0.0, 3]]
+        return scene
+
+    def test_a_hull_sized_fixed_fly_rest_stands_on_its_water_line(self):
+        scene = self.hull_scene()
+        water = bytearray(100 * 100)          # row 10 water, its north row land
+        for col in range(100):
+            water[10 * 100 + col] = 1
+        batches = decode_wall_sidecar(encode_wall_sidecar(scene, water=water))["batches"]
+        self.assertEqual(len(batches), 1)
+        self.assertTrue(batches[0]["fly_only"])
+        self.assertEqual(batches[0]["triangles"], 4)
+        # The plane stands on the water/land boundary (row 9's south edge),
+        # feet on the ground, the whole picture above it. A batch vertex
+        # stores u - 50, z, v - 50.
+        vs = {round(vertex[2], 6) for vertex in batches[0]["vertices"]}
+        self.assertEqual(vs, {-40.0})
+        zs = sorted({round(vertex[1], 6) for vertex in batches[0]["vertices"]})
+        self.assertEqual(zs[0], 0.0)
+        self.assertGreater(zs[1], 0.0)
+
+    def test_a_shore_to_the_west_turns_the_hull_along_v(self):
+        scene = self.hull_scene()
+        water = bytearray(100 * 100)          # column 10 water, land on both sides
+        for row in range(100):
+            water[row * 100 + 10] = 1
+        batches = decode_wall_sidecar(encode_wall_sidecar(scene, water=water))["batches"]
+        self.assertEqual(len(batches), 1)
+        # The walk finds the west shore first (it steps west before east);
+        # the plane stands on the column 9/10 boundary (tile u 10), along v:
+        # a batch vertex stores u - 50.
+        us = {round(vertex[0], 6) for vertex in batches[0]["vertices"]}
+        self.assertEqual(us, {-40.0})
+
+    def test_water_without_a_water_line_leaves_the_sidecar_unchanged(self):
+        scene = self.hull_scene()
+        self.assertEqual(encode_wall_sidecar(scene),
+                         encode_wall_sidecar(scene, water=bytearray(100 * 100)))
+
     def test_encodes_game_view_front_and_cap_only(self):
         decoded = decode_wall_sidecar(encode_wall_sidecar(self.sample_scene()))
         self.assertEqual(decoded["version"], WALL_VERSION)
