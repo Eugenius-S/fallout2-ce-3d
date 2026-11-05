@@ -2,8 +2,8 @@
 id: 190
 title: Roofs across every map, one rule per PR
 milestone: M1
-status: todo
-owner: any
+status: doing
+owner: gpt
 suggested: any
 priority: normal
 tier: 3
@@ -55,3 +55,5 @@ road. Likely the edge fringe of a roof or wall top (roof_fringe.py, the band
 of task 129) built outside the footprint. No crop in the repository yet: the
 map needs a devshot after 183. The rule to check: no fringe or band piece
 reaches past the footprint of the wall it belongs to.
+
+
