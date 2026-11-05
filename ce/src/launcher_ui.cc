@@ -493,9 +493,8 @@ void createControls(HWND window)
     g_font = CreateFontW(18, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET,
         OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_DONTCARE, L"Segoe UI");
     createControl(window, L"STATIC", L"Game folder", SS_LEFT, 24, 206, 180, 25, ID_GAME_ROOT - 100);
-    createControl(window, L"EDIT", L"", ES_AUTOHSCROLL | WS_BORDER, 25, 234, 603, 36, ID_GAME_ROOT);
+    createControl(window, L"EDIT", L"", ES_AUTOHSCROLL, 25, 245, 603, 25, ID_GAME_ROOT);
     g_root = GetDlgItem(window, ID_GAME_ROOT);
-    SetWindowRgn(g_root, CreateRoundRectRgn(0, 0, 603, 36, 12, 12), TRUE);
     createControl(window, L"BUTTON", L"Browse...", BS_OWNERDRAW, 642, 234, 130, 38, ID_BROWSE);
     g_browse = GetDlgItem(window, ID_BROWSE);
     createControl(window, L"BUTTON", L"Install Russian text from the official RPU release",
@@ -515,14 +514,16 @@ void createControls(HWND window)
     g_notes = GetDlgItem(window, ID_NOTES);
     createControl(window, PROGRESS_CLASSW, L"", PBS_SMOOTH, 24, 485, 752, 20, ID_PROGRESS);
     g_progress = GetDlgItem(window, ID_PROGRESS);
+    SetWindowRgn(g_progress, CreateRoundRectRgn(0, 0, 752, 20, 12, 12), TRUE);
     SendMessageW(g_progress, PBM_SETRANGE32, 0, 100);
     SendMessageW(g_progress, PBM_SETBARCOLOR, 0, RGB(155, 180, 105));
     SendMessageW(g_progress, PBM_SETBKCOLOR, 0, RGB(32, 39, 47));
     createControl(window, L"STATIC", L"", SS_LEFT, 24, 511, 752, 22, ID_STATUS);
     g_status = GetDlgItem(window, ID_STATUS);
-    createControl(window, L"EDIT", L"", ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY | WS_VSCROLL | WS_BORDER,
-        24, 538, 752, 90, ID_LOG);
+    createControl(window, L"EDIT", L"", ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY | WS_VSCROLL,
+        30, 544, 740, 78, ID_LOG);
     g_log = GetDlgItem(window, ID_LOG);
+    SetWindowRgn(g_log, CreateRoundRectRgn(0, 0, 740, 78, 12, 12), TRUE);
     createControl(window, L"BUTTON", L"Install / Update", BS_OWNERDRAW, 24, 660, 200, 36, ID_INSTALL);
     g_install = GetDlgItem(window, ID_INSTALL);
     createControl(window, L"BUTTON", L"Roll back", BS_OWNERDRAW, 236, 660, 150, 36, ID_ROLLBACK);
@@ -574,6 +575,22 @@ LRESULT CALLBACK launcherWindowProc(HWND window, UINT message, WPARAM wParam, LP
         RECT client = {};
         GetClientRect(window, &client);
         FillRect(dc, &client, g_background);
+        HPEN fieldPen = CreatePen(PS_SOLID, 1, RGB(140, 112, 69));
+        HGDIOBJ oldFieldPen = SelectObject(dc, fieldPen);
+        HGDIOBJ oldFieldBrush = SelectObject(dc, g_editBackground);
+        RoundRect(dc, 24, 234, 630, 272, 12, 12);
+        SelectObject(dc, oldFieldBrush);
+        SelectObject(dc, oldFieldPen);
+        DeleteObject(fieldPen);
+        HPEN logPen = CreatePen(PS_SOLID, 1, RGB(100, 111, 111));
+        HBRUSH logBrush = CreateSolidBrush(RGB(8, 13, 19));
+        HGDIOBJ oldLogPen = SelectObject(dc, logPen);
+        HGDIOBJ oldLogBrush = SelectObject(dc, logBrush);
+        RoundRect(dc, 24, 538, 776, 628, 12, 12);
+        SelectObject(dc, oldLogBrush);
+        SelectObject(dc, oldLogPen);
+        DeleteObject(logBrush);
+        DeleteObject(logPen);
         HPEN pen = CreatePen(PS_SOLID, 1, RGB(140, 112, 69));
         HGDIOBJ oldPen = SelectObject(dc, pen);
         HGDIOBJ oldBrush = SelectObject(dc, GetStockObject(HOLLOW_BRUSH));
