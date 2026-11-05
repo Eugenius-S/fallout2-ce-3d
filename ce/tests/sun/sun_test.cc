@@ -95,7 +95,7 @@ int main()
         "0:00: moonlight is cool");
     failures += !check(!sunAt(day + 19 * kHour, 1.0, false).up, "19:00 underground: no moon");
     failures += !check(!sunAt(day + 12 * kHour, 1.0, false).up, "daytime underground: no sun");
-    failures += !check(!sunAt(day + 12 * kHour, 1.0, false).up, "underground: none");
+    failures += !check(!sunAt(day, 1.0, false).up, "night underground: no moon");
     failures += !check(sunAt(day, 0.25, true).up, "night moon does not depend on ambient");
     const Sun dim = sunAt(day + 12 * kHour, 0.625, true);
     failures += !check(dim.up && std::fabs(dim.strength - 0.5f) < 1e-5f, "half the ambient over night: half strength");
