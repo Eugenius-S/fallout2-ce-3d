@@ -44,6 +44,7 @@ struct FloatingTextOutlineLayout {
 
 FloatingTextOutlineLayout floatingTextOutlineLayout(int legacyWidth, int legacyHeight,
     int lineHeight, int lines, bool hasOutline, bool modernOutline);
+int sharpTextLinePitch(int lineHeight, bool sharpTextEnabled);
 
 struct TextPixels {
     const unsigned char* data = nullptr;

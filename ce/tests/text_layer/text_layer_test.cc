@@ -83,6 +83,11 @@ bool capture(TextLayer& layer, TextBufferId id, bool orphan,
 int main()
 {
     int failures = 0;
+    failures += !check(fallout::scene::sharpTextLinePitch(9, true) == 12
+            && fallout::scene::sharpTextLinePitch(10, true) == 13
+            && fallout::scene::sharpTextLinePitch(9, false) == 9
+            && fallout::scene::sharpTextLinePitch(0, true) == 0,
+        "sharp text spaces lines by at least 130 percent and leaves the classic pitch unchanged");
     const auto barkLayout = fallout::scene::floatingTextOutlineLayout(120, 22, 9, 2, true, true);
     const auto plainLayout = fallout::scene::floatingTextOutlineLayout(120, 22, 9, 2, true, false);
     const auto barkClip = barkLayout.clipBounds(100, 50, { 100, 50, 8, 8 });

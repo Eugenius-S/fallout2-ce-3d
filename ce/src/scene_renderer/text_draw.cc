@@ -357,7 +357,8 @@ bool renderSharpText(const std::vector<scene::TextRecord>& records,
             });
             if (owner != hudLogOwners.end()) {
                 const int row = std::max(0, static_cast<int>(std::lround(
-                    static_cast<double>(run.y - owner->firstY) / run.lineHeight)));
+                    static_cast<double>(run.y - owner->firstY)
+                    / scene::sharpTextLinePitch(run.lineHeight, true))));
                 hudLogXCorrection = -row;
             }
         }

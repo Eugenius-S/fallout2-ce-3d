@@ -195,6 +195,12 @@ FloatingTextOutlineLayout floatingTextOutlineLayout(int legacyWidth, int legacyH
     return layout;
 }
 
+int sharpTextLinePitch(int lineHeight, bool sharpTextEnabled)
+{
+    if (lineHeight <= 0 || !sharpTextEnabled) return std::max(lineHeight, 0);
+    return std::max(lineHeight + 1, (lineHeight * 13 + 9) / 10);
+}
+
 bool setFont101PreviewBold(bool bold, int ownerWindow)
 {
     gFont101PreviewBold = bold;

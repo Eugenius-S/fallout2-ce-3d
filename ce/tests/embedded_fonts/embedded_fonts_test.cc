@@ -123,7 +123,7 @@ int main()
         line.run.colorRole = fallout::scene::TextColorRole::HudMessageLogGreen;
         line.run.colorAndFlags = 1;
         line.run.x = 30 + row;
-        line.run.y = 2 + row * 12;
+        line.run.y = 2 + row * fallout::scene::sharpTextLinePitch(12, true);
         line.run.width = 64;
         line.run.lineHeight = 12;
         line.run.characterX = { 30 + row, 38 + row };
@@ -136,7 +136,7 @@ int main()
     }
     int hudLogLeft[2] = { 256, 256 };
     for (int y = 0; y < surface.height; ++y) {
-        const int row = y < 14 ? 0 : 1;
+        const int row = y < 18 ? 0 : 1;
         for (int x = 0; x < surface.width; ++x) {
             if (surface.pixels[(static_cast<std::size_t>(y) * surface.width + x) * 4 + 3] != 0) {
                 hudLogLeft[row] = std::min(hudLogLeft[row], x);
