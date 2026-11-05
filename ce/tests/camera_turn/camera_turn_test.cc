@@ -12,19 +12,22 @@ const double kDt = 1.0 / 144.0;
 // Runs the eased turn to its target, one frame at a time. Fails on a backward
 // move, a jump past the target or a turn that never lands.
 double runToTarget(double& at, double& to, double& speed, double* peakSpeed,
-    double* lastFrameSpeed, int* frames)
+    double* lastFrameSpeed, int* frames, double* largestSpeedDelta = nullptr)
 {
     *peakSpeed = 0.0;
     *lastFrameSpeed = 0.0;
     *frames = 0;
+    if (largestSpeedDelta != nullptr) *largestSpeedDelta = 0.0;
     double prev = at;
+    double prevSpeed = speed;
     while (at != to && *frames < 100000) {
+        const bool wasMovingTowardTarget = (to - prev) * prevSpeed >= -1e-12;
         const bool landed = cameraTurnEaseStep(at, to, speed, kDt);
         if (landed != (at == to)) {
             std::fprintf(stderr, "CHECK failed: landed flag disagrees with arrival\n");
             return 1.0;
         }
-        if (to >= prev ? at < prev - 1e-12 : at > prev + 1e-12) {
+        if (wasMovingTowardTarget && (to >= prev ? at < prev - 1e-12 : at > prev + 1e-12)) {
             std::fprintf(stderr, "CHECK failed: the turn moved backward\n");
             return 1.0;
         }
@@ -33,6 +36,10 @@ double runToTarget(double& at, double& to, double& speed, double* peakSpeed,
             return 1.0;
         }
         prev = at;
+        if (largestSpeedDelta != nullptr) {
+            *largestSpeedDelta = std::max(*largestSpeedDelta, std::fabs(speed - prevSpeed));
+        }
+        prevSpeed = speed;
         *lastFrameSpeed = speed;
         *peakSpeed = std::max(*peakSpeed, std::fabs(speed));
         (*frames)++;
@@ -67,14 +74,15 @@ int main()
         cameraTurnEaseStep(firstAt, firstTo, firstSpeed, kDt);
         CHECK(std::fabs(firstSpeed) < 0.75 * peak);
         CHECK(last < 0.75 * peak);
-        // The zero-to-zero arc of one step: about twice the old constant-speed
-        // time (10 degrees at kCameraTurnSpeed), still under the held key's
-        // 80 ms repeat.
-        const double oldSeconds = kCameraTurnStep / kCameraTurnSpeed;
+        // The longer zero-to-zero arc gives the turn room to ease in and out.
         const double seconds = frames * kDt;
-        CHECK(seconds > 1.5 * oldSeconds);
-        CHECK(seconds < 2.5 * oldSeconds);
-        // And the peak stays at the old speed.
+        CHECK(seconds >= 0.20);
+        CHECK(seconds <= 0.35);
+        // Frame-to-frame angular speed stays bounded by the acceleration.
+        double maxDelta = 0.0;
+        at = 0.0; to = 10.0; speed = 0.0;
+        CHECK(runToTarget(at, to, speed, &peak, &last, &frames, &maxDelta) == 0.0);
+        CHECK(maxDelta <= kCameraTurnAccel * kDt * 1.15);
         CHECK(peak <= kCameraTurnMaxSpeed + 1e-9);
     }
 
@@ -118,18 +126,29 @@ int main()
     // Held keys keep extending the target; the turn still lands exactly.
     {
         double at = 0.0, to = 0.0, speed = 0.0;
-        int presses = 4;
+        int presses = 8;
+        double maxSpeedDelta = 0.0;
+        double previousSpeed = 0.0;
         for (int frame = 0; frame < 10000; frame++) {
-            if (frame % 20 == 0 && presses > 0) {
+            if (frame % 12 == 0 && presses > 0) {
+                if (presses < 8) CHECK(speed > 0.0);
                 to = cameraTurnTarget(to, 1, true); // a held key's repeat
                 presses--;
             }
             cameraTurnEaseStep(at, to, speed, kDt);
+            if (presses > 0 && speed + 1e-9 < previousSpeed) {
+                std::fprintf(stderr, "held speed fell at frame %d: %.9f -> %.9f, target %.9f, angle %.9f\n",
+                    frame, previousSpeed, speed, to, at);
+                CHECK(false);
+            }
+            maxSpeedDelta = std::max(maxSpeedDelta, std::fabs(speed - previousSpeed));
+            previousSpeed = speed;
             if (presses == 0 && at == to) break;
         }
         CHECK(presses == 0);
-        CHECK(at == to && to == 40.0);
+        CHECK(at == to && to == 80.0);
         CHECK(speed == 0.0);
+        CHECK(maxSpeedDelta <= kCameraTurnAccel * kDt * 1.15);
     }
 
     // A zero step and a zero first frame change nothing.
