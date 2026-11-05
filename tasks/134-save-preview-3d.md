@@ -39,3 +39,4 @@ hero, sharp, the right colours, not stretched or cut.
 The save and load screens' layout, wide screen fit of those screens.
 
 ## Log
+
