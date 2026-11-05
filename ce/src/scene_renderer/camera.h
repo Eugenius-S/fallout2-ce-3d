@@ -62,6 +62,8 @@ bool staticGameViewPose(StaticFlyCamera* camera);
 // The game view's camera itself: its eye and field of view (camera rotation
 // circles it).
 bool staticGameViewCamera(StaticFlyCamera* camera);
+// Project a GL world point to game logical screen pixels.
+bool staticScreenFromWorld(double worldX, double worldY, double worldZ, double* logicalX, double* logicalY);
 // True while the scene uses a turned camera or a non-default zoom.
 bool sceneCameraTransformed();
 // Turn a standing card to face an active fly camera, as live sprites do.
