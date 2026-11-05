@@ -2,7 +2,7 @@
 id: 145
 title: The 3D map edge matches the game, cut where it cuts, with no orange band
 milestone: M1
-status: doing
+status: blocked
 owner: gpt
 suggested: any
 priority: normal
@@ -67,3 +67,14 @@ Added matched before/after and Classic contextual JPEG evidence to `runs/145-ora
 The full Kladwtwn fly tour did not complete on the baseline side: it produced 32 of 58 expected views, reached `tour_step=31`, then the harness timed out after 30 seconds without progress. A targeted Kladwtwn route with the two edge-area spots completed all 6 baseline views, but the branch side produced only 2 of 7 expected images and then timed out at 144 seconds. No further Kladwtwn fly-tour retry is planned after these two consecutive failures; the direct matched static before/after evidence and 106-spot regression remain valid.
 
 A complete control tour of klatoxcv did finish (5 spots across three elevations). It reported 0 of 5 changed spots; the cave roofs and walls in those views contain no visible EDG overlay, so this is a no-unexpected-change control and does not prove the Kladwtwn edge effect. Its generated `changed.jpg` is retained with the evidence. PR #293 remains draft pending owner review of the missing completed fly-tour proof.
+
+### 2026-11-05 gpt: stop after two failed Kladwtwn tours
+
+Blocked: the full and reduced Kladwtwn fly tours both failed to complete,
+including the branch-side reduced run. No further tour attempt is planned.
+The code, matched direct captures, and regression sweep are complete, but the
+map-specific fly-tour acceptance remains unverified. Keep PR #293 draft.
+Next: return to this task only if a bounded Kladwtwn tour route or a harness
+fix becomes available.
+Check: the failure summaries and run paths above; do not treat the completed
+klatoxcv control tour as proof of the Kladwtwn edge.
