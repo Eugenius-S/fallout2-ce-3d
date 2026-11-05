@@ -27,6 +27,9 @@ Finish the installer details identified by the owner after PR #290.
 ## Acceptance
 
 - Add left padding inside the install path field.
+- Move the folder heading upward, make it bold, and add a persistent normal-weight
+  RU/EN hint directly below it explaining that the selected folder needs
+  `master.dat` and `critter.dat`.
 - Shift the selected language text slightly right to visually center it with
   the dropdown arrow; preserve dropdown selection and saved language.
 - Replace standard checkboxes with rounded controls matching the field style.
@@ -75,3 +78,33 @@ log content and visible while overflowing. No game files or owner cache were
 used.
 
 Next: Review CI results on this commit, then merge the PR when green.
+
+### 2026-11-05 gpt
+
+Done: The owner added a visible path hint to the same installer follow-up.
+Moved the folder heading up and made it bold, then placed the normal-weight
+localized `master.dat` / `critter.dat` instruction between it and the path
+field. RU/EN captures and checks are pending.
+
+Next: Verify that the helper line fits in both languages, rebuild and test,
+then replace evidence and wait for CI on the final SHA.
+
+### 2026-11-05 gpt
+
+Done: Verified the new bold folder heading and normal-weight localized hint
+fit between the logo and path field in both languages. Replaced all current
+build evidence. The log remains a single task with no added layout changes
+beyond the owner's requested hint.
+
+Check: `tools/configure-build.ps1 Release` passed with MSVC 14.40 and Windows
+SDK 10.0.22621.0. `ctest --test-dir build --output-on-failure` passed 20/20.
+The current launcher SHA-256 is
+`9590116F728A4B93ED72CB28586641577A80BF00241F8B637C7E2CEFD0CE44EE`.
+Language popup persistence, both checkbox states, path edit, overflow-only
+scrollbar and physical wheel scrolling passed. Fresh RU/EN, progress and log
+captures are in `runs/201-installer-controls-and-log-scrollbar/`.
+
+Next: Review CI on the final SHA, then merge the PR when green.
+
+Check: See the Release build, CTest output, current-build images, and
+`interaction-check.json` under `runs/201-installer-controls-and-log-scrollbar/`.

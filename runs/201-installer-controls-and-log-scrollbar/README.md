@@ -5,7 +5,9 @@ All four JPEGs are fresh `PrintWindow` captures at 816 x 759 and below 1 MB.
 `capture.json` records the launcher SHA-256 and language for each frame.
 
 - `installer-en.jpg` and `installer-ru.jpg`: English and Russian layouts,
-  with the path edit populated from a scratch game folder.
+  with the bold folder heading and normal-weight `master.dat` / `critter.dat`
+  hint between the logo and path edit. The edit is populated from a scratch
+  game folder.
 - `progress-active.jpg`: the custom progress bar while the isolated worker
   was running. It has no themed white stripe.
 - `log-scroll.jpg`: real multiline worker output, with the yellow thumb at the

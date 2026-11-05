@@ -37,6 +37,7 @@ constexpr int ID_INSTALL = 1012;
 constexpr int ID_ROLLBACK = 1013;
 constexpr int ID_PLAY = 1014;
 constexpr int ID_LOG_SCROLL = 1015;
+constexpr int ID_PATH_HINT = 1016;
 constexpr WORD IDB_LAUNCHER_LOGO = 201;
 
 struct UiArgs {
@@ -69,9 +70,11 @@ HWND g_install = nullptr;
 HWND g_rollback = nullptr;
 HWND g_play = nullptr;
 HWND g_logScroll = nullptr;
+HWND g_pathHint = nullptr;
 WNDPROC g_logOriginalProc = nullptr;
 HBITMAP g_logo = nullptr;
 HFONT g_font = nullptr;
+HFONT g_headingFont = nullptr;
 HBRUSH g_background = nullptr;
 HBRUSH g_editBackground = nullptr;
 UiArgs g_args;
@@ -378,6 +381,8 @@ void updateLabels()
 {
     SetWindowTextW(g_window, tr(L"Fallout 2: Reimagined", L"Fallout 2: Reimagined").c_str());
     SetWindowTextW(GetDlgItem(g_window, ID_GAME_ROOT - 100), tr(L"Game folder", L"Папка игры").c_str());
+    SetWindowTextW(g_pathHint, tr(L"Choose the folder that contains master.dat and critter.dat.",
+        L"Выберите папку, где находятся master.dat и critter.dat.").c_str());
     SetWindowTextW(g_browse, tr(L"Browse...", L"Обзор...").c_str());
     SetWindowTextW(g_russian, tr(L"Install Russian text from the official RPU release", L"Установить русский текст из официального релиза RPU").c_str());
     SetWindowTextW(g_rp, tr(L"Restoration Project: coming soon", L"Restoration Project: скоро").c_str());
@@ -590,7 +595,13 @@ void createControls(HWND window)
 {
     g_font = CreateFontW(18, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET,
         OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_DONTCARE, L"Segoe UI");
-    createControl(window, L"STATIC", L"Game folder", SS_LEFT, 24, 206, 180, 25, ID_GAME_ROOT - 100);
+    g_headingFont = CreateFontW(18, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE, DEFAULT_CHARSET,
+        OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_DONTCARE, L"Segoe UI");
+    createControl(window, L"STATIC", L"Game folder", SS_LEFT, 24, 190, 580, 23, ID_GAME_ROOT - 100);
+    SendMessageW(GetDlgItem(window, ID_GAME_ROOT - 100), WM_SETFONT, reinterpret_cast<WPARAM>(g_headingFont), TRUE);
+    createControl(window, L"STATIC", L"Choose the folder that contains master.dat and critter.dat.",
+        SS_LEFT, 24, 215, 580, 22, ID_PATH_HINT);
+    g_pathHint = GetDlgItem(window, ID_PATH_HINT);
     createControl(window, L"EDIT", L"", ES_AUTOHSCROLL, 25, 245, 603, 25, ID_GAME_ROOT);
     g_root = GetDlgItem(window, ID_GAME_ROOT);
     SendMessageW(g_root, EM_SETMARGINS, EC_LEFTMARGIN, MAKELPARAM(10, 0));
@@ -920,6 +931,7 @@ LRESULT CALLBACK launcherWindowProc(HWND window, UINT message, WPARAM wParam, LP
         saveSettings();
         if (g_logo != nullptr) DeleteObject(g_logo);
         if (g_font != nullptr) DeleteObject(g_font);
+        if (g_headingFont != nullptr) DeleteObject(g_headingFont);
         if (g_background != nullptr) DeleteObject(g_background);
         if (g_editBackground != nullptr) DeleteObject(g_editBackground);
         PostQuitMessage(0);
