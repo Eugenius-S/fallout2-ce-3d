@@ -1,0 +1,32 @@
+{
+  "map": "kladwtwn",
+  "elevation": 0,
+  "view_tile": 24268,
+  "resolution": "1920x1080",
+  "scale": 2,
+  "language": "scene-only; no UI text",
+  "camera": "fly turn 90, pitch 40, distance 8; same for baseline and after",
+  "baseline": {
+    "cache": "origin/main 321003e1",
+    "source": "baseline-kladwtwn/devhero-20261105-221842-000.png"
+  },
+  "after": {
+    "cache": "task exporter, branch commit 8cacac78",
+    "source": "after-kladwtwn-medoid/devhero-20261105-222640-000.png"
+  },
+  "crop_box": [
+    400,
+    0,
+    1700,
+    600
+  ],
+  "crop_size_before_after": [
+    760,
+    351
+  ],
+  "pixel_comparison": {
+    "changed": 0,
+    "bbox": null
+  },
+  "executable_sha256": "500969e0ac5f0cd10ee0efc34288249382f56b661a45d3f984aa7cd72e313912"
+}

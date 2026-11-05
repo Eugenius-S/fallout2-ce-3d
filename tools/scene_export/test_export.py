@@ -463,7 +463,7 @@ class RoofFringeTests(unittest.TestCase):
         self.assertNotEqual(comp[103], comp[5107])
         pool = [(runs[0], strips[0], comp[103])]
         out = donate(runs, strips, [True, False, False], pool, comp)
-        self.assertIs(out[0], strips[0])
+        self.assertTrue(np.array_equal(out[0], strips[0]))
         for n, (run, per_tile) in enumerate(((runs[1], v_tile), (runs[2], u_tile)), start=1):
             width = len(run[3]) * per_tile
             self.assertEqual(out[n].shape, (STRIP_ROWS, width, 4))
@@ -474,6 +474,55 @@ class RoofFringeTests(unittest.TestCase):
         # a run's strip made of the donor repeats it: shifted by the donor's length it is the same
         repeat = lay_donor((strips[0], 2, 1), 1, 6)
         self.assertTrue((repeat[:, :2 * u_tile] == repeat[:, 2 * u_tile:4 * u_tile]).all())
+
+    def test_genuine_bands_on_one_roof_share_donor_height(self):
+        u_tile, v_tile = int(-donor_proj.SQ_U[0]), int(donor_proj.SQ_V[0])
+
+        def strip(count, per_tile, step):
+            value = np.zeros((STRIP_ROWS, count * per_tile, 4), np.uint8)
+            value[-3:] = (30, 30, 30, 255)
+            value[-EDGE_ROWS:-3:step] = (200, 0, 0, 255)
+            return value
+
+        art = np.zeros((2, 2, 4), np.uint8)
+        long_run = (1, 11, 3, [(103, art), (104, art), (105, art)])
+        short_run = (3, 14, 3, [(305, art), (405, art)])
+        donor = strip(3, u_tile, 2)
+        other = strip(2, v_tile, 5)
+        donor_profile = (donor[..., 3] > 0).mean(axis=1)
+        other_profile = (other[..., 3] > 0).mean(axis=1)
+        self.assertFalse(np.array_equal(donor_profile, other_profile))
+
+        out = donate([long_run, short_run], [donor, other], [True, True],
+            [(long_run, donor, 1), (short_run, other, 1)], {103: 1, 305: 1})
+        first_profile = (out[0][..., 3] > 0).mean(axis=1)
+        second_profile = (out[1][..., 3] > 0).mean(axis=1)
+        self.assertTrue(np.array_equal(first_profile, second_profile))
+        self.assertGreaterEqual(foot_cover(out[0]), 0.99)
+        self.assertGreaterEqual(foot_cover(out[1]), 0.99)
+
+    def test_shared_edge_profile_uses_the_component_median(self):
+        u_tile = int(-donor_proj.SQ_U[0])
+        art = np.zeros((2, 2, 4), np.uint8)
+        runs = [(edge, 10 + edge, 3, [(103 + edge * 100, art), (104 + edge * 100, art)])
+                for edge in (0, 1, 2)]
+
+        def strip(dense):
+            value = np.zeros((STRIP_ROWS, 2 * u_tile, 4), np.uint8)
+            value[-3:] = (30, 30, 30, 255)
+            if dense:
+                value[-EDGE_ROWS:-3] = (200, 0, 0, 255)
+            else:
+                value[-EDGE_ROWS:-3:3] = (200, 0, 0, 255)
+            return value
+
+        strips = [strip(False), strip(False), strip(True)]
+        comp = {index: 1 for run in runs for index, _ in run[3]}
+        pool = [(run, value, 1) for run, value in zip(runs, strips)]
+        out = donate(runs, strips, [True] * 3, pool, comp)
+        sparse_profile = (strips[0][-EDGE_ROWS:, :, 3] > 0).mean(axis=1)
+        out_profile = (out[0][-EDGE_ROWS:, :, 3] > 0).mean(axis=1)
+        self.assertTrue(np.array_equal(out_profile, sparse_profile))
 
     def test_a_band_stands_only_over_squares_with_a_wall_under_it(self):
         art = np.zeros((2, 2, 4), np.uint8)

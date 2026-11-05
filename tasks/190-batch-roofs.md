@@ -56,4 +56,20 @@ of task 129) built outside the footprint. No crop in the repository yet: the
 map needs a devshot after 183. The rule to check: no fringe or band piece
 reaches past the footprint of the wall it belongs to.
 
+### 2026-11-05 gpt
+Done: Find 1 fixed in PR #304: every border run on one connected roof uses
+the component's medoid genuine edge profile, so the visible border thickness
+does not depend on which side kept the original art. Before/after crops for
+New Reno, Klamath and Broken Hills are in `runs/190-batch-roofs/`; the three
+map fly tour sheets are in `runs/190-batch-roofs/fly-tour/`. Exporter tests
+128/128, CTest 20/20, and the full regression passed with 99 spots at 0
+changed pixels. The roof checker still reports one New Reno corner overshoot
+and one lost square, both also present in baseline `321003e1`.
+Next: inspect that New Reno corner and lost square as a separate roof cause;
+keep the task open until all roof findings are resolved.
+Check: `py -3 -m unittest discover -s tools/scene_export -p 'test*.py'`,
+`ctest --test-dir build --output-on-failure`,
+`powershell -NoProfile -ExecutionPolicy Bypass -File tools/regression.ps1`,
+and `py -3 tools/tour/tour.py --before <main scene cache> --after build/scene-cache --maps newr1,kladwtwn,broken1`.
+
 

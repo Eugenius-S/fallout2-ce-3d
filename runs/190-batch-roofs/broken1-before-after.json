@@ -1,0 +1,37 @@
+{
+  "map": "broken1",
+  "elevation": 0,
+  "view_tile": 17947,
+  "resolution": "1920x1080",
+  "scale": 2,
+  "language": "scene-only; no UI text",
+  "camera": "fly turn 90, pitch 40, distance 8; same for baseline and after",
+  "baseline": {
+    "cache": "origin/main 321003e1",
+    "source": "baseline-broken1/devhero-20261105-221929-000.png"
+  },
+  "after": {
+    "cache": "task exporter, branch commit 8cacac78",
+    "source": "after-broken1-medoid/devhero-20261105-222435-000.png"
+  },
+  "crop_box": [
+    1050,
+    0,
+    1920,
+    420
+  ],
+  "crop_size_before_after": [
+    760,
+    367
+  ],
+  "pixel_comparison": {
+    "changed": 15011,
+    "bbox": [
+      1413,
+      0,
+      1920,
+      176
+    ]
+  },
+  "executable_sha256": "500969e0ac5f0cd10ee0efc34288249382f56b661a45d3f984aa7cd72e313912"
+}
