@@ -752,7 +752,9 @@ try {
                 }
             }
         } catch { Add-Content -LiteralPath $diagPath -Value "screenshot=capture failed: $($_.Exception.Message)" }
-        Add-Content -LiteralPath $watchdogStdout -Value $diag
+        # The game may still hold its redirected stdout open here (a fast
+        # exit races this write); the diagnostic line is best-effort.
+        try { Add-Content -LiteralPath $watchdogStdout -Value $diag } catch { }
         if ($OutputDirectory) {
             Copy-Item -LiteralPath $diagPath -Destination $OutputDirectory -Force
             if (Test-Path -LiteralPath $shotPath) { Copy-Item -LiteralPath $shotPath -Destination $OutputDirectory -Force }

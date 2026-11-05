@@ -727,6 +727,27 @@
       "elevation": 1,
       "tile": 15131,
       "coverage": "The glowing vat room"
+    },
+    {
+      "name": "coast-road-car",
+      "map": "coast1",
+      "elevation": 0,
+      "tile": 20100,
+      "coverage": "The coast road with the highwayman car"
+    },
+    {
+      "name": "desert-arch",
+      "map": "desert5",
+      "elevation": 0,
+      "tile": 21099,
+      "coverage": "The desert rock wall and arch"
+    },
+    {
+      "name": "coast-shanty",
+      "map": "coast10",
+      "elevation": 0,
+      "tile": 19716,
+      "coverage": "The shanty camp by the coast road"
     }
   ]
 }

@@ -85,6 +85,10 @@ MAP_GROUPS = {
     # The Mariposa military base: the surface entrance and the underground
     # levels (the game's maps/mb*.map files).
     "militarybase": ("mbclose", "mbase12", "mbase34"),
+    # The desert and coast random encounters: open sand, rocks, coastline
+    # and water edges (the game's maps/desert*.map, desrt*.map and
+    # coast*.map files).
+    "encdesertcoast": ("desert1", "desert2", "desert3", "desert4", "desert5", "desert6", "desert7", "desert8", "desert9", "desrt10", "desrt11", "desrt12", "desrt13", "coast1", "coast2", "coast3", "coast4", "coast5", "coast6", "coast7", "coast8", "coast9", "coast10", "coast11", "coast12"),
 }
 EXPECTED_OUTPUT_FILES = {"scene.json", "provenance.json", "floor.bin", "walls.bin", "projection.bin", "baked.bin",
                          "shadows.bin", "tiles.png", "light.png", "rock.png", "roof_fringe.png"}
