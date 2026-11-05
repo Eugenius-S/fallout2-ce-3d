@@ -306,33 +306,50 @@ void drawStaticHeroPreview()
 
 namespace {
 
-// The back buffer as drawn so far into a new PNG (top-down rows).
-bool writeBackBufferPng(const std::filesystem::path& path, int drawableWidth, int drawableHeight, std::string* error)
+bool readBackBufferRgba(std::vector<unsigned char>* rgba, int drawableWidth, int drawableHeight, std::string* error)
 {
+    if (rgba == nullptr || drawableWidth <= 0 || drawableHeight <= 0) {
+        if (error != nullptr) *error = "invalid OpenGL backbuffer dimensions";
+        return false;
+    }
     const size_t rowBytes = static_cast<size_t>(drawableWidth) * 4;
     std::vector<unsigned char> bottomUp(rowBytes * static_cast<size_t>(drawableHeight));
-    std::vector<unsigned char> topDown(bottomUp.size());
+    rgba->resize(bottomUp.size());
     glPixelStorei(kPackAlignment, 1);
     glReadPixels(0, 0, drawableWidth, drawableHeight, kRGBA, kUnsignedByte, bottomUp.data());
     glPixelStorei(kPackAlignment, kDefaultPackAlignment);
     if (glGetError() != 0) {
-        *error = "OpenGL backbuffer read failed";
+        if (error != nullptr) *error = "OpenGL backbuffer read failed";
         return false;
     }
     for (int row = 0; row < drawableHeight; row++) {
         const unsigned char* source = bottomUp.data() + rowBytes * static_cast<size_t>(drawableHeight - 1 - row);
-        unsigned char* destination = topDown.data() + rowBytes * static_cast<size_t>(row);
+        unsigned char* destination = rgba->data() + rowBytes * static_cast<size_t>(row);
         std::copy(source, source + rowBytes, destination);
     }
-    const unsigned encodeError = lodepng::encode(path.string(), topDown,
-        static_cast<unsigned>(drawableWidth), static_cast<unsigned>(drawableHeight), LCT_RGBA, 8);
+    return true;
+}
+
+bool writeRgbaPng(const std::filesystem::path& path, const std::vector<unsigned char>& rgba,
+    int width, int height, std::string* error)
+{
+    const unsigned encodeError = lodepng::encode(path.string(), rgba,
+        static_cast<unsigned>(width), static_cast<unsigned>(height), LCT_RGBA, 8);
     if (encodeError != 0) {
         std::error_code ec;
         std::filesystem::remove(path, ec); // Remove only output this call may have partially written.
-        *error = std::string("PNG encode failed: ") + lodepng_error_text(encodeError);
+        if (error != nullptr) *error = std::string("PNG encode failed: ") + lodepng_error_text(encodeError);
         return false;
     }
     return true;
+}
+
+// The back buffer as drawn so far into a new PNG (top-down rows).
+bool writeBackBufferPng(const std::filesystem::path& path, int drawableWidth, int drawableHeight, std::string* error)
+{
+    std::vector<unsigned char> rgba;
+    return readBackBufferRgba(&rgba, drawableWidth, drawableHeight, error)
+        && writeRgbaPng(path, rgba, drawableWidth, drawableHeight, error);
 }
 
 } // namespace
@@ -386,12 +403,33 @@ bool captureStaticPreviewPng(const std::filesystem::path& path, bool withWalls, 
         if (error != nullptr) *error = message;
         return false;
     };
-    if (!gInitialized || !gFloorLoaded) return fail("static floor preview is not loaded");
-    if (withWalls && !gWallsLoaded) return fail("static wall preview is not loaded");
-    if (withHero && !gHeroLoaded) return fail("current hero frame is unavailable");
     std::error_code existsError;
     if (std::filesystem::exists(path, existsError)) return fail("snapshot path already exists");
     if (existsError) return fail("cannot inspect snapshot path");
+
+    std::vector<unsigned char> rgba;
+    int drawableWidth = 0;
+    int drawableHeight = 0;
+    if (!captureStaticPreviewRgba(withWalls, withHero, &rgba, &drawableWidth, &drawableHeight,
+            error, includeOverlay)) return false;
+    if (!writeRgbaPng(path, rgba, drawableWidth, drawableHeight, error)) return false;
+    if (width != nullptr) *width = drawableWidth;
+    if (height != nullptr) *height = drawableHeight;
+    if (error != nullptr) error->clear();
+    return true;
+}
+
+bool captureStaticPreviewRgba(bool withWalls, bool withHero, std::vector<unsigned char>* rgba,
+    int* width, int* height, std::string* error, bool includeOverlay)
+{
+    auto fail = [&](const std::string& message) {
+        if (error != nullptr) *error = message;
+        return false;
+    };
+    if (rgba == nullptr) return fail("RGBA destination is null");
+    if (!gInitialized || !gFloorLoaded) return fail("static floor preview is not loaded");
+    if (withWalls && !gWallsLoaded) return fail("static wall preview is not loaded");
+    if (withHero && !gHeroLoaded) return fail("current hero frame is unavailable");
 
     int drawableWidth = 0;
     int drawableHeight = 0;
@@ -435,7 +473,7 @@ bool captureStaticPreviewPng(const std::filesystem::path& path, bool withWalls, 
     if (glGetError() != 0) return fail(withWalls
         ? "static wall draw failed before snapshot" : "static floor draw failed before snapshot");
     std::string message;
-    if (!writeBackBufferPng(path, drawableWidth, drawableHeight, &message)) return fail(message);
+    if (!readBackBufferRgba(rgba, drawableWidth, drawableHeight, &message)) return fail(message);
     if (width != nullptr) *width = drawableWidth;
     if (height != nullptr) *height = drawableHeight;
     if (error != nullptr) error->clear();

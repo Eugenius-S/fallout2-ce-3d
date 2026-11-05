@@ -109,6 +109,11 @@ void draw(unsigned char* surface, int width, int height, int pitch);
 // Saves a PNG of the current frame plus a JSON sidecar with the metadata
 // of the actual state.
 bool takeSnapshot();
+// Background verification of the save-window thumbnail, without writing a save slot.
+bool savePreviewFixtureActive();
+bool savePreviewFixtureLoadActive();
+void savePreviewFixtureComplete(bool captured);
+void savePreviewFixtureLoadComplete(bool captured);
 
 // Metadata helpers.
 void currentMapName(char* buffer, size_t size);
