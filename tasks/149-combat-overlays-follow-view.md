@@ -70,3 +70,10 @@ and `check_public_content.py origin/main` passed. A live scene snapshot showed
 30 degrees at zoom 0.5. The unturned probe snapshot showed the zoom 0.5 cursor.
 The first probe used the wrong `-SceneCache` directory and correctly failed
 with a missing `floor.bin`; the run passed after using `build/scene-cache`.
+### 2026-11-05 gpt
+
+Done: Added two inspected runtime JPEGs showing the live Klamath bark text at zoom 2 with no camera turn: `devhero-20261105-153127-000-zoom2-unturned-bark.jpg` and `devhero-20261105-153132-000-zoom2-unturned-bark.jpg`. Both have JSON sidecars; images are below 1 MB. The source PNGs and harness logs were preserved under ignored `build/149-runtime-text-zoom-source/`.
+
+Next: Combat outline, cursor/to-hit and damage-text acceptance is still missing. This new text capture is unturned and does not establish combat behavior or camera-turn projection. Keep PR #300 draft.
+
+Check: `dev-snapshot.ps1 -UiFixture bark -Zoom 2` completed with `UI_FIXTURE PASS`, first/replacement text visible, and clear of old runs. Inspected the captured game frames. The earlier passing build and test results remain applicable because this documentation/evidence-only update does not change code.
