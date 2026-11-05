@@ -51,9 +51,9 @@ hex, floating text above the head.
 
 Done: Turned/zoomed outlines now use `shownObjectArt()` and the projected
 sprite card. Floating text anchors project from the same game-space tile and
-height; cursor and tile anchors use the active camera projection. The old path
-is kept at zoom 1 with no turn. Preliminary live captures and sidecars are in
-`runs/149-combat-overlays-follow-view/`.
+height; cursor/tile anchors and ground/object picks use the active camera
+projection. The old path is kept at zoom 1 with no turn. Preliminary live
+captures and sidecars are in `runs/149-combat-overlays-follow-view/`.
 
 Next: Capture the combat outline, hex cursor/to-hit number and damage text at
 zoom 0.5/1/2 and turns 0/+30/-30, plus the unchanged 2D and unturned zoom 1
