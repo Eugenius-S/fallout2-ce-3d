@@ -775,21 +775,35 @@ def cut_to_walls(runs, strips, good, wall_of):
 
 
 def donate(runs, strips, good, pool, comp, diagnostics=None):
-    """The strips with every run that is not genuine ragged art given its roof's donor's edge.
+    """Give every band on one roof the same genuine ragged edge.
 
     pool: [(run, strip, component)] of the map's genuine runs. A roof (a
     connected footprint) takes the longest genuine run of its own as donor, else
-    the longest genuine run of the map; the runs that are not genuine
-    (slab-cut tiles, a broken or stepped strip, a strip None) take the donor's
-    ragged edge, repeated along their length: the same height and orientation.
+    the longest genuine run of the map. All of that roof's bands, including other
+    genuine runs, take the donor's ragged edge, repeated along their length. This
+    keeps one roof edge from having a different height or thickness than another.
     """
-    best = lambda items: max(items, key=lambda item: (len(item[0][3]), foot_cover(item[1])), default=None)
+    def profile(item):
+        return (item[1][-EDGE_ROWS:, :, 3] > 0).mean(axis=1)
+
+    def donor(items):
+        if not items:
+            return None
+        profiles = [profile(item) for item in items]
+        return min(items, key=lambda item: (
+            sum(float(np.abs(profile(item) - other).mean()) for other in profiles),
+            -foot_cover(item[1]),
+            -len(item[0][3]),
+        ))
+
+    map_donor = donor(pool)
+    donors = {}
     out = []
     for run, strip, ok in zip(runs, strips, good):
-        if ok:
-            out.append(strip)
-            continue
-        pick = best([item for item in pool if item[2] == comp[run[3][0][0]]]) or best(pool)
+        component = comp[run[3][0][0]] if run[3] else None
+        if component not in donors:
+            donors[component] = donor([item for item in pool if item[2] == component]) or map_donor
+        pick = donors[component]
         if pick is None:
             out.append(strip if strip is not None else own_strip(run))
             continue
