@@ -3,7 +3,7 @@ id: 185
 title: Every sfall opcode, hook and ini key RP needs and CE lacks, counted
 milestone: M1
 status: doing
-owner: gpt
+owner: none
 suggested: any
 priority: high
 tier: 1
