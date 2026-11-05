@@ -2,7 +2,7 @@
 id: 128
 title: Wide-screen art, the HUD bar and the 4:3 full-screen art, with licenses
 milestone: M1
-status: done
+status: todo
 owner: gpt
 suggested: gpt
 priority: normal
@@ -98,3 +98,8 @@ Done: checked Mash's Fallout 2 High Resolution Patch readme (versions 4.1.7/4.1.
 Verdict: do not ship or use the combined bar and variant-6 side art. The documented permission does not establish that this downstream variant-6 artwork is covered. Keep the original files only in the player's existing installation. No art was committed.
 Check: inspected the installed `f2_res.ini` and DAT/FRM entries; checked the HRP author's source repository and its MIT license, and the HRP 4.1.8 readme copy. The exact local archive release and variant-6 provenance remain unresolved and are stated as such.
 Next: implementation of any wider HUD art is a separate task and must use newly authored assets or art with verified redistribution terms.
+
+### 2026-11-05 claude
+Step 1 (the HUD bar source and its rights) done above, merged as #184. The
+task stays open for step 2 (the 4:3 art) and the art itself, inside the UI
+batch (193 part C).
