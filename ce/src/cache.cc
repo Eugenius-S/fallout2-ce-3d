@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include <cstring>
+#include <new>
 
 #include "debug.h"
 #include "memory.h"
@@ -40,6 +41,12 @@ static int _lock_sound_ticker = 0;
 // 0x41FCC0 cache_init
 bool cacheInit(Cache* cache, CacheSizeProc* sizeProc, CacheReadProc* readProc, CacheFreeProc* freeProc, int maxSize)
 {
+    // A cache can live in raw malloc'd memory (the sound effects cache does),
+    // so the mutex gets its constructor run here, before the first lock: an
+    // uninitialized mutex locks with garbage state and kills the game with
+    // "resource deadlock would occur" (or worse) on the first map load.
+    new (&cache->mutex) std::mutex();
+
     if (!heapInit(&(cache->heap), maxSize)) {
         return false;
     }
@@ -89,6 +96,10 @@ bool cacheFree(Cache* cache)
     cache->sizeProc = nullptr;
     cache->readProc = nullptr;
     cache->freeProc = nullptr;
+
+    // The matching end of the constructor run in cacheInit; runs after every
+    // locking operation above.
+    cache->mutex.~mutex();
 
     return true;
 }
