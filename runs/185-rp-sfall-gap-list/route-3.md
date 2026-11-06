@@ -2,8 +2,8 @@
 
 2026-11-06, RPU 2.4.34 isolated scratch copy. `origin/main` was
 `b2f792de`. The cache was exported to the worktree's `build/scene-cache`;
-the source copy at `E:\Projects\f2-rp-scratch-184-gpt\game` was read only.
-No files in `game/` or `game/mod-cache` were used as output.
+the source scratch copy was read only. No files in `game/` or `game/mod-cache`
+were used as output.
 
 The previous watchdog log named missing `floor.bin` at SLVCAMP. Before this
 attempt, elevation 0 was exported for the five base route maps and all 19
