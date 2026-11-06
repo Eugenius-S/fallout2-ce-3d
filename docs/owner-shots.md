@@ -46,10 +46,15 @@ and builds the JSON on the frame that took it (a few milliseconds, logged as
 `perf owner_shot capture frame_ms=...` into devperf.log when F2CE_PERF is
 on), and the PNG encode plus the two file writes run on a worker thread.
 
-## Regions (step 2, to come)
+## Regions (the mark)
 
-A marked shot (the shot key held with a modifier) adds a `regions` list to
-the JSON: rectangles the owner drew over the defect, each with its pixel
-rect, the map tiles it covers and the objects under it. When the batch has
-marked shots, start from `regions` and the objects listed in them; the
-clean PNG and the marked PNG (`...-marked.png`) sit next to the JSON.
+Ctrl+F9 or Alt+F9 enters the mark: the game holds on the frozen frame, the
+owner drags one or more rectangles over the defect, Enter or a second press
+saves, Esc cancels. The files: the clean PNG, the marked PNG
+(`...-marked.png`, the red outlines on the clean capture) and the JSON with
+a `regions` list - each region's pixel rect, the hexes whose centers fall
+inside it (`tiles`), the square tiles covered (`squares`) and the objects
+under those hexes (`objects`: prototype id, name, object type, tile). When
+the batch has marked shots, start from `regions` and the objects listed in
+them: they name the defect's place and pieces without opening the picture;
+the clean PNG and the marked PNG sit next to the JSON.

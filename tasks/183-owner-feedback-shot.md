@@ -111,7 +111,31 @@ Analysing the shots (a later task).
   kladwtwn 17.6 avg + 9.62 = about 27 ms, newr1 29.0 + 12.63 = about
   42 ms, both under the 50 ms bar; vctyctyd's 11.20 ms is the capture
   cost alone. ctest 20/20; docs/owner-shots.md written (the step-1
-  version, the regions section is a placeholder for step 2). PR #316.
+  version, the regions section is a placeholder for step 2). PR #316
+  merged (b2f792de) on ctest 20/20, full regression 154/154 with
+  0 changed pixels, CI 14/14.
+- 2026-11-06, glm: step 2 claimed (the region mark). Ctrl+F9 (free: kb.cc
+  maps it, nothing handles it) enters the mark mode: the game freezes on
+  the frozen frame, the owner drags one or more rectangles, Enter saves,
+  Esc cancels. Saves the clean PNG, the marked PNG next to it and the
+  JSON with a regions list: pixel rect, the map tiles each region covers,
+  the objects under them.
+- 2026-11-06, glm: step 2 done. The mark mode lives in owner_shot.cc:
+  Ctrl+F9 or Alt+F9 enters (the frame is captured clean at entry), the
+  mark holds the whole input (the game gets no keys or mouse; the main
+  loop skips scripts, map transitions and camera updates and only
+  presents), the rectangles draw over the picture, Enter or a second
+  press saves, Esc cancels. The save writes the clean PNG, the marked
+  PNG (the red outlines drawn on the clean capture) and the JSON with
+  regions: pixel rect, the hexes whose centers project into the rect,
+  the square tiles covered, and the objects under them (pid, name,
+  object type, tile), caps at 256 hexes and 128 objects with truncation
+  flags. No monitor message at entry: the game floats the last monitor
+  message over the map view and it would contaminate the clean capture;
+  the hint line is the mark's own overlay. Acceptance in
+  runs/183-owner-feedback-shot/regions/: one-rect (kladwtwn, 83 tiles,
+  23 squares, 3 objects) and two-rects (newr1, 83/30 tiles, 3/0
+  objects). ctest 20/20.
 - 2026-11-06, glm: step 3 done. The teleport lives in owner_shot (outside
   the dev gates, so it answers in the owner's build):
   dev-teleport.txt next to the exe, one line map.elev or map.elev.hex,

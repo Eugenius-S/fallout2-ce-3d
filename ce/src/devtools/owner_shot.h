@@ -9,9 +9,14 @@ namespace owner_shot {
 // these shots with the owner's notes later. Lives outside the dev tools:
 // the owner plays a build without --dev-tools.
 //
-// F9 takes the shot. With the dev tools on, F9 stays the dev snapshot (the
-// tours and the panel keep their devshot format), so this handler runs after
-// devtools::handleKey and only answers the keys left over.
+// F9 takes the shot. Ctrl+F9 or Alt+F9 enters the region mark: the game
+// freezes, the owner drags one or more rectangles over the defect, Enter or
+// a second press saves the clean PNG, the marked PNG and the JSON with the
+// regions, Esc cancels.
+//
+// With the dev tools on, F9 stays the dev snapshot (the tours and the panel
+// keep their devshot format), so this handler runs after devtools::handleKey
+// and only answers the keys left over.
 bool handleKey(int key);
 
 // The teleport (step 3): dev-teleport.txt next to the exe, one line
@@ -20,6 +25,14 @@ bool handleKey(int key);
 // drives the same engine.
 bool requestTeleport(const char* mapName, int elevation, int tile);
 void pumpTeleport();
+
+// The rectangles over the game's own picture while the mark mode is on:
+// drawn after the dev panel, before the scene presents.
+void draw(unsigned char* surface, int width, int height, int pitch);
+
+// True while the mark mode holds the input: the main loop skips the game's
+// update phases and only presents.
+bool markMode();
 
 // The frame pump: takes the pending --dev-owner-shot-once shot at the first
 // present after the map loaded (how test runs capture acceptance shots).

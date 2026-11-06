@@ -478,6 +478,15 @@ static void mainLoop()
 
         gameHandleKey(keyCode, false);
 
+        // The owner's region mark holds the frame (183): no scripts, no map
+        // transitions, no camera updates - present and take input only.
+        if (owner_shot::markMode()) {
+            renderFpsCounter();
+            renderPresent();
+            sharedFpsLimiter.throttle();
+            continue;
+        }
+
         scriptsHandleRequests();
 
         mapHandleTransition();
