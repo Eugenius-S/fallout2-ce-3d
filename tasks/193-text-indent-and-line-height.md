@@ -150,3 +150,14 @@ and after set at x1/x2 and 16:9/21:9.
 Check: `powershell -NoProfile -ExecutionPolicy Bypass -File tools/configure-build.ps1 Release`,
 `ctest --test-dir build --output-on-failure`, and the fresh runs under
 `runs/193-text-indent-and-line-height/fresh/`.
+
+### 2026-11-06 gpt
+Done: merged latest `origin/main` (`ad243e1c`) into the existing PR branch; the
+overlap in `ce/src/devtools/devtools.cc` auto-merged. Reconfigured and rebuilt
+Release, then reran CTest 20/20 and scene-export tests 135/135. No new visual
+acceptance was added: the inventory backdrop/fade/corners, wrapped dialogue
+reply, and rights-cleared task 128 art remain open. PR #310 remains draft.
+Next: keep the task open until those acceptance items are implemented and
+captured; this merge only refreshes the base and verifies the existing code.
+Check: `tools/configure-build.ps1 Release`, CTest and scene-export tests on
+the merged branch.
