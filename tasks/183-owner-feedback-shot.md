@@ -161,3 +161,12 @@ Analysing the shots (a later task).
   the named hex verbatim (watchdog NEWR1.MAP e0 24305); the floor change
   klatoxcv e0->e2 lands 18931 with the walk check passed (log line: 1
   candidates tried). ctest 20/20.
+- 2026-11-06, glm: the regression blocker resolved. Between about 10:35
+  and 11:56 the game's own data changed (the owner's dat rebuild: export
+  fingerprint 425cd5a6 -> 8d2ee0ee) and the three cave spots moved a
+  5-pixel strip of one cave-wall sprite (enc-cave1, enc-cave5,
+  enc-cave5-top, same x=598 y=207..215); proven not ours (main fails
+  byte-identically). The owner's word came: finish, run the tests,
+  merge. The three references are refreshed (-Update, one spot per run)
+  on the branch carrying steps 2-4 (the region mark merged in); every
+  other spot keeps its reference untouched.
