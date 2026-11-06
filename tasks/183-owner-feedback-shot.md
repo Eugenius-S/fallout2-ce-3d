@@ -2,8 +2,8 @@
 id: 183
 title: One key in the game saves a screenshot with everything an agent needs to read it
 milestone: M1
-status: todo
-owner: any
+status: doing
+owner: glm
 suggested: any
 priority: high
 tier: 1
@@ -83,3 +83,13 @@ by location, and turn them into tasks.
 Analysing the shots (a later task).
 
 ## Log
+
+- 2026-11-06, glm: claimed, step 1 only (the plain shot); steps 2 to 4 stay
+  todo and each lands as its own PR. 127 is still a draft elsewhere
+  (#181), so the frame-time numbers come from the shot's own always-on
+  frame ring instead of reusing that counter's code; when 127 lands the
+  JSON keeps the same fields. F9 in the owner's build answered nothing
+  (the dev snapshot behind it only runs with --dev-tools), so the plain
+  F9 becomes the owner shot; with the dev tools on, F9 stays the dev
+  snapshot and the owner shot moves out of the way (the regression tours
+  keep their devshot format untouched).
