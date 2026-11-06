@@ -111,4 +111,12 @@ Analysing the shots (a later task).
   kladwtwn 17.6 avg + 9.62 = about 27 ms, newr1 29.0 + 12.63 = about
   42 ms, both under the 50 ms bar; vctyctyd's 11.20 ms is the capture
   cost alone. ctest 20/20; docs/owner-shots.md written (the step-1
-  version, the regions section is a placeholder for step 2). PR #316.
+  version, the regions section is a placeholder for step 2). PR #316
+  merged (b2f792de) on ctest 20/20, full regression 154/154 with
+  0 changed pixels, CI 14/14.
+- 2026-11-06, glm: step 2 claimed (the region mark). Ctrl+F9 (free: kb.cc
+  maps it, nothing handles it) enters the mark mode: the game freezes on
+  the frozen frame, the owner drags one or more rectangles, Enter saves,
+  Esc cancels. Saves the clean PNG, the marked PNG next to it and the
+  JSON with a regions list: pixel rect, the map tiles each region covers,
+  the objects under them.
