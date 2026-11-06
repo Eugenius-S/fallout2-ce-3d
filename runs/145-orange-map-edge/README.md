@@ -12,4 +12,9 @@ Source captures and sidecars are in the local build tree: `build/task145-3d-2467
 ## Fly-tour check
 
 - `tour-klatoxcv/changed.jpg` records a completed control tour: 5 spots across three elevations, no changed views. Those cave views do not contain the visible EDG overlay.
-- The complete Kladwtwn tour timed out on the baseline side after 32/58 images at `tour_step=31`. A reduced two-spot route completed its 6 baseline images but the changed branch side timed out after only 2/7 images at 144 seconds. The direct before/after pair and full 106-spot regression are complete; the missing Kladwtwn fly-tour run is logged as a blocker, so PR #293 stays draft.
+- Earlier full and reduced Kladwtwn tours timed out, as recorded in the task Log. The fresh bounded current-main route documented below completed on both sides and supersedes that route blocker.
+
+## Refreshed-main verification, 2026-11-06
+
+- `tour-current-main-edge.jpg` is a bounded live fly-tour comparison after rebasing on `6beaf53f`: Kladwtwn e0 tile 24678 at -45, 0 and +45 degrees on both current main and task head `839484d8`. The orange marker disappears at -45 and 0; +45 is unchanged. Both sides used the same 13-file scene fingerprint (prefix `56c9acd`) and 1,430 resources. This completes the bounded fly check that earlier full routes could not complete.
+- `current-time-8/3d/` and `current-time-8/2d/` contain fresh same-tile 3D and classic 2D captures. Both are 1920x1080, tile 24678 and hour 8; the classic run advanced five ticks to 288005 while the still fixture held at 288000. The 2D frame is contextual, while the matched 3D pair remains the pixel-comparable before/after evidence.

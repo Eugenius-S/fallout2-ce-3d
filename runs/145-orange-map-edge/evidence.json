@@ -81,6 +81,30 @@
         "result": "baseline 6 of 6 views; branch timed out after 2 of 7 at 144 seconds"
       }
     ],
-    "status": "Kladwtwn flight proof incomplete; PR remains draft."
+    "status": "The earlier full and reduced routes timed out; a fresh bounded route completed on current main and task head."
+  },
+  "bounded_main_comparison": {
+    "image": "tour-current-main-edge.jpg",
+    "main_commit": "6beaf53f",
+    "task_commit": "839484d8",
+    "map": "KLADWTWN.MAP",
+    "elevation": 0,
+    "tile": 24678,
+    "turns_degrees": [-45, 0, 45],
+    "views_per_side": 3,
+    "changed_spots": 1,
+    "scene_fingerprint_prefix": "56c9acd",
+    "resource_files": 1430,
+    "visual_result": "The translucent exit-grid marker is absent at -45 and 0 on the task branch; +45 is unchanged."
+  },
+  "fresh_adjacent_capture": {
+    "map": "KLADWTWN.MAP",
+    "elevation": 0,
+    "tile": 24678,
+    "resolution": "1920x1080",
+    "hour": 8,
+    "3d_still_game_time": 288000,
+    "classic_2d_game_time": 288005,
+    "note": "Same tile and resolution, but classic advances five ticks; contextual only."
   }
 }
