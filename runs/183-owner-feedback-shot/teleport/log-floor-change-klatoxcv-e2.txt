@@ -1,5 +1,5 @@
 devtools: startup target klatoxcv e0 accepted=1 blocking=0
-scene: cache E:\Projects\fallout2-ce-3d-glm\build\scene-cache\klatoxcv\0
+scene: cache <repo>\build\scene-cache\klatoxcv\0
 devtools: static wall+hero preview started for KLATOXCV.MAP elevation 0
 scene: preview policy=available gameState=0 gameMode=0x0 uiDisabled=0 isoDisabled=0 combat=0 dialog=0 movie=0
 MAP_EDGE map=KLATOXCV.MAP elevation=0 zones=1 square_rect=99,0,0,99
@@ -13,7 +13,7 @@ DEV_WATCHDOG state map=KLATOXCV.MAP elevation=0 tile=18532 combat=0 dialog=0 mov
 DEV_WATCHDOG state map=KLATOXCV.MAP elevation=0 tile=18532 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=0
 devtools: elevation 2 lands on 18931, 1 candidates tried, path to entrance no entrance
 owner teleport: traveling to klatoxcv e2 hex -1 (map id 12, now on id 12)
-scene: cache E:\Projects\fallout2-ce-3d-glm\build\scene-cache\klatoxcv\2
+scene: cache <repo>\build\scene-cache\klatoxcv\2
 owner teleport: arrived, teleported: KLATOXCV.MAP e2 hex 18930
 DEV_WATCHDOG state map=KLATOXCV.MAP elevation=2 tile=18930 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=0
 DEV_WATCHDOG state map=KLATOXCV.MAP elevation=2 tile=18930 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=0

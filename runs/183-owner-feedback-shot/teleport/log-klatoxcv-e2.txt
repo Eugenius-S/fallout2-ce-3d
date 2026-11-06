@@ -1,5 +1,5 @@
 devtools: startup target kladwtwn e0 accepted=1 blocking=0
-scene: cache E:\Projects\fallout2-ce-3d-glm\build\scene-cache\kladwtwn\0
+scene: cache <repo>\build\scene-cache\kladwtwn\0
 devtools: static wall+hero preview started for KLADWTWN.MAP elevation 0
 scene: preview policy=available gameState=0 gameMode=0x0 uiDisabled=0 isoDisabled=0 combat=0 dialog=0 movie=0
 MAP_EDGE map=KLADWTWN.MAP elevation=0 zones=1 square_rect=99,0,0,99
@@ -9,10 +9,10 @@ DEV_WATCHDOG state map=KLADWTWN.MAP elevation=0 tile=25075 combat=0 dialog=0 mov
 DEV_WATCHDOG state map=KLADWTWN.MAP elevation=0 tile=25075 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=0
 DEV_WATCHDOG state map=KLADWTWN.MAP elevation=0 tile=25075 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=0
 owner teleport: traveling to klatoxcv e2 hex -1
-scene: cache E:\Projects\fallout2-ce-3d-glm\build\scene-cache\klatoxcv\0
+scene: cache <repo>\build\scene-cache\klatoxcv\0
 scene: preview policy=iso-disabled gameState=0 gameMode=0x0 uiDisabled=0 isoDisabled=1 combat=0 dialog=0 movie=0
 owner teleport: arrived, teleported: KLATOXCV.MAP e2 hex 18930
-scene: cache E:\Projects\fallout2-ce-3d-glm\build\scene-cache\klatoxcv\2
+scene: cache <repo>\build\scene-cache\klatoxcv\2
 scene: preview policy=available gameState=0 gameMode=0x0 uiDisabled=0 isoDisabled=0 combat=0 dialog=0 movie=0
 DEV_WATCHDOG state map=KLATOXCV.MAP elevation=2 tile=18930 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=0
 DEV_WATCHDOG state map=KLATOXCV.MAP elevation=2 tile=18930 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=0
