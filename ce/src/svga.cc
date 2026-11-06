@@ -13,6 +13,7 @@
 #include "config.h"
 #include "dinput.h"
 #include "draw.h"
+#include "db.h"
 #include "fps_counter.h"
 #include "game.h"
 #include "interface.h"
@@ -575,7 +576,23 @@ void renderFpsCounter()
     SDL_BlitSurface(gSdlSurface, &rect, gSdlTextureSurface, &rect);
 }
 
+static void renderPresentBody();
+
 void renderPresent()
+{
+    // The file read progress handler (map.cc) presents the frame on the main
+    // thread while a load reads its files. A present that starts inside a
+    // present (the 127 readout loading font 101 through an art read in the
+    // middle of one) must be a no-op: the nested pass tramples the renderer
+    // and presentation state and corrupts the heap at map load.
+    static bool inRenderPresent = false;
+    if (inRenderPresent) return;
+    inRenderPresent = true;
+    renderPresentBody();
+    inRenderPresent = false;
+}
+
+static void renderPresentBody()
 {
     // The frame ring feeds the owner shot's fps block (183); the pump takes a
     // pending --dev-owner-shot-once at the first present that can hold it.
@@ -583,8 +600,11 @@ void renderPresent()
     // 127: the frame-time log samples the same present cadence.
     fpsCounterOnFrame();
     owner_shot::pump();
-    // 127: the player's frame rate readout, drawn into the text capture so
-    // the sharp text pass re-renders it like the rest of the interface.
+    // 127: the player's frame rate readout, drawn straight into the indexed
+    // frame like the stock [debug] show_fps counter. The erase-and-redraw
+    // through the text capture corrupted the heap when a load-time present
+    // raced the warm pool (0xC0000374 at map load); the direct draw is what
+    // the game's own counters have always done.
     static Uint32 fpsWindowStart = 0;
     static unsigned int fpsWindowFrames = 0;
     static unsigned int fpsValue = 0;
@@ -592,11 +612,12 @@ void renderPresent()
     static bool fpsWasDrawn = false;
     static int fpsX = 0;
     static int fpsWidth = 0;
-    const bool showFps = settings.scene3d.fps_counter && scene_renderer::isActive() && gSdlSurface != nullptr;
+    const bool showFps = settings.scene3d.fps_counter && scene_renderer::isActive() && gSdlSurface != nullptr
+        // A present driven by the file read progress handler belongs to a
+        // loading screen: drawing here (a font load, a text draw) lands in
+        // the middle of the load and corrupted the heap at map load.
+        && !fileReadProgressHandlerActive();
     if (!showFps) {
-        if (fpsWasDrawn && gSdlSurface != nullptr) {
-            textCaptureEraseTextRuns(static_cast<unsigned char*>(gSdlSurface->pixels), "FPS ");
-        }
         fpsWasDrawn = false;
         fpsWindowStart = 0;
         fpsWindowFrames = 0;
@@ -611,7 +632,6 @@ void renderPresent()
             fpsWindowStart = now;
             fpsWindowFrames = 0;
         }
-        textCaptureEraseTextRuns(static_cast<unsigned char*>(gSdlSurface->pixels), "FPS ");
         char fpsText[48];
         snprintf(fpsText, sizeof(fpsText), "FPS %3u  %5.1f ms", fpsValue, frameTimeMs);
         ScopedFont fpsFont(101);
@@ -620,6 +640,8 @@ void renderPresent()
         if (x >= 0) {
             fpsX = x;
             fpsWidth = width;
+            bufferFill(static_cast<unsigned char*>(gSdlSurface->pixels) + gSdlSurface->pitch * 8 + x,
+                width, fontGetLineHeight(), gSdlSurface->pitch, COLOR_BLACK);
             fontDrawText(static_cast<unsigned char*>(gSdlSurface->pixels) + gSdlSurface->pitch * 8 + x,
                 fpsText, width, gSdlSurface->pitch, COLOR_GREEN | DRAW_TEXT_FLAG_SHADOWED);
             fpsWasDrawn = true;

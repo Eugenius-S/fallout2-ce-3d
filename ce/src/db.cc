@@ -755,6 +755,11 @@ void fileSetReadProgressHandler(FileReadProgressHandler* handler, int size)
     }
 }
 
+bool fileReadProgressHandlerActive()
+{
+    return gFileReadProgressHandler != nullptr;
+}
+
 // 0x4C68E8 db_list_compare
 int _db_list_compare(const void* p1, const void* p2)
 {
