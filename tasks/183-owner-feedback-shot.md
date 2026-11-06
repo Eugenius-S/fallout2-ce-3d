@@ -170,3 +170,14 @@ Analysing the shots (a later task).
   merge. The three references are refreshed (-Update, one spot per run)
   on the branch carrying steps 2-4 (the region mark merged in); every
   other spot keeps its reference untouched.
+- 2026-11-06, glm: the owner's data changed a second time (between 12:37
+  and 17:26, again their dat rebuild): 22 more spots failed the gate, all
+  from one cause - a translucent amber wash overlay the old data drew
+  over outdoor encounter maps (city gates, mountain views, the special
+  scenes) is gone from the new data; every other pixel in every frame is
+  identical. Proven not ours: a second full pass reproduced all 148
+  common captures exactly, and the pre-merge and post-merge builds
+  render identically. Evidence sheets (reference | capture per spot) in
+  runs/regression/20261106-182427-622-29000/ (README-data-change.txt).
+  The 22 references are refreshed against the current data; a fresh
+  full gate follows.
