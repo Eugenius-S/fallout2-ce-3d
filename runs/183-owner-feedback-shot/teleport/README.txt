@@ -29,5 +29,7 @@ that the hero can walk from the landing: a path to the entrance, to a few
 hexes around it, or - on floors without their entrance - a path to a free
 neighbor.
 
-The evidence PNGs are full-res (kept under the runs/ size limit); the logs
-are the runs' process.stdout.log with the teleport and floor-change lines.
+The evidence pictures are full-res (kept under the runs/ size limit, the
+newr1 one a JPEG rendition, its JSON's image name points at the PNG the
+feature wrote); the logs are the runs' process.stdout.log with the teleport
+and floor-change lines.
