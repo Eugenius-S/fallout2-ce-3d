@@ -70,7 +70,7 @@ Done: db.cc records `gFileReadProgressOwnerThread` in
 `fileSetReadProgressHandler` and gates all four invoke sites with
 `std::this_thread::get_id() == gFileReadProgressOwnerThread`. Verified in the
 owner demo copy: parallel A/B went 0/3 -> 3/3 loaded, serial stayed 2/2.
-Check: `powershell E:\Projects\f2-mbase34-diag\ab_devload.ps1 -Pool parallel
--Runs 3` on the demo game dir prints `loaded=True` three times (machine-local
+Check: the hidden `--dev-load-game=1` A/B against the demo game dir prints
+`loaded=True` three times with the parallel warm pool (machine-local
 tooling, not committed).
 Next: CI, merge, done.
