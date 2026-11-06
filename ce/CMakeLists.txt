@@ -134,6 +134,8 @@ set(FALLOUT_ENGINE_SOURCES
     "src/game_vars.h"
     "src/game.cc"
     "src/game.h"
+    "src/fps_counter.cc"
+    "src/fps_counter.h"
     "src/geometry.cc"
     "src/geometry.h"
     "src/graph_lib.cc"

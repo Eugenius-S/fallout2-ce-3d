@@ -910,6 +910,12 @@ bool parseOption(const char* arg)
         gEnabled = true;
         return true;
     }
+    if (strcmp(arg, "--dev-frame-log") == 0) {
+        // 127: the automated frame-time baselines turn the log on from the
+        // command line, no config edit needed.
+        settings.scene3d.frame_log = true;
+        return true;
+    }
     if (gEnabled && parseScriptedInputOption(arg)) {
         // A scene script is pumped from the main loop itself; only the
         // options-panel script opens the options screen.

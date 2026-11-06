@@ -230,6 +230,12 @@ int main()
             && fpsCounter->applyPolicy == SettingApplyPolicy::OnClose
             && fpsCounter->fallbackLabel == "FPS counter" && !fpsCounter->fallbackDescription.empty(),
             "FPS counter is registered as a default-off 3D setting with menu text")) return 1;
+    const SettingDescriptor* frameLog = findDescriptor("3d.frame_log");
+    if (!check(frameLog != nullptr && frameLog->valueType == SettingValueType::Boolean
+            && !std::get<bool>(frameLog->defaultValue) && !settings.scene3d.frame_log
+            && frameLog->applyPolicy == SettingApplyPolicy::OnClose
+            && frameLog->fallbackLabel == "Frame time log" && !frameLog->fallbackDescription.empty(),
+            "frame time log is registered as a default-off 3D setting with menu text")) return 1;
     if (!check(shadowDensity != nullptr && std::get<double>(shadowDensity->defaultValue) == 0.8
             && settings.scene3d.shadow_density == 0.8 && gConfiguredShadowDensityValue == 0.8,
             "new settings write shadow density as 0.8")) return 1;

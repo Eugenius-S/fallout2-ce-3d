@@ -78,6 +78,7 @@
 #include "win32.h"
 #include "window_manager.h"
 #include "devtools/devtools.h"
+#include "fps_counter.h"
 #include "devtools/owner_shot.h"
 #include "devtools/test_run_state.h"
 #include "worldmap.h"
@@ -497,6 +498,9 @@ void gameReset()
 void gameExit()
 {
     debugPrint("\nGame Exit\n");
+
+    // 127: an open frame-time log gets its summary here.
+    fpsCounterFlushLog();
 
     sfallOnGameModeChange(1, GameMode::getCurrentGameMode());
 

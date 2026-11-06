@@ -310,6 +310,7 @@ struct Scene3dSettings {
     double zoom_max = 2.0;
     bool clean_edges = true;
     bool fps_counter = false;
+    bool frame_log = false; // 127: every frame's time to a CSV with a summary
 };
 
 struct MapperSettings {

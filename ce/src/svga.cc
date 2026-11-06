@@ -13,6 +13,7 @@
 #include "config.h"
 #include "dinput.h"
 #include "draw.h"
+#include "fps_counter.h"
 #include "game.h"
 #include "interface.h"
 #include "memory.h"
@@ -579,6 +580,8 @@ void renderPresent()
     // The frame ring feeds the owner shot's fps block (183); the pump takes a
     // pending --dev-owner-shot-once at the first present that can hold it.
     scene_renderer::perfFrameTick();
+    // 127: the frame-time log samples the same present cadence.
+    fpsCounterOnFrame();
     owner_shot::pump();
     // 127: the player's frame rate readout, drawn into the text capture so
     // the sharp text pass re-renders it like the rest of the interface.

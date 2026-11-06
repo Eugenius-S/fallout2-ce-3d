@@ -487,6 +487,9 @@ void initSettingsRegistry(bool isMapper)
     registerThreeDBoolean("fps_counter", settings.scene3d.fps_counter, "FPS counter",
         "Show average frames per second and frame time. Press F8 to toggle it while playing.",
         SettingApplyPolicy::OnClose);
+    registerThreeDBoolean("frame_log", settings.scene3d.frame_log, "Frame time log",
+        "Write every frame's time to frame_log.csv and a summary next to it when the log closes.",
+        SettingApplyPolicy::OnClose);
     registerThreeDBoolean("clean_edges", settings.scene3d.clean_edges, "Clean map edges",
         "Cut the 3D scene to the map boundary, leaving black beyond it.", SettingApplyPolicy::OnClose);
     registerThreeDBoolean("sun", settings.scene3d.sun, "Sun",
