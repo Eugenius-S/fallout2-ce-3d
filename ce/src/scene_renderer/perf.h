@@ -35,6 +35,13 @@ private:
     unsigned long long started_;
 };
 
+// A load chain's wall-clock marks (a map change, task 172): perfLoadStart
+// begins the chain and each perfLoadMark logs the wall time since the chain's
+// start, once per name per chain, so one map change reads as one table:
+// map_load, scene_loaded, first_frame. Off with the profiler.
+void perfLoadStart(const char* what);
+void perfLoadMark(const char* what);
+
 } // namespace scene_renderer
 } // namespace fallout
 

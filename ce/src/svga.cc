@@ -606,6 +606,7 @@ void renderPresent()
                 const bool glow = scene_renderer::beginSceneCapture();
                 scene_renderer::drawStaticHeroPreview();
                 scene_renderer::perfMark("scene");
+                scene_renderer::perfLoadMark("first_frame");
                 if (glow) scene_renderer::compositeGlow();
                 scene_renderer::perfMark("glow");
                 // A fly camera shows the world alone.

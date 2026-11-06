@@ -3,6 +3,7 @@
 #include <SDL.h>
 
 #include <algorithm>
+#include <mutex>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -62,6 +63,8 @@ unsigned gGpuFrames = 0;
 double gCpuSum = 0.0;
 std::vector<double> gWindow; // frame intervals this window, ms
 std::vector<double> gRun; // every frame interval, ms
+Uint64 gLoadStart = 0;
+std::vector<const char*> gLoadMarks; // names marked since the chain's start
 
 double seconds(Uint64 ticks)
 {
@@ -95,6 +98,10 @@ void applyToggle(const Toggle& toggle)
 
 void writeLog(const std::string& line)
 {
+    // The warm thread pool marks art reads concurrently (172): one append at
+    // a time.
+    static std::mutex logMutex;
+    std::lock_guard<std::mutex> guard(logMutex);
     if (FILE* log = std::fopen((dev_output::outputDirectory("logs") / "devperf.log").string().c_str(), "a")) {
         std::fputs(line.c_str(), log);
         std::fclose(log);
@@ -287,6 +294,29 @@ PerfScope::~PerfScope()
     if (started_ == 0) return;
     char line[160];
     std::snprintf(line, sizeof line, "perf load %s ms=%.2f\n", what_, seconds(SDL_GetPerformanceCounter() - started_) * 1000.0);
+    writeLog(line);
+}
+
+void perfLoadStart(const char* what)
+{
+    if (!perfEnabled()) return;
+    gLoadStart = SDL_GetPerformanceCounter();
+    gLoadMarks.clear();
+    char line[128];
+    std::snprintf(line, sizeof line, "perf load chain %s begin\n", what);
+    writeLog(line);
+}
+
+void perfLoadMark(const char* what)
+{
+    if (!perfEnabled() || gLoadStart == 0) return;
+    for (const char* marked : gLoadMarks) {
+        if (std::strcmp(marked, what) == 0) return;
+    }
+    gLoadMarks.push_back(what);
+    char line[160];
+    std::snprintf(line, sizeof line, "perf load %s ms=%.2f since chain start\n", what,
+        seconds(SDL_GetPerformanceCounter() - gLoadStart) * 1000.0);
     writeLog(line);
 }
 
