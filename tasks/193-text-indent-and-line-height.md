@@ -3,7 +3,7 @@ id: 193
 title: The UI batch, text flush left with room, full-screen screens on a fading backdrop, wide art
 milestone: M1
 status: doing
-owner: any
+owner: gpt
 suggested: any
 priority: normal
 tier: 3
@@ -129,3 +129,24 @@ backdrop. It was removed; the screenshot is kept only in ignored build output.
 Part C remains blocked on art rights: Task 128's variant-6 assets cannot be
 used, and no replacement art has been authored. Keep PR #310 draft until
 the missing acceptance is implemented and evidenced.
+
+### 2026-11-06 gpt
+Done: rebased the existing task branch onto current `origin/main` and rebuilt
+Release; CTest passes 20/20. Fresh sharp-text captures confirm the log fixture
+at 16:9 and 21:9, the real dialogue fixture, and the floating-text lifecycle.
+The dialogue fixture has no wrapped answer, so that line of acceptance is
+still unproven. Added `runs/193-text-indent-and-line-height/diagnostics/current-ui-audit.jpg`.
+The audit exposed a capture bug: the old GL snapshot path redrew only the SDL
+surface after swap, erasing the scene and sometimes saving an all-black frame
+while the UI fixture still reported PASS. It now reads the presented front
+buffer. The corrected inventory capture is valid and visibly shows the world
+around the panel, confirming that Part B's backdrop/corners are still absent.
+No fade, full screen inventory backdrop or rounded corners were implemented.
+Part C is still blocked on the rights resolution for task 128 art. PR #310
+stays draft despite green CI until these acceptance gaps are resolved.
+Next: implement and validate the shared backdrop/corner treatment, obtain a
+wrapped dialogue answer and rights-cleared art, then capture the full before
+and after set at x1/x2 and 16:9/21:9.
+Check: `powershell -NoProfile -ExecutionPolicy Bypass -File tools/configure-build.ps1 Release`,
+`ctest --test-dir build --output-on-failure`, and the fresh runs under
+`runs/193-text-indent-and-line-height/fresh/`.
