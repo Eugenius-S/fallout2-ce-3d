@@ -454,6 +454,49 @@ bool loadStaticFloor(const std::filesystem::path& cacheDirectory, std::string* e
                 }
             }
         }
+        // The quadrant past a water corner square (the codex P2 on #303): the
+        // corner's two edge strips leave the region beyond BOTH edges empty,
+        // and from outside the corner the map's own near tiles show through
+        // that gap (the 168 bisect frames' wedge: the map seen past the
+        // corner, not an extension-pass depth failure - the strips drawn over
+        // the tiles there are nearer to a camera below the sea's top). The
+        // strips' doubling schedule swept along both axes fills the quadrant
+        // completely: each axis's intervals cover [0, 2048], and a quad per
+        // interval pair tiles the product without overlap.
+        float seaBounds[26];
+        int seaIntervals = 0;
+        {
+            float from = 0.0f;
+            float step = 1.0f;
+            seaBounds[seaIntervals++] = 0.0f;
+            for (int k = 0; k < 24 && from < 2048.0f; k++) {
+                from += step;
+                seaBounds[seaIntervals++] = from;
+                if (k >= 11) step *= 2.0f;
+            }
+        }
+        for (const int rr : {0, 99}) {
+            for (const int cc : {0, 99}) {
+                const int index = rr * 100 + cc;
+                const bool waterSquare = filled[index] != 0
+                    || (floorOccupancy[index] != 0 && water[index] != 0);
+                if (!waterSquare) continue;
+                // The map's corner point, outward signs per axis.
+                const float cornerX = cc == 0 ? -kHalfMap : kHalfMap;
+                const float cornerZ = rr == 0 ? -kHalfMap : kHalfMap;
+                const float sx = cc == 0 ? -1.0f : 1.0f;
+                const float sz = rr == 0 ? -1.0f : 1.0f;
+                for (int iz = 0; iz + 1 < seaIntervals; iz++) {
+                    const float zA = cornerZ + sz * seaBounds[iz];
+                    const float zB = cornerZ + sz * seaBounds[iz + 1];
+                    for (int ix = 0; ix + 1 < seaIntervals; ix++) {
+                        const float xA = cornerX + sx * seaBounds[ix];
+                        const float xB = cornerX + sx * seaBounds[ix + 1];
+                        seaQuad(std::min(xA, xB), std::min(zA, zB), std::max(xA, xB), std::max(zA, zB));
+                    }
+                }
+            }
+        }
         gFloorExtensionFirst = tilesEnd;
         gFloorExtensionCount = static_cast<int>(vertices.size()) - tilesEnd;
     }

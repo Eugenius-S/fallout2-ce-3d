@@ -2,7 +2,7 @@
 id: 183
 title: One key in the game saves a screenshot with everything an agent needs to read it
 milestone: M1
-status: doing
+status: done
 owner: glm
 suggested: any
 priority: high
@@ -189,3 +189,7 @@ Analysing the shots (a later task).
   present), and the single-spot rerun passes with 0 changed pixels.
   Effective 154/154 with the documented flake rerun. ctest 20/20, CI
   14/14 on #317 and all green on #318. Merging both.
+- 2026-11-06, glm: task closed. Steps 1-4 are merged (#316, #317,
+  #318); the owner's feedback loop with the tool lives in the board
+  batch 175-182. The mismatch diagnosis correction (PR #293, not a
+  data rebuild) is in the Log above and in #319.
