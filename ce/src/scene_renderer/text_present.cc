@@ -220,6 +220,23 @@ void drawSceneOverlayWithSharpText(SDL_Surface* indexedSurface, SDL_Surface* rgb
     scene::maskOverlay(static_cast<const unsigned char*>(indexedSurface->pixels), indexedSurface->pitch,
         static_cast<unsigned char*>(rgbaSurface->pixels), rgbaSurface->pitch,
         indexedSurface->w, indexedSurface->h);
+    // TEMP (127 hunt): dump the readout region of the composited RGBA.
+    {
+        static int dbgDump = 0;
+        if (dbgDump++ < 2) {
+            FILE* dbg = fopen("E:\\Projects\\f2-mbase34-diag\\rgba_region.bin", "wb");
+            if (dbg != nullptr) {
+                fprintf(dbg, "rgbaW=%d rgbaH=%d pitch=%d idxW=%d idxH=%d\n",
+                    rgbaSurface->w, rgbaSurface->h, rgbaSurface->pitch, indexedSurface->w, indexedSurface->h);
+                for (int row = 0; row < 40; ++row) {
+                    fwrite(static_cast<const unsigned char*>(rgbaSurface->pixels) + rgbaSurface->pitch * row + 820 * 4,
+                        1, static_cast<size_t>((960 - 820) * 4), dbg);
+                    fputc('\n', dbg);
+                }
+                fclose(dbg);
+            }
+        }
+    }
     drawSceneOverlay(static_cast<const unsigned char*>(rgbaSurface->pixels),
         rgbaSurface->w, rgbaSurface->h, rgbaSurface->pitch);
 }

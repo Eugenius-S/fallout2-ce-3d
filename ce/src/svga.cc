@@ -600,11 +600,16 @@ static void renderPresentBody()
     // 127: the frame-time log samples the same present cadence.
     fpsCounterOnFrame();
     owner_shot::pump();
-    // 127: the player's frame rate readout, drawn straight into the indexed
-    // frame like the stock [debug] show_fps counter. The erase-and-redraw
-    // through the text capture corrupted the heap when a load-time present
-    // raced the warm pool (0xC0000374 at map load); the direct draw is what
-    // the game's own counters have always done.
+    // The 3D scene shows the world: the tile window keeps only what the game
+    // draws over it.
+    if (scene_renderer::isActive()) {
+        scene::syncToMap();
+        devtools::sceneOverlaySynced(scene::syncOverlay());
+    }
+    // 127: the player's frame rate readout. It draws after the tile window's
+    // own redraw (syncToMap above), which restores every captured text pixel
+    // in its region: a readout drawn before that redraw was erased the same
+    // frame and never reached the presented picture.
     static Uint32 fpsWindowStart = 0;
     static unsigned int fpsWindowFrames = 0;
     static unsigned int fpsValue = 0;
@@ -618,6 +623,9 @@ static void renderPresentBody()
         // the middle of the load and corrupted the heap at map load.
         && !fileReadProgressHandlerActive();
     if (!showFps) {
+        if (fpsWasDrawn && gSdlSurface != nullptr) {
+            textCaptureEraseTextRuns(static_cast<unsigned char*>(gSdlSurface->pixels), "FPS ");
+        }
         fpsWasDrawn = false;
         fpsWindowStart = 0;
         fpsWindowFrames = 0;
@@ -632,6 +640,7 @@ static void renderPresentBody()
             fpsWindowStart = now;
             fpsWindowFrames = 0;
         }
+        textCaptureEraseTextRuns(static_cast<unsigned char*>(gSdlSurface->pixels), "FPS ");
         char fpsText[48];
         snprintf(fpsText, sizeof(fpsText), "FPS %3u  %5.1f ms", fpsValue, frameTimeMs);
         ScopedFont fpsFont(101);
@@ -640,18 +649,10 @@ static void renderPresentBody()
         if (x >= 0) {
             fpsX = x;
             fpsWidth = width;
-            bufferFill(static_cast<unsigned char*>(gSdlSurface->pixels) + gSdlSurface->pitch * 8 + x,
-                width, fontGetLineHeight(), gSdlSurface->pitch, COLOR_BLACK);
             fontDrawText(static_cast<unsigned char*>(gSdlSurface->pixels) + gSdlSurface->pitch * 8 + x,
                 fpsText, width, gSdlSurface->pitch, COLOR_GREEN | DRAW_TEXT_FLAG_SHADOWED);
             fpsWasDrawn = true;
         }
-    }
-    // The 3D scene shows the world: the tile window keeps only what the game
-    // draws over it.
-    if (scene_renderer::isActive()) {
-        scene::syncToMap();
-        devtools::sceneOverlaySynced(scene::syncOverlay());
     }
     // Sprite-lighting mod: the dev panel is drawn into the framebuffer after
     // the game (so it shows in both presentation paths).

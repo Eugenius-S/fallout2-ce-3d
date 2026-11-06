@@ -201,6 +201,7 @@ public:
 
     // Drop every record for a dead buffer generation.
     void eraseBuffer(TextBufferId buffer);
+    void eraseTextRuns(TextBufferId buffer, const std::string& prefix);
     void eraseOwner(int window, TextBufferId generation);
 
     // Validate actual legacy glyph pixels against the live buffer and return
