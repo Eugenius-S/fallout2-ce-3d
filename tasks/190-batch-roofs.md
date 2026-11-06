@@ -2,7 +2,7 @@
 id: 190
 title: Roofs across every map, one rule per PR
 milestone: M1
-status: doing
+status: done
 owner: gpt
 suggested: any
 priority: normal
@@ -73,5 +73,32 @@ Check: `py -3 -m unittest discover -s tools/scene_export -p 'test*.py'`,
 `ctest --test-dir build --output-on-failure`,
 `powershell -NoProfile -ExecutionPolicy Bypass -File tools/regression.ps1`,
 and `py -3 tools/tour/tour.py --before <main scene cache> --after build/scene-cache --maps newr1,kladwtwn,broken1`.
+
+### 2026-11-06 gpt
+Done: Closed the roof batch after triaging its remaining New Reno checker alerts.
+The corner overshoot is a checker endpoint false-positive: the short run ends
+at the perpendicular band's shared boundary. Lost square 8341 is the intended
+open ring around a courtyard: `roof_fringe.py` marks banded squares with no
+plain roof behind them as `RING`, and `cut_cell` leaves the inner opening clear.
+Re-exported New Reno e0 to `build/lost-square-reexport`; the patch remains
+transparent as designed. No further roof-specific owner finds are recorded in
+the area logs or inbox. The actual border-thickness find remains fixed by PR
+#304, whose matched crops and three-map tour are in `runs/190-batch-roofs/`.
+Next: none. Reopen this task for a new roof finding.
+Check: `py -3 tools/scene_export/roof_edge_check.py --cache-root build/lost-square-reexport --maps newr1`;
+`py -3 -m unittest discover -s tools/scene_export -p 'test*.py'`;
+`ctest --test-dir build --output-on-failure`;
+`powershell -NoProfile -ExecutionPolicy Bypass -File tools/regression.ps1`.
+
+### 2026-11-06 gpt: rebase and current-main review
+
+Done: Rebased the closure PR onto current `origin/main` (`6beaf53f`). The
+old feature commit and evidence refresh were already present in main through
+PR #304; replaying the stale code would also have dropped later roof fixes, so
+they were omitted. The PR diff now contains only the task closure in this
+file. Preserved every pre-existing untracked run in the worktree.
+Next: Push the rebased closure and verify a fresh CI run on the current SHA.
+Check: `git diff origin/main...HEAD` contains only `tasks/190-batch-roofs.md`;
+the current main already contains the feature and regression tests from #304.
 
 
