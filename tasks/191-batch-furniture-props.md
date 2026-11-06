@@ -2,8 +2,8 @@
 id: 191
 title: Furniture and props across every map, one rule per PR
 milestone: M1
-status: todo
-owner: owner
+status: doing
+owner: gpt
 suggested: any
 priority: normal
 tier: 3
@@ -64,3 +64,19 @@ the reported green beam has not been reproduced or accepted as fixed. PR #308
 stays draft; no runtime or regression claim beyond the three listed previews.
 Next: obtain a comparable live view matching the owner's task-167 camera and
 confirm which surface takes the green tint before refining the lighting rule.
+
+### 2026-11-06 gpt
+Done: merged current `origin/main` into this branch (`9ab4e977`) and rebuilt
+Release successfully. Two fresh captures were attempted in isolated output
+folders: `live-current-mainbase` used `-LiveFrame -NoPreview -Fly` and
+`live-fly-diagnostic` used `-LiveFrame -Fly`. Both sidecars still report
+`static-wall-plus-hero-preview` and a fixed camera; neither proves the
+reported beam in the live fly view. `-LiveFrame` currently reaches the same
+one-shot path as `-SnapshotOnce`, while `takeSnapshot()` rerenders an active
+scene through `captureStaticPreviewPng()`. The `--dev-fly` activation issue
+remains unexplained, and no lighting change is accepted from these frames.
+Next: keep PR #308 draft until a real fly capture of the owner-reported beam
+is obtained; investigate why the fly camera is not activated before retrying.
+Check: Release build passed; capture sidecars and console logs are in the two
+folders above. Existing 20/20 CTest and 3-map preview comparison remain from
+the earlier run; these captures add no visual acceptance evidence.
