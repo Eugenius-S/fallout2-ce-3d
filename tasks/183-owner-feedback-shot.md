@@ -107,5 +107,8 @@ Analysing the shots (a later task).
   full view presenting), so a pump run never photographs the loading
   screen; vctyctyd leaves the full view right after its load (the city's
   game state takes over), so its shot sits at the first ready present.
-  ctest 20/20; docs/owner-shots.md written (the step-1 version, the
-  regions section is a placeholder for step 2).
+  Frame windows around the captures (background runs, F2CE_PERF=1):
+  kladwtwn 17.6 avg + 9.62 = about 27 ms, newr1 29.0 + 12.63 = about
+  42 ms, both under the 50 ms bar; vctyctyd's 11.20 ms is the capture
+  cost alone. ctest 20/20; docs/owner-shots.md written (the step-1
+  version, the regions section is a placeholder for step 2). PR #316.

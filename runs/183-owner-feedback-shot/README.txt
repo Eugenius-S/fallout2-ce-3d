@@ -19,8 +19,12 @@ Frame-time bar (acceptance: no frame over 50 ms at the key press): each
 folder's devperf.log carries the `perf owner_shot capture frame_ms=...` line
 (the wall time the capture added to the frame that took it: the GL readback
 plus the JSON build; the PNG encode and the file writes run on a worker
-thread). The steady frame windows around it read frame_avg_ms=8.9 to 22.8;
-capture plus a steady frame stays under 50 ms with margin.
+thread). Around it the 2 s windows read frame_avg_ms 17.2 to 35.3 (a
+background run under F2CE_PERF=1; the owner's game carries neither
+overhead), so the capture frame lands at about 27 ms on kladwtwn
+(17.6 avg + 9.62) and 42 ms on newr1 (29.0 + 12.63), both under the bar.
+vctyctyd's capture sits at the first ready present (the map leaves the full
+view right after its load), so its 11.20 ms is the capture cost alone.
 
 newr1 and vctyctyd ran with -OwnerShotDelay 6 and -HoldSeconds 12 (steady
 frames before the capture). vctyctyd leaves the full view right after the
