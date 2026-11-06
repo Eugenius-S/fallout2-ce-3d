@@ -107,3 +107,10 @@ capability with no caller would be dead code; the item goes to the
 first consumer that needs own-coloured quads inside the extension
 range (a candidate: the exit-zone markers if the edge work 145 ever
 wants them on the sea).
+
+### 2026-11-06 glm: the codex P1 on #320 moves to 205
+Codex's P1 on the PR: no main-versus-change fly-tour evidence for the
+fill, and the still gate cannot exercise flight/turned views at all.
+The tour run is cut to task 205 (the tool exists, 078; the run and the
+standing rule live there). This task's gate re-runs after the earlier
+one died with the session restart.
