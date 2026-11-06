@@ -14,6 +14,13 @@ namespace owner_shot {
 // devtools::handleKey and only answers the keys left over.
 bool handleKey(int key);
 
+// The teleport (step 3): dev-teleport.txt next to the exe, one line
+// "map.elev" (the safe pick) or "map.elev.hex" (the named hex), is consumed
+// and the hero jumps, in the owner's running game. The dev panel's TP button
+// drives the same engine.
+bool requestTeleport(const char* mapName, int elevation, int tile);
+void pumpTeleport();
+
 // The frame pump: takes the pending --dev-owner-shot-once shot at the first
 // present after the map loaded (how test runs capture acceptance shots).
 void parseOption(const char* arg);

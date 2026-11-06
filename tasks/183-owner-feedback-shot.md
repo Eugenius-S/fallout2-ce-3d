@@ -112,3 +112,28 @@ Analysing the shots (a later task).
   42 ms, both under the 50 ms bar; vctyctyd's 11.20 ms is the capture
   cost alone. ctest 20/20; docs/owner-shots.md written (the step-1
   version, the regions section is a placeholder for step 2). PR #316.
+- 2026-11-06, glm: step 3 done. The teleport lives in owner_shot (outside
+  the dev gates, so it answers in the owner's build):
+  dev-teleport.txt next to the exe, one line map.elev or map.elev.hex,
+  polled twice a second; the travel goes through the dev tools' safe
+  transition (requestMapChange), the arrival is tracked here and the hero
+  is placed on the named hex or the safe pick, the egg reset and the view
+  brought back (a map change drops the 3D view - task 173's known gap).
+  A request held by combat/dialog/movie keeps the file (the klatoxcv maps
+  enter combat on entry: held-and-retry saved the owner's word in the
+  acceptance runs). The dev panel gained the TP button and the T key -
+  the same engine.
+- 2026-11-06, glm: step 4 done. The floor change's pick now verifies the
+  hero can walk from the landing: a path to the map's entrance, to a few
+  hexes around it, or on floors without their entrance a path to a free
+  neighbor (the walk-out check). The candidates are tried by standing the
+  hero there, so the check reads the very elevation it lands on. The old
+  klatoxcv e2 rock pocket (floor and blockers tested, reachability never)
+  is what this closes. The teleport's auto pick uses the walk-verified
+  pick too; the named hex stands as the owner named it.
+- 2026-11-06, glm: acceptance in runs/183-owner-feedback-shot/teleport/:
+  klatoxcv.2 from kladwtwn lands 18930 (the safe pick, the JSON's
+  player.tile, the 3D view back); newr1.0.24305 from klatoxcv e2 stands
+  the named hex verbatim (watchdog NEWR1.MAP e0 24305); the floor change
+  klatoxcv e0->e2 lands 18931 with the walk check passed (log line: 1
+  candidates tried). ctest 20/20.
