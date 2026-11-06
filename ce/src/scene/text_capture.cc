@@ -69,20 +69,24 @@ struct TextOwnerCopySnapshot {
 
 std::map<std::uintptr_t, BufferRange>& ranges()
 {
-    static std::map<std::uintptr_t, BufferRange> value;
-    return value;
+    // The memory free hook (memory.cc textCaptureAllocationDestroyed) runs
+    // while the process exits, after function-local statics are destroyed:
+    // a destroyed map here double-frees and corrupts the heap. Leak it on
+    // purpose, the OS reclaims it.
+    static std::map<std::uintptr_t, BufferRange>* value = new std::map<std::uintptr_t, BufferRange>();
+    return *value;
 }
 
 std::recursive_mutex& captureMutex()
 {
-    static std::recursive_mutex value;
-    return value;
+    static std::recursive_mutex* value = new std::recursive_mutex();
+    return *value;
 }
 
 scene::TextLayer& layer()
 {
-    static scene::TextLayer value;
-    return value;
+    static scene::TextLayer* value = new scene::TextLayer();
+    return *value;
 }
 
 std::uint64_t& nextBufferId()
