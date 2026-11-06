@@ -1,6 +1,7 @@
 """The fly tour (task 078): fixed turned views of every Klamath map, before | after.
 
     py -3 tools/tour/tour.py --before SIDE [--after SIDE] [--maps kladwtwn,klamall] [--reuse] [--out DIR]
+    py -3 tools/tour/tour.py --before CACHE --rp-game-root RP_GAME [--maps abbey,sfsheng]
 
 A side is either a checkout (its build/fallout2-ce.exe and the scenes its own
 tools/dev-snapshot.ps1 reads) or a scene cache folder (<map>/<elevation>/
@@ -9,7 +10,7 @@ scene.json, from export.py --cache-root), shot with this checkout's build.
 (or a checkout of main) against the branch, and an engine change compares two
 checkouts.
 
-Every spot of spots.json (this folder; the one spot list) is seen from the
+Every spot in the selected list is seen from the
 fly camera at each of its turns (077: within 45 degrees), at the game
 camera's pitch, in full daylight. One game run per map elevation and side: a
 map tour (dev-snapshot -Tour), as the shapes eval shoots.
@@ -51,8 +52,8 @@ MAX_JPEG = 1_000_000  # CI refuses larger files in runs/
 EMPTY_SHARE = 0.9
 
 
-def load_spots(maps):
-    data = json.loads((HERE / "spots.json").read_text(encoding="utf-8"))
+def load_spots(maps, path):
+    data = json.loads(path.read_text(encoding="utf-8"))
     groups = {}
     for spot in data["spots"]:
         if not maps or spot["map"] in maps:
@@ -124,7 +125,7 @@ def check_views(folder, map_name, elevation, spots, turns):
         raise SystemExit("views not taken in the 3D scene:\n  " + "\n  ".join(problems))
 
 
-def shoot(name, side, turns, distance, groups, reuse):
+def shoot(name, side, turns, distance, groups, reuse, rp_game_root=None):
     kind, path = side_kind(side)
     root = path if kind == "checkout" else ROOT
     if kind == "checkout" and not (path / "build" / "scene-cache").is_dir():
@@ -136,7 +137,12 @@ def shoot(name, side, turns, distance, groups, reuse):
         # A rebuilt exe or a re-exported scene makes the old shots stale.
         stamp = {"side": str(path), "kind": kind, "stops": stops,
                  "exe": file_hash(root / "build" / "fallout2-ce.exe"),
-                 "scene": file_hash(scene_folder(kind, path, map_name, elevation) / "provenance.json")}
+                 "scene": file_hash(scene_folder(kind, path, map_name, elevation) / "provenance.json"),
+                 "rp_game_root": str(rp_game_root) if rp_game_root else None,
+                 "still_snapshot": rp_game_root is None,
+                 "startup_preview": rp_game_root is None,
+                 "skip_script_blocking": rp_game_root is not None,
+                 "rp_mod": file_hash(rp_game_root / "mods" / "rpu.dat") if rp_game_root else None}
         stamp_file = folder / "tour.json"
         if (reuse and stamp_file.is_file() and json.loads(stamp_file.read_text(encoding="utf-8")) == stamp
                 and len(list(folder.glob("*.png"))) == len(stops) + 1):
@@ -147,10 +153,19 @@ def shoot(name, side, turns, distance, groups, reuse):
         folder.mkdir(parents=True)
         # -Command, quoted: through -File a list with commas becomes an array.
         command = (f"& '{root / 'tools' / 'dev-snapshot.ps1'}' -Map {map_name} -Elevation {elevation} "
-                   f"-Tour '{','.join(stops)}' -Still -Ambient 65536 -OutputDirectory '{folder}' "
+                   f"-Tour '{','.join(stops)}' -Ambient 65536 -OutputDirectory '{folder}' "
                    f"-TimeoutSeconds {120 + 4 * len(stops)} -StepTimeoutSeconds 120")
+        if rp_game_root is None:
+            command += " -Still"
+        else:
+            # RP map-enter scripts may leave a dialogue request pending until
+            # the game advances. Let the dev snapshot dismiss blocking dialog
+            # or movie requests, and do not freeze startup in still mode.
+            command += " -NoPreview -SkipScriptBlocking"
         if kind == "cache":
             command += f" -SceneCache '{path}'"
+        if rp_game_root:
+            command += f" -GameRoot '{rp_game_root}'"
         run = subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", command],
                              capture_output=True, text=True, errors="replace")
         if run.returncode != 0:
@@ -291,12 +306,21 @@ def main():
     parser.add_argument("--before", required=True, help="a built checkout or a scene cache folder")
     parser.add_argument("--after", default=str(ROOT), help="the same (default: this checkout)")
     parser.add_argument("--maps", help="comma-separated map names (default: every map in spots.json)")
+    parser.add_argument("--rp-game-root", type=Path,
+                        help="explicit RP game folder; selects rp_spots.json and runs the tour against that install")
     parser.add_argument("--reuse", action="store_true", help="keep shots of the same side and stops")
     parser.add_argument("--out", type=Path, default=OUT / "sheets", help="where the sheets go")
     args = parser.parse_args()
-    turns, distance, groups = load_spots(set(args.maps.split(",")) if args.maps else None)
-    shoot("before", args.before, turns, distance, groups, args.reuse)
-    shoot("after", args.after, turns, distance, groups, args.reuse)
+    rp_game_root = args.rp_game_root.resolve() if args.rp_game_root else None
+    if rp_game_root:
+        if not (rp_game_root / "master.dat").is_file() or not (rp_game_root / "critter.dat").is_file():
+            raise SystemExit("--rp-game-root must contain master.dat and critter.dat")
+        if not (rp_game_root / "mods" / "rpu.dat").is_file():
+            raise SystemExit("--rp-game-root must contain mods/rpu.dat")
+    spots_path = HERE / ("rp_spots.json" if rp_game_root else "spots.json")
+    turns, distance, groups = load_spots(set(args.maps.split(",")) if args.maps else None, spots_path)
+    shoot("before", args.before, turns, distance, groups, args.reuse, rp_game_root)
+    shoot("after", args.after, turns, distance, groups, args.reuse, rp_game_root)
     sheets(turns, groups, args.out)
 
 

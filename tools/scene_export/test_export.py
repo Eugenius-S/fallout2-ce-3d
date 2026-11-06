@@ -30,6 +30,8 @@ from solids import Projection, row_plane
 from wall_sidecar import (BATCH, HEADER as WALL_HEADER, MAGIC as WALL_MAGIC, VERTEX,
                           VERSION as WALL_VERSION, decode_wall_sidecar, encode_wall_sidecar)
 from vendor.fp import proj as donor_proj
+from vendor.fp import light as donor_light
+from vendor.fp.scene import renderable_map_objects
 from f2lib.dat2 import write_dat2
 
 
@@ -2348,3 +2350,21 @@ class FillHolesBandTests(unittest.TestCase):
         rgba[12:15, 1:9, 3] = 255         # the lower rail: 8 open rows between
         out = fill_holes(rgba)
         self.assertTrue((out[4:12, 3:7, 3] == 0).all())     # a real gap the game's view shows too
+
+
+class RpMapExportEdgeTests(unittest.TestCase):
+    def test_engine_script_helpers_without_prototypes_are_not_scene_objects(self):
+        from types import SimpleNamespace
+        placed = SimpleNamespace(pid=1, tile=200)
+        hidden_script_helper = SimpleNamespace(pid=-1, tile=0)
+        invalid = SimpleNamespace(pid=2, tile=40000)
+        self.assertEqual(renderable_map_objects([hidden_script_helper, invalid, placed]), [placed])
+
+    def test_light_at_reset_floor_is_not_an_emitter(self):
+        from types import SimpleNamespace
+        from vendor.fp.light import mapfile
+        light = SimpleNamespace(light_intensity=donor_light.INTENSITY_FLOOR,
+                                flags=mapfile.OBJECT_LIGHTING, light_distance=4, tile=100)
+        self.assertEqual(donor_light.emitters([light]), [])
+        light.light_intensity += 1
+        self.assertEqual(len(donor_light.emitters([light])), 1)

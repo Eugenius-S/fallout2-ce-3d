@@ -83,6 +83,12 @@ def _round(values, digits=4):
     return [round(float(v), digits) for v in values]
 
 
+def renderable_map_objects(objects):
+    """Return placed objects with prototypes; PID -1 records are engine-only script helpers."""
+    return [obj for obj in sorted(objects, key=lambda item: item.tile)
+            if obj.pid != -1 and geometry.is_valid(obj.tile)]
+
+
 class SceneBuilder:
     def __init__(self, gf, game_map, elevation=None):
         """game_map: a MapFile, or the name of a map in the game tree."""
@@ -1095,11 +1101,10 @@ class SceneBuilder:
         self._carve_arts = {}           # of the carve fallback's qualifying arts (task 120)
         self.faced = set()              # objects whose collision is their wall face
         set_ids = {}
-        self.wall_tiles = {o.tile for o in self.objects if o.obj_type == ids.OBJ_TYPE_WALL}
+        self.wall_tiles = {o.tile for o in renderable_map_objects(self.objects)
+                           if o.obj_type == ids.OBJ_TYPE_WALL}
         # The engine draws hex by hex in ascending tile order, file order within a hex.
-        for order, obj in enumerate(sorted(self.objects, key=lambda o: o.tile)):
-            if not geometry.is_valid(obj.tile):
-                continue
+        for order, obj in enumerate(renderable_map_objects(self.objects)):
             frm = self.load_art(obj)
             if frm is None:
                 continue

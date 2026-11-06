@@ -1,0 +1,54 @@
+{
+  "export": {
+    "result": "pass",
+    "map_count": 19,
+    "map_elevation_scene_count": 36,
+    "cache": "build/scene-cache",
+    "check_command": "export.py --maps <RPU maps> --cache-root build/scene-cache --check"
+  },
+  "live_walks": [
+    {
+      "result": "pass",
+      "map": "ABBEY.MAP",
+      "elevation": 0,
+      "start_tile": 22703,
+      "target_tile": 18702,
+      "frames": 518,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "fallback_during_walk": false,
+      "sidecar": "build/rp-live/abbey/devhero-20261105-071803-000.json",
+      "image": "abbey-walk.jpg"
+    },
+    {
+      "result": "pass",
+      "map": "SFSHENG.MAP",
+      "elevation": 0,
+      "start_tile": 20100,
+      "target_tile": 16100,
+      "frames": 542,
+      "renderer": "scene-gl",
+      "scene_view": "full",
+      "fallback_during_walk": false,
+      "sidecar": "build/rp-live/sfsheng/devshot-20261105-085222.json",
+      "image": "sfsheng-walk.jpg"
+    }
+  ],
+  "tests": {
+    "scene_export_unit_tests": "122 passed after rebase"
+  },
+  "rp_tour": {
+    "spot_file": "tools/tour/rp_spots.json",
+    "spots": 36,
+    "maps": 19,
+    "gate_without_root": "pass: RP-only map filter returns no spots",
+    "explicit_root_smoke": "blocked: two runs timed out at startup before tour progress",
+    "watchdogs": [
+      "build/test-run/runs/8f670f030a88/watchdog.txt",
+      "build/test-run/runs/e8ea6a3d43bc/watchdog.txt"
+    ]
+  },
+  "remaining": [
+    "RP tour must complete a full smoke run when an explicit RP game root is given"
+  ]
+}

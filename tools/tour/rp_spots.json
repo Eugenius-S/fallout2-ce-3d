@@ -1,0 +1,226 @@
+{
+  "turns": [
+    -45,
+    0,
+    45
+  ],
+  "distance": 8,
+  "spots": [
+    {
+      "map": "abbasem",
+      "elevation": 0,
+      "tile": 20100,
+      "name": "Abbey Basement center"
+    },
+    {
+      "map": "abbey",
+      "elevation": 0,
+      "tile": 20100,
+      "name": "Abbey Entrance center"
+    },
+    {
+      "map": "abbey",
+      "elevation": 1,
+      "tile": 20100,
+      "name": "Abbey Entrance center"
+    },
+    {
+      "map": "abbey",
+      "elevation": 2,
+      "tile": 20100,
+      "name": "Abbey Entrance center"
+    },
+    {
+      "map": "abundgr",
+      "elevation": 0,
+      "tile": 20100,
+      "name": "Abbey Cave center"
+    },
+    {
+      "map": "denres1",
+      "elevation": 0,
+      "tile": 20100,
+      "name": "Den Residential 1 center"
+    },
+    {
+      "map": "denres1",
+      "elevation": 1,
+      "tile": 20100,
+      "name": "Den Residential 1 center"
+    },
+    {
+      "map": "encdock",
+      "elevation": 0,
+      "tile": 20100,
+      "name": "Enclave Dock center"
+    },
+    {
+      "map": "epamain1",
+      "elevation": 0,
+      "tile": 20100,
+      "name": "EPA SubLevels 1 center"
+    },
+    {
+      "map": "epamain1",
+      "elevation": 1,
+      "tile": 20100,
+      "name": "EPA SubLevels 1 center"
+    },
+    {
+      "map": "epamain1",
+      "elevation": 2,
+      "tile": 20100,
+      "name": "EPA SubLevels 1 center"
+    },
+    {
+      "map": "epamain2",
+      "elevation": 0,
+      "tile": 20100,
+      "name": "EPA SubLevels 2 center"
+    },
+    {
+      "map": "epamain2",
+      "elevation": 2,
+      "tile": 20100,
+      "name": "EPA SubLevels 2 center"
+    },
+    {
+      "map": "epasl",
+      "elevation": 0,
+      "tile": 20100,
+      "name": "Secret Level center"
+    },
+    {
+      "map": "epasl",
+      "elevation": 1,
+      "tile": 20100,
+      "name": "Secret Level center"
+    },
+    {
+      "map": "epasl",
+      "elevation": 2,
+      "tile": 20100,
+      "name": "Secret Level center"
+    },
+    {
+      "map": "epax",
+      "elevation": 0,
+      "tile": 20100,
+      "name": "EPA center"
+    },
+    {
+      "map": "epax",
+      "elevation": 1,
+      "tile": 20100,
+      "name": "EPA center"
+    },
+    {
+      "map": "epax",
+      "elevation": 2,
+      "tile": 20100,
+      "name": "EPA center"
+    },
+    {
+      "map": "hubstash",
+      "elevation": 0,
+      "tile": 20100,
+      "name": "Hubologist Stash center"
+    },
+    {
+      "map": "hubstash",
+      "elevation": 1,
+      "tile": 20100,
+      "name": "Hubologist Stash center"
+    },
+    {
+      "map": "hubstash",
+      "elevation": 2,
+      "tile": 20100,
+      "name": "Hubologist Stash center"
+    },
+    {
+      "map": "safehs1",
+      "elevation": 0,
+      "tile": 20100,
+      "name": "Ranger Safe House 1 center"
+    },
+    {
+      "map": "safehs2",
+      "elevation": 0,
+      "tile": 20100,
+      "name": "Ranger Safe House 2 center"
+    },
+    {
+      "map": "safehs3",
+      "elevation": 0,
+      "tile": 20100,
+      "name": "Ranger Safe House 3 center"
+    },
+    {
+      "map": "sfsheng",
+      "elevation": 0,
+      "tile": 20100,
+      "name": "San Fran Dr. Sheng center"
+    },
+    {
+      "map": "sfsheng",
+      "elevation": 1,
+      "tile": 20100,
+      "name": "San Fran Dr. Sheng center"
+    },
+    {
+      "map": "sfsub",
+      "elevation": 0,
+      "tile": 20100,
+      "name": "Shi Sub center"
+    },
+    {
+      "map": "sfsub",
+      "elevation": 1,
+      "tile": 20100,
+      "name": "Shi Sub center"
+    },
+    {
+      "map": "slvcamp",
+      "elevation": 0,
+      "tile": 20100,
+      "name": "Slaver Camp center"
+    },
+    {
+      "map": "tribe01",
+      "elevation": 0,
+      "tile": 20100,
+      "name": "Umbra Tribe center"
+    },
+    {
+      "map": "tribe01",
+      "elevation": 1,
+      "tile": 20100,
+      "name": "Umbra Tribe center"
+    },
+    {
+      "map": "tribe01",
+      "elevation": 2,
+      "tile": 20100,
+      "name": "Umbra Tribe center"
+    },
+    {
+      "map": "tribe02",
+      "elevation": 0,
+      "tile": 20100,
+      "name": "Umbra Tribe Waterside center"
+    },
+    {
+      "map": "tribe02",
+      "elevation": 1,
+      "tile": 20100,
+      "name": "Umbra Tribe Waterside center"
+    },
+    {
+      "map": "vilmerch",
+      "elevation": 0,
+      "tile": 20100,
+      "name": "Vault Village Merchant center"
+    }
+  ]
+}
