@@ -221,6 +221,11 @@ int fileNameListInit(const char* pattern, char*** fileNames);
 void fileNameListFree(char*** fileNames, int unused);
 int fileGetSize(File* stream);
 void fileSetReadProgressHandler(FileReadProgressHandler* handler, int size);
+// True while a load installed the progress handler: the frame being presented
+// belongs to a loading screen, and work done inside such a present (font
+// loads, text draws) lands in the middle of the load. The 127 readout skips
+// those frames.
+bool fileReadProgressHandlerActive();
 
 } // namespace fallout
 

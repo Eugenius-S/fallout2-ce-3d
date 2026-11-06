@@ -1,0 +1,14 @@
+{
+  "image": "20261107-035807-kladwtwn-e0.png",
+  "fps": {"fps":60.5,"frame_avg_ms":16.52,"frame_low1_ms":18.24,"window_frames":300},
+  "map": "Центр города",
+  "map_file": "KLADWTWN.SAV",
+  "city": "Кламат",
+  "elevation": 0,
+  "player": {"tile":23099,"hex":[99,115],"world":[-0.542,7.688],"elevation":0,"rotation":2},
+  "camera": {"eye":[8.174,10.072,19.761],"yaw_deg":-123.69,"fov_y_deg":25.00,"camera_turn":0.0000,"zoom":0.9766,"center_tile":21495},
+  "cursor": null,
+  "resolution":"960x540","logical_resolution":"960x540","scale":2,"scale_factor":2.0,"windowed":true,
+  "render": {"scene3d":{"enabled":true,"sharp_text":true,"lights":true,"sun":true,"shadows":true,"cloud_shadows":false,"shadow_pixel_size":3.00,"shadow_density":0.85,"sun_swing":44.0,"glow":true,"glow_strength":1.00,"camera_rotation":true,"camera_rotation_unlimited":true,"sprite_sides":true,"zoom":0.9766,"clean_edges":true},"renderer":"scene-gl"},
+  "build": {"commit":"8e17e23a","version":"FALLOUT II 1.02d  RP 2.4.34","taken":"20261107-035807"}
+}

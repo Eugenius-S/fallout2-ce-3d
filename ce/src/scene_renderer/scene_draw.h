@@ -24,6 +24,7 @@ bool captureStaticPreviewPng(const std::filesystem::path& path, bool withWalls, 
 // shows it in the window, into a new PNG at the window's size.
 bool captureFramePng(const std::filesystem::path& path, const unsigned char* rgba, int frameWidth, int frameHeight,
     int pitch, int* width, int* height, std::string* error);
+bool capturePresentedFramePng(const std::filesystem::path& path, int* width, int* height, std::string* error);
 
 // The same captures without a file write: the GL readback and the redraw it
 // needs stay on the main thread; the PNG encode and the file writes go to a

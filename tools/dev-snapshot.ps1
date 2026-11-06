@@ -83,6 +83,9 @@ param(
     # The script presses [ or ]: turn [3d] camera_rotation on in this run's
     # isolated config copy, so the keys reach the turn.
     [switch]$TurnKeys,
+    # Turn [3d] fps_counter on in this run's isolated config copy, so the
+    # presented frame (the watchdog capture) shows the readout.
+    [switch]$FpsCounter,
     [ValidateSet('resolution', 'mode')]
     [string]$PreferencesDropdown,
     [switch]$DevPanel,
@@ -407,6 +410,22 @@ if ($TurnKeys) {
     if (-not $rotationFound) { throw 'Could not find [3d].camera_rotation in the isolated test config.' }
     [System.IO.File]::WriteAllLines($configPath, $configLines, [System.Text.UTF8Encoding]::new($false))
 }
+if ($FpsCounter) {
+    $configLines = [System.Collections.Generic.List[string]]::new()
+    $in3dSection = $false
+    $counterFound = $false
+    foreach ($line in [System.IO.File]::ReadAllLines($configPath)) {
+        if ($line -match '^\s*\[') { $in3dSection = $line.Trim() -eq '[3d]' }
+        if ($in3dSection -and $line -match '^\s*fps_counter=') {
+            $configLines.Add('fps_counter=1')
+            $counterFound = $true
+        } else {
+            $configLines.Add($line)
+        }
+    }
+    if (-not $counterFound) { throw 'Could not find [3d].fps_counter in the isolated test config.' }
+    [System.IO.File]::WriteAllLines($configPath, $configLines, [System.Text.UTF8Encoding]::new($false))
+}
 $configHashBefore = (Get-FileHash -LiteralPath $configPath -Algorithm SHA256).Hash
 $initialZoom = Get-TestConfigValue $configPath '3d' 'zoom'
 $initialEnabled = Get-TestConfigValue $configPath '3d' 'enabled'
@@ -431,6 +450,16 @@ $runId = [guid]::NewGuid().ToString('N')
 # name, as the game's own paths stay within 260 characters.
 $runDirectory = Join-Path $exeDirectory "runs\$($runId.Substring(0, 12))"
 New-Item -ItemType Directory -Path $runDirectory -Force | Out-Null
+if ($DevLoadGameSlot -gt 0) {
+    # The run's redirected state starts empty, so a save load would wait on
+    # the load screen forever: seed this run's SAVEGAME from the game root.
+    $saveSource = Join-Path $GameDir 'data\SAVEGAME'
+    if (Test-Path -LiteralPath $saveSource) {
+        $saveDestination = Join-Path $runDirectory 'data\SAVEGAME'
+        New-Item -ItemType Directory -Path $saveDestination -Force | Out-Null
+        Copy-Item -Path (Join-Path $saveSource '*') -Destination $saveDestination -Recurse -Force
+    }
+}
 $arguments = @('--dev-tools')
 $arguments += '--dev-watchdog'
 if ($DevInput) { $arguments += "--dev-input=$([System.IO.Path]::GetFullPath($DevInput))" }
@@ -538,7 +567,9 @@ if ($LiveFrame) {
     }
     $arguments += '--dev-live-snapshot-once'
 }
-if ($DevLoadGameSlot -gt 0 -and -not $LiveFrame) { throw '-DevLoadGameSlot requires -LiveFrame.' }
+if ($DevLoadGameSlot -gt 0 -and -not $LiveFrame) {
+    throw '-DevLoadGameSlot requires -LiveFrame.'
+}
 if ($DevInput -or $SceneInput) {
     $shots = $DevInputShots
 } elseif ($LiveFrame) {

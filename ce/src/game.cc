@@ -78,6 +78,7 @@
 #include "win32.h"
 #include "window_manager.h"
 #include "devtools/devtools.h"
+#include "fps_counter.h"
 #include "devtools/owner_shot.h"
 #include "devtools/test_run_state.h"
 #include "worldmap.h"
@@ -498,6 +499,9 @@ void gameExit()
 {
     debugPrint("\nGame Exit\n");
 
+    // 127: an open frame-time log gets its summary here.
+    fpsCounterFlushLog();
+
     sfallOnGameModeChange(1, GameMode::getCurrentGameMode());
 
     // SFALL
@@ -555,6 +559,22 @@ void gameExit()
 // 0x442D44
 int gameHandleKey(int eventCode, bool isInCombatMode)
 {
+    static bool fpsCounterToggleKeyHeld = false;
+    if (gPressedPhysicalKeys[SDL_SCANCODE_F8] == 0) fpsCounterToggleKeyHeld = false;
+    if (eventCode == KEY_F8 && gGameLoaded) {
+        if (!fpsCounterToggleKeyHeld) {
+            const auto& descriptors = settingsGetDescriptors();
+            const auto fpsCounter = std::find_if(descriptors.begin(), descriptors.end(), [](const SettingDescriptor& descriptor) {
+                return descriptor.id == "3d.fps_counter";
+            });
+            if (fpsCounter != descriptors.end()) {
+                settingsSetValue(*fpsCounter, SettingValue(!settings.scene3d.fps_counter));
+            }
+            fpsCounterToggleKeyHeld = true;
+        }
+        return 0;
+    }
+
     // Sprite-lighting mod: the dev panel consumes keys while it is open and
     // answers its own hotkeys; the game never sees them.
     if (devtools::handleKey(eventCode)) {

@@ -13,6 +13,8 @@
 #include "config.h"
 #include "dinput.h"
 #include "draw.h"
+#include "db.h"
+#include "fps_counter.h"
 #include "game.h"
 #include "interface.h"
 #include "memory.h"
@@ -574,17 +576,83 @@ void renderFpsCounter()
     SDL_BlitSurface(gSdlSurface, &rect, gSdlTextureSurface, &rect);
 }
 
+static void renderPresentBody();
+
 void renderPresent()
+{
+    // The file read progress handler (map.cc) presents the frame on the main
+    // thread while a load reads its files. A present that starts inside a
+    // present (the 127 readout loading font 101 through an art read in the
+    // middle of one) must be a no-op: the nested pass tramples the renderer
+    // and presentation state and corrupts the heap at map load.
+    static bool inRenderPresent = false;
+    if (inRenderPresent) return;
+    inRenderPresent = true;
+    renderPresentBody();
+    inRenderPresent = false;
+}
+
+static void renderPresentBody()
 {
     // The frame ring feeds the owner shot's fps block (183); the pump takes a
     // pending --dev-owner-shot-once at the first present that can hold it.
     scene_renderer::perfFrameTick();
+    // 127: the frame-time log samples the same present cadence.
+    fpsCounterOnFrame();
     owner_shot::pump();
     // The 3D scene shows the world: the tile window keeps only what the game
     // draws over it.
     if (scene_renderer::isActive()) {
         scene::syncToMap();
         devtools::sceneOverlaySynced(scene::syncOverlay());
+    }
+    // 127: the player's frame rate readout. It draws after the tile window's
+    // own redraw (syncToMap above), which restores every captured text pixel
+    // in its region: a readout drawn before that redraw was erased the same
+    // frame and never reached the presented picture.
+    static Uint32 fpsWindowStart = 0;
+    static unsigned int fpsWindowFrames = 0;
+    static unsigned int fpsValue = 0;
+    static double frameTimeMs = 0.0;
+    static bool fpsWasDrawn = false;
+    static int fpsX = 0;
+    static int fpsWidth = 0;
+    const bool showFps = settings.scene3d.fps_counter && scene_renderer::isActive() && gSdlSurface != nullptr
+        // A present driven by the file read progress handler belongs to a
+        // loading screen: drawing here (a font load, a text draw) lands in
+        // the middle of the load and corrupted the heap at map load.
+        && !fileReadProgressHandlerActive();
+    if (!showFps) {
+        if (fpsWasDrawn && gSdlSurface != nullptr) {
+            textCaptureEraseTextRuns(static_cast<unsigned char*>(gSdlSurface->pixels), "FPS ");
+        }
+        fpsWasDrawn = false;
+        fpsWindowStart = 0;
+        fpsWindowFrames = 0;
+    } else {
+        const Uint32 now = SDL_GetTicks();
+        if (fpsWindowStart == 0) fpsWindowStart = now;
+        ++fpsWindowFrames;
+        const Uint32 elapsed = now - fpsWindowStart;
+        if (elapsed >= 500 && fpsWindowFrames > 0) {
+            fpsValue = static_cast<unsigned int>((static_cast<Uint64>(fpsWindowFrames) * 1000 + elapsed / 2) / elapsed);
+            frameTimeMs = static_cast<double>(elapsed) / fpsWindowFrames;
+            fpsWindowStart = now;
+            fpsWindowFrames = 0;
+        }
+        textCaptureEraseTextRuns(static_cast<unsigned char*>(gSdlSurface->pixels), "FPS ");
+        char fpsText[48];
+        snprintf(fpsText, sizeof(fpsText), "FPS %3u  %5.1f ms", fpsValue, frameTimeMs);
+        ScopedFont fpsFont(101);
+        const int width = fontGetStringWidth(fpsText);
+        const int x = gSdlSurface->w - width - 8;
+        if (x >= 0) {
+            fpsX = x;
+            fpsWidth = width;
+            fontDrawText(static_cast<unsigned char*>(gSdlSurface->pixels) + gSdlSurface->pitch * 8 + x,
+                fpsText, width, gSdlSurface->pitch, COLOR_GREEN | DRAW_TEXT_FLAG_SHADOWED);
+            fpsWasDrawn = true;
+        }
     }
     // Sprite-lighting mod: the dev panel is drawn into the framebuffer after
     // the game (so it shows in both presentation paths).
@@ -618,8 +686,33 @@ void renderPresent()
                 scene_renderer::perfMark("glow");
                 // A fly camera shows the world alone.
                 if (scene_renderer::staticFlyCameraActive()) {
+                    if (fpsWasDrawn && fpsWidth > 0 && gSdlSurface->format != nullptr
+                        && gSdlSurface->format->palette != nullptr) {
+                        const int overlayHeight = std::min(fontGetLineHeight(), gSdlSurface->h - 8);
+                        const int overlayWidth = std::min(fpsWidth, gSdlSurface->w - fpsX);
+                        const int rgbaPitch = overlayWidth * 4;
+                        std::vector<unsigned char> rgba(static_cast<size_t>(rgbaPitch) * overlayHeight, 0);
+                        SDL_Palette* palette = gSdlSurface->format->palette;
+                        for (int y = 0; y < overlayHeight; ++y) {
+                            for (int x = 0; x < overlayWidth; ++x) {
+                                const unsigned char index = static_cast<const unsigned char*>(gSdlSurface->pixels)
+                                    [static_cast<size_t>(y + 8) * gSdlSurface->pitch + fpsX + x];
+                                if (index == COLOR_FIRST || index >= palette->ncolors) continue;
+                                const SDL_Color& color = palette->colors[index];
+                                unsigned char* pixel = rgba.data() + static_cast<size_t>(y) * rgbaPitch + x * 4;
+                                pixel[0] = color.r;
+                                pixel[1] = color.g;
+                                pixel[2] = color.b;
+                                pixel[3] = 255;
+                            }
+                        }
+                        scene_renderer::drawOverlay(rgba.data(), overlayWidth, overlayHeight, rgbaPitch,
+                            fpsX, 8, overlayWidth, overlayHeight);
+                    }
+                    devtools::sceneLiveFrameReady();
                     scene_renderer::swap();
                     scene_renderer::perfEnd();
+                    devtools::sceneOverlayPresented();
                     return;
                 }
                 if (!gRgbaBackground.empty()) {
@@ -642,6 +735,7 @@ void renderPresent()
                 // The game's interface, mouse cursor and floating text over it.
                 scene_renderer::drawSceneOverlayWithSharpText(gSdlSurface, gSdlTextureSurface, sharpTextReady);
                 scene_renderer::perfMark("overlay");
+                devtools::sceneLiveFrameReady();
                 scene_renderer::swap();
                 scene_renderer::perfEnd();
                 devtools::sceneOverlayPresented();

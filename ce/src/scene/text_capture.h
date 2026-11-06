@@ -110,6 +110,7 @@ void textCaptureAllocationDestroyed(void* buffer);
 void textCaptureAllocationResized(void* oldBuffer, void* newBuffer, std::size_t newSize);
 void textCaptureRegisterExternalBuffer(void* buffer, std::size_t size, int width, int height, int pitch, bool orphan);
 void textCaptureUnregisterExternalBuffer(void* buffer);
+void textCaptureEraseTextRuns(unsigned char* buffer, const char* prefix);
 void textCaptureMarkBufferOwned(void* buffer);
 void textCaptureMarkWindowBuffer(void* buffer, int window);
 void textCaptureForgetWindow(int window, void* buffer);

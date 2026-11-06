@@ -111,6 +111,7 @@ void sceneOverlaySynced(bool on);
 // when no 3D view is active.
 void vanillaPresented();
 void sceneOverlayPresented();
+void sceneLiveFrameReady();
 bool handleClick(int mouseX, int mouseY);
 
 // Draws the panel into the 8-bit framebuffer (before palette expansion).
