@@ -8,6 +8,7 @@
 #include "band_span.h"
 #include "gl_api.h"
 #include "scene_internal.h"
+#include "perf.h"
 #include "sprite_card.h"
 #include "sky.h"
 
@@ -88,11 +89,14 @@ bool loadStaticFloor(const std::filesystem::path& cacheDirectory, std::string* e
 
     std::vector<unsigned char> sidecar;
     std::vector<unsigned char> png;
-    if (!readBinary(cacheDirectory / "floor.bin", sidecar)) {
-        return fail("floor.bin is missing or unreadable");
-    }
-    if (!readBinary(cacheDirectory / "tiles.png", png)) {
-        return fail("tiles.png is missing or unreadable");
+    {
+        PerfScope stage("floor_read");
+        if (!readBinary(cacheDirectory / "floor.bin", sidecar)) {
+            return fail("floor.bin is missing or unreadable");
+        }
+        if (!readBinary(cacheDirectory / "tiles.png", png)) {
+            return fail("tiles.png is missing or unreadable");
+        }
     }
     constexpr size_t kHeaderSize = 20;
     constexpr size_t kFloorBytes = 100 * 100 * 2;
@@ -150,7 +154,11 @@ bool loadStaticFloor(const std::filesystem::path& cacheDirectory, std::string* e
     std::vector<unsigned char> rgba;
     unsigned pngWidth = 0;
     unsigned pngHeight = 0;
-    const unsigned pngError = lodepng::decode(rgba, pngWidth, pngHeight, png);
+    unsigned pngError = 0;
+    {
+        PerfScope stage("floor_decode");
+        pngError = lodepng::decode(rgba, pngWidth, pngHeight, png);
+    }
     if (pngError != 0) {
         return fail(std::string("tiles.png decode failed: ") + lodepng_error_text(pngError));
     }
@@ -216,6 +224,7 @@ bool loadStaticFloor(const std::filesystem::path& cacheDirectory, std::string* e
     std::vector<unsigned char> fringeRgba;
     unsigned fringeWidth = 0, fringeHeight = 0;
     if (fringeCount > 0 || patchCount > 0) {
+        PerfScope stage("floor_fringe");
         std::vector<unsigned char> fringePng;
         if (!readBinary(cacheDirectory / "roof_fringe.png", fringePng)) {
             return fail("roof_fringe.png is missing or unreadable");
@@ -450,8 +459,12 @@ bool loadStaticFloor(const std::filesystem::path& cacheDirectory, std::string* e
     }
 
     std::string shaderError;
-    if (!createSceneShader(&shaderError)) return fail(shaderError);
+    {
+        PerfScope stage("floor_shader");
+        if (!createSceneShader(&shaderError)) return fail(shaderError);
+    }
 
+    PerfScope stage("floor_upload");
     glGenVertexArrays(1, &gFloorVao);
     glBindVertexArray(gFloorVao);
     glGenBuffers(1, &gFloorVbo);

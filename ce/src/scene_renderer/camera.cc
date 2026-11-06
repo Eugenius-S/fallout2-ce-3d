@@ -5,6 +5,7 @@
 
 #include "ground_pick.h"
 #include "scene_internal.h"
+#include "perf.h"
 #include "../tile.h"
 
 namespace fallout {
@@ -358,6 +359,7 @@ bool loadStaticProjection(const std::filesystem::path& cacheDirectory, std::stri
         return false;
     };
     if (!gInitialized) return fail("OpenGL renderer is unavailable");
+    PerfScope stage("projection");
 
     constexpr size_t kHeaderSize = 12;
     constexpr size_t kValueCount = 10;

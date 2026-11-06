@@ -306,6 +306,7 @@ bool loadScene(View view, const std::string& map, int elevation, std::string* me
     gClipMap.clear(); // Full loads add the projection needed to convert legacy EDG pixels.
     gClipElevation = -1;
     gCleanEdgesRevision = static_cast<std::uint64_t>(-1);
+    scene_renderer::perfLoadMark("scene_loaded");
     return true;
 }
 
