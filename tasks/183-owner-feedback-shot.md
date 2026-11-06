@@ -161,26 +161,27 @@ Analysing the shots (a later task).
   the named hex verbatim (watchdog NEWR1.MAP e0 24305); the floor change
   klatoxcv e0->e2 lands 18931 with the walk check passed (log line: 1
   candidates tried). ctest 20/20.
-- 2026-11-06, glm: the regression blocker resolved. Between about 10:35
-  and 11:56 the game's own data changed (the owner's dat rebuild: export
-  fingerprint 425cd5a6 -> 8d2ee0ee) and the three cave spots moved a
-  5-pixel strip of one cave-wall sprite (enc-cave1, enc-cave5,
-  enc-cave5-top, same x=598 y=207..215); proven not ours (main fails
-  byte-identically). The owner's word came: finish, run the tests,
-  merge. The three references are refreshed (-Update, one spot per run)
-  on the branch carrying steps 2-4 (the region mark merged in); every
-  other spot keeps its reference untouched.
-- 2026-11-06, glm: the owner's data changed a second time (between 12:37
-  and 17:26, again their dat rebuild): 22 more spots failed the gate, all
-  from one cause - a translucent amber wash overlay the old data drew
-  over outdoor encounter maps (city gates, mountain views, the special
-  scenes) is gone from the new data; every other pixel in every frame is
-  identical. Proven not ours: a second full pass reproduced all 148
-  common captures exactly, and the pre-merge and post-merge builds
-  render identically. Evidence sheets (reference | capture per spot) in
-  runs/regression/20261106-182427-622-29000/ (README-data-change.txt).
-  The 22 references are refreshed against the current data; a fresh
-  full gate follows.
+- 2026-11-06, glm: the regression blocker resolved. Both of the day's
+  reference mismatches have one cause: PR #293 (task 145, the owner's
+  "Match the original map edge", merged 09:46) changed how the 3D view
+  renders the map edge and hid the exit-grid marker cards, and its own
+  reference refresh stopped short (the PR notes task 145 blocked after
+  two tour timeouts), so my builds - everything based on b2f792de -
+  picked the new edge render up without refreshed references behind it.
+  First seen as a 5-pixel strip of one cave-wall sprite (enc-cave1,
+  enc-cave5, enc-cave5-top, same x=598 y=207..215), then as the dark
+  edge band missing over 22 outdoor encounter spots (city gates,
+  mountain views, the special scenes; every other pixel in every frame
+  identical). The earlier "owner's dat rebuild" reading in this log was
+  wrong: the game's files never changed (master.dat and the mods/
+  archives keep their old dates; the export fingerprint moved because
+  the map-edge code changed which resources the exporter reads).
+  The owner's word came: finish, run the tests, merge. The 25 references
+  are refreshed (-Update, one spot per run) on the branch carrying
+  steps 2-4 (the region mark merged in), completing the reference
+  refresh #293 started. Evidence sheets (reference | capture per spot)
+  in runs/regression/20261106-182427-622-29000/ (README-data-change.txt)
+  and runs/183-owner-feedback-shot/data-change-20261106/.
 - 2026-11-06, glm: the control gate on the refreshed references
   (commit 9b7689c4): 153 of 154 pass in-run; the one miss,
   sanfran-tanker-deck, was a black-frame capture flake (the whole
