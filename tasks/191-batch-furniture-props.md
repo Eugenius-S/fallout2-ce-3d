@@ -80,3 +80,18 @@ is obtained; investigate why the fly camera is not activated before retrying.
 Check: Release build passed; capture sidecars and console logs are in the two
 folders above. Existing 20/20 CTest and 3-map preview comparison remain from
 the earlier run; these captures add no visual acceptance evidence.
+
+### 2026-11-06 gpt
+Done: merged the latest `origin/main` (`ad243e1c`) and ran the bounded fly tour
+on mbase34 e1, tile 17131, at -45, 0 and +45 degrees. The tour produced real
+camera-angle frames, but the reported green beam tint was absent in both main
+and this branch; the before/after pairs are unchanged in
+`runs/191-batch-furniture-props/fresh-live-owner-tile/mbase34-e1.jpg` (110 KB).
+The green pool is visible, while the beam stays dark. Additional hour-8
+snapshots without forced ambient still report the static-preview view and do
+not count as live evidence. No lighting change is accepted; PR #308 remains
+draft.
+Next: obtain the owner's reported beam appearance in a live camera view before
+accepting the lighting rule or expanding it across maps.
+Check: Release build, CTest 20/20, exporter tests 135/135; the latest bounded
+tour used identical scene-cache fingerprints and showed no before/after change.
