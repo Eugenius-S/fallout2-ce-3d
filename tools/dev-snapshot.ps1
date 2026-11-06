@@ -156,6 +156,9 @@ param(
     [switch]$FollowHero,
     [switch]$WalkProbe,
     [switch]$SkipScriptBlocking,
+    # Scan the active game root's loose scripts and DAT archives for sfall
+    # opcodes, metarules and hooks the current build does not register.
+    [switch]$ScanUnimplemented,
     [ValidateRange(0, 1000)]
     [int]$EffectFrame = -1,
     # -Shadows: keep sun and cloud shadows on in this background run (they are
@@ -427,6 +430,7 @@ $runDirectory = Join-Path $exeDirectory "runs\$($runId.Substring(0, 12))"
 New-Item -ItemType Directory -Path $runDirectory -Force | Out-Null
 $arguments = @('--dev-tools')
 $arguments += '--dev-watchdog'
+if ($ScanUnimplemented) { $arguments += '--scan-unimplemented' }
 if ($DevInput) { $arguments += "--dev-input=$([System.IO.Path]::GetFullPath($DevInput))" }
 if ($SceneInput) { $arguments += "--dev-scene-input=$([System.IO.Path]::GetFullPath($SceneInput))" }
 if ($TurnKeys) { $arguments += '--dev-camera-turn-keys' }

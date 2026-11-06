@@ -20,8 +20,11 @@
 #include <vector>
 
 std::map<fallout::opcode_t, std::set<std::string>> unknown_opcodes;
+std::map<fallout::opcode_t, unsigned long long> unknown_opcode_counts;
 std::map<std::string, std::set<std::string>> sus_strings;
+std::map<std::string, unsigned long long> sus_string_counts;
 std::map<int, std::set<std::string>> unknown_hooks;
+std::map<int, unsigned long long> unknown_hook_counts;
 std::map<fallout::opcode_t, std::map<std::string, std::set<std::string>>> offset_requests;
 
 int checked_files = 0;
@@ -502,6 +505,7 @@ void check_int_data(
         if (handler == NULL) {
             auto& set = unknown_opcodes[opcode];
             set.insert(fName);
+            unknown_opcode_counts[opcode]++;
         };
 
         track_offset_request(fName, opcode, stack);
@@ -511,6 +515,7 @@ void check_int_data(
                 auto hookId = fallout::stackReadInt32(data, i - 6 + 2);
                 if (!is_implemented_hook(hookId)) {
                     unknown_hooks[hookId].insert(fName);
+                    unknown_hook_counts[hookId]++;
                 }
             } else {
                 printf("ERROR: Unknown usage of register_hook in file %s at pos=0x%lx\n", fName.c_str(), i);
@@ -522,6 +527,7 @@ void check_int_data(
                 auto hookId = fallout::stackReadInt32(data, i - 6 * 2 + 2);
                 if (!is_implemented_hook(hookId)) {
                     unknown_hooks[hookId].insert(fName);
+                    unknown_hook_counts[hookId]++;
                 }
             } else {
                 printf("ERROR: Unknown usage of register_hook_proc in file %s at pos=0x%lx\n", fName.c_str(), i);
@@ -592,6 +598,7 @@ void check_file_data(unsigned char* data, int fileSize, std::string fName)
 
                 auto& set = sus_strings[script_str];
                 set.insert(fName);
+                sus_string_counts[script_str]++;
 
                 // printf("WARNING: Found sFall metarule %s in file %s, but it is not defined in kMetarules\n",
                 //   script_str.c_str(), fName.c_str());
@@ -679,6 +686,15 @@ void scan_in_folder(std::string dirPath)
     // std::cout << "Scanning folder: " << dirPath << std::endl;
     for (auto dirEntry : directory_iterator(dirPath)) {
         if (dirEntry.is_directory()) {
+            const std::string path = dirEntry.path();
+            const auto separator = path.find_last_of("/\\");
+            const auto name = to_lower(path.substr(separator == std::string::npos ? 0 : separator + 1));
+            // Backups are not part of the game's active data load order. In
+            // particular, an installed RP keeps vanilla files here and would
+            // otherwise inflate the gap counts with inactive scripts.
+            if (name == "backup") {
+                continue;
+            }
             scan_in_folder(dirEntry.path());
             continue;
         } else if (dirEntry.is_regular_file()) {
@@ -721,8 +737,11 @@ void checkScriptsOpcodes()
     }
 
     unknown_opcodes.clear();
+    unknown_opcode_counts.clear();
     sus_strings.clear();
+    sus_string_counts.clear();
     unknown_hooks.clear();
+    unknown_hook_counts.clear();
     offset_requests.clear();
 
     checked_files = 0;
@@ -783,23 +802,24 @@ void checkScriptsOpcodes()
         for (auto iter : unknown_opcodes) {
             auto& opcode = iter.first;
             // https://github.com/sfall-team/sfall/blob/master/sfall/Modules/Scripting/Opcodes.cpp
-            printf("OPCODE %s (0x%x - 0x%x - %i):\n",
+            printf("OPCODE %s (0x%x - 0x%x - %i), references=%llu, scripts=%zu:\n",
                 get_opcode_name(opcode).c_str(),
-                opcode, opcode & 0x3FF, opcode & 0x3FF);
+                opcode, opcode & 0x3FF, opcode & 0x3FF,
+                unknown_opcode_counts[opcode], iter.second.size());
             for (auto fName : iter.second) {
                 printf("  - %s\n", fName.c_str());
             }
         }
         for (auto iter : sus_strings) {
-            printf("METARULE %s:\n", iter.first.c_str());
+            printf("METARULE %s, references=%llu, scripts=%zu:\n", iter.first.c_str(), sus_string_counts[iter.first], iter.second.size());
             for (auto fName : iter.second) {
                 printf("  - %s\n", fName.c_str());
             }
         }
         for (const auto& [hookId, files] : unknown_hooks) {
-            printf("HOOK %s (%i):\n",
+            printf("HOOK %s (%i), references=%llu, scripts=%zu:\n",
                 get_hook_name(hookId).c_str(),
-                hookId);
+                hookId, unknown_hook_counts[hookId], files.size());
             for (auto fName : files) {
                 printf("  - %s\n", fName.c_str());
             }

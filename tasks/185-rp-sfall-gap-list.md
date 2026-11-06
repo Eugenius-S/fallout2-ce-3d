@@ -2,8 +2,8 @@
 id: 185
 title: Every sfall opcode, hook and ini key RP needs and CE lacks, counted
 milestone: M1
-status: todo
-owner: any
+status: doing
+owner: gpt
 suggested: any
 priority: high
 tier: 1
@@ -45,3 +45,38 @@ how often each gap fires and where.
 Implementing the gaps.
 
 ## Log
+
+### 2026-11-05 gpt
+Done: Added per-reference counts for unknown opcodes, metarules and hooks,
+skipped inactive `backup/` script trees, and exposed the scanner through
+`tools/dev-snapshot.ps1 -ScanUnimplemented`. Static findings and limitations
+are in `runs/185-rp-sfall-gap-list/scan-unimplemented.txt` and `README.md`.
+Two live route attempts stopped at `SLVCAMP.MAP` on the watchdog (30 s at step
+14 because `floor.bin` was unavailable; 90 s at step 17 without progress).
+The static findings are not runtime fire counts, and their play impact is
+unverified. Build and CTest passed 20/20.
+Next: Resume only after resolving isolated scene-cache preview availability
+and route progress; then record dynamic behavior and cut task 186 from the
+verified gap list. PR #284 remains draft.
+Check: `build/rp-gap-run/watchdog.txt`,
+`build/rp-gap-run-2/watchdog.txt`, and the scanner evidence above.
+
+### 2026-11-06 gpt
+Done: Resumed the existing draft on latest `origin/main` (`b2f792de`). The
+previous route logs showed that several restored maps, including SLVCAMP,
+had no `floor.bin` in this worktree's cache. Exported elevation 0 for the
+five base route maps and all 19 RPU restored maps from the isolated RPU copy
+to `build/scene-cache`; all 23 requested floor files now exist. A single
+bounded follow-up route captured ARTEMPLE, ARVILLAG, KLADWTWN, DENBUS1,
+DENRES1, ABBASEM and SLVCAMP. These are static wall-plus-hero preview frames;
+their sidecars report `scene_view=full`, but they are not live camera frames.
+The route timed out after 180 s while entering EPAMAIN1; that map stayed
+`isoDisabled=1` and produced no snapshot. The prior floor-cache blocker is
+fixed, but the full tour and dynamic gap counts are still unverified. No RP
+compatibility claim is made; PR #284 remains draft.
+Next: identify why the isolated EPAMAIN1 map-entry script does not reach a
+presentable scene, then resume the dynamic gap inventory and cut 186 only
+from verified findings.
+Check: `build/rp-gap-run-3/process.stdout.log`, its seven sidecars under
+`build/rp-gap-run-3/runs/3d6a34a69fd1/shots/dev/2026-11-06/`, the cache
+fingerprint output, Release build, CTest 20/20 and exporter tests 135/135.
