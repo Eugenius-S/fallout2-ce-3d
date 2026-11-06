@@ -75,7 +75,8 @@ std::unordered_map<unsigned long long, unsigned int> gWallObjectRows;
 std::vector<unsigned char> gWallSeeThrough;
 // Rows the engine paints at full light, whatever their hex (OBJECT_TRANS_WALL).
 std::vector<unsigned char> gWallFullLight;
-std::vector<unsigned char> gWallObjectTable; // as uploaded: R, G per row
+std::vector<int> gWallObjectTiles;
+std::vector<unsigned char> gWallObjectTable; // as uploaded: R see-through, G full light, BA object tile
 std::vector<bool> gFlyOnlyRows; // rows a fly-only batch references (task 119)
 std::vector<unsigned int> gRowTotalRefs; // triangles per object row
 std::vector<unsigned int> gRowFlyRefs;   // of those, in a fly-only batch
@@ -123,6 +124,7 @@ void destroyStaticWalls()
     gWallObjectRows.clear();
     gWallSeeThrough.clear();
     gWallFullLight.clear();
+    gWallObjectTiles.clear();
     gWallObjectTable.clear();
 }
 
@@ -822,10 +824,12 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
         const unsigned int rows = (objectCount + kSeeThroughRowWidth - 1) / kSeeThroughRowWidth;
         gWallSeeThrough.assign(static_cast<size_t>(rows) * kSeeThroughRowWidth, 0);
         gWallFullLight.assign(gWallSeeThrough.size(), 0);
-        gWallObjectTable.assign(gWallSeeThrough.size() * 2, 255);
+        gWallObjectTiles.assign(gWallSeeThrough.size(), -1);
+        for (size_t row = 0; row < rowTileOf.size(); row++) gWallObjectTiles[row] = rowTileOf[row];
+        gWallObjectTable.assign(gWallSeeThrough.size() * 4, 255);
         glGenTextures(1, &gWallSeeThroughTexture);
         glBindTexture(kTexture2D, gWallSeeThroughTexture);
-        glTexImage2D(kTexture2D, 0, kRG8, kSeeThroughRowWidth, rows, 0, kRG, kUnsignedByte,
+        glTexImage2D(kTexture2D, 0, kRgba8, kSeeThroughRowWidth, rows, 0, kRGBA, kUnsignedByte,
             gWallObjectTable.data());
         glTexParameteri(kTexture2D, kTextureMinFilter, kNearest);
         glTexParameteri(kTexture2D, kTextureMagFilter, kNearest);
@@ -878,17 +882,22 @@ namespace internal {
 void flushWallObjectTable()
 {
     if (gWallSeeThroughTexture == 0) return;
-    std::vector<unsigned char> table(gWallSeeThrough.size() * 2);
+    std::vector<unsigned char> table(gWallSeeThrough.size() * 4, 255);
     for (size_t row = 0; row < gWallSeeThrough.size(); row++) {
-        table[row * 2] = gWallSeeThrough[row];
-        table[row * 2 + 1] = gWallFullLight[row] == 3 ? 64 : (gWallFullLight[row] == 2 ? 128 : (gWallFullLight[row] != 0 ? 255 : 0));
+        table[row * 4] = gWallSeeThrough[row];
+        table[row * 4 + 1] = gWallFullLight[row] == 3 ? 64 : (gWallFullLight[row] == 2 ? 128 : (gWallFullLight[row] != 0 ? 255 : 0));
+        if (row < gWallObjectTiles.size() && gWallObjectTiles[row] >= 0 && gWallObjectTiles[row] < HEX_GRID_SIZE) {
+            const unsigned int tile = static_cast<unsigned int>(gWallObjectTiles[row]);
+            table[row * 4 + 2] = static_cast<unsigned char>(tile & 0xFF);
+            table[row * 4 + 3] = static_cast<unsigned char>(tile >> 8);
+        }
     }
     if (table == gWallObjectTable) return;
     gWallObjectTable = std::move(table);
     glBindTexture(kTexture2D, gWallSeeThroughTexture);
-    glPixelStorei(kUnpackAlignment, 2);
+    glPixelStorei(kUnpackAlignment, 4);
     glTexSubImage2D(kTexture2D, 0, 0, 0, kSeeThroughRowWidth,
-        static_cast<int>(gWallSeeThrough.size() / kSeeThroughRowWidth), kRG, kUnsignedByte, gWallObjectTable.data());
+        static_cast<int>(gWallSeeThrough.size() / kSeeThroughRowWidth), kRGBA, kUnsignedByte, gWallObjectTable.data());
     glPixelStorei(kUnpackAlignment, 4);
 }
 

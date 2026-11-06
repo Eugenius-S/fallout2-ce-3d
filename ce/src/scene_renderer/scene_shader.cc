@@ -79,6 +79,7 @@ uniform sampler2D uTexture;
 uniform int uTextured;
 uniform int uCloseupFilter;
 uniform vec4 uColor;
+uniform sampler2D uSeeThroughObjects; // BA: the owning map tile for an object-backed wall face
 uniform float uCutoff;
 uniform int uTranslucent; // the engine's translucent blend: steam, glass, energy, ...
 uniform vec3 uTint;
@@ -176,6 +177,19 @@ vec2 hexAt(vec3 w) {
     float a = ((px.x - 20.0) - 16.0 * hy) / 24.0;
     return vec2(199.0 - a, hy);
 }
+vec3 lightAnchorAtTile(int tile) {
+    int column = tile % 200;
+    int row = tile / 200;
+    int a = 199 - column;
+    vec2 pixel = vec2(48 * (a / 2) + 32 * (a % 2) + 16 * row + 16,
+        -12 * (a / 2) + 12 * row + 8);
+    vec2 delta = pixel - uLightOrigin;
+    float det = uLightSqu.x * uLightSqv.y - uLightSqv.x * uLightSqu.y;
+    if (abs(det) < 1e-9) return vec3(0.0);
+    float u = (delta.x * uLightSqv.y - delta.y * uLightSqv.x) / det;
+    float v = (delta.y * uLightSqu.x - delta.x * uLightSqu.y) / det;
+    return vec3(u - 50.0, 0.0, v - 50.0);
+}
 // The game's light at GL point w and its colour: rgb the tint, a the light
 // (1 full). As the engine adds it up: at least the ambient level, else its
 // base plus every light that reaches the hex (walls stop it, as the engine
@@ -215,8 +229,7 @@ float cloudAmbient(vec3 w) {
     return 1.0 - uShadowStrength * kCloudShadowStrength
         * cloudAmount;
 }
-vec4 pointLights(vec3 w, vec3 n, bool facing, float ambientScale) {
-    vec2 hex = hexAt(w);
+vec4 pointLights(vec3 w, vec3 n, bool facing, float ambientScale, vec2 hex) {
     vec4 small = texture(uLightMap, (hex + 0.5) / 200.0);
     float sum = small.a;
     vec3 colored = small.rgb;
@@ -256,16 +269,26 @@ vec4 pointLights(vec3 w, vec3 n, bool facing, float ambientScale) {
 // every tile joint and around every window.
 vec3 gFaceCross;
 vec4 sceneLighting() {
-    if (uLightMode == 1) return pointLights(vWorld, vec3(0.0, 1.0, 0.0), false, cloudAmbient(vWorld));
+    if (uLightMode == 1) return pointLights(vWorld, vec3(0.0, 1.0, 0.0), false, cloudAmbient(vWorld), hexAt(vWorld));
     if (uLightMode == 2) {
         if (vFullLight > 0.75) return vec4(1.0);
         vec3 n = normalize(gFaceCross);
         if (dot(n, uTowardCamera) < 0.0) n = -n;
-        return pointLights(vWorld, n, true, cloudAmbient(vWorld));
+        if (vSelfId > 0.5) {
+            int row = int(vSelfId + 0.5) - 1;
+            vec2 bytes = texelFetch(uSeeThroughObjects, ivec2(row % 1024, row / 1024), 0).ba;
+            int tile = int(round(bytes.x * 255.0)) + 256 * int(round(bytes.y * 255.0));
+            if (tile >= 0 && tile < 40000) {
+                vec2 hex = vec2(float(tile % 200), floor(float(tile) / 200.0));
+                vec3 anchor = lightAnchorAtTile(tile);
+                return pointLights(anchor, vec3(0.0, 1.0, 0.0), false, cloudAmbient(anchor), hex);
+            }
+        }
+        return pointLights(vWorld, n, true, cloudAmbient(vWorld), hexAt(vWorld));
     }
     if (uLightMode == 3) {
         vec3 anchor = vec3(uLightAnchor.x, 0.0, uLightAnchor.y);
-        return pointLights(anchor, vec3(0.0, 1.0, 0.0), false, cloudAmbient(anchor));
+        return pointLights(anchor, vec3(0.0, 1.0, 0.0), false, cloudAmbient(anchor), hexAt(anchor));
     }
     if (uLightMode == 4) return vec4(vec3(1.0), uLightValue);
     return vec4(1.0);

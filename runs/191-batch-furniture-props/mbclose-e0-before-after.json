@@ -1,0 +1,13 @@
+{
+  "map": "mbclose-e0",
+  "elevation": 0,
+  "view_tile": 17131,
+  "resolution": "1920x1080 each",
+  "before_exe": "baseline CMake build from claim SHA d683b90",
+  "after_exe_sha256": "c83d571c7d0a059cb4baa63744d86b270ffd22008f6819de279b2c8fac72bd82",
+  "before_image": "build\\task191-baseline\\mbclose-e0\\devhero-20261106-012728-000.png",
+  "after_image": "build\\task191-after\\mbclose-e0\\devhero-20261106-012850-000.png",
+  "view": "static-wall-plus-hero-preview",
+  "limitation": "Not a live free-camera frame. These captures do not reproduce the reported green beam symptom; not proof of acceptance.",
+  "sheet_bytes": 528969
+}
