@@ -104,12 +104,14 @@ std::string jsonText(const char* text)
     return "unknown";
 }
 
-bool takeShot()
+// Fails quiet: the caller decides what the owner reads (the key press posts
+// to the message monitor; the pump retries and never spams).
+bool takeShot(std::string* failure)
 {
     namespace fs = std::filesystem;
 
     if (gSdlSurface == nullptr || gSdlSurface->pixels == nullptr) {
-        displayMonitorAddMessage("shot failed: no framebuffer");
+        if (failure != nullptr) *failure = "no framebuffer";
         return false;
     }
 
@@ -118,7 +120,7 @@ bool takeShot()
         std::time_t t = time(nullptr);
         struct tm* tmv = localtime(&t);
         if (tmv == nullptr || strftime(stamp, sizeof(stamp), "%Y%m%d-%H%M%S", tmv) == 0) {
-            displayMonitorAddMessage("shot failed: clock unavailable");
+            if (failure != nullptr) *failure = "clock unavailable";
             return false;
         }
     }
@@ -136,9 +138,7 @@ bool takeShot()
     }
     if (folderError.empty() && directory.empty()) folderError = "no output folder";
     if (!folderError.empty()) {
-        char message[128];
-        snprintf(message, sizeof(message), "shot failed: %s", folderError.c_str());
-        displayMonitorAddMessage(message);
+        if (failure != nullptr) *failure = folderError;
         return false;
     }
 
@@ -168,7 +168,7 @@ bool takeShot()
         }
     }
     if (imagePath.empty()) {
-        displayMonitorAddMessage("shot failed: no free file name");
+        if (failure != nullptr) *failure = "no free file name";
         return false;
     }
 
@@ -192,21 +192,19 @@ bool takeShot()
         if (!scene_renderer::captureFrameBuffer(static_cast<const unsigned char*>(gSdlTextureSurface->pixels),
                 gSdlTextureSurface->w, gSdlTextureSurface->h, gSdlTextureSurface->pitch,
                 pixels, &width, &height, &captureError)) {
-            char message[160];
-            snprintf(message, sizeof(message), "shot failed: %s", captureError.c_str());
-            displayMonitorAddMessage(message);
+            if (failure != nullptr) *failure = captureError;
             return false;
         }
     } else {
         indexed.resize(static_cast<size_t>(gSdlSurface->w) * static_cast<size_t>(gSdlSurface->h));
         if (!devtools::copySnapshotRowsTightly(static_cast<const unsigned char*>(gSdlSurface->pixels),
                 gSdlSurface->w, gSdlSurface->h, gSdlSurface->pitch, indexed.data(), indexed.size())) {
-            displayMonitorAddMessage("shot failed: invalid framebuffer row pitch");
+            if (failure != nullptr) *failure = "invalid framebuffer row pitch";
             return false;
         }
         unsigned char* pal = directDrawGetPalette();
         if (pal == nullptr) {
-            displayMonitorAddMessage("shot failed: no palette");
+            if (failure != nullptr) *failure = "no palette";
             return false;
         }
         palette.assign(pal, pal + 768);
@@ -406,7 +404,14 @@ bool handleKey(int key)
     // The owner's shot key. The dev tools' handler runs first: with them on,
     // F9 stays the dev snapshot and never reaches here.
     if (key != KEY_F9) return false;
-    return takeShot();
+    std::string failure;
+    if (!takeShot(&failure)) {
+        char message[160];
+        snprintf(message, sizeof(message), "shot failed: %s", failure.c_str());
+        displayMonitorAddMessage(message);
+        return false;
+    }
+    return true;
 }
 
 void parseOption(const char* arg)
@@ -435,7 +440,7 @@ void pump()
     if (gShotReadyAt == 0) gShotReadyAt = SDL_GetTicks() + gShotDelaySeconds * 1000;
     if (SDL_GetTicks() < gShotReadyAt) return;
     const Uint64 captureStart = SDL_GetPerformanceCounter();
-    if (takeShot()) {
+    if (takeShot(nullptr)) {
         // The readback runs on this thread: its wall time is the cost the key
         // press frame pays (183's bar: under 50 ms). The devperf line puts
         // the capture into the same timeline as the frame windows.
