@@ -37,7 +37,7 @@ from wall_sidecar import decode_wall_sidecar, encode_wall_sidecar, wall_slabs  #
 from shadow_sidecar import VERSION as SHADOW_SIDECAR_VERSION  # noqa: E402
 from shadow_sidecar import decode_shadow_sidecar, encode_shadow_sidecar  # noqa: E402
 
-EXPORTER_VERSION = "1.12.0"
+EXPORTER_VERSION = "1.13.0"
 DONOR_REVISION = "0da1cd449f1dc7f2f6986ff7e8728a4b6ae20584"
 DEFAULT_MAP = "kladwtwn"
 # Map groups for --maps: every elevation each map has.
@@ -89,6 +89,14 @@ MAP_GROUPS = {
     # and water edges (the game's maps/desert*.map, desrt*.map and
     # coast*.map files).
     "encdesertcoast": ("desert1", "desert2", "desert3", "desert4", "desert5", "desert6", "desert7", "desert8", "desert9", "desrt10", "desrt11", "desrt12", "desrt13", "coast1", "coast2", "coast3", "coast4", "coast5", "coast6", "coast7", "coast8", "coast9", "coast10", "coast11", "coast12"),
+    # The city, cave and mountain random encounters: ruined streets, caves
+    # and mountain paths (the game's maps/city*.map, cave*.map and
+    # mountn*.map files).
+    "enccitycave": ("city1", "city2", "city3", "city4", "city5", "city6", "city7", "city8", "cave0", "cave1", "cave2", "cave3", "cave4", "cave5", "cave6", "cave7", "mountn1", "mountn2", "mountn3", "mountn4", "mountn5", "mountn6"),
+    # The special encounters, the fixed encounters and the car's map: the
+    # whale, the cafe, the bridge, the shuttle and the rest (the game's
+    # maps/rnd*.map, enc*.map, cowbomb.map and cardesrt.map files).
+    "encspecial": ("rndwhale", "rndtinwd", "rndbhead", "rndshutl", "rnduvilg", "rndbridg", "rndcafe", "rndholy1", "rndholy2", "rndforvr", "rndtoxic", "rndparih", "rndexcow", "rndbess", "encdet", "encdock", "encfite", "encgd", "encpres", "encrctr", "enctrp", "cowbomb", "cardesrt"),
 }
 EXPECTED_OUTPUT_FILES = {"scene.json", "provenance.json", "floor.bin", "walls.bin", "projection.bin", "baked.bin",
                          "shadows.bin", "tiles.png", "light.png", "rock.png", "roof_fringe.png"}
@@ -451,7 +459,7 @@ def export_scene(gf, game_root: Path, map_name: str, elevation: int, out_dir: Pa
     wall_back_pages = []
     wall_payload = encode_wall_sidecar(scene, skip_props, skip_rests, builder.map.objects[elevation],
                                        builder.atlas.pages, builder.tile_sheet[..., 3],
-                                       wall_back_pages=wall_back_pages)
+                                       wall_back_pages=wall_back_pages, water=builder.water)
     for index, page in enumerate(wall_back_pages, start=len(builder.atlas.pages)):
         Image.fromarray(page, "RGBA").save(out_dir / f"sprites{index}.png", optimize=True)
     (out_dir / "walls.bin").write_bytes(wall_payload)
@@ -511,7 +519,8 @@ def export_scene(gf, game_root: Path, map_name: str, elevation: int, out_dir: Pa
         "inputFingerprintSha256": fingerprint,
     }
     scene_path.write_text(json.dumps(scene, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    (out_dir / "floor.bin").write_bytes(encode_floor_sidecar(scene, fringe, patches))
+    (out_dir / "floor.bin").write_bytes(encode_floor_sidecar(scene, fringe, patches, builder.water,
+                                                             builder.water_color))
     artifact_hashes = {p.name: sha256_file(p) for p in sorted(out_dir.iterdir()) if p.name != "provenance.json"}
     provenance = {
         "exporter": "fallout2-sprite-lighting scene_export",

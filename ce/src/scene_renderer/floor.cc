@@ -8,6 +8,7 @@
 #include "band_span.h"
 #include "gl_api.h"
 #include "scene_internal.h"
+#include "perf.h"
 #include "sprite_card.h"
 #include "sky.h"
 
@@ -20,6 +21,9 @@ unsigned int gFloorVao = 0;
 unsigned int gFloorTexture = 0;
 int gFloorVertexCount = 0;
 bool gFloorLoaded = false;
+int gFloorExtensionFirst = 0;
+int gFloorExtensionCount = 0;
+float gFloorSeaColor[3] = {0.04f, 0.04f, 0.045f};
 
 namespace {
 
@@ -27,6 +31,10 @@ unsigned int gFloorVbo = 0;
 MapClip gFloorMapClip;
 MapClip gActiveMapClip;
 std::vector<unsigned char> gFloorOccupancy;
+// A tile-less elevation (171): every square is the nothing tile, the floor
+// grid holds no drawn square. The void is the ground; the game's own
+// walkability decides where the hero steps.
+bool gFloorTileLess = false;
 
 } // namespace
 
@@ -45,10 +53,15 @@ void destroyStaticFloor()
     gFloorVbo = 0;
     gFloorTexture = 0;
     gFloorVertexCount = 0;
+    gFloorExtensionFirst = 0;
+    gFloorExtensionCount = 0;
+    gFloorSeaColor[0] = gFloorSeaColor[1] = 0.04f;
+    gFloorSeaColor[2] = 0.045f;
     gFloorLoaded = false;
     gFloorMapClip = {};
     gActiveMapClip = {};
     gFloorOccupancy.clear();
+    gFloorTileLess = false;
 }
 
 } // namespace internal
@@ -76,11 +89,14 @@ bool loadStaticFloor(const std::filesystem::path& cacheDirectory, std::string* e
 
     std::vector<unsigned char> sidecar;
     std::vector<unsigned char> png;
-    if (!readBinary(cacheDirectory / "floor.bin", sidecar)) {
-        return fail("floor.bin is missing or unreadable");
-    }
-    if (!readBinary(cacheDirectory / "tiles.png", png)) {
-        return fail("tiles.png is missing or unreadable");
+    {
+        PerfScope stage("floor_read");
+        if (!readBinary(cacheDirectory / "floor.bin", sidecar)) {
+            return fail("floor.bin is missing or unreadable");
+        }
+        if (!readBinary(cacheDirectory / "tiles.png", png)) {
+            return fail("tiles.png is missing or unreadable");
+        }
     }
     constexpr size_t kHeaderSize = 20;
     constexpr size_t kFloorBytes = 100 * 100 * 2;
@@ -107,6 +123,10 @@ bool loadStaticFloor(const std::filesystem::path& cacheDirectory, std::string* e
     // their own in roof_fringe.png (a mixed tile: its roof, the wall-top part
     // cut out; the band stands up from that part): a count, then per entry the
     // square index and the cell's x and y in roof_fringe.png (8 bytes).
+    // Version 7 adds, after the patches, a byte per square: 1 where the
+    // square's floor tile is water art. A water edge continues past the map
+    // as a sea plane (168); the renderer fills the void squares that reach
+    // such an edge and stretches strips out of every boundary water square.
     // A version 3 or 4 list is read for its size only: its roofs stay flat
     // squares (version 3 drew crossed sheets, version 4 bands off the wall).
     constexpr size_t kFringeEntryBytes = 32;
@@ -117,19 +137,28 @@ bool loadStaticFloor(const std::filesystem::path& cacheDirectory, std::string* e
     const size_t fringeCount = version >= 5 ? listedCount : 0;
     constexpr size_t kPatchEntryBytes = 8;
     const size_t patchesAt = cellsEnd + (version >= 3 ? 2 + listedCount * entryBytes : 0);
-    const size_t patchCount = version == 6 && sidecar.size() >= patchesAt + 2 ? readU16(sidecar.data() + patchesAt) : 0;
-    const size_t expectedSize = patchesAt + (version == 6 ? 2 + patchCount * kPatchEntryBytes : 0);
-    if ((version < 1 || version > 6) || gridWidth != 100 || gridHeight != 100 || tileCount == 0
+    const size_t patchCount = version >= 6 && sidecar.size() >= patchesAt + 2 ? readU16(sidecar.data() + patchesAt) : 0;
+    const size_t waterAt = patchesAt + (version >= 6 ? 2 + patchCount * kPatchEntryBytes : 0);
+    constexpr size_t kGridSquares = 100 * 100;
+    const size_t expectedSize = waterAt + (version >= 7 ? 3 + kGridSquares : 0);
+    // tileCount 0 is a tile-less elevation (171): the map's squares are all
+    // the nothing tile, the scene draws no tiles and the void carries it.
+    if ((version < 1 || version > 7) || gridWidth != 100 || gridHeight != 100
         || cellSize != 88 || cellMargin != 6 || imageWidth == 0 || imageHeight == 0
         || imageWidth > 8192 || imageHeight > 8192
         || sidecar.size() != expectedSize) {
         return fail("floor.bin version, dimensions, or length is unsupported");
     }
+    gFloorTileLess = tileCount == 0;
 
     std::vector<unsigned char> rgba;
     unsigned pngWidth = 0;
     unsigned pngHeight = 0;
-    const unsigned pngError = lodepng::decode(rgba, pngWidth, pngHeight, png);
+    unsigned pngError = 0;
+    {
+        PerfScope stage("floor_decode");
+        pngError = lodepng::decode(rgba, pngWidth, pngHeight, png);
+    }
     if (pngError != 0) {
         return fail(std::string("tiles.png decode failed: ") + lodepng_error_text(pngError));
     }
@@ -195,6 +224,7 @@ bool loadStaticFloor(const std::filesystem::path& cacheDirectory, std::string* e
     std::vector<unsigned char> fringeRgba;
     unsigned fringeWidth = 0, fringeHeight = 0;
     if (fringeCount > 0 || patchCount > 0) {
+        PerfScope stage("floor_fringe");
         std::vector<unsigned char> fringePng;
         if (!readBinary(cacheDirectory / "roof_fringe.png", fringePng)) {
             return fail("roof_fringe.png is missing or unreadable");
@@ -303,9 +333,138 @@ bool loadStaticFloor(const std::filesystem::path& cacheDirectory, std::string* e
         roofs.push_back(square);
     }
 
-    std::string shaderError;
-    if (!createSceneShader(&shaderError)) return fail(shaderError);
+    // The sea past a map edge that is water (168). floor.bin 7 carries the
+    // flat water colour (3 bytes) and a byte per square: 1 open water, 2 the
+    // shore. The water squares themselves mostly draw nothing (the docks'
+    // sea is the near-black grid000, whose value 1 the tile layer keeps
+    // undrawn), so the renderer fills every flagged square and every void
+    // square the water spills into, and stretches strips of the same flat
+    // colour out of the grid's boundary squares, the steps doubling so the
+    // last ones reach the far plane's horizon. All of it draws flat in the
+    // water colour, a hair under the tiles. The draw keeps these vertices
+    // apart: flight and turned views only, and never clipped to the map's
+    // clean edges.
+    const int tilesEnd = static_cast<int>(vertices.size());
+    if (version >= 7 && sidecar.size() >= waterAt + 3 + kGridSquares) {
+        const unsigned char* water = sidecar.data() + waterAt + 3;
+        gFloorSeaColor[0] = sidecar.data()[waterAt] / 255.0f;
+        gFloorSeaColor[1] = sidecar.data()[waterAt + 1] / 255.0f;
+        gFloorSeaColor[2] = sidecar.data()[waterAt + 2] / 255.0f;
+        auto flagged = [&](int r, int c) {
+            return r >= 0 && r < 100 && c >= 0 && c < 100 && water[r * 100 + c] != 0;
+        };
+        auto landSquare = [&](int r, int c) {
+            return r >= 0 && r < 100 && c >= 0 && c < 100
+                && floorOccupancy[r * 100 + c] != 0 && water[r * 100 + c] == 0;
+        };
+        std::vector<unsigned char> filled(kGridSquares, 0);
+        std::vector<unsigned char> blocked(kGridSquares, 0);
+        std::vector<std::pair<int, int>> queue;
+        // The water squares fill first (flagged void: the sea the map left
+        // undrawn); a void square beside land on its sides stops the spill,
+        // so the sea ends at the shore and never wraps around a land corner.
+        static constexpr int kRing[8][2] = {{-1, -1}, {-1, 0}, {-1, 1}, {0, -1}, {0, 1}, {1, -1}, {1, 0}, {1, 1}};
+        for (int r = 0; r < 100; r++) {
+            for (int c = 0; c < 100; c++) {
+                const int index = r * 100 + c;
+                if (floorOccupancy[index] != 0) continue;
+                if (water[index] != 0) {
+                    filled[index] = 1;
+                    queue.push_back({r, c});
+                    continue;
+                }
+                for (const auto& ring : kRing) {
+                    if ((ring[0] == 0 || ring[1] == 0) && landSquare(r + ring[0], c + ring[1])) {
+                        blocked[index] = 1;
+                        break;
+                    }
+                }
+            }
+        }
+        size_t filledCount = queue.size();
+        static constexpr int kSteps[4][2] = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+        for (size_t head = 0; head < queue.size() && filledCount < kGridSquares; head++) {
+            const int r = queue[head].first;
+            const int c = queue[head].second;
+            for (const auto& step : kSteps) {
+                const int rr = r + step[0], cc = c + step[1];
+                if (rr < 0 || rr >= 100 || cc < 0 || cc >= 100) continue;
+                const int index = rr * 100 + cc;
+                if (filled[index] || blocked[index] || floorOccupancy[index] != 0 || water[index] != 0) continue;
+                bool stop = false;
+                for (const auto& around : kSteps) {
+                    if (landSquare(rr + around[0], cc + around[1])) { stop = true; break; }
+                }
+                if (stop) {
+                    blocked[index] = 1;
+                    continue;
+                }
+                filled[index] = 1;
+                queue.push_back({rr, cc});
+                filledCount++;
+            }
+        }
+        // The squares, then the strips past the grid's boundary: from 12 tiles
+        // out the steps double, so the sea reaches the horizon with a few
+        // quads. All flat: the water colour everywhere, UVs unused.
+        constexpr float kSeaY = -0.03f;     // a hair under the tiles, whose rims overdraw the joint
+        auto seaQuad = [&](float x0, float z0, float x1, float z1) {
+            quad(x0, kSeaY, z0, x1, z1, 0.0f, 0.0f, 0.0f, 0.0f);
+        };
+        for (int r = 0; r < 100; r++) {
+            for (int c = 0; c < 100; c++) {
+                if (filled[r * 100 + c] == 0) continue;
+                const float x0 = static_cast<float>(c) - kHalfMap;
+                const float z0 = static_cast<float>(r) - kHalfMap;
+                seaQuad(x0, z0, x0 + 1.0f, z0 + 1.0f);
+            }
+        }
+        for (int r = 0; r < 100; r++) {
+            for (int c = 0; c < 100; c++) {
+                const int index = r * 100 + c;
+                // A filled square, or a drawn water square at the boundary
+                // (the abbey's shore tiles): either carries the sea outward.
+                const bool waterSquare = filled[index] != 0
+                    || (floorOccupancy[index] != 0 && water[index] != 0);
+                if (!waterSquare) continue;
+                if (r != 0 && r != 99 && c != 0 && c != 99) continue;
+                const float x0 = static_cast<float>(c) - kHalfMap;
+                const float z0 = static_cast<float>(r) - kHalfMap;
+                for (int side = 0; side < 4; side++) {
+                    const bool on = side == 0 ? r == 0 : side == 1 ? r == 99 : side == 2 ? c == 0 : c == 99;
+                    if (!on) continue;
+                    const int dr = side == 0 ? -1 : side == 1 ? 1 : 0;
+                    const int dc = side == 2 ? -1 : side == 3 ? 1 : 0;
+                    float from = 0.0f;
+                    float step = 1.0f;
+                    for (int k = 0; k < 24 && from < 2048.0f; k++) {
+                        const float to = from + step;
+                        if (dr != 0) {
+                            const float zA = z0 + (dr < 0 ? -to : to);
+                            const float zB = z0 + (dr < 0 ? -from : from);
+                            seaQuad(x0, zA, x0 + 1.0f, zB);
+                        } else {
+                            const float xA = x0 + (dc < 0 ? -to : to);
+                            const float xB = x0 + (dc < 0 ? -from : from);
+                            seaQuad(xA, z0, xB, z0 + 1.0f);
+                        }
+                        from = to;
+                        if (k >= 11) step *= 2.0f;
+                    }
+                }
+            }
+        }
+        gFloorExtensionFirst = tilesEnd;
+        gFloorExtensionCount = static_cast<int>(vertices.size()) - tilesEnd;
+    }
 
+    std::string shaderError;
+    {
+        PerfScope stage("floor_shader");
+        if (!createSceneShader(&shaderError)) return fail(shaderError);
+    }
+
+    PerfScope stage("floor_upload");
     glGenVertexArrays(1, &gFloorVao);
     glBindVertexArray(gFloorVao);
     glGenBuffers(1, &gFloorVbo);
@@ -358,6 +517,9 @@ MapClip staticFloorMapClip()
 bool staticFloorHasGround(double x, double z)
 {
     if (gFloorOccupancy.size() != 10000) return false;
+    // A tile-less elevation has no drawn square anywhere; the void box is
+    // walkable wherever the game's own data says so (171).
+    if (gFloorTileLess) return true;
     return floorGridContainsWorldPoint(gFloorOccupancy.data(), 100, 100, x, z);
 }
 

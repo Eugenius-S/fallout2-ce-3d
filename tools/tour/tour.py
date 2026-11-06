@@ -151,7 +151,7 @@ def shoot(name, side, turns, distance, groups, reuse, rp_game_root=None):
         # -Command, quoted: through -File a list with commas becomes an array.
         command = (f"& '{root / 'tools' / 'dev-snapshot.ps1'}' -Map {map_name} -Elevation {elevation} "
                    f"-Tour '{','.join(stops)}' -Still -Ambient 65536 -OutputDirectory '{folder}' "
-                   f"-TimeoutSeconds {120 + 4 * len(stops)}")
+                   f"-TimeoutSeconds {120 + 4 * len(stops)} -StepTimeoutSeconds 120")
         if kind == "cache":
             command += f" -SceneCache '{path}'"
         if rp_game_root:

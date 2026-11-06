@@ -35,6 +35,23 @@ private:
     unsigned long long started_;
 };
 
+// A load chain's wall-clock marks (a map change, task 172): perfLoadStart
+// begins the chain and each perfLoadMark logs the wall time since the chain's
+// start, once per name per chain, so one map change reads as one table:
+// map_load, scene_loaded, first_frame. Off with the profiler.
+void perfLoadStart(const char* what);
+void perfLoadMark(const char* what);
+
+// One tick per presented frame, always on (the owner shot, 183): the ring of
+// the last frame intervals, whatever F2CE_PERF says. Main thread only.
+void perfFrameTick();
+// The recent frames over that ring: the frame rate, the mean frame time and
+// the mean of the slowest 1% (the 1% low). False until two frames passed.
+bool perfFrameStats(double* fps, double* averageMs, double* low1Ms);
+// One line into devperf.log (the profiler's file), so an in-game event lands
+// in the same timeline as the frame windows around it.
+void perfLog(const char* line);
+
 } // namespace scene_renderer
 } // namespace fallout
 

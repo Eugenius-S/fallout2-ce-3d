@@ -3,6 +3,8 @@
 
 #include <stddef.h>
 
+#include <mutex>
+
 #include "heap.h"
 
 namespace fallout {
@@ -80,6 +82,12 @@ typedef struct Cache {
     CacheReadProc* readProc;
     CacheFreeProc* freeProc;
     Heap heap;
+
+    // Guards the entry table, the heap and the reference counts. The size and
+    // read procs run outside it, so a warm thread pool spreads the file reads
+    // (172); a read block lands in the heap and enters the table under it,
+    // with a double check against another thread locking the same key.
+    std::mutex mutex;
 } Cache;
 
 bool cacheInit(Cache* cache, CacheSizeProc* sizeProc, CacheReadProc* readProc, CacheFreeProc* freeProc, int maxSize);

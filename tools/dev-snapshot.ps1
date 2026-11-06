@@ -54,6 +54,14 @@ param(
     [ValidateSet('bold', 'semibold')]
     [string]$Font101PreviewWeight,
     [string]$Tour,
+    # The owner feedback shot (183): --dev-owner-shot-once takes the owner's
+    # PNG and JSON at the first ready present (task 183's acceptance shots).
+    # -OwnerShotDelay N waits N seconds of steady frames before the capture.
+    [switch]$OwnerShot,
+    [int]$OwnerShotDelay = 0,
+    # Seconds the game stays alive after the last snapshot, so a delayed
+    # in-game capture (the owner shot) lands in steady frames.
+    [int]$HoldSeconds = 0,
     [switch]$Classic,
     [switch]$Preferences,
     [string]$DevInput,
@@ -422,6 +430,10 @@ $arguments += '--dev-watchdog'
 if ($DevInput) { $arguments += "--dev-input=$([System.IO.Path]::GetFullPath($DevInput))" }
 if ($SceneInput) { $arguments += "--dev-scene-input=$([System.IO.Path]::GetFullPath($SceneInput))" }
 if ($TurnKeys) { $arguments += '--dev-camera-turn-keys' }
+if ($OwnerShot) {
+    if ($OwnerShotDelay -gt 0) { $arguments += "--dev-owner-shot-once=$OwnerShotDelay" }
+    else { $arguments += '--dev-owner-shot-once' }
+}
 if ($MuzzleWeapon -gt 0) {$arguments += @("--dev-muzzle=$MuzzleWeapon", "--dev-muzzle-animation=$MuzzleAnimation", "--dev-muzzle-rotation=$MuzzleRotation")}
 if ($ClockLadder) { $arguments += '--dev-clock-ladder' }
     if ($ScrollStep) { $arguments += "--dev-scroll-step=$ScrollStep" }
@@ -772,6 +784,11 @@ try {
     $env:F2CE_SCENE_CACHE = $previousSceneCache
     $env:F2CE_DEV_OUT = $previousOutput
     if ($null -ne $process) {
+        if (-not $process.HasExited -and $HoldSeconds -gt 0) {
+            # A delayed in-game capture (the owner shot) needs the game alive
+            # past the last snapshot.
+            Start-Sleep -Seconds $HoldSeconds
+        }
         if (-not $process.HasExited) {
             Stop-Process -Id $process.Id -Force
             $probeHarnessStoppedProcess = $true

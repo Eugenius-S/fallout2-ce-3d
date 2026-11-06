@@ -11,15 +11,12 @@ namespace scene {
 constexpr double kCameraTurnStep = 10.0;
 // Without camera_rotation_unlimited the turn stops at this many degrees either way.
 constexpr double kCameraTurnLimit = 30.0;
-// The old constant-speed turn: a 10-degree step ran at this speed, about
-// 28 ms with a hard start and stop. The eased step peaks at the same speed
-// and spends its speed on the arc, so one step is a smooth zero-to-zero
-// ride of about twice that (still under the held key's 80 ms repeat).
-constexpr double kCameraTurnSpeed = 360.0;
+// Maximum turn speed, just under one 10-degree repeat per 80 ms. A held key
+// reaches this speed across successive targets and then keeps a steady sweep.
+constexpr double kCameraTurnSpeed = 110.0;
 constexpr double kCameraTurnMaxSpeed = kCameraTurnSpeed;
-// Braking from the peak covers exactly one step (v^2 = 2 * a * s), so a
-// single step is all ease with no cruise between the ramps.
-constexpr double kCameraTurnAccel = kCameraTurnSpeed * kCameraTurnSpeed / kCameraTurnStep;
+// A 10-degree rest-to-rest turn takes about 250 ms at this acceleration.
+constexpr double kCameraTurnAccel = 640.0;
 
 inline double limitedCameraTurn(double degrees)
 {
@@ -39,34 +36,48 @@ inline double cameraTurnTarget(double current, int steps, bool unlimited)
 // the ease in and the ease out. A press mid-turn retargets `to` while the
 // speed carries over, so two quick presses are one smooth arc. Returns true
 // when the camera stands on the target: `at == to`, `speed == 0`.
-inline bool cameraTurnEaseStep(double& at, double& to, double& speed, double dt)
+inline bool cameraTurnEaseSubstep(double& at, double& to, double& speed, double dt)
 {
-    if (dt <= 0.0) return at == to;
     const double dist = to - at;
-    if (dist == 0.0) {
-        speed = 0.0;
-        return true;
-    }
-    const double dir = dist > 0.0 ? 1.0 : -1.0;
-    // Ease in: gain speed toward the target. A press that reverses the
-    // direction sheds the opposite speed through zero at the same rate,
-    // so the turn bends around without a jump.
-    double s = speed + dir * kCameraTurnAccel * dt;
-    s = dir > 0.0 ? std::min(s, kCameraTurnMaxSpeed) : std::max(s, -kCameraTurnMaxSpeed);
-    if (s * dir > 0.0) {
-        // Ease out: never faster than the speed that lands on the target.
-        const double stop = std::sqrt(2.0 * kCameraTurnAccel * std::fabs(dist));
-        s = dir > 0.0 ? std::min(s, stop) : std::max(s, -stop);
-    }
-    const double move = s * dt;
-    if (std::fabs(move) >= std::fabs(dist)) {
+    if (std::fabs(dist) < 1e-9) {
         at = to;
         speed = 0.0;
         return true;
     }
-    speed = s;
+    const double dir = dist > 0.0 ? 1.0 : -1.0;
+    // Keep the braking envelope one substep ahead. This makes the speed
+    // change by at most the acceleration limit instead of clamping it to the
+    // stopping speed in one frame.
+    const double stop = std::sqrt(2.0 * kCameraTurnAccel * std::fabs(dist));
+    const double desiredMagnitude = std::max(0.0, stop - kCameraTurnAccel * dt);
+    const double desired = dir * std::min(kCameraTurnMaxSpeed, desiredMagnitude);
+    const double maxDelta = kCameraTurnAccel * dt;
+    const double nextSpeed = speed + std::clamp(desired - speed, -maxDelta, maxDelta);
+    const double move = (speed + nextSpeed) * 0.5 * dt;
+    if (move * dir >= std::fabs(dist)) {
+        at = to;
+        speed = 0.0;
+        return true;
+    }
     at += move;
+    speed = nextSpeed;
     return false;
+}
+
+inline bool cameraTurnEaseStep(double& at, double& to, double& speed, double dt)
+{
+    if (dt <= 0.0) return at == to;
+    // Integrating in small slices keeps braking smooth when the remaining
+    // distance becomes shorter than one rendered frame's travel.
+    constexpr double kMaxSubstep = 0.001;
+    constexpr int kMaxSubsteps = 512;
+    const int substeps = std::min(kMaxSubsteps, std::max(1,
+        static_cast<int>(std::ceil(dt / kMaxSubstep))));
+    const double substep = dt / substeps;
+    for (int i = 0; i < substeps; i++) {
+        if (cameraTurnEaseSubstep(at, to, speed, substep)) return true;
+    }
+    return at == to;
 }
 
 // The game scrolls the map along its own eight directions: a step (dx right,

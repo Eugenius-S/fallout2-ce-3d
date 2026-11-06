@@ -1,4 +1,5 @@
 #include "art.h"
+#include "scene_renderer/perf.h"
 
 #include <lodepng.h>
 
@@ -943,7 +944,8 @@ int artCritterFrmIdShouldRun(const FrmId& frmId)
 
 static bool artGetLocalizedPath(const char* basePath, const char** outPath)
 {
-    static char localizedPath[COMPAT_MAX_PATH];
+    // Thread-local: the warm thread pool reads art concurrently (172).
+    static thread_local char localizedPath[COMPAT_MAX_PATH];
 
     if (!gArtLanguageInitialized) {
         return false;
