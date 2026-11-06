@@ -324,17 +324,18 @@ void drawStaticHeroPreview()
 
 namespace {
 
-// The back buffer as drawn so far into a new PNG (top-down rows).
-bool writeBackBufferPng(const std::filesystem::path& path, int drawableWidth, int drawableHeight, std::string* error)
+// The back buffer as drawn so far, into top-down RGBA rows: the GL readback
+// the file variants encode (183).
+bool readBackBuffer(std::vector<unsigned char>& topDown, int drawableWidth, int drawableHeight, std::string* error)
 {
     const size_t rowBytes = static_cast<size_t>(drawableWidth) * 4;
     std::vector<unsigned char> bottomUp(rowBytes * static_cast<size_t>(drawableHeight));
-    std::vector<unsigned char> topDown(bottomUp.size());
+    topDown.resize(bottomUp.size());
     glPixelStorei(kPackAlignment, 1);
     glReadPixels(0, 0, drawableWidth, drawableHeight, kRGBA, kUnsignedByte, bottomUp.data());
     glPixelStorei(kPackAlignment, kDefaultPackAlignment);
     if (glGetError() != 0) {
-        *error = "OpenGL backbuffer read failed";
+        if (error != nullptr) *error = "OpenGL backbuffer read failed";
         return false;
     }
     for (int row = 0; row < drawableHeight; row++) {
@@ -342,6 +343,13 @@ bool writeBackBufferPng(const std::filesystem::path& path, int drawableWidth, in
         unsigned char* destination = topDown.data() + rowBytes * static_cast<size_t>(row);
         std::copy(source, source + rowBytes, destination);
     }
+    return true;
+}
+
+bool writeBackBufferPng(const std::filesystem::path& path, int drawableWidth, int drawableHeight, std::string* error)
+{
+    std::vector<unsigned char> topDown;
+    if (!readBackBuffer(topDown, drawableWidth, drawableHeight, error)) return false;
     const unsigned encodeError = lodepng::encode(path.string(), topDown,
         static_cast<unsigned>(drawableWidth), static_cast<unsigned>(drawableHeight), LCT_RGBA, 8);
     if (encodeError != 0) {
@@ -349,6 +357,26 @@ bool writeBackBufferPng(const std::filesystem::path& path, int drawableWidth, in
         std::filesystem::remove(path, ec); // Remove only output this call may have partially written.
         *error = std::string("PNG encode failed: ") + lodepng_error_text(encodeError);
         return false;
+    }
+    return true;
+}
+
+// The redraw behind every frame capture: the frame shown in the window,
+// presented again so the readback below sees it whole.
+bool presentFrameForCapture(const unsigned char* rgba, int frameWidth, int frameHeight, int pitch, std::string* error)
+{
+    // Reuse the prepared sharp pass from the same frame shown live.
+    const PreparedSharpTextFrame& text = preparedSharpTextFrame();
+    const bool sharpReady = text.active && text.width == frameWidth && text.height == frameHeight
+        && uploadSharpTextOverlay(text.overlay.pixels.data(), text.overlay.width,
+            text.overlay.height, text.overlay.pitch);
+    if (text.active && !sharpReady) disableSharpText("OpenGL upload failed during frame capture");
+    // The next present clears and redraws the back buffer; nothing is swapped.
+    presentFrame(sharpReady ? text.restoredRgba.data() : rgba,
+        frameWidth, frameHeight, sharpReady ? text.rgbaPitch : pitch);
+    if (sharpReady && !drawPreparedSharpTextOverlay()) {
+        disableSharpText("OpenGL draw failed during frame capture");
+        presentFrame(rgba, frameWidth, frameHeight, pitch);
     }
     return true;
 }
@@ -371,21 +399,31 @@ bool captureFramePng(const std::filesystem::path& path, const unsigned char* rgb
     if (drawableWidth <= 0 || drawableHeight <= 0) return fail("OpenGL drawable has no pixels");
     while (glGetError() != 0) {
     }
-    // Reuse the prepared sharp pass from the same frame shown live.
-    const PreparedSharpTextFrame& text = preparedSharpTextFrame();
-    const bool sharpReady = text.active && text.width == frameWidth && text.height == frameHeight
-        && uploadSharpTextOverlay(text.overlay.pixels.data(), text.overlay.width,
-            text.overlay.height, text.overlay.pitch);
-    if (text.active && !sharpReady) disableSharpText("OpenGL upload failed during frame capture");
-    // The next present clears and redraws the back buffer; nothing is swapped.
-    presentFrame(sharpReady ? text.restoredRgba.data() : rgba,
-        frameWidth, frameHeight, sharpReady ? text.rgbaPitch : pitch);
-    if (sharpReady && !drawPreparedSharpTextOverlay()) {
-        disableSharpText("OpenGL draw failed during frame capture");
-        presentFrame(rgba, frameWidth, frameHeight, pitch);
-    }
+    presentFrameForCapture(rgba, frameWidth, frameHeight, pitch, error);
     std::string message;
     if (!writeBackBufferPng(path, drawableWidth, drawableHeight, &message)) return fail(message);
+    if (width != nullptr) *width = drawableWidth;
+    if (height != nullptr) *height = drawableHeight;
+    if (error != nullptr) error->clear();
+    return true;
+}
+
+bool captureFrameBuffer(const unsigned char* rgba, int frameWidth, int frameHeight, int pitch,
+    std::vector<unsigned char>& out, int* width, int* height, std::string* error)
+{
+    auto fail = [&](const std::string& message) {
+        if (error != nullptr) *error = message;
+        return false;
+    };
+    if (!gInitialized || rgba == nullptr) return fail("OpenGL renderer is unavailable");
+    int drawableWidth = 0;
+    int drawableHeight = 0;
+    SDL_GL_GetDrawableSize(gWindow, &drawableWidth, &drawableHeight);
+    if (drawableWidth <= 0 || drawableHeight <= 0) return fail("OpenGL drawable has no pixels");
+    while (glGetError() != 0) {
+    }
+    presentFrameForCapture(rgba, frameWidth, frameHeight, pitch, error);
+    if (!readBackBuffer(out, drawableWidth, drawableHeight, error)) return false;
     if (width != nullptr) *width = drawableWidth;
     if (height != nullptr) *height = drawableHeight;
     if (error != nullptr) error->clear();
@@ -397,25 +435,17 @@ bool captureStaticFloorPng(const std::filesystem::path& path, int* width, int* h
     return captureStaticPreviewPng(path, false, false, width, height, error);
 }
 
-bool captureStaticPreviewPng(const std::filesystem::path& path, bool withWalls, bool withHero,
-    int* width, int* height, std::string* error, bool includeOverlay)
+namespace {
+
+// The redraw behind both preview captures: the preview render into the back
+// buffer, no swap, no file write (183). Callers read the back buffer after it.
+bool presentStaticPreview(bool withWalls, bool withHero, bool includeOverlay,
+    int drawableWidth, int drawableHeight, std::string* error)
 {
     auto fail = [&](const std::string& message) {
         if (error != nullptr) *error = message;
         return false;
     };
-    if (!gInitialized || !gFloorLoaded) return fail("static floor preview is not loaded");
-    if (withWalls && !gWallsLoaded) return fail("static wall preview is not loaded");
-    if (withHero && !gHeroLoaded) return fail("current hero frame is unavailable");
-    std::error_code existsError;
-    if (std::filesystem::exists(path, existsError)) return fail("snapshot path already exists");
-    if (existsError) return fail("cannot inspect snapshot path");
-
-    int drawableWidth = 0;
-    int drawableHeight = 0;
-    SDL_GL_GetDrawableSize(gWindow, &drawableWidth, &drawableHeight);
-    if (drawableWidth <= 0 || drawableHeight <= 0) return fail("OpenGL drawable has no pixels");
-
     // Read only our preview render. Do not swap or touch game/map state.
     while (glGetError() != 0) {
     }
@@ -452,8 +482,63 @@ bool captureStaticPreviewPng(const std::filesystem::path& path, bool withWalls, 
     }
     if (glGetError() != 0) return fail(withWalls
         ? "static wall draw failed before snapshot" : "static floor draw failed before snapshot");
+    if (error != nullptr) error->clear();
+    return true;
+}
+
+} // namespace
+
+bool captureStaticPreviewPng(const std::filesystem::path& path, bool withWalls, bool withHero,
+    int* width, int* height, std::string* error, bool includeOverlay)
+{
+    auto fail = [&](const std::string& message) {
+        if (error != nullptr) *error = message;
+        return false;
+    };
+    if (!gInitialized || !gFloorLoaded) return fail("static floor preview is not loaded");
+    if (withWalls && !gWallsLoaded) return fail("static wall preview is not loaded");
+    if (withHero && !gHeroLoaded) return fail("current hero frame is unavailable");
+    std::error_code existsError;
+    if (std::filesystem::exists(path, existsError)) return fail("snapshot path already exists");
+    if (existsError) return fail("cannot inspect snapshot path");
+
+    int drawableWidth = 0;
+    int drawableHeight = 0;
+    SDL_GL_GetDrawableSize(gWindow, &drawableWidth, &drawableHeight);
+    if (drawableWidth <= 0 || drawableHeight <= 0) return fail("OpenGL drawable has no pixels");
+
     std::string message;
+    if (!presentStaticPreview(withWalls, withHero, includeOverlay, drawableWidth, drawableHeight, &message)) {
+        return fail(message);
+    }
     if (!writeBackBufferPng(path, drawableWidth, drawableHeight, &message)) return fail(message);
+    if (width != nullptr) *width = drawableWidth;
+    if (height != nullptr) *height = drawableHeight;
+    if (error != nullptr) error->clear();
+    return true;
+}
+
+bool captureStaticPreviewBuffer(bool withWalls, bool withHero, bool includeOverlay,
+    std::vector<unsigned char>& rgba, int* width, int* height, std::string* error)
+{
+    auto fail = [&](const std::string& message) {
+        if (error != nullptr) *error = message;
+        return false;
+    };
+    if (!gInitialized || !gFloorLoaded) return fail("static floor preview is not loaded");
+    if (withWalls && !gWallsLoaded) return fail("static wall preview is not loaded");
+    if (withHero && !gHeroLoaded) return fail("current hero frame is unavailable");
+
+    int drawableWidth = 0;
+    int drawableHeight = 0;
+    SDL_GL_GetDrawableSize(gWindow, &drawableWidth, &drawableHeight);
+    if (drawableWidth <= 0 || drawableHeight <= 0) return fail("OpenGL drawable has no pixels");
+
+    std::string message;
+    if (!presentStaticPreview(withWalls, withHero, includeOverlay, drawableWidth, drawableHeight, &message)) {
+        return fail(message);
+    }
+    if (!readBackBuffer(rgba, drawableWidth, drawableHeight, &message)) return fail(message);
     if (width != nullptr) *width = drawableWidth;
     if (height != nullptr) *height = drawableHeight;
     if (error != nullptr) error->clear();

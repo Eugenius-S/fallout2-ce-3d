@@ -78,6 +78,7 @@
 #include "win32.h"
 #include "window_manager.h"
 #include "devtools/devtools.h"
+#include "devtools/owner_shot.h"
 #include "devtools/test_run_state.h"
 #include "worldmap.h"
 
@@ -557,6 +558,13 @@ int gameHandleKey(int eventCode, bool isInCombatMode)
     // Sprite-lighting mod: the dev panel consumes keys while it is open and
     // answers its own hotkeys; the game never sees them.
     if (devtools::handleKey(eventCode)) {
+        return 0;
+    }
+
+    // The owner's feedback shot (183): plain F9 while the dev tools are off.
+    // With them on, the dev snapshot above consumed F9, so the tours and the
+    // panel keep their devshot format.
+    if (owner_shot::handleKey(eventCode)) {
         return 0;
     }
 

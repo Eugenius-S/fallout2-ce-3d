@@ -320,5 +320,51 @@ void perfLoadMark(const char* what)
     writeLog(line);
 }
 
+// The owner shot reads the recent frame rate whatever F2CE_PERF says (183):
+// a plain ring of the last intervals, ticked once per presented frame and
+// read on the main thread only, so no lock.
+constexpr int kFrameRing = 300;
+double gFrameRing[kFrameRing] = {};
+int gFrameRingCount = 0;
+int gFrameRingAt = 0;
+Uint64 gFrameTickLast = 0;
+
+void perfFrameTick()
+{
+    const Uint64 now = SDL_GetPerformanceCounter();
+    if (gFrameTickLast != 0) {
+        gFrameRing[gFrameRingAt] = seconds(now - gFrameTickLast) * 1000.0;
+        gFrameRingAt = (gFrameRingAt + 1) % kFrameRing;
+        if (gFrameRingCount < kFrameRing) gFrameRingCount++;
+    }
+    gFrameTickLast = now;
+}
+
+bool perfFrameStats(double* fps, double* averageMs, double* low1Ms){
+    if (gFrameRingCount < 2) return false;
+    std::vector<double> frames;
+    frames.reserve(gFrameRingCount);
+    double sum = 0.0;
+    for (int i = 0; i < gFrameRingCount; i++) {
+        const double ms = gFrameRing[(gFrameRingAt + kFrameRing - 1 - i) % kFrameRing];
+        frames.push_back(ms);
+        sum += ms;
+    }
+    std::sort(frames.begin(), frames.end(), [](double a, double b) { return a > b; });
+    const size_t count = std::max<size_t>(1, frames.size() / 100);
+    double slowest = 0.0;
+    for (size_t i = 0; i < count; i++) slowest += frames[i];
+    *fps = static_cast<double>(frames.size()) * 1000.0 / sum;
+    *averageMs = sum / static_cast<double>(frames.size());
+    *low1Ms = slowest / static_cast<double>(count);
+    return true;
+}
+
+void perfLog(const char* line)
+{
+    if (!perfEnabled()) return;
+    writeLog(line);
+}
+
 } // namespace scene_renderer
 } // namespace fallout
