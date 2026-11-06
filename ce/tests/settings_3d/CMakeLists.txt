@@ -61,3 +61,29 @@ target_include_directories(options_panel_model_tests PRIVATE
 )
 target_compile_definitions(options_panel_model_tests PRIVATE SDL_MAIN_HANDLED)
 add_test(NAME options_panel_model_tests COMMAND options_panel_model_tests)
+
+add_executable(display_window_transaction_tests
+    ../../src/scene/display_window_transaction.cc
+    display_window_transaction_test.cc
+)
+target_link_libraries(display_window_transaction_tests PRIVATE SDL2-static)
+target_compile_definitions(display_window_transaction_tests PRIVATE SDL_MAIN_HANDLED)
+add_test(NAME display_window_transaction_tests COMMAND display_window_transaction_tests)
+
+add_executable(screen_buffer_swap_tests
+    ../../src/scene/screen_buffer_swap.cc
+    screen_buffer_swap_test.cc
+)
+target_link_libraries(screen_buffer_swap_tests PRIVATE SDL2-static)
+target_include_directories(screen_buffer_swap_tests PRIVATE ${zlib_SOURCE_DIR} ${zlib_BINARY_DIR})
+target_compile_definitions(screen_buffer_swap_tests PRIVATE SDL_MAIN_HANDLED)
+add_test(NAME screen_buffer_swap_tests COMMAND screen_buffer_swap_tests)
+
+add_executable(display_surface_swap_tests
+    ../../src/scene/display_surface_swap.cc
+    display_surface_swap_test.cc
+)
+target_include_directories(display_surface_swap_tests PRIVATE ${zlib_SOURCE_DIR} ${zlib_BINARY_DIR})
+target_link_libraries(display_surface_swap_tests PRIVATE SDL2-static)
+target_compile_definitions(display_surface_swap_tests PRIVATE SDL_MAIN_HANDLED)
+add_test(NAME display_surface_swap_tests COMMAND display_surface_swap_tests)

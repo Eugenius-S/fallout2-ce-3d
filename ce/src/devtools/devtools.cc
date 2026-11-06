@@ -6,6 +6,7 @@
 #include "weapon_effect_fixture.h"
 #include "muzzle_fixture.h"
 #include "../scene/effect_emission.h"
+#include "../scene/display_apply.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1543,14 +1544,16 @@ void update()
         fflush(stdout);
     }
     if (!gPreferencesSnapshotActive && scriptedInputActive()) {
-        // A scene script (no -Preferences) starts itself once the 3D view is
-        // up; the options panel's own loop begins the panel scripts.
-        if (!scriptedInputStarted() && scene::activeView() == scene::View::Full && scene::shouldPresent()) {
+        // Scene scripts start from the live 3D view; options scripts are begun
+        // by the preferences loop after its display probe has finished.
+        if (scriptedInputSceneMode() && !scriptedInputStarted()
+            && scene::activeView() == scene::View::Full && scene::shouldPresent()) {
             scriptedInputBegin();
         }
         if (scriptedInputStarted()) {
             scriptedInputPump();
             if (scriptedInputTakeSnapshotRequest()) { renderPresent(); takeSnapshot(); }
+            if (scriptedInputTakePreferencesRequest()) gPreferencesSnapshotPending = true;
         }
     }
     // The startup --dev-map travel retries here until the opening movie is
@@ -1697,6 +1700,10 @@ void update()
         gPreferencesSnapshotActive = true;
         doPreferences(false);
         gPreferencesSnapshotActive = false;
+        if (!scene::applyConfiguredDisplaySettings()) {
+            printf("devtools: display setting apply failed; previous settings restored\n");
+            fflush(stdout);
+        }
         if (preferencesProbeFinished()) {
             printf("PREFERENCES_PROBE finished; requesting isolated helper exit\n");
             fflush(stdout);

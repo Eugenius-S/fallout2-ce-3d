@@ -1,4 +1,5 @@
 #include "tile.h"
+#include "scene/tile_display_swap.h"
 
 #include <assert.h>
 #include <math.h>
@@ -290,6 +291,11 @@ static int gSquareGridWidth;
 
 // 0x66BE30 buf_width_2
 static int gTileWindowWidth;
+
+bool tileExchangeDisplayBuffer(scene::TileDisplaySwap& swap)
+{
+    return swap.exchange(gTileWindowBuffer, gTileWindowWidth, gTileWindowHeight, gTileWindowPitch, gTileWindowRect);
+}
 
 // 0x66BE34 tile_center_tile
 int gCenterTile;

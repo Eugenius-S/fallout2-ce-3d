@@ -46,6 +46,7 @@ extern int gInterfaceBarContentOffset;
 
 int interfaceInit();
 void interfaceReset();
+void interfaceRepositionForDisplayChange();
 void interfaceFree();
 int interfaceLoad(File* stream);
 int interfaceSave(File* stream);

@@ -29,6 +29,7 @@ bool gInputActive = false;
 bool gInputSeen = false;
 bool gInputStarted = false;
 bool gInputSnapshot = false;
+bool gInputPreferences = false;
 int gInputX = 0, gInputY = 0, gInputWait = 0;
 int gInputStep = 0;
 Uint32 gInputWaitUntil = 0; // a waitms deadline, in SDL ticks
@@ -58,10 +59,11 @@ bool scriptedInputActive() { return gInputActive; }
 void scriptedInputBegin() { gInputStarted = true; }
 bool scriptedInputStarted() { return gInputStarted; }
 bool scriptedInputTakeSnapshotRequest() { bool requested = gInputSnapshot; gInputSnapshot = false; return requested; }
+bool scriptedInputTakePreferencesRequest() { bool requested = gInputPreferences; gInputPreferences = false; return requested; }
 
 void scriptedInputPump()
 {
-    if (!gInputActive || gInputWait-- > 0) return;
+    if (!gInputActive || gInputPreferences || gInputWait-- > 0) return;
     if (gInputWaitUntil != 0) {
         if (SDL_GetTicks() < gInputWaitUntil) return;
         gInputWaitUntil = 0;
@@ -86,6 +88,7 @@ void scriptedInputPump()
             return;
         }
         if (action == "snap") { gInputSnapshot = true; printf("DEV_INPUT snap\n"); fflush(stdout); return; }
+        if (action == "preferences") { gInputPreferences = true; printf("DEV_INPUT preferences\n"); fflush(stdout); return; }
         if (action == "key") {
             // One press: a down and an up pushed in the same batch, so a held
             // key's repeat never fires. The value is an SDL_SCANCODE_* number.

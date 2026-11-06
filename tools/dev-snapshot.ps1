@@ -62,9 +62,9 @@ param(
     # once its view shows). The script's actions are the -DevInput ones plus
     # "key <scancode>" (one pressed key, SDL_SCANCODE_* number) and "waitms".
     [string]$SceneInput,
-    # Snapshots the script takes; the run waits for exactly this many (and the
-    # script's PASS line). 5 matches the options-panel resolution script.
+    # Snapshots the script takes; the alias keeps the task 156 command line valid.
     [ValidateRange(1, 400)]
+    [Alias('DevInputSnapshots')]
     [int]$DevInputShots = 5,
     # The script presses [ or ]: turn [3d] camera_rotation on in this run's
     # isolated config copy, so the keys reach the turn.
@@ -798,7 +798,7 @@ if ($DevInput -or $SceneInput) {
         [ordered]@{
             coordinate_space = 'logical'; snapshots = $snapshots.Count
             initial = @{ resolution_x = $initialDisplayWidth; resolution_y = $initialDisplayHeight; scale_factor = $initialDisplayScale }
-            saved = @{ resolution_x = $afterWidth; resolution_y = $afterHeight; scale_factor = $afterScale }
+            saved = @{ resolution_x = $afterWidth; resolution_y = $afterHeight; scale_factor = $afterScale; windowed = (Get-TestConfigValue $configPath 'screen' 'windowed') }
             config_sha256 = (Get-FileHash -LiteralPath $configPath -Algorithm SHA256).Hash
         } | ConvertTo-Json -Depth 4 | Set-Content -Encoding utf8 -LiteralPath (Join-Path $OutputDirectory 'input-result.json')
     }

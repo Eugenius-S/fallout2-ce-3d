@@ -11,6 +11,9 @@
 
 namespace fallout {
 
+namespace scene { class ObjectViewSwap; }
+bool objectExchangeView(scene::ObjectViewSwap& swap);
+
 typedef struct ObjectWithFlags {
     ObjectFlags flags;
     Object* object;

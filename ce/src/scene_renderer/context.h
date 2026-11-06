@@ -14,6 +14,10 @@ bool init(SDL_Window* window, int logicalWidth, int logicalHeight);
 void shutdown();
 bool isActive();
 
+// Change the coordinate system without destroying the GL context or scene.
+// Texture storage is resized lazily on the next presentation.
+bool setLogicalDimensions(int width, int height);
+
 // Presents one RGBA8 frame (the palette-expanded game buffer) as a
 // full-viewport quad. Pixels are top-down, `pitch` in bytes.
 void presentFrame(const unsigned char* rgba, int width, int height, int pitch);

@@ -1,4 +1,7 @@
 #include "../../src/devtools/fixed_screen_options.h"
+#include "../../src/scene/display_dimensions.h"
+#include "../../src/scene/tile_display_swap.h"
+#include "../../src/scene/iso_view_swap.h"
 
 #include <initializer_list>
 #include <string>
@@ -20,6 +23,33 @@ int main()
 {
     FixedScreenOptions options;
     const char* error = nullptr;
+
+    int width = 0, height = 0;
+    if (!fallout::scene::displayLogicalDimensions(1920, 1080, 1.4, &width, &height)
+        || width != 1371 || height != 771) return 18;
+    if (!fallout::scene::displayLogicalDimensions(2560, 1440, 2.0, &width, &height)
+        || width != 1280 || height != 720) return 19;
+    if (fallout::scene::displayLogicalDimensions(1920, 1080, 3.0, &width, &height)
+        || width != 1280 || height != 720) return 20;
+    unsigned char oldBuffer = 0, newBuffer = 0;
+    unsigned char* active = &oldBuffer;
+    int tileWidth = 1371, tileHeight = 671, tilePitch = 1371;
+    fallout::Rect bounds = { 0, 0, 1370, 670 };
+    fallout::scene::TileDisplaySwap tileSwap;
+    if (!tileSwap.prepare(&newBuffer, 1280, 620, 1280)
+        || !tileSwap.exchange(active, tileWidth, tileHeight, tilePitch, bounds)
+        || active != &newBuffer || tileWidth != 1280 || bounds.bottom != 619) return 21;
+    if (!tileSwap.exchange(active, tileWidth, tileHeight, tilePitch, bounds)
+        || active != &oldBuffer || tileWidth != 1371 || bounds.bottom != 670) return 22;
+    fallout::scene::IsoViewSwap isoSwap;
+    fallout::Rect newBounds = { 0, 0, 1279, 619 };
+    if (!isoSwap.prepare(&newBuffer, newBounds) || !isoSwap.exchange(active, bounds)
+        || active != &newBuffer || bounds.right != 1279) return 23;
+    if (!isoSwap.exchange(active, bounds) || active != &oldBuffer || bounds.right != 1370) return 24;
+    fallout::scene::TextViewSwap textSwap;
+    if (!textSwap.prepare(&newBuffer, 1280, 620) || !textSwap.exchange(active, tileWidth, tileHeight)
+        || active != &newBuffer || tileWidth != 1280) return 25;
+    if (!textSwap.exchange(active, tileWidth, tileHeight) || active != &oldBuffer || tileWidth != 1371) return 26;
 
     if (!parse({ "game" }, &options, &error) || options.enabled) return 1;
     if (!parse({ "game", "--dev-tools", "--dev-screen=1920x1080", "--dev-scale=2" }, &options, &error)

@@ -1,4 +1,5 @@
 #include "text_object.h"
+#include "scene/iso_view_swap.h"
 
 #include <algorithm>
 #include <string.h>
@@ -70,6 +71,11 @@ static bool gTextObjectsEnabled;
 
 // 0x668220 text_object_initialized
 static bool gTextObjectsInitialized;
+
+bool textObjectsExchangeView(scene::TextViewSwap& swap)
+{
+    return gTextObjectsInitialized && swap.exchange(gTextObjectsWindowBuffer, gTextObjectsWindowWidth, gTextObjectsWindowHeight);
+}
 
 // 0x4B0130 text_object_init
 int textObjectsInit(unsigned char* windowBuffer, int width, int height)

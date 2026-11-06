@@ -1,0 +1,9 @@
+scene_renderer: OpenGL 4.1.0 NVIDIA 621.01; renderer=NVIDIA GeForce RTX 5070/PCIe/SSE2; profile=0x1 flags=0x1
+CASTERS: pages 2, ranges 2, vertices 124116, x -34.77..31.80, z -34.48..31.09, wall cards 24
+DISPLAY_APPLY enter elapsed_ms=0
+DISPLAY_APPLY buffers-prepared elapsed_ms=2
+DISPLAY_APPLY window-applied elapsed_ms=4
+DISPLAY_APPLY tile-prepared elapsed_ms=4
+DISPLAY_APPLY object-prepared elapsed_ms=6
+DISPLAY_APPLY surface-exchanged elapsed_ms=6
+DISPLAY_APPLY screen-exchanged elapsed_ms=6

@@ -11,6 +11,10 @@
 
 namespace fallout {
 
+namespace scene { class ScreenBufferSwap; }
+bool windowManagerExchangeScreenBuffer(scene::ScreenBufferSwap& buffer);
+bool windowManagerIsBuffered();
+
 // The maximum number of buttons in one radio group.
 #define BUTTON_GROUP_BUTTON_LIST_CAPACITY (64)
 
@@ -215,6 +219,7 @@ inline void windowFill(int win, int x, int y, int width, int height, Color color
 
 void windowShow(int win);
 void windowHide(int win);
+void windowMove(int win, int x, int y);
 void windowRefresh(int win);
 void windowRefreshRect(int win, const Rect* rect);
 void _GNW_win_refresh(Window* window, Rect* rect, unsigned char* dest);

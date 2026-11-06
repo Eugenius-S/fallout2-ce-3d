@@ -1,4 +1,5 @@
 #include "map.h"
+#include "scene/iso_view_swap.h"
 
 #include <assert.h>
 #include <stdio.h>
@@ -156,6 +157,11 @@ MessageList gMapMessageList;
 
 // 0x631D50 display_buf
 static unsigned char* gIsoWindowBuffer;
+
+bool mapExchangeIsoView(scene::IsoViewSwap& swap)
+{
+    return swap.exchange(gIsoWindowBuffer, gIsoWindowRect);
+}
 
 // 0x631D54 map_data
 MapHeader gMapHeader;

@@ -193,17 +193,18 @@ int main()
     const SettingDescriptor* resolutionMode = findDescriptor("screen.resolution_mode");
     const SettingDescriptor* windowMode = findDescriptor("screen.windowed");
     if (!check(scaleFactor != nullptr && scaleFactor->valueType == SettingValueType::Real
-            && scaleFactor->applyPolicy == SettingApplyPolicy::Restart
+            && scaleFactor->applyPolicy == SettingApplyPolicy::OnClose
             && scaleFactor->numericRange.has_value()
             && scaleFactor->numericRange->minimum == 1.0
             && scaleFactor->numericRange->maximum == 3.0
             && scaleFactor->numericRange->step == 0.2,
-            "screen scale factor is a restart setting from 1.0x to 3.0x in 0.2x steps")) return 1;
+            "screen scale factor applies after the options panel closes")) return 1;
     if (!check(resolutionMode != nullptr && resolutionMode->valueType == SettingValueType::Choice
-            && resolutionMode->applyPolicy == SettingApplyPolicy::Restart
+            && resolutionMode->applyPolicy == SettingApplyPolicy::OnClose
             && windowMode != nullptr && windowMode->valueType == SettingValueType::Choice
+            && windowMode->applyPolicy == SettingApplyPolicy::OnClose
             && windowMode->choices.size() == 3,
-            "resolution and window mode are registered restart choices")) return 1;
+            "resolution and window mode apply after the options panel closes")) return 1;
     if (!check(settingsSetValue(*resolutionMode, 25601440, nullptr) && settingsSave()
             && gWrittenWidth == 2560 && gWrittenHeight == 1440,
             "a pending resolution choice writes both legacy resolution keys")) return 1;

@@ -49,6 +49,7 @@
 #include "window_manager_private.h"
 #include "word_wrap.h"
 #include "devtools/devtools.h"
+#include "scene/display_apply.h"
 #include "scene/scene_view.h"
 #include "worldmap.h"
 
@@ -246,6 +247,9 @@ int falloutMain(int argc, char** argv)
                 mainMenuBeginSubscreen();
                 doPreferences(true);
                 mainMenuCancelSubscreen();
+                if (!scene::applyConfiguredDisplaySettings()) {
+                    debugPrint("Unable to apply display settings; previous settings restored.\n");
+                }
                 break;
             }
             case MAIN_MENU_CREDITS:

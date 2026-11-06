@@ -8,6 +8,9 @@
 
 namespace fallout {
 
+namespace scene { class TileDisplaySwap; }
+bool tileExchangeDisplayBuffer(scene::TileDisplaySwap& swap);
+
 #define TILE_SET_CENTER_REFRESH_WINDOW 0x01
 #define TILE_SET_CENTER_FLAG_IGNORE_SCROLL_RESTRICTIONS 0x02
 // Developer snapshots may inspect a precise hex outside normal camera bounds.
