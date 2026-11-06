@@ -181,3 +181,10 @@ Analysing the shots (a later task).
   runs/regression/20261106-182427-622-29000/ (README-data-change.txt).
   The 22 references are refreshed against the current data; a fresh
   full gate follows.
+- 2026-11-06, glm: the control gate on the refreshed references
+  (commit 9b7689c4): 153 of 154 pass in-run; the one miss,
+  sanfran-tanker-deck, was a black-frame capture flake (the whole
+  1920x1080 frame differs, the capture landed before the first real
+  present), and the single-spot rerun passes with 0 changed pixels.
+  Effective 154/154 with the documented flake rerun. ctest 20/20, CI
+  14/14 on #317 and all green on #318. Merging both.
