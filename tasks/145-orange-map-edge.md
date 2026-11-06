@@ -97,6 +97,13 @@ full and reduced fly-tour timeouts are superseded by this successful bounded
 route, but the regression references were retaken in this PR, so
 `reviewed: no` remains until the required independent review.
 
+Manual review: inspected both `runs/145-orange-map-edge/regression-review-*.jpg`
+sheets covering all 46 changed before/after references. The changes sit on
+translucent exit-grid wedges at map boundaries; regular geometry remains.
+The other 60 references are pixel-identical. Confirmed `pickOnly` objects are
+still submitted by `picking.cc`, and the exit-grid stays in the pick list for
+the normal transition path.
+
 Next: Verify the rebased head's CI. The PR remains draft until its CI is green.
 Check: the current-main tour sheet, matched capture sidecars, build logs, and
 test results described above.
