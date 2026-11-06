@@ -219,6 +219,8 @@ void updateMapClip()
         const char* requested = devtools::isEnabled() ? SDL_getenv("F2CE_DEV_CLEAN_EDGES") : nullptr;
         if (requested != nullptr && compat_stricmp(requested, "floor") == 0) {
             clip = scene_renderer::staticFloorMapClip();
+        } else if (requested != nullptr && compat_stricmp(requested, "off") == 0) {
+            clip = {};
         } else {
             clip = authoredMapClip();
         }
@@ -306,6 +308,7 @@ bool loadScene(View view, const std::string& map, int elevation, std::string* me
     gClipMap.clear(); // Full loads add the projection needed to convert legacy EDG pixels.
     gClipElevation = -1;
     gCleanEdgesRevision = static_cast<std::uint64_t>(-1);
+    scene_renderer::perfLoadMark("scene_loaded");
     return true;
 }
 

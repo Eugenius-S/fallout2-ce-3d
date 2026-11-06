@@ -13,6 +13,7 @@
 #include "../game_mouse.h"
 #include "../map.h"
 #include "../object.h"
+#include "../proto.h"
 #include "clean_edges_boundary_mask.h"
 #include "effect_emission.h"
 #include "muzzle_flash.h"
@@ -289,7 +290,10 @@ void addObjectCard(Object* object, void* context)
     gPickObjects.push_back({ object, object->tile });
     // walls.bin draws it: its card is only picked, and the game's count of
     // sprites on its hex does not include it.
-    const bool pickOnly = scene_renderer::staticObjectBaked(object->tile, object->fid);
+    // Keep exit grids pickable so movement still finds the live transition,
+    // but do not draw their translucent boundary markers into the 3D map.
+    const bool pickOnly = scene_renderer::staticObjectBaked(object->tile, object->fid)
+        || isExitGridProtoId(ProtoId(object->pid));
     const EffectEmission emission = effectEmission(object->fid); // calibrated material tag, independent of local light
     if (pickOnly && emission.sign) scene_renderer::markStaticWallEmissive(object->tile, object->fid);
     // The game shows the hero through walls and scenery he stands behind.

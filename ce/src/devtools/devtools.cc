@@ -3660,13 +3660,31 @@ bool takeSnapshot()
             wallSeeThroughRows, wallSeeThroughAny ? "true" : "false");
     }
     const scene_renderer::MapClip mapClip = scene_renderer::staticMapClip();
+    if (mapEdgeIsLoaded()) {
+        const EdgeElevationData& edgeData = mapEdgeGetElevationData(static_cast<MapElevation>(gElevation));
+        Rect squareRect = {};
+        mapEdgeGetSquareRect(static_cast<MapElevation>(gElevation), &squareRect);
+        printf("MAP_EDGE map=%s elevation=%d zones=%zu square_rect=%d,%d,%d,%d\n",
+            mapName, static_cast<int>(gElevation), edgeData.zones.size(), squareRect.left, squareRect.top,
+            squareRect.right, squareRect.bottom);
+        for (size_t index = 0; index < edgeData.zones.size(); index++) {
+            const EdgeZone& zone = edgeData.zones[index];
+            printf("MAP_EDGE zone=%zu tiles=%d,%d,%d,%d pixels=%d,%d,%d,%d scroll_border=%d,%d,%d,%d\n",
+                index, zone.tileRect.left, zone.tileRect.top, zone.tileRect.right, zone.tileRect.bottom,
+                zone.pixelRect.left, zone.pixelRect.top, zone.pixelRect.right, zone.pixelRect.bottom,
+                zone.scrollBorderRect.left, zone.scrollBorderRect.top, zone.scrollBorderRect.right,
+                zone.scrollBorderRect.bottom);
+        }
+        fflush(stdout);
+    }
     const char* clipSource = mapClip.source == scene_renderer::MapClipSource::Authored ? "authored"
         : mapClip.source == scene_renderer::MapClipSource::Floor ? "floor"
         : mapClip.source == scene_renderer::MapClipSource::FloorGridFallback ? "floor-grid-fallback" : "disabled";
     const char* clipVariant = "off";
     if (scene::cleanEdges()) {
         const char* requested = isEnabled() ? SDL_getenv("F2CE_DEV_CLEAN_EDGES") : nullptr;
-        clipVariant = requested != nullptr && strcmp(requested, "floor") == 0 ? "floor" : "authored";
+        clipVariant = requested != nullptr && strcmp(requested, "floor") == 0 ? "floor"
+            : requested != nullptr && strcmp(requested, "off") == 0 ? "off" : "authored";
     }
     char clipMetadata[768];
     if (mapClip.enabled) {
