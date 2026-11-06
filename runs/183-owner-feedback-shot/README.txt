@@ -5,6 +5,12 @@ view (scene + the game's own picture over it) with the JSON sidecar next to
 it. Taken by --dev-owner-shot-once (the pump stands in for the F9 key press;
 the key path is the same takeShot()).
 
+The feature writes PNGs; runs/ keeps them under 1 MB a file, so the evidence
+copies here are full-res JPEG renditions (quality 92). The PNG originals sit
+in the run folders of the capture session, build/test-run/runs/<run id>/:
+kladwtwn 332624f94504, newr1 dae44a166d31, vctyctyd a8dffeaf6491 (run
+folders are session scratch; game/shots/dev/ keeps the owner's originals).
+
   kladwtwn/  Klamath downtown, view tile 25075   capture frame_ms=9.62
   newr1/     New Reno street 1, entrance         capture frame_ms=12.63
   vctyctyd/  Vault City courtyard, entrance      capture frame_ms=11.20
