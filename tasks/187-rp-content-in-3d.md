@@ -2,7 +2,7 @@
 id: 187
 title: RP's new and changed maps build in 3D under the same rules
 milestone: M1
-status: blocked
+status: doing
 owner: gpt
 suggested: any
 priority: high
@@ -107,3 +107,21 @@ without that code change.
 Check: CTest 20/20; exporter Python tests 127 passed; regression Python tests
 12 passed. Existing two restored-area walk probes remain in the evidence.
 Blocked: the RP-specific tour acceptance is not yet proven. PR #289 stays draft.
+
+### 2026-11-06 gpt: refreshed exports and isolated RP tour startup
+Done: merged current `origin/main` (`b2f792de`) and rebuilt Release. Re-exported
+all 36 RP map/elevation scenes from the isolated RPU 2.4.34 scratch copy into
+`build/scene-cache`; every export succeeded. Changed RP tour startup to use
+`-NoPreview -SkipScriptBlocking` without `-Still`, which lets map-enter scripts
+advance past blocking dialogs or movies. A bounded `sfsheng` smoke produced
+three turned views for e0 and e1 on the before side and for e0 on the after
+side. The after-side e1 run still produced no snapshot within 132 seconds.
+The tour is incomplete and is not presented as accepted. The two earlier
+3D walk probes on Abbey and San Fran Dr. Sheng remain valid. PR #289 stays
+draft.
+Next: determine why SFSHENG elevation 1 fails to start on the after side, then
+rerun only after changing that cause. Do not claim the RP tour complete yet.
+Check: `build/rp-export-refresh-20261106.log`, `build/tour/before/sfsheng-e0/`,
+`build/tour/before/sfsheng-e1/`, `build/tour/after/sfsheng-e0/`, and
+`build/test-run/runs/98a736374b6f/`; Release build, CTest 20/20 and exporter
+tests 137/137 passed.

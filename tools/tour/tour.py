@@ -139,6 +139,9 @@ def shoot(name, side, turns, distance, groups, reuse, rp_game_root=None):
                  "exe": file_hash(root / "build" / "fallout2-ce.exe"),
                  "scene": file_hash(scene_folder(kind, path, map_name, elevation) / "provenance.json"),
                  "rp_game_root": str(rp_game_root) if rp_game_root else None,
+                 "still_snapshot": rp_game_root is None,
+                 "startup_preview": rp_game_root is None,
+                 "skip_script_blocking": rp_game_root is not None,
                  "rp_mod": file_hash(rp_game_root / "mods" / "rpu.dat") if rp_game_root else None}
         stamp_file = folder / "tour.json"
         if (reuse and stamp_file.is_file() and json.loads(stamp_file.read_text(encoding="utf-8")) == stamp
@@ -150,8 +153,15 @@ def shoot(name, side, turns, distance, groups, reuse, rp_game_root=None):
         folder.mkdir(parents=True)
         # -Command, quoted: through -File a list with commas becomes an array.
         command = (f"& '{root / 'tools' / 'dev-snapshot.ps1'}' -Map {map_name} -Elevation {elevation} "
-                   f"-Tour '{','.join(stops)}' -Still -Ambient 65536 -OutputDirectory '{folder}' "
+                   f"-Tour '{','.join(stops)}' -Ambient 65536 -OutputDirectory '{folder}' "
                    f"-TimeoutSeconds {120 + 4 * len(stops)} -StepTimeoutSeconds 120")
+        if rp_game_root is None:
+            command += " -Still"
+        else:
+            # RP map-enter scripts may leave a dialogue request pending until
+            # the game advances. Let the dev snapshot dismiss blocking dialog
+            # or movie requests, and do not freeze startup in still mode.
+            command += " -NoPreview -SkipScriptBlocking"
         if kind == "cache":
             command += f" -SceneCache '{path}'"
         if rp_game_root:
