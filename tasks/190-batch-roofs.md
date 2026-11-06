@@ -90,4 +90,15 @@ Check: `py -3 tools/scene_export/roof_edge_check.py --cache-root build/lost-squa
 `ctest --test-dir build --output-on-failure`;
 `powershell -NoProfile -ExecutionPolicy Bypass -File tools/regression.ps1`.
 
+### 2026-11-06 gpt: rebase and current-main review
+
+Done: Rebased the closure PR onto current `origin/main` (`6beaf53f`). The
+old feature commit and evidence refresh were already present in main through
+PR #304; replaying the stale code would also have dropped later roof fixes, so
+they were omitted. The PR diff now contains only the task closure in this
+file. Preserved every pre-existing untracked run in the worktree.
+Next: Push the rebased closure and verify a fresh CI run on the current SHA.
+Check: `git diff origin/main...HEAD` contains only `tasks/190-batch-roofs.md`;
+the current main already contains the feature and regression tests from #304.
+
 
