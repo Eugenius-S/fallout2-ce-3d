@@ -1,0 +1,52 @@
+perf load chain map_change begin
+perf load map_tiles ms=9.99 since chain start
+perf load map_scripts ms=10.93 since chain start
+perf load objects_load ms=96.00
+perf load objects_load ms=0.00
+perf load objects_load ms=0.00
+perf load objects_light ms=0.12
+perf load map_objects ms=109.60 since chain start
+perf load map_elevation ms=111.60 since chain start
+perf load art_preload ms=367.59
+perf load map_load ms=491.07 since chain start
+perf load chain map_change begin
+perf load map_tiles ms=47.54 since chain start
+perf load map_scripts ms=48.34 since chain start
+perf load objects_load ms=435.10
+perf load objects_load ms=0.00
+perf load objects_load ms=0.00
+perf load objects_light ms=237.64
+perf load map_objects ms=724.21 since chain start
+perf load map_elevation ms=732.76 since chain start
+perf load art_preload ms=341.71
+perf load map_load ms=1125.98 since chain start
+perf load floor_read ms=1.74
+perf load floor_decode ms=36.90
+perf load floor_fringe ms=25.57
+perf load floor_shader ms=16.22
+perf load floor_upload ms=5.30
+perf load floor ms=92.57
+perf load walls_read ms=3.54
+perf load walls_decode ms=127.96
+perf load walls_read ms=0.10
+perf load walls_decode ms=0.47
+perf load walls_read ms=0.86
+perf load walls_decode ms=44.45
+perf load walls_upload ms=16.62
+perf load walls ms=217.55
+perf load projection ms=0.24
+perf load scene_loaded ms=1458.84 since chain start
+perf load scene_total ms=319.33
+perf load first_frame ms=1773.53 since chain start
+3d fps=53.3 objects=4602 update_ms=7.79 shadow=off shadow_ms=0.00
+perf fps=60.4 frame_avg_ms=16.51 frame_low1_ms=22.94 frame_max_ms=22.94 cpu_ms=4.38 gpu_ms=2.36 run_avg_ms=16.51 run_low1_ms=22.94 sky_light_ms=0.01 shadow_ms=0.00 floor_ms=0.60 flat_objects_ms=0.43 walls_ms=0.31 objects_ms=0.39 hero_egg_glass_ms=0.31 roofs_ms=0.06 scene_ms=0.00 glow_ms=0.00 overlay_ms=0.26
+3d fps=59.3 objects=4602 update_ms=7.78 shadow=off shadow_ms=0.00
+perf fps=59.3 frame_avg_ms=16.87 frame_low1_ms=31.30 frame_max_ms=31.30 cpu_ms=4.63 gpu_ms=1.87 run_avg_ms=16.69 run_low1_ms=30.69 sky_light_ms=0.01 shadow_ms=0.00 floor_ms=0.60 flat_objects_ms=0.17 walls_ms=0.31 objects_ms=0.16 hero_egg_glass_ms=0.31 roofs_ms=0.06 scene_ms=0.00 glow_ms=0.00 overlay_ms=0.26
+3d fps=60.4 objects=4602 update_ms=7.46 shadow=off shadow_ms=0.00
+perf fps=59.4 frame_avg_ms=16.83 frame_low1_ms=48.02 frame_max_ms=48.02 cpu_ms=4.21 gpu_ms=1.87 run_avg_ms=16.74 run_low1_ms=36.47 sky_light_ms=0.01 shadow_ms=0.00 floor_ms=0.60 flat_objects_ms=0.17 walls_ms=0.31 objects_ms=0.16 hero_egg_glass_ms=0.31 roofs_ms=0.05 scene_ms=0.00 glow_ms=0.00 overlay_ms=0.26
+3d fps=57.7 objects=4602 update_ms=6.44 shadow=off shadow_ms=0.00
+perf fps=58.7 frame_avg_ms=17.04 frame_low1_ms=68.74 frame_max_ms=68.74 cpu_ms=3.80 gpu_ms=1.89 run_avg_ms=16.81 run_low1_ms=49.63 sky_light_ms=0.01 shadow_ms=0.00 floor_ms=0.60 flat_objects_ms=0.17 walls_ms=0.31 objects_ms=0.16 hero_egg_glass_ms=0.31 roofs_ms=0.06 scene_ms=0.00 glow_ms=0.00 overlay_ms=0.27
+3d fps=59.8 objects=4602 update_ms=6.28 shadow=off shadow_ms=0.00
+perf fps=59.8 frame_avg_ms=16.71 frame_low1_ms=49.03 frame_max_ms=49.03 cpu_ms=3.86 gpu_ms=1.87 run_avg_ms=16.79 run_low1_ms=49.51 sky_light_ms=0.01 shadow_ms=0.00 floor_ms=0.60 flat_objects_ms=0.17 walls_ms=0.31 objects_ms=0.16 hero_egg_glass_ms=0.30 roofs_ms=0.06 scene_ms=0.00 glow_ms=0.00 overlay_ms=0.25
+3d fps=59.1 objects=4602 update_ms=6.60 shadow=off shadow_ms=0.00
+perf fps=59.1 frame_avg_ms=16.93 frame_low1_ms=51.72 frame_max_ms=51.72 cpu_ms=3.86 gpu_ms=1.86 run_avg_ms=16.81 run_low1_ms=49.64 sky_light_ms=0.01 shadow_ms=0.00 floor_ms=0.60 flat_objects_ms=0.17 walls_ms=0.31 objects_ms=0.16 hero_egg_glass_ms=0.31 roofs_ms=0.06 scene_ms=0.00 glow_ms=0.00 overlay_ms=0.25

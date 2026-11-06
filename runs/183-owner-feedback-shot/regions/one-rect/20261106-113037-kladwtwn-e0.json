@@ -1,0 +1,21 @@
+{
+  "image": "20261106-113037-kladwtwn-e0.png",
+  "marked_image": "20261106-113037-kladwtwn-e0-marked.png",
+  "fps": {"fps":63.8,"frame_avg_ms":15.67,"frame_low1_ms":244.18,"window_frames":300},
+  "map": "Центр города",
+  "map_file": "KLADWTWN.MAP",
+  "city": "Кламат",
+  "elevation": 0,
+  "player": {"tile":25075,"hex":[75,125],"world":[-12.542,12.688],"elevation":0,"rotation":3},
+  "camera": {"eye":[-0.577,9.836,27.635],"yaw_deg":-123.69,"fov_y_deg":25.00,"camera_turn":0.0000,"zoom":1.0000,"center_tile":24678},
+  "cursor": null,
+  "resolution":"960x540","logical_resolution":"960x540","scale":2,"scale_factor":2.0,"windowed":true,
+  "render": {"scene3d":{"enabled":true,"sharp_text":false,"lights":true,"sun":true,"shadows":false,"cloud_shadows":false,"shadow_pixel_size":1.00,"shadow_density":0.80,"sun_swing":40.0,"glow":false,"glow_strength":2.00,"camera_rotation":false,"camera_rotation_unlimited":false,"sprite_sides":true,"zoom":1.0000,"clean_edges":true},"renderer":"scene-gl"},
+  "regions": [
+    {"rect":[640,360,640,360],
+     "tiles":[31874,31875,31876,31877,31878,32074,32075,32076,32077,32078,32079,32274,32275,32276,32277,32278,32279,32474,32475,32476,32477,32478,32479,32674,32675,32676,32677,32678,32679,32874,32875,32876,32877,32878,32879,33074,33075,33076,33077,33078,33079,33274,33275,33276,33277,33278,33279,33474,33475,33476,33477,33478,33479,33674,33675,33676,33677,33678,33679,33874,33875,33876,33877,33878,33879,34075,34076,34077,34078,34079,34275,34276,34277,34278,34279,34476,34477,34478,34479,34676,34677,34678,34679],
+     "squares":[7937,7938,7939,8037,8038,8039,8137,8138,8139,8237,8238,8239,8337,8338,8339,8437,8438,8439,8537,8538,8539,8638,8639],
+     "objects":[{"pid":33554776,"name":"Клетка авто-невидимости","type":2,"tile":31877},{"pid":33554776,"name":"Клетка авто-невидимости","type":2,"tile":32077},{"pid":33554776,"name":"Клетка авто-невидимости","type":2,"tile":32078},{"pid":33554776,"name":"Клетка авто-невидимости","type":2,"tile":32278},{"pid":33554776,"name":"Клетка авто-невидимости","type":2,"tile":32479},{"pid":33554776,"name":"Клетка авто-невидимости","type":2,"tile":32679}]}
+  ],
+  "build": {"commit":"79de4ccd","version":"FALLOUT II 1.02d  RP 2.4.34","taken":"20261106-113037"}
+}

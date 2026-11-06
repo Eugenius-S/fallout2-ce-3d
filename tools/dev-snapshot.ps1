@@ -59,6 +59,12 @@ param(
     # -OwnerShotDelay N waits N seconds of steady frames before the capture.
     [switch]$OwnerShot,
     [int]$OwnerShotDelay = 0,
+    # The owner region mark (183 step 2): enter the mark mode after the view
+    # settles and drop this many fixed rectangles, then save the clean and
+    # marked PNGs with the regions JSON.
+    [ValidateRange(0, 2)]
+    [int]$OwnerMark = 0,
+    [int]$OwnerMarkDelay = 0,
     # Seconds the game stays alive after the last snapshot, so a delayed
     # in-game capture (the owner shot) lands in steady frames.
     [int]$HoldSeconds = 0,
@@ -433,6 +439,14 @@ if ($TurnKeys) { $arguments += '--dev-camera-turn-keys' }
 if ($OwnerShot) {
     if ($OwnerShotDelay -gt 0) { $arguments += "--dev-owner-shot-once=$OwnerShotDelay" }
     else { $arguments += '--dev-owner-shot-once' }
+}
+if ($OwnerMark -eq 1) {
+    if ($OwnerMarkDelay -gt 0) { $arguments += "--dev-owner-mark-once=$OwnerMarkDelay" }
+    else { $arguments += '--dev-owner-mark-once' }
+}
+if ($OwnerMark -eq 2) {
+    if ($OwnerMarkDelay -gt 0) { $arguments += "--dev-owner-mark-twice=$OwnerMarkDelay" }
+    else { $arguments += '--dev-owner-mark-twice' }
 }
 if ($MuzzleWeapon -gt 0) {$arguments += @("--dev-muzzle=$MuzzleWeapon", "--dev-muzzle-animation=$MuzzleAnimation", "--dev-muzzle-rotation=$MuzzleRotation")}
 if ($ClockLadder) { $arguments += '--dev-clock-ladder' }

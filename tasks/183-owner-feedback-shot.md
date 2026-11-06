@@ -120,3 +120,19 @@ Analysing the shots (a later task).
   Esc cancels. Saves the clean PNG, the marked PNG next to it and the
   JSON with a regions list: pixel rect, the map tiles each region covers,
   the objects under them.
+- 2026-11-06, glm: step 2 done. The mark mode lives in owner_shot.cc:
+  Ctrl+F9 or Alt+F9 enters (the frame is captured clean at entry), the
+  mark holds the whole input (the game gets no keys or mouse; the main
+  loop skips scripts, map transitions and camera updates and only
+  presents), the rectangles draw over the picture, Enter or a second
+  press saves, Esc cancels. The save writes the clean PNG, the marked
+  PNG (the red outlines drawn on the clean capture) and the JSON with
+  regions: pixel rect, the hexes whose centers project into the rect,
+  the square tiles covered, and the objects under them (pid, name,
+  object type, tile), caps at 256 hexes and 128 objects with truncation
+  flags. No monitor message at entry: the game floats the last monitor
+  message over the map view and it would contaminate the clean capture;
+  the hint line is the mark's own overlay. Acceptance in
+  runs/183-owner-feedback-shot/regions/: one-rect (kladwtwn, 83 tiles,
+  23 squares, 3 objects) and two-rects (newr1, 83/30 tiles, 3/0
+  objects). ctest 20/20.
