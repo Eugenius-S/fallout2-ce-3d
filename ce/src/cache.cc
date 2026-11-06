@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <cstring>
+
 #include "debug.h"
 #include "memory.h"
 #include "sound.h"
