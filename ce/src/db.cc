@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
+#include <thread>
 
 #include "platform_compat.h"
 #include "sfall_filesystem.h"
@@ -21,6 +22,13 @@ static int _db_list_compare(const void* p1, const void* p2);
 //
 // 0x51DEEC read_callback
 static FileReadProgressHandler* gFileReadProgressHandler = nullptr;
+
+// The thread that installed the handler. The handler touches input and
+// presentation (the mouse refresh pumps SDL events and presents the frame),
+// which may only happen on the main thread: with the 172 warm pool reading
+// files on worker threads, an off-thread handler races the renderer and
+// corrupts the heap (silent hangs and 0xC0000374 during map loads).
+static std::thread::id gFileReadProgressOwnerThread;
 
 // Bytes read so far while tracking progress.
 //
@@ -106,7 +114,8 @@ int dbGetFileContents(const char* filePath, void* ptr)
     }
 
     long size = xfileGetSize(stream);
-    if (gFileReadProgressHandler != nullptr) {
+    if (gFileReadProgressHandler != nullptr
+        && std::this_thread::get_id() == gFileReadProgressOwnerThread) {
         unsigned char* byteBuffer = (unsigned char*)ptr;
 
         long remainingSize = size;
@@ -186,7 +195,8 @@ int filePrintFormatted(File* stream, const char* format, ...)
 // 0x4C5F24 db_fgetc
 int fileReadChar(File* stream)
 {
-    if (gFileReadProgressHandler != nullptr) {
+    if (gFileReadProgressHandler != nullptr
+        && std::this_thread::get_id() == gFileReadProgressOwnerThread) {
         int ch = xfileReadChar(stream);
 
         gFileReadProgressBytesRead++;
@@ -204,7 +214,8 @@ int fileReadChar(File* stream)
 // 0x4C5F70 db_fgets
 char* fileReadString(char* string, size_t size, File* stream)
 {
-    if (gFileReadProgressHandler != nullptr) {
+    if (gFileReadProgressHandler != nullptr
+        && std::this_thread::get_id() == gFileReadProgressOwnerThread) {
         if (xfileReadString(string, size, stream) == nullptr) {
             return nullptr;
         }
@@ -230,7 +241,11 @@ int fileWriteString(const char* string, File* stream)
 // 0x4C5FFC db_fread
 size_t fileRead(void* ptr, size_t size, size_t count, File* stream)
 {
-    if (gFileReadProgressHandler != nullptr) {
+    // The bulk read is what the art loader uses, so the warm pool workers land
+    // here too: same rule as the other read paths below, only the thread that
+    // installed the handler may invoke it.
+    if (gFileReadProgressHandler != nullptr
+        && std::this_thread::get_id() == gFileReadProgressOwnerThread) {
         unsigned char* byteBuffer = (unsigned char*)ptr;
 
         size_t totalBytesRead = 0;
@@ -733,6 +748,7 @@ void fileSetReadProgressHandler(FileReadProgressHandler* handler, int size)
     if (handler != nullptr && size != 0) {
         gFileReadProgressHandler = handler;
         gFileReadProgressChunkSize = size;
+        gFileReadProgressOwnerThread = std::this_thread::get_id();
     } else {
         gFileReadProgressHandler = nullptr;
         gFileReadProgressChunkSize = 0;
