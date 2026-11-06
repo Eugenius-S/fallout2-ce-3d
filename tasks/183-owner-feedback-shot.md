@@ -93,3 +93,19 @@ Analysing the shots (a later task).
   F9 becomes the owner shot; with the dev tools on, F9 stays the dev
   snapshot and the owner shot moves out of the way (the regression tours
   keep their devshot format untouched).
+- 2026-11-06, glm: step 1 done. New `devtools/owner_shot` (outside the dev
+  tools: the owner plays without --dev-tools), wired after
+  devtools::handleKey in game.cc; the capture buffers split out of the
+  scene_draw captures (readback on the main thread, PNG encode and the
+  file writes on a worker); the always-on frame ring in perf.cc (one tick
+  per presented frame, 300 intervals). F9 fires takeOwnerShot; test runs
+  use --dev-owner-shot-once[=seconds] via dev-snapshot.ps1's -OwnerShot,
+  -OwnerShotDelay, -HoldSeconds. Acceptance in runs/183-owner-feedback-shot/:
+  kladwtwn capture frame_ms=9.62, newr1 12.63, vctyctyd 11.20 (the bar is
+  50 ms at the key press; steady windows frame_avg_ms 8.9 to 22.8). The
+  shot waits for the ready view (a map loaded, the hero placed, the 3D
+  full view presenting), so a pump run never photographs the loading
+  screen; vctyctyd leaves the full view right after its load (the city's
+  game state takes over), so its shot sits at the first ready present.
+  ctest 20/20; docs/owner-shots.md written (the step-1 version, the
+  regions section is a placeholder for step 2).

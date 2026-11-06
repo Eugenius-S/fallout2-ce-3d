@@ -299,6 +299,7 @@ set(FALLOUT_PLATFORM_SOURCES
     "src/settings.h"
     "src/devtools/devtools.cc"
     "src/devtools/fixed_screen_options.cc"
+    "src/devtools/owner_shot.cc"
     "src/devtools/snapshot_rows.cc"
     "src/devtools/preferences_probe.cc"
     "src/devtools/test_run_state.cc"
