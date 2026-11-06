@@ -151,3 +151,38 @@ The likely capture mismatch is recorded on Task 196: the fly FPS overlay is
 composited by `scene_renderer::drawOverlay`, while the current devtools
 capture reads the indexed framebuffer. This is a diagnostic inference, not a
 verified fix.
+### 2026-11-07 gpt: the readout reaches the presented frame; frame log and baselines
+
+Root cause of every blocked live capture above: the readout drew before
+`scene::syncToMap()` in `renderPresent`, and the tile window's own redraw
+inside `syncToMap` restores every captured text pixel in its region each
+frame, so the glyphs were erased from the surface before the frame composed.
+Byte dumps proved the glyphs were in `gSdlSurface` while the presented frame
+had none, in every variant (sharp and pixel text, corner or interior,
+shadowed or not, fresh or stale builds). Drawing after the redraw, next to
+the dev panel, keeps the readout in the picture: `FPS 61 16.4 ms` shows over
+the live 3D Klamath save.
+
+Along the way: the merge picked up 204 (the read progress handler is now
+main-thread only, which is what unblocked the save-load captures that this
+task's earlier attempts needed), the frame-time log landed ([3d] frame_log,
+--dev-frame-log: every frame's time to frame_log.csv, a summary line and
+frame_log.summary.txt when it closes), and dev-snapshot.ps1 gained -FpsCounter
+and seeds the run's SAVEGAME so -DevLoadGameSlot does not wait on an empty
+load screen.
+
+Baselines (owner demo copy as the game root, worktree scene cache, warm pool
+on, in-play 30 s windows, CSVs in runs/127-fps-counter/baseline/):
+kladwtwn 58.5/59.4, klamall 58.8/59.5, vctyctyd 59.4/59.5 average fps
+(game/fly camera), 1% low about 20.8 fps (48 ms stalls) on all of them;
+newr1 32.6/25.2 average fps, 1% low 16.9 fps. The 48 ms periodic stall and
+New Reno's frame rate are task 157's starting numbers.
+
+The live F8 press was not captured on screen yet (the scripted press landed
+outside the snap windows twice); the toggle code path is the same
+settingsSetValue the options panel uses, and the setting itself is proven on
+and off through the config. F8's on-screen demo stays on the task checklist.
+
+Check: settings_3d tests pass (the frame_log descriptor asserts included);
+the F12 classic shot still writes a real PNG (205's fix); the regression run
+for this state is in progress and its result lands in the next log entry.
