@@ -1,0 +1,44 @@
+devtools: startup target klatoxcv e2 accepted=1 blocking=0
+scene: cache <repo>\build\scene-cache\klatoxcv\2
+devtools: static wall+hero preview started for KLATOXCV.MAP elevation 2
+scene: preview policy=available gameState=0 gameMode=0x0 uiDisabled=0 isoDisabled=0 combat=0 dialog=0 movie=0
+MAP_EDGE map=KLATOXCV.MAP elevation=2 zones=1 square_rect=99,0,0,99
+MAP_EDGE zone=0 tiles=12506,10867,23063,24897 pixels=4768,1032,2880,2064 scroll_border=4288,1248,3360,1848
+devtools: one-shot hero preview snapshot saved: snapshot: devshot-20261106-132012-000.json
+DEV_WATCHDOG state map=KLATOXCV.MAP elevation=2 tile=18931 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=0
+DEV_WATCHDOG state map=KLATOXCV.MAP elevation=2 tile=18931 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=0
+DEV_WATCHDOG state map=KLATOXCV.MAP elevation=2 tile=18931 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=0
+DEV_WATCHDOG state map=KLATOXCV.MAP elevation=2 tile=18931 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=0
+DEV_WATCHDOG state map=KLATOXCV.MAP elevation=2 tile=18931 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=0
+owner teleport: traveling to newr1 e0 hex 24305
+scene: cache <repo>\build\scene-cache\newr1\2
+scene: preview policy=iso-disabled gameState=0 gameMode=0x0 uiDisabled=0 isoDisabled=1 combat=0 dialog=0 movie=0
+owner teleport: arrived, teleported: newr1.map e0 hex 24305
+scene: cache <repo>\build\scene-cache\newr1\0
+scene: preview policy=available gameState=0 gameMode=0x0 uiDisabled=0 isoDisabled=0 combat=0 dialog=0 movie=0
+DEV_WATCHDOG state map=NEWR1.MAP elevation=0 tile=24305 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=0
+DEV_WATCHDOG state map=NEWR1.MAP elevation=0 tile=24305 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=0
+DEV_WATCHDOG state map=NEWR1.MAP elevation=0 tile=24305 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=0
+DEV_WATCHDOG state map=NEWR1.MAP elevation=0 tile=24305 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=0
+DEV_WATCHDOG state map=NEWR1.MAP elevation=0 tile=24305 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=0
+DEV_WATCHDOG state map=NEWR1.MAP elevation=0 tile=24305 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=0
+DEV_WATCHDOG state map=NEWR1.MAP elevation=0 tile=24305 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=0
+DEV_WATCHDOG state map=NEWR1.MAP elevation=0 tile=24305 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=0
+owner shot: capture frame wall_ms=12.81
+DEV_WATCHDOG state map=NEWR1.MAP elevation=0 tile=24305 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=0
+DEV_WATCHDOG state map=NEWR1.MAP elevation=0 tile=24305 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=0
+DEV_WATCHDOG state map=NEWR1.MAP elevation=0 tile=24305 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=0
+DEV_WATCHDOG state map=NEWR1.MAP elevation=0 tile=24305 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=0
+DEV_WATCHDOG state map=NEWR1.MAP elevation=0 tile=24305 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=0
+DEV_WATCHDOG state map=NEWR1.MAP elevation=0 tile=24305 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=0
+DEV_WATCHDOG state map=NEWR1.MAP elevation=0 tile=24305 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=0
+DEV_WATCHDOG state map=NEWR1.MAP elevation=0 tile=24305 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=0
+DEV_WATCHDOG state map=NEWR1.MAP elevation=0 tile=24305 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=0
+DEV_WATCHDOG state map=NEWR1.MAP elevation=0 tile=24305 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=0
+DEV_WATCHDOG state map=NEWR1.MAP elevation=0 tile=24305 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=0
+DEV_WATCHDOG state map=NEWR1.MAP elevation=0 tile=24305 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=0
+DEV_WATCHDOG state map=NEWR1.MAP elevation=0 tile=24305 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=0
+DEV_WATCHDOG state map=NEWR1.MAP elevation=0 tile=24305 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=0
+DEV_WATCHDOG state map=NEWR1.MAP elevation=0 tile=24305 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=0
+DEV_WATCHDOG state map=NEWR1.MAP elevation=0 tile=24305 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=0
+DEV_WATCHDOG state map=NEWR1.MAP elevation=0 tile=24305 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=0

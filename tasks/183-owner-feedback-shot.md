@@ -136,3 +136,55 @@ Analysing the shots (a later task).
   runs/183-owner-feedback-shot/regions/: one-rect (kladwtwn, 83 tiles,
   23 squares, 3 objects) and two-rects (newr1, 83/30 tiles, 3/0
   objects). ctest 20/20.
+- 2026-11-06, glm: step 3 done. The teleport lives in owner_shot (outside
+  the dev gates, so it answers in the owner's build):
+  dev-teleport.txt next to the exe, one line map.elev or map.elev.hex,
+  polled twice a second; the travel goes through the dev tools' safe
+  transition (requestMapChange), the arrival is tracked here and the hero
+  is placed on the named hex or the safe pick, the egg reset and the view
+  brought back (a map change drops the 3D view - task 173's known gap).
+  A request held by combat/dialog/movie keeps the file (the klatoxcv maps
+  enter combat on entry: held-and-retry saved the owner's word in the
+  acceptance runs). The dev panel gained the TP button and the T key -
+  the same engine.
+- 2026-11-06, glm: step 4 done. The floor change's pick now verifies the
+  hero can walk from the landing: a path to the map's entrance, to a few
+  hexes around it, or on floors without their entrance a path to a free
+  neighbor (the walk-out check). The candidates are tried by standing the
+  hero there, so the check reads the very elevation it lands on. The old
+  klatoxcv e2 rock pocket (floor and blockers tested, reachability never)
+  is what this closes. The teleport's auto pick uses the walk-verified
+  pick too; the named hex stands as the owner named it.
+- 2026-11-06, glm: acceptance in runs/183-owner-feedback-shot/teleport/:
+  klatoxcv.2 from kladwtwn lands 18930 (the safe pick, the JSON's
+  player.tile, the 3D view back); newr1.0.24305 from klatoxcv e2 stands
+  the named hex verbatim (watchdog NEWR1.MAP e0 24305); the floor change
+  klatoxcv e0->e2 lands 18931 with the walk check passed (log line: 1
+  candidates tried). ctest 20/20.
+- 2026-11-06, glm: the regression blocker resolved. Between about 10:35
+  and 11:56 the game's own data changed (the owner's dat rebuild: export
+  fingerprint 425cd5a6 -> 8d2ee0ee) and the three cave spots moved a
+  5-pixel strip of one cave-wall sprite (enc-cave1, enc-cave5,
+  enc-cave5-top, same x=598 y=207..215); proven not ours (main fails
+  byte-identically). The owner's word came: finish, run the tests,
+  merge. The three references are refreshed (-Update, one spot per run)
+  on the branch carrying steps 2-4 (the region mark merged in); every
+  other spot keeps its reference untouched.
+- 2026-11-06, glm: the owner's data changed a second time (between 12:37
+  and 17:26, again their dat rebuild): 22 more spots failed the gate, all
+  from one cause - a translucent amber wash overlay the old data drew
+  over outdoor encounter maps (city gates, mountain views, the special
+  scenes) is gone from the new data; every other pixel in every frame is
+  identical. Proven not ours: a second full pass reproduced all 148
+  common captures exactly, and the pre-merge and post-merge builds
+  render identically. Evidence sheets (reference | capture per spot) in
+  runs/regression/20261106-182427-622-29000/ (README-data-change.txt).
+  The 22 references are refreshed against the current data; a fresh
+  full gate follows.
+- 2026-11-06, glm: the control gate on the refreshed references
+  (commit 9b7689c4): 153 of 154 pass in-run; the one miss,
+  sanfran-tanker-deck, was a black-frame capture flake (the whole
+  1920x1080 frame differs, the capture landed before the first real
+  present), and the single-spot rerun passes with 0 changed pixels.
+  Effective 154/154 with the documented flake rerun. ctest 20/20, CI
+  14/14 on #317 and all green on #318. Merging both.

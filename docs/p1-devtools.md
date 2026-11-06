@@ -94,6 +94,23 @@ Hotkeys: Alt+D: the panel, F9: a snapshot (works with the panel open too).
 Without --dev-tools F9 is the owner's feedback shot instead (task 183): the
 frame as presented with a JSON sidecar, docs/owner-shots.md.
 
+## The teleport and the walkable landing (task 183 steps 3-4)
+
+The dev panel's TP button (and the T key while the panel is open) travels to
+the selected map and elevation; the filter's digits name the destination hex
+when they parse as one, otherwise the safe pick decides. The same engine
+runs without the dev tools: a `dev-teleport.txt` file next to the exe, one
+line `map.elev` or `map.elev.hex`, is consumed about twice a second and the
+hero jumps - this is how an agent moves the hero in the owner's running
+game on the owner's word. A request held by combat/dialog/movie keeps the
+file for the next polls. The 3D view comes back after the jump.
+
+The landing never sits in a rock pocket: the floor change's pick (and the
+teleport's safe pick) requires that the hero can walk from the tile - a
+path to the map's entrance, to a few hexes around it, or on floors without
+their entrance a path to a free neighbor. The named hex stands as the owner
+named it.
+
 ## The fly camera
 
 Ctrl+F12 in the 3D scene takes off: a free camera for looking at a map up

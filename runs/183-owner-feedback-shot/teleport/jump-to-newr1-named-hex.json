@@ -1,0 +1,14 @@
+{
+  "image": "20261106-132028-newr1-e0.png",
+  "fps": {"fps":56.1,"frame_avg_ms":17.82,"frame_low1_ms":49.90,"window_frames":300},
+  "map": "Улица девственниц",
+  "map_file": "NEWR1.MAP",
+  "city": "Нью-Рино",
+  "elevation": 0,
+  "player": {"tile":24305,"hex":[105,121],"world":[2.458,10.688],"elevation":0,"rotation":0},
+  "camera": {"eye":[12.923,9.836,25.885],"yaw_deg":-123.69,"fov_y_deg":25.00,"camera_turn":0.0000,"zoom":1.0000,"center_tile":24105},
+  "cursor": null,
+  "resolution":"1920x1080","logical_resolution":"960x540","scale":2,"scale_factor":2.0,"windowed":true,
+  "render": {"scene3d":{"enabled":true,"sharp_text":false,"lights":true,"sun":true,"shadows":false,"cloud_shadows":false,"shadow_pixel_size":1.00,"shadow_density":0.80,"sun_swing":40.0,"glow":false,"glow_strength":2.00,"camera_rotation":false,"camera_rotation_unlimited":false,"sprite_sides":true,"zoom":1.0000,"clean_edges":true},"renderer":"scene-gl"},
+  "build": {"commit":"b2f792de","version":"FALLOUT II 1.02d  RP 2.4.34","taken":"20261106-132028"}
+}

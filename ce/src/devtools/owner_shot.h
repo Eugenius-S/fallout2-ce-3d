@@ -19,6 +19,13 @@ namespace owner_shot {
 // and only answers the keys left over.
 bool handleKey(int key);
 
+// The teleport (step 3): dev-teleport.txt next to the exe, one line
+// "map.elev" (the safe pick) or "map.elev.hex" (the named hex), is consumed
+// and the hero jumps, in the owner's running game. The dev panel's TP button
+// drives the same engine.
+bool requestTeleport(const char* mapName, int elevation, int tile);
+void pumpTeleport();
+
 // The rectangles over the game's own picture while the mark mode is on:
 // drawn after the dev panel, before the scene presents.
 void draw(unsigned char* surface, int width, int height, int pitch);

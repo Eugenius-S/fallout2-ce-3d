@@ -16,12 +16,27 @@
 
 #include <lodepng.h>
 
+#if defined(_WIN32)
+#include <windows.h>
+#else
+#include <limits.h>
+#include <unistd.h>
+#endif
+
 #include "../color.h"
+#include "../combat.h"
 #include "../dev_output.h"
+#include "../devtools/devtools.h"
+#include "../platform_compat.h"
 #include "../display_monitor.h"
+#include "../dialog.h"
+#include "../game_dialog.h"
+#include "../game_movie.h"
 #include "../kb.h"
 #include "../map.h"
+#include "../map_defs.h"
 #include "../mouse.h"
+#include "../worldmap.h"
 #include "../object.h"
 #include "../proto.h"
 #include "../settings.h"
@@ -987,8 +1002,10 @@ void pumpMark()
 
 void pump()
 {
+    pumpTeleport();
     pumpMark();
-    if (!gShotPending) return;    // The plain shot waits for the game itself: a map loaded and the hero on
+    if (!gShotPending) return;
+    // The plain shot waits for the game itself: a map loaded and the hero on
     // it. In the 3D view it waits for the scene's own present too, so the PNG
     // shows the world and not the loading screen.
     if (gDude == nullptr || gMapHeader.name[0] == '\0') return;
@@ -1018,6 +1035,248 @@ void pump()
         printf("owner shot: gave up waiting for a ready view\n");
         fflush(stdout);
     }
+}
+
+// --- the teleport (step 3) --------------------------------------------------
+
+namespace {
+
+// One jump: travel to the map and elevation, then stand on the named hex or
+// on the safe pick. The file lives next to the exe: the owner's game folder.
+struct TeleportRequest {
+    bool active = false;
+    int mapId = -1;
+    int elevation = 0;
+    int tile = -1; // -1: the safe pick around where the travel lands
+    int framesWaited = 0;
+};
+
+TeleportRequest gTeleport;
+int gTeleportPollCounter = 0;
+bool gTeleportPathLogged = false;
+bool gTeleportTransientRefused = false;
+
+std::filesystem::path teleportFilePath()
+{
+    char exePath[COMPAT_MAX_PATH + 1] = {};
+#if defined(_WIN32)
+    GetModuleFileNameA(nullptr, exePath, MAX_PATH);
+#else
+    if (realpath(".", exePath) == nullptr) exePath[0] = '\0';
+#endif
+    std::filesystem::path dir = std::filesystem::path(exePath).parent_path();
+    if (dir.empty()) dir = std::filesystem::path(".");
+    return dir / "dev-teleport.txt";
+}
+
+void consumeTeleportFile(const std::filesystem::path& path)
+{
+    std::error_code ec;
+    std::filesystem::remove(path, ec);
+}
+
+bool inBlockingState()
+{
+    if (isInCombat()) return true;
+    if (_inDialog != 0) return true;
+    if (gameMovieIsPlaying()) return true;
+    return false;
+}
+
+int resolveMapId(const char* base)
+{
+    for (int id = 1; id <= 999; id++) {
+        char name[64];
+        if (wmMapIdxToName(static_cast<Map>(id), name, sizeof(name)) == 0) {
+            const char* dot = strchr(name, '.');
+            size_t len = dot != nullptr ? static_cast<size_t>(dot - name) : strlen(name);
+            if (len >= sizeof(name)) len = sizeof(name) - 1;
+            char stripped[64];
+            strncpy(stripped, name, len);
+            stripped[len] = '\0';
+            if (_stricmp(stripped, base) == 0) return id;
+        }
+    }
+    return -1;
+}
+
+// The line reads map.elev (the safe pick decides the hex) or map.elev.hex
+// (the owner's named hex stands as it is). '#' starts a comment.
+bool parseTeleportLine(const char* line)
+{
+    char work[128] = {};
+    size_t used = 0;
+    for (const char* p = line; *p != '\0' && used + 1 < sizeof(work); p++) {
+        if (*p == '#') break;
+        work[used++] = *p == ',' ? '.' : static_cast<char>(*p);
+    }
+    work[used] = '\0';
+
+    char* parts[3] = {};
+    int count = 0;
+    char* token = strtok(work, ". \t\r\n");
+    while (token != nullptr && count < 3) {
+        parts[count++] = token;
+        token = strtok(nullptr, ". \t\r\n");
+    }
+    if (count < 2) return false;
+
+    const int elevation = atoi(parts[1]);
+    int tile = -1;
+    if (count >= 3) {
+        tile = atoi(parts[2]);
+        if (tile < 0 || tile >= HEX_GRID_WIDTH * HEX_GRID_HEIGHT) {
+            printf("owner teleport: bad hex %s\n", parts[2]);
+            fflush(stdout);
+            return false;
+        }
+    }
+    return requestTeleport(parts[0], elevation, tile);
+}
+
+} // namespace
+
+bool requestTeleport(const char* mapName, int elevation, int tile)
+{
+    if (gDude == nullptr) {
+        printf("owner teleport: refused, no hero\n");
+        fflush(stdout);
+        return false;
+    }
+    if (gTeleport.active) {
+        printf("owner teleport: held, one is already in flight\n");
+        fflush(stdout);
+        gTeleportTransientRefused = true;
+        return false;
+    }
+    if (inBlockingState()) {
+        // Transient: the caller keeps the file for the next polls instead of
+        // eating the owner's word mid-dialog.
+        printf("owner teleport: held, combat=%d dialog=%d movie=%d\n", isInCombat() ? 1 : 0,
+            _inDialog != 0 ? 1 : 0, gameMovieIsPlaying() ? 1 : 0);
+        fflush(stdout);
+        gTeleportTransientRefused = true;
+        return false;
+    }
+    const int mapId = resolveMapId(mapName);
+    if (mapId == -1) {
+        printf("owner teleport: no such map %s\n", mapName);
+        fflush(stdout);
+        return false;
+    }
+    if (elevation < 0 || elevation >= ELEVATION_COUNT) {
+        printf("owner teleport: bad elevation %d\n", elevation);
+        fflush(stdout);
+        return false;
+    }
+
+    // The travel goes through the dev tools' safe transition (it refuses
+    // absent elevations and drives the engine's own map change); this module
+    // tracks the arrival itself, outside the dev tools' gated tick.
+    if (!devtools::requestMapChange(mapName, elevation)) {
+        printf("owner teleport: travel refused for %s e%d\n", mapName, elevation);
+        fflush(stdout);
+        return false;
+    }
+    gTeleport.active = true;
+    gTeleport.mapId = mapId;
+    gTeleport.elevation = elevation;
+    gTeleport.tile = tile;
+    gTeleport.framesWaited = 0;
+    printf("owner teleport: traveling to %s e%d hex %d (map id %d, now on id %d)\n", mapName, elevation, tile,
+        mapId, static_cast<int>(gMapHeader.index));
+    fflush(stdout);
+    return true;
+}
+
+void pumpTeleport()
+{
+    // The command file: polled every half second, one line per file.
+    if (!gTeleport.active && ++gTeleportPollCounter >= 30) {
+        gTeleportPollCounter = 0;
+        const std::filesystem::path path = teleportFilePath();
+        std::error_code ec;
+        if (std::filesystem::exists(path, ec) && !ec) {
+            FILE* f = fopen(path.string().c_str(), "rb");
+            if (f != nullptr) {
+                char line[256] = {};
+                bool consumed = true;
+                while (fgets(line, sizeof(line), f) != nullptr) {
+                    if (line[0] != '\0' && line[0] != '#' && line[0] != '\r' && line[0] != '\n') {
+                        gTeleportTransientRefused = false;
+                        const bool accepted = parseTeleportLine(line);
+                        // A transient refusal keeps the file: the owner's word
+                        // survives until the game can take it.
+                        consumed = accepted || !gTeleportTransientRefused;
+                        if (!accepted && !gTeleportTransientRefused) {
+                            printf("owner teleport: the file held no usable line\n");
+                            fflush(stdout);
+                        }
+                        break;
+                    }
+                }
+                fclose(f);
+                if (consumed) consumeTeleportFile(path);
+            }
+        }
+    }
+
+    if (!gTeleport.active) return;
+
+    // Wait for the travel to land: the header carries the target map and the
+    // elevation the request asked for.
+    if (static_cast<int>(gMapHeader.index) != gTeleport.mapId
+        || static_cast<int>(gElevation) != gTeleport.elevation) {
+        if (++gTeleport.framesWaited > 3600) {
+            printf("owner teleport: gave up waiting for %d e%d (at %s e%d)\n",
+                gTeleport.mapId, gTeleport.elevation, gMapHeader.name, static_cast<int>(gElevation));
+            fflush(stdout);
+            gTeleport.active = false;
+        }
+        return;
+    }
+    if (gMapHeader.name[0] == '\0' || gDude == nullptr) return;
+    if (inBlockingState()) {
+        if (++gTeleport.framesWaited > 3600) {
+            printf("owner teleport: gave up, the arrival never left a blocking state\n");
+            fflush(stdout);
+            gTeleport.active = false;
+        }
+        return;
+    }
+
+    // The hex: the owner's name stands as it is; otherwise the safe pick
+    // around where the travel landed, then the tile the engine entered on.
+    int tile = gTeleport.tile;
+    if (tile < 0) {
+        // The travel landed the hero through the engine's entrance pick; the
+        // same walk check the floor change uses decides whether to step the
+        // hero to a walkable neighbor.
+        tile = devtools::findWalkableTileOnElevation(gDude->tile, gTeleport.elevation, 4);
+        if (tile == -1 && devtools::elevationTileFree(gDude->tile, gTeleport.elevation)) {
+            tile = gDude->tile;
+        }
+    }
+    if (tile >= 0 && tile != gDude->tile) {
+        objectSetLocation(gDude, tile, static_cast<MapElevation>(gTeleport.elevation), nullptr);
+        // The move is instant: the egg keeps no leftover scroll shift.
+        gEgg->x = 0;
+        gEgg->y = 0;
+        tileSetCenter(gDude->tile, TILE_SET_CENTER_REFRESH_WINDOW);
+    }
+    // A map change drops the 3D view (task 173's known gap): put the
+    // owner's view back, the teleport must not strand the game in 2D.
+    if (settings.scene3d.enabled && scene::activeView() == scene::View::Off) {
+        std::string viewError;
+        scene::enable(scene::View::Full, &viewError);
+    }
+    char message[128];
+    snprintf(message, sizeof(message), "teleported: %s e%d hex %d", gMapHeader.name,
+        gTeleport.elevation, gDude->tile);
+    displayMonitorAddMessage(message);
+    printf("owner teleport: arrived, %s\n", message);
+    fflush(stdout);
+    gTeleport.active = false;
 }
 
 } // namespace owner_shot
