@@ -90,7 +90,64 @@ int main()
     palette[255 * 3] = 255;
     palette[255 * 3 + 1] = 255;
     palette[255 * 3 + 2] = 255;
+    palette[1 * 3] = 75;
+    palette[1 * 3 + 1] = 213;
+    palette[1 * 3 + 2] = 31;
     SharpTextSurface surface;
+    fallout::scene::TextRecord flushLeft;
+    flushLeft.run.text = "A";
+    flushLeft.run.font = 101;
+    flushLeft.run.colorRole = fallout::scene::TextColorRole::InterfaceGreen;
+    flushLeft.run.colorAndFlags = 255;
+    flushLeft.run.x = 70;
+    flushLeft.run.y = 2;
+    flushLeft.run.width = 100;
+    flushLeft.run.lineHeight = 12;
+    if (!renderSharpText({ flushLeft }, 256, 32, 256, 32, palette, 256, visibility, &surface)) return 1;
+    const std::vector<unsigned char> flushLeftPixels = surface.pixels;
+    flushLeft.run.text = "  A";
+    if (!renderSharpText({ flushLeft }, 256, 32, 256, 32, palette, 256, visibility, &surface)
+        || surface.pixels != flushLeftPixels) {
+        std::fprintf(stderr, "Leading spaces indented sharp interface text\n");
+        return 1;
+    }
+    std::vector<fallout::scene::TextRecord> hudLogLines(2);
+    std::vector<fallout::scene::TextVisibilityMask> hudLogVisibility(2);
+    for (int row = 0; row < 2; ++row) {
+        fallout::scene::TextRecord& line = hudLogLines[row];
+        line.buffer = 77;
+        line.ownerWindow = 12;
+        line.ownerGeneration = 77;
+        line.run.text = std::string("\x95" "A", 2);
+        line.run.font = 101;
+        line.run.colorRole = fallout::scene::TextColorRole::HudMessageLogGreen;
+        line.run.colorAndFlags = 1;
+        line.run.x = 30 + row;
+        line.run.y = 2 + row * fallout::scene::sharpTextLinePitch(12, true);
+        line.run.width = 64;
+        line.run.lineHeight = 12;
+        line.run.characterX = { 30 + row, 38 + row };
+        hudLogVisibility[row].bounds = { 0, 0, 256, 32 };
+        hudLogVisibility[row].pixels.assign(256 * 32, 1);
+    }
+    if (!renderSharpText(hudLogLines, 256, 32, 256, 32, palette, 256, hudLogVisibility, &surface)) {
+        std::fprintf(stderr, "HUD log lines did not rasterize\n");
+        return 1;
+    }
+    int hudLogLeft[2] = { 256, 256 };
+    for (int y = 0; y < surface.height; ++y) {
+        const int row = y < 18 ? 0 : 1;
+        for (int x = 0; x < surface.width; ++x) {
+            if (surface.pixels[(static_cast<std::size_t>(y) * surface.width + x) * 4 + 3] != 0) {
+                hudLogLeft[row] = std::min(hudLogLeft[row], x);
+            }
+        }
+    }
+    if (hudLogLeft[0] != 30 || hudLogLeft[1] != hudLogLeft[0]) {
+        std::fprintf(stderr, "HUD log sharp rows did not share a left edge: %d, %d\n",
+            hudLogLeft[0], hudLogLeft[1]);
+        return 1;
+    }
     // Numeric values, different-length Russian states and both checkbox
     // states must end on the same visible pixel, not just the same advance.
     for (const char* value : { "0.80", "30.00", "\xC2\xEA\xEB", "\xC2\xFB\xEA\xEB", "[X]", "[ ]" }) {

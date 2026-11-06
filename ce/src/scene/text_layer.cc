@@ -184,15 +184,22 @@ FloatingTextOutlineLayout floatingTextOutlineLayout(int legacyWidth, int legacyH
     layout.bufferWidth = legacyWidth;
     layout.bufferHeight = legacyHeight;
     layout.lineHeight = std::max(lineHeight, 0);
-    layout.linePitch = std::max(lineHeight + 1, 1);
+    layout.linePitch = modernOutline ? sharpTextLinePitch(lineHeight, true) : std::max(lineHeight + 1, 1);
     layout.legacyTopMargin = hasOutline ? 1 : 0;
     if (!modernOutline || legacyWidth <= 0 || legacyHeight <= 0 || lineHeight <= 0 || lines <= 0) return layout;
     layout.offsetX = 2;
     layout.offsetY = 2;
     layout.bufferWidth += layout.offsetX * 2;
-    layout.lineOffset = std::max(0, font101PreviewCoverageHeight(lineHeight, -1) - lineHeight);
+    layout.lineOffset = std::max(std::max(0, font101PreviewCoverageHeight(lineHeight, -1) - lineHeight),
+        layout.linePitch - lineHeight);
     layout.bufferHeight += layout.offsetY + lines * layout.lineOffset;
     return layout;
+}
+
+int sharpTextLinePitch(int lineHeight, bool sharpTextEnabled)
+{
+    if (lineHeight <= 0 || !sharpTextEnabled) return std::max(lineHeight, 0);
+    return std::max(lineHeight + 1, (lineHeight * 13 + 9) / 10);
 }
 
 bool setFont101PreviewBold(bool bold, int ownerWindow)

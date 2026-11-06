@@ -25,6 +25,9 @@ struct DialogueLayout {
     int groupGap = 0;
 };
 
+int dialogueOptionTextOffset(bool firstLine, bool bulletLead,
+    int initialIndent, int bulletAdvance, int spaceAdvance);
+
 // Returns a uniform modern-only gap that preserves every option accepted by
 // the baseline layout. Bottom is exclusive, matching Rect and draw bounds.
 int dialogueOptionGroupGap(const std::vector<DialogueOptionLayoutProbe>& options,

@@ -3565,12 +3565,8 @@ bool takeSnapshot()
             imagePath = gameShots / name;
             imageFile = name;
             if (scene_renderer::isActive()) {
-                // As the window shows it, the same size as scene snapshots.
-                SDL_BlitSurface(gSdlSurface, nullptr, gSdlTextureSurface, nullptr);
                 std::string error;
-                if (!scene_renderer::captureFramePng(imagePath, static_cast<const unsigned char*>(gSdlTextureSurface->pixels),
-                        gSdlTextureSurface->w, gSdlTextureSurface->h, gSdlTextureSurface->pitch,
-                        &capturedWidth, &capturedHeight, &error)) {
+                if (!scene_renderer::capturePresentedFramePng(imagePath, &capturedWidth, &capturedHeight, &error)) {
                     std::string message = "snapshot failed: " + error;
                     setStatus(message.c_str());
                     return false;

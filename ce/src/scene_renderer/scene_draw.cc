@@ -324,17 +324,22 @@ void drawStaticHeroPreview()
 
 namespace {
 
-// The back buffer as drawn so far into a new PNG (top-down rows).
-bool writeBackBufferPng(const std::filesystem::path& path, int drawableWidth, int drawableHeight, std::string* error)
+// A GL buffer as drawn so far into a new PNG (top-down rows).
+bool writeBufferPng(const std::filesystem::path& path, int drawableWidth, int drawableHeight,
+    unsigned int buffer, std::string* error)
 {
+    constexpr unsigned int kFrontBuffer = 0x0404;
+    constexpr unsigned int kBackBuffer = 0x0405;
     const size_t rowBytes = static_cast<size_t>(drawableWidth) * 4;
     std::vector<unsigned char> bottomUp(rowBytes * static_cast<size_t>(drawableHeight));
     std::vector<unsigned char> topDown(bottomUp.size());
     glPixelStorei(kPackAlignment, 1);
+    glReadBuffer(buffer);
     glReadPixels(0, 0, drawableWidth, drawableHeight, kRGBA, kUnsignedByte, bottomUp.data());
+    glReadBuffer(kBackBuffer);
     glPixelStorei(kPackAlignment, kDefaultPackAlignment);
     if (glGetError() != 0) {
-        *error = "OpenGL backbuffer read failed";
+        *error = buffer == kFrontBuffer ? "OpenGL presented-frame read failed" : "OpenGL backbuffer read failed";
         return false;
     }
     for (int row = 0; row < drawableHeight; row++) {
@@ -353,16 +358,20 @@ bool writeBackBufferPng(const std::filesystem::path& path, int drawableWidth, in
     return true;
 }
 
+bool writeBackBufferPng(const std::filesystem::path& path, int drawableWidth, int drawableHeight, std::string* error)
+{
+    return writeBufferPng(path, drawableWidth, drawableHeight, 0x0405, error);
+}
+
 } // namespace
 
-bool captureFramePng(const std::filesystem::path& path, const unsigned char* rgba, int frameWidth, int frameHeight,
-    int pitch, int* width, int* height, std::string* error)
+bool capturePresentedFramePng(const std::filesystem::path& path, int* width, int* height, std::string* error)
 {
     auto fail = [&](const std::string& message) {
         if (error != nullptr) *error = message;
         return false;
     };
-    if (!gInitialized || rgba == nullptr) return fail("OpenGL renderer is unavailable");
+    if (!gInitialized) return fail("OpenGL renderer is unavailable");
     std::error_code existsError;
     if (std::filesystem::exists(path, existsError)) return fail("snapshot path already exists");
     int drawableWidth = 0;
@@ -371,21 +380,11 @@ bool captureFramePng(const std::filesystem::path& path, const unsigned char* rgb
     if (drawableWidth <= 0 || drawableHeight <= 0) return fail("OpenGL drawable has no pixels");
     while (glGetError() != 0) {
     }
-    // Reuse the prepared sharp pass from the same frame shown live.
-    const PreparedSharpTextFrame& text = preparedSharpTextFrame();
-    const bool sharpReady = text.active && text.width == frameWidth && text.height == frameHeight
-        && uploadSharpTextOverlay(text.overlay.pixels.data(), text.overlay.width,
-            text.overlay.height, text.overlay.pitch);
-    if (text.active && !sharpReady) disableSharpText("OpenGL upload failed during frame capture");
-    // The next present clears and redraws the back buffer; nothing is swapped.
-    presentFrame(sharpReady ? text.restoredRgba.data() : rgba,
-        frameWidth, frameHeight, sharpReady ? text.rgbaPitch : pitch);
-    if (sharpReady && !drawPreparedSharpTextOverlay()) {
-        disableSharpText("OpenGL draw failed during frame capture");
-        presentFrame(rgba, frameWidth, frameHeight, pitch);
-    }
     std::string message;
-    if (!writeBackBufferPng(path, drawableWidth, drawableHeight, &message)) return fail(message);
+    // vanillaPresented runs after swap, so the exact visible frame is in the
+    // front buffer. Redrawing only the SDL surface here would erase the 3D
+    // scene and lose the UI backdrop before the screenshot is read.
+    if (!writeBufferPng(path, drawableWidth, drawableHeight, 0x0404, &message)) return fail(message);
     if (width != nullptr) *width = drawableWidth;
     if (height != nullptr) *height = drawableHeight;
     if (error != nullptr) error->clear();

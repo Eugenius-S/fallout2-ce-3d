@@ -83,6 +83,11 @@ bool capture(TextLayer& layer, TextBufferId id, bool orphan,
 int main()
 {
     int failures = 0;
+    failures += !check(fallout::scene::sharpTextLinePitch(9, true) == 12
+            && fallout::scene::sharpTextLinePitch(10, true) == 13
+            && fallout::scene::sharpTextLinePitch(9, false) == 9
+            && fallout::scene::sharpTextLinePitch(0, true) == 0,
+        "sharp text spaces lines by at least 130 percent and leaves the classic pitch unchanged");
     const auto barkLayout = fallout::scene::floatingTextOutlineLayout(120, 22, 9, 2, true, true);
     const auto plainLayout = fallout::scene::floatingTextOutlineLayout(120, 22, 9, 2, true, false);
     const auto barkClip = barkLayout.clipBounds(100, 50, { 100, 50, 8, 8 });
@@ -93,8 +98,8 @@ int main()
             && barkRefreshBounds.width == 124 && barkRefreshBounds.height == 30
             && shiftedBarkRefreshBounds.x == 105 && shiftedBarkRefreshBounds.y == 45
             && shiftedBarkRefreshBounds.width == 124 && shiftedBarkRefreshBounds.height == 30
-            && barkLayout.linePitch == 10 && barkLayout.sharpLineOffset(1) == 3
-            && barkLayout.lineStartOffset(1) == static_cast<std::size_t>(13 * 124 + 2)
+            && barkLayout.linePitch == 12 && barkLayout.sharpLineOffset(1) == 3
+            && barkLayout.lineStartOffset(1) == static_cast<std::size_t>(15 * 124 + 2)
             && barkLayout.sourceOffset(barkClip, 100, 50) == static_cast<std::size_t>(2 * 124 + 2)
             && plainLayout.bufferWidth == 120 && plainLayout.bufferHeight == 22
             && plainLayout.lineStartOffset(1) == static_cast<std::size_t>(11 * 120),

@@ -313,6 +313,29 @@ bool renderSharpText(const std::vector<scene::TextRecord>& records,
     const double sy = static_cast<double>(physicalHeight) / logicalHeight;
     const unsigned char black[3] = { 0, 0, 0 };
 
+    // displayMonitorRefresh advances the source buffer one pixel to the right
+    // for each row to create a perspective effect. Sharp text should remain
+    // level even though the vanilla pixels retain that effect.
+    struct HudLogOwner {
+        int window;
+        scene::TextBufferId generation;
+        int firstY;
+    };
+    std::vector<HudLogOwner> hudLogOwners;
+    for (const scene::TextRecord& record : records) {
+        const scene::TextRunInfo& run = record.run;
+        if (run.colorRole != scene::TextColorRole::HudMessageLogGreen || run.lineHeight <= 0) continue;
+        const scene::TextBufferId generation = record.ownerGeneration != 0 ? record.ownerGeneration : record.buffer;
+        auto owner = std::find_if(hudLogOwners.begin(), hudLogOwners.end(), [&](const HudLogOwner& candidate) {
+            return candidate.window == record.ownerWindow && candidate.generation == generation;
+        });
+        if (owner == hudLogOwners.end()) {
+            hudLogOwners.push_back({ record.ownerWindow, generation, run.y });
+        } else {
+            owner->firstY = std::min(owner->firstY, run.y);
+        }
+    }
+
     for (std::size_t recordIndex = 0; recordIndex < records.size(); ++recordIndex) {
         const scene::TextRecord& record = records[recordIndex];
         const scene::TextRunInfo& run = record.run;
@@ -325,6 +348,20 @@ bool renderSharpText(const std::vector<scene::TextRecord>& records,
         if (font == nullptr) return false;
         const FontVerticalBounds& verticalBounds = getFontVerticalBounds(bold, font);
         if (!verticalBounds.valid) continue;
+
+        int hudLogXCorrection = 0;
+        if (run.colorRole == scene::TextColorRole::HudMessageLogGreen && run.lineHeight > 0) {
+            const scene::TextBufferId generation = record.ownerGeneration != 0 ? record.ownerGeneration : record.buffer;
+            const auto owner = std::find_if(hudLogOwners.begin(), hudLogOwners.end(), [&](const HudLogOwner& candidate) {
+                return candidate.window == record.ownerWindow && candidate.generation == generation;
+            });
+            if (owner != hudLogOwners.end()) {
+                const int row = std::max(0, static_cast<int>(std::lround(
+                    static_cast<double>(run.y - owner->firstY)
+                    / scene::sharpTextLinePitch(run.lineHeight, true))));
+                hudLogXCorrection = -row;
+            }
+        }
         const int fitHeight = verticalBounds.top - verticalBounds.bottom;
         if (fitHeight <= 0) continue;
         // Leave half a logical pixel for bitmap rounding at both line edges.
@@ -342,19 +379,26 @@ bool renderSharpText(const std::vector<scene::TextRecord>& records,
 
         std::vector<unsigned int> codepoints;
         std::vector<double> advances;
+        std::vector<std::size_t> sourceIndices;
         double naturalWidth = 0.0;
-        for (unsigned char character : run.text) {
+        std::size_t firstCharacter = 0;
+        if (run.colorRole == scene::TextColorRole::InterfaceGreen) {
+            while (firstCharacter < run.text.size() && run.text[firstCharacter] == ' ') firstCharacter++;
+        }
+        for (std::size_t sourceIndex = firstCharacter; sourceIndex < run.text.size(); ++sourceIndex) {
+            const unsigned char character = static_cast<unsigned char>(run.text[sourceIndex]);
             const unsigned int codepoint = decodeCp1251(character);
             int advance = 0;
             int bearing = 0;
             stbtt_GetCodepointHMetrics(font, static_cast<int>(codepoint), &advance, &bearing);
             codepoints.push_back(codepoint);
+            sourceIndices.push_back(sourceIndex);
             const double logicalAdvance = advance * logicalScale;
             advances.push_back(logicalAdvance);
             naturalWidth += logicalAdvance;
         }
         const bool monospaced = (run.colorAndFlags & DRAW_TEXT_FLAG_MONOSPACED) != 0
-            && run.characterCellX.size() == codepoints.size() && run.cellWidth > 0;
+            && run.characterCellX.size() == run.text.size() && run.cellWidth > 0;
         const double proportionalCondense = naturalWidth <= 0.0 ? 1.0 : std::min(1.0, run.width / naturalWidth);
         const unsigned int colorIndex = static_cast<unsigned int>(run.colorAndFlags) & 0xFF;
         if (colorIndex >= static_cast<unsigned int>(paletteEntries)) continue;
@@ -377,7 +421,7 @@ bool renderSharpText(const std::vector<scene::TextRecord>& records,
         const bool logBulletLead = run.colorRole == scene::TextColorRole::HudMessageLogGreen
             && codepoints.size() >= 2 && codepoints[0] == 0x2022
             && run.characterX.size() == codepoints.size();
-        double cursorX = run.x;
+        double cursorX = run.x + hudLogXCorrection;
         for (std::size_t index = 0; index < codepoints.size(); ++index) {
             int advanceUnits = 0;
             int bearingUnits = 0;
@@ -388,7 +432,7 @@ bool renderSharpText(const std::vector<scene::TextRecord>& records,
             int anchorX = 0;
             if (monospaced) {
                 const double glyphAdvance = logicalAdvance * cellCondense;
-                anchorX = static_cast<int>(std::lround((run.characterCellX[index]
+                anchorX = static_cast<int>(std::lround((run.characterCellX[sourceIndices[index]] + hudLogXCorrection
                     + (run.cellWidth - glyphAdvance) * 0.5) * sx));
             } else {
                 anchorX = static_cast<int>(std::lround(cursorX * sx));
@@ -399,7 +443,7 @@ bool renderSharpText(const std::vector<scene::TextRecord>& records,
             if (glyph == nullptr) return false;
             if (logBulletLead && index == 0) {
                 positioned.push_back({ glyph, anchorX - glyph->xoff });
-                cursorX = static_cast<double>(run.characterX[1]);
+                cursorX = static_cast<double>(run.characterX[1] + hudLogXCorrection);
                 continue;
             }
             positioned.push_back({ glyph, anchorX });
