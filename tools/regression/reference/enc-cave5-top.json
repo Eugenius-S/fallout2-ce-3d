@@ -1,0 +1,143 @@
+{
+  "image": "enc-cave5-top.png",
+  "view": "static-wall-plus-hero-preview",
+  "map": "CAVE5.MAP",
+  "elevation": 1,
+  "still_snapshot": true,
+  "snapshot_run": "4ed3b2eb2d3647408825cbdd12bc2f7a",
+  "view_tile": 24103,
+  "preview_requested": true,
+  "scene_3d_enabled": true,
+  "scene_view": "full",
+  "sharp_text": {
+    "setting": false,
+    "active": false,
+    "drawn": false,
+    "runs": 0,
+    "glyphs": 0,
+    "restored_pixels": 0,
+    "prepare_ms": 0.0
+  },
+  "map_clip": {
+    "enabled": true,
+    "setting_enabled": true,
+    "variant": "authored",
+    "source": "authored",
+    "world_bounds": [
+      -15.041667,
+      -2.3125,
+      19.458333,
+      28.9375
+    ],
+    "planes": [
+      [
+        0.4472136,
+        0.8944272,
+        -0.372678
+      ],
+      [
+        -0.8320503,
+        0.5547002,
+        5.8243523
+      ],
+      [
+        -0.4472136,
+        -0.8944272,
+        25.4166393
+      ],
+      [
+        0.8320503,
+        -0.5547002,
+        16.9183559
+      ]
+    ]
+  },
+  "camera": "fixed eye=(50.64466,46.23085,83.96700), target=(1.45833,0.00000,10.18750), fov_y=25.0, near=0.1, far=400.0, screen_right=-cross(forward,world_up)",
+  "camera_turn": 0.0,
+  "wall_triangles": 86,
+  "wall_pages": 1,
+  "hero": {
+    "tile": 24103,
+    "fid": 16777278,
+    "frame": 0,
+    "rotation": 0,
+    "world_anchor": [
+      1.458333333,
+      10.1875
+    ]
+  },
+  "egg": {
+    "shown": true,
+    "rect": [
+      416,
+      148,
+      129,
+      98
+    ],
+    "zoom": 1.0,
+    "wall_rows_marked": 0,
+    "wall_rows_any": false
+  },
+  "objects": {
+    "drawn": 569,
+    "skipped": 0
+  },
+  "preview_availability": "available",
+  "renderer": "scene-gl",
+  "light": "enabled",
+  "effect_emission": true,
+  "glow": {
+    "enabled": false,
+    "strength": 2.0
+  },
+  "weapon_effect": null,
+  "muzzle": null,
+  "sun": {
+    "setting": true,
+    "daylight": false,
+    "game_time": 302400,
+    "ambient": 65536,
+    "up": false,
+    "moon": false,
+    "height": 66.0,
+    "azimuth": -26.565,
+    "direction": [
+      0.3638,
+      0.91355,
+      -0.1819
+    ],
+    "color": [
+      1.0,
+      0.96,
+      0.88
+    ],
+    "strength": 0.0
+  },
+  "resolution": "1920x1080",
+  "logical_resolution": "960x540",
+  "scale": 2,
+  "scale_factor": 2.0,
+  "windowed": true,
+  "drawable": "1920x1080",
+  "sdl_window": {
+    "flags": 73734,
+    "window_position": "-20000,-20000",
+    "window_size": "1920x1080",
+    "drawable_size": "1920x1080",
+    "fullscreen": false,
+    "fullscreen_desktop": false,
+    "borderless": false
+  },
+  "ce_commit": "1afd4dee",
+  "tools_commit": "-",
+  "exe_sha256": "428f9ccdc9cb9278bacfe752254b014d14aae8b9a7afdc121a631863ac352bac",
+  "taken": "20261106-180012",
+  "capture_image": "devhero-20261106-180012-000.png",
+  "spot": {
+    "name": "enc-cave5-top",
+    "map": "cave5",
+    "elevation": 1,
+    "tile": 24103,
+    "coverage": "Cavern encounter 5: the cavern shelf above"
+  }
+}

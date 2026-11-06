@@ -1,0 +1,36 @@
+devtools: startup target klatoxcv e0 accepted=1 blocking=0
+scene: cache <repo>\build\scene-cache\klatoxcv\0
+devtools: static wall+hero preview started for KLATOXCV.MAP elevation 0
+scene: preview policy=available gameState=0 gameMode=0x0 uiDisabled=0 isoDisabled=0 combat=0 dialog=0 movie=0
+MAP_EDGE map=KLATOXCV.MAP elevation=0 zones=1 square_rect=99,0,0,99
+MAP_EDGE zone=0 tiles=18350,14276,22465,27320 pixels=5344,1296,2976,2352 scroll_border=4864,1512,3456,2136
+devtools: one-shot hero preview snapshot saved: snapshot: devshot-20261106-161708-000.json
+DEV_WATCHDOG state map=KLATOXCV.MAP elevation=0 tile=18532 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=0
+DEV_WATCHDOG state map=KLATOXCV.MAP elevation=0 tile=18532 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=0
+DEV_WATCHDOG state map=KLATOXCV.MAP elevation=0 tile=18532 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=0
+DEV_WATCHDOG state map=KLATOXCV.MAP elevation=0 tile=18532 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=0
+DEV_WATCHDOG state map=KLATOXCV.MAP elevation=0 tile=18532 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=0
+DEV_WATCHDOG state map=KLATOXCV.MAP elevation=0 tile=18532 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=0
+devtools: elevation 2 lands on 18931, 1 candidates tried, path to entrance no entrance
+owner teleport: traveling to klatoxcv e2 hex -1 (map id 12, now on id 12)
+scene: cache <repo>\build\scene-cache\klatoxcv\2
+owner teleport: arrived, teleported: KLATOXCV.MAP e2 hex 18930
+DEV_WATCHDOG state map=KLATOXCV.MAP elevation=2 tile=18930 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=0
+DEV_WATCHDOG state map=KLATOXCV.MAP elevation=2 tile=18930 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=0
+DEV_WATCHDOG state map=KLATOXCV.MAP elevation=2 tile=18930 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=0
+DEV_WATCHDOG state map=KLATOXCV.MAP elevation=2 tile=18930 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=0
+DEV_WATCHDOG state map=KLATOXCV.MAP elevation=2 tile=18930 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=0
+DEV_WATCHDOG state map=KLATOXCV.MAP elevation=2 tile=18930 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=0
+DEV_WATCHDOG state map=KLATOXCV.MAP elevation=2 tile=18930 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=0
+DEV_WATCHDOG state map=KLATOXCV.MAP elevation=2 tile=18930 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=0
+DEV_WATCHDOG state map=KLATOXCV.MAP elevation=2 tile=18930 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=0
+DEV_WATCHDOG state map=KLATOXCV.MAP elevation=2 tile=18930 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=0
+DEV_WATCHDOG state map=KLATOXCV.MAP elevation=2 tile=18930 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=0
+DEV_WATCHDOG state map=KLATOXCV.MAP elevation=2 tile=18930 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=0
+DEV_WATCHDOG state map=KLATOXCV.MAP elevation=2 tile=18930 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=0
+DEV_WATCHDOG state map=KLATOXCV.MAP elevation=2 tile=18930 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=0
+DEV_WATCHDOG state map=KLATOXCV.MAP elevation=2 tile=18930 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=0
+DEV_WATCHDOG state map=KLATOXCV.MAP elevation=2 tile=18930 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=0
+DEV_WATCHDOG state map=KLATOXCV.MAP elevation=2 tile=18930 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=0
+DEV_WATCHDOG state map=KLATOXCV.MAP elevation=2 tile=18930 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=0
+DEV_WATCHDOG state map=KLATOXCV.MAP elevation=2 tile=18930 combat=0 dialog=0 movie=0 view=3 tour_step=-1 walk_stage=0

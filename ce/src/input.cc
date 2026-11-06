@@ -572,12 +572,9 @@ int screenshotHandlerPngImpl(int width, int height, unsigned char* data, unsigne
         return -1;
     }
 
-    stream = compat_fopen((directory / fileName).string().c_str(), "wb");
-    if (stream == nullptr) {
-        return -1;
-    }
-    fclose(stream);
-
+    // Encode straight to the chosen path: the old stub-create + bare-filename
+    // encode pair left a 0-byte file in shots/game/ and dropped the real PNG
+    // next to the exe instead.
     int imgLen = width * height;
     std::vector<unsigned char> image(imgLen * 3);
 
@@ -587,7 +584,7 @@ int screenshotHandlerPngImpl(int width, int height, unsigned char* data, unsigne
         image[i * 3 + 2] = palette[data[i] * 3 + 2] << 2;
     }
 
-    unsigned error = lodepng::encode(fileName, image, width, height, LCT_RGB, 8);
+    unsigned error = lodepng::encode((directory / fileName).string(), image, width, height, LCT_RGB, 8);
     if (error) {
         return -1;
     }

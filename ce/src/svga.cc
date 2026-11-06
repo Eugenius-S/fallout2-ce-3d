@@ -22,6 +22,7 @@
 #include "settings.h"
 #include "scene/text_capture.h"
 #include "devtools/devtools.h"
+#include "devtools/owner_shot.h"
 #include "scene/scene_overlay.h"
 #include "scene/scene_view.h"
 #include "scene_renderer/camera.h"
@@ -575,6 +576,12 @@ void renderFpsCounter()
 
 void renderPresent()
 {
+    // The frame ring feeds the owner shot's fps block (183); the pump takes a
+    // pending --dev-owner-shot-once at the first present that can hold it.
+    scene_renderer::perfFrameTick();
+    owner_shot::pump();
+    // 127: the player's frame rate readout, drawn into the text capture so
+    // the sharp text pass re-renders it like the rest of the interface.
     static Uint32 fpsWindowStart = 0;
     static unsigned int fpsWindowFrames = 0;
     static unsigned int fpsValue = 0;
@@ -624,6 +631,8 @@ void renderPresent()
     // Sprite-lighting mod: the dev panel is drawn into the framebuffer after
     // the game (so it shows in both presentation paths).
     devtools::draw(static_cast<unsigned char*>(gSdlSurface->pixels), gSdlSurface->w, gSdlSurface->h, gSdlSurface->pitch);
+    // The owner's region mark rectangles, over everything else (183).
+    owner_shot::draw(static_cast<unsigned char*>(gSdlSurface->pixels), gSdlSurface->w, gSdlSurface->h, gSdlSurface->pitch);
     const bool uiVisible = scene_renderer::isActive() && !scene_renderer::staticFlyCameraActive()
         && (!scene::shouldPresent() || scene::activeView() == scene::View::Full);
     const bool sharpTextReady = scene_renderer::prepareSharpTextForPresent(gSdlSurface, gSdlTextureSurface, uiVisible);
@@ -646,6 +655,7 @@ void renderPresent()
                 const bool glow = scene_renderer::beginSceneCapture();
                 scene_renderer::drawStaticHeroPreview();
                 scene_renderer::perfMark("scene");
+                scene_renderer::perfLoadMark("first_frame");
                 if (glow) scene_renderer::compositeGlow();
                 scene_renderer::perfMark("glow");
                 // A fly camera shows the world alone.

@@ -78,6 +78,7 @@
 #include "win32.h"
 #include "window_manager.h"
 #include "devtools/devtools.h"
+#include "devtools/owner_shot.h"
 #include "devtools/test_run_state.h"
 #include "worldmap.h"
 
@@ -576,6 +577,13 @@ int gameHandleKey(int eventCode, bool isInCombatMode)
         return 0;
     }
 
+    // The owner's feedback shot (183): plain F9 while the dev tools are off.
+    // With them on, the dev snapshot above consumed F9, so the tours and the
+    // panel keep their devshot format.
+    if (owner_shot::handleKey(eventCode)) {
+        return 0;
+    }
+
     // 3D camera rotation ([3d] camera_rotation): [ and ] turn it.
     if ((eventCode == KEY_BRACKET_LEFT || eventCode == KEY_BRACKET_RIGHT)
         && scene::turnCamera(eventCode == KEY_BRACKET_RIGHT ? 1 : -1)) {
@@ -584,7 +592,14 @@ int gameHandleKey(int eventCode, bool isInCombatMode)
 
     // NOTE: Uninline.
     if (gameGetState() == GameState::DialogRequested) {
-        _gdialogSystemEnter();
+        if (devtools::skipScriptDialogRequest()) {
+            gameRequestState(GameState::DialogFinished);
+            gameUpdateState();
+            gameRequestState(GameState::Normal);
+            gameUpdateState();
+        } else {
+            _gdialogSystemEnter();
+        }
     }
 
     if (eventCode == -1) {

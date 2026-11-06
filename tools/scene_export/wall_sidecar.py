@@ -9,7 +9,7 @@ import struct
 import numpy as np
 
 from scene_check import one_map_elevation
-from solids import OVER_CARD, Projection, rest_card, rest_cross, row_plane, screen_area, solid_faces
+from solids import HULL_MIN_WIDTH, OVER_CARD, Projection, hull_plane, rest_card, rest_cross, row_plane, screen_area, solid_faces
 
 
 MAGIC = b"F2WL"
@@ -1439,7 +1439,7 @@ def _mirror_back_atlases(scene, atlas):
 
 
 def encode_wall_sidecar(scene, skip_props=frozenset(), skip_rests=frozenset(), map_objects=None, atlas=None, tiles=None,
-                        wall_back_pages=None):
+                        wall_back_pages=None, water=None):
     """Build the donor game view's wall triangles for one scene: what the game's
     camera sees of walls (fronts and tops) and the sheets that have no
     thickness. Backs and slab ends (wallRest, trims) are first-person only in
@@ -1448,7 +1448,10 @@ def encode_wall_sidecar(scene, skip_props=frozenset(), skip_rests=frozenset(), m
     upper parts are left out.) map_objects: the elevation's objects in map file
     order (the rows' serial numbers); the faces of each object name it in the
     table. atlas: the packed RGBA pages (alpha), so a corner's core takes an
-    opaque texel. tiles: the tiles atlas alpha, for the roofs' rims."""
+    opaque texel. tiles: the tiles atlas alpha, for the roofs' rims.
+    water: the 100x100 water flags (floor.bin 7, SceneBuilder.build_water); a
+    wide grouped rest on water stands as one vertical plane on the water line
+    (168) instead of the game-screen plane."""
     if scene.get("format") != 6 or not one_map_elevation(scene):
         raise ValueError("wall sidecar expects one map elevation in scene format 6")
     pages_data = scene.get("pages")
@@ -1633,16 +1636,32 @@ def encode_wall_sidecar(scene, skip_props=frozenset(), skip_rests=frozenset(), m
         # The game's camera sees the card; the fly camera two crossed sheets,
         # each from both sides.
         game.object = fly.object = axis_owner.get((row[1], row[2]), -1.0)
-        page, corners = rest_card(proj, sprites, row, axis_plane.get((row[1], row[2])))
-        seen = row[5] if len(row) > 5 else 0     # 1: of a solid the fly camera alone sees, 2: the game's
-        if (row[1], row[2]) not in forced_axes and seen != 1:  # the game's camera sees that solid's card whole
+        seen = row[5] if len(row) > 5 else 0     # 1: crossed fly-only rest, 2: game card, 3: fixed fly-only plane
+        # A hull-sized grouped picture on water stands as one vertical plane
+        # on the water line it docks at (168); anything else keeps rest_card's
+        # game-screen plane.
+        hull = None
+        if seen == 3 and water is not None and sprites[row[0]][3] >= HULL_MIN_WIDTH:
+            hull = hull_plane(proj, sprites, row, water)
+        if hull is not None:
+            page, corners = hull
+        else:
+            page, corners = rest_card(proj, sprites, row, axis_plane.get((row[1], row[2])))
+        if (row[1], row[2]) not in forced_axes and seen not in (1, 3):
             _polygon(game, proj, page, pages[page], corners)
-        for page, corners in rest_cross(proj, sprites, row) if seen != 2 else ():
-            # The sheet across the screen is a line to the game's camera, so
-            # it is wound both ways without asking that camera.
+        if seen == 3:
+            # A grouped flat picture is one fixed plane, not two crossed copies.
+            # The fly camera can approach it from either side.
             for wound in (corners, corners[::-1]):
                 for index in range(1, len(wound) - 1):
                     _quad_triangle(fly, page, pages[page], (wound[0], wound[index], wound[index + 1]))
+        elif seen != 2:
+            for page, corners in rest_cross(proj, sprites, row):
+                # The sheet across the screen is a line to the game's camera, so
+                # it is wound both ways without asking that camera.
+                for wound in (corners, corners[::-1]):
+                    for index in range(1, len(wound) - 1):
+                        _quad_triangle(fly, page, pages[page], (wound[0], wound[index], wound[index + 1]))
     fly.object = game.object = -1.0
 
     groups = [(0, page, batches[page]) for page in sorted(batches)] + [(FLY_ONLY, page, fly[page]) for page in sorted(fly)] \

@@ -3,6 +3,7 @@
 
 #include <filesystem>
 #include <string>
+#include <vector>
 
 namespace fallout {
 namespace scene_renderer {
@@ -24,6 +25,14 @@ bool captureStaticPreviewPng(const std::filesystem::path& path, bool withWalls, 
 bool captureFramePng(const std::filesystem::path& path, const unsigned char* rgba, int frameWidth, int frameHeight,
     int pitch, int* width, int* height, std::string* error);
 bool capturePresentedFramePng(const std::filesystem::path& path, int* width, int* height, std::string* error);
+
+// The same captures without a file write: the GL readback and the redraw it
+// needs stay on the main thread; the PNG encode and the file writes go to a
+// worker (183, the owner shot). Top-down RGBA rows at the window's size.
+bool captureStaticPreviewBuffer(bool withWalls, bool withHero, bool includeOverlay,
+    std::vector<unsigned char>& rgba, int* width, int* height, std::string* error);
+bool captureFrameBuffer(const unsigned char* rgba, int frameWidth, int frameHeight, int pitch,
+    std::vector<unsigned char>& out, int* width, int* height, std::string* error);
 
 } // namespace scene_renderer
 } // namespace fallout

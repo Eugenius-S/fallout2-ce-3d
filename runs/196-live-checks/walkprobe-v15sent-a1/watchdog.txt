@@ -1,0 +1,7 @@
+WATCHDOG STOP reason=step timeout after 25 s without progress
+last_step=WALK_PROBE START map=V15SENT.MAP elevation=0 start=17700 center=19088 target=17080 path=20
+last_game_state=scene: preview policy=game-state gameState=4 gameMode=0x4 uiDisabled=0 isoDisabled=1 combat=0 dialog=0 movie=0
+screenshot=capture failed: (7,341): error CS1069: The type name 'Bitmap' could not be found in the namespace 'System.Drawing'. This type has been forwarded to assembly 'System.Drawing.Common, Version=0.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51' Consider adding a reference to that assembly.
+ public static bool Save(int pid, string path) { foreach(var p in System.Diagnostics.Process.GetProcesses()) { try { if(p.Id!=pid) continue; var h=p.MainWindowHandle; uint actual; GetWindowThreadProcessId(h,out actual); if(h==IntPtr.Zero || actual!=(uint)pid) return false; RECT r; if(!GetWindowRect(h,out r)) return false; using(var b=new Bitmap(r.R-r.L,r.B-r.T)) using(var g=Graphics.FromImage(b)){ var dc=g.GetHdc(); bool ok=PrintWindow(h,dc,2); g.ReleaseHdc(dc); if(!ok) return false; b.Save(path,System.Drawing.Imaging.ImageFormat.Png); return true; } } catch { return false; } } return false; }
+                                                                                                                                                                                                                                                                                                                                                    ^
+

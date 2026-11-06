@@ -1,0 +1,39 @@
+{
+    "build_sha256":  "B2F26B1F984991DA8F371CAE0E952C4BB6F4C690516327D8715BA534B572754D",
+    "captures":  [
+                     {
+                         "language":  "en",
+                         "file":  "installer-en.jpg",
+                         "pixel_width":  816,
+                         "pixel_height":  759,
+                         "path_text":  "build/task201-scratch-game",
+                         "path_readback":  "build/task201-scratch-game",
+                         "capture":  "PrintWindow flags=2",
+                         "log_scrollbar_visible_without_overflow":  false
+                     },
+                     {
+                         "language":  "en",
+                         "file":  "progress-active.jpg",
+                         "pixel_width":  816,
+                         "pixel_height":  759,
+                         "capture":  "PrintWindow flags=2 during worker activity"
+                     },
+                     {
+                         "language":  "en",
+                         "file":  "log-scroll.jpg",
+                         "pixel_width":  816,
+                         "pixel_height":  759,
+                         "capture":  "PrintWindow flags=2 after physical wheel-up; first visible line 3 to 0"
+                     },
+                     {
+                         "language":  "ru",
+                         "file":  "installer-ru.jpg",
+                         "pixel_width":  816,
+                         "pixel_height":  759,
+                         "path_text":  "build/task201-scratch-game",
+                         "path_readback":  "build/task201-scratch-game",
+                         "capture":  "PrintWindow flags=2",
+                         "log_scrollbar_visible_without_overflow":  false
+                     }
+                 ]
+}

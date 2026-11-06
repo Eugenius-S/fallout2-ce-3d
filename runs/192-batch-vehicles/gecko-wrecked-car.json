@@ -1,0 +1,11 @@
+{
+  "evidence_file": "gecko-wrecked-car.jpg",
+  "map": "GECKSETL e0",
+  "object": "wrecked car",
+  "source_task": 161,
+  "source_pr": 249,
+  "source_file": "runs/161-gecko-in-3d/tour-gecksetl.jpg",
+  "capture": "reused merged area-task before/after turn sheet, not a new runtime capture",
+  "status": "shown in the 2D grid probe and turn sweep; no shape issue listed",
+  "bytes": 223357
+}

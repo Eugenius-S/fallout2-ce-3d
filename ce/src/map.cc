@@ -36,6 +36,7 @@
 #include "proto_instance.h"
 #include "queue.h"
 #include "random.h"
+#include "scene_renderer/perf.h"
 #include "script_sound.h"
 #include "scripts.h"
 #include "settings.h"
@@ -808,6 +809,7 @@ void mapNewMap()
 int mapLoadByName(char* fileName)
 {
     mapLoadTimerStart();
+    scene_renderer::perfLoadStart("map_change");
 
     int rc;
 
@@ -849,6 +851,7 @@ int mapLoadByName(char* fileName)
     }
 
     mapLoadTimerFinish(fileName, rc);
+    scene_renderer::perfLoadMark("map_load");
 
     return rc;
 }
@@ -997,16 +1000,19 @@ static int mapLoad(File* stream)
     if (_square_load(stream, gMapHeader.flags) != 0) {
         goto err;
     }
+    scene_renderer::perfLoadMark("map_tiles");
 
     error = "Error reading scripts";
     if (scriptLoadAll(stream) != 0) {
         goto err;
     }
+    scene_renderer::perfLoadMark("map_scripts");
 
     error = "Error reading objects";
     if (objectLoadAll(stream) != 0) {
         goto err;
     }
+    scene_renderer::perfLoadMark("map_objects");
 
     if (!_isLoadingGame()) {
         // Fix whoHitMe union.  When loading a saved game, combatLoad is responsible for this fix
@@ -1017,6 +1023,7 @@ static int mapLoad(File* stream)
     if (mapSetElevation(gEnteringElevation) != 0) {
         goto err;
     }
+    scene_renderer::perfLoadMark("map_elevation");
 
     if (settings.system.executableIsMapper() || settings.ui.edg_support) {
         mapEdgeLoad(gMapHeader.name);

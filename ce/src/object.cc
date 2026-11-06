@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <limits>
+#include <thread>
 #include <vector>
 
 #include "animation.h"
@@ -18,6 +19,7 @@
 #include "draw.h"
 #include "game.h"
 #include "game_mouse.h"
+#include "scene_renderer/perf.h"
 #include "item.h"
 #include "light.h"
 #include "map.h"
@@ -550,6 +552,8 @@ static int objectLoadAllInternal(File* stream)
             return -1;
         }
 
+        scene_renderer::PerfScope stage("objects_load");
+
         for (int objectIndex = 0; objectIndex < objectCountAtElevation; objectIndex++) {
             ObjectListNode* objectListNode;
 
@@ -565,15 +569,14 @@ static int objectLoadAllInternal(File* stream)
             }
 
             if (objectRead(objectListNode->obj, stream) != 0) {
-                // NOTE: Uninline.
-                objectDeallocate(&(objectListNode->obj));
+                    // NOTE: Uninline.
+                    objectDeallocate(&(objectListNode->obj));
 
-                // NOTE: Uninline.
-                objectListNodeDestroy(&objectListNode);
+                    // NOTE: Uninline.
+                    objectListNodeDestroy(&objectListNode);
 
-                return -1;
-            }
-
+                    return -1;
+                }
             objectListNode->obj->outline = OUTLINE_TYPE_NONE;
             gObjectFids[gObjectFidsLength++] = objectListNode->obj->fid;
 
@@ -636,11 +639,14 @@ static int objectLoadAllInternal(File* stream)
     }
 
     if (gObjectFidsLength != objectCount) {
-        debugPrint("\nError loading objects: expected %d objects, read %d.\n", objectCount, gObjectFidsLength);
+        debugPrint("\nError loading objects: expected %d objects, read %d.\n", gObjectFidsLength, objectCount);
         return -1;
     }
 
-    _obj_rebuild_all_light();
+    {
+        scene_renderer::PerfScope stage("objects_light");
+        _obj_rebuild_all_light();
+    }
 
     return 0;
 }
@@ -3361,30 +3367,55 @@ void _obj_preload_art_cache(MapHeaderFlags flags)
         v11++;
     }
 
-    CacheEntry* cache_handle;
-    if (artLock(FrmId(*gObjectFids), &cache_handle) != nullptr) {
-        artUnlock(cache_handle);
-    }
-
-    for (int i = 1; i < v11; i++) {
-        if (gObjectFids[i - 1] != gObjectFids[i]) {
-            if (artLock(FrmId(gObjectFids[i]), &cache_handle) != nullptr) {
-                artUnlock(cache_handle);
-            }
+    // The warm is independent per FID and its file reads dominate it, so the
+    // unique FIDs spread over a few threads (172); the art cache's lock makes
+    // the concurrent locks safe. The tile art stays serial, it is a handful.
+    std::vector<int> warmFids;
+    warmFids.reserve(gObjectFidsLength);
+    for (int i = 0; i < gObjectFidsLength; i++) {
+        if (i == 0 || gObjectFids[i - 1] != gObjectFids[i]) {
+            warmFids.push_back(gObjectFids[i]);
         }
     }
 
+    scene_renderer::PerfScope preloadStage("art_preload");
+    auto warmRange = [&warmFids](int begin, int end) {
+        CacheEntry* cache_handle;
+        for (int i = begin; i < end; i++) {
+            if (artLock(FrmId(warmFids[i]), &cache_handle) != nullptr) {
+                artUnlock(cache_handle);
+            }
+        }
+    };
+
+    unsigned int warmThreads = std::thread::hardware_concurrency();
+    if (warmThreads > 4) warmThreads = 4;
+    if (warmThreads < 1) warmThreads = 1;
+    if (warmThreads <= 1 || warmFids.size() < 64) {
+        warmRange(0, static_cast<int>(warmFids.size()));
+    } else {
+        std::vector<std::thread> threads;
+        const int chunk = static_cast<int>((warmFids.size() + warmThreads - 1) / warmThreads);
+        for (unsigned int t = 0; t < warmThreads; t++) {
+            const int begin = static_cast<int>(t) * chunk;
+            const int end = static_cast<int>(std::min<size_t>(begin + chunk, warmFids.size()));
+            if (begin >= end) break;
+            threads.emplace_back(warmRange, begin, end);
+        }
+        for (auto& thread : threads) {
+            thread.join();
+        }
+    }
+
+    // The vanilla miss path fed the sound mixer every few locks; the threaded
+    // warm replaced those calls, so one tick on the main thread keeps the
+    // loading sound moving (172).
+    soundContinueAll();
+
+    CacheEntry* cache_handle;
     for (int i = FrmId::kMinFrameId; i <= FrmId::kMaxFrameId; i++) {
         if (arr[i] != 0) {
             if (artLock(static_cast<TileFrameId>(i), &cache_handle) != nullptr) {
-                artUnlock(cache_handle);
-            }
-        }
-    }
-
-    for (int i = v11; i < gObjectFidsLength; i++) {
-        if (gObjectFids[i - 1] != gObjectFids[i]) {
-            if (artLock(FrmId(gObjectFids[i]), &cache_handle) != nullptr) {
                 artUnlock(cache_handle);
             }
         }
@@ -4015,9 +4046,6 @@ static void _obj_insert(ObjectListNode* objectListNode)
     if (objectListNode->obj->tile == -1) {
         objectListNodePtr = &gObjectListHead;
     } else {
-        Art* art = nullptr;
-        CacheEntry* cacheHandle = nullptr;
-
         objectListNodePtr = &(gObjectListHeadByTile[objectListNode->obj->tile]);
 
         while (*objectListNodePtr != nullptr) {
@@ -4030,33 +4058,9 @@ static void _obj_insert(ObjectListNode* objectListNode)
                 if ((obj->flags & OBJECT_FLAT) == OBJECT_NONE && (objectListNode->obj->flags & OBJECT_FLAT) != OBJECT_NONE) {
                     break;
                 }
-
-                if ((obj->flags & OBJECT_FLAT) == (objectListNode->obj->flags & OBJECT_FLAT)) {
-                    bool v11 = false;
-                    CacheEntry* a2;
-                    Art* v12 = artLock(FrmId(obj), &a2);
-                    if (v12 != nullptr) {
-
-                        if (art == nullptr) {
-                            art = artLock(FrmId(objectListNode->obj), &cacheHandle);
-                        }
-
-                        // TODO: Incomplete.
-
-                        artUnlock(a2);
-
-                        if (v11) {
-                            break;
-                        }
-                    }
-                }
             }
 
             objectListNodePtr = &((*objectListNodePtr)->next);
-        }
-
-        if (art != nullptr) {
-            artUnlock(cacheHandle);
         }
     }
 
@@ -4195,8 +4199,13 @@ static int objectSpreadLightWith(Object* obj, AdjustLightIntensityProc* adjustLi
 
     adjustLightIntensity(obj->elevation, obj->tile, obj->lightIntensity);
 
+    // The rebuild (rect == nullptr) never reads the rect back, and the ray
+    // walk below only unions into it: skipping the art lookups those unions
+    // cost was the map load's fattest win (172). The rect output keeps them.
     Rect objectRect;
-    objectGetRect(obj, &objectRect);
+    if (rect != nullptr) {
+        objectGetRect(obj, &objectRect);
+    }
 
     if (obj->lightDistance > 8) {
         obj->lightDistance = 8;
@@ -4753,9 +4762,11 @@ static int objectSpreadLightWith(Object* obj, AdjustLightIntensityProc* adjustLi
                                 }
 
                                 if (objectListNode->obj->elevation == obj->elevation) {
-                                    Rect v29;
-                                    objectGetRect(objectListNode->obj, &v29);
-                                    rectUnion(&objectRect, &v29, &objectRect);
+                                    if (rect != nullptr) {
+                                        Rect v29;
+                                        objectGetRect(objectListNode->obj, &v29);
+                                        rectUnion(&objectRect, &v29, &objectRect);
+                                    }
 
                                     v14 = (objectListNode->obj->flags & OBJECT_LIGHT_THRU) == OBJECT_NONE;
 

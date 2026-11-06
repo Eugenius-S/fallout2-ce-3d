@@ -165,7 +165,7 @@ void drawSceneSky(float aspect, int width, int height, bool flying)
     glUniform3f(glGetUniformLocation(gProgram, "uSun"), sun.direction[0], sun.direction[1], sun.direction[2]);
     glUniform3f(glGetUniformLocation(gProgram, "uZenith"), zenith[0], zenith[1], zenith[2]);
     glUniform3f(glGetUniformLocation(gProgram, "uHorizon"), horizon[0], horizon[1], horizon[2]);
-    glUniform1f(glGetUniformLocation(gProgram, "uStars"), sun.up ? 0.0f : night);
+    glUniform1f(glGetUniformLocation(gProgram, "uStars"), sun.up && !sun.moon ? 0.0f : night);
     glUniform1f(glGetUniformLocation(gProgram, "uGlow"), 0.35f + twilight * 0.35f + sun.strength * 0.3f);
     glUniform1i(glGetUniformLocation(gProgram, "uUnderground"), scene::sceneDaylight() ? 0 : 1);
     glUniform2f(glGetUniformLocation(gProgram, "uResolution"), static_cast<float>(width), static_cast<float>(height));

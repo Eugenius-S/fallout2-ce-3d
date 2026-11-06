@@ -1,0 +1,27 @@
+{
+  "task": 199,
+  "date": "2026-11-05",
+  "worktree": "E:/Projects/fallout2-ce-3d-199-gpt",
+  "scratch_game_root": "E:/Projects/f2-installer-test-199-run3",
+  "release_test_server": "http://127.0.0.1:8119/latest",
+  "fake_release_versions": ["test-build-a", "test-build-b"],
+  "launcher_sha256": "FA6A4D82606C7009C3932D5957A860DEF99B9BE9F0FA12AA78098CA9361FBF85",
+  "tests": {
+    "release_notes": "Installer test | Version and update flow checked",
+    "clean_install": "test-build-a",
+    "automatic_update": "test-build-a to test-build-b",
+    "rollback": "test-build-b to test-build-a",
+    "system_ui_language": "ru-RU, id 1049, selected Russian",
+    "language_and_auto_update_persisted": true,
+    "official_rpu_translation": {
+      "release": "v2.4.34",
+      "archive_bytes": 140656143,
+      "rpu_russian_dat_bytes": 6405961,
+      "cfg_language": "russian",
+      "mods_order_entry": "rpu_russian.dat"
+    },
+    "ctest": "20/20 passed",
+    "standalone_exporter": "built"
+  },
+  "screenshots": ["interface-en.jpg", "interface-ru.jpg", "install-cycle.jpg"]
+}

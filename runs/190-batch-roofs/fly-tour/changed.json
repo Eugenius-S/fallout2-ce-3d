@@ -1,0 +1,14 @@
+{
+  "tool": "tools/tour/tour.py",
+  "baseline_commit": "215086a78ff3582b1ea208141dceb27669d58707",
+  "after_commit": "31ee225fe4c4ad1d722c2886dcc2ba0472edf259",
+  "maps": ["newr1", "kladwtwn", "broken1"],
+  "tour_spots": 27,
+  "changed_spots": 23,
+  "changed_sheet": "changed.jpg",
+  "sheet_bytes": 790502,
+  "source_directory": "runs/190-batch-roofs/fly-tour-final",
+  "regression": "runs/regression/20261105-233839-192-23864/summary.txt",
+  "regression_spots": 99,
+  "regression_changed_pixels": 0
+}

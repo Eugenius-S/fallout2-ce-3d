@@ -207,7 +207,20 @@ def slab_edges(rgba, open_edges):
     return found, grey, dist
 
 
-def split_tile(rgba, open_edges=()):
+def all_grey_partial_tile(rgba):
+    """Whether a partial roof tile is painted almost entirely as dark grey wall top."""
+    painted, _, _, diamond = _grid(rgba)
+    if not painted.any():
+        return False
+    cover = (painted & diamond).sum() / diamond.sum()
+    if cover >= WHOLE_COVER:
+        return False
+    rgb = rgba[..., :3].astype(float)
+    grey = painted & (rgb.mean(axis=2) < GREY_LUMA) & (np.abs(rgb[..., 0] - rgb[..., 2]) < GREY_TINT)
+    return grey.sum() >= ALL_GREY * painted.sum()
+
+
+def split_tile(rgba, open_edges=(), wall_supported=True):
     """A roof tile's art split into its wall-top part and its roof part.
 
     Returns (pieces, roof): pieces is [(edge, art)], the wall-top pixels split by
@@ -231,6 +244,8 @@ def split_tile(rgba, open_edges=()):
     # concrete and rebar are grey and dark, shingle is brown: red leads blue by more than a few levels
     grey = painted & (rgb.mean(axis=2) < GREY_LUMA) & (np.abs(rgb[..., 0] - rgb[..., 2]) < GREY_TINT)
     slabs, _, dist = slab_edges(rgba, open_edges)
+    if cover < WHOLE_COVER and not wall_supported and grey.sum() >= ALL_GREY * painted.sum():
+        return [], rgba
     if cover >= WHOLE_COVER and outside.sum() <= FREE_OUTSIDE and not slabs:
         return [], rgba
     whole = cover >= WHOLE_COVER
@@ -775,21 +790,35 @@ def cut_to_walls(runs, strips, good, wall_of):
 
 
 def donate(runs, strips, good, pool, comp, diagnostics=None):
-    """The strips with every run that is not genuine ragged art given its roof's donor's edge.
+    """Give every band on one roof the same genuine ragged edge.
 
     pool: [(run, strip, component)] of the map's genuine runs. A roof (a
     connected footprint) takes the longest genuine run of its own as donor, else
-    the longest genuine run of the map; the runs that are not genuine
-    (slab-cut tiles, a broken or stepped strip, a strip None) take the donor's
-    ragged edge, repeated along their length: the same height and orientation.
+    the longest genuine run of the map. All of that roof's bands, including other
+    genuine runs, take the donor's ragged edge, repeated along their length. This
+    keeps one roof edge from having a different height or thickness than another.
     """
-    best = lambda items: max(items, key=lambda item: (len(item[0][3]), foot_cover(item[1])), default=None)
+    def profile(item):
+        return (item[1][-EDGE_ROWS:, :, 3] > 0).mean(axis=1)
+
+    def donor(items):
+        if not items:
+            return None
+        profiles = [profile(item) for item in items]
+        return min(items, key=lambda item: (
+            sum(float(np.abs(profile(item) - other).mean()) for other in profiles),
+            -foot_cover(item[1]),
+            -len(item[0][3]),
+        ))
+
+    map_donor = donor(pool)
+    donors = {}
     out = []
     for run, strip, ok in zip(runs, strips, good):
-        if ok:
-            out.append(strip)
-            continue
-        pick = best([item for item in pool if item[2] == comp[run[3][0][0]]]) or best(pool)
+        component = comp[run[3][0][0]] if run[3] else None
+        if component not in donors:
+            donors[component] = donor([item for item in pool if item[2] == component]) or map_donor
+        pick = donors[component]
         if pick is None:
             out.append(strip if strip is not None else own_strip(run))
             continue
@@ -987,15 +1016,31 @@ def write_fringe_art(out_png, roof_squares, art_of, wall_of, belt_of=None, defau
     """
     cache = {}
 
-    def split(tile, open_edges):
-        if (tile, open_edges) not in cache:
-            cache[tile, open_edges] = split_tile(art_of(tile), open_edges)
-        return cache[tile, open_edges]
+    def split(tile, open_edges, wall_supported):
+        key = (tile, open_edges, wall_supported)
+        if key not in cache:
+            cache[key] = split_tile(art_of(tile), open_edges, wall_supported)
+        return cache[key]
 
     open_of = boundary_edges(roof_squares)
     squares, patched, slab_cut = {}, {}, set()
+    unsupported_partial = set()
     for index, tile in sorted(roof_squares.items()):
-        pieces, roof = split(tile, tuple(open_of[index]))
+        open_edges = tuple(open_of[index])
+        wall_supported = True
+        art = art_of(tile)
+        if all_grey_partial_tile(art):
+            x, z = index % 100, index // 100
+            wall_supported = False
+            for edge in open_edges:
+                plane = z + (edge == 1) if edge < 2 else x + (edge == 3)
+                start = x if edge < 2 else z
+                if wall_of(edge, plane, start, 1) is not None:
+                    wall_supported = True
+                    break
+            if not wall_supported:
+                unsupported_partial.add(index)
+        pieces, roof = split(tile, open_edges, wall_supported)
         if pieces:
             squares[index] = pieces
             patched[index] = ((tile, tuple(open_of[index])), roof)
@@ -1069,7 +1114,7 @@ def write_fringe_art(out_png, roof_squares, art_of, wall_of, belt_of=None, defau
     # along its open edge): it too is drawn from a tidied cell, when tidying changes it
     tidied = {}
     for index, tile in sorted(roof_squares.items()):
-        if index in patched or not open_of[index]:
+        if index in patched or not open_of[index] or index in unsupported_partial:
             continue
         key = (tile, tuple(open_of[index]))
         if key not in tidied:

@@ -2,15 +2,15 @@
 id: 169
 title: The desert and coast encounters in 3D, every map stands and looks clean
 milestone: M1
-status: todo
-owner: any
-suggested: any
+status: done
+owner: glm
+suggested: glm
 priority: normal
 tier: 3
 claude-only: no
 user-check: yes
 depends-on: []
-reviewed: no
+reviewed: yes
 ---
 
 ## Goal
@@ -71,3 +71,43 @@ The interface, menus and text, the sky, new 3D models from scratch, maps of
 other areas (each has its own task).
 
 ## Log
+
+
+## Log
+
+- 2026-11-05, glm. The encdesertcoast group (desert1-9, desrt10-13, coast1-12;
+  25 maps, 30 elevations) exports into build/scene-cache; desert1-e0 was
+  already a cache hit, the other 29 export with no errors or warnings.
+  Entrance stills on all 30 elevations (3D on everywhere), the 8/12/18 hour
+  sweep on all of them, grid probes on coast1, desert5, coast10, and walk
+  probes 7/7 (the hero moves, 3D stays on). The cars, shanty huts, cliffs
+  and tents all stand. The dark elevations (coast2 e1, coast5 e1, coast7 e1,
+  desrt13 e1/e2) match the game's own 2D picture (-Classic), they are the
+  maps' real darkness.
+- Finds:
+  1. desert5 e1 and desert6 e1: the 3D view is black where the game's own
+     picture shows dim content (2D mean 46 vs 3D 0.8 at tile 508). Cause:
+     the export of these elevations carries no floor art and no sprites
+     (walls.bin 24 bytes, tiles.png 424 bytes, sprites0.png 95 bytes,
+     scene.json has sprites 0, walls 0, indoor=true), so the renderer has
+     nothing to draw. The scene ships; the elevation needs its tiles built
+     or a plane fallback. Folded into 173 with the shots
+     (finds/desert5-e1-classic-vs-3d.jpg). Batch: 173.
+  2. desert1: the map is not in the worldmap registry, so the dev tools
+     cannot travel to it (requestMapChange refuses, the startup target
+     retries forever, the fixture falls back to the default map and the
+     still probe silently shot ARTEMPLE). The scene exports and ships;
+     players reach the map through random encounters. The tour spot and
+     the fallback shots are dropped; the regression gate already rejects a
+     capture from a wrong map. Batch: 173 (a direct name-load path for
+     registry-less maps).
+  3. Tooling, fixed here: dev-snapshot's watchdog could crash a capture
+     with an Add-Content IOException when a fast game exit raced the
+     diagnostic write; the write is best-effort now.
+- Tour: 9 spots (desert1 dropped as unreachable), tour before/after
+  identical, 0 of 9 spots changed. 3 regression spots with references
+  (coast-road-car, desert-arch, coast-shanty); full suite 103 spots 103
+  pass, 0 changed pixels. Checks: exporter tests 125/125, regression tests
+  12/12, ctest 20/20. Evidence: runs/169-encdesertcoast-in-3d/ (probe-sheet,
+  hours-*, grid-*, classic-2d-checks, walk-sheet, tour sheets, changed.jpg,
+  finds/).

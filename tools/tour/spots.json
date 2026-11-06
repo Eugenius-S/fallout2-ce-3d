@@ -1151,6 +1151,624 @@
    "elevation": 2,
    "tile": 20100,
    "name": "Vault 15 ruins, elevation 2, entry"
+  },
+  {
+   "map": "ncr1",
+   "elevation": 0,
+   "tile": 13915,
+   "name": "the NCR council square"
+  },
+  {
+   "map": "ncr1",
+   "elevation": 1,
+   "tile": 16104,
+   "name": "the council building top floor"
+  },
+  {
+   "map": "ncr2",
+   "elevation": 0,
+   "tile": 13895,
+   "name": "the statue plaza"
+  },
+  {
+   "map": "ncr3",
+   "elevation": 0,
+   "tile": 23669,
+   "name": "the west gate street"
+  },
+  {
+   "map": "ncr4",
+   "elevation": 0,
+   "tile": 18279,
+   "name": "the brahmin pens"
+  },
+  {
+   "map": "ncrent",
+   "elevation": 0,
+   "tile": 20274,
+   "name": "the NCR entrance"
+  },
+  {
+   "map": "ncrent",
+   "elevation": 1,
+   "tile": 19733,
+   "name": "the entrance warehouse"
+  },
+  {
+   "map": "v15ent",
+   "elevation": 0,
+   "tile": 29325,
+   "name": "the Vault 15 entrance desert"
+  },
+  {
+   "map": "v15ent",
+   "elevation": 1,
+   "tile": 29325,
+   "name": "the vault plaza"
+  },
+  {
+   "map": "v15sent",
+   "elevation": 0,
+   "tile": 18097,
+   "name": "the squatters' camp"
+  },
+  {
+   "map": "vault15",
+   "elevation": 0,
+   "tile": 27103,
+   "name": "the vault door cave"
+  },
+  {
+   "map": "v13ent",
+   "elevation": 0,
+   "tile": 25943,
+   "name": "the Vault 13 entrance cave"
+  },
+  {
+   "map": "vault13",
+   "elevation": 0,
+   "tile": 17095,
+   "name": "the Vault 13 command centre"
+  },
+  {
+   "map": "vault13",
+   "elevation": 1,
+   "tile": 17095,
+   "name": "the Vault 13 living quarters"
+  },
+  {
+   "map": "vault13",
+   "elevation": 2,
+   "tile": 16694,
+   "name": "the deathclaw floor"
+  },
+  {
+   "map": "vault13",
+   "elevation": 2,
+   "tile": 14694,
+   "name": "the Vault 13 dining hall"
+  },
+  {
+   "map": "depolv1",
+   "elevation": 0,
+   "tile": 27705,
+   "name": "the Sierra depot gatehouse"
+  },
+  {
+   "map": "depolv1",
+   "elevation": 1,
+   "tile": 21321,
+   "name": "the depot bunker level"
+  },
+  {
+   "map": "depolva",
+   "elevation": 0,
+   "tile": 26505,
+   "name": "the depot workshop"
+  },
+  {
+   "map": "depolva",
+   "elevation": 1,
+   "tile": 26504,
+   "name": "the robot storage hall"
+  },
+  {
+   "map": "depolva",
+   "elevation": 2,
+   "tile": 26104,
+   "name": "the depot top level"
+  },
+  {
+   "map": "depolvb",
+   "elevation": 0,
+   "tile": 21910,
+   "name": "the robotics bay"
+  },
+  {
+   "map": "sfdock",
+   "elevation": 0,
+   "tile": 20100,
+   "name": "the docks pier"
+  },
+  {
+   "map": "sfchina",
+   "elevation": 0,
+   "tile": 26504,
+   "name": "Chinatown street"
+  },
+  {
+   "map": "sfchina2",
+   "elevation": 0,
+   "tile": 26504,
+   "name": "Chinatown, the shaman's floor"
+  },
+  {
+   "map": "sfchina2",
+   "elevation": 1,
+   "tile": 20133,
+   "name": "Chinatown, the upper walk"
+  },
+  {
+   "map": "sfchina2",
+   "elevation": 2,
+   "tile": 24722,
+   "name": "Chinatown, the top floor"
+  },
+  {
+   "map": "sftanker",
+   "elevation": 0,
+   "tile": 27701,
+   "name": "the tanker deck, bow"
+  },
+  {
+   "map": "sftanker",
+   "elevation": 1,
+   "tile": 27701,
+   "name": "the tanker deck, midship"
+  },
+  {
+   "map": "sftanker",
+   "elevation": 2,
+   "tile": 23490,
+   "name": "the tanker, the top level"
+  },
+  {
+   "map": "sfshutl1",
+   "elevation": 0,
+   "tile": 26311,
+   "name": "the shuttle exterior"
+  },
+  {
+   "map": "sfshutl2",
+   "elevation": 0,
+   "tile": 20695,
+   "name": "the shuttle interior"
+  },
+  {
+   "map": "sfelronb",
+   "elevation": 0,
+   "tile": 23155,
+   "name": "the Elronologists' base"
+  },
+  {
+   "map": "navarro",
+   "elevation": 0,
+   "tile": 28694,
+   "name": "Navarro, the base floor"
+  },
+  {
+   "map": "navarro",
+   "elevation": 1,
+   "tile": 28694,
+   "name": "Navarro, the lower floor"
+  },
+  {
+   "map": "navarro",
+   "elevation": 2,
+   "tile": 28694,
+   "name": "Navarro, the hangar level"
+  },
+  {
+   "map": "mbclose",
+   "elevation": 0,
+   "tile": 23939,
+   "name": "the military base surface"
+  },
+  {
+   "map": "mbase12",
+   "elevation": 0,
+   "tile": 16089,
+   "name": "the military base corridors"
+  },
+  {
+   "map": "mbase12",
+   "elevation": 1,
+   "tile": 16089,
+   "name": "the military base lower level"
+  },
+  {
+   "map": "mbase34",
+   "elevation": 0,
+   "tile": 14141,
+   "name": "the base corridor fork"
+  },
+  {
+   "map": "mbase34",
+   "elevation": 1,
+   "tile": 15131,
+   "name": "the vat room"
+  },
+  {
+   "map": "coast1",
+   "elevation": 0,
+   "tile": 20100,
+   "name": "the coast road and the car"
+  },
+  {
+   "map": "coast2",
+   "elevation": 0,
+   "tile": 20100,
+   "name": "the night shore"
+  },
+  {
+   "map": "coast4",
+   "elevation": 0,
+   "tile": 18488,
+   "name": "the cliffs and the cave mouth"
+  },
+  {
+   "map": "coast10",
+   "elevation": 0,
+   "tile": 19716,
+   "name": "the shanty camp by the road"
+  },
+  {
+   "map": "desert5",
+   "elevation": 0,
+   "tile": 21099,
+   "name": "the rock wall and the arch"
+  },
+  {
+   "map": "desert5",
+   "elevation": 1,
+   "tile": 508,
+   "name": "the canyon rim"
+  },
+  {
+   "map": "desert7",
+   "elevation": 0,
+   "tile": 20101,
+   "name": "the dry trees"
+  },
+  {
+   "map": "desrt10",
+   "elevation": 0,
+   "tile": 21894,
+   "name": "the varnish trader camp"
+  },
+  {
+   "map": "desrt13",
+   "elevation": 0,
+   "tile": 20100,
+   "name": "the night camp"
+  },
+  {
+   "map": "city1",
+   "elevation": 0,
+   "tile": 14692,
+   "name": "the ruined crossroads"
+  },
+  {
+   "map": "city2",
+   "elevation": 0,
+   "tile": 12501,
+   "name": "the south street"
+  },
+  {
+   "map": "city3",
+   "elevation": 0,
+   "tile": 22136,
+   "name": "the rubble square"
+  },
+  {
+   "map": "city4",
+   "elevation": 0,
+   "tile": 25892,
+   "name": "the west ruin"
+  },
+  {
+   "map": "city5",
+   "elevation": 0,
+   "tile": 18868,
+   "name": "the walled yard"
+  },
+  {
+   "map": "city6",
+   "elevation": 0,
+   "tile": 27302,
+   "name": "the north street"
+  },
+  {
+   "map": "city7",
+   "elevation": 0,
+   "tile": 19121,
+   "name": "the burned block"
+  },
+  {
+   "map": "city8",
+   "elevation": 0,
+   "tile": 19899,
+   "name": "the market ruin"
+  },
+  {
+   "map": "cave0",
+   "elevation": 0,
+   "tile": 18688,
+   "name": "the cavern mouth"
+  },
+  {
+   "map": "cave1",
+   "elevation": 0,
+   "tile": 24103,
+   "name": "the first gallery"
+  },
+  {
+   "map": "cave1",
+   "elevation": 1,
+   "tile": 24103,
+   "name": "the lower gallery"
+  },
+  {
+   "map": "cave2",
+   "elevation": 0,
+   "tile": 21103,
+   "name": "the flooded hall"
+  },
+  {
+   "map": "cave2",
+   "elevation": 1,
+   "tile": 21103,
+   "name": "the hall's ledge"
+  },
+  {
+   "map": "cave3",
+   "elevation": 0,
+   "tile": 21909,
+   "name": "the twist passage"
+  },
+  {
+   "map": "cave3",
+   "elevation": 1,
+   "tile": 21909,
+   "name": "the deep passage"
+  },
+  {
+   "map": "cave4",
+   "elevation": 0,
+   "tile": 23112,
+   "name": "the stone bridge"
+  },
+  {
+   "map": "cave4",
+   "elevation": 1,
+   "tile": 23112,
+   "name": "the lower bridge"
+  },
+  {
+   "map": "cave5",
+   "elevation": 0,
+   "tile": 24103,
+   "name": "the great cavern"
+  },
+  {
+   "map": "cave5",
+   "elevation": 1,
+   "tile": 24103,
+   "name": "the cavern shelf"
+  },
+  {
+   "map": "cave5",
+   "elevation": 2,
+   "tile": 24103,
+   "name": "the cavern floor"
+  },
+  {
+   "map": "cave6",
+   "elevation": 0,
+   "tile": 20100,
+   "name": "the narrow cave"
+  },
+  {
+   "map": "cave7",
+   "elevation": 0,
+   "tile": 20100,
+   "name": "the dead end cave"
+  },
+  {
+   "map": "mountn1",
+   "elevation": 0,
+   "tile": 18688,
+   "name": "the mountain path"
+  },
+  {
+   "map": "mountn2",
+   "elevation": 0,
+   "tile": 18688,
+   "name": "the ridge trail"
+  },
+  {
+   "map": "mountn3",
+   "elevation": 0,
+   "tile": 18688,
+   "name": "the switchback"
+  },
+  {
+   "map": "mountn4",
+   "elevation": 0,
+   "tile": 18688,
+   "name": "the pass"
+  },
+  {
+   "map": "mountn5",
+   "elevation": 0,
+   "tile": 19683,
+   "name": "the scree slope"
+  },
+  {
+   "map": "mountn6",
+   "elevation": 0,
+   "tile": 19683,
+   "name": "the summit trail"
+  },
+  {
+   "map": "rndwhale",
+   "elevation": 0,
+   "tile": 17705,
+   "name": "the whale carcass"
+  },
+  {
+   "map": "rndtinwd",
+   "elevation": 0,
+   "tile": 18920,
+   "name": "the woodsman's camp"
+  },
+  {
+   "map": "rndbhead",
+   "elevation": 0,
+   "tile": 23323,
+   "name": "the giant brahmin head"
+  },
+  {
+   "map": "rndshutl",
+   "elevation": 0,
+   "tile": 17699,
+   "name": "the crashed shuttle"
+  },
+  {
+   "map": "rnduvilg",
+   "elevation": 0,
+   "tile": 20100,
+   "name": "the unwashed village"
+  },
+  {
+   "map": "rndbridg",
+   "elevation": 0,
+   "tile": 19298,
+   "name": "the broken bridge"
+  },
+  {
+   "map": "rndcafe",
+   "elevation": 0,
+   "tile": 21302,
+   "name": "the cafe of broken dreams"
+  },
+  {
+   "map": "rndholy1",
+   "elevation": 0,
+   "tile": 18323,
+   "name": "the holy hut 1"
+  },
+  {
+   "map": "rndholy2",
+   "elevation": 0,
+   "tile": 19270,
+   "name": "the holy hut 2"
+  },
+  {
+   "map": "rndholy2",
+   "elevation": 1,
+   "tile": 19270,
+   "name": "the holy hut 2, upstairs"
+  },
+  {
+   "map": "rndforvr",
+   "elevation": 0,
+   "tile": 17095,
+   "name": "the guardian's gateway"
+  },
+  {
+   "map": "rndforvr",
+   "elevation": 1,
+   "tile": 17095,
+   "name": "the guardian's plaza"
+  },
+  {
+   "map": "rndtoxic",
+   "elevation": 0,
+   "tile": 20512,
+   "name": "the toxic dump"
+  },
+  {
+   "map": "rndparih",
+   "elevation": 0,
+   "tile": 20100,
+   "name": "the pariahs"
+  },
+  {
+   "map": "rndexcow",
+   "elevation": 0,
+   "tile": 20100,
+   "name": "the mad cow"
+  },
+  {
+   "map": "rndbess",
+   "elevation": 0,
+   "tile": 13085,
+   "name": "Bess's corral"
+  },
+  {
+   "map": "rndbess",
+   "elevation": 1,
+   "tile": 20100,
+   "name": "Bess's pen, inside"
+  },
+  {
+   "map": "encdet",
+   "elevation": 0,
+   "tile": 20100,
+   "name": "the Enclave detention corner"
+  },
+  {
+   "map": "encdock",
+   "elevation": 0,
+   "tile": 20100,
+   "name": "the Enclave dock"
+  },
+  {
+   "map": "encfite",
+   "elevation": 0,
+   "tile": 20100,
+   "name": "the Enclave fight room"
+  },
+  {
+   "map": "encgd",
+   "elevation": 0,
+   "tile": 20100,
+   "name": "the guard barracks"
+  },
+  {
+   "map": "encpres",
+   "elevation": 0,
+   "tile": 20100,
+   "name": "the presidential hall"
+  },
+  {
+   "map": "encrctr",
+   "elevation": 0,
+   "tile": 20100,
+   "name": "the reactor hall"
+  },
+  {
+   "map": "enctrp",
+   "elevation": 0,
+   "tile": 20100,
+   "name": "the trap room"
+  },
+  {
+   "map": "cardesrt",
+   "elevation": 0,
+   "tile": 20100,
+   "name": "the car in the desert"
   }
  ]
 }

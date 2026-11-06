@@ -32,6 +32,11 @@ constexpr double kSunAxis[2] = { -0.8944271909999159, 0.4472135954999579 };
 constexpr double kHorizonFade = 8.0;
 // The engine's lowest ambient (LIGHT_INTENSITY_MIN): no sun at that level.
 constexpr double kNightAmbient = 0.25;
+constexpr double kNightStart = 18.0;
+constexpr double kNightFull = 19.5;
+constexpr double kMoonFull = 4.5;
+constexpr double kMoonEnd = 6.0;
+constexpr float kMoonStrength = 0.3f;
 // Low sun is warm, high sun nearly white.
 constexpr float kLowColor[3] = { 1.0f, 0.62f, 0.36f };
 constexpr float kHighColor[3] = { 1.0f, 0.96f, 0.88f };
@@ -85,9 +90,31 @@ Sun sunAt(unsigned int gameTime, double ambient, bool daylight, double swingDegr
     }
 
     const double light = std::clamp((ambient - kNightAmbient) / (1.0 - kNightAmbient), 0.0, 1.0);
-    const double strength = daylight && day > 0.0 && day < 1.0
-        ? smoothstep(0.0, kHorizonFade, sun.height) * light
-        : 0.0;
+    const bool daytime = daylight && day > 0.0 && day < 1.0;
+    double strength = daytime ? smoothstep(0.0, kHorizonFade, sun.height) * light : 0.0;
+    if (!daytime && daylight) {
+        const double nightFade = hour >= kNightStart && hour < kNightFull
+            ? smoothstep(kNightStart, kNightFull, hour)
+            : hour >= kMoonFull && hour < kMoonEnd
+                ? 1.0 - smoothstep(kMoonFull, kMoonEnd, hour)
+                : (hour >= kNightFull || hour < kMoonFull ? 1.0 : 0.0);
+        if (nightFade > 0.0) {
+            // A high, fixed moon keeps the existing shadow map well resolved.
+            // The same direction lights surfaces and casts the soft night shadow.
+            constexpr double moonTilt = -25.0 * kPi / 180.0;
+            const double moonSide = std::sin(moonTilt);
+            sun.direction[0] = static_cast<float>(moonSide * kSunAxis[0]);
+            sun.direction[1] = static_cast<float>(std::cos(moonTilt));
+            sun.direction[2] = static_cast<float>(moonSide * kSunAxis[1]);
+            sun.height = 65.0;
+            sun.azimuth = std::atan2(sun.direction[2], sun.direction[0]) * 180.0 / kPi;
+            sun.color[0] = 0.72f;
+            sun.color[1] = 0.82f;
+            sun.color[2] = 1.0f;
+            sun.moon = true;
+            strength = kMoonStrength * nightFade;
+        }
+    }
     sun.strength = static_cast<float>(strength);
     sun.up = sun.strength > 0.0f;
     return sun;

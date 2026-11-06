@@ -1,0 +1,65 @@
+{
+  "image": "klacanyn-vertibird.jpg",
+  "task": 174,
+  "object_group": "klacanyn-vertibird",
+  "map": "klacanyn",
+  "elevation": 0,
+  "view_tile": 17096,
+  "turns_degrees": [
+    -45,
+    0,
+    45
+  ],
+  "fly_pitch_degrees": 35,
+  "fly_distance": 35,
+  "ambient": 65536,
+  "still": true,
+  "resolution": "1920x1080",
+  "crop_pixels": [
+    384,
+    162,
+    1536,
+    918
+  ],
+  "capture_mode": "background dev-snapshot with -Fly; scene_view full and renderer scene-gl",
+  "before_cache": "build/main-scene-cache",
+  "after_cache": "build/scene-cache",
+  "raw_captures_before": "build/task174/evidence-raw/before-klacanyn-vertibird-wide",
+  "raw_captures_after": "build/task174/evidence-raw/after-klacanyn-vertibird-wide",
+  "before": [
+    {
+      "image": "devhero-20261104-231050-000.png",
+      "taken": "20261104-231050",
+      "exe_sha256": "3d5adb93c48251be01da89aa5c97a7e38e68833dc79a6ac1c452968fe7270df6"
+    },
+    {
+      "image": "devhero-20261104-231100-000.png",
+      "taken": "20261104-231100",
+      "exe_sha256": "3d5adb93c48251be01da89aa5c97a7e38e68833dc79a6ac1c452968fe7270df6"
+    },
+    {
+      "image": "devhero-20261104-231110-000.png",
+      "taken": "20261104-231110",
+      "exe_sha256": "3d5adb93c48251be01da89aa5c97a7e38e68833dc79a6ac1c452968fe7270df6"
+    }
+  ],
+  "after": [
+    {
+      "image": "devhero-20261104-230952-000.png",
+      "taken": "20261104-230952",
+      "exe_sha256": "3d5adb93c48251be01da89aa5c97a7e38e68833dc79a6ac1c452968fe7270df6"
+    },
+    {
+      "image": "devhero-20261104-231330-000.png",
+      "taken": "20261104-231330",
+      "exe_sha256": "3d5adb93c48251be01da89aa5c97a7e38e68833dc79a6ac1c452968fe7270df6"
+    },
+    {
+      "image": "devhero-20261104-231340-000.png",
+      "taken": "20261104-231340",
+      "exe_sha256": "3d5adb93c48251be01da89aa5c97a7e38e68833dc79a6ac1c452968fe7270df6"
+    }
+  ],
+  "sheet_bytes": 445333,
+  "jpeg_quality": 86
+}

@@ -91,6 +91,25 @@ to the window the same way 480 × 400 related to 640 × 480.
   now the GL presentation of vanilla; light: off until P2).
 
 Hotkeys: Alt+D: the panel, F9: a snapshot (works with the panel open too).
+Without --dev-tools F9 is the owner's feedback shot instead (task 183): the
+frame as presented with a JSON sidecar, docs/owner-shots.md.
+
+## The teleport and the walkable landing (task 183 steps 3-4)
+
+The dev panel's TP button (and the T key while the panel is open) travels to
+the selected map and elevation; the filter's digits name the destination hex
+when they parse as one, otherwise the safe pick decides. The same engine
+runs without the dev tools: a `dev-teleport.txt` file next to the exe, one
+line `map.elev` or `map.elev.hex`, is consumed about twice a second and the
+hero jumps - this is how an agent moves the hero in the owner's running
+game on the owner's word. A request held by combat/dialog/movie keeps the
+file for the next polls. The 3D view comes back after the jump.
+
+The landing never sits in a rock pocket: the floor change's pick (and the
+teleport's safe pick) requires that the hero can walk from the tile - a
+path to the map's entrance, to a few hexes around it, or on floors without
+their entrance a path to a free neighbor. The named hex stands as the owner
+named it.
 
 ## The fly camera
 
@@ -149,6 +168,19 @@ Only the stock mechanism: `mapSetTransition` → the load in the safe phase of
 the game loop (`mapLoadById`), the hero on the map's entrance tile, the
 camera centered, the map scripts run. In combat/dialog/movies the
 transition is refused with a status in the panel.
+
+Background live checks have a whole-run timeout (`-TimeoutSeconds`, default
+90) and a stalled-step timeout (`-StepTimeoutSeconds`, default 30). A timeout
+stops only the test process and preserves `watchdog.txt`, process logs, and
+the latest game snapshot in the failed run folder. The report includes the
+last progress marker and most recent map/combat/dialog/movie state. If the
+game loop is blocked and cannot take a fresh frame, it keeps the last frame
+captured before the block. The dialog fixture also records a baseline frame
+before entering the modal interaction. Use
+`-SkipScriptBlocking` to enable the dev-only `--dev-skip-script-blocking`
+option: script-requested dialogue is skipped before its UI opens, and
+script-requested movies are skipped, with each skip recorded in stdout. This
+option is off unless requested.
 
 ## A snapshot
 

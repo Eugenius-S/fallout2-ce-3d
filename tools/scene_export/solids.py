@@ -25,6 +25,7 @@ game's view ray (row_plane), like a live card.
 from __future__ import annotations
 
 import math
+from collections import deque
 
 DRUM_SIDES = 16
 OVER_CARD = 2e-5    # units a solid is nearer than its card's depth plane (render.js): it wins the tie
@@ -318,6 +319,78 @@ def rest_card(proj, sprites, row, plane=None):
         cv = base_v + right_v * along + down_v * towards
         cz = z_bottom if j else z_top
         corners.append([cu, cv, cz, x + i * w, y + j * h, *depth_home(proj, [cu, cv, cz], plane)])
+    return page, corners
+
+
+HULL_MIN_WIDTH = 288  # px: a grouped picture at least this wide can stand as a hull (168)
+
+
+def hull_plane(proj, sprites, row, water, reach=40):
+    """(page, corners) of one big grouped picture on water as ONE vertical
+    plane standing on the nearest water line (168).
+
+    The art runs along the water line it docks at: vertical, its base on the
+    ground at the boundary square's edge, its span and height as rest_card
+    draws them. Corners in rest_card's format, each its own depth home. None
+    when the anchor is not on water or no water line is near: the caller
+    keeps rest_card's game-screen plane.
+    """
+    s, u, v = row[:3]
+    page, x, y, w, h, ox, oy = sprites[s]
+    # The square the anchor lands in decides the water it stands in; rounding
+    # would pick a neighbour off a fractional boundary and read water[100] past
+    # the grid at the far edge, so the bounds come before any water access.
+    col, r = int(math.floor(u)), int(math.floor(v))
+    if not (0 <= col < 100 and 0 <= r < 100):
+        return None
+    if isinstance(water[r], int):            # a flat 10000 sequence: to rows
+        water = [water[i * 100:(i + 1) * 100] for i in range(100)]
+    if not water[r][col]:
+        return None
+    # Walk the water out to the nearest land square; diagonal steps may pass,
+    # the land square itself must sit beside its water square on a side, so
+    # the line the hull stands on is a real shore.
+    seen = {(r, col)}
+    queue = deque([(r, col, 0)])
+    edge = None
+    while queue and edge is None:
+        cr, cc, depth = queue.popleft()
+        if depth >= reach:
+            break
+        for dr, dc in ((-1, 0), (1, 0), (0, -1), (0, 1)):
+            tr, tc = cr + dr, cc + dc
+            if not (0 <= tr < 100 and 0 <= tc < 100) or (tr, tc) in seen:
+                continue
+            seen.add((tr, tc))
+            if not water[tr][tc]:
+                edge = (cr, cc, tr, tc)      # water square, its land side
+                break
+            queue.append((tr, tc, depth + 1))
+    if edge is None:
+        return None
+    wr, wc, lr, lc = edge
+    if lr != wr:                             # land north or south: the shore runs along u
+        base_u, base_v = u, float(max(wr, lr))    # the boundary line, tile units
+        left_dir = (1.0, 0.0)                # the art's left edge toward +u (east)
+    else:                                    # land west or east: the shore runs along v
+        base_u, base_v = float(max(wc, lc)), v
+        left_dir = (0.0, -1.0)               # the art's left edge toward -v
+    # Span and height exactly as rest_card lays the art out; the picture's
+    # left edge takes the end of the plane that reads left at the game view.
+    left_off, right_off = ox / proj.bbpx, (ox + w) / proj.bbpx
+    bottom, top = oy + h, oy
+    if bottom <= 0:
+        z_bottom, z_top = -bottom / proj.hpx, -top / proj.hpx
+    else:
+        far = min(bottom, max(0, top))
+        z_bottom, z_top = 0.0, (far - top) / proj.hpx
+    corners = []
+    for i, j in ((0, 1), (1, 1), (1, 0), (0, 0)):
+        along = left_off if i == 0 else right_off
+        cu = base_u - left_dir[0] * along    # negated: the art's left goes to the plane's far end
+        cv = base_v - left_dir[1] * along
+        cz = z_bottom if j else z_top
+        corners.append([cu, cv, cz, x + i * w, y + j * h, cu, cv, cz])
     return page, corners
 
 

@@ -57,6 +57,8 @@ void prepareStillSnapshot();
 // A still snapshot run skips game movies: the movie playback advances on the
 // tickers the fixture freezes, so a script-triggered movie would never end.
 bool gameMoviesSuppressed();
+// True only for a background probe explicitly told to skip script dialogue.
+bool skipScriptDialogRequest();
 
 // Prints the maps available in game resources (stdout). Requires the game
 // (db) to be initialized.
@@ -79,6 +81,16 @@ bool sceneStartupReady();
 // (mapSetTransition); the load itself happens in the game loop. Refused
 // during combat/dialog/movies.
 bool requestMapChange(const char* mapFileName, int elevation);
+
+// A candidate check for a standable tile: bounds, a drawn floor, no
+// blockers. Shared with the owner teleport's safe pick.
+bool elevationTileFree(int tile, int elevation);
+// The nearest standable tile to the center, complete rings out to
+// maxDistance; -1 when nothing stands.
+int findFreeTileOnElevation(int center, int elevation, int maxDistance);
+// The same, but every candidate must be able to step to a free neighbor (a
+// rock pocket never wins); -1 when nothing stands reachable.
+int findWalkableTileOnElevation(int center, int elevation, int maxDistance);
 
 bool panelOpen();
 bool handleKey(int key);

@@ -1,0 +1,4 @@
+devtools: startup target kladwtwn e0 accepted=1 blocking=0
+scene: cache build\scene-cache\kladwtwn\0
+scene: kladwtwn elevation 0 stays 2D: floor preview unavailable: floor.bin version, dimensions, or length is unsupported
+devtools: static preview failed: floor preview unavailable: floor.bin version, dimensions, or length is unsupported

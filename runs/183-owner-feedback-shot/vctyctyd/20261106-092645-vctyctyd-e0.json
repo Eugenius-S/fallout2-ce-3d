@@ -1,0 +1,14 @@
+{
+  "image": "20261106-092645-vctyctyd-e0.png",
+  "fps": {"fps":95.3,"frame_avg_ms":10.49,"frame_low1_ms":360.57,"window_frames":300},
+  "map": "Пригород",
+  "map_file": "VCTYCTYD.MAP",
+  "city": "Город Убежища",
+  "elevation": 0,
+  "player": {"tile":27706,"hex":[106,138],"world":[2.958,19.438],"elevation":0,"rotation":5},
+  "camera": {"eye":[13.423,9.836,34.635],"yaw_deg":-123.69,"fov_y_deg":25.00,"camera_turn":0.0000,"zoom":1.0000,"center_tile":27506},
+  "cursor": null,
+  "resolution":"1920x1080","logical_resolution":"960x540","scale":2,"scale_factor":2.0,"windowed":true,
+  "render": {"scene3d":{"enabled":true,"sharp_text":false,"lights":true,"sun":true,"shadows":false,"cloud_shadows":false,"shadow_pixel_size":1.00,"shadow_density":0.80,"sun_swing":40.0,"glow":false,"glow_strength":2.00,"camera_rotation":false,"camera_rotation_unlimited":false,"sprite_sides":true,"zoom":1.0000,"clean_edges":true},"renderer":"scene-gl"},
+  "build": {"commit":"4a06a413","version":"FALLOUT II 1.02d  RP 2.4.34","taken":"20261106-092645"}
+}

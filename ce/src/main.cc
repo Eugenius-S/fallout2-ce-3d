@@ -49,6 +49,7 @@
 #include "window_manager_private.h"
 #include "word_wrap.h"
 #include "devtools/devtools.h"
+#include "devtools/owner_shot.h"
 #include "scene/scene_view.h"
 #include "worldmap.h"
 
@@ -300,6 +301,7 @@ static void mainParseCommandLineArguments(int argc, char** argv)
         if (devtools::parseOption(argv[arg])) {
             continue;
         }
+        owner_shot::parseOption(argv[arg]);
         if (strncmp(argv[arg], devLoadGamePrefix, devLoadGamePrefixLength) == 0) {
             int slot;
             if (mainTryParseDevLoadGameSlot(argv[arg] + devLoadGamePrefixLength, &slot)) {
@@ -475,6 +477,15 @@ static void mainLoop()
         sfall_gl_scr_process_main();
 
         gameHandleKey(keyCode, false);
+
+        // The owner's region mark holds the frame (183): no scripts, no map
+        // transitions, no camera updates - present and take input only.
+        if (owner_shot::markMode()) {
+            renderFpsCounter();
+            renderPresent();
+            sharedFpsLimiter.throttle();
+            continue;
+        }
 
         scriptsHandleRequests();
 

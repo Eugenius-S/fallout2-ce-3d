@@ -5,6 +5,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <cstring>
+#include <new>
+
 #include "debug.h"
 #include "memory.h"
 #include "sound.h"
@@ -23,6 +26,7 @@ static int cacheFindIndexForKey(Cache* cache, int key, int* indexPtr);
 static bool cacheEntryInit(CacheEntry* cacheEntry);
 static bool cacheEntryFree(Cache* cache, CacheEntry* cacheEntry);
 static bool cacheClean(Cache* cache);
+static bool cacheFlushLocked(Cache* cache);
 static bool cacheResetStatistics(Cache* cache);
 static bool cacheEnsureSize(Cache* cache, int size);
 static bool cacheSweep(Cache* cache);
@@ -37,6 +41,12 @@ static int _lock_sound_ticker = 0;
 // 0x41FCC0 cache_init
 bool cacheInit(Cache* cache, CacheSizeProc* sizeProc, CacheReadProc* readProc, CacheFreeProc* freeProc, int maxSize)
 {
+    // A cache can live in raw malloc'd memory (the sound effects cache does),
+    // so the mutex gets its constructor run here, before the first lock: an
+    // uninitialized mutex locks with garbage state and kills the game with
+    // "resource deadlock would occur" (or worse) on the first map load.
+    new (&cache->mutex) std::mutex();
+
     if (!heapInit(&(cache->heap), maxSize)) {
         return false;
     }
@@ -87,6 +97,10 @@ bool cacheFree(Cache* cache)
     cache->readProc = nullptr;
     cache->freeProc = nullptr;
 
+    // The matching end of the constructor run in cacheInit; runs after every
+    // locking operation above.
+    cache->mutex.~mutex();
+
     return true;
 }
 
@@ -99,50 +113,168 @@ bool cacheLock(Cache* cache, int key, void** data, CacheEntry** cacheEntryPtr)
 
     *cacheEntryPtr = nullptr;
 
-    int index;
-    int rc = cacheFindIndexForKey(cache, key, &index);
-    if (rc == 2) {
-        // Use existing cache entry.
-        CacheEntry* cacheEntry = cache->entries[index];
-        cacheEntry->hits++;
-    } else if (rc == 3) {
-        // New cache entry is required.
+    {
+        // The hit path: everything under the lock.
+        std::lock_guard<std::mutex> guard(cache->mutex);
+        int index;
+        int rc = cacheFindIndexForKey(cache, key, &index);
+        if (rc == 2) {
+            CacheEntry* cacheEntry = cache->entries[index];
+            if (cacheEntry->referenceCount == 0) {
+                if (!heapLock(&(cache->heap), cacheEntry->heapHandleIndex, &(cacheEntry->data))) {
+                    return false;
+                }
+            }
+            cacheEntry->referenceCount++;
+            cache->hits++;
+            cacheEntry->mru = cache->hits;
+            if (cache->hits == UINT_MAX) {
+                cacheResetStatistics(cache);
+            }
+            *data = cacheEntry->data;
+            *cacheEntryPtr = cacheEntry;
+            return true;
+        }
+        if (rc != 3) {
+            return false;
+        }
         if (cache->entriesLength >= INT_MAX) {
             return false;
         }
+    }
 
-        if (!cacheFetchEntryForKey(cache, key, &index)) {
-            return false;
-        }
-
-        _lock_sound_ticker %= 4;
-        if (_lock_sound_ticker == 0) {
-            soundContinueAll();
-        }
-    } else {
+    // A miss: the size and read procs open and decode the file themselves and
+    // touch nothing the lock guards, so they run outside it and a warm thread
+    // pool spreads the reads (172). The block lands below, under the lock,
+    // with a double check against another thread locking the same key.
+    int size = 0;
+    if (cache->sizeProc(key, &size) != 0) {
+        return false;
+    }
+    if (size <= 0) {
+        return false;
+    }
+    unsigned char* buffer = (unsigned char*)internal_malloc(size);
+    if (buffer == nullptr) {
+        return false;
+    }
+    if (cache->readProc(key, &size, buffer) != 0) {
+        internal_free(buffer);
         return false;
     }
 
-    CacheEntry* cacheEntry = cache->entries[index];
-    if (cacheEntry->referenceCount == 0) {
-        if (!heapLock(&(cache->heap), cacheEntry->heapHandleIndex, &(cacheEntry->data))) {
+    bool locked = false;
+    {
+        std::lock_guard<std::mutex> guard(cache->mutex);
+        int index;
+        int rc = cacheFindIndexForKey(cache, key, &index);
+        if (rc == 2) {
+            // Another thread locked this key in the meantime: use its entry,
+            // drop ours.
+            CacheEntry* cacheEntry = cache->entries[index];
+            if (cacheEntry->referenceCount == 0) {
+                if (!heapLock(&(cache->heap), cacheEntry->heapHandleIndex, &(cacheEntry->data))) {
+                    internal_free(buffer);
+                    return false;
+                }
+            }
+            cacheEntry->referenceCount++;
+            cache->hits++;
+            cacheEntry->mru = cache->hits;
+            *data = cacheEntry->data;
+            *cacheEntryPtr = cacheEntry;
+            internal_free(buffer);
+            return true;
+        }
+        if (rc != 3) {
+            internal_free(buffer);
             return false;
+        }
+
+        CacheEntry* cacheEntry = (CacheEntry*)internal_malloc(sizeof(*cacheEntry));
+        if (cacheEntry == nullptr || !cacheEntryInit(cacheEntry)) {
+            if (cacheEntry != nullptr) internal_free(cacheEntry);
+            internal_free(buffer);
+            return false;
+        }
+
+        do {
+            if (!cacheEnsureSize(cache, size)) {
+                break;
+            }
+
+            bool allocated = false;
+            int cacheEntrySize = size;
+            for (int attempt = 0; attempt < 10; attempt++) {
+                if (heapBlockAllocate(&(cache->heap), &(cacheEntry->heapHandleIndex), size, 1)) {
+                    allocated = true;
+                    break;
+                }
+
+                cacheEntrySize = (int)((double)cacheEntrySize + (double)size * 0.25);
+                if (cacheEntrySize > cache->maxSize) {
+                    break;
+                }
+
+                if (!cacheEnsureSize(cache, cacheEntrySize)) {
+                    break;
+                }
+            }
+
+            if (!allocated) {
+                cacheFlushLocked(cache);
+
+                allocated = true;
+                if (!heapBlockAllocate(&(cache->heap), &(cacheEntry->heapHandleIndex), size, 1)) {
+                    if (!heapBlockAllocate(&(cache->heap), &(cacheEntry->heapHandleIndex), size, 0)) {
+                        allocated = false;
+                    }
+                }
+            }
+
+            if (!allocated) {
+                break;
+            }
+
+            if (!heapLock(&(cache->heap), cacheEntry->heapHandleIndex, &(cacheEntry->data))) {
+                break;
+            }
+
+            std::memcpy(cacheEntry->data, buffer, size);
+            heapUnlock(&(cache->heap), cacheEntry->heapHandleIndex);
+
+            cacheEntry->size = size;
+            cacheEntry->key = key;
+
+            if (!cacheInsertEntryAtIndex(cache, cacheEntry, index)) {
+                break;
+            }
+
+            if (cacheEntry->referenceCount == 0) {
+                if (!heapLock(&(cache->heap), cacheEntry->heapHandleIndex, &(cacheEntry->data))) {
+                    break;
+                }
+            }
+            cacheEntry->referenceCount++;
+            cache->hits++;
+            cacheEntry->mru = cache->hits;
+
+            *data = cacheEntry->data;
+            *cacheEntryPtr = cacheEntry;
+            locked = true;
+        } while (0);
+
+        if (!locked) {
+            if (cacheEntry->data != nullptr) {
+                heapUnlock(&(cache->heap), cacheEntry->heapHandleIndex);
+                cacheEntry->data = nullptr;
+            }
+            cacheEntryFree(cache, cacheEntry);
         }
     }
 
-    cacheEntry->referenceCount++;
-
-    cache->hits++;
-    cacheEntry->mru = cache->hits;
-
-    if (cache->hits == UINT_MAX) {
-        cacheResetStatistics(cache);
-    }
-
-    *data = cacheEntry->data;
-    *cacheEntryPtr = cacheEntry;
-
-    return true;
+    internal_free(buffer);
+    return locked;
 }
 
 // 0x4200B8 cache_unlock
@@ -151,6 +283,8 @@ bool cacheUnlock(Cache* cache, CacheEntry* cacheEntry)
     if (cache == nullptr || cacheEntry == nullptr) {
         return false;
     }
+
+    std::lock_guard<std::mutex> guard(cache->mutex);
 
     if (cacheEntry->referenceCount == 0) {
         return false;
@@ -172,6 +306,15 @@ bool cacheFlush(Cache* cache)
     if (cache == nullptr) {
         return false;
     }
+
+    std::lock_guard<std::mutex> guard(cache->mutex);
+    return cacheFlushLocked(cache);
+}
+
+// The flush body, for callers already holding the cache's mutex (the insert
+// path's last-resort eviction, 172).
+static bool cacheFlushLocked(Cache* cache)
+{
 
     // Loop thru cache entries and mark those with no references for eviction.
     for (int index = 0; index < cache->entriesLength; index++) {

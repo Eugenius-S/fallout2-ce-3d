@@ -95,6 +95,12 @@ py -3 tools/scene_export/export.py --game-root ./game
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/regression.ps1
 ```
 
+For a locally installed Restoration Project copy outside the main checkout,
+check that CE still boots and loads maps with
+`powershell -NoProfile -ExecutionPolicy Bypass -File tools/rp-check.ps1
+-GameRoot <scratch-game> -BuildExecutable build/fallout2-ce.exe`. The check
+keeps test executables, configs, logs and saves under `build/`.
+
 Read a check's result before the next step; never chain a merge after it.
 
 ## Board order

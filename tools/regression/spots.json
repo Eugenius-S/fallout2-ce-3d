@@ -1,627 +1,1089 @@
 {
-  "screen": {
-    "width": 1920,
-    "height": 1080,
-    "scale": 2
+ "screen": {
+  "width": 1920,
+  "height": 1080,
+  "scale": 2
+ },
+ "channel_tolerance": 2,
+ "max_changed_fraction": 1e-05,
+ "spots": [
+  {
+   "name": "entrance",
+   "map": "kladwtwn",
+   "elevation": 0,
+   "tile": 25075,
+   "coverage": "Player, entrance street, building walls"
   },
-  "channel_tolerance": 2,
-  "max_changed_fraction": 1e-05,
-  "spots": [
-    {
-      "name": "entrance",
-      "map": "kladwtwn",
-      "elevation": 0,
-      "tile": 25075,
-      "coverage": "Player, entrance street, building walls"
-    },
-    {
-      "name": "corrals",
-      "map": "kladwtwn",
-      "elevation": 0,
-      "tile": 23481,
-      "coverage": "Brahmin, fences, layered sprites"
-    },
-    {
-      "name": "residents",
-      "map": "kladwtwn",
-      "elevation": 0,
-      "tile": 22885,
-      "coverage": "People and furniture in the western rooms"
-    },
-    {
-      "name": "central-doors",
-      "map": "kladwtwn",
-      "elevation": 0,
-      "tile": 17699,
-      "coverage": "Doors and central building interiors"
-    },
-    {
-      "name": "north-rooms",
-      "map": "kladwtwn",
-      "elevation": 0,
-      "tile": 14892,
-      "coverage": "Northern walls, furniture and people"
-    },
-    {
-      "name": "map-edge",
-      "map": "kladwtwn",
-      "elevation": 0,
-      "tile": 5910,
-      "coverage": "Northern map edge, scenery against empty ground"
-    },
-    {
-      "name": "klacanyn-e0",
-      "map": "klacanyn",
-      "elevation": 0,
-      "tile": 15909,
-      "coverage": "The most detailed gallery view of this map elevation (task 011)"
-    },
-    {
-      "name": "klagraz-e0",
-      "map": "klagraz",
-      "elevation": 0,
-      "tile": 24727,
-      "coverage": "The most detailed gallery view of this map elevation (task 011)"
-    },
-    {
-      "name": "klamall-e0",
-      "map": "klamall",
-      "elevation": 0,
-      "tile": 23145,
-      "coverage": "The most detailed gallery view of this map elevation (task 011)"
-    },
-    {
-      "name": "klaratcv-e0",
-      "map": "klaratcv",
-      "elevation": 0,
-      "tile": 21511,
-      "coverage": "The most detailed gallery view of this map elevation (task 011)"
-    },
-    {
-      "name": "klaratcv-e1",
-      "map": "klaratcv",
-      "elevation": 1,
-      "tile": 14701,
-      "coverage": "The most detailed gallery view of this map elevation (task 011)"
-    },
-    {
-      "name": "klaratcv-e2",
-      "map": "klaratcv",
-      "elevation": 2,
-      "tile": 17107,
-      "coverage": "The most detailed gallery view of this map elevation (task 011)"
-    },
-    {
-      "name": "klatoxcv-e0",
-      "map": "klatoxcv",
-      "elevation": 0,
-      "tile": 15919,
-      "coverage": "The most detailed gallery view of this map elevation (task 011)"
-    },
-    {
-      "name": "klatoxcv-e1",
-      "map": "klatoxcv",
-      "elevation": 1,
-      "tile": 19091,
-      "coverage": "The most detailed gallery view of this map elevation (task 011)"
-    },
-    {
-      "name": "klatoxcv-e2",
-      "map": "klatoxcv",
-      "elevation": 2,
-      "tile": 15065,
-      "coverage": "The most detailed gallery view of this map elevation (task 011)"
-    },
-    {
-      "name": "klatrap-e0",
-      "map": "klatrap",
-      "elevation": 0,
-      "tile": 21913,
-      "coverage": "The most detailed gallery view of this map elevation (task 011)"
-    },
-    {
-      "name": "newreno-first",
-      "map": "newr1",
-      "elevation": 0,
-      "tile": 24105,
-      "coverage": "New Reno first street"
-    },
-    {
-      "name": "newreno-second",
-      "map": "newr2",
-      "elevation": 0,
-      "tile": 20100,
-      "coverage": "New Reno second street"
-    },
-    {
-      "name": "newreno-chopshop",
-      "map": "newrcs",
-      "elevation": 0,
-      "tile": 24537,
-      "coverage": "The chop shop"
-    },
-    {
-      "name": "newreno-stables",
-      "map": "newrst",
-      "elevation": 0,
-      "tile": 25915,
-      "coverage": "The stables"
-    },
-    {
-      "name": "newreno-boxing",
-      "map": "newrba",
-      "elevation": 0,
-      "tile": 20100,
-      "coverage": "The boxing arena"
-    },
-    {
-      "name": "newreno-casino",
-      "map": "newr1",
-      "elevation": 0,
-      "tile": 18100,
-      "coverage": "The lit casino corner with the marquee"
-    },
-    {
-      "name": "brokenhills-entrance",
-      "map": "broken1",
-      "elevation": 0,
-      "tile": 17947,
-      "coverage": "Broken Hills main street"
-    },
-    {
-      "name": "brokenhills-east",
-      "map": "broken2",
-      "elevation": 0,
-      "tile": 20944,
-      "coverage": "Broken Hills east side"
-    },
-    {
-      "name": "brokenhills-desert",
-      "map": "bhrnddst",
-      "elevation": 0,
-      "tile": 22897,
-      "coverage": "The Broken Hills desert"
-    },
-    {
-      "name": "brokenhills-jail",
-      "map": "broken1",
-      "elevation": 0,
-      "tile": 19947,
-      "coverage": "The jail, the fence line and the barrels"
-    },
-    {
-      "name": "gecko-settlement",
-      "map": "gecksetl",
-      "elevation": 0,
-      "tile": 23709,
-      "coverage": "The Gecko settlement"
-    },
-    {
-      "name": "gecko-powerplant",
-      "map": "geckpwpl",
-      "elevation": 0,
-      "tile": 20533,
-      "coverage": "The power plant"
-    },
-    {
-      "name": "gecko-junkyard",
-      "map": "geckjunk",
-      "elevation": 0,
-      "tile": 26311,
-      "coverage": "The junkyard"
-    },
-    {
-      "name": "gecko-tunnels",
-      "map": "gecktunl",
-      "elevation": 0,
-      "tile": 20100,
-      "coverage": "The access tunnels"
-    },
-    {
-      "name": "gecko-reactor",
-      "map": "geckpwpl",
-      "elevation": 0,
-      "tile": 16533,
-      "coverage": "The reactor hall with the 5 logos"
-    },
-    {
-      "name": "vaultcity-courtyard",
-      "map": "vctyctyd",
-      "elevation": 0,
-      "tile": 27506,
-      "coverage": "Vault City courtyard, walls and gates"
-    },
-    {
-      "name": "vaultcity-downtown",
-      "map": "vctydwtn",
-      "elevation": 0,
-      "tile": 24117,
-      "coverage": "Vault City downtown"
-    },
-    {
-      "name": "vaultcity-council",
-      "map": "vctycocl",
-      "elevation": 0,
-      "tile": 19292,
-      "coverage": "The council building area"
-    },
-    {
-      "name": "vaultcity-vault",
-      "map": "vctyvlt",
-      "elevation": 0,
-      "tile": 17095,
-      "coverage": "The vault courtyard"
-    },
-    {
-      "name": "vaultcity-vault-l1",
-      "map": "vctyvlt",
-      "elevation": 1,
-      "tile": 17095,
-      "coverage": "The vault level 1"
-    },
-    {
-      "name": "raiders-camp",
-      "map": "raiders1",
-      "elevation": 0,
-      "tile": 23305,
-      "coverage": "The raiders ground camp"
-    },
-    {
-      "name": "raiders-cave",
-      "map": "raiders2",
-      "elevation": 0,
-      "tile": 20100,
-      "coverage": "The raiders cave entrance"
-    },
-    {
-      "name": "vaultcity-gate",
-      "map": "vctyctyd",
-      "elevation": 0,
-      "tile": 25506,
-      "coverage": "The city gate with the towers"
-    },
-    {
-      "name": "vaultcity-vault-door",
-      "map": "vctyvlt",
-      "elevation": 0,
-      "tile": 21095,
-      "coverage": "The vault door"
-    },
-    {
-      "name": "modoc-main-street",
-      "map": "modmain",
-      "elevation": 0,
-      "tile": 23333,
-      "coverage": "Modoc main street, houses and fences"
-    },
-    {
-      "name": "modoc-inn",
-      "map": "modinn",
-      "elevation": 0,
-      "tile": 25321,
-      "coverage": "The bed and breakfast"
-    },
-    {
-      "name": "modoc-inn-upstairs",
-      "map": "modinn",
-      "elevation": 1,
-      "tile": 25321,
-      "coverage": "The bed and breakfast upper floor (needs 158-elevation-search)"
-    },
-    {
-      "name": "modoc-brahmin",
-      "map": "modbrah",
-      "elevation": 0,
-      "tile": 19324,
-      "coverage": "The brahmin pastures and pens"
-    },
-    {
-      "name": "modoc-well",
-      "map": "modwell",
-      "elevation": 0,
-      "tile": 16710,
-      "coverage": "The town well"
-    },
-    {
-      "name": "ghost-farm",
-      "map": "gstfarm",
-      "elevation": 0,
-      "tile": 23345,
-      "coverage": "The ghost farm"
-    },
-    {
-      "name": "ghost-cavern",
-      "map": "gstcav1",
-      "elevation": 0,
-      "tile": 14255,
-      "coverage": "The ghost town main cavern"
-    },
-    {
-      "name": "modoc-barn",
-      "map": "modmain",
-      "elevation": 0,
-      "tile": 19333,
-      "coverage": "The big barn and water tank"
-    },
-    {
-      "name": "modoc-herd",
-      "map": "modbrah",
-      "elevation": 0,
-      "tile": 17324,
-      "coverage": "The brahmin herd at the trough"
-    },
-    {
-      "name": "ghost-massacre",
-      "map": "gstfarm",
-      "elevation": 0,
-      "tile": 21345,
-      "coverage": "The massacre in the ghost farm corn"
-    },
-    {
-      "name": "ghost-lake-ledge",
-      "map": "gstcav2",
-      "elevation": 1,
-      "tile": 24508,
-      "coverage": "The lower lake ledge, a thin floor over black"
-    },
-    {
-      "name": "arroyo-caves-entrance",
-      "map": "arcaves",
-      "elevation": 0,
-      "tile": 28706,
-      "coverage": "Arroyo caves mouth, rock arches"
-    },
-    {
-      "name": "arroyo-caves-lower",
-      "map": "arcaves",
-      "elevation": 1,
-      "tile": 28706,
-      "coverage": "Arroyo lower cave, dark grass floor"
-    },
-    {
-      "name": "arroyo-caves-upper",
-      "map": "arcaves",
-      "elevation": 2,
-      "tile": 26097,
-      "coverage": "Arroyo upper cave"
-    },
-    {
-      "name": "arroyo-village",
-      "map": "arvillag",
-      "elevation": 0,
-      "tile": 21115,
-      "coverage": "Arroyo village entrance, huts and totem"
-    },
-    {
-      "name": "arroyo-bridge",
-      "map": "arbridge",
-      "elevation": 0,
-      "tile": 16686,
-      "coverage": "Arroyo bridge, hunt huts"
-    },
-    {
-      "name": "arroyo-wilderness",
-      "map": "argarden",
-      "elevation": 0,
-      "tile": 21474,
-      "coverage": "Arroyo wilderness, trees"
-    },
-    {
-      "name": "arroyo-bridge-dead",
-      "map": "ardead",
-      "elevation": 0,
-      "tile": 26719,
-      "coverage": "Destroyed Arroyo bridge"
-    },
-    {
-      "name": "arroyo-temple",
-      "map": "artemple",
-      "elevation": 0,
-      "tile": 17288,
-      "coverage": "Temple of Trials entrance"
-    },
-    {
-      "name": "arroyo-village-head",
-      "map": "arvillag",
-      "elevation": 0,
-      "tile": 25115,
-      "coverage": "The stone head plaza with statues"
-    },
-    {
-      "name": "arroyo-bridge-rope",
-      "map": "arbridge",
-      "elevation": 0,
-      "tile": 20686,
-      "coverage": "The rope bridge over the cliff"
-    },
-    {
-      "name": "arroyo-temple-camp",
-      "map": "artemple",
-      "elevation": 0,
-      "tile": 21288,
-      "coverage": "The camp south of the temple"
-    },
-    {
-      "name": "arroyo-caves-gate",
-      "map": "arcaves",
-      "elevation": 0,
-      "tile": 26706,
-      "coverage": "The cave exit gate with torches"
-    },
-    {
-      "name": "den-business",
-      "map": "denbus1",
-      "elevation": 0,
-      "tile": 13292,
-      "coverage": "Den business street, buildings and signs"
-    },
-    {
-      "name": "den-business-upper",
-      "map": "denbus1",
-      "elevation": 1,
-      "tile": 15070,
-      "coverage": "Den business street upper floor"
-    },
-    {
-      "name": "den-brothel",
-      "map": "denbus2",
-      "elevation": 0,
-      "tile": 27898,
-      "coverage": "The brothel entrance"
-    },
-    {
-      "name": "den-brothel-upstairs",
-      "map": "denbus2",
-      "elevation": 1,
-      "tile": 1110,
-      "coverage": "The brothel second storey (needs 158-elevation-search)"
-    },
-    {
-      "name": "den-residential",
-      "map": "denres1",
-      "elevation": 0,
-      "tile": 11308,
-      "coverage": "Den residential street"
-    },
-    {
-      "name": "den-slave-run",
-      "map": "dnslvrun",
-      "elevation": 0,
-      "tile": 26905,
-      "coverage": "The slave run open ground"
-    },
-    {
-      "name": "den-shop-signs",
-      "map": "denbus1",
-      "elevation": 0,
-      "tile": 17292,
-      "coverage": "The shop block with hanging signs"
-    },
-    {
-      "name": "den-catpaw-sign",
-      "map": "denbus2",
-      "elevation": 0,
-      "tile": 25698,
-      "coverage": "The Cat's Paw sign and street"
-    },
-    {
-      "name": "den-fire-pit",
-      "map": "dnslvrun",
-      "elevation": 0,
-      "tile": 22905,
-      "coverage": "The slave run fire pit and tents"
-    },
-    {
-      "name": "redding-downtown",
-      "map": "reddown",
-      "elevation": 0,
-      "tile": 19059,
-      "coverage": "Redding downtown"
-    },
-    {
-      "name": "redding-mine-entrance",
-      "map": "redment",
-      "elevation": 0,
-      "tile": 26912,
-      "coverage": "The mine entrance"
-    },
-    {
-      "name": "redding-wanamingo",
-      "map": "redwame",
-      "elevation": 0,
-      "tile": 20275,
-      "coverage": "The Wanamingo mine entrance"
-    },
-    {
-      "name": "ncr-ncr1-e0",
-      "map": "ncr1",
-      "elevation": 0,
-      "tile": 20898,
-      "coverage": "NCR city, elevation 0"
-    },
-    {
-      "name": "ncr-ncr1-e1",
-      "map": "ncr1",
-      "elevation": 1,
-      "tile": 20106,
-      "coverage": "NCR city, elevation 1"
-    },
-    {
-      "name": "ncr-ncr2-e0",
-      "map": "ncr2",
-      "elevation": 0,
-      "tile": 20902,
-      "coverage": "NCR bazaar, elevation 0"
-    },
-    {
-      "name": "ncr-ncr3-e0",
-      "map": "ncr3",
-      "elevation": 0,
-      "tile": 21499,
-      "coverage": "squatters camp, elevation 0"
-    },
-    {
-      "name": "ncr-ncr4-e0",
-      "map": "ncr4",
-      "elevation": 0,
-      "tile": 20481,
-      "coverage": "north NCR, elevation 0"
-    },
-    {
-      "name": "ncr-ncrent-e0",
-      "map": "ncrent",
-      "elevation": 0,
-      "tile": 19112,
-      "coverage": "NCR entrance, elevation 0"
-    },
-    {
-      "name": "ncr-ncrent-e1",
-      "map": "ncrent",
-      "elevation": 1,
-      "tile": 22148,
-      "coverage": "NCR entrance, elevation 1"
-    },
-    {
-      "name": "ncr-v15ent-e0",
-      "map": "v15ent",
-      "elevation": 0,
-      "tile": 23907,
-      "coverage": "Vault 15 entrance, elevation 0"
-    },
-    {
-      "name": "ncr-v15ent-e1",
-      "map": "v15ent",
-      "elevation": 1,
-      "tile": 23907,
-      "coverage": "Vault 15 entrance, elevation 1"
-    },
-    {
-      "name": "ncr-v15sent-e0",
-      "map": "v15sent",
-      "elevation": 0,
-      "tile": 19088,
-      "coverage": "Vault 15 south entrance, elevation 0"
-    },
-    {
-      "name": "ncr-vault15-e0",
-      "map": "vault15",
-      "elevation": 0,
-      "tile": 19094,
-      "coverage": "Vault 15 ruins, elevation 0"
-    },
-    {
-      "name": "ncr-vault15-e1",
-      "map": "vault15",
-      "elevation": 1,
-      "tile": 21907,
-      "coverage": "Vault 15 ruins, elevation 1"
-    },
-    {
-      "name": "ncr-vault15-e2",
-      "map": "vault15",
-      "elevation": 2,
-      "tile": 20897,
-      "coverage": "Vault 15 ruins, elevation 2"
-    }
-  ]
+  {
+   "name": "corrals",
+   "map": "kladwtwn",
+   "elevation": 0,
+   "tile": 23481,
+   "coverage": "Brahmin, fences, layered sprites"
+  },
+  {
+   "name": "residents",
+   "map": "kladwtwn",
+   "elevation": 0,
+   "tile": 22885,
+   "coverage": "People and furniture in the western rooms"
+  },
+  {
+   "name": "central-doors",
+   "map": "kladwtwn",
+   "elevation": 0,
+   "tile": 17699,
+   "coverage": "Doors and central building interiors"
+  },
+  {
+   "name": "north-rooms",
+   "map": "kladwtwn",
+   "elevation": 0,
+   "tile": 14892,
+   "coverage": "Northern walls, furniture and people"
+  },
+  {
+   "name": "map-edge",
+   "map": "kladwtwn",
+   "elevation": 0,
+   "tile": 5910,
+   "coverage": "Northern map edge, scenery against empty ground"
+  },
+  {
+   "name": "klacanyn-e0",
+   "map": "klacanyn",
+   "elevation": 0,
+   "tile": 15909,
+   "coverage": "The most detailed gallery view of this map elevation (task 011)"
+  },
+  {
+   "name": "klagraz-e0",
+   "map": "klagraz",
+   "elevation": 0,
+   "tile": 24727,
+   "coverage": "The most detailed gallery view of this map elevation (task 011)"
+  },
+  {
+   "name": "klamall-e0",
+   "map": "klamall",
+   "elevation": 0,
+   "tile": 23145,
+   "coverage": "The most detailed gallery view of this map elevation (task 011)"
+  },
+  {
+   "name": "klaratcv-e0",
+   "map": "klaratcv",
+   "elevation": 0,
+   "tile": 21511,
+   "coverage": "The most detailed gallery view of this map elevation (task 011)"
+  },
+  {
+   "name": "klaratcv-e1",
+   "map": "klaratcv",
+   "elevation": 1,
+   "tile": 14701,
+   "coverage": "The most detailed gallery view of this map elevation (task 011)"
+  },
+  {
+   "name": "klaratcv-e2",
+   "map": "klaratcv",
+   "elevation": 2,
+   "tile": 17107,
+   "coverage": "The most detailed gallery view of this map elevation (task 011)"
+  },
+  {
+   "name": "klatoxcv-e0",
+   "map": "klatoxcv",
+   "elevation": 0,
+   "tile": 15919,
+   "coverage": "The most detailed gallery view of this map elevation (task 011)"
+  },
+  {
+   "name": "klatoxcv-e1",
+   "map": "klatoxcv",
+   "elevation": 1,
+   "tile": 19091,
+   "coverage": "The most detailed gallery view of this map elevation (task 011)"
+  },
+  {
+   "name": "klatoxcv-e2",
+   "map": "klatoxcv",
+   "elevation": 2,
+   "tile": 15065,
+   "coverage": "The most detailed gallery view of this map elevation (task 011)"
+  },
+  {
+   "name": "klatrap-e0",
+   "map": "klatrap",
+   "elevation": 0,
+   "tile": 21913,
+   "coverage": "The most detailed gallery view of this map elevation (task 011)"
+  },
+  {
+   "name": "newreno-first",
+   "map": "newr1",
+   "elevation": 0,
+   "tile": 24105,
+   "coverage": "New Reno first street"
+  },
+  {
+   "name": "newreno-second",
+   "map": "newr2",
+   "elevation": 0,
+   "tile": 20100,
+   "coverage": "New Reno second street"
+  },
+  {
+   "name": "newreno-chopshop",
+   "map": "newrcs",
+   "elevation": 0,
+   "tile": 24537,
+   "coverage": "The chop shop"
+  },
+  {
+   "name": "newreno-stables",
+   "map": "newrst",
+   "elevation": 0,
+   "tile": 25915,
+   "coverage": "The stables"
+  },
+  {
+   "name": "newreno-boxing",
+   "map": "newrba",
+   "elevation": 0,
+   "tile": 20100,
+   "coverage": "The boxing arena"
+  },
+  {
+   "name": "newreno-casino",
+   "map": "newr1",
+   "elevation": 0,
+   "tile": 18100,
+   "coverage": "The lit casino corner with the marquee"
+  },
+  {
+   "name": "brokenhills-entrance",
+   "map": "broken1",
+   "elevation": 0,
+   "tile": 17947,
+   "coverage": "Broken Hills main street"
+  },
+  {
+   "name": "brokenhills-east",
+   "map": "broken2",
+   "elevation": 0,
+   "tile": 20944,
+   "coverage": "Broken Hills east side"
+  },
+  {
+   "name": "brokenhills-desert",
+   "map": "bhrnddst",
+   "elevation": 0,
+   "tile": 22897,
+   "coverage": "The Broken Hills desert"
+  },
+  {
+   "name": "brokenhills-jail",
+   "map": "broken1",
+   "elevation": 0,
+   "tile": 19947,
+   "coverage": "The jail, the fence line and the barrels"
+  },
+  {
+   "name": "gecko-settlement",
+   "map": "gecksetl",
+   "elevation": 0,
+   "tile": 23709,
+   "coverage": "The Gecko settlement"
+  },
+  {
+   "name": "gecko-powerplant",
+   "map": "geckpwpl",
+   "elevation": 0,
+   "tile": 20533,
+   "coverage": "The power plant"
+  },
+  {
+   "name": "gecko-junkyard",
+   "map": "geckjunk",
+   "elevation": 0,
+   "tile": 26311,
+   "coverage": "The junkyard"
+  },
+  {
+   "name": "gecko-tunnels",
+   "map": "gecktunl",
+   "elevation": 0,
+   "tile": 20100,
+   "coverage": "The access tunnels"
+  },
+  {
+   "name": "gecko-reactor",
+   "map": "geckpwpl",
+   "elevation": 0,
+   "tile": 16533,
+   "coverage": "The reactor hall with the 5 logos"
+  },
+  {
+   "name": "vaultcity-courtyard",
+   "map": "vctyctyd",
+   "elevation": 0,
+   "tile": 27506,
+   "coverage": "Vault City courtyard, walls and gates"
+  },
+  {
+   "name": "vaultcity-downtown",
+   "map": "vctydwtn",
+   "elevation": 0,
+   "tile": 24117,
+   "coverage": "Vault City downtown"
+  },
+  {
+   "name": "vaultcity-council",
+   "map": "vctycocl",
+   "elevation": 0,
+   "tile": 19292,
+   "coverage": "The council building area"
+  },
+  {
+   "name": "vaultcity-vault",
+   "map": "vctyvlt",
+   "elevation": 0,
+   "tile": 17095,
+   "coverage": "The vault courtyard"
+  },
+  {
+   "name": "vaultcity-vault-l1",
+   "map": "vctyvlt",
+   "elevation": 1,
+   "tile": 17095,
+   "coverage": "The vault level 1"
+  },
+  {
+   "name": "raiders-camp",
+   "map": "raiders1",
+   "elevation": 0,
+   "tile": 23305,
+   "coverage": "The raiders ground camp"
+  },
+  {
+   "name": "raiders-cave",
+   "map": "raiders2",
+   "elevation": 0,
+   "tile": 20100,
+   "coverage": "The raiders cave entrance"
+  },
+  {
+   "name": "vaultcity-gate",
+   "map": "vctyctyd",
+   "elevation": 0,
+   "tile": 25506,
+   "coverage": "The city gate with the towers"
+  },
+  {
+   "name": "vaultcity-vault-door",
+   "map": "vctyvlt",
+   "elevation": 0,
+   "tile": 21095,
+   "coverage": "The vault door"
+  },
+  {
+   "name": "modoc-main-street",
+   "map": "modmain",
+   "elevation": 0,
+   "tile": 23333,
+   "coverage": "Modoc main street, houses and fences"
+  },
+  {
+   "name": "modoc-inn",
+   "map": "modinn",
+   "elevation": 0,
+   "tile": 25321,
+   "coverage": "The bed and breakfast"
+  },
+  {
+   "name": "modoc-inn-upstairs",
+   "map": "modinn",
+   "elevation": 1,
+   "tile": 25321,
+   "coverage": "The bed and breakfast upper floor (needs 158-elevation-search)"
+  },
+  {
+   "name": "modoc-brahmin",
+   "map": "modbrah",
+   "elevation": 0,
+   "tile": 19324,
+   "coverage": "The brahmin pastures and pens"
+  },
+  {
+   "name": "modoc-well",
+   "map": "modwell",
+   "elevation": 0,
+   "tile": 16710,
+   "coverage": "The town well"
+  },
+  {
+   "name": "ghost-farm",
+   "map": "gstfarm",
+   "elevation": 0,
+   "tile": 23345,
+   "coverage": "The ghost farm"
+  },
+  {
+   "name": "ghost-cavern",
+   "map": "gstcav1",
+   "elevation": 0,
+   "tile": 14255,
+   "coverage": "The ghost town main cavern"
+  },
+  {
+   "name": "modoc-barn",
+   "map": "modmain",
+   "elevation": 0,
+   "tile": 19333,
+   "coverage": "The big barn and water tank"
+  },
+  {
+   "name": "modoc-herd",
+   "map": "modbrah",
+   "elevation": 0,
+   "tile": 17324,
+   "coverage": "The brahmin herd at the trough"
+  },
+  {
+   "name": "ghost-massacre",
+   "map": "gstfarm",
+   "elevation": 0,
+   "tile": 21345,
+   "coverage": "The massacre in the ghost farm corn"
+  },
+  {
+   "name": "ghost-lake-ledge",
+   "map": "gstcav2",
+   "elevation": 1,
+   "tile": 24508,
+   "coverage": "The lower lake ledge, a thin floor over black"
+  },
+  {
+   "name": "arroyo-caves-entrance",
+   "map": "arcaves",
+   "elevation": 0,
+   "tile": 28706,
+   "coverage": "Arroyo caves mouth, rock arches"
+  },
+  {
+   "name": "arroyo-caves-lower",
+   "map": "arcaves",
+   "elevation": 1,
+   "tile": 28706,
+   "coverage": "Arroyo lower cave, dark grass floor"
+  },
+  {
+   "name": "arroyo-caves-upper",
+   "map": "arcaves",
+   "elevation": 2,
+   "tile": 26097,
+   "coverage": "Arroyo upper cave"
+  },
+  {
+   "name": "arroyo-village",
+   "map": "arvillag",
+   "elevation": 0,
+   "tile": 21115,
+   "coverage": "Arroyo village entrance, huts and totem"
+  },
+  {
+   "name": "arroyo-bridge",
+   "map": "arbridge",
+   "elevation": 0,
+   "tile": 16686,
+   "coverage": "Arroyo bridge, hunt huts"
+  },
+  {
+   "name": "arroyo-wilderness",
+   "map": "argarden",
+   "elevation": 0,
+   "tile": 21474,
+   "coverage": "Arroyo wilderness, trees"
+  },
+  {
+   "name": "arroyo-bridge-dead",
+   "map": "ardead",
+   "elevation": 0,
+   "tile": 26719,
+   "coverage": "Destroyed Arroyo bridge"
+  },
+  {
+   "name": "arroyo-temple",
+   "map": "artemple",
+   "elevation": 0,
+   "tile": 17288,
+   "coverage": "Temple of Trials entrance"
+  },
+  {
+   "name": "arroyo-village-head",
+   "map": "arvillag",
+   "elevation": 0,
+   "tile": 25115,
+   "coverage": "The stone head plaza with statues"
+  },
+  {
+   "name": "arroyo-bridge-rope",
+   "map": "arbridge",
+   "elevation": 0,
+   "tile": 20686,
+   "coverage": "The rope bridge over the cliff"
+  },
+  {
+   "name": "arroyo-temple-camp",
+   "map": "artemple",
+   "elevation": 0,
+   "tile": 21288,
+   "coverage": "The camp south of the temple"
+  },
+  {
+   "name": "arroyo-caves-gate",
+   "map": "arcaves",
+   "elevation": 0,
+   "tile": 26706,
+   "coverage": "The cave exit gate with torches"
+  },
+  {
+   "name": "den-business",
+   "map": "denbus1",
+   "elevation": 0,
+   "tile": 13292,
+   "coverage": "Den business street, buildings and signs"
+  },
+  {
+   "name": "den-business-upper",
+   "map": "denbus1",
+   "elevation": 1,
+   "tile": 15070,
+   "coverage": "Den business street upper floor"
+  },
+  {
+   "name": "den-brothel",
+   "map": "denbus2",
+   "elevation": 0,
+   "tile": 27898,
+   "coverage": "The brothel entrance"
+  },
+  {
+   "name": "den-brothel-upstairs",
+   "map": "denbus2",
+   "elevation": 1,
+   "tile": 1110,
+   "coverage": "The brothel second storey (needs 158-elevation-search)"
+  },
+  {
+   "name": "den-residential",
+   "map": "denres1",
+   "elevation": 0,
+   "tile": 11308,
+   "coverage": "Den residential street"
+  },
+  {
+   "name": "den-slave-run",
+   "map": "dnslvrun",
+   "elevation": 0,
+   "tile": 26905,
+   "coverage": "The slave run open ground"
+  },
+  {
+   "name": "den-shop-signs",
+   "map": "denbus1",
+   "elevation": 0,
+   "tile": 17292,
+   "coverage": "The shop block with hanging signs"
+  },
+  {
+   "name": "den-catpaw-sign",
+   "map": "denbus2",
+   "elevation": 0,
+   "tile": 25698,
+   "coverage": "The Cat's Paw sign and street"
+  },
+  {
+   "name": "den-fire-pit",
+   "map": "dnslvrun",
+   "elevation": 0,
+   "tile": 22905,
+   "coverage": "The slave run fire pit and tents"
+  },
+  {
+   "name": "redding-downtown",
+   "map": "reddown",
+   "elevation": 0,
+   "tile": 19059,
+   "coverage": "Redding downtown"
+  },
+  {
+   "name": "redding-mine-entrance",
+   "map": "redment",
+   "elevation": 0,
+   "tile": 26912,
+   "coverage": "The mine entrance"
+  },
+  {
+   "name": "redding-wanamingo",
+   "map": "redwame",
+   "elevation": 0,
+   "tile": 20275,
+   "coverage": "The Wanamingo mine entrance"
+  },
+  {
+   "name": "ncr-ncr1-e0",
+   "map": "ncr1",
+   "elevation": 0,
+   "tile": 20898,
+   "coverage": "NCR city, elevation 0"
+  },
+  {
+   "name": "ncr-ncr1-e1",
+   "map": "ncr1",
+   "elevation": 1,
+   "tile": 20106,
+   "coverage": "NCR city, elevation 1"
+  },
+  {
+   "name": "ncr-ncr2-e0",
+   "map": "ncr2",
+   "elevation": 0,
+   "tile": 20902,
+   "coverage": "NCR bazaar, elevation 0"
+  },
+  {
+   "name": "ncr-ncr3-e0",
+   "map": "ncr3",
+   "elevation": 0,
+   "tile": 21499,
+   "coverage": "squatters camp, elevation 0"
+  },
+  {
+   "name": "ncr-ncr4-e0",
+   "map": "ncr4",
+   "elevation": 0,
+   "tile": 20481,
+   "coverage": "north NCR, elevation 0"
+  },
+  {
+   "name": "ncr-ncrent-e0",
+   "map": "ncrent",
+   "elevation": 0,
+   "tile": 19112,
+   "coverage": "NCR entrance, elevation 0"
+  },
+  {
+   "name": "ncr-ncrent-e1",
+   "map": "ncrent",
+   "elevation": 1,
+   "tile": 22148,
+   "coverage": "NCR entrance, elevation 1"
+  },
+  {
+   "name": "ncr-v15ent-e0",
+   "map": "v15ent",
+   "elevation": 0,
+   "tile": 23907,
+   "coverage": "Vault 15 entrance, elevation 0"
+  },
+  {
+   "name": "ncr-v15ent-e1",
+   "map": "v15ent",
+   "elevation": 1,
+   "tile": 23907,
+   "coverage": "Vault 15 entrance, elevation 1"
+  },
+  {
+   "name": "ncr-v15sent-e0",
+   "map": "v15sent",
+   "elevation": 0,
+   "tile": 19088,
+   "coverage": "Vault 15 south entrance, elevation 0"
+  },
+  {
+   "name": "ncr-vault15-e0",
+   "map": "vault15",
+   "elevation": 0,
+   "tile": 19094,
+   "coverage": "Vault 15 ruins, elevation 0"
+  },
+  {
+   "name": "ncr-vault15-e1",
+   "map": "vault15",
+   "elevation": 1,
+   "tile": 21907,
+   "coverage": "Vault 15 ruins, elevation 1"
+  },
+  {
+   "name": "ncr-vault15-e2",
+   "map": "vault15",
+   "elevation": 2,
+   "tile": 20897,
+   "coverage": "Vault 15 ruins, elevation 2"
+  },
+  {
+   "name": "ncr-council-square",
+   "map": "ncr1",
+   "elevation": 0,
+   "tile": 13915,
+   "coverage": "The NCR council square and streets"
+  },
+  {
+   "name": "v15-entrance",
+   "map": "v15ent",
+   "elevation": 0,
+   "tile": 29325,
+   "coverage": "The Vault 15 entrance desert"
+  },
+  {
+   "name": "vault15-level",
+   "map": "vault15",
+   "elevation": 1,
+   "tile": 27103,
+   "coverage": "Inside Vault 15, level 1"
+  },
+  {
+   "name": "v13ent-cave",
+   "map": "v13ent",
+   "elevation": 0,
+   "tile": 25943,
+   "coverage": "The Vault 13 entrance cave and rock face"
+  },
+  {
+   "name": "vault13-corridors",
+   "map": "vault13",
+   "elevation": 0,
+   "tile": 17095,
+   "coverage": "The Vault 13 command centre corridors"
+  },
+  {
+   "name": "vault13-deathclaw-floor",
+   "map": "vault13",
+   "elevation": 2,
+   "tile": 16694,
+   "coverage": "The Vault 13 deathclaw floor"
+  },
+  {
+   "name": "depot-gatehouse",
+   "map": "depolv1",
+   "elevation": 0,
+   "tile": 27705,
+   "coverage": "The Sierra depot surface gatehouse and fences"
+  },
+  {
+   "name": "depot-robot-hall",
+   "map": "depolva",
+   "elevation": 1,
+   "tile": 26504,
+   "coverage": "The depot robot storage hall"
+  },
+  {
+   "name": "depot-robotics-bay",
+   "map": "depolvb",
+   "elevation": 0,
+   "tile": 21910,
+   "coverage": "The depot robotics bay"
+  },
+  {
+   "name": "sanfran-docks",
+   "map": "sfdock",
+   "elevation": 0,
+   "tile": 20100,
+   "coverage": "The docks pier and the sea edge"
+  },
+  {
+   "name": "sanfran-tanker-deck",
+   "map": "sftanker",
+   "elevation": 0,
+   "tile": 27701,
+   "coverage": "The tanker deck, bow"
+  },
+  {
+   "name": "navarro-base",
+   "map": "navarro",
+   "elevation": 0,
+   "tile": 28694,
+   "coverage": "Navarro, the base floor"
+  },
+  {
+   "name": "mbase-surface",
+   "map": "mbclose",
+   "elevation": 0,
+   "tile": 23939,
+   "coverage": "The Mariposa surface sheds and rocks"
+  },
+  {
+   "name": "mbase-corridors",
+   "map": "mbase12",
+   "elevation": 0,
+   "tile": 16089,
+   "coverage": "The base corridor level 1"
+  },
+  {
+   "name": "mbase-vats",
+   "map": "mbase34",
+   "elevation": 1,
+   "tile": 15131,
+   "coverage": "The glowing vat room"
+  },
+  {
+   "name": "coast-road-car",
+   "map": "coast1",
+   "elevation": 0,
+   "tile": 20100,
+   "coverage": "The coast road with the highwayman car"
+  },
+  {
+   "name": "desert-arch",
+   "map": "desert5",
+   "elevation": 0,
+   "tile": 21099,
+   "coverage": "The desert rock wall and arch"
+  },
+  {
+   "name": "coast-shanty",
+   "map": "coast10",
+   "elevation": 0,
+   "tile": 19716,
+   "coverage": "The shanty camp by the coast road"
+  },
+  {
+   "name": "enc-city1",
+   "map": "city1",
+   "elevation": 0,
+   "tile": 14692,
+   "coverage": "City encounter 1: the ruined crossroads at the spawn"
+  },
+  {
+   "name": "enc-city2",
+   "map": "city2",
+   "elevation": 0,
+   "tile": 12501,
+   "coverage": "City encounter 2: the south street at the spawn"
+  },
+  {
+   "name": "enc-city3",
+   "map": "city3",
+   "elevation": 0,
+   "tile": 22136,
+   "coverage": "City encounter 3: the rubble square at the spawn"
+  },
+  {
+   "name": "enc-city4",
+   "map": "city4",
+   "elevation": 0,
+   "tile": 25892,
+   "coverage": "City encounter 4: the west ruin at the spawn"
+  },
+  {
+   "name": "enc-city5",
+   "map": "city5",
+   "elevation": 0,
+   "tile": 18868,
+   "coverage": "City encounter 5: the walled yard at the spawn"
+  },
+  {
+   "name": "enc-city6",
+   "map": "city6",
+   "elevation": 0,
+   "tile": 27302,
+   "coverage": "City encounter 6: the north street at the spawn"
+  },
+  {
+   "name": "enc-city7",
+   "map": "city7",
+   "elevation": 0,
+   "tile": 19121,
+   "coverage": "City encounter 7: the burned block at the spawn"
+  },
+  {
+   "name": "enc-city8",
+   "map": "city8",
+   "elevation": 0,
+   "tile": 19899,
+   "coverage": "City encounter 8: the market ruin at the spawn"
+  },
+  {
+   "name": "enc-cave0",
+   "map": "cave0",
+   "elevation": 0,
+   "tile": 18688,
+   "coverage": "Cavern encounter 0: the cavern mouth at the spawn"
+  },
+  {
+   "name": "enc-cave1",
+   "map": "cave1",
+   "elevation": 0,
+   "tile": 24103,
+   "coverage": "Cavern encounter 1: the first gallery at the spawn"
+  },
+  {
+   "name": "enc-cave2",
+   "map": "cave2",
+   "elevation": 0,
+   "tile": 21103,
+   "coverage": "Cavern encounter 2: the flooded hall at the spawn"
+  },
+  {
+   "name": "enc-cave3",
+   "map": "cave3",
+   "elevation": 0,
+   "tile": 21909,
+   "coverage": "Cavern encounter 3: the twist passage at the spawn"
+  },
+  {
+   "name": "enc-cave4",
+   "map": "cave4",
+   "elevation": 0,
+   "tile": 23112,
+   "coverage": "Cavern encounter 4: the stone bridge at the spawn"
+  },
+  {
+   "name": "enc-cave5",
+   "map": "cave5",
+   "elevation": 0,
+   "tile": 24103,
+   "coverage": "Cavern encounter 5: the great cavern at the spawn"
+  },
+  {
+   "name": "enc-cave5-top",
+   "map": "cave5",
+   "elevation": 1,
+   "tile": 24103,
+   "coverage": "Cavern encounter 5: the cavern shelf above"
+  },
+  {
+   "name": "enc-cave6",
+   "map": "cave6",
+   "elevation": 0,
+   "tile": 20100,
+   "coverage": "Cavern encounter 6: the narrow cave at the spawn"
+  },
+  {
+   "name": "enc-cave7",
+   "map": "cave7",
+   "elevation": 0,
+   "tile": 20100,
+   "coverage": "Cavern encounter 7: the dead end at the spawn"
+  },
+  {
+   "name": "enc-mountn1",
+   "map": "mountn1",
+   "elevation": 0,
+   "tile": 18688,
+   "coverage": "Mountain encounter 1: the mountain path at the spawn"
+  },
+  {
+   "name": "enc-mountn2",
+   "map": "mountn2",
+   "elevation": 0,
+   "tile": 18688,
+   "coverage": "Mountain encounter 2: the ridge trail at the spawn"
+  },
+  {
+   "name": "enc-mountn3",
+   "map": "mountn3",
+   "elevation": 0,
+   "tile": 18688,
+   "coverage": "Mountain encounter 3: the switchback at the spawn"
+  },
+  {
+   "name": "enc-mountn4",
+   "map": "mountn4",
+   "elevation": 0,
+   "tile": 18688,
+   "coverage": "Mountain encounter 4: the pass at the spawn"
+  },
+  {
+   "name": "enc-mountn5",
+   "map": "mountn5",
+   "elevation": 0,
+   "tile": 19683,
+   "coverage": "Mountain encounter 5: the scree slope at the spawn"
+  },
+  {
+   "name": "enc-mountn6",
+   "map": "mountn6",
+   "elevation": 0,
+   "tile": 19683,
+   "coverage": "Mountain encounter 6: the summit trail at the spawn"
+  },
+  {
+   "name": "encsp-whale",
+   "map": "rndwhale",
+   "elevation": 0,
+   "tile": 17705,
+   "coverage": "Special whale encounter at the spawn"
+  },
+  {
+   "name": "encsp-woodsman",
+   "map": "rndtinwd",
+   "elevation": 0,
+   "tile": 18920,
+   "coverage": "Special woodsman encounter at the spawn"
+  },
+  {
+   "name": "encsp-brahmin-head",
+   "map": "rndbhead",
+   "elevation": 0,
+   "tile": 23323,
+   "coverage": "Special giant head encounter at the spawn"
+  },
+  {
+   "name": "encsp-shuttle",
+   "map": "rndshutl",
+   "elevation": 0,
+   "tile": 17699,
+   "coverage": "Special shuttle encounter at the spawn"
+  },
+  {
+   "name": "encsp-unwashed",
+   "map": "rnduvilg",
+   "elevation": 0,
+   "tile": 20100,
+   "coverage": "Special unwashed village at the spawn"
+  },
+  {
+   "name": "encsp-bridge",
+   "map": "rndbridg",
+   "elevation": 0,
+   "tile": 19298,
+   "coverage": "Special bridge encounter at the spawn"
+  },
+  {
+   "name": "encsp-cafe",
+   "map": "rndcafe",
+   "elevation": 0,
+   "tile": 21302,
+   "coverage": "Special cafe encounter at the spawn"
+  },
+  {
+   "name": "encsp-holy1",
+   "map": "rndholy1",
+   "elevation": 0,
+   "tile": 18323,
+   "coverage": "Special holy encounter 1 at the spawn"
+  },
+  {
+   "name": "encsp-holy2",
+   "map": "rndholy2",
+   "elevation": 0,
+   "tile": 19270,
+   "coverage": "Special holy encounter 2 at the spawn"
+  },
+  {
+   "name": "encsp-holy2-top",
+   "map": "rndholy2",
+   "elevation": 1,
+   "tile": 19270,
+   "coverage": "Special holy encounter 2, upper floor"
+  },
+  {
+   "name": "encsp-guardian",
+   "map": "rndforvr",
+   "elevation": 0,
+   "tile": 17095,
+   "coverage": "Special guardian encounter at the spawn"
+  },
+  {
+   "name": "encsp-guardian-top",
+   "map": "rndforvr",
+   "elevation": 1,
+   "tile": 17095,
+   "coverage": "Special guardian encounter, upper floor"
+  },
+  {
+   "name": "encsp-toxic",
+   "map": "rndtoxic",
+   "elevation": 0,
+   "tile": 20512,
+   "coverage": "Special toxic dump at the spawn"
+  },
+  {
+   "name": "encsp-pariahs",
+   "map": "rndparih",
+   "elevation": 0,
+   "tile": 20100,
+   "coverage": "Special pariahs encounter at the spawn"
+  },
+  {
+   "name": "encsp-mad-cow",
+   "map": "rndexcow",
+   "elevation": 0,
+   "tile": 20100,
+   "coverage": "Special mad brahmin encounter at the spawn"
+  },
+  {
+   "name": "encsp-bess",
+   "map": "rndbess",
+   "elevation": 0,
+   "tile": 13085,
+   "coverage": "Bess dead encounter at the spawn"
+  },
+  {
+   "name": "encsp-bess-top",
+   "map": "rndbess",
+   "elevation": 1,
+   "tile": 20100,
+   "coverage": "Bess dead encounter, upper floor"
+  },
+  {
+   "name": "encsp-detention",
+   "map": "encdet",
+   "elevation": 0,
+   "tile": 20100,
+   "coverage": "Enclave detention at the spawn"
+  },
+  {
+   "name": "encsp-dock",
+   "map": "encdock",
+   "elevation": 0,
+   "tile": 20100,
+   "coverage": "Enclave dock at the spawn"
+  },
+  {
+   "name": "encsp-fight",
+   "map": "encfite",
+   "elevation": 0,
+   "tile": 20100,
+   "coverage": "Enclave end fight room at the spawn"
+  },
+  {
+   "name": "encsp-barracks",
+   "map": "encgd",
+   "elevation": 0,
+   "tile": 20100,
+   "coverage": "Enclave guard barracks at the spawn"
+  },
+  {
+   "name": "encsp-presidential",
+   "map": "encpres",
+   "elevation": 0,
+   "tile": 20100,
+   "coverage": "Enclave presidential hall at the spawn"
+  },
+  {
+   "name": "encsp-reactor",
+   "map": "encrctr",
+   "elevation": 0,
+   "tile": 20100,
+   "coverage": "Enclave reactor at the spawn"
+  },
+  {
+   "name": "encsp-trap",
+   "map": "enctrp",
+   "elevation": 0,
+   "tile": 20100,
+   "coverage": "Enclave trap room at the spawn"
+  },
+  {
+   "name": "encsp-car-desert",
+   "map": "cardesrt",
+   "elevation": 0,
+   "tile": 20100,
+   "coverage": "The car's desert map at the spawn"
+  }
+ ]
 }

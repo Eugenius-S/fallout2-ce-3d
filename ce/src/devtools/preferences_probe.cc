@@ -30,6 +30,7 @@ bool gInputSeen = false;
 bool gInputStarted = false;
 bool gInputSnapshot = false;
 int gInputX = 0, gInputY = 0, gInputWait = 0;
+int gInputStep = 0;
 Uint32 gInputWaitUntil = 0; // a waitms deadline, in SDL ticks
 unsigned char gInputLeft = 0, gInputRight = 0;
 }
@@ -70,6 +71,8 @@ void scriptedInputPump()
         std::istringstream input(line);
         std::string action;
         if (!(input >> action) || action[0] == '#') continue;
+        printf("DEV_INPUT STEP %d action=%s\n", ++gInputStep, action.c_str());
+        fflush(stdout);
         if (action == "wait") {
             if (!(input >> gInputWait) || gInputWait < 0) { fprintf(stderr, "DEV_INPUT FAIL: invalid wait\n"); gInputActive = false; }
             return;
