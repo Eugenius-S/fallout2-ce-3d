@@ -114,3 +114,11 @@ fill, and the still gate cannot exercise flight/turned views at all.
 The tour run is cut to task 205 (the tool exists, 078; the run and the
 standing rule live there). This task's gate re-runs after the earlier
 one died with the session restart.
+
+### 2026-11-07 glm: the gate, twice green
+The original gate survived the session restart after all and finished
+154/154 spots, 0 changed px, exit 0 (runs/regression/20261106-232311).
+The re-run launched in the meantime finished the same: 154/154, 0
+changed px (runs/regression/20261106-234216) - the stills never draw
+the extension, as expected. ctest 20/20. The gate's verdict on the
+fill: clean. What #320 still owes before a merge is 205's fly tour.
