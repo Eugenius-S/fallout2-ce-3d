@@ -589,6 +589,8 @@ void renderPresent()
     // Sprite-lighting mod: the dev panel is drawn into the framebuffer after
     // the game (so it shows in both presentation paths).
     devtools::draw(static_cast<unsigned char*>(gSdlSurface->pixels), gSdlSurface->w, gSdlSurface->h, gSdlSurface->pitch);
+    // The owner's region mark rectangles, over everything else (183).
+    owner_shot::draw(static_cast<unsigned char*>(gSdlSurface->pixels), gSdlSurface->w, gSdlSurface->h, gSdlSurface->pitch);
     const bool uiVisible = scene_renderer::isActive() && !scene_renderer::staticFlyCameraActive()
         && (!scene::shouldPresent() || scene::activeView() == scene::View::Full);
     const bool sharpTextReady = scene_renderer::prepareSharpTextForPresent(gSdlSurface, gSdlTextureSurface, uiVisible);
