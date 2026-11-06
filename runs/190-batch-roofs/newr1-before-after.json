@@ -1,0 +1,35 @@
+{
+  "map": "newr1",
+  "elevation": 0,
+  "view_tile": 24497,
+  "resolution": "1920x1080",
+  "scale": 2,
+  "language": "scene-only; no UI text",
+  "camera": "fly turn 90, pitch 40, distance 8; matched baseline and after",
+  "baseline": {
+    "cache": "origin/main 215086a7",
+    "source": "baseline-newr1-final/devhero-20261105-232040-000.png"
+  },
+  "after": {
+    "cache": "merged branch 31ee225f",
+    "source": "after-newr1-final/devhero-20261105-232206-000.png"
+  },
+  "crop_box": [
+    0,
+    160,
+    1450,
+    650
+  ],
+  "crop_size_px": [
+    1450,
+    490
+  ],
+  "changed_pixels": 60035,
+  "diff_bbox": [
+    0,
+    0,
+    1853,
+    596
+  ],
+  "executable_sha256": "500969e0ac5f0cd10ee0efc34288249382f56b661a45d3f984aa7cd72e313912"
+}

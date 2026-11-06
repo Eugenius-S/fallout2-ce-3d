@@ -1,0 +1,11 @@
+{
+  "evidence_file": "newreno-car-lot.jpg",
+  "map": "NEWR2 e0",
+  "object": "car-lot landmark",
+  "source_task": 163,
+  "source_pr": 249,
+  "source_file": "runs/163-newreno-in-3d/tour-newr2.jpg",
+  "capture": "reused merged area-task before/after turn sheet, not a new runtime capture",
+  "status": "included in -45/0/+45 map sweep; no vehicle-shape issue listed",
+  "bytes": 139381
+}

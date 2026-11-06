@@ -69,9 +69,11 @@ During combat and dialogue the game shows the original view for now.
 
 ## Where it works
 
-Klamath for now: downtown, the mall, the pastures, the canyon, the trapping
-grounds, the rat caves and the toxic caves. Other maps show the original 2D
-view.
+About 70% of the game's maps are in 3D: Arroyo, Klamath, the Den, Modoc and
+the Ghost Town, Vault City, Gecko, Broken Hills, New Reno, Redding, NCR,
+Vault 13 and Vault 15, the Sierra Army Depot, the Military Base, San
+Francisco and Navarro, and the desert and coast encounters. The city, cave,
+mountain and special encounters still show the original 2D view.
 
 ## Keys
 
@@ -87,7 +89,7 @@ enabled=0
 
 ## Plans
 
-- Convert the remaining maps
+- Convert the remaining encounter maps
 - Restoration Project support
 - 3D models of unique landmarks: the Vault Dweller's head, the New Reno
   sign, the Vault City gate and more

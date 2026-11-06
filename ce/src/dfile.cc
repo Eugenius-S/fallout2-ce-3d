@@ -1,6 +1,7 @@
 #include "dfile.h"
 
 #include <assert.h>
+#include <mutex>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -950,6 +951,10 @@ static DFile* dfileOpenInternal(DBase* dbase, const char* filePath, const char* 
 
         memset(dfile, 0, sizeof(*dfile));
         dfile->dbase = dbase;
+        // The warm thread pool opens files concurrently (172): the open list
+        // push takes its own lock, the reads themselves never share a stream.
+        static std::mutex openListMutex;
+        std::lock_guard<std::mutex> guard(openListMutex);
         dfile->next = dbase->dfileHead;
         dbase->dfileHead = dfile;
     } else {

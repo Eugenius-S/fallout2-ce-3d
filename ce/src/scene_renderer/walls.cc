@@ -9,6 +9,7 @@
 
 #include "gl_api.h"
 #include "scene_internal.h"
+#include "perf.h"
 #include "shadow.h"
 #include "board_shadows.h"
 #include "../tile.h"
@@ -387,8 +388,11 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
         snprintf(textureName, sizeof(textureName), "sprites%u.png", page);
         const std::filesystem::path texturePath = cacheDirectory / textureName;
         std::vector<unsigned char> png;
-        if (!readBinary(texturePath, png)) {
-            return fail(std::string(textureName) + " is missing, unreadable, or exceeds 64 MB");
+        {
+            PerfScope stage("walls_read");
+            if (!readBinary(texturePath, png)) {
+                return fail(std::string(textureName) + " is missing, unreadable, or exceeds 64 MB");
+            }
         }
         if (png.empty()) {
             return fail(std::string(textureName) + " is empty");
@@ -409,19 +413,22 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
         if (decodedBytes > 256ULL * 1024 * 1024 || totalDecodedBytes > 512ULL * 1024 * 1024) {
             return fail(std::string(textureName) + " decoded size is too large");
         }
-        pngError = lodepng::decode(batch.rgba, pngWidth, pngHeight, pngState, png);
-        if (pngError != 0) {
-            return fail(std::string(textureName) + " decode failed: " + lodepng_error_text(pngError));
-        }
-        if (batch.rgba.size() != decodedBytes) {
-            return fail(std::string(textureName) + " decoded byte count is inconsistent");
-        }
-        for (size_t alphaOffset = 3; alphaOffset < batch.rgba.size(); alphaOffset += 4) {
-            // The exporter marks the engine's animated colours 254 (they glow)
-            // or 252 (they only glow: tiles and walls); the shader reads it.
-            const unsigned char alpha = batch.rgba[alphaOffset];
-            if (alpha != 0 && alpha != 255 && alpha < 252) {
-                return fail(std::string(textureName) + " alpha is not binary cutout data");
+        {
+            PerfScope stage("walls_decode");
+            pngError = lodepng::decode(batch.rgba, pngWidth, pngHeight, pngState, png);
+            if (pngError != 0) {
+                return fail(std::string(textureName) + " decode failed: " + lodepng_error_text(pngError));
+            }
+            if (batch.rgba.size() != decodedBytes) {
+                return fail(std::string(textureName) + " decoded byte count is inconsistent");
+            }
+            for (size_t alphaOffset = 3; alphaOffset < batch.rgba.size(); alphaOffset += 4) {
+                // The exporter marks the engine's animated colours 254 (they glow)
+                // or 252 (they only glow: tiles and walls); the shader reads it.
+                const unsigned char alpha = batch.rgba[alphaOffset];
+                if (alpha != 0 && alpha != 255 && alpha < 252) {
+                    return fail(std::string(textureName) + " alpha is not binary cutout data");
+                }
             }
         }
         batches.push_back(std::move(batch));
@@ -703,6 +710,7 @@ bool loadStaticWalls(const std::filesystem::path& cacheDirectory, std::string* e
         return fail("walls.bin has trailing data or a mismatched triangle count");
     }
 
+    PerfScope stage("walls_upload");
     while (glGetError() != 0) {
     }
     glPixelStorei(kUnpackAlignment, 1);

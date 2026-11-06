@@ -1,0 +1,110 @@
+{
+  "task": 145,
+  "map": "KLADWTWN.MAP",
+  "elevation": 0,
+  "view_tile": 24678,
+  "resolution": "1920x1080",
+  "logical_resolution": "960x540",
+  "scale": 2,
+  "renderer": "scene-gl static-wall-plus-hero-preview",
+  "daylight": true,
+  "game_time": 288000,
+  "camera": "fixed eye=(38.14466,46.23085,85.71700), target=(-11.04167,0.00000,11.93750), fov_y=25.0, near=0.1, far=400.0",
+  "map_clip": {
+    "enabled": true,
+    "variant": "authored",
+    "world_bounds": [
+      -38.041667,
+      -34.5625,
+      35.958333,
+      34.4375
+    ],
+    "planes": [
+      [
+        0.4472136,
+        0.8944272,
+        29.1434193
+      ],
+      [
+        -0.8320503,
+        0.5547002,
+        22.4653587
+      ],
+      [
+        -0.4472136,
+        -0.8944272,
+        28.0999203
+      ],
+      [
+        0.8320503,
+        -0.5547002,
+        24.1294594
+      ]
+    ]
+  },
+  "before": {
+    "image": "before.jpg",
+    "source": "build/task145-3d-24678/devhero-20261105-100133-000.png",
+    "exe_sha256": "7c3c4fb3a04848ded34d9a03745b6a49dc702579d33a4902361a91f922c20dc1",
+    "ce_commit": "79155dfd"
+  },
+  "after": {
+    "image": "after.jpg",
+    "source": "build/task145-after/devhero-20261105-101849-000.png",
+    "exe_sha256": "2f9b44503c14ee5edf6a4df7a1cf1c1d93eb4a044c659a6d65550e7615fbe4ed",
+    "ce_commit": "79155dfd"
+  },
+  "classic_2d": {
+    "image": "classic-2d.jpg",
+    "source": "build/task145-classic-24678/scr00000.png",
+    "view": "vanilla-framebuffer",
+    "game_time": 288005,
+    "note": "Contextual 2D reference; not a pixel-matched 3D baseline."
+  },
+  "regression": {
+    "run": "runs/regression/20261105-113616-167-43892",
+    "spots": 106,
+    "changed_spots": 46,
+    "unchanged_spots": 60,
+    "visual_review": "Changed masks align with translucent exit-grid marker regions; other scene geometry remains unchanged."
+  },
+  "fly_tour": {
+    "completed_control": "tour-klatoxcv/changed.jpg",
+    "control_changed_spots": 0,
+    "kladwtwn_attempts": [
+      {
+        "route": "full",
+        "result": "baseline timed out after 32 of 58 views at tour_step 31"
+      },
+      {
+        "route": "edge spots 25075 and 24678",
+        "result": "baseline 6 of 6 views; branch timed out after 2 of 7 at 144 seconds"
+      }
+    ],
+    "status": "The earlier full and reduced routes timed out; a fresh bounded route completed on current main and task head."
+  },
+  "bounded_main_comparison": {
+    "image": "tour-current-main-edge.jpg",
+    "main_commit": "6beaf53f",
+    "task_commit": "839484d8",
+    "map": "KLADWTWN.MAP",
+    "elevation": 0,
+    "tile": 24678,
+    "turns_degrees": [-45, 0, 45],
+    "views_per_side": 3,
+    "changed_spots": 1,
+    "scene_fingerprint_prefix": "56c9acd",
+    "resource_files": 1430,
+    "visual_result": "The translucent exit-grid marker is absent at -45 and 0 on the task branch; +45 is unchanged."
+  },
+  "fresh_adjacent_capture": {
+    "map": "KLADWTWN.MAP",
+    "elevation": 0,
+    "tile": 24678,
+    "resolution": "1920x1080",
+    "hour": 8,
+    "3d_still_game_time": 288000,
+    "classic_2d_game_time": 288005,
+    "note": "Same tile and resolution, but classic advances five ticks; contextual only."
+  }
+}

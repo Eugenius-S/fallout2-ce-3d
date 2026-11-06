@@ -1,0 +1,19 @@
+{
+  "source": "camera_turn.h simulation at 144 Hz, 1 ms integration slices",
+  "turn_acceleration_degrees_per_second_squared": 640.0,
+  "held_repeat_frames": 12,
+  "held_repeat_interval_seconds": 0.08333333333333333,
+  "tap_duration_seconds": 0.2569444444444444,
+  "tap_peak_speed_degrees_per_second": 79.99500046993138,
+  "tap_largest_frame_speed_delta": 4.4444444444444535,
+  "held_duration_seconds": 0.9027777777777777,
+  "held_peak_speed_degrees_per_second": 110.0,
+  "held_largest_frame_speed_delta": 4.4444444444444535,
+  "wheel_zoom_from_to": [
+    1.0,
+    1.25
+  ],
+  "wheel_zoom_duration_seconds": 0.2,
+  "old_ease_out_first_frame_average_rate": 3.6212987075617384,
+  "new_hermite_first_frame_average_rate": 0.1271942515432194
+}

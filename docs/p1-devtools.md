@@ -91,6 +91,8 @@ to the window the same way 480 × 400 related to 640 × 480.
   now the GL presentation of vanilla; light: off until P2).
 
 Hotkeys: Alt+D: the panel, F9: a snapshot (works with the panel open too).
+Without --dev-tools F9 is the owner's feedback shot instead (task 183): the
+frame as presented with a JSON sidecar, docs/owner-shots.md.
 
 ## The fly camera
 
