@@ -1,0 +1,11 @@
+{
+  "evidence_file": "sfdock-tanker-hull.jpg",
+  "map": "SFDock e0",
+  "object": "tanker hull side",
+  "source_task": 168,
+  "source_pr": 305,
+  "source_file": "runs\\168-hull-stands\\hull-before-after.jpg",
+  "capture": "reused merged area-task before/after sheet, not a new runtime capture",
+  "status": "side was changed to a vertical plane at the water boundary, grounded at the pier",
+  "bytes": 261875
+}

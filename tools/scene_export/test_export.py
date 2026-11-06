@@ -321,6 +321,27 @@ class FloorSidecarTests(unittest.TestCase):
         decoded = decode_floor_sidecar(bytes(payload))
         self.assertEqual((decoded["version"], decoded["fringe"], decoded["patches"]), (5, [], []))
 
+    def test_tileless_elevation_round_trips_with_an_empty_atlas(self):
+        # encfite's void boxes: every square is the nothing tile (the lookup's
+        # 0), the atlas holds no cell, the sidecar stays valid (171).
+        scene = self.sample_scene()
+        scene["floor"] = base64.b64encode(bytes(100 * 100 * 2)).decode("ascii")
+        scene["roof"] = base64.b64encode(bytes(100 * 100 * 2)).decode("ascii")
+        scene["tiles"]["cells"] = []
+        payload = encode_floor_sidecar(scene, water=bytearray(100 * 100), water_color=[0.05, 0.05, 0.05])
+        decoded = decode_floor_sidecar(payload)
+        self.assertEqual(decoded["version"], VERSION)
+        self.assertEqual(decoded["cells"], [])
+        self.assertEqual(decoded["water"], [0] * 100 * 100)
+        # one drawn square over the empty atlas is still a broken scene
+        drawn = self.sample_scene()
+        drawn["tiles"]["cells"] = []
+        with self.assertRaisesRegex(ValueError, "missing tiles.cells entry"):
+            encode_floor_sidecar(drawn, water=bytearray(100 * 100), water_color=[0.05, 0.05, 0.05])
+        # the plain form without water stays version 6 and round-trips too
+        plain = encode_floor_sidecar(scene)
+        self.assertEqual(decode_floor_sidecar(plain)["version"], 6)
+
     def test_cell_coordinates_select_inner_square_and_validate_outer_cell(self):
         self.assertEqual(cell_content_rect((0, 0), (100, 100)), (6, 6, 94, 94))
         scene = self.sample_scene()
@@ -679,6 +700,20 @@ class RoofEdgeTests(unittest.TestCase):
         self.assertFalse(grey.any())                                   # none of the dark part is left on the roof
         self.assertEqual(unproject_cell(roof).shape[:2], (100, 100))
 
+    def test_an_unsupported_partial_grey_roof_tile_stays_flat(self):
+        partial = self.tile([(0, 1, 0, 0.3, (14, 14, 14))])
+        pieces, roof = split_tile(partial, (0, 1, 2, 3), wall_supported=False)
+        self.assertEqual(pieces, [])
+        self.assertIs(roof, partial)
+
+        with TemporaryDirectory() as temp:
+            png = Path(temp) / "roof_fringe.png"
+            entries, patches = write_fringe_art(png, {101: 7}, lambda _: partial,
+                                                lambda *run: None)
+            self.assertEqual(entries, [])
+            self.assertEqual(patches, [])
+            self.assertFalse(png.exists())
+
     def test_a_whole_painted_tile_with_a_grey_slab_on_an_open_edge_stands_up_there(self):
         whole = self.tile([(0, 1, 0, 1, (120, 80, 50)), (0, 1, 0, 0.36, (14, 14, 14))])
         self.assertEqual(split_tile(whole)[0], [])                       # no open edge known: a roof square
@@ -930,6 +965,30 @@ class WallSidecarTests(unittest.TestCase):
         scene = self.hull_scene()
         self.assertEqual(encode_wall_sidecar(scene),
                          encode_wall_sidecar(scene, water=bytearray(100 * 100)))
+
+    def test_a_fractional_anchor_uses_the_square_it_lands_in(self):
+        scene = self.hull_scene()
+        scene["rests"] = [[0, 10.75, 10.75, 0.0, 0.0, 3]]
+        water = bytearray(100 * 100)          # row 10 water, its north row land
+        for col in range(100):
+            water[10 * 100 + col] = 1
+        batches = decode_wall_sidecar(encode_wall_sidecar(scene, water=water))["batches"]
+        self.assertEqual(len(batches), 1)
+        # The containing square (10, 10) decides: the hull stands on row 9's
+        # south edge, exactly as an integral anchor there would. Rounding read
+        # the neighbour (11, 11) — land — and kept the game-screen plane.
+        vs = {round(vertex[2], 6) for vertex in batches[0]["vertices"]}
+        self.assertEqual(vs, {-40.0})
+
+    def test_an_anchor_past_the_far_edge_reads_no_water(self):
+        scene = self.hull_scene()
+        scene["rests"] = [[0, 10.0, 99.75, 0.0, 0.0, 3]]
+        rows = [[1] * 100 for _ in range(100)]   # all water, no shore in reach
+        # floor(99.75) is the containing row 99: the walk finds no shore and
+        # the anchor keeps rest_card's plane. Rounding read water[100] of the
+        # row-split grid and raised IndexError before the bounds check.
+        self.assertEqual(encode_wall_sidecar(scene, water=rows),
+                         encode_wall_sidecar(scene))
 
     def test_encodes_game_view_front_and_cap_only(self):
         decoded = decode_wall_sidecar(encode_wall_sidecar(self.sample_scene()))

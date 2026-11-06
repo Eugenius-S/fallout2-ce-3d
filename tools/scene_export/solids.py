@@ -337,10 +337,15 @@ def hull_plane(proj, sprites, row, water, reach=40):
     """
     s, u, v = row[:3]
     page, x, y, w, h, ox, oy = sprites[s]
-    col, r = int(round(u)), int(round(v))
+    # The square the anchor lands in decides the water it stands in; rounding
+    # would pick a neighbour off a fractional boundary and read water[100] past
+    # the grid at the far edge, so the bounds come before any water access.
+    col, r = int(math.floor(u)), int(math.floor(v))
+    if not (0 <= col < 100 and 0 <= r < 100):
+        return None
     if isinstance(water[r], int):            # a flat 10000 sequence: to rows
         water = [water[i * 100:(i + 1) * 100] for i in range(100)]
-    if not (0 <= col < 100 and 0 <= r < 100) or not water[r][col]:
+    if not water[r][col]:
         return None
     # Walk the water out to the nearest land square; diagonal steps may pass,
     # the land square itself must sit beside its water square on a side, so

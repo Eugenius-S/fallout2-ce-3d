@@ -2,8 +2,8 @@
 id: 129
 title: Klamath graphics sweep, find and fix every visible defect
 milestone: M1
-status: todo
-owner: any
+status: done
+owner: gpt
 suggested: any
 priority: low
 tier: 4
@@ -138,3 +138,34 @@ Check: the crops and sheets above.
 Done: roof holes after #236 fixed (task/129-roof-holes, PR #238). Rule 1: a tile painted whole is a roof square however dark; only the slab strips along its open edges are wall top. Rule 2: a roof square a band crosses is roofed right up to the band: its flat cell is cut at the band's plane (nothing on the outer side) and filled with plain roof on the inner side (the square's own tidied art, else the donor tile: the most common interior tile of its roof, else the most common unbanded one, else the nearest roof's donor). `roof_edge_check.py` has `lost_squares` and `lane_squares` (before: kladwtwn e0 125, klamall e0 247; after: 0 and 0).
 Next: partial tiles (cover under 0.9) that are nearly all grey and no wall under them still vanish (same as main).
 Check: `py -3 tools/scene_export/roof_edge_check.py --cache-root build/scene-cache --lanes`; crops `runs/129-klamath-graphics/fix129k-*.jpg`.
+
+### 2026-11-06 gpt: unsupported partial grey roof cells
+
+Done: preserved nearly-all-grey roof cells below 90% cover when no wall
+supports their open edges. The exporter regression test verifies that these
+cells stay flat instead of becoming roof fringe. The before export contained
+54 suspected cells across Klamath; after the fix, the same scan found none.
+The fly tour compared 43 spots across all seven Klamath maps and three
+elevations/camera states: 26 spots changed. Reviewed all four change sheets;
+the roofs remain textured and continuous in the affected views. Evidence is
+in `runs/129-partial-grey/`.
+
+Checks: exporter tests 132/132, CTest 20/20, and the entrance and Klamall
+game-view regression spots each pass with 0 changed pixels. See
+`runs/129-partial-grey/evidence.json` for the tour command and build hash.
+
+Next: the sweep handoff is recorded below.
+
+### 2026-11-06 gpt: sweep handoff
+
+Done: PR #311 merged as 199e7483 and fixes the partial grey roof tiles.
+The Klamath sweep has no unassigned findings. The two remaining map-edge
+finds (round 2, items 7 and 10) are tracked separately by task 145, PR #293.
+That PR remains draft after two failed live-tour captures; its Log records
+the timeouts and the owner stop rule prevents another attempt. The map-edge
+result is therefore still unverified, not claimed as fixed here. This task
+is done as the completed survey and triage; continue with the next free board
+task while #293 remains draft.
+
+Check: PR #311 CI is green; task 145 PR #293 is open/draft with green CI and
+two recorded capture timeouts.

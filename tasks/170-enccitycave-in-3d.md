@@ -2,7 +2,7 @@
 id: 170
 title: The city, cave and mountain encounters in 3D, every map stands and looks clean
 milestone: M1
-status: todo
+status: done
 owner: glm
 suggested: glm
 priority: normal
@@ -71,3 +71,41 @@ The interface, menus and text, the sky, new 3D models from scratch, maps of
 other areas (each has its own task).
 
 ## Log
+
+- 2026-11-05, glm. Group `enccitycave` = city1-8, cave0-7, mountn1-6; 28
+  scene elevations exported clean, no exporter errors or warnings. Spots
+  from each scene's spawn tile (where the player walks in): 28 fly tour
+  spots, 23 regression spots (22 maps + cave5's top shelf). ctest 129/129.
+- Probe tour 0 of 28 changed (the same cache on both sides, sheets as the
+  probe evidence); the visual sweep of all 28 sheets found no exporter or
+  renderer defect. Walk probes: every group's tour base snapshot enters at
+  the spawn with the 3D scene on (scene-gl in all sidecars), 28/28, no
+  hangs. Observations, not defects: mountn5/mountn6 fly views show a tan
+  border strip with void squares - the maps' own border data (NO_TILE
+  squares next to drawn dirt tiles), unreachable by the game camera (the
+  2D cannot scroll there), so the fly view is faithful; the dark dithered
+  tree canopies (cave1/3/5, mountn3) are the maps' own art, confirmed
+  against the game's 2D; black map-edge corners are 168's near-black
+  continuation (rule A).
+- Hour sweep 8/12/18, all 28 elevations, 84 captures: no hour-dependent
+  defect; spot-verified against the game's own 2D at hour 18 (city1), the
+  renderers agree. Background captures keep the map's default light in
+  both renderers at every hour - the play-time ambient dimming is not
+  exercised by --dev-hour in a background run (engine behaviour, not a
+  group defect). Tooling finds: (a) -Still pins the sun report's ambient
+  at 65536, so an hour sweep must NOT use -Still - the first pass shot 84
+  identical-looking pictures; (b) cave3 e1 h12/h18 hit one-off 90 s
+  whole-run timeouts and passed on a plain retry - the same transient
+  dead-game-process class as 168's black-frame find.
+- Tooling find, the session's first blocker: the worktree's exe (built
+  05:45) predated #303 (18:48, the v7 floor.bin water flags), so every new
+  scene stayed 2D with "floor preview unavailable: floor.bin version,
+  dimensions, or length is unsupported" although the sidecars matched the
+  formula exactly. A rebuild through configure-build.ps1 fixed it. Rule:
+  before a capture session, compare the exe's build time against the last
+  renderer-touching merge; rebuild when in doubt.
+- Regression: full suite 129 spots (106 old + 23 new), 129/129 pass, 0
+  changed pixels everywhere - the already-done maps stay pixel for pixel,
+  the new references captured clean. No defects to move to 189-192 or
+  173; the area plays in 3D. Evidence: runs/170-enccitycave-in-3d/ (28
+  probe sheets, the mountn5 border 2D-vs-3D pair).
