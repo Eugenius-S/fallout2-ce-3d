@@ -219,6 +219,8 @@ void updateMapClip()
         const char* requested = devtools::isEnabled() ? SDL_getenv("F2CE_DEV_CLEAN_EDGES") : nullptr;
         if (requested != nullptr && compat_stricmp(requested, "floor") == 0) {
             clip = scene_renderer::staticFloorMapClip();
+        } else if (requested != nullptr && compat_stricmp(requested, "off") == 0) {
+            clip = {};
         } else {
             clip = authoredMapClip();
         }
