@@ -2,8 +2,8 @@
 id: 111
 title: The slime pools glow and the lamps light the walls in the live caves
 milestone: M1
-status: todo
-owner: any
+status: doing
+owner: glm
 suggested: any
 priority: low
 tier: 4
@@ -66,3 +66,11 @@ turns the glow and the lights off, then fix that cause, not the look.
 New glow kinds, the glow's look, light strength.
 
 ## Log
+
+### 2026-11-06 glm
+Claimed per the owner's order (all known 3D-ification flaws found by
+glm and gpt go first). Plan: read the owner's ini [3d] against the
+snapshot fixture's, then a live-run probe with the owner shot tooling
+(183) on klatoxcv: the slime pool's glow state, the point light's
+presence, the palette cycle in a running game. The candidate causes
+are in the Context above.
