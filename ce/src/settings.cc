@@ -490,6 +490,20 @@ void initSettingsRegistry(bool isMapper)
     registerThreeDBoolean("frame_log", settings.scene3d.frame_log, "Frame time log",
         "Write every frame's time to frame_log.csv and a summary next to it when the log closes.",
         SettingApplyPolicy::OnClose);
+    registerSetting("3d", "fps_limit", settings.scene3d.fps_limit, clamp(0.0, 360.0));
+    SettingDescriptor& fpsLimitDescriptor = settingDescriptors.back();
+    fpsLimitDescriptor.category = SettingCategory::Uncategorized;
+    fpsLimitDescriptor.applyPolicy = SettingApplyPolicy::OnClose;
+    fpsLimitDescriptor.subsection = "3D";
+    fpsLimitDescriptor.fallbackLabel = "FPS limit";
+    fpsLimitDescriptor.fallbackDescription =
+        "The frame rate the game view is paced to: 60 keeps the classic feel, 0 removes the limit.";
+    fpsLimitDescriptor.numericRange = SettingNumericRange { 0.0, 360.0, 5.0 };
+    settingsRegistry.back().descriptor = fpsLimitDescriptor;
+    settingsRegistry.back().write = [](bool onlyAdd) {
+        if (onlyAdd && settingsKeyExists("3d", "fps_limit")) return;
+        settingsWrite("3d", "fps_limit", onlyAdd ? 60.0 : settings.scene3d.fps_limit);
+    };
     registerThreeDBoolean("clean_edges", settings.scene3d.clean_edges, "Clean map edges",
         "Cut the 3D scene to the map boundary, leaving black beyond it.", SettingApplyPolicy::OnClose);
     registerThreeDBoolean("sun", settings.scene3d.sun, "Sun",

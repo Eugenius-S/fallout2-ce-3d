@@ -60,6 +60,8 @@ const std::vector<Translation>& catalog()
         { "Show average frames per second and frame time. Press F8 to toggle it while playing.", cp1251(u8"Показывать среднюю частоту кадров и время кадра. Нажмите F8, чтобы переключить счётчик во время игры.") },
         { "Frame time log", cp1251(u8"Журнал времени кадра") },
         { "Write every frame's time to frame_log.csv and a summary next to it when the log closes.", cp1251(u8"Записывать время каждого кадра в frame_log.csv, а при закрытии журнала рядом итоговую сводку.") },
+        { "FPS limit", cp1251(u8"Ограничение FPS") },
+        { "The frame rate the game view is paced to: 60 keeps the classic feel, 0 removes the limit.", cp1251(u8"Темп кадров игрового вида: 60 держит классическое ощущение, 0 снимает ограничение.") },
         { "Clean map edges", cp1251(u8"Чёткие границы карты") },
         { "Cut the 3D scene to the map boundary, leaving black beyond it.", cp1251(u8"Обрезать 3D-сцену по границам карты. За границами остаётся чёрный фон.") },
         { "Sun", cp1251(u8"Солнце") },

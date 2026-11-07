@@ -230,6 +230,14 @@ int main()
             && fpsCounter->applyPolicy == SettingApplyPolicy::OnClose
             && fpsCounter->fallbackLabel == "FPS counter" && !fpsCounter->fallbackDescription.empty(),
             "FPS counter is registered as a default-off 3D setting with menu text")) return 1;
+    const SettingDescriptor* fpsLimit = findDescriptor("3d.fps_limit");
+    if (!check(fpsLimit != nullptr && fpsLimit->valueType == SettingValueType::Real
+            && std::get<double>(fpsLimit->defaultValue) == 60.0 && settings.scene3d.fps_limit == 60.0
+            && fpsLimit->applyPolicy == SettingApplyPolicy::OnClose
+            && fpsLimit->fallbackLabel == "FPS limit" && !fpsLimit->fallbackDescription.empty()
+            && fpsLimit->numericRange.has_value() && fpsLimit->numericRange->minimum == 0.0
+            && fpsLimit->numericRange->maximum == 360.0 && fpsLimit->numericRange->step == 5.0,
+            "FPS limit is registered as a 60-default numeric 3D setting with menu text")) return 1;
     const SettingDescriptor* frameLog = findDescriptor("3d.frame_log");
     if (!check(frameLog != nullptr && frameLog->valueType == SettingValueType::Boolean
             && !std::get<bool>(frameLog->defaultValue) && !settings.scene3d.frame_log
