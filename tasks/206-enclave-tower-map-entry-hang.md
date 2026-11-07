@@ -21,7 +21,7 @@ starting with this map.
 
 ## Context
 
-- The owner plays from `game\` on the RPU mod set (debug.log lists 12 mods
+- The owner plays from `game/` on the RPU mod set (debug.log lists 12 mods
   loaded). The hang happened on their install, normal launch.
 - "Enclave tower": the Enclave sight on the world map (the oil rig side, or
   the Navarro tower); the exact map name needs one repro: travel there in
