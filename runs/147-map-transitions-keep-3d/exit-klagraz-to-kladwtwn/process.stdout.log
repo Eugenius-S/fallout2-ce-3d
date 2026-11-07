@@ -1,0 +1,5 @@
+devtools: startup target klagraz e0 accepted=1 blocking=0
+scene: cache <local-path>
+devtools: static wall+hero preview started for KLAGRAZ.MAP elevation 0
+scene: preview policy=available gameState=0 gameMode=0x0 uiDisabled=0 isoDisabled=0 combat=0 dialog=0 movie=0
+devtools: one-shot hero preview snapshot saved: snapshot: devshot-20261102-090751-000.json
