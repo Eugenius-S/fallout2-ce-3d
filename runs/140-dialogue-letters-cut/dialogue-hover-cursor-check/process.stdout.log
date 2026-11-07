@@ -1,0 +1,9 @@
+devtools: startup target kladwtwn e0 accepted=1 blocking=0
+scene: cache <isolated-scene-cache>
+devtools: static wall+hero preview started for KLADWTWN.MAP elevation 0
+scene: preview policy=available gameState=0 gameMode=0x0 uiDisabled=0 isoDisabled=0 combat=0 dialog=0 movie=0
+DIALOG_FIXTURE START map=KLADWTWN.MAP elevation=0 script=Kcsulik.int speaker=26 speaker_tile=23478 hero=25075 talk_result=0
+scene: preview policy=game-mode gameState=0 gameMode=0x4 uiDisabled=0 isoDisabled=1 combat=0 dialog=0 movie=0
+DIALOG_CURSOR_CHECK INPUT key=2 map=KLADWTWN.MAP script=Kcsulik.int speaker=26 speaker_tile=23478 hero=25075
+DIALOG_CURSOR_CHECK TARGET reply_bytes=56 opaque_logical=344,267 opaque_physical=688,535 transparent_logical=357,267 transparent_physical=714,535 cursor_opaque_offset=0,0 cursor_index=11 expected_rgb=84,84,84
+DIALOG_CURSOR_CHECK FAIL map=KLADWTWN.MAP script=Kcsulik.int speaker=26 reason=overlay-assertion opaque_alpha=103->0 transparent_alpha=175->195 before_ink=465 after_ink=439

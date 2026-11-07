@@ -856,8 +856,9 @@ void testFont101SizePreviewExtendsCaptureOnly()
     check(records.size() == 1 && records.front().bounds.height == 11
             && records.front().pixels.size() == 1
             && scene::textCaptureVisibilityMask(records.front(), 20, 40, &mask)
-            && mask.bounds.height == 11,
-        "font-101 preview extends only captured coverage, not legacy pixels or visibility logic");
+            && mask.bounds.height == 11
+            && mask.visibleAt(mask.bounds.x, mask.bounds.y + mask.bounds.height - 1),
+        "font-101 sharp visibility covers the expanded line box beyond legacy glyph pixels");
 
     scene::setFont101PreviewScale(1.29, 12);
     {

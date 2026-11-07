@@ -942,13 +942,31 @@ bool textCaptureVisibilityMask(const TextRecord& record, int width, int height, 
     }
     if (recordRange == nullptr || recordRange->orphan || recordRange->pitch <= 0) return true;
 
-    const std::int64_t left = std::max<std::int64_t>(0, record.bounds.x);
-    const std::int64_t top = std::max<std::int64_t>(0, record.bounds.y);
+    TextRect drawBounds = record.bounds;
+    if (record.run.sharpEligible && record.run.font == 101 && record.run.width > 0 && record.run.lineHeight > 0) {
+        // The sharp pass can be taller than the game's bitmap glyphs. Keep its
+        // visibility clip at the logical line box, not the old glyph coverage
+        // box, or tall capitals and descenders get cut at the legacy ink edge.
+        const int lineHeight = font101PreviewCoverageHeight(record.run.lineHeight,
+            record.ownerWindow, record.run.sizeRole);
+        const std::int64_t lineLeft = record.run.x;
+        const std::int64_t lineTop = static_cast<std::int64_t>(record.run.y) + record.run.sharpTextOffsetY;
+        const std::int64_t lineRight = lineLeft + record.run.width;
+        const std::int64_t lineBottom = lineTop + lineHeight;
+        const std::int64_t left = std::min<std::int64_t>(drawBounds.x, lineLeft);
+        const std::int64_t top = std::min<std::int64_t>(drawBounds.y, lineTop);
+        const std::int64_t right = std::max<std::int64_t>(static_cast<std::int64_t>(drawBounds.x) + drawBounds.width, lineRight);
+        const std::int64_t bottom = std::max<std::int64_t>(static_cast<std::int64_t>(drawBounds.y) + drawBounds.height, lineBottom);
+        drawBounds = { static_cast<int>(left), static_cast<int>(top),
+            static_cast<int>(right - left), static_cast<int>(bottom - top) };
+    }
+    const std::int64_t left = std::max<std::int64_t>(0, drawBounds.x);
+    const std::int64_t top = std::max<std::int64_t>(0, drawBounds.y);
     const std::int64_t right = std::min<std::int64_t>({ width, recordRange->width,
-        static_cast<std::int64_t>(record.bounds.x) + record.bounds.width });
+        static_cast<std::int64_t>(drawBounds.x) + drawBounds.width });
     const std::int64_t bottom = std::min<std::int64_t>({ height, recordRange->height,
-        static_cast<std::int64_t>(record.bounds.y) + record.bounds.height });
-    if (record.bounds.width <= 0 || record.bounds.height <= 0 || right <= left || bottom <= top) return true;
+        static_cast<std::int64_t>(drawBounds.y) + drawBounds.height });
+    if (drawBounds.width <= 0 || drawBounds.height <= 0 || right <= left || bottom <= top) return true;
     mask->bounds = { static_cast<int>(left), static_cast<int>(top),
         static_cast<int>(right - left), static_cast<int>(bottom - top) };
     mask->pixels.assign(static_cast<std::size_t>(mask->bounds.width) * mask->bounds.height, 0);
@@ -978,6 +996,28 @@ bool textCaptureVisibilityMask(const TextRecord& record, int width, int height, 
         if (ownerIndex < 0 || owner.generation != record.ownerGeneration || owner.hidden) {
             clearMask();
             return true;
+        }
+
+        if (record.run.sharpEligible && record.run.font == 101) {
+            // Permit the modern glyph's full logical line box. The window and
+            // later-window/cursor checks below still provide the actual clip.
+            const int visibleLeft = std::max(mask->bounds.x, owner.x);
+            const int visibleTop = std::max(mask->bounds.y, owner.y);
+            const int visibleRight = std::min(mask->bounds.x + mask->bounds.width, owner.x + owner.width);
+            const int visibleBottom = std::min(mask->bounds.y + mask->bounds.height, owner.y + owner.height);
+            for (int y = visibleTop; y < visibleBottom; ++y) {
+                std::fill(mask->pixels.begin() + static_cast<std::size_t>(y - mask->bounds.y) * mask->bounds.width + visibleLeft - mask->bounds.x,
+                    mask->pixels.begin() + static_cast<std::size_t>(y - mask->bounds.y) * mask->bounds.width + visibleRight - mask->bounds.x, 1);
+            }
+            bool hasCurrentCoverage = false;
+            for (const TextPixelCoverage& pixel : record.coverage) {
+                if (pixel.x < left || pixel.y < top || pixel.x >= right || pixel.y >= bottom) continue;
+                if (current[static_cast<std::size_t>(pixel.y) * recordRange->pitch + pixel.x] == pixel.expected) {
+                    hasCurrentCoverage = true;
+                    break;
+                }
+            }
+            if (!hasCurrentCoverage) clearMask();
         }
 
         for (const TextPixelCoverage& pixel : record.coverage) {
