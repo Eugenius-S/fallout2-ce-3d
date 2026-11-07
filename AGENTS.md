@@ -45,6 +45,19 @@ in `tools/shapes/eval/` (`eval.py shoot | sheets | score`), the fly tour
   different worktrees run side by side, each writing only its own run
   folder; runs from one worktree queue up.
 - Python is `py -3` (`python` is a Store stub).
+- Project folders follow "merged, then gone" (the owner, 2026-11-07): when a
+  task's PR lands in main, its worktree folder leaves the projects root the
+  same day (`git worktree remove --force`); open-task folders with local
+  debris move to `_archive/worktrees` instead. Experiment outputs the owner
+  called keepsakes (regenerated sprites, art trials, marketing sources) are
+  never deleted: they live committed under `runs/<task>/`, or moved to
+  `_archive` and `!marketing`.
+- After every code merge into main the game is verified before anybody
+  plays it: rebuild Release from fresh `origin/main`, run one off-screen
+  `tools/dev-snapshot.ps1` launch check on the demo copy, and only then put
+  the exe into `game/fallout2-ce.exe` (the previous one stays as
+  `fallout2-ce.exe.bak-<date>`). Main must always be playable. Docs-only
+  merges skip the check.
 - Limits go on re-reading the context: every call pays for the whole
   thread so far (measured in 079: 99% of the tokens). So:
   - one task per thread; after its PR, or once the thread is long, start a
