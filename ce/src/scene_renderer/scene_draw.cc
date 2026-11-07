@@ -329,7 +329,7 @@ namespace {
 // (134).
 bool readBackBuffer(std::vector<unsigned char>& topDown, int drawableWidth, int drawableHeight, std::string* error)
 {
-    if (rgba == nullptr || drawableWidth <= 0 || drawableHeight <= 0) {
+    if (drawableWidth <= 0 || drawableHeight <= 0) {
         if (error != nullptr) *error = "invalid OpenGL backbuffer dimensions";
         return false;
     }
