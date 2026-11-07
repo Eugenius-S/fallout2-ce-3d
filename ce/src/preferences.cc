@@ -885,6 +885,10 @@ int _SavePrefs(bool save)
 
     if (save) {
         settingsSave();
+        // 209: the display mode takes effect the moment the menu closes. The
+        // resolution and the interface scale still need the restart the panel
+        // notes on their rows.
+        applyWindowModeLive();
     }
 
     return 0;

@@ -55,6 +55,7 @@ int screenGetWidth();
 int screenGetHeight();
 int screenGetVisibleHeight();
 void handleWindowSizeChanged();
+void applyWindowModeLive();
 void renderFpsCounter();
 void renderPresent();
 bool screenIsExclusiveFullscreen();
