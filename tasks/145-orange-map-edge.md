@@ -2,7 +2,7 @@
 id: 145
 title: The 3D map edge matches the game, cut where it cuts, with no orange band
 milestone: M1
-status: done
+status: reopened
 owner: gpt
 suggested: any
 priority: normal
@@ -107,3 +107,14 @@ the normal transition path.
 Next: Verify the rebased head's CI. The PR remains draft until its CI is green.
 Check: the current-main tour sheet, matched capture sidecars, build logs, and
 test results described above.
+
+## Log
+
+- 2026-11-07: reopened by the owner's find: "when the camera moves into the
+  3D mode the map loses its clean edges, they go cell-by-cell like the first
+  iterations." Suspects from a first code read: the clean-edge clip resets
+  while a map transition or camera change walks through
+  updateMapClip (scene_view.cc), or a warm-cache scene built before the
+  edge cut exists. The owner's scene.log has no fresh "clean map edges
+  disabled" lines, so the clip-failure path did not fire; needs a live repro
+  with logging on the transition itself.
