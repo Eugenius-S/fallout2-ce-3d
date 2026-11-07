@@ -22,13 +22,13 @@ namespace fallout {
 namespace devtools {
 
 namespace {
-constexpr Uint32 kScriptMouse = 0x154154u;
 std::ifstream gInputScript;
 bool gInputSceneMode = false; // --dev-scene-input: pumped from the main loop, no options screen
 bool gInputActive = false;
 bool gInputSeen = false;
 bool gInputStarted = false;
 bool gInputSnapshot = false;
+bool gInputExternal = false; // the mark-drag bench drives the mouse without a script
 int gInputX = 0, gInputY = 0, gInputWait = 0;
 int gInputStep = 0;
 Uint32 gInputWaitUntil = 0; // a waitms deadline, in SDL ticks
@@ -129,7 +129,7 @@ void scriptedInputPump()
 
 void scriptedInputObserveEvent(const SDL_Event& event)
 {
-    if (!gInputActive) return;
+    if (!gInputActive && !gInputExternal) return;
     if (event.type == SDL_MOUSEMOTION && event.motion.which == kScriptMouse) {
         gInputSeen = true; gInputX = event.motion.x; gInputY = event.motion.y;
         printf("DEV_INPUT motion %d %d\n", gInputX, gInputY); fflush(stdout);
@@ -142,9 +142,14 @@ void scriptedInputObserveEvent(const SDL_Event& event)
 
 bool scriptedInputMouse(int* x, int* y, unsigned char* left, unsigned char* right)
 {
-    if (!gInputActive || !gInputSeen) return false;
+    if ((!gInputActive && !gInputExternal) || !gInputSeen) return false;
     *x = gInputX; *y = gInputY; *left = gInputLeft; *right = gInputRight;
     return true;
+}
+
+void scriptedInputSetExternalMouse(bool enable)
+{
+    gInputExternal = enable;
 }
 
 namespace {

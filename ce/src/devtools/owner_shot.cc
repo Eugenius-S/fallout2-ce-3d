@@ -52,6 +52,7 @@
 #include "../scene_renderer/game_view.h"
 #include "../scene_renderer/perf.h"
 #include "../scene_renderer/scene_draw.h"
+#include "preferences_probe.h"
 #include "snapshot_rows.h"
 
 namespace fallout {
@@ -82,6 +83,20 @@ int gMarkAttempts = 0;
 Uint32 gMarkReadyAt = 0;
 int gMarkDelaySeconds = 0;
 
+// 218: the drag bench (--dev-owner-mark-drag=N). The 217 bench pushed its
+// rectangles straight into the list, so the real input path - where the
+// owner's drag actually broke - was never exercised. This one replays a drag
+// through the SDL queue and asserts the rectangle registered and the green
+// outline reached the presented pixels.
+bool gMarkDragPending = false;
+int gMarkDragDelaySeconds = 0;
+Uint32 gMarkDragReadyAt = 0;
+int gMarkDragAttempts = 0;
+int gMarkDragState = 0;
+int gMarkDragFrame = 0;
+int gMarkDragGreenBaseline = -1;
+bool gMarkDragPixelVerified = false;
+
 // The region mark (step 2): the game holds on the frame the entry captured,
 // the owner drags rectangles, Enter or a second press saves the clean PNG,
 // the marked PNG and the JSON with the regions, Esc cancels.
@@ -98,6 +113,7 @@ struct MarkRect {
 };
 std::vector<MarkRect> gMarkRects;
 MarkRect gMarkDrag;
+MarkRect gMarkDragPlanned; // 218: the drag bench's rectangle, before the drag
 bool gMarkDragging = false;
 int gMarkMouseX = 0;
 int gMarkMouseY = 0;
@@ -855,6 +871,40 @@ void exitMarkMode()
     gMarkDragging = false;
 }
 
+// The scripted input's fake mouse device (preferences_probe.h): its events
+// feed the game's mouse through the same device layer a real mouse uses,
+// without touching the owner's cursor.
+void pushScriptedMouse(Uint32 type, int x, int y)
+{
+    SDL_Event event = {};
+    event.type = type;
+    if (type == SDL_MOUSEMOTION) {
+        event.motion.which = devtools::kScriptMouse;
+        event.motion.x = x;
+        event.motion.y = y;
+    } else {
+        event.button.which = devtools::kScriptMouse;
+        event.button.button = SDL_BUTTON_LEFT;
+        event.button.x = x;
+        event.button.y = y;
+        event.button.state = type == SDL_MOUSEBUTTONDOWN ? SDL_PRESSED : SDL_RELEASED;
+    }
+    SDL_PushEvent(&event);
+}
+
+void pushScriptedReturnKey()
+{
+    SDL_Event down = {};
+    down.type = SDL_KEYDOWN;
+    down.key.keysym.scancode = SDL_SCANCODE_RETURN;
+    down.key.state = SDL_PRESSED;
+    SDL_Event up = down;
+    up.type = SDL_KEYUP;
+    up.key.state = SDL_RELEASED;
+    SDL_PushEvent(&down);
+    SDL_PushEvent(&up);
+}
+
 void handleMarkMouse()
 {
     int x = 0;
@@ -890,7 +940,13 @@ bool handleKey(int key)
     // F9 stays the dev snapshot and never reaches here.
     if (gMarkMode) {
         // The mark holds the whole input: the game gets nothing.
-        if (key == -1) {
+        //
+        // 218: inputGetInput answers -2, not -1, on every frame a mouse
+        // button goes down, repeats or comes up - it checks the same flags
+        // itself. The mark only ever watched -1, so a real drag could not
+        // register; the pump above pushed its rectangles past the input and
+        // never noticed.
+        if (key == -1 || key == -2) {
             handleMarkMouse();
             return true;
         }
@@ -1040,6 +1096,13 @@ void parseOption(const char* arg)
         gMarkDelaySeconds = atoi(arg + 23);
         if (gMarkDelaySeconds < 0) gMarkDelaySeconds = 0;
         if (gMarkDelaySeconds > 3600) gMarkDelaySeconds = 3600;
+        return;
+    }
+    if (strncmp(arg, "--dev-owner-mark-drag=", 22) == 0) {
+        gMarkDragPending = true;
+        gMarkDragDelaySeconds = atoi(arg + 22);
+        if (gMarkDragDelaySeconds < 0) gMarkDragDelaySeconds = 0;
+        if (gMarkDragDelaySeconds > 3600) gMarkDragDelaySeconds = 3600;
     }
 }
 
@@ -1090,11 +1153,136 @@ void pumpMark()
     gMarkAttempts = 0;
 }
 
+// 218: one drag replayed through the real input path - scripted mouse events
+// in the SDL queue, so the flags cross inputGetInput exactly as the owner's
+// drag does - then Enter to save. The printed verdict is the bench's
+// assertion: the rectangle registered, and the green outline is in the
+// presented pixels.
+void pumpDrag()
+{
+    if (!gMarkDragPending) return;
+    if (gMarkDragState == 0) {
+        if (gDude == nullptr || gMapHeader.name[0] == '\0') return;
+        if (!(scene_renderer::isActive() && scene::shouldPresent()
+                && scene::activeView() == scene::View::Full)) return;
+        if (gMarkDragReadyAt == 0) gMarkDragReadyAt = SDL_GetTicks() + gMarkDragDelaySeconds * 1000;
+        if (SDL_GetTicks() < gMarkDragReadyAt) return;
+        enterMarkMode();
+        if (!gMarkMode) {
+            if (++gMarkDragAttempts > 600) {
+                gMarkDragPending = false;
+                gMarkDragAttempts = 0;
+                devtools::scriptedInputSetExternalMouse(false);
+                printf("owner shot: mark drag gave up waiting for a ready view\n");
+                fflush(stdout);
+            }
+            return;
+        }
+        // The rectangle spans the view's middle third, as the pump mark does.
+        gMarkDragPlanned.x0 = gMarkWidth / 3;
+        gMarkDragPlanned.y0 = gMarkHeight / 3;
+        gMarkDragPlanned.x1 = gMarkWidth * 2 / 3;
+        gMarkDragPlanned.y1 = gMarkHeight * 2 / 3;
+        devtools::scriptedInputSetExternalMouse(true);
+        gMarkDragState = 1;
+        gMarkDragFrame = 0;
+        return;
+    }
+
+    gMarkDragFrame++;
+    switch (gMarkDragState) {
+    case 1:
+        if (gMarkDragFrame < 5) return;
+        pushScriptedMouse(SDL_MOUSEMOTION, gMarkDragPlanned.x0, gMarkDragPlanned.y0);
+        gMarkDragState = 2;
+        break;
+    case 2:
+        pushScriptedMouse(SDL_MOUSEBUTTONDOWN, gMarkDragPlanned.x0, gMarkDragPlanned.y0);
+        gMarkDragState = 3;
+        gMarkDragFrame = 0;
+        break;
+    case 3:
+        if (gMarkDragFrame <= 12) {
+            const int x = gMarkDragPlanned.x0 + (gMarkDragPlanned.x1 - gMarkDragPlanned.x0) * gMarkDragFrame / 12;
+            const int y = gMarkDragPlanned.y0 + (gMarkDragPlanned.y1 - gMarkDragPlanned.y0) * gMarkDragFrame / 12;
+            pushScriptedMouse(SDL_MOUSEMOTION, x, y);
+        } else {
+            gMarkDragState = 4;
+        }
+        break;
+    case 4:
+        pushScriptedMouse(SDL_MOUSEBUTTONUP, gMarkDragPlanned.x1, gMarkDragPlanned.y1);
+        gMarkDragState = 5;
+        gMarkDragFrame = 0;
+        break;
+    case 5:
+        if (gMarkDragFrame < 6) return;
+        printf("owner shot: mark drag %s (%d rectangles)\n",
+            gMarkRects.empty() ? "FAILED: drag never registered" : "rect registered",
+            static_cast<int>(gMarkRects.size()));
+        fflush(stdout);
+        pushScriptedReturnKey();
+        gMarkDragState = 6;
+        gMarkDragFrame = 0;
+        break;
+    case 6:
+        if (gMarkDragFrame < 30) return;
+        printf("owner shot: mark drag done (overlay green %s)\n",
+            gMarkDragPixelVerified ? "verified on screen" : "NOT verified");
+        fflush(stdout);
+        devtools::scriptedInputSetExternalMouse(false);
+        exitMarkMode();
+        gMarkDragPending = false;
+        gMarkDragState = 0;
+        break;
+    default:
+        gMarkDragState = 0;
+        break;
+    }
+}
+
+// The presented-frame readback for the drag bench: before the press it counts
+// the strip's green as the scene's baseline, after it the overlay's outline
+// must raise that count by most of the strip. Pure (0,255,0) is the overlay's
+// own color, blended straight over the frame.
+void verifySceneOverlayPresented()
+{
+    if (!gMarkDragPending || gMarkDragState < 1 || gMarkDragState > 5) return;
+    int x0 = 0;
+    int y0 = 0;
+    if (!scene_renderer::overlayLogicalToWindow(gMarkDragPlanned.x0, gMarkDragPlanned.y0, &x0, &y0)) return;
+    int x1 = 0;
+    int y1 = 0;
+    if (!scene_renderer::overlayLogicalToWindow(gMarkDragPlanned.x1, gMarkDragPlanned.y0, &x1, &y1)) return;
+    const int stripWidth = x1 - x0 + 1;
+    if (stripWidth <= 0) return;
+    std::vector<unsigned char> pixels;
+    if (!scene_renderer::readPresentPixels(x0, y0, stripWidth, 1, pixels)) return;
+    int green = 0;
+    for (int index = 0; index < stripWidth; index++) {
+        const unsigned char* pixel = pixels.data() + static_cast<size_t>(index) * 4;
+        if (pixel[0] < 32 && pixel[1] >= 250 && pixel[2] < 32) green++;
+    }
+    if (gMarkDragState <= 2) {
+        // Before the press: whatever green the scene itself has is the baseline.
+        gMarkDragGreenBaseline = green;
+        return;
+    }
+    if (!gMarkDragPixelVerified && gMarkDragGreenBaseline >= 0
+        && green - gMarkDragGreenBaseline >= stripWidth / 2) {
+        gMarkDragPixelVerified = true;
+        printf("owner shot: overlay pixels verified on screen (green %d, baseline %d, strip %d)\n",
+            green, gMarkDragGreenBaseline, stripWidth);
+        fflush(stdout);
+    }
+}
+
 
 void pump()
 {
     pumpTeleport();
     pumpMark();
+    pumpDrag();
     if (!gShotPending) return;
     // The plain shot waits for the game itself: a map loaded and the hero on
     // it. In the 3D view it waits for the scene's own present too, so the PNG
