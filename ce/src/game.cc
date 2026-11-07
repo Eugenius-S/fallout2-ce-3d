@@ -1615,19 +1615,26 @@ static void showSplash()
         snprintf(path, sizeof(path), "art\\splash\\");
     }
 
-    File* stream;
-    for (int index = 0; index < SPLASH_COUNT; index++) {
-        char filePath[64];
-        snprintf(filePath, sizeof(filePath), "%ssplash%d.rix", path, splash);
-        stream = fileOpen(filePath, "rb");
-        if (stream != nullptr) {
-            break;
-        }
+    File* stream = nullptr;
+    // 216: the localized splash folder is optional - an install without
+    // art\<language>\splash falls back to the stock one instead of showing
+    // no splash at all (a Russian fallout2.cfg hits this).
+    const char* splashPaths[2] = { path, "art\\splash\\" };
+    int splashPathCount = compat_stricmp(language, ENGLISH) != 0 ? 2 : 1;
+    for (int pathIndex = 0; pathIndex < splashPathCount && stream == nullptr; pathIndex++) {
+        for (int index = 0; index < SPLASH_COUNT; index++) {
+            char filePath[64];
+            snprintf(filePath, sizeof(filePath), "%ssplash%d.rix", splashPaths[pathIndex], splash);
+            stream = fileOpen(filePath, "rb");
+            if (stream != nullptr) {
+                break;
+            }
 
-        splash++;
+            splash++;
 
-        if (splash >= SPLASH_COUNT) {
-            splash = 0;
+            if (splash >= SPLASH_COUNT) {
+                splash = 0;
+            }
         }
     }
 

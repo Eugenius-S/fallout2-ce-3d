@@ -294,7 +294,11 @@ void initSettingsRegistry(bool isMapper)
     SETTING_P(resolution_x, clamp(640, 7680));
     SETTING_P(resolution_y, clamp(480, 4320));
     SETTING_P(resolution_mode, clamp(0, 76804320));
-    SETTING_P(windowed, clamp(WindowMode::Fullscreen, WindowMode::WindowedFullscreen));
+    // 216: the lower bound is Windowed, not Fullscreen - the settings window
+    // offers Window (0) as a choice, and a Fullscreen-bounded clamp silently
+    // turned every saved Window pick into exclusive fullscreen on the next
+    // launch, which is the mode that is hard to minimize.
+    SETTING_P(windowed, clamp(WindowMode::Windowed, WindowMode::WindowedFullscreen));
     SETTING(mouse_lock);
     SETTING_P(scale, clamp(1, 4));
     registerSetting("screen", "scale_factor", settings.screen.scale_factor, clamp(1.0, 3.0));
