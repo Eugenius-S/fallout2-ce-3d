@@ -20,6 +20,9 @@ void drawStaticHeroPreview();
 bool captureStaticFloorPng(const std::filesystem::path& path, int* width, int* height, std::string* error);
 bool captureStaticPreviewPng(const std::filesystem::path& path, bool withWalls, bool withHero,
     int* width, int* height, std::string* error, bool includeOverlay = true);
+// Captures the same static scene to a top-down RGBA buffer without writing a file.
+bool captureStaticPreviewRgba(bool withWalls, bool withHero, std::vector<unsigned char>* rgba,
+    int* width, int* height, std::string* error, bool includeOverlay = true);
 // The game's own picture (palette-expanded RGBA, top-down) as presentFrame
 // shows it in the window, into a new PNG at the window's size.
 bool captureFramePng(const std::filesystem::path& path, const unsigned char* rgba, int frameWidth, int frameHeight,

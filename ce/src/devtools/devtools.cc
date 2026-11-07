@@ -44,6 +44,7 @@
 #include "../game.h"
 #include "../game_dialog.h"
 #include "../game_mouse.h"
+#include "../loadsave.h"
 #include "../object.h"
 #include "../preferences.h"
 #include "../mouse.h"
@@ -116,6 +117,12 @@ bool gSnapshotOncePending = false;
 bool gLiveSnapshotOncePending = false;
 bool gForceLiveSnapshot = false;
 Uint32 gLiveSnapshotNotBefore = 0;
+bool gSavePreviewFixtureRequested = false;
+bool gSavePreviewFixtureActive = false;
+bool gSavePreviewFixtureCaptured = false;
+bool gSavePreviewFixtureLoadActive = false;
+bool gSavePreviewFixtureLoadCaptured = false;
+bool gExistingSavePreviewFixtureRequested = false;
 int gScrollProbeKey = -1;
 int gScrollProbeStage = 0;
 int gScrollProbeStartTile = -1;
@@ -975,6 +982,14 @@ bool parseOption(const char* arg)
         gLiveSnapshotNotBefore = SDL_GetTicks() + 750;
         return true;
     }
+    if (strcmp(arg, "--dev-save-preview-fixture") == 0) {
+        gSavePreviewFixtureRequested = true;
+        return true;
+    }
+    if (strcmp(arg, "--dev-existing-save-preview-fixture") == 0) {
+        gExistingSavePreviewFixtureRequested = true;
+        return true;
+    }
     const char* scrollStepPrefix = "--dev-scroll-step=";
     if (strncmp(arg, scrollStepPrefix, strlen(scrollStepPrefix)) == 0) {
         const char* step = arg + strlen(scrollStepPrefix);
@@ -1694,6 +1709,44 @@ void update()
     // The startup --dev-map travel retries here until the opening movie is
     // over and the transition is accepted (089).
     applyStartupTarget();
+    if (gExistingSavePreviewFixtureRequested && sceneStartupReady() && gDude != nullptr
+        && gMapHeader.name[0] != '\0' && !inBlockingGameState()
+        && (gClassic || (scene::activeView() == scene::View::Full && scene::showsCurrentMap()))) {
+        gExistingSavePreviewFixtureRequested = false;
+        gSavePreviewFixtureLoadActive = true;
+        gSavePreviewFixtureLoadCaptured = false;
+        const int result = lsgLoadGame(LOAD_SAVE_MODE_NORMAL);
+        gSavePreviewFixtureLoadActive = false;
+        printf("EXISTING_SAVE_PREVIEW_FIXTURE %s map=%s load_ui=%d loaded=%d\n",
+            gSavePreviewFixtureLoadCaptured && result == 1 ? "PASS" : "FAIL", gMapHeader.name,
+            gSavePreviewFixtureLoadCaptured ? 1 : 0, result == 1 ? 1 : 0);
+        fflush(stdout);
+        _game_user_wants_to_quit = GAME_QUIT_REQUEST_EXIT;
+        return;
+    }
+    if (gSavePreviewFixtureRequested && sceneStartupReady() && gDude != nullptr
+        && gMapHeader.name[0] != '\0' && !inBlockingGameState()
+        && (gClassic || (scene::activeView() == scene::View::Full && scene::showsCurrentMap()))) {
+        gSavePreviewFixtureRequested = false;
+        gSavePreviewFixtureActive = true;
+        gSavePreviewFixtureCaptured = false;
+        const int result = lsgSaveGame(LOAD_SAVE_MODE_NORMAL);
+        gSavePreviewFixtureActive = false;
+        int loadResult = -1;
+        if (gSavePreviewFixtureCaptured && result == 1) {
+            gSavePreviewFixtureLoadActive = true;
+            gSavePreviewFixtureLoadCaptured = false;
+            loadResult = lsgLoadGame(LOAD_SAVE_MODE_NORMAL);
+            gSavePreviewFixtureLoadActive = false;
+        }
+        printf("SAVE_PREVIEW_FIXTURE %s map=%s mode=%s save_ui=%d load_ui=%d saved=%d loaded=%d\n",
+            gSavePreviewFixtureCaptured && result == 1 && gSavePreviewFixtureLoadCaptured && loadResult == 1 ? "PASS" : "FAIL",
+            gMapHeader.name, gClassic ? "classic" : "3d", gSavePreviewFixtureCaptured ? 1 : 0,
+            gSavePreviewFixtureLoadCaptured ? 1 : 0, result == 1 ? 1 : 0, loadResult == 1 ? 1 : 0);
+        fflush(stdout);
+        _game_user_wants_to_quit = GAME_QUIT_REQUEST_EXIT;
+        return;
+    }
     if (gScrollEdgeDirection >= 0 && gScrollEdgeStage < 2
         && gViewTileApplied && sceneStartupReady() && !inBlockingGameState()) {
         if (gScrollEdgeStage == 0) {
@@ -4057,6 +4110,26 @@ bool takeSnapshot()
 
     snprintf(gStatus, sizeof(gStatus), uiText("snapshot: %s"), sidecarPath.filename().string().c_str());
     return true;
+}
+
+bool savePreviewFixtureActive()
+{
+    return gSavePreviewFixtureActive;
+}
+
+bool savePreviewFixtureLoadActive()
+{
+    return gSavePreviewFixtureLoadActive;
+}
+
+void savePreviewFixtureComplete(bool captured)
+{
+    gSavePreviewFixtureCaptured = captured;
+}
+
+void savePreviewFixtureLoadComplete(bool captured)
+{
+    gSavePreviewFixtureLoadCaptured = captured;
 }
 
 } // namespace devtools

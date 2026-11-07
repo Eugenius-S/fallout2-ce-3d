@@ -1,0 +1,5 @@
+3D save/load: SAVE_PREVIEW_FIXTURE PASS map=KLADWTWN.MAP mode=3d save_ui=1 load_ui=1 saved=1 loaded=1
+Original-view save/load: SAVE_PREVIEW_FIXTURE PASS map=KLADWTWN.MAP mode=classic save_ui=1 load_ui=1 saved=1 loaded=1
+Current profile old slot 01: EXISTING_SAVE_PREVIEW_FIXTURE PASS map=KLADWTWN.MAP load_ui=1 loaded=1; its 29,792-byte thumbnail was all palette index 0.
+Archived pre-existing save: EXISTING_SAVE_PREVIEW_FIXTURE PASS; visible load screen shows the saved Arroyo Temple image and label. Its 29,792-byte thumbnail has 29,495 non-zero bytes and 84 unique palette indices.
+All runtime runs used 1920x1080 output, scale 2, and isolated test roots.
