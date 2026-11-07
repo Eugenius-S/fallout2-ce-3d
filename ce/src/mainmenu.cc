@@ -266,11 +266,14 @@ static void mainMenuPrepareRgbaBackground(const MainMenuLayout& layout)
     for (int y = 0; y < layout.backgroundHeight; y++) {
         int dstY = layout.backgroundY + y;
         if (dstY < 0 || dstY >= layout.screenHeight) continue;
-        int srcY = static_cast<int64_t>(y) * mainMenuRgbaBackgroundHeight / layout.backgroundHeight;
+        // Sample the art's interior: its outermost pixel ring carries baked
+        // edge junk (the light left column of the menu art), which reads as
+        // a stray strip whenever the art's edge lands on the screen edge.
+        int srcY = 1 + static_cast<int>(static_cast<int64_t>(y) * (mainMenuRgbaBackgroundHeight - 2) / layout.backgroundHeight);
         for (int x = 0; x < layout.backgroundWidth; x++) {
             int dstX = layout.backgroundX + x;
             if (dstX < 0 || dstX >= layout.screenWidth) continue;
-            int srcX = static_cast<int64_t>(x) * mainMenuRgbaBackgroundWidth / layout.backgroundWidth;
+            int srcX = 1 + static_cast<int>(static_cast<int64_t>(x) * (mainMenuRgbaBackgroundWidth - 2) / layout.backgroundWidth);
             size_t srcOffset = (static_cast<size_t>(srcY) * mainMenuRgbaBackgroundWidth + srcX) * 4;
             size_t dstOffset = (static_cast<size_t>(dstY) * layout.screenWidth + dstX) * 4;
             memcpy(mainMenuRgbaScreenBackground.data() + dstOffset, mainMenuRgbaBackground.data() + srcOffset, 4);

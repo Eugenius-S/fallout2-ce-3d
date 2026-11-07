@@ -562,6 +562,40 @@ void handleWindowSizeChanged()
     mouseDeviceRefreshWindowMapping();
 }
 
+// 209: the display-mode pick applies the moment the menu closes. The picture
+// itself keeps its size and letterboxes, so the engine buffers stay intact;
+// only the resolution and the interface scale still need a restart.
+void applyWindowModeLive()
+{
+    if (gSdlWindow == nullptr || SDL_getenv("F2CE_DEV_BACKGROUND") != nullptr) {
+        return;
+    }
+
+    int width = settings.screen.resolution_x;
+    int height = settings.screen.resolution_y;
+    if (settings.screen.resolution_mode > 0) {
+        width = settings.screen.resolution_mode / 10000;
+        height = settings.screen.resolution_mode % 10000;
+    }
+
+    const WindowMode mode = settings.screen.windowed;
+    if (mode == WindowMode::WindowedFullscreen) {
+        SDL_SetWindowFullscreen(gSdlWindow, SDL_WINDOW_FULLSCREEN_DESKTOP);
+    } else if (mode == WindowMode::Fullscreen) {
+        SDL_DisplayMode request = {};
+        request.w = width;
+        request.h = height;
+        SDL_SetWindowDisplayMode(gSdlWindow, &request);
+        SDL_SetWindowFullscreen(gSdlWindow, SDL_WINDOW_FULLSCREEN);
+    } else {
+        SDL_SetWindowFullscreen(gSdlWindow, 0);
+        SDL_SetWindowSize(gSdlWindow, width, height);
+        SDL_SetWindowPosition(gSdlWindow, SDL_WINDOWPOS_CENTERED_DISPLAY(0), SDL_WINDOWPOS_CENTERED_DISPLAY(0));
+    }
+
+    handleWindowSizeChanged();
+}
+
 void renderFpsCounter()
 {
     if (!settings.debug.show_fps || gSdlSurface == nullptr || gSdlTextureSurface == nullptr) {

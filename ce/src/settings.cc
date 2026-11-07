@@ -330,7 +330,9 @@ void initSettingsRegistry(bool isMapper)
     SettingDescriptor& windowModeDescriptor = settingDescriptors[settingDescriptors.size() - 4];
     windowModeDescriptor.valueType = SettingValueType::Choice;
     windowModeDescriptor.category = SettingCategory::Screen;
-    windowModeDescriptor.applyPolicy = SettingApplyPolicy::Restart;
+    // 209: the mode itself applies live on menu close; only the resolution
+    // and the interface scale keep the restart note.
+    windowModeDescriptor.applyPolicy = SettingApplyPolicy::OnClose;
     windowModeDescriptor.subsection = "Display";
     windowModeDescriptor.fallbackLabel = "Window mode";
     windowModeDescriptor.fallbackDescription = "Choose fullscreen, windowed, or borderless mode.";

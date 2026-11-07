@@ -54,6 +54,15 @@ const std::vector<Translation>& catalog()
         { "fly camera landed: the 3D scene is not shown", cp1251(u8"полёт завершён: 3D-сцена не показана") },
         { "Enable 3D scene", cp1251(u8"Включить 3D-сцену") },
         { "Show the 3D world view where a scene is available.", cp1251(u8"Показывать мир в 3D там, где доступна сцена.") },
+        { "Resolution", cp1251(u8"Разрешение") },
+        { "Select an available display resolution.", cp1251(u8"Выберите доступное разрешение экрана.") },
+        { "Window mode", cp1251(u8"Режим окна") },
+        { "Choose fullscreen, windowed, or borderless mode.", cp1251(u8"Выберите полный экран, окно или режим без рамки.") },
+        { "Fullscreen", cp1251(u8"Полный экран") },
+        { "Window", cp1251(u8"Окно") },
+        { "Borderless", cp1251(u8"Без рамки") },
+        { "Picture and interface scale", cp1251(u8"Масштаб картинки и интерфейса") },
+        { "Scales the game picture and interface from 1.0x to 3.0x.", cp1251(u8"Масштабирует картинку и интерфейс от 1.0x до 3.0x.") },
         { "Sharp interface text", cp1251(u8"Чёткий текст интерфейса") },
         { "Draw small interface text with a high-resolution font.", cp1251(u8"Рисовать мелкий текст интерфейса шрифтом высокого разрешения.") },
         { "FPS counter", cp1251(u8"Счётчик FPS") },
@@ -197,9 +206,9 @@ std::string menuStatusText(const std::string& status, const std::string& languag
 
 void localizeMenuDescriptors(std::vector<SettingDescriptor>& descriptors, const std::string& language)
 {
+    // Every row goes through the catalog; rows without a pair keep their
+    // English fallback unchanged.
     for (auto& descriptor : descriptors) {
-        if (descriptor.section != "3d" && descriptor.id != "screen.scale_factor"
-            && descriptor.id != "screen.resolution_mode" && descriptor.id != "screen.windowed") continue;
         descriptor.fallbackLabel = menuText(descriptor.fallbackLabel.c_str(), language);
         descriptor.fallbackDescription = menuText(descriptor.fallbackDescription.c_str(), language);
         for (auto& choice : descriptor.choices) choice.fallbackLabel = menuText(choice.fallbackLabel.c_str(), language);
