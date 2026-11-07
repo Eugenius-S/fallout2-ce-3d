@@ -50,3 +50,11 @@ picks be the mode the game shows, with a fast minimize.
 
 - 2026-11-07: owner report; both modes verified sane on the demo copy the
   same hour; waiting for the owner's one-line repro (which copy, which pick).
+- 2026-11-07, later: the owner's plain launch narrows the report. Their cfg
+  runs windowed mode with opening movies skipped; the window style read from
+  a live run carries the caption and the minimize box (no exclusive
+  fullscreen at these settings). The white one-pixel strip they reported
+  turned out to be the Windows 11 DWM border line; the fix and the
+  slow-minimize guidance live in task 208. Exclusive fullscreen at a
+  non-native resolution remains the known slow-minimize case if the report
+  comes back.

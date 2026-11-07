@@ -73,6 +73,16 @@ bool fitRect(int imageWidth, int imageHeight, int windowWidth, int windowHeight,
         h = windowHeight;
         w = windowHeight * imageWidth / imageHeight;
     }
+    // A fractional window scale (a 125% DPI desktop resizes the requested
+    // window behind the game's back) leaves a few-pixel rounding gap per
+    // axis. Letterboxing that gap shows as a dark or uninitialized strip at
+    // the screen edge, so a near-fit stretches to fill instead.
+    int gapX = windowWidth - w;
+    int gapY = windowHeight - h;
+    if (gapX >= 0 && gapY >= 0 && gapX <= 12 && gapY <= 12) {
+        w = windowWidth;
+        h = windowHeight;
+    }
     *outW = std::max(w, 1);
     *outH = std::max(h, 1);
     *outX = (windowWidth - *outW) / 2;

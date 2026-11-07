@@ -409,7 +409,9 @@ static MainMenuLayout mainMenuBuildLayout()
 static void mainMenuDrawBackground(const MainMenuLayout& layout)
 {
     Buffer2D dest(gMainMenuWindowBuffer, layout.screenWidth, layout.screenHeight);
-    bufferFill2D(dest, COLOR_FIRST);
+    // Black, not the palette's white: any pixel the background art does not
+    // cover keeps this fill, and a leftover white column reads as a defect.
+    bufferFill2D(dest, COLOR_BLACK);
 
     if (mainMenuHasRgbaBackground) {
         for (int y = 0; y < layout.screenHeight; y++) {
