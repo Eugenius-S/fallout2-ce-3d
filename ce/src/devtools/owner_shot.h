@@ -30,6 +30,12 @@ void pumpTeleport();
 // drawn after the dev panel, before the scene presents.
 void draw(unsigned char* surface, int width, int height, int pitch);
 
+// The same rectangles as RGBA patches over the presented 3D scene (217):
+// the sharp-text present path rebuilds the screen from captured text runs
+// and drops raw indexed pixels, so the surface draw alone never reached the
+// owner's screen. Call after the scene overlay, before the swap.
+void drawSceneOverlay();
+
 // True while the mark mode holds the input: the main loop skips the game's
 // update phases and only presents.
 bool markMode();

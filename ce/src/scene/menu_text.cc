@@ -171,6 +171,13 @@ const std::vector<Translation>& catalog()
         { "snapshot: invalid framebuffer row pitch", cp1251(u8"снимок: неверный шаг строки кадра") },
         { "snapshot: vanilla PNG write failed", cp1251(u8"снимок: не удалось записать PNG") },
         { "snapshot: metadata write failed", cp1251(u8"снимок: не удалось записать метаданные") },
+        { "shot saved:", cp1251(u8"скриншот сохранён:") },
+        { "shot failed", cp1251(u8"скриншот не удался") },
+        { "mark saved:", cp1251(u8"рамка сохранена:") },
+        { "mark failed:", cp1251(u8"рамка не удалась:") },
+        { "mark cancelled", cp1251(u8"рамка отменена") },
+        { "MARK: drag rectangles, Enter saves, Esc cancels", cp1251(u8"РАМКА: выделяй мышью, Enter - сохранить, Esc - отмена") },
+        { "teleported:", cp1251(u8"переход выполнен:") },
     };
     return strings;
 }
