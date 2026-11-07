@@ -55,7 +55,7 @@ const std::vector<Translation>& catalog()
         { "Enable 3D scene", cp1251(u8"Включить 3D-сцену") },
         { "Ctrl+F10 - original / reimagined view", cp1251(u8"Ctrl+F10 - оригинальный / 3D вид") },
         { "Ctrl+F11 - 3D fly camera", cp1251(u8"Ctrl+F11 - 3D полёт") },
-        { "F12 / Ctrl+F12 - screenshot", cp1251(u8"F12 / Ctrl+F12 - скриншот") },
+        { "F12 - screenshot, Ctrl+F12 - mark a spot", cp1251(u8"F12 - скриншот, Ctrl+F12 - рамка на место") },
         { "F8 - FPS counter", cp1251(u8"F8 - счётчик FPS") },
         { "F1 - this help", cp1251(u8"F1 - эта справка") },
         { "Show the 3D world view where a scene is available.", cp1251(u8"Показывать мир в 3D там, где доступна сцена.") },
