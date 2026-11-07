@@ -38,3 +38,13 @@ next 3D pass over maps.
 ## Log
 
 - 2026-11-07: owner report with a screenshot; queued for the next 3D pass.
+- 2026-11-07, the pass: diagnosed the same day. The vat-area walls captured
+  with glow on at several view tiles, brightened and compared with the
+  classic 2D of the same spot: the vertical streaks exist in the classic
+  render — they are the wall art's own striations, which the 3D view
+  reproduces faithfully under the green glow. A wall small-light
+  bilinear-sampling hypothesis produced zero pixel change here (the vat
+  glow does not sit in the per-hex small lights) and was dropped. Verdict:
+  no 3D defect; task closed as by-art unless the owner frames an exact
+  spot with the new Ctrl+F12 mark that shows flat brightness steps the
+  classic view does not have.
