@@ -39,3 +39,9 @@ dialog must show the picture of the save slot being picked.
 
 - 2026-11-07: owner report; the capture-at-save suspect recorded; repro
   pending.
+- 2026-11-07, later: the owner is right that this was implemented — gpt's
+  branch task/134-save-preview-3d-gpt (capture and reload 3D save previews,
+  the evidence gap closed) never reached main. The old PR 297 sat draft
+  with conflicts. Rebased onto current main (the shared readback helpers
+  resolved in favor of the 183 versions, the preview capture kept as a
+  thin wrapper), build verified, PR 297 refreshed and marked ready.
