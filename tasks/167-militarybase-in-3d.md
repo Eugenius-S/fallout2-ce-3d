@@ -112,3 +112,6 @@ other areas (each has its own task).
   12/12, ctest 20/20. Evidence: runs/167-militarybase-in-3d/ (probe-sheet,
   grid-*, hours-*, classic-2d-checks, walk-sheet, tour sheets, changed.jpg,
   finds/).
+- 2026-11-07: the owner ran the launcher bat themselves and gave the visual
+  verdict: the glow (puddles, beams) is there and looks right. The bat stays
+  in the launch hub folder; deleting it is allowed.
