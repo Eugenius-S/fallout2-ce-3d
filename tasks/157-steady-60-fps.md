@@ -66,3 +66,7 @@ Lower visual quality as a default; display changes without restart (156).
 - First change: the game view paces to a new [3d] fps_limit setting (60
   default, 0 removes the limit) with a sleep-plus-spin throttle, so the limiter
   stops hiding the render headroom behind the classic 60.
+- 2026-11-07, owner order: the 60 cap must go (more is welcome), and until
+  every location holds a steady 60+ the next phases do not start. This task
+  is the gate: the floor-pass GPU cost and the off-GPU stalls above are the
+  remaining work.

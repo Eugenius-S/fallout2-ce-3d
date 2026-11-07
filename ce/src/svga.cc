@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include <SDL.h>
+#include <SDL_syswm.h>
 
 #include <vector>
 
@@ -258,6 +259,43 @@ int _GNW95_init_window(int width, int height, WindowMode mode, int outputWidth, 
             return -1;
         }
 
+#ifdef _WIN32
+        if (mode != WindowMode::Fullscreen) {
+            // Windows 11 draws a light one-pixel border around every window;
+            // against the dark menu art it reads as a stray white strip at
+            // the screen edges, so the game window opts out of it.
+            SDL_SysWMinfo wmInfo;
+            SDL_zero(wmInfo);
+            SDL_VERSION(&wmInfo.version);
+            if (SDL_GetWindowWMInfo(gSdlWindow, &wmInfo) && wmInfo.subsystem == SDL_SYSWM_WINDOWS) {
+                HWND hwnd = wmInfo.info.win.window;
+
+                if (mode == WindowMode::Windowed) {
+                    // SDL strips the minimize box from non-resizable windows,
+                    // which would leave the caption without any way to
+                    // minimize the game.
+                    LONG_PTR style = GetWindowLongPtrW(hwnd, GWL_STYLE);
+                    SetWindowLongPtrW(hwnd, GWL_STYLE, style | WS_MINIMIZEBOX);
+                }
+
+                // Loaded by name: DWMWA_BORDER_COLOR is Windows 11 only, and
+                // the call is silently skipped where it does not exist.
+                using DwmSetWindowAttributeFn = HRESULT(WINAPI*)(HWND, DWORD, const void*, DWORD);
+                HMODULE dwm = GetModuleHandleW(L"dwmapi.dll");
+                if (dwm == nullptr) {
+                    dwm = LoadLibraryW(L"dwmapi.dll");
+                }
+                if (dwm != nullptr) {
+                    auto* setAttribute = reinterpret_cast<DwmSetWindowAttributeFn>(GetProcAddress(dwm, "DwmSetWindowAttribute"));
+                    if (setAttribute != nullptr) {
+                        COLORREF noBorder = 0xFFFFFFFE; // DWMWA_COLOR_NONE
+                        setAttribute(hwnd, 34 /* DWMWA_BORDER_COLOR */, &noBorder, sizeof(noBorder));
+                    }
+                }
+            }
+        }
+#endif
+
         // Sprite-lighting mod (P0): take over presentation with our own
         // OpenGL context; the vanilla SDL_Renderer stays as the fallback
         // path if that is unavailable.
@@ -462,6 +500,10 @@ static bool createRenderer(int width, int height)
     if (gSdlRenderer == nullptr) {
         return false;
     }
+
+    // SDL's default draw color is white, and the logical-size letterbox bars
+    // are drawn with it; keep them black like the GL presentation's.
+    SDL_SetRenderDrawColor(gSdlRenderer, 0, 0, 0, 255);
 
     if (SDL_RenderSetLogicalSize(gSdlRenderer, width, height) != 0) {
         return false;
