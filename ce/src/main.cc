@@ -512,7 +512,10 @@ static void mainLoop()
 
         renderFpsCounter();
         renderPresent();
-        sharedFpsLimiter.throttle();
+        // 157: the game view paces to the player's [3d] fps_limit; 0 runs the
+        // loop at whatever the render costs. The world itself advances by
+        // real time, so a faster picture does not speed the game up.
+        sharedFpsLimiter.throttle(settings.scene3d.fps_limit);
     }
 
     scriptsDisable();

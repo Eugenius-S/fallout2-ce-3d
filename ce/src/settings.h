@@ -311,6 +311,7 @@ struct Scene3dSettings {
     bool clean_edges = true;
     bool fps_counter = false;
     bool frame_log = false; // 127: every frame's time to a CSV with a summary
+    double fps_limit = 60.0; // 157: the game view's frame pace; 0 removes the limit
 };
 
 struct MapperSettings {
