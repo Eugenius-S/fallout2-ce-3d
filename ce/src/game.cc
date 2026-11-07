@@ -581,6 +581,25 @@ int gameHandleKey(int eventCode, bool isInCombatMode)
         return 0;
     }
 
+    // The build's own hotkeys (215): Ctrl+F10 flips the original/reimagined
+    // view, Ctrl+F11 toggles the 3D fly camera, Ctrl+F12 takes the
+    // screenshot with the highlight (213). Plain launches included.
+    if (gGameLoaded && (eventCode == KEY_CTRL_F10 || eventCode == KEY_CTRL_F11 || eventCode == KEY_CTRL_F12)) {
+        if (eventCode == KEY_CTRL_F12) {
+            takeScreenshot();
+        } else if (eventCode == KEY_CTRL_F10) {
+            std::string message;
+            if (scene::activeView() == scene::View::Full) {
+                scene::disable();
+            } else {
+                scene::enable(scene::View::Full, &message);
+            }
+        } else {
+            devtools::toggleFly();
+        }
+        return 0;
+    }
+
     // The owner's feedback shot (183): plain F9 while the dev tools are off.
     // With them on, the dev snapshot above consumed F9, so the tours and the
     // panel keep their devshot format.
@@ -1322,6 +1341,28 @@ void showHelp()
 
                 colorPaletteLoad("art\\intrface\\helpscrn.pal");
                 paletteSetEntries(_cmap);
+
+                // 215: the build's own hotkeys, listed at the bottom of the
+                // help screen in the game's language.
+                const int oldHelpFont = fontGetCurrent();
+                fontSetCurrent(101);
+                const char* hotkeyLines[] = {
+                    "Ctrl+F10 - original / reimagined view",
+                    "Ctrl+F11 - 3D fly camera",
+                    "F12 / Ctrl+F12 - screenshot",
+                    "F8 - FPS counter",
+                    "F1 - this help",
+                };
+                const int hotkeyLineHeight = fontGetLineHeight() + 2;
+                int hotkeyY = HELP_SCREEN_HEIGHT
+                    - hotkeyLineHeight * static_cast<int>(sizeof(hotkeyLines) / sizeof(hotkeyLines[0])) - 10;
+                for (const char* hotkeyLine : hotkeyLines) {
+                    fontDrawText(windowBuffer + HELP_SCREEN_WIDTH * hotkeyY + 12,
+                        scene::menuText(hotkeyLine, settings.system.language),
+                        HELP_SCREEN_WIDTH - 24, HELP_SCREEN_WIDTH, COLOR_GREEN);
+                    hotkeyY += hotkeyLineHeight;
+                }
+                fontSetCurrent(oldHelpFont);
 
                 // CE: Fill overlay with darkest color in the palette. It might
                 // not be completely black, but at least it's uniform.

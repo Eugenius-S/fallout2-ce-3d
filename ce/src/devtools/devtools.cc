@@ -3289,6 +3289,16 @@ void landFlight()
     stopFlying("fly camera landed: the 3D scene is not shown", false);
 }
 
+// 215: Ctrl+F11 in normal play — take off, or land when already flying.
+void toggleFly()
+{
+    if (gFlying) {
+        stopFlying("fly camera landed", true);
+    } else {
+        startFlying(true);
+    }
+}
+
 void gameReset()
 {
     gFlyRestorePending = false;
@@ -3359,11 +3369,6 @@ bool handleKey(int key)
         }
         // Back to the whole 3D scene, as the game starts it.
         enableStaticPreview(true, true);
-        return true;
-    }
-
-    if (key == KEY_CTRL_F11) {
-        restartInOtherAspect();
         return true;
     }
 
