@@ -36,10 +36,20 @@ with the highlight." And: "how do I turn the counter on?"
 
 ## Acceptance
 
-- F12 writes a PNG of the current frame.
-- Ctrl+F12 writes the same frame with the agreed highlight visible.
+- F12 writes a PNG of the current frame with the metadata JSON next to it.
+- Ctrl+F12 enters the region mark: rectangles over the held frame, saved
+  as the marked PNG plus the JSON with the regions under them.
 
 ## Log
+
+- 2026-11-07: owner question; F12 and F8 confirmed working in plain
+  launches; the highlight definition awaited.
+- 2026-11-07, later: the owner pinned it — "выделение рамкой, просто чтоб
+  агент понял куда смотреть" — and reminded the metadata requirement. The
+  feedback-shot feature (183) already does both on F9/Ctrl+F9; the same
+  flow now answers on F12 (shot with metadata) and Ctrl+F12 (the region
+  mark). The bare vanilla screenshot key is unbound so the keys reach this
+  path; the F1 list and the key comments updated.
 
 - 2026-11-07: owner question; F12 and F8 confirmed working in plain
   launches; the highlight definition awaited.

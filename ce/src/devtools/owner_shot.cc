@@ -856,7 +856,8 @@ bool handleKey(int key)
             handleMarkMouse();
             return true;
         }
-        if (key == KEY_RETURN || key == KEY_F9 || key == KEY_CTRL_F9 || key == KEY_ALT_F9) {
+        if (key == KEY_RETURN || key == KEY_F9 || key == KEY_CTRL_F9 || key == KEY_ALT_F9
+            || key == KEY_F12 || key == KEY_CTRL_F12) {
             std::string failure;
             if (!saveMark()) {
                 displayMonitorAddMessage("mark failed: save failed");
@@ -871,11 +872,11 @@ bool handleKey(int key)
         }
         return true;
     }
-    if (key == KEY_CTRL_F9 || key == KEY_ALT_F9) {
+    if (key == KEY_CTRL_F9 || key == KEY_ALT_F9 || key == KEY_CTRL_F12) {
         enterMarkMode();
         return true;
     }
-    if (key != KEY_F9) return false;
+    if (key != KEY_F9 && key != KEY_F12) return false;
     std::string failure;
     if (!takeShot()) {
         displayMonitorAddMessage("shot failed");

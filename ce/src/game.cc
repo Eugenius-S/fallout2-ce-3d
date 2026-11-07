@@ -238,7 +238,10 @@ int gameInitWithOptions(const char* windowTitle, bool isMapper, int font, int fl
     fontManagerAdd(&gModernFontManager);
     fontSetCurrent(font);
 
-    screenshotHandlerConfigure(KEY_F12, gameTakeScreenshot);
+    // The vanilla screenshot key is unbound (213): F12 and Ctrl+F12 belong
+    // to the owner's shot, which saves the metadata next to the PNG. The
+    // handler stays configured for anything that still calls it.
+    screenshotHandlerConfigure(-1, gameTakeScreenshot);
 
     tileDisable();
 
@@ -583,12 +586,11 @@ int gameHandleKey(int eventCode, bool isInCombatMode)
     }
 
     // The build's own hotkeys (215): Ctrl+F10 flips the original/reimagined
-    // view, Ctrl+F11 toggles the 3D fly camera, Ctrl+F12 takes the
-    // screenshot with the highlight (213). Plain launches included.
-    if (gGameLoaded && (eventCode == KEY_CTRL_F10 || eventCode == KEY_CTRL_F11 || eventCode == KEY_CTRL_F12)) {
-        if (eventCode == KEY_CTRL_F12) {
-            takeScreenshot();
-        } else if (eventCode == KEY_CTRL_F10) {
+    // view, Ctrl+F11 toggles the 3D fly camera. F12 and Ctrl+F12 belong to
+    // the owner's shot below (the screenshot with the metadata and the
+    // region marks, 213).
+    if (gGameLoaded && (eventCode == KEY_CTRL_F10 || eventCode == KEY_CTRL_F11)) {
+        if (eventCode == KEY_CTRL_F10) {
             std::string message;
             if (scene::activeView() == scene::View::Full) {
                 scene::disable();
@@ -1350,7 +1352,7 @@ void showHelp()
                 const char* hotkeyLines[] = {
                     "Ctrl+F10 - original / reimagined view",
                     "Ctrl+F11 - 3D fly camera",
-                    "F12 / Ctrl+F12 - screenshot",
+                    "F12 - screenshot, Ctrl+F12 - mark a spot",
                     "F8 - FPS counter",
                     "F1 - this help",
                 };
