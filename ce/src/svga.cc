@@ -785,6 +785,7 @@ static void renderPresentBody()
                         scene_renderer::drawOverlay(rgba.data(), overlayWidth, overlayHeight, rgbaPitch,
                             fpsX, 8, overlayWidth, overlayHeight);
                     }
+                    owner_shot::drawSceneOverlay();
                     devtools::sceneLiveFrameReady();
                     scene_renderer::swap();
                     scene_renderer::perfEnd();
@@ -811,6 +812,10 @@ static void renderPresentBody()
                 // The game's interface, mouse cursor and floating text over it.
                 scene_renderer::drawSceneOverlayWithSharpText(gSdlSurface, gSdlTextureSurface, sharpTextReady);
                 scene_renderer::perfMark("overlay");
+                // 217: the mark rectangles ride the RGBA overlay pass - the
+                // sharp-text rebuild above drops raw indexed pixels, so the
+                // surface draw alone never reached the screen.
+                owner_shot::drawSceneOverlay();
                 devtools::sceneLiveFrameReady();
                 scene_renderer::swap();
                 scene_renderer::perfEnd();

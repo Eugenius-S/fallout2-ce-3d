@@ -46,6 +46,7 @@
 #include "../version.h"
 #include "../platform/git_version.h"
 #include "../scene/scene_view.h"
+#include "../scene/menu_text.h"
 #include "../scene_renderer/camera.h"
 #include "../scene_renderer/context.h"
 #include "../scene_renderer/game_view.h"
@@ -132,25 +133,58 @@ void jsonEscape(const char* in, std::string& out)
     }
 }
 
+// 217: the game's strings arrive in the game's own encoding (cp1251 on a
+// Russian install); the JSON is UTF-8, so convert instead of keeping raw
+// bytes that read as mojibake ("╓хэЄЁ уюЁюфр" for "Центр города").
+void cp1251ToUtf8(const char* in, std::string& out)
+{
+    for (const unsigned char* p = reinterpret_cast<const unsigned char*>(in); *p != 0; p++) {
+        unsigned int code = *p;
+        if (code >= 0xC0 && code <= 0xFF) {
+            code = 0x410 + (code - 0xC0); // А-я
+        } else if (code == 0xA8) {
+            code = 0x401; // Ё
+        } else if (code == 0xB8) {
+            code = 0x451; // ё
+        } else if (code == 0x96) {
+            code = 0x2013; // –
+        } else if (code == 0x97) {
+            code = 0x2014; // —
+        }
+        if (code < 0x80) {
+            out += static_cast<char>(code);
+        } else if (code < 0x800) {
+            out += static_cast<char>(0xC0 | (code >> 6));
+            out += static_cast<char>(0x80 | (code & 0x3F));
+        } else {
+            out += static_cast<char>(0xE0 | (code >> 12));
+            out += static_cast<char>(0x80 | ((code >> 6) & 0x3F));
+            out += static_cast<char>(0x80 | (code & 0x3F));
+        }
+    }
+}
+
 std::string protoNameOf(const Object* object)
 {
     std::string name;
     char* text = protoGetName(object);
     if (text != nullptr && text[0] != '\0') {
-        jsonEscape(text, name);
+        std::string utf8;
+        cp1251ToUtf8(text, utf8);
+        jsonEscape(utf8.c_str(), name);
     } else {
         name = "unnamed";
     }
     return name;
 }
 
-// The game's strings stay in the game's own encoding (cp1251 on a Russian
-// install); the JSON keeps the raw bytes so nothing is lost in translation.
 std::string jsonText(const char* text)
 {
     std::string out;
     if (text != nullptr && text[0] != '\0') {
-        jsonEscape(text, out);
+        std::string utf8;
+        cp1251ToUtf8(text, utf8);
+        jsonEscape(utf8.c_str(), out);
         return out;
     }
     return "unknown";
@@ -306,11 +340,15 @@ void assembleContext(ShotContext& out)
     int capturedHeight = gSdlSurface != nullptr ? gSdlSurface->h : 0;
     {
         char piece[256];
+        // 217: name the actual window mode - the old boolean read "false"
+        // for borderless, which hid the owner's fullscreen reports.
+        const char* windowMode = "windowed";
+        if (settings.screen.windowed == WindowMode::Fullscreen) windowMode = "fullscreen";
+        else if (settings.screen.windowed == WindowMode::WindowedFullscreen) windowMode = "borderless";
         snprintf(piece, sizeof(piece),
-            "\"resolution\":\"%dx%d\",\"logical_resolution\":\"%dx%d\",\"scale\":%d,\"scale_factor\":%.1f,\"windowed\":%s",
+            "\"resolution\":\"%dx%d\",\"logical_resolution\":\"%dx%d\",\"scale\":%d,\"scale_factor\":%.1f,\"window_mode\":\"%s\"",
             capturedWidth, capturedHeight, screenGetWidth(), screenGetHeight(), settings.screen.scale,
-            settings.screen.scale_factor,
-            settings.screen.windowed == WindowMode::Windowed ? "true" : "false");
+            settings.screen.scale_factor, windowMode);
         out.resolutionJson = piece;
     }
 
@@ -474,7 +512,7 @@ bool takeShot()
 
     char message[128];
     snprintf(message, sizeof(message), "shot saved: %s", imageFile.c_str());
-    displayMonitorAddMessage(message);
+    displayMonitorAddMessage(scene::menuStatusText(message, settings.system.language).c_str());
     return true;
 }
 
@@ -735,7 +773,7 @@ bool saveMark()
 
     char message[160];
     snprintf(message, sizeof(message), "mark saved: %s-marked.png", gMarkStem);
-    displayMonitorAddMessage(message);
+    displayMonitorAddMessage(scene::menuStatusText(message, settings.system.language).c_str());
     return true;
 }
 
@@ -744,7 +782,7 @@ void enterMarkMode()
     if (gMarkMode) return;
     if (!(scene_renderer::isActive() && scene::shouldPresent()
             && scene::activeView() == scene::View::Full)) {
-        displayMonitorAddMessage("mark failed: the 3D view is not up");
+        displayMonitorAddMessage(scene::menuStatusText("mark failed: the 3D view is not up", settings.system.language).c_str());
         return;
     }
 
@@ -753,7 +791,7 @@ void enterMarkMode()
         std::time_t t = time(nullptr);
         struct tm* tmv = localtime(&t);
         if (tmv == nullptr || strftime(stamp, sizeof(stamp), "%Y%m%d-%H%M%S", tmv) == 0) {
-            displayMonitorAddMessage("mark failed: clock unavailable");
+            displayMonitorAddMessage(scene::menuStatusText("mark failed: clock unavailable", settings.system.language).c_str());
             return;
         }
     }
@@ -766,7 +804,7 @@ void enterMarkMode()
         directory.clear();
     }
     if (directory.empty()) {
-        displayMonitorAddMessage("mark failed: no output folder");
+        displayMonitorAddMessage(scene::menuStatusText("mark failed: no output folder", settings.system.language).c_str());
         return;
     }
     char mapBase[32] = "map";
@@ -787,7 +825,7 @@ void enterMarkMode()
         }
     }
     if (gMarkStem[0] == '\0') {
-        displayMonitorAddMessage("mark failed: no free file name");
+        displayMonitorAddMessage(scene::menuStatusText("mark failed: no free file name", settings.system.language).c_str());
         return;
     }
 
@@ -796,7 +834,7 @@ void enterMarkMode()
     std::vector<unsigned char> palette;
     std::string failure;
     if (!readFrame(pixels, indexed, palette, &gMarkWidth, &gMarkHeight, &failure)) {
-        displayMonitorAddMessage("mark failed: capture unavailable");
+        displayMonitorAddMessage(scene::menuStatusText("mark failed: capture unavailable", settings.system.language).c_str());
         return;
     }
     gMarkClean = std::move(pixels);
@@ -860,14 +898,14 @@ bool handleKey(int key)
             || key == KEY_F12 || key == KEY_CTRL_F12) {
             std::string failure;
             if (!saveMark()) {
-                displayMonitorAddMessage("mark failed: save failed");
+                displayMonitorAddMessage(scene::menuStatusText("mark failed: save failed", settings.system.language).c_str());
             }
             exitMarkMode();
             return true;
         }
         if (key == KEY_ESCAPE) {
             exitMarkMode();
-            displayMonitorAddMessage("mark cancelled");
+            displayMonitorAddMessage(scene::menuStatusText("mark cancelled", settings.system.language).c_str());
             return true;
         }
         return true;
@@ -879,7 +917,7 @@ bool handleKey(int key)
     if (key != KEY_F9 && key != KEY_F12) return false;
     std::string failure;
     if (!takeShot()) {
-        displayMonitorAddMessage("shot failed");
+        displayMonitorAddMessage(scene::menuStatusText("shot failed", settings.system.language).c_str());
         return false;
     }
     return true;
@@ -914,8 +952,60 @@ void draw(unsigned char* surface, int width, int height, int pitch)
     }
     ScopedFont scopedFont(101);
     const int lineHeight = fontGetLineHeight();
-    fontDrawText(surface + pitch * (height - lineHeight - 4) + 8,
-        "MARK: drag rectangles, Enter saves, Esc cancels", width - 16, pitch, COLOR_GREEN);
+    // Top-left, not the bottom corner: the game's own monitor messages share
+    // the bottom-left corner and the two texts landed on top of each other.
+    fontDrawText(surface + pitch * 8 + 8,
+        scene::menuText("MARK: drag rectangles, Enter saves, Esc cancels", settings.system.language),
+        width - 16, pitch, COLOR_GREEN);
+}
+
+// 217: the sharp-text present path rebuilds the screen from captured text
+// runs only, so the raw outline pixels drawn into the indexed surface never
+// reach a 3D frame - the owner dragged rectangles and saw nothing. This
+// re-draws the same rectangles as RGBA patches straight over the presented
+// scene, the way the fly-camera FPS readout does.
+void drawSceneOverlay()
+{
+    if (!gMarkMode || gSdlSurface == nullptr) return;
+    if (gMarkRects.empty() && !gMarkDragging) return;
+    const int width = gSdlSurface->w;
+    const int height = gSdlSurface->h;
+    const auto outlinePatch = [&](const MarkRect& rect) {
+        int x0 = std::max(0, std::min(std::min(rect.x0, rect.x1), width - 2));
+        int x1 = std::max(0, std::min(std::max(rect.x0, rect.x1), width - 1));
+        int y0 = std::max(0, std::min(std::min(rect.y0, rect.y1), height - 2));
+        int y1 = std::max(0, std::min(std::max(rect.y0, rect.y1), height - 1));
+        if (x1 < x0 || y1 < y0) return;
+        const int w = x1 - x0 + 1;
+        const int h = y1 - y0 + 1;
+        std::vector<unsigned char> rgba(static_cast<size_t>(w) * h * 4, 0);
+        const auto put = [&rgba, w, h](int x, int y) {
+            unsigned char* pixel = rgba.data() + (static_cast<size_t>(y) * w + x) * 4;
+            pixel[0] = 0;
+            pixel[1] = 255;
+            pixel[2] = 0;
+            pixel[3] = 255;
+        };
+        for (int x = 0; x < w; x++) {
+            put(x, 0);
+            put(x, h - 1);
+            if (h > 1) put(x, 1);
+            if (h > 2) put(x, h - 2);
+        }
+        for (int y = 0; y < h; y++) {
+            put(0, y);
+            put(w - 1, y);
+            if (w > 1) put(1, y);
+            if (w > 2) put(w - 2, y);
+        }
+        scene_renderer::drawOverlay(rgba.data(), w, h, w * 4, x0, y0, w, h);
+    };
+    for (const MarkRect& rect : gMarkRects) {
+        outlinePatch(rect);
+    }
+    if (gMarkDragging) {
+        outlinePatch(gMarkDrag);
+    }
 }
 
 bool markMode()
@@ -1274,7 +1364,7 @@ void pumpTeleport()
     char message[128];
     snprintf(message, sizeof(message), "teleported: %s e%d hex %d", gMapHeader.name,
         gTeleport.elevation, gDude->tile);
-    displayMonitorAddMessage(message);
+    displayMonitorAddMessage(scene::menuStatusText(message, settings.system.language).c_str());
     printf("owner teleport: arrived, %s\n", message);
     fflush(stdout);
     gTeleport.active = false;
