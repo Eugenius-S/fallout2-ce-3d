@@ -21,6 +21,8 @@ static bool gConfiguredScalePresent = false;
 static int gConfiguredScale = 1;
 static bool gConfiguredScaleFactorPresent = false;
 static double gConfiguredScaleFactor = 1.0;
+static bool gConfiguredWindowedPresent = false;
+static int gConfiguredWindowed = 0;
 static int gWrittenWidth = 0;
 static int gWrittenHeight = 0;
 
@@ -69,6 +71,10 @@ bool configGetString(Config*, const char*, const char*, char** value, const char
 }
 bool configGetInt(Config*, const char* section, const char* key, int* value)
 {
+    if (std::strcmp(section, "screen") == 0 && std::strcmp(key, "windowed") == 0 && gConfiguredWindowedPresent) {
+        *value = gConfiguredWindowed;
+        return true;
+    }
     if (std::strcmp(section, "screen") != 0 || std::strcmp(key, "scale") != 0 || !gConfiguredScalePresent) return false;
     *value = gConfiguredScale;
     return true;
@@ -207,6 +213,14 @@ int main()
     if (!check(settingsSetValue(*resolutionMode, 25601440, nullptr) && settingsSave()
             && gWrittenWidth == 2560 && gWrittenHeight == 1440,
             "a pending resolution choice writes both legacy resolution keys")) return 1;
+    gConfiguredWindowedPresent = true;
+    gConfiguredWindowed = static_cast<int>(WindowMode::Windowed);
+    if (!check(initializeWith(nullptr) && settings.screen.windowed == WindowMode::Windowed,
+            "a saved windowed=0 (Window) survives the load instead of clamping to fullscreen")) return 1;
+    gConfiguredWindowed = static_cast<int>(WindowMode::WindowedFullscreen);
+    if (!check(initializeWith(nullptr) && settings.screen.windowed == WindowMode::WindowedFullscreen,
+            "a saved windowed=2 (Borderless) survives the load")) return 1;
+    gConfiguredWindowedPresent = false;
     gConfiguredScalePresent = true;
     gConfiguredScale = 2;
     gConfiguredScaleFactorPresent = false;

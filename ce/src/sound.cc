@@ -442,6 +442,13 @@ void _refreshSoundBuffers(Sound* sound)
 // 0x4ACC58
 SoundError soundInit(int _, int numBuffers, int __, int dataSize, int rate, int channelCount)
 {
+    // 216: a dev test run (tools/dev-snapshot.ps1) boots beside the user's
+    // open game; it must stay silent regardless of the config it borrows.
+    if (getenv("F2CE_DEV_BACKGROUND") != nullptr) {
+        gSoundLastError = SOUND_SOS_DETECTION_FAILURE;
+        return gSoundLastError;
+    }
+
     if (!audioEngineInit(channelCount)) {
         debugPrint("soundInit: Unable to init audio engine\n");
 
