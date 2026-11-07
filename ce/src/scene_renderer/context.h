@@ -3,6 +3,8 @@
 
 #include <SDL.h>
 
+#include <vector>
+
 namespace fallout {
 namespace scene_renderer {
 
@@ -26,6 +28,15 @@ void drawSceneOverlay(const unsigned char* rgba, int width, int height, int pitc
 // Optional overlay drawn over the last presented frame (movie frames): an
 // RGBA image mapped into `dstX/dstY/dstW/dstH` in LOGICAL coordinates.
 void drawOverlay(const unsigned char* rgba, int width, int height, int pitch, int dstX, int dstY, int dstW, int dstH);
+
+// Maps a point in LOGICAL coordinates to window pixels through the same fit
+// the quads draw with. The mark-drag bench reads its overlay's pixels back.
+bool overlayLogicalToWindow(int logicalX, int logicalY, int* windowX, int* windowY);
+
+// Reads a rectangle of the default framebuffer as it stands before the swap.
+// `windowY` is top-down, like the drawing coordinates; the returned pixels
+// are RGBA, bottom-up (GL's own order).
+bool readPresentPixels(int windowX, int windowY, int width, int height, std::vector<unsigned char>& out);
 
 // Sharp UI text uses an independent texture so it cannot replace the cached
 // game overlay used by static scene snapshots.

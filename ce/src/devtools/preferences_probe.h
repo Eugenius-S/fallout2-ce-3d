@@ -11,6 +11,10 @@ class OptionsPanel;
 
 namespace devtools {
 
+// The fake SDL mouse device the scripted input tags its events with: the dev
+// probes and the mark-drag bench drive the mouse without the owner's real one.
+inline constexpr Uint32 kScriptMouse = 0x154154u;
+
 bool parsePreferencesProbeOption(const char* arg);
 bool preferencesProbeRequested();
 bool preferencesProbeActive();
@@ -29,6 +33,9 @@ bool scriptedInputTakeSnapshotRequest();
 void scriptedInputPump();
 void scriptedInputObserveEvent(const SDL_Event& event);
 bool scriptedInputMouse(int* x, int* y, unsigned char* left, unsigned char* right);
+// The mark-drag bench has no script file: it pushes its own scripted events
+// and flips this on so they drive the mouse device like a script's would.
+void scriptedInputSetExternalMouse(bool enable);
 
 } // namespace devtools
 } // namespace fallout

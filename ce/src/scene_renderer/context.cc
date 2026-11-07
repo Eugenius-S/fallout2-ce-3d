@@ -367,6 +367,32 @@ void drawOverlay(const unsigned char* rgba, int width, int height, int pitch, in
     glDisable(kBlend);
 }
 
+bool overlayLogicalToWindow(int logicalX, int logicalY, int* windowX, int* windowY)
+{
+    if (!gInitialized || windowX == nullptr || windowY == nullptr) return false;
+    int fitX;
+    int fitY;
+    int fitW;
+    int fitH;
+    if (!fitRect(gLogicalWidth, gLogicalHeight, gWindowWidth, gWindowHeight, &fitX, &fitY, &fitW, &fitH)) {
+        return false;
+    }
+    *windowX = fitX + logicalX * fitW / gLogicalWidth;
+    *windowY = fitY + logicalY * fitH / gLogicalHeight;
+    return true;
+}
+
+bool readPresentPixels(int windowX, int windowY, int width, int height, std::vector<unsigned char>& out)
+{
+    if (!gInitialized || width <= 0 || height <= 0) return false;
+    out.assign(static_cast<size_t>(width) * height * 4, 0);
+    // The caller speaks top-down window coordinates; GL reads bottom-up.
+    glPixelStorei(kPackAlignment, 1);
+    glReadPixels(windowX, gWindowHeight - windowY - height, width, height, kRGBA, kUnsignedByte, out.data());
+    glPixelStorei(kPackAlignment, kDefaultPackAlignment);
+    return glGetError() == 0;
+}
+
 bool sharpTextOutputSize(int* width, int* height)
 {
     if (!gInitialized || width == nullptr || height == nullptr) return false;

@@ -816,6 +816,9 @@ static void renderPresentBody()
                 // sharp-text rebuild above drops raw indexed pixels, so the
                 // surface draw alone never reached the screen.
                 owner_shot::drawSceneOverlay();
+                // 218: the drag bench reads the presented pixels right here,
+                // where the overlay has just landed.
+                owner_shot::verifySceneOverlayPresented();
                 devtools::sceneLiveFrameReady();
                 scene_renderer::swap();
                 scene_renderer::perfEnd();

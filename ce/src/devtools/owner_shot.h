@@ -36,6 +36,12 @@ void draw(unsigned char* surface, int width, int height, int pitch);
 // owner's screen. Call after the scene overlay, before the swap.
 void drawSceneOverlay();
 
+// Called from the present path right after drawSceneOverlay. While the drag
+// bench (--dev-owner-mark-drag) runs, it reads the presented pixels back and
+// proves the green outline is really in the frame - the 217 overlay was only
+// ever verified through the saved files.
+void verifySceneOverlayPresented();
+
 // True while the mark mode holds the input: the main loop skips the game's
 // update phases and only presents.
 bool markMode();
