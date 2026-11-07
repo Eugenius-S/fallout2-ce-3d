@@ -99,6 +99,8 @@ double cloudPhaseRequested(); // --dev-cloud-phase, game minutes, -1 when unset
 // The fly camera lands (a frame is presented without the 3D scene: combat,
 // dialog, a movie).
 void landFlight();
+// 215: Ctrl+F11 in normal play — take off or land the fly camera.
+void toggleFly();
 // A new or loaded game: a view restore queued by the last one is dropped.
 void gameReset();
 bool staticWalkPreviewActive();
